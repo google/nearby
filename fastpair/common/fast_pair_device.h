@@ -34,20 +34,23 @@ enum class DeviceFastPairVersion {
 
 // Thin class which is used by the higher level components of the Fast Pair
 // system to represent a device.
-struct FastPairDevice {
-  FastPairDevice(std::string model_id, std::string ble_address,
-                 Protocol protocol);
+class FastPairDevice {
+ public:
+  FastPairDevice(absl::string_view model_id, absl::string_view ble_address,
+                 Protocol protocol)
+      : model_id_(model_id), ble_address_(ble_address), protocol_(protocol) {}
+
   FastPairDevice(const FastPairDevice&) = delete;
   FastPairDevice& operator=(const FastPairDevice&) = delete;
   FastPairDevice& operator=(FastPairDevice&&) = delete;
-  ~FastPairDevice();
+  ~FastPairDevice() = default;
 
   const std::optional<std::string>& public_address() const {
     return public_address_;
   }
 
-  void set_public_address(const std::string& address) {
-    public_address_ = address;
+  void set_public_address(absl::string_view address) {
+    public_address_ = std::string(address);
   }
 
   const std::optional<std::string>& display_name() const {
@@ -72,15 +75,21 @@ struct FastPairDevice {
     account_key_ = account_key;
   }
 
-  const std::string model_id;
+  absl::string_view GetModelId() const { return model_id_; }
 
-  // Bluetooth LE address of the device.
-  const std::string ble_address;
+  absl::string_view GetBleAddress() const { return ble_address_; }
 
-  // The Quick Pair protocol implementation that this device belongs to.
-  const Protocol protocol;
+  Protocol GetProtocol() const { return protocol_; }
 
  private:
+  std::string model_id_;
+
+  // Bluetooth LE address of the device.
+  std::string ble_address_;
+
+  // The Quick Pair protocol implementation that this device belongs to.
+  Protocol protocol_;
+
   // Bluetooth public classic address of the device.
   std::optional<std::string> public_address_;
 
