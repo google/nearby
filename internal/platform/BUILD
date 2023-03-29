@@ -139,6 +139,7 @@ cc_library(
     srcs = [
         "ble_connection_info.cc",
         "bluetooth_connection_info.cc",
+        "connection_info.cc",
         "wifi_lan_connection_info.cc",
     ],
     hdrs = [
@@ -152,11 +153,13 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        ":base",
         ":logging",
+        "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:variant",
     ],
 )
 
@@ -442,6 +445,7 @@ cc_test(
         "borrowable_test.cc",
         "cancelable_alarm_test.cc",
         "condition_variable_test.cc",
+        "connection_info_test.cc",
         "count_down_latch_test.cc",
         "credential_storage_impl_test.cc",
         "crypto_test.cc",
@@ -476,11 +480,13 @@ cc_test(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
+        "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ],
 )

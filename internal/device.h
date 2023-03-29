@@ -26,8 +26,10 @@
 
 namespace nearby {
 
+// We need absl::monostate here to represent the case that we get an invalid
+// connection info data element.
 using ConnectionInfoVariant =
-    absl::variant<BleConnectionInfo, BluetoothConnectionInfo,
+    absl::variant<absl::monostate, BleConnectionInfo, BluetoothConnectionInfo,
                   WifiLanConnectionInfo>;
 
 class NearbyDevice {
@@ -43,8 +45,7 @@ class NearbyDevice {
   NearbyDevice& operator=(NearbyDevice&&) = default;
   NearbyDevice(const NearbyDevice&) = delete;
   NearbyDevice& operator=(const NearbyDevice&) = delete;
-  virtual absl::string_view GetEndpointId() const = 0;
-  virtual absl::string_view GetEndpointInfo() const = 0;
+  virtual std::string GetEndpointId() const = 0;
   // We will be adding more ConnectionInfo types to this variant as they are
   // implemented.
   virtual std::vector<ConnectionInfoVariant> GetConnectionInfos() const = 0;

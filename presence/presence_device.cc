@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "internal/crypto/random.h"
+#include "internal/device.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "presence/device_motion.h"
@@ -47,7 +48,8 @@ PresenceDevice::PresenceDevice(DeviceMotion device_motion,
 
 std::vector<nearby::ConnectionInfoVariant> PresenceDevice::GetConnectionInfos()
     const {
-  return {nearby::BleConnectionInfo(metadata_.bluetooth_mac_address())};
+  return {nearby::BleConnectionInfo(metadata_.bluetooth_mac_address(),
+                                    /*gatt_characteristic=*/"", /*psm=*/"", 0)};
 }
 }  // namespace presence
 }  // namespace nearby

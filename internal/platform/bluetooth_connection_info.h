@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,40 +17,44 @@
 
 #include <string>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 
 class BluetoothConnectionInfo : public ConnectionInfo {
  public:
-  MediumType GetMediumType() const override { return MediumType::kBluetooth; }
-  ByteArray ToBytes() const override;
-  BluetoothConnectionInfo() = delete;
-  explicit BluetoothConnectionInfo(const ByteArray& mac_address,
-                                   absl::string_view service_id)
-      : mac_address_(mac_address.data()), service_id_(std::string(service_id)) {
-    mac_address_.resize(kMacAddressLength);
-  }
+  static absl::StatusOr<BluetoothConnectionInfo> FromDataElementBytes(
+      absl::string_view bytes);
 
-  BluetoothConnectionInfo(BluetoothConnectionInfo const& info) {
-    mac_address_ = info.mac_address_;
-    service_id_ = info.service_id_;
+  BluetoothConnectionInfo(absl::string_view mac_address,
+                          absl::string_view bluetooth_uuid, char actions)
+      : mac_address_(std::string(mac_address)),
+        bluetooth_uuid_(std::string(bluetooth_uuid)),
+        actions_(actions) {}
+
+  ::location::nearby::proto::connections::Medium GetMediumType()
+      const override {
+    return ::location::nearby::proto::connections::Medium::BLUETOOTH;
   }
-  static BluetoothConnectionInfo FromBytes(ByteArray bytes);
-  ByteArray GetMacAddress() const { return ByteArray(mac_address_); }
-  absl::string_view GetServiceId() const { return service_id_; }
+  std::string ToDataElementBytes() const override;
+  std::string GetMacAddress() const { return mac_address_; }
+  std::string GetBluetoothUuid() const { return bluetooth_uuid_; }
+  char GetActions() const override { return actions_; }
 
  private:
   std::string mac_address_;
-  std::string service_id_;
+  std::string bluetooth_uuid_;
+  char actions_;
 };
 
 inline bool operator==(const BluetoothConnectionInfo& a,
                        const BluetoothConnectionInfo& b) {
   return a.GetMacAddress() == b.GetMacAddress() &&
-         a.GetServiceId() == b.GetServiceId();
+         a.GetBluetoothUuid() == b.GetBluetoothUuid() &&
+         a.GetActions() == b.GetActions();
 }
 
 inline bool operator!=(const BluetoothConnectionInfo& a,

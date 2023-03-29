@@ -21,7 +21,6 @@
 #include "gtest/gtest.h"
 #include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
-#include "internal/platform/logging.h"
 #include "presence/data_element.h"
 #include "presence/presence_action.h"
 
@@ -78,9 +77,8 @@ TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   auto info = (device.GetConnectionInfos().at(0));
   ASSERT_TRUE(absl::holds_alternative<nearby::BleConnectionInfo>(info));
-  EXPECT_EQ(
-      absl::get<nearby::BleConnectionInfo>(info).GetMacAddress().AsStringView(),
-      kMacAddr);
+  EXPECT_EQ(absl::get<nearby::BleConnectionInfo>(info).GetMacAddress(),
+            kMacAddr);
 }
 
 TEST(PresenceDevicetest, TestGetAddExtendedProperties) {
