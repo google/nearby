@@ -16,6 +16,7 @@ syntax = "proto2";
 
 package nearby.proto.fastpair;
 
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "third_party/nearby/proto/fast_pair_enums.proto";
 import "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
 
