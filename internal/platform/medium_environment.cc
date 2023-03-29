@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cinttypes>
 #include <cstdint>
+#include <memory>
 #include <new>
 #include <string>
 #include <type_traits>
@@ -27,6 +28,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "absl/types/optional.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -47,6 +49,9 @@ void MediumEnvironment::Start(EnvironmentConfig config) {
   if (!enabled_.exchange(true)) {
     NEARBY_LOGS(INFO) << "MediumEnvironment::Start()";
     config_ = std::move(config);
+    if (config_.use_simulated_clock) {
+      simulated_clock_ = std::make_unique<FakeClock>();
+    }
     Reset();
   }
 }
@@ -55,6 +60,8 @@ void MediumEnvironment::Stop() {
   if (enabled_.exchange(false)) {
     NEARBY_LOGS(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
+    config_ = {};
+    simulated_clock_.reset();
   }
 }
 
@@ -1195,6 +1202,13 @@ void MediumEnvironment::UnregisterWifiHotspotMedium(
 
 void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
   const_cast<FeatureFlags&>(FeatureFlags::GetInstance()).SetFlags(flags);
+}
+
+absl::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
+  if (simulated_clock_) {
+    return absl::optional<FakeClock*>(simulated_clock_.get());
+  }
+  return absl::nullopt;
 }
 
 }  // namespace nearby

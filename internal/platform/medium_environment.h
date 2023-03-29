@@ -30,6 +30,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/uuid.h"
+#include "internal/test/fake_clock.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
@@ -52,6 +53,11 @@ struct EnvironmentConfig {
   // This is currently set to false, due to http://b/139734036 that would lead
   // to flaky tests.
   bool webrtc_enabled = false;
+
+  // Installs a simulated clock, which can be used to test timeouts.
+  // The simulated clock is automatically picked up by SystemClock, Timer and
+  // ScheduledExecutor implementations.
+  bool use_simulated_clock = false;
 };
 
 // MediumEnvironment is a simulated environment which allows multiple instances
@@ -376,6 +382,8 @@ class MediumEnvironment {
 
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
+  absl::optional<FakeClock*> GetSimulatedClock();
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
@@ -503,6 +511,7 @@ class MediumEnvironment {
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
+  std::unique_ptr<FakeClock> simulated_clock_;
 };
 
 }  // namespace nearby

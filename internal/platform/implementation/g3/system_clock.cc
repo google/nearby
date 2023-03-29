@@ -16,12 +16,28 @@
 
 #include "absl/time/clock.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/medium_environment.h"
+#include "internal/test/fake_clock.h"
 
 namespace nearby {
 
-absl::Time SystemClock::ElapsedRealtime() { return absl::Now(); }
+absl::Time SystemClock::ElapsedRealtime() {
+  absl::optional<FakeClock*> fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock();
+  if (fake_clock.has_value()) {
+    return (*fake_clock)->Now();
+  }
+  return absl::Now();
+}
+
 Exception SystemClock::Sleep(absl::Duration duration) {
-  absl::SleepFor(duration);
+  absl::optional<FakeClock*> fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock();
+  if (fake_clock.has_value()) {
+    (*fake_clock)->FastForward(duration);
+  } else {
+    absl::SleepFor(duration);
+  }
   return {Exception::kSuccess};
 }
 
