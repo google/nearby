@@ -380,7 +380,14 @@ absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
     const ByteArray& new_value) {
   // check if client has requested notifications.
   // no-op for now because client cannot request notifications.
-  return absl::UnimplementedError("Unimplemented!");
+  NEARBY_LOGS(INFO)
+      << "G3 Ble GattServer NotifyCharacteristicChanged, characteristic=("
+      << characteristic.service_uuid.Get16BitAsString() << ","
+      << std::string(characteristic.uuid)
+      << "), new_value = " << absl::BytesToHexString(new_value.data());
+  return MediumEnvironment::Instance()
+      .NotifyBleV2MediumGattCharacteristicChanged(characteristic, confirm,
+                                                  new_value);
 }
 
 void BleV2Medium::GattServer::Stop() {
@@ -457,16 +464,33 @@ std::optional<std::string> BleV2Medium::GattClient::ReadCharacteristic(
 bool BleV2Medium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     absl::string_view value, api::ble_v2::GattClient::WriteType write_type) {
-  // No op.
-  return false;
+  absl::MutexLock lock(&mutex_);
+  if (!is_connection_alive_) {
+    return false;
+  }
+  NEARBY_LOGS(INFO) << "G3 Ble WriteCharacteristic, characteristic=("
+                    << characteristic.service_uuid.Get16BitAsString() << ","
+                    << std::string(characteristic.uuid)
+                    << "), value = " << absl::BytesToHexString(value);
+  return MediumEnvironment::Instance().WriteBleV2MediumGattCharacteristic(
+      characteristic, value);
 }
 
 bool BleV2Medium::GattClient::SetCharacteristicSubscription(
     const api::ble_v2::GattCharacteristic& characteristic, bool enable,
     absl::AnyInvocable<void(absl::string_view value)>
         on_characteristic_changed_cb) {
-  // No op since we can't write characteristics.
-  return false;
+  absl::MutexLock lock(&mutex_);
+  if (!is_connection_alive_) {
+    return false;
+  }
+  NEARBY_LOGS(INFO) << "G3 Ble SetCharacteristicSubscription, characteristic=("
+                    << characteristic.service_uuid.Get16BitAsString() << ","
+                    << std::string(characteristic.uuid)
+                    << "), enable = " << enable;
+  return MediumEnvironment::Instance()
+      .SetBleV2MediumGattCharacteristicSubscription(
+          characteristic, enable, std::move(on_characteristic_changed_cb));
 }
 
 void BleV2Medium::GattClient::Disconnect() {

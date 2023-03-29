@@ -265,8 +265,31 @@ class MediumEnvironment {
   ByteArray ReadBleV2MediumGattCharacteristics(
       const api::ble_v2::GattCharacteristic& characteristic);
 
+  // Writes the BLE GATT characteristic value.
+  bool WriteBleV2MediumGattCharacteristic(
+      const api::ble_v2::GattCharacteristic& characteristic,
+      absl::string_view value);
+
+  // Subscribes the notification once characteristic value changed.
+  // This is to save the `on_characteristic_changed_cb` to
+  // the map `subscribed_characteristic_`.
+  bool SetBleV2MediumGattCharacteristicSubscription(
+      const api::ble_v2::GattCharacteristic& characteristic, bool enable,
+      absl::AnyInvocable<void(absl::string_view value)>
+          on_characteristic_changed_cb);
+
+  // Notifies the characteristic value changed. This is to trigger the stored
+  // `on_characteristic_changed_cb` in the map `subscribed_characteristic_`
+  absl::Status NotifyBleV2MediumGattCharacteristicChanged(
+      const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+      const ByteArray& new_value);
+
   // Clears the map `discovered_gatt_advertisement_bytes_`.
   void ClearBleV2MediumGattCharacteristicsForDiscovery();
+
+  // Erases Characteristic from the map `discovered_gatt_advertisement_bytes_`.
+  void EraseBleV2MediumGattCharacteristicsForDiscovery(
+      const api::ble_v2::GattCharacteristic& characteristic);
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
@@ -454,6 +477,9 @@ class MediumEnvironment {
       gatt_advertisement_bytes_;
   absl::flat_hash_map<api::ble_v2::GattCharacteristic, nearby::ByteArray>
       discovered_gatt_advertisement_bytes_;
+  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
+                      absl::AnyInvocable<void(absl::string_view value)>>
+      subscribed_characteristic_;
 
 #ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.
