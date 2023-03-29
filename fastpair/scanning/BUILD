@@ -41,6 +41,23 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "mocks",
+    testonly = 1,
+    hdrs = [
+        "mock_scanner_broker.h",
+    ],
+    visibility = [
+        "//fastpair:__subpackages__",
+    ],
+    deps = [
+        ":scanner",
+        "//fastpair/common",
+        "//internal/base",
+        "@com_google_googletest//:gtest_for_library_testonly",
+    ],
+)
+
 cc_test(
     name = "scanner_broker_impl_test",
     size = "small",
@@ -54,8 +71,10 @@ cc_test(
         "//fastpair/scanning/fastpair:scanning",
         "//fastpair/scanning/fastpair:test_support",
         "//internal/platform:test_util",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],

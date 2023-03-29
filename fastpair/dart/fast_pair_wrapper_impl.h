@@ -19,14 +19,14 @@
 #include <memory>
 
 #include "fastpair/dart/fast_pair_wrapper.h"
-#include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
+#include "fastpair/scanning/scanner_broker.h"
 
 namespace nearby {
 namespace fastpair {
 
 class FastPairScannerImpl;
 
-class FastPairWrapperImpl : public FastPairWrapper, public FastPairScannerImpl {
+class FastPairWrapperImpl : public FastPairWrapper {
  public:
   explicit FastPairWrapperImpl();
   ~FastPairWrapperImpl() override;
@@ -37,7 +37,7 @@ class FastPairWrapperImpl : public FastPairWrapper, public FastPairScannerImpl {
   void StartScan() override;
 
  private:
-  std::unique_ptr<FastPairScannerImpl> scanner_;
+  std::unique_ptr<ScannerBroker> scanner_broker_;
 
   // True if we are currently scanning for remote devices.
   bool is_scanning_ = false;

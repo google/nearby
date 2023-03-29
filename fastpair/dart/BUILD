@@ -29,7 +29,8 @@ cc_library(
         "//fastpair:__subpackages__",
     ],
     deps = [
-        "//fastpair/scanning/fastpair:scanning",
+        "//fastpair/common",
+        "//fastpair/scanning:scanner",
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
     ],

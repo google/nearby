@@ -54,10 +54,7 @@ void ScannerBrokerImpl::StartFastPairScanning() {
   DCHECK(!fast_pair_discoverable_scanner_);
   DCHECK(adapter_);
   NEARBY_LOGS(VERBOSE) << "Starting Fast Pair Scanning.";
-  scanner_impl_ = std::make_shared<FastPairScannerImpl>();
-  scanner_impl_->StartScanning();
-  scanner_ = std::move(scanner_impl_);
-
+  scanner_ = std::make_shared<FastPairScannerImpl>();
   fast_pair_discoverable_scanner_ =
       FastPairDiscoverableScannerImpl::Factory::Create(
           scanner_, adapter_,
@@ -67,6 +64,7 @@ void ScannerBrokerImpl::StartFastPairScanning() {
 
 void ScannerBrokerImpl::StopFastPairScanning() {
   fast_pair_discoverable_scanner_.reset();
+  scanner_.reset();
   observers_.Clear();
   NEARBY_LOGS(VERBOSE) << __func__ << "Stopping Fast Pair Scanning.";
 }

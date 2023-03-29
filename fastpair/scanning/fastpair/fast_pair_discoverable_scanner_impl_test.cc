@@ -23,11 +23,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
-#include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
+#include "fastpair/scanning/fastpair/fake_fast_pair_scanner.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "fastpair/testing/fast_pair_service_data_creator.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace fastpair {
@@ -79,8 +78,14 @@ class FastPairDiscoverableScannerImplTest : public testing::Test {
  public:
   void SetUp() override {
     SetUpMetadata();
-    scanner_ = std::make_shared<FastPairScannerImpl>();
+    scanner_ = std::make_shared<FakeFastPairScanner>();
     adapter_ = std::make_shared<BluetoothAdapter>();
+  }
+
+  void TearDown() override {
+    scanner_.reset();
+    adapter_.reset();
+    repository_.reset();
   }
 
   void SetUpMetadata() {
@@ -93,7 +98,7 @@ class FastPairDiscoverableScannerImplTest : public testing::Test {
   // void TearDown() override { discoverable_scanner_.reset(); }
 
  protected:
-  std::shared_ptr<FastPairScannerImpl> scanner_;
+  std::shared_ptr<FakeFastPairScanner> scanner_;
   std::unique_ptr<FakeFastPairRepository> repository_;
   std::shared_ptr<BluetoothAdapter> adapter_;
   DeviceCallback found_device_callback_;
@@ -117,9 +122,9 @@ TEST_F(FastPairDiscoverableScannerImplTest, ValidModelId) {
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
-  scanner_->OnDeviceFound(BlePeripheral(ble_peripheral.get()));
+  scanner_->NotifyDeviceFound(BlePeripheral(ble_peripheral.get()));
   EXPECT_TRUE(found_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  scanner_->OnDeviceLost(BlePeripheral(ble_peripheral.get()));
+  scanner_->NotifyDeviceLost(BlePeripheral(ble_peripheral.get()));
   EXPECT_TRUE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -136,7 +141,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, InvalidModelId) {
 
   auto ble_peripheral = std::make_unique<FakeBlePeripheral>(
       kTestBleDeviceAddress, kInvalidModelId);
-  scanner_->OnDeviceFound(BlePeripheral(ble_peripheral.get()));
+  scanner_->NotifyDeviceFound(BlePeripheral(ble_peripheral.get()));
   EXPECT_FALSE(found_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -287,7 +292,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, NearbyShareModelId) {
 
   auto ble_peripheral = std::make_unique<FakeBlePeripheral>(
       kTestBleDeviceAddress, kNearbyShareModelId);
-  scanner_->OnDeviceFound(BlePeripheral(ble_peripheral.get()));
+  scanner_->NotifyDeviceFound(BlePeripheral(ble_peripheral.get()));
   EXPECT_FALSE(found_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -309,7 +314,7 @@ TEST_F(FastPairDiscoverableScannerImplTest,
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
-  scanner_->OnDeviceLost(BlePeripheral(ble_peripheral.get()));
+  scanner_->NotifyDeviceLost(BlePeripheral(ble_peripheral.get()));
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 

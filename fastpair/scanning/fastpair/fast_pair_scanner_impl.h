@@ -57,9 +57,6 @@ class FastPairScannerImpl : public FastPairScanner {
   void AddObserver(FastPairScanner::Observer* observer) override;
   void RemoveObserver(FastPairScanner::Observer* observer) override;
 
-  void StartScanning();
-  void StopScanning();
-
   // Fast Pair discovered peripheral callback
   void OnDeviceFound(const BlePeripheral& peripheral);
   void OnDeviceLost(const BlePeripheral& peripheral);
@@ -72,6 +69,9 @@ class FastPairScannerImpl : public FastPairScanner {
   Ble& GetBle() { return ble_; }
 
  private:
+  void StartScanning();
+  void StopScanning();
+
   std::unique_ptr<TaskRunner> task_runner_;
 
   // Map of a Bluetooth device address to a set of advertisement data we have
