@@ -18,9 +18,10 @@
 #include <memory>
 #include <utility>
 
-#include "absl/time/clock.h"
 #include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/runnable.h"
+#include "internal/test/fake_clock.h"
 
 namespace nearby {
 namespace g3 {
@@ -59,19 +60,70 @@ class ScheduledCancelable : public api::Cancelable {
 
 }  // namespace
 
+ScheduledExecutor::ScheduledExecutor() {
+  absl::optional<FakeClock*> fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock();
+  if (fake_clock.has_value()) {
+    name_ = absl::StrFormat("G3 scheduled executor %p", this);
+    (*fake_clock)->AddObserver(name_, [this]() { RunReadyTasks(); });
+  }
+}
+
+ScheduledExecutor::~ScheduledExecutor() {
+  absl::optional<FakeClock*> fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock();
+  if (fake_clock.has_value()) {
+    (*fake_clock)->RemoveObserver(name_);
+  }
+  executor_.Shutdown();
+}
+
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration delay) {
   auto scheduled_cancelable = std::make_shared<ScheduledCancelable>();
   if (executor_.InShutdown()) {
     return scheduled_cancelable;
   }
-  executor_.ScheduleAfter(delay, [this, scheduled_cancelable,
-                                  runnable(std::move(runnable))]() mutable {
+  Runnable task = [this, scheduled_cancelable,
+                   runnable = std::move(runnable)]() mutable {
     if (!executor_.InShutdown() && scheduled_cancelable->MarkExecuted()) {
       runnable();
     }
-  });
+  };
+  absl::optional<FakeClock*> fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock();
+  if (fake_clock.has_value()) {
+    absl::Time trigger_time = (*fake_clock)->Now() + delay;
+    absl::MutexLock lock(&mutex_);
+    tasks_.insert(std::pair<absl::Time, std::unique_ptr<Runnable>>(
+        trigger_time, std::make_unique<Runnable>(std::move(task))));
+  } else {
+    executor_.ScheduleAfter(delay, std::move(task));
+  }
   return scheduled_cancelable;
+}
+
+void ScheduledExecutor::RunReadyTasks() {
+  absl::optional<FakeClock*> fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock();
+  if (executor_.InShutdown()) {
+    return;
+  }
+  if (!fake_clock.has_value()) {
+    return;
+  }
+  absl::Time current_time = (*fake_clock)->Now();
+  absl::MutexLock lock(&mutex_);
+  for (auto it = tasks_.begin(); it != tasks_.end();) {
+    if (it->first <= current_time) {
+      executor_.Execute(
+          [task = std::move(it->second)]() mutable { (*task)(); });
+      it = tasks_.erase(it);
+    } else {
+      // Tasks are sorted. We can stop iterating.
+      break;
+    }
+  }
 }
 
 }  // namespace g3

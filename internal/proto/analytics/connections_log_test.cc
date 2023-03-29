@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// #include "logs/proto/location/nearby/nearby_client_log.proto.h"
 #include "google/protobuf/descriptor.h"
 #include "gtest/gtest.h"
 #include "internal/platform/logging.h"

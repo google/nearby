@@ -60,6 +60,7 @@ cc_proto_library(
     name = "sharing_enums_cc_proto",
     visibility = [
         "//:__subpackages__",
+        "//location/nearby/analytics/cpp/logging:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [":sharing_enums_proto"],

@@ -23,20 +23,12 @@
 namespace nearby {
 namespace fastpair {
 
-FastPairDevice::FastPairDevice(std::string model_id, std::string ble_address,
-                               Protocol protocol)
-    : model_id(std::move(model_id)),
-      ble_address(std::move(ble_address)),
-      protocol(protocol) {}
-
-FastPairDevice::~FastPairDevice() = default;
-
 std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device) {
-  stream << "[Device: model_id = " << device.model_id
-         << ", ble_address = " << device.ble_address
-         << ", piblic_address = " << device.public_address().value_or("null")
+  stream << "[Device: model_id = " << device.GetModelId()
+         << ", ble_address = " << device.GetBleAddress()
+         << ", public_address = " << device.public_address().value_or("null")
          << ", display_name = " << device.display_name().value_or("null")
-         << ", protocol = " << device.protocol << "]";
+         << ", protocol = " << device.GetProtocol() << "]";
 
   return stream;
 }

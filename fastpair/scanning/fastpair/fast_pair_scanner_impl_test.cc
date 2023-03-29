@@ -22,7 +22,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "fastpair/common/constant.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -35,6 +34,7 @@ namespace {
 // Below constants are used to construct MockBluetoothDevice for testing.
 constexpr char kTestBleDeviceAddress[] = "11:12:13:14:15:16";
 constexpr char kTestModelId[] = "112233";
+constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(200);
 
 class FakeBlePeripheral : public api::BlePeripheral {
  public:
@@ -98,13 +98,19 @@ class FastPairScannerObserver : public FastPairScanner::Observer {
 class FastPairScannerImplTest : public testing::Test {
  public:
   void SetUp() override {
-    scanner_.reset();
+    env_.Start();
     scanner_ = std::make_shared<FastPairScannerImpl>();
+    SystemClock::Sleep(kTaskWaitTimeout);
     scanner_observer_ = std::make_unique<FastPairScannerObserver>();
     scanner_->AddObserver(scanner_observer_.get());
   }
 
-  void TearDown() override { env_.Stop(); }
+  void TearDown() override {
+    scanner_->RemoveObserver(scanner_observer_.get());
+    scanner_.reset();
+    scanner_observer_.reset();
+    env_.Stop();
+  }
 
   void TriggerOnDeviceFound(absl::string_view address, absl::string_view data) {
     auto ble_peripheral = std::make_unique<FakeBlePeripheral>(address, data);
@@ -122,58 +128,37 @@ class FastPairScannerImplTest : public testing::Test {
   std::unique_ptr<FastPairScannerObserver> scanner_observer_;
 };
 
-TEST_F(FastPairScannerImplTest, FactoryCreatSuccessfully) {
-  env_.Start();
-  std::shared_ptr<FastPairScanner> scanner =
-      FastPairScannerImpl::Factory::Create();
-  EXPECT_TRUE(scanner);
-  scanner.reset();
-  env_.Stop();
-}
-
 TEST_F(FastPairScannerImplTest, StartScanningSuccessfully) {
-  env_.Start();
-  scanner_->StartScanning();
-  SystemClock::Sleep(absl::Milliseconds(200));
   EXPECT_TRUE(scanner_->GetBle().IsScanning());
   // Not StopScanning as FastPairLowPowerDisabled
-  env_.Stop();
 }
 
 TEST_F(FastPairScannerImplTest, DeviceFoundNotifiesObservers) {
-  env_.Start();
   TriggerOnDeviceFound(kTestBleDeviceAddress, kTestModelId);
   EXPECT_TRUE(scanner_observer_->DoesDeviceListContainTestDevice(
       kTestBleDeviceAddress));
-  env_.Stop();
 }
 
 TEST_F(FastPairScannerImplTest, DeviceLostNotifiesObservers) {
-  env_.Start();
   TriggerOnDeviceFound(kTestBleDeviceAddress, kTestModelId);
   EXPECT_TRUE(scanner_observer_->DoesDeviceListContainTestDevice(
       kTestBleDeviceAddress));
   TriggerOnDeviceLost(kTestBleDeviceAddress, kTestModelId);
   EXPECT_FALSE(scanner_observer_->DoesDeviceListContainTestDevice(
       kTestBleDeviceAddress));
-  env_.Stop();
 }
 
-TEST_F(FastPairScannerImplTest, DeviceFoundWithNoServiceData) {
-  env_.Start();
+TEST_F(FastPairScannerImplTest, DeviceFoundWithNoServiceData) {;
   TriggerOnDeviceFound(kTestBleDeviceAddress, "");
   EXPECT_FALSE(scanner_observer_->DoesDeviceListContainTestDevice(
       kTestBleDeviceAddress));
-  env_.Stop();
 }
 
 TEST_F(FastPairScannerImplTest, RemoveObserver) {
-  env_.Start();
   scanner_->RemoveObserver(scanner_observer_.get());
   TriggerOnDeviceFound(kTestBleDeviceAddress, kTestModelId);
   EXPECT_FALSE(scanner_observer_->DoesDeviceListContainTestDevice(
       kTestBleDeviceAddress));
-  env_.Stop();
 }
 
 }  // namespace

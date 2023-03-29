@@ -26,6 +26,7 @@ class FakeFastPairScanner final : public FastPairScanner {
   FakeFastPairScanner() = default;
   FakeFastPairScanner(const FakeFastPairScanner&) = delete;
   FakeFastPairScanner& operator=(const FakeFastPairScanner&) = delete;
+  ~FakeFastPairScanner() override = default;
 
   void AddObserver(Observer* observer) override;
   void RemoveObserver(Observer* observer) override;
@@ -33,8 +34,6 @@ class FakeFastPairScanner final : public FastPairScanner {
   void NotifyDeviceLost(const BlePeripheral& peripheral);
 
  private:
-  ~FakeFastPairScanner() override = default;
-
   ObserverList<FastPairScanner::Observer> observer_;
 };
 

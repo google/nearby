@@ -105,12 +105,6 @@ BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
 // Advertisement packet and populate accordingly.
 bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
                                    AdvertiseParameters advertising_parameters) {
-  // The GATT advertisement data should be passed to GATT service provider.
-  // In order to get it work, we start GATT service during start advertisting.
-  // Based on current parameters, we cannot identify which service is for GATT
-  // and which service is for BLE advertisement. As a workaround at the moment,
-  // we use ble_gatt_server_ is empty or not to different them. The logic should
-  // be updated after the API is refactored.
   std::string service_data_info;
   for (const auto& it : advertising_data.service_data) {
     service_data_info += "{uuid:" + std::string(it.first) +
@@ -119,33 +113,58 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
                          absl::BytesToHexString(it.second.AsStringView()) + "}";
   }
 
-  NEARBY_LOGS(INFO)
-      << "Windows Ble StartAdvertising:, advertising_data.service_data="
-      << service_data_info << ", tx_power_level="
-      << TxPowerLevelToName(advertising_parameters.tx_power_level);
+  NEARBY_LOGS(INFO) << __func__
+                    << ": advertising_data.service_data=" << service_data_info
+                    << ", tx_power_level="
+                    << TxPowerLevelToName(
+                           advertising_parameters.tx_power_level);
 
-  if (ble_gatt_server_ != nullptr) {
-    return StartGattAdvertising(advertising_data, advertising_parameters);
-  } else {
+  if (advertising_data.is_extended_advertisement) {
+    // In BLE v2, the flag is set when the Bluetooth adapter supports extended
+    // advertising and GATT server is using.
+    NEARBY_LOGS(INFO) << __func__
+                      << ": BLE advertising using BLE extended feature.";
     return StartBleAdvertising(advertising_data, advertising_parameters);
+  } else {
+    if (ble_gatt_server_ != nullptr) {
+      NEARBY_LOGS(INFO) << __func__ << ": BLE advertising on GATT server.";
+      return StartGattAdvertising(advertising_data, advertising_parameters);
+    } else {
+      NEARBY_LOGS(INFO) << __func__ << ": BLE fast advertising.";
+      return StartBleAdvertising(advertising_data, advertising_parameters);
+    }
   }
 }
 
 bool BleV2Medium::StopAdvertising() {
-  NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising.";
-  if (ble_gatt_server_ != nullptr) {
-    return StopGattAdvertising();
-  } else {
-    return StopBleAdvertising();
+  NEARBY_LOGS(INFO) << __func__ << ": Stop advertising.";
+  bool result;
+  if (is_gatt_publisher_started_) {
+    bool stop_gatt_result = StopGattAdvertising();
+    if (!stop_gatt_result) {
+      NEARBY_LOGS(WARNING) << "Failed to stop GATT advertising.";
+    }
+    ble_gatt_server_ = nullptr;
+    result = stop_gatt_result;
   }
+
+  if (is_ble_publisher_started_) {
+    bool stop_ble_result = StopBleAdvertising();
+    if (!stop_ble_result) {
+      NEARBY_LOGS(WARNING) << "Failed to stop BLE advertising.";
+    }
+    result = result && stop_ble_result;
+  }
+
+  return result;
 }
 
 std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertise_parameters,
     BleV2Medium::AdvertisingCallback callback) {
-  NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: "
-                       "advertising_data.is_extended_advertisement="
+  NEARBY_LOGS(INFO) << __func__
+                    << ": advertising_data.is_extended_advertisement="
                     << advertising_data.is_extended_advertisement
                     << ", advertising_data.service_data size="
                     << advertising_data.service_data.size()
@@ -160,21 +179,20 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
+  NEARBY_LOGS(INFO) << __func__
+                    << ": service UUID: " << std::string(service_uuid)
+                    << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
   try {
-    NEARBY_LOGS(INFO) << __func__ << "BLE StartScanning: service UUID: "
-                      << std::string(service_uuid) << ", TxPowerLevel: "
-                      << TxPowerLevelToName(tx_power_level);
-
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << __func__
                            << "BLE cannot start scanning because the "
-                              "bluetooth adapter is not enabled.";
+                              "Bluetooth adapter is not enabled.";
       return false;
     }
 
     if (is_watcher_started_) {
       NEARBY_LOGS(WARNING)
-          << "BLE cannot start to scan again when it is running.";
+          << __func__ << ": BLE cannot start to scan again when it is running.";
       return false;
     }
 
@@ -201,7 +219,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 
     is_watcher_started_ = true;
 
-    NEARBY_LOGS(INFO) << "Windows Ble StartScanning started.";
+    NEARBY_LOGS(INFO) << __func__ << ": BLE scanning started.";
     return true;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception to start BLE scanning: "
@@ -220,7 +238,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleV2Medium::ScanningCallback callback) {
-  NEARBY_LOGS(INFO) << "Windows Ble StartScanning";
+  NEARBY_LOGS(INFO) << __func__ << ": Start scanning.";
 
   // TODO(hais): add real impl for windows StartAdvertising.
   return std::make_unique<ScanningSession>(ScanningSession{});
@@ -228,7 +246,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
-  NEARBY_LOGS(INFO) << __func__ << ": StartGattServer is called";
+  NEARBY_LOGS(INFO) << __func__ << ": Start GATT server.";
 
   auto gatt_server =
       std::make_unique<BleGattServer>(adapter_, std::move(callback));
@@ -262,11 +280,9 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 }
 
 bool BleV2Medium::StopScanning() {
-  NEARBY_LOGS(INFO) << "Windows Ble StopScanning";
+  NEARBY_LOGS(INFO) << __func__ << ": BLE StopScanning: service_uuid: "
+                    << std::string(service_uuid_);
   try {
-    NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_uuid: "
-                      << std::string(service_uuid_);
-
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop scanning because the "
                               "bluetooth adapter is not enabled.";
@@ -357,8 +373,8 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
 bool BleV2Medium::StartBleAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertising_parameters) {
+  NEARBY_LOGS(INFO) << __func__ << ": Start BLE advertising.";
   try {
-    NEARBY_LOGS(INFO) << "Windows Ble StartBleAdvertising.";
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
                               "bluetooth adapter is not enabled.";
@@ -371,7 +387,7 @@ bool BleV2Medium::StartBleAdvertising(
       return false;
     }
 
-    if (is_publisher_started_) {
+    if (is_ble_publisher_started_) {
       NEARBY_LOGS(WARNING)
           << "BLE cannot start to advertise again when it is running.";
       return false;
@@ -441,8 +457,8 @@ bool BleV2Medium::StartBleAdvertising(
 
     publisher_.Start();
 
-    is_publisher_started_ = true;
-    NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising started.";
+    is_ble_publisher_started_ = true;
+    NEARBY_LOGS(INFO) << "BLE advertising started.";
     return true;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception to start BLE advertising: "
@@ -459,15 +475,15 @@ bool BleV2Medium::StartBleAdvertising(
 }
 
 bool BleV2Medium::StopBleAdvertising() {
+  NEARBY_LOGS(INFO) << __func__ << ": Stop BLE advertising.";
   try {
-    NEARBY_LOGS(INFO) << "Windows Ble StopBleAdvertising.";
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
                               "bluetooth adapter is not enabled.";
       return false;
     }
 
-    if (!is_publisher_started_) {
+    if (!is_ble_publisher_started_) {
       NEARBY_LOGS(WARNING) << "BLE advertising is not running.";
       return false;
     }
@@ -477,7 +493,7 @@ bool BleV2Medium::StopBleAdvertising() {
     // Don't need to wait for the status becomes to `Stopped`. If application
     // starts to scanning immediately, the scanning still needs to wait the
     // stopping to finish.
-    is_publisher_started_ = false;
+    is_ble_publisher_started_ = false;
 
     return true;
   } catch (std::exception exception) {
@@ -497,8 +513,8 @@ bool BleV2Medium::StopBleAdvertising() {
 bool BleV2Medium::StartGattAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertising_parameters) {
+  NEARBY_LOGS(INFO) << __func__ << ": Start GATT advertising.";
   try {
-    NEARBY_LOGS(INFO) << "Windows Ble StartGattAdvertising.";
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
                               "bluetooth adapter is not enabled.";
@@ -511,7 +527,7 @@ bool BleV2Medium::StartGattAdvertising(
       return false;
     }
 
-    if (is_publisher_started_) {
+    if (is_gatt_publisher_started_) {
       NEARBY_LOGS(WARNING)
           << "BLE cannot start to advertise again when it is running.";
       return false;
@@ -537,18 +553,18 @@ bool BleV2Medium::StartGattAdvertising(
       return false;
     }
 
-    is_publisher_started_ = true;
+    is_gatt_publisher_started_ = true;
 
-    NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising started.";
+    NEARBY_LOGS(INFO) << "GATT advertising started.";
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception to start BLE advertising: "
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to start GATT advertising: "
                        << exception.what();
 
     return false;
   } catch (const winrt::hresult_error& ex) {
     NEARBY_LOGS(ERROR) << __func__
-                       << ": Exception to start BLE advertising: " << ex.code()
+                       << ": Exception to start GATT advertising: " << ex.code()
                        << ": " << winrt::to_string(ex.message());
 
     return false;
@@ -557,14 +573,14 @@ bool BleV2Medium::StartGattAdvertising(
 
 bool BleV2Medium::StopGattAdvertising() {
   try {
-    NEARBY_LOGS(INFO) << "Windows Ble StopGattAdvertising.";
+    NEARBY_LOGS(INFO) << __func__ << ": Stop GATT advertising.";
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
                               "bluetooth adapter is not enabled.";
       return false;
     }
 
-    if (!is_publisher_started_) {
+    if (!is_gatt_publisher_started_) {
       NEARBY_LOGS(WARNING) << "BLE advertising is not running.";
       return false;
     }
@@ -575,9 +591,9 @@ bool BleV2Medium::StopGattAdvertising() {
     }
 
     bool stop_result = ble_gatt_server_->StopAdvertisement();
-    is_publisher_started_ = false;
+    is_gatt_publisher_started_ = false;
 
-    NEARBY_LOGS(INFO) << "BLE stop advertisement result=" << stop_result;
+    NEARBY_LOGS(INFO) << "Stop GATT advertisement result=" << stop_result;
     return stop_result;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception to stop BLE advertising: "
@@ -680,7 +696,7 @@ void BleV2Medium::PublisherHandler(
     NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the publisher.";
     publisher_.StatusChanged(publisher_token_);
     publisher_ = nullptr;
-    is_publisher_started_ = false;
+    is_ble_publisher_started_ = false;
   }
 }
 

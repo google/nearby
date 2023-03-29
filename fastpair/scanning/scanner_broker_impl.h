@@ -22,7 +22,6 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
-#include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
 #include "fastpair/scanning/scanner_broker.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -50,7 +49,6 @@ class ScannerBrokerImpl : public ScannerBroker {
 
   std::unique_ptr<TaskRunner> task_runner_;
   std::shared_ptr<FastPairScanner> scanner_;
-  std::shared_ptr<FastPairScannerImpl> scanner_impl_;
   std::shared_ptr<BluetoothAdapter> adapter_;
   std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_;
   ObserverList<Observer> observers_;

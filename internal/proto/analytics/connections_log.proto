@@ -16,6 +16,7 @@ syntax = "proto2";
 
 package location.nearby.analytics.proto;
 
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "proto/connections_enums.proto";
 import "proto/errorcode/error_code_enums.proto";
 
@@ -290,6 +291,15 @@ message ConnectionsLog {
 
     // The type of established connection.
     optional location.nearby.proto.connections.ConnectionAttemptType type = 8;
+
+    // If this is a safe disconnection.
+    optional SafeDisconnectionResult safe_disconnection_result = 9;
+
+    enum SafeDisconnectionResult {
+      UNKNOWN_SAFE_DISCONNECTION_RESULT = 0;
+      SAFE_DISCONNECTION = 1;
+      UNSAFE_DISCONNECTION = 2;
+    }
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.

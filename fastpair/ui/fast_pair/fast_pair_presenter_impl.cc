@@ -29,7 +29,7 @@ void FastPairPresenterImpl::ShowDiscovery(
     const FastPairDevice& device,
     FastPairNotificationController& notification_controller) {
   FastPairRepository::Get()->GetDeviceMetadata(
-      device.model_id,
+      device.GetModelId(),
       [&notification_controller, this](const DeviceMetadata& device_metadata) {
         NEARBY_LOGS(INFO) << __func__
                           << "Retrieved metadata to notification controller.";

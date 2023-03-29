@@ -99,6 +99,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":scanning",
+        ":test_support",
         "//fastpair/dataparser",
         "//fastpair/server_access:test_support",
         "//fastpair/testing",

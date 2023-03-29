@@ -22,6 +22,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 
@@ -204,6 +205,62 @@ TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
   });
   latch.Await();
   executor.Shutdown();
+}
+
+TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
+  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  FakeClock* fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock().value();
+  ScheduledExecutor executor;
+  std::atomic_int value = 0;
+  CountDownLatch first_task_latch(1);
+  CountDownLatch second_task_latch(1);
+  // schedule job due in kLongDelay.
+  executor.Schedule(
+      [&]() {
+        EXPECT_EQ(value, 1);
+        value = 5;
+        first_task_latch.CountDown();
+      },
+      kLongDelay);
+  // schedule job due in kShortDelay; must fire before the first one.
+  executor.Schedule(
+      [&]() {
+        EXPECT_EQ(value, 0);
+        value = 1;
+        second_task_latch.CountDown();
+      },
+      kShortDelay);
+  EXPECT_EQ(value, 0);
+  fake_clock->FastForward(kShortDelay - absl::Milliseconds(1));
+  EXPECT_EQ(value, 0);
+  fake_clock->FastForward(absl::Milliseconds(1));
+  second_task_latch.Await();
+  EXPECT_EQ(value, 1);
+  fake_clock->FastForward(kLongDelay - kShortDelay);
+  first_task_latch.Await();
+  EXPECT_EQ(value, 5);
+  // Very long sleep to make sure that the sleep is truly simulated.
+  fake_clock->FastForward(absl::Minutes(30));
+  MediumEnvironment::Instance().Stop();
+}
+
+TEST(ScheduledExecutorTest,
+     DestroyExecutorWithSimulatedClockIgnoresPendingTasks) {
+  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  FakeClock* fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock().value();
+  {
+    ScheduledExecutor executor;
+    executor.Schedule(
+        [&]() {
+          // This task should never be executed.
+          EXPECT_TRUE(false);
+        },
+        kShortDelay);
+  }
+  fake_clock->FastForward(absl::Minutes(30));
+  MediumEnvironment::Instance().Stop();
 }
 
 struct ThreadCheckTestClass {

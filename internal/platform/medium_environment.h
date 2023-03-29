@@ -30,6 +30,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/uuid.h"
+#include "internal/test/fake_clock.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
@@ -52,6 +53,11 @@ struct EnvironmentConfig {
   // This is currently set to false, due to http://b/139734036 that would lead
   // to flaky tests.
   bool webrtc_enabled = false;
+
+  // Installs a simulated clock, which can be used to test timeouts.
+  // The simulated clock is automatically picked up by SystemClock, Timer and
+  // ScheduledExecutor implementations.
+  bool use_simulated_clock = false;
 };
 
 // MediumEnvironment is a simulated environment which allows multiple instances
@@ -265,8 +271,31 @@ class MediumEnvironment {
   ByteArray ReadBleV2MediumGattCharacteristics(
       const api::ble_v2::GattCharacteristic& characteristic);
 
+  // Writes the BLE GATT characteristic value.
+  bool WriteBleV2MediumGattCharacteristic(
+      const api::ble_v2::GattCharacteristic& characteristic,
+      absl::string_view value);
+
+  // Subscribes the notification once characteristic value changed.
+  // This is to save the `on_characteristic_changed_cb` to
+  // the map `subscribed_characteristic_`.
+  bool SetBleV2MediumGattCharacteristicSubscription(
+      const api::ble_v2::GattCharacteristic& characteristic, bool enable,
+      absl::AnyInvocable<void(absl::string_view value)>
+          on_characteristic_changed_cb);
+
+  // Notifies the characteristic value changed. This is to trigger the stored
+  // `on_characteristic_changed_cb` in the map `subscribed_characteristic_`
+  absl::Status NotifyBleV2MediumGattCharacteristicChanged(
+      const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+      const ByteArray& new_value);
+
   // Clears the map `discovered_gatt_advertisement_bytes_`.
   void ClearBleV2MediumGattCharacteristicsForDiscovery();
+
+  // Erases Characteristic from the map `discovered_gatt_advertisement_bytes_`.
+  void EraseBleV2MediumGattCharacteristicsForDiscovery(
+      const api::ble_v2::GattCharacteristic& characteristic);
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
@@ -352,6 +381,8 @@ class MediumEnvironment {
   void UnregisterWifiHotspotMedium(api::WifiHotspotMedium& medium);
 
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
+
+  absl::optional<FakeClock*> GetSimulatedClock();
 
  private:
   struct BluetoothMediumContext {
@@ -454,6 +485,9 @@ class MediumEnvironment {
       gatt_advertisement_bytes_;
   absl::flat_hash_map<api::ble_v2::GattCharacteristic, nearby::ByteArray>
       discovered_gatt_advertisement_bytes_;
+  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
+                      absl::AnyInvocable<void(absl::string_view value)>>
+      subscribed_characteristic_;
 
 #ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.
@@ -477,6 +511,7 @@ class MediumEnvironment {
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
+  std::unique_ptr<FakeClock> simulated_clock_;
 };
 
 }  // namespace nearby

@@ -18,9 +18,8 @@
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/scanning/fastpair/fake_fast_pair_discoverable_scanner.h"
@@ -29,7 +28,7 @@
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner_impl.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
-#include "internal/platform/medium_environment.h"
+#include "internal/platform/implementation/system_clock.h"
 
 namespace nearby {
 namespace fastpair {
@@ -37,6 +36,7 @@ namespace {
 
 constexpr absl::string_view kTestDeviceAddress("11:12:13:14:15:16");
 constexpr absl::string_view kValidModelId("718c17");
+constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(200);
 
 class FakeFastPairScannerFactory : public FastPairScannerImpl::Factory {
  public:
@@ -74,8 +74,6 @@ class FakeFastPairDiscoverableScannerFactory
     return fake_fast_pair_discoverable_scanner;
   }
 
-  ~FakeFastPairDiscoverableScannerFactory() override = default;
-
   FakeFastPairDiscoverableScanner* fake_fast_pair_discoverable_scanner() {
     return fake_fast_pair_discoverable_scanner_;
   }
@@ -91,8 +89,9 @@ class FakeFastPairDiscoverableScannerFactory
 class ScannerBrokerImplTest : public testing::Test,
                               public ScannerBroker::Observer {
  public:
-  ScannerBrokerImplTest() {
+  void SetUp() override {
     adapter_ = std::shared_ptr<BluetoothAdapter>();
+
     scanner_factory_ = std::make_unique<FakeFastPairScannerFactory>();
     FastPairScannerImpl::Factory::SetFactoryForTesting(scanner_factory_.get());
 
@@ -100,17 +99,19 @@ class ScannerBrokerImplTest : public testing::Test,
         std::make_unique<FakeFastPairDiscoverableScannerFactory>();
     FastPairDiscoverableScannerImpl::Factory::SetFactoryForTesting(
         discoverable_scanner_factory_.get());
-  }
 
-  ~ScannerBrokerImplTest() override {
-    scanner_broker_->RemoveObserver(this);
-    scanner_broker_.reset();
-    adapter_.reset();
-  }
-
-  void CreateScannerBroker() {
     scanner_broker_ = std::make_unique<ScannerBrokerImpl>();
     scanner_broker_->AddObserver(this);
+  }
+
+  void TearDown() override {
+    scanner_broker_->RemoveObserver(this);
+    scanner_broker_.reset();
+    scanner_factory_.reset();
+    discoverable_scanner_factory_.reset();
+    FastPairScannerImpl::Factory::SetFactoryForTesting(nullptr);
+    FastPairDiscoverableScannerImpl::Factory::SetFactoryForTesting(nullptr);
+    adapter_.reset();
   }
 
   void TriggerDiscoverableDeviceFound() {
@@ -140,7 +141,6 @@ class ScannerBrokerImplTest : public testing::Test,
  protected:
   bool device_found_ = false;
   bool device_lost_ = false;
-  MediumEnvironment& env_{MediumEnvironment::Instance()};
   std::shared_ptr<BluetoothAdapter> adapter_;
   std::unique_ptr<FakeFastPairScannerFactory> scanner_factory_;
   std::unique_ptr<FakeFastPairDiscoverableScannerFactory>
@@ -149,66 +149,55 @@ class ScannerBrokerImplTest : public testing::Test,
 };
 
 TEST_F(ScannerBrokerImplTest, DiscoverableFound) {
-  env_.Start();
   EXPECT_FALSE(discoverable_scanner_factory_->create_instance());
 
-  CreateScannerBroker();
   scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(kTaskWaitTimeout);
   EXPECT_FALSE(device_found_);
   EXPECT_TRUE(discoverable_scanner_factory_->create_instance());
 
   TriggerDiscoverableDeviceFound();
   EXPECT_TRUE(device_found_);
-  env_.Stop();
 }
 
 TEST_F(ScannerBrokerImplTest, DiscoverableLost) {
-  env_.Start();
   EXPECT_FALSE(discoverable_scanner_factory_->create_instance());
 
-  CreateScannerBroker();
   scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(kTaskWaitTimeout);
   EXPECT_FALSE(device_found_);
   EXPECT_TRUE(discoverable_scanner_factory_->create_instance());
 
   TriggerDiscoverableDeviceLost();
   EXPECT_TRUE(device_lost_);
-  env_.Stop();
 }
 
 TEST_F(ScannerBrokerImplTest, RemoveObserver) {
-  env_.Start();
   EXPECT_FALSE(discoverable_scanner_factory_->create_instance());
 
-  CreateScannerBroker();
   scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(kTaskWaitTimeout);
   EXPECT_FALSE(device_found_);
   EXPECT_TRUE(discoverable_scanner_factory_->create_instance());
 
   scanner_broker_->RemoveObserver(this);
   TriggerDiscoverableDeviceLost();
   EXPECT_FALSE(device_lost_);
-  env_.Stop();
 }
 
 TEST_F(ScannerBrokerImplTest, StopScanning) {
-  env_.Start();
-  CreateScannerBroker();
   EXPECT_FALSE(discoverable_scanner_factory_->create_instance());
 
   scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(kTaskWaitTimeout);
   EXPECT_TRUE(discoverable_scanner_factory_->create_instance());
 
   scanner_broker_->StopScanning(Protocol::kFastPairInitialPairing);
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(kTaskWaitTimeout);
+
   scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(kTaskWaitTimeout);
   EXPECT_TRUE(discoverable_scanner_factory_->create_instance());
-  env_.Stop();
 }
 
 }  // namespace

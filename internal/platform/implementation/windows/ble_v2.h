@@ -22,9 +22,9 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
+#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic.h"
-#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
@@ -109,8 +109,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // Map to protect the pointer for BlePeripheral because
   // DiscoveredPeripheralCallback only keeps the pointer to the object
   absl::Mutex peripheral_map_mutex_;
-  absl::flat_hash_map<std::string,
-                      std::unique_ptr<BleV2Peripheral>>
+  absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
       peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
 
   // WinRT objects
@@ -119,7 +118,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementWatcher watcher_ = nullptr;
 
-  bool is_publisher_started_ = false;
+  bool is_ble_publisher_started_ = false;
+  bool is_gatt_publisher_started_ = false;
   bool is_watcher_started_ = false;
 
   ::winrt::event_token publisher_token_;

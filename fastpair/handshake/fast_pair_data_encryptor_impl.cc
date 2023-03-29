@@ -74,7 +74,7 @@ void FastPairDataEncryptorImpl::Factory::CreateAsync(
     return;
   }
 
-  if (device.protocol == Protocol::kFastPairInitialPairing) {
+  if (device.GetProtocol() == Protocol::kFastPairInitialPairing) {
     CreateAsyncWithKeyExchange(device, std::move(on_get_instance_callback));
   }
 }
@@ -87,7 +87,8 @@ void FastPairDataEncryptorImpl::Factory::CreateAsyncWithKeyExchange(
   // to generate the new secret key pair.
   NEARBY_LOGS(INFO) << __func__ << ": Attempting to get device metadata.";
   FastPairRepository::Get()->GetDeviceMetadata(
-      device.model_id, [&on_get_instance_callback](DeviceMetadata& metadata) {
+      device.GetModelId(),
+      [&on_get_instance_callback](DeviceMetadata& metadata) {
         FastPairDataEncryptorImpl::Factory::DeviceMetadataRetrieved(
             std::move(on_get_instance_callback), metadata);
       });

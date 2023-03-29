@@ -16,6 +16,9 @@ syntax = "proto2";
 
 package location.nearby.mediums;
 
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
+
+// option (datapol.file_vetting_status) = "latest";
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "NfcFramesProto";
 option java_package = "com.google.location.nearby.mediums.proto";

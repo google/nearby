@@ -16,8 +16,10 @@
 
 #include <memory>
 
-#include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
+
+#include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/logging.h"
+#include "fastpair/common/protocol.h"
 
 namespace nearby {
 namespace fastpair {
@@ -28,13 +30,13 @@ FastPairWrapperImpl::FastPairWrapperImpl() {
 FastPairWrapperImpl::~FastPairWrapperImpl() = default;
 
 void FastPairWrapperImpl::StartScan() {
-  scanner_ = std::make_unique<FastPairScannerImpl>();
+  scanner_broker_ = std::make_unique<ScannerBrokerImpl>();
   if (is_scanning_) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": We're currently scanning. ";
     return;
   }
   is_scanning_ = true;
-  scanner_->StartScanning();
+  scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
 }
 
 bool FastPairWrapperImpl::IsScanning() { return is_scanning_; }

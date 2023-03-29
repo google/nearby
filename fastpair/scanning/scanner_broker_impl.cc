@@ -54,10 +54,7 @@ void ScannerBrokerImpl::StartFastPairScanning() {
   DCHECK(!fast_pair_discoverable_scanner_);
   DCHECK(adapter_);
   NEARBY_LOGS(VERBOSE) << "Starting Fast Pair Scanning.";
-  scanner_impl_ = std::make_shared<FastPairScannerImpl>();
-  scanner_impl_->StartScanning();
-  scanner_ = std::move(scanner_impl_);
-
+  scanner_ = std::make_shared<FastPairScannerImpl>();
   fast_pair_discoverable_scanner_ =
       FastPairDiscoverableScannerImpl::Factory::Create(
           scanner_, adapter_,
@@ -67,13 +64,14 @@ void ScannerBrokerImpl::StartFastPairScanning() {
 
 void ScannerBrokerImpl::StopFastPairScanning() {
   fast_pair_discoverable_scanner_.reset();
+  scanner_.reset();
   observers_.Clear();
   NEARBY_LOGS(VERBOSE) << __func__ << "Stopping Fast Pair Scanning.";
 }
 
 void ScannerBrokerImpl::NotifyDeviceFound(const FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": Notifying device found, model id = "
-                    << device.model_id;
+                    << device.GetModelId();
   for (auto& observer : observers_) {
     observer->OnDeviceFound(device);
   }
@@ -81,7 +79,7 @@ void ScannerBrokerImpl::NotifyDeviceFound(const FastPairDevice& device) {
 
 void ScannerBrokerImpl::NotifyDeviceLost(const FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": Notifying device lost, model id = "
-                    << device.model_id;
+                    << device.GetModelId();
   for (auto& observer : observers_) {
     observer->OnDeviceLost(device);
   }
