@@ -22,12 +22,12 @@
 #include <utility>
 #include <vector>
 
-#include "internal/network/http_status_code.h"
-#include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "gtest/gtest.h"
+#include "internal/network/http_status_code.h"
 
 namespace nearby {
 namespace network {

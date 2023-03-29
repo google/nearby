@@ -14,13 +14,13 @@
 
 #include "internal/crypto/secure_hash.h"
 
+#include <openssl/mem.h>
+#include <openssl/sha.h>
 #include <stddef.h>
 
 #include <memory>
 
 #include "internal/crypto/openssl_util.h"
-#include <openssl/mem.h>
-#include <openssl/sha.h>
 
 namespace crypto {
 

@@ -22,9 +22,9 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "gtest/gtest.h"
 
 static const size_t kSHA1DigestSize = 20;
 static const size_t kSHA256DigestSize = 32;

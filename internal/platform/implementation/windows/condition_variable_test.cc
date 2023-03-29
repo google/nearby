@@ -14,13 +14,12 @@
 
 #include "internal/platform/implementation/windows/condition_variable.h"
 
-#include <future> // NOLINT
+#include <future>  // NOLINT
 
 #include "absl/time/clock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/mutex.h"
-
-#include "gtest/gtest.h"
 
 class ConditionVariableTests : public testing::Test {
  public:
@@ -28,11 +27,10 @@ class ConditionVariableTests : public testing::Test {
    public:
     ConditionVariableTest() {}
 
-    std::future<bool> WaitForEvent(bool timedWait, // NOLINT
+    std::future<bool> WaitForEvent(bool timedWait,  // NOLINT
                                    const absl::Duration* timeout) {
       return std::async(
-          std::launch::async,
-          [this, timedWait, timeout]() mutable {
+          std::launch::async, [this, timedWait, timeout]() mutable {
             std::thread::id currentThread = std::this_thread::get_id();
 
             if (timedWait == true) {

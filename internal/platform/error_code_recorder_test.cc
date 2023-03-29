@@ -17,8 +17,8 @@
 #include <utility>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 

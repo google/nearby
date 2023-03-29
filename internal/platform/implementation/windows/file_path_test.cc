@@ -14,9 +14,9 @@
 
 #include "internal/platform/implementation/windows/file_path.h"
 
-#include <windows.h>
 #include <knownfolders.h>
 #include <shlobj.h>
+#include <windows.h>
 
 #include <algorithm>
 #include <fstream>

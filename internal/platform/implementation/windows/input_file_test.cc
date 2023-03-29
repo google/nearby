@@ -16,9 +16,9 @@
 
 #include "gtest/gtest.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/payload_id.h"
 #include "internal/platform/implementation/windows/test_utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/payload_id.h"
 
 class InputFileTests : public testing::Test {
  protected:

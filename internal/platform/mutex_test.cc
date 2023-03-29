@@ -14,10 +14,10 @@
 
 #include "internal/platform/mutex.h"
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/single_thread_executor.h"
 

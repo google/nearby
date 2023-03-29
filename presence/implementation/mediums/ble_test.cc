@@ -19,7 +19,6 @@
 #include <vector>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -30,6 +29,7 @@
 #include "presence/data_element.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 #include "presence/scan_request.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

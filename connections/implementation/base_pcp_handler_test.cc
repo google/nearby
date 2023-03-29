@@ -18,9 +18,6 @@
 #include <atomic>
 #include <memory>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
@@ -30,11 +27,14 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

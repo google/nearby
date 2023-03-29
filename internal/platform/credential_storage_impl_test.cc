@@ -21,13 +21,13 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace {

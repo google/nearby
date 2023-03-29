@@ -17,8 +17,8 @@
 #include <array>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/types/span.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace device {

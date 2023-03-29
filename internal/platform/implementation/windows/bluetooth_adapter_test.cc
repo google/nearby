@@ -16,9 +16,9 @@
 
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
 namespace nearby {

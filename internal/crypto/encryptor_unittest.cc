@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/types/span.h"
+#include "gtest/gtest.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/symmetric_key.h"
 

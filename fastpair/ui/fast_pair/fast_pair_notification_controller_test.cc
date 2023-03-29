@@ -14,16 +14,16 @@
 
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
-#include <memory>
-#include <vector>
 #include <algorithm>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "fastpair/repository/device_metadata.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace fastpair {

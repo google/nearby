@@ -17,14 +17,14 @@
 #include <array>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/simulation_user.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

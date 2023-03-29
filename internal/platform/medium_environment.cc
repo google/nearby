@@ -664,25 +664,24 @@ bool MediumEnvironment::DiscoverBleV2MediumGattCharacteristics(
   if (!enabled_) return false;
   int found_characteristic = 0;
   CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread(
-      [this, &found_characteristic, &latch, &service_uuid,
-       &characteristic_uuids]() {
-        for (const auto& item : gatt_advertisement_bytes_) {
-          if (item.first.service_uuid == service_uuid) {
-            Uuid char_uuid_key = item.first.uuid;
-            auto it = std::find_if(characteristic_uuids.rbegin(),
-                                   characteristic_uuids.rend(),
-                                   [char_uuid_key](const auto& char_uuid) {
-                                     return char_uuid == char_uuid_key;
-                                   });
-            if (it != characteristic_uuids.rend()) {
-              discovered_gatt_advertisement_bytes_[item.first] = item.second;
-              found_characteristic++;
-            }
-          }
+  RunOnMediumEnvironmentThread([this, &found_characteristic, &latch,
+                                &service_uuid, &characteristic_uuids]() {
+    for (const auto& item : gatt_advertisement_bytes_) {
+      if (item.first.service_uuid == service_uuid) {
+        Uuid char_uuid_key = item.first.uuid;
+        auto it = std::find_if(characteristic_uuids.rbegin(),
+                               characteristic_uuids.rend(),
+                               [char_uuid_key](const auto& char_uuid) {
+                                 return char_uuid == char_uuid_key;
+                               });
+        if (it != characteristic_uuids.rend()) {
+          discovered_gatt_advertisement_bytes_[item.first] = item.second;
+          found_characteristic++;
         }
-        latch.CountDown();
-      });
+      }
+    }
+    latch.CountDown();
+  });
   latch.Await();
   return found_characteristic == characteristic_uuids.size();
 }

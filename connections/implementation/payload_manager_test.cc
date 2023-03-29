@@ -14,14 +14,14 @@
 
 #include "connections/implementation/payload_manager.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/simulation_user.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/system_clock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

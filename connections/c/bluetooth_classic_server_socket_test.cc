@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "connections/advertising_options.h"
 #include "connections/core.h"
@@ -25,6 +24,7 @@
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 

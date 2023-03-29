@@ -165,8 +165,8 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   return nullptr;
 }
 
-std::unique_ptr<api::WifiDirectServerSocket>
-WifiDirectMedium::ListenForService(int port) {
+std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
+    int port) {
   absl::MutexLock lock(&mutex_);
 
   // check current status

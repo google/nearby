@@ -16,11 +16,11 @@
 
 #include <array>
 
-#include "gtest/gtest.h"
 #include "connections/implementation/bluetooth_device_name.h"
+#include "gtest/gtest.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/bluetooth_adapter.h"
 
 namespace nearby {
 namespace connections {

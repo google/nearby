@@ -33,13 +33,14 @@
 #ifndef NEARBY_SWIFTPM
 #include "absl/log/log.h"  // nogncheck
 #endif
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"
 #include "internal/crypto/symmetric_key.h"
-#include <openssl/aes.h>
-#include <openssl/evp.h>
 
 namespace crypto {
 

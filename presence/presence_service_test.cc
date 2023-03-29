@@ -15,10 +15,10 @@
 #include "presence/presence_service.h"
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/presence_client.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

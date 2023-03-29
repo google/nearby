@@ -14,12 +14,12 @@
 
 #include "connections/core.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "connections/implementation/mock_service_controller_router.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/logging.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

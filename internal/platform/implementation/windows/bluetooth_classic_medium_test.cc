@@ -20,13 +20,12 @@
 #include <string>
 
 #include "absl/strings/str_format.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
-
-#include "gtest/gtest.h"
 
 // TODO(jfcarroll): Find a way to mock winrt components in order to properly
 // unit test this. Once that's done, unit tests can be written, in a later C/L.

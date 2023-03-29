@@ -14,8 +14,8 @@
 
 #include "connections/implementation/mediums/wifi_hotspot.h"
 
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"

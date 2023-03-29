@@ -17,8 +17,8 @@
 #include <memory>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/strings/match.h"
+#include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {

@@ -20,9 +20,9 @@
 #include <ostream>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "file/util/temp_path.h"
 #include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {

@@ -14,11 +14,10 @@
 
 #include "internal/crypto/random.h"
 
+#include <openssl/rand.h>
 #include <stddef.h>
 
 #include <string>
-
-#include <openssl/rand.h>
 
 namespace crypto {
 

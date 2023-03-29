@@ -107,7 +107,7 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherConnect) {
 
   EXPECT_TRUE(
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
-                                       wifi_direct_credentials->GetPassword()));
+                                      wifi_direct_credentials->GetPassword()));
   EXPECT_TRUE(wifi_direct_b.IsConnectedToGO());
 
   WifiDirectSocket socket_client;
@@ -119,7 +119,7 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherConnect) {
 
   socket_client =
       wifi_direct_b.Connect(service_id, wifi_direct_credentials->GetGateway(),
-                             wifi_direct_credentials->GetPort(), &flag);
+                            wifi_direct_credentials->GetPort(), &flag);
   EXPECT_TRUE(socket_client.IsValid());
 
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
@@ -145,7 +145,7 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherCanCancelConnect) {
 
   EXPECT_TRUE(
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
-                                       wifi_direct_credentials->GetPassword()));
+                                      wifi_direct_credentials->GetPassword()));
 
   WifiDirectSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
@@ -153,7 +153,7 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherCanCancelConnect) {
   CancellationFlag flag(true);
   socket_client =
       wifi_direct_b.Connect(service_id, wifi_direct_credentials->GetGateway(),
-                             wifi_direct_credentials->GetPort(), &flag);
+                            wifi_direct_credentials->GetPort(), &flag);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {

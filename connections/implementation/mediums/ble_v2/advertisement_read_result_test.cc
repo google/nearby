@@ -14,8 +14,8 @@
 
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 
-#include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace connections {

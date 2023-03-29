@@ -415,12 +415,11 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
 }
 
 bool BwuManager::IsUpgradeOngoing(const std::string& endpoint_id) {
-    CountDownLatch latch(1);
-    RunOnBwuManagerThread("is_upgrade_ongoing", [&latch]() {
-      latch.CountDown();
-    });
-    latch.Await();
-    return in_progress_upgrades_.contains(endpoint_id);
+  CountDownLatch latch(1);
+  RunOnBwuManagerThread("is_upgrade_ongoing",
+                        [&latch]() { latch.CountDown(); });
+  latch.Await();
+  return in_progress_upgrades_.contains(endpoint_id);
 }
 
 Medium BwuManager::GetBwuMediumForEndpoint(

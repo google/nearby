@@ -17,9 +17,9 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <optional>
 #include <string_view>
 #include <vector>
-#include <optional>
 
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
@@ -29,10 +29,6 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "fastpair/common/constant.h"
-#include "fastpair/crypto/fast_pair_key_pair.h"
-#include "fastpair/crypto/fast_pair_message_type.h"
-#include "internal/platform/logging.h"
 #include <openssl/aes.h>
 #include <openssl/base.h>
 #include <openssl/ec.h>
@@ -40,6 +36,11 @@
 #include <openssl/ecdh.h>
 #include <openssl/nid.h>
 #include <openssl/sha.h>
+
+#include "fastpair/common/constant.h"
+#include "fastpair/crypto/fast_pair_key_pair.h"
+#include "fastpair/crypto/fast_pair_message_type.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace fastpair {

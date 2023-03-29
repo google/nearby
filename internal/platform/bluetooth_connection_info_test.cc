@@ -16,11 +16,11 @@
 
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace {
@@ -38,15 +38,13 @@ TEST(BluetoothConnectionInfoTest, TestMediumType) {
 TEST(BluetoothConnectionInfoTest, TestToBytes) {
   std::string macAddr(kMacAddr);
   BluetoothConnectionInfo info(ByteArray(macAddr), kServiceId);
-  ByteArray serialized_expected =
-      ByteArray(absl::StrCat(kMacAddr, kServiceId));
+  ByteArray serialized_expected = ByteArray(absl::StrCat(kMacAddr, kServiceId));
   EXPECT_EQ(info.ToBytes(), serialized_expected);
 }
 
 TEST(BluetoothConnectionInfoTest, TestFromBytes) {
   std::string macAddr(kMacAddr);
-  ByteArray serialized =
-      ByteArray(absl::StrCat(macAddr, kServiceId));
+  ByteArray serialized = ByteArray(absl::StrCat(macAddr, kServiceId));
   BluetoothConnectionInfo info = BluetoothConnectionInfo::FromBytes(serialized);
   EXPECT_EQ(info.GetMacAddress(), ByteArray(macAddr));
   EXPECT_EQ(info.GetServiceId(), kServiceId);

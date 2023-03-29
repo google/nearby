@@ -18,11 +18,11 @@
 #include <utility>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 

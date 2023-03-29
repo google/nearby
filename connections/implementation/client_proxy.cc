@@ -633,9 +633,7 @@ void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
   cancellation_flags_.erase(item);
 }
 
-const OsInfo& ClientProxy::GetLocalOsInfo() const {
-  return local_os_info_;
-}
+const OsInfo& ClientProxy::GetLocalOsInfo() const { return local_os_info_; }
 
 std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
     absl::string_view endpoint_id) const {

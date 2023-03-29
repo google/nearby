@@ -17,10 +17,10 @@
 #include <memory>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/crypto.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

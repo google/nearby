@@ -134,9 +134,8 @@ BleV2Medium::StartScanningTmp(
           service_uuid, tx_power_level,
           api::ble_v2::BleMedium::ScanCallback{
               .advertisement_found_cb =
-                  [this, &callback](
-                      api::ble_v2::BlePeripheral& peripheral,
-                      BleAdvertisementData advertisement_data) {
+                  [this, &callback](api::ble_v2::BlePeripheral& peripheral,
+                                    BleAdvertisementData advertisement_data) {
                     MutexLock lock(&mutex_);
                     if (!peripherals_.contains(&peripheral)) {
                       NEARBY_LOGS(INFO)

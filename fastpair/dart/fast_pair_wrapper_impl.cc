@@ -16,10 +16,9 @@
 
 #include <memory>
 
-
+#include "fastpair/common/protocol.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/logging.h"
-#include "fastpair/common/protocol.h"
 
 namespace nearby {
 namespace fastpair {

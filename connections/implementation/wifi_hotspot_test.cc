@@ -14,9 +14,9 @@
 
 #include <utility>
 
-#include "gtest/gtest.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
+#include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {

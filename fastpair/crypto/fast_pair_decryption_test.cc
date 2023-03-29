@@ -19,8 +19,8 @@
 #include <iterator>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "fastpair/crypto/fast_pair_encryption.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace fastpair {

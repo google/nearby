@@ -17,9 +17,9 @@
 #include <memory>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
+#include "gtest/gtest.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex.h"

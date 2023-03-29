@@ -16,8 +16,8 @@
 
 #include <memory>
 
-#include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
 #include "internal/platform/scheduled_executor.h"

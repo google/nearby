@@ -18,7 +18,6 @@
 #include <string>
 #include <utility>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -29,6 +28,7 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#include "gtest/gtest.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {

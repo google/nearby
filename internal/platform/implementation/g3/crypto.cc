@@ -14,12 +14,13 @@
 
 #include "internal/platform/implementation/crypto.h"
 
+#include <openssl/digest.h>
+
 #include <cstdint>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
-#include <openssl/digest.h>
 
 namespace nearby {
 

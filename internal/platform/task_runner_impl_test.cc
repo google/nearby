@@ -18,9 +18,9 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace {

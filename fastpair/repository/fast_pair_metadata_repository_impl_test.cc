@@ -23,15 +23,15 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/internal/test/fast_pair_fake_http_client.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/network/url.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace fastpair {

@@ -21,11 +21,11 @@
 #include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/internal/test/fast_pair_fake_http_client.h"
+#include "gtest/gtest.h"
 #include "internal/network/http_client.h"
 
 namespace nearby {

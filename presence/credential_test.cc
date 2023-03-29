@@ -16,11 +16,11 @@
 #include <vector>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/uuid.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

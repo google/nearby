@@ -24,9 +24,10 @@
 #else
 #include "absl/log/log.h"  // nogncheck
 #endif
-#include "absl/strings/string_view.h"
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+
+#include "absl/strings/string_view.h"
 
 namespace crypto {
 
@@ -53,8 +54,6 @@ void EnsureOpenSSLInit() {
   CRYPTO_library_init();
 }
 
-void ClearOpenSSLERRStack() {
-    ERR_clear_error();
-}
+void ClearOpenSSLERRStack() { ERR_clear_error(); }
 
 }  // namespace crypto

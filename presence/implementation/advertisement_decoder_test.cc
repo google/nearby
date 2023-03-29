@@ -18,17 +18,17 @@
 #include <string>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/scan_request.h"
 #include "presence/scan_request_builder.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {
@@ -37,8 +37,8 @@ namespace {
 using ::nearby::ByteArray;  // NOLINT
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::SharedCredential;  // NOLINT
-using ::testing::ElementsAre;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::ElementsAre;
 using ::testing::Matcher;
 using ::testing::Pointwise;
 using ::testing::Return;

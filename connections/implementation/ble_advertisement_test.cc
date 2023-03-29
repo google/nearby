@@ -14,8 +14,8 @@
 
 #include "connections/implementation/ble_advertisement.h"
 
-#include "gtest/gtest.h"
 #include "connections/implementation/base_pcp_handler.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace connections {

@@ -16,13 +16,13 @@
 
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex_lock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

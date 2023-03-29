@@ -22,10 +22,9 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
@@ -36,6 +35,7 @@
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/ble.h"
 #include "presence/implementation/mediums/mediums.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

@@ -29,11 +29,12 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+
 #include "absl/types/span.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"
-#include <openssl/aes.h>
-#include <openssl/evp.h>
 
 namespace crypto {
 

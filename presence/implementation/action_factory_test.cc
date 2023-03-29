@@ -17,12 +17,12 @@
 #include <string>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "presence/data_element.h"
 #include "presence/implementation/base_broadcast_request.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

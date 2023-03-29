@@ -14,8 +14,8 @@
 
 #include "internal/test/fake_task_runner.h"
 
-#include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/test/fake_clock.h"
 
 namespace nearby {

@@ -14,9 +14,9 @@
 
 #include "internal/platform/future.h"
 
-#include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/direct_executor.h"
 #include "internal/platform/exception.h"

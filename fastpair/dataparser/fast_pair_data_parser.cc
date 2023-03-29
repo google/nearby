@@ -21,10 +21,10 @@
 #include <string>
 #include <vector>
 
-#include "third_party/nearby//fastpair/crypto/fast_pair_decryption.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/dataparser/fast_pair_decoder.h"
 #include "internal/platform/logging.h"
+#include "third_party/nearby//fastpair/crypto/fast_pair_decryption.h"
 
 namespace nearby {
 namespace fastpair {

@@ -24,11 +24,12 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "internal/crypto/openssl_util.h"
 #include <openssl/bytestring.h>
 #include <openssl/digest.h>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
+
+#include "internal/crypto/openssl_util.h"
 
 namespace crypto {
 

@@ -17,8 +17,8 @@
 #include <cstring>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
+#include "gtest/gtest.h"
 
 namespace {
 

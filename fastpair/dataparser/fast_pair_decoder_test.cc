@@ -21,11 +21,11 @@
 #include <string>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
 #include "fastpair/testing/fast_pair_service_data_creator.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace fastpair {

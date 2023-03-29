@@ -18,7 +18,6 @@
 #include <string>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
@@ -27,6 +26,7 @@
 #include "internal/proto/credential.pb.h"
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/mediums.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

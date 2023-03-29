@@ -19,8 +19,8 @@
 #include <iterator>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace fastpair {

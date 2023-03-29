@@ -16,14 +16,14 @@
 
 #include <memory>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/types/variant.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/logging.h"
 #include "presence/data_element.h"
 #include "presence/presence_action.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
+#include "gtest/gtest.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/medium_environment.h"
@@ -148,7 +148,8 @@ TEST_F(FastPairScannerImplTest, DeviceLostNotifiesObservers) {
       kTestBleDeviceAddress));
 }
 
-TEST_F(FastPairScannerImplTest, DeviceFoundWithNoServiceData) {;
+TEST_F(FastPairScannerImplTest, DeviceFoundWithNoServiceData) {
+  ;
   TriggerOnDeviceFound(kTestBleDeviceAddress, "");
   EXPECT_FALSE(scanner_observer_->DoesDeviceListContainTestDevice(
       kTestBleDeviceAddress));

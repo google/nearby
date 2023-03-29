@@ -20,9 +20,9 @@
 #include <memory>
 
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/future.h"
+#include "internal/platform/listeners.h"
 
 namespace nearby {
 namespace connections {

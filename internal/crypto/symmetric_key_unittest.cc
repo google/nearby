@@ -17,8 +17,8 @@
 #include <memory>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
+#include "gtest/gtest.h"
 #include "internal/crypto/nearby_base.h"
 
 TEST(SymmetricKeyTest, GenerateRandomKey) {

@@ -471,9 +471,9 @@ bool BleGattClient::SetCharacteristicSubscription(
         return false;
       }
     } else if (native_characteristic_map_[characteristic].notification_token) {
-        gatt_characteristic->ValueChanged(std::exchange(
-            native_characteristic_map_[characteristic].notification_token, {}));
-      }
+      gatt_characteristic->ValueChanged(std::exchange(
+          native_characteristic_map_[characteristic].notification_token, {}));
+    }
     NEARBY_LOGS(ERROR) << __func__
                        << ": Successfully set Characteristic Subscription.";
     return true;

@@ -14,14 +14,14 @@
 
 #include "internal/platform/implementation/windows/file_path.h"
 
-#include <windows.h>
-#include <winver.h>
 #include <PathCch.h>
 #include <knownfolders.h>
 #include <psapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
+#include <windows.h>
+#include <winver.h>
 
 #include <algorithm>
 #include <cctype>

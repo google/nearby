@@ -26,10 +26,11 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
+#include <openssl/aes.h>
+
 #include "fastpair/common/constant.h"
 #include "fastpair/crypto/decrypted_passkey.h"
 #include "fastpair/crypto/decrypted_response.h"
-#include <openssl/aes.h>
 
 namespace nearby {
 namespace fastpair {

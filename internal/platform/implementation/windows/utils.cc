@@ -215,7 +215,7 @@ winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid) {
 }
 
 bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
-                                     const ::winrt::guid& guid) {
+                                        const ::winrt::guid& guid) {
   return uuid == winrt_guid_to_nearby_uuid(guid);
 }
 

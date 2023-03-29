@@ -20,8 +20,8 @@
 #include <iterator>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/types/span.h"
+#include "gtest/gtest.h"
 
 TEST(SignatureVerifierTest, BasicTest) {
   // The input data in this test comes from real certificates.

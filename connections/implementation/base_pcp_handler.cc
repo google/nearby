@@ -21,7 +21,6 @@
 #include <utility>
 #include <vector>
 
-#include "securegcm/ukey2_handshake.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/types/span.h"
@@ -36,6 +35,7 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
+#include "securegcm/ukey2_handshake.h"
 
 namespace nearby {
 namespace connections {

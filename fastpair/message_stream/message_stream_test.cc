@@ -20,10 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
-#include "testing/fuzzing/fuzztest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/clock.h"
@@ -33,12 +29,16 @@
 #include "fastpair/message_stream/fake_medium_observer.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/message_stream/message.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include "testing/fuzzing/fuzztest.h"
 
 namespace nearby {
 namespace fastpair {

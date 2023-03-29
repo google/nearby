@@ -21,9 +21,6 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/time.h"
@@ -32,6 +29,9 @@
 #include "fastpair/crypto/fast_pair_message_type.h"
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace fastpair {

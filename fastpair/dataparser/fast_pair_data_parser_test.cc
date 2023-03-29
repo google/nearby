@@ -27,15 +27,15 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/crypto/fast_pair_encryption.h"
 #include "fastpair/testing/fast_pair_service_data_creator.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace fastpair {

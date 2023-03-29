@@ -18,7 +18,6 @@
 #include <string>
 #include <utility>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
@@ -28,6 +27,7 @@
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner_impl.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/system_clock.h"
 
 namespace nearby {

@@ -14,12 +14,12 @@
 
 #include "connections/implementation/analytics/throughput_recorder.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/logging.h"
 #include "proto/connections_enums.proto.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace analytics {

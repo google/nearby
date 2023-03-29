@@ -14,6 +14,11 @@
 
 #include "internal/crypto/ec_signature_creator_impl.h"
 
+#include <openssl/bn.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -21,11 +26,6 @@
 
 #include "internal/crypto/ec_private_key.h"
 #include "internal/crypto/openssl_util.h"
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/ecdsa.h>
-#include <openssl/evp.h>
-#include <openssl/sha.h>
 
 namespace crypto {
 

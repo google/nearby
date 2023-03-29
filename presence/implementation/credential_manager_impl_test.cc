@@ -20,21 +20,21 @@
 #include <utility>
 #include <vector>
 
-#include "net/proto2/contrib/parse_proto/testing.h"
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/proto/credential.pb.h"
+#include "net/proto2/contrib/parse_proto/testing.h"
 #include "presence/implementation/base_broadcast_request.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {

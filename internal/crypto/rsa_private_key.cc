@@ -28,13 +28,14 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "absl/types/span.h"
-#include "internal/crypto/openssl_util.h"
 #include <openssl/bn.h>
 #include <openssl/bytestring.h>
 #include <openssl/evp.h>
 #include <openssl/mem.h>
 #include <openssl/rsa.h>
+
+#include "absl/types/span.h"
+#include "internal/crypto/openssl_util.h"
 
 namespace crypto {
 

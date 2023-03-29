@@ -31,7 +31,6 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "internal/crypto/openssl_util.h"
 #include <openssl/bn.h>
 #include <openssl/bytestring.h>
 #include <openssl/ec.h>
@@ -39,6 +38,8 @@
 #include <openssl/evp.h>
 #include <openssl/mem.h>
 #include <openssl/pkcs8.h>
+
+#include "internal/crypto/openssl_util.h"
 
 namespace crypto {
 

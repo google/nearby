@@ -30,10 +30,11 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "internal/crypto/nearby_base.h"
-#include "internal/crypto/openssl_util.h"
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+
+#include "internal/crypto/nearby_base.h"
+#include "internal/crypto/openssl_util.h"
 
 namespace crypto {
 

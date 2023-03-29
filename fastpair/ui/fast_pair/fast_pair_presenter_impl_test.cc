@@ -18,13 +18,13 @@
 #include <optional>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/fast_pair/fast_pair_presenter.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace fastpair {

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <openssl/hkdf.h>
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,10 +28,11 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
+#include <openssl/digest.h>
+
 #include "absl/strings/string_view.h"
 #include "internal/crypto/hkdf.h"
 #include "internal/crypto/hmac.h"
-#include <openssl/digest.h>
 
 namespace crypto {
 

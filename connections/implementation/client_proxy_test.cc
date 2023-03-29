@@ -18,9 +18,6 @@
 #include <optional>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/clock.h"
@@ -28,10 +25,13 @@
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/strategy.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

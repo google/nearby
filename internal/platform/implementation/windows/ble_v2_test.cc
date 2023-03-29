@@ -16,8 +16,8 @@
 
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 

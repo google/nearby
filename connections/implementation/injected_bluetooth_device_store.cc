@@ -17,8 +17,8 @@
 #include <string>
 
 #include "connections/implementation/bluetooth_device_name.h"
-#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/bluetooth_utils.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 
 namespace nearby {
 namespace connections {

@@ -17,9 +17,9 @@
 #include <vector>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/exception_test.nc.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 

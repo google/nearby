@@ -17,18 +17,18 @@
 #include <string>
 #include <utility>
 
-#include "google/protobuf/message_lite.h"
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
+#include "gmock/gmock.h"
+#include "google/protobuf/message_lite.h"
+#include "gtest/gtest.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace analytics {
@@ -65,8 +65,8 @@ using ::location::nearby::proto::connections::WIFI_LAN;
 using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
 using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
 using ::nearby::analytics::EventLogger;
-using ::testing::Contains;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::Contains;
 using ::testing::Not;
 using ::testing::proto::Partially;
 

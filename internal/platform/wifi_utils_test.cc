@@ -15,8 +15,8 @@
 #include "internal/platform/wifi_utils.h"
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace {
@@ -39,8 +39,6 @@ constexpr int kChan0Num_6G_NotExist = 0;
 constexpr int kChan30Num_60G_NotExist = 30;
 
 constexpr int kFreqNotExist = 1002;
-
-
 
 TEST(WifiUtilsTest, ConvertChannelToFrequency) {
   EXPECT_EQ(WifiUtils::ConvertChannelToFrequencyMhz(kChan6Num_2G,
@@ -69,7 +67,8 @@ TEST(WifiUtilsTest, ConvertChannelToFrequency) {
             WifiUtils::kUnspecified);
   EXPECT_EQ(WifiUtils::ConvertChannelToFrequencyMhz(kChan30Num_60G_NotExist,
                                                     WifiBandType::kBand60Ghz),
-            WifiUtils::kUnspecified);}
+            WifiUtils::kUnspecified);
+}
 
 TEST(WifiUtilsTest, ConvertFrequencyToChannel) {
   EXPECT_EQ(WifiUtils::ConvertFrequencyMhzToChannel(kChan6NumFreq_2G),

@@ -17,8 +17,8 @@
 #include <memory>
 #include <string>
 
-#include "internal/platform/prng.h"
 #include "internal/platform/crypto.h"
+#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace connections {

@@ -20,13 +20,13 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "fastpair/repository/fast_pair_metadata_repository_impl.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader_impl.h"
 #include "internal/network/http_client_factory.h"
 #include "internal/network/http_client_factory_impl.h"
 #include "internal/platform/logging.h"
-#include "absl/strings/string_view.h"
 
 namespace nearby {
 namespace fastpair {
@@ -42,8 +42,7 @@ FastPairRepositoryImpl::FastPairRepositoryImpl(
     : repository_factory_(std::move(repository)) {}
 
 void FastPairRepositoryImpl::GetDeviceMetadata(
-    absl::string_view hex_model_id,
-    DeviceMetadataCallback callback) {
+    absl::string_view hex_model_id, DeviceMetadataCallback callback) {
   downloader_ = FastPairMetadataDownloaderImpl::Factory::Create(
       hex_model_id, repository_factory_.get(), std::move(callback), []() {
         NEARBY_LOGS(INFO) << __func__

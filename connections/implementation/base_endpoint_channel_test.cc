@@ -18,25 +18,25 @@
 #include <string>
 #include <utility>
 
-#include "securegcm/d2d_connection_context_v1.h"
-#include "securegcm/ukey2_handshake.h"
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/offline_frames.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include "securegcm/d2d_connection_context_v1.h"
+#include "securegcm/ukey2_handshake.h"
 
 namespace nearby {
 namespace connections {

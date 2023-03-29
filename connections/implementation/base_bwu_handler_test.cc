@@ -16,9 +16,9 @@
 
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/service_id_constants.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace connections {

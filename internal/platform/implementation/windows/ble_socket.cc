@@ -20,13 +20,9 @@
 namespace nearby {
 namespace windows {
 
-InputStream& BleSocket::GetInputStream() {
-  return fake_input_stream_;
-}
+InputStream& BleSocket::GetInputStream() { return fake_input_stream_; }
 
-OutputStream& BleSocket::GetOutputStream() {
-  return fake_output_stream_;
-}
+OutputStream& BleSocket::GetOutputStream() { return fake_output_stream_; }
 
 bool BleSocket::IsClosed() const {
   absl::MutexLock lock(&mutex_);

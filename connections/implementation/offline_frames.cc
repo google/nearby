@@ -20,9 +20,9 @@
 #include <vector>
 
 #include "connections/implementation/offline_frames_validator.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 
 namespace nearby {
 namespace connections {

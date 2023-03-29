@@ -18,15 +18,15 @@
 #include <cstdint>
 #include <memory>
 
-#include "securegcm/ukey2_handshake.h"
 #include "absl/strings/ascii.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "securegcm/ukey2_handshake.h"
 
 namespace nearby {
 namespace connections {

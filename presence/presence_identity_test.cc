@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/proto/credential.pb.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace presence {
@@ -30,7 +30,6 @@ TEST(PresenceIdentityTest, ExplicitInitEquals) {
   EXPECT_EQ(identity1, identity2);
   EXPECT_EQ(identity1, kTestIdentityType);
 }
-
 
 TEST(PresenceIdentityTest, CopyInitEquals) {
   IdentityType identity1 = {kTestIdentityType};

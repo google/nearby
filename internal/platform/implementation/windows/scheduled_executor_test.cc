@@ -17,10 +17,10 @@
 #include <memory>
 #include <utility>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
 namespace nearby {

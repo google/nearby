@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <openssl/hmac.h>
-
 #include <stddef.h>
 
 #include <algorithm>

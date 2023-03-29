@@ -20,12 +20,12 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {
@@ -389,7 +389,7 @@ TEST(OfflineFramesTest, CanGenerateBwuIntroduction) {
       type: BANDWIDTH_UPGRADE_NEGOTIATION
       bandwidth_upgrade_negotiation: <
         event_type: CLIENT_INTRODUCTION
-        client_introduction: < 
+        client_introduction: <
           endpoint_id: "ABC"
           supports_disabling_encryption: false
         >

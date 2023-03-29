@@ -14,6 +14,7 @@
 
 #include "internal/crypto/sha2.h"
 
+#include <openssl/sha.h>
 #include <stddef.h>
 
 #include <array>
@@ -22,7 +23,6 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/crypto/secure_hash.h"
-#include <openssl/sha.h>
 
 namespace crypto {
 

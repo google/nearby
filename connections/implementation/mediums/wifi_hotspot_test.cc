@@ -17,11 +17,11 @@
 
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/wifi_hotspot.h"
 #include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
@@ -50,9 +50,7 @@ class WifiHotspotTest : public testing::TestWithParam<FeatureFlags> {
     env_.Stop();
     env_.Start();
   }
-  ~WifiHotspotTest() override{
-    env_.Stop();
-  }
+  ~WifiHotspotTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };

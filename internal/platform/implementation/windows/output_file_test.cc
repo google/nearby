@@ -15,10 +15,10 @@
 #include "internal/platform/implementation/windows/output_file.h"
 
 #include "gtest/gtest.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/payload_id.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/windows/test_utils.h"
+#include "internal/platform/payload_id.h"
 
 class OutputFileTests : public testing::Test {
  protected:

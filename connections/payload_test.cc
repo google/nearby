@@ -18,12 +18,12 @@
 #include <type_traits>
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {

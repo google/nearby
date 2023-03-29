@@ -14,14 +14,14 @@
 
 #include "internal/platform/borrowable.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
-#include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/single_thread_executor.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 

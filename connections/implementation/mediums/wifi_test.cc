@@ -15,8 +15,8 @@
 #include "connections/implementation/mediums/wifi.h"
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 
 namespace nearby {
 namespace connections {
@@ -40,7 +40,6 @@ TEST(WifiTest, CanGetCapability) {
 TEST(WifiTest, CanInformation) {
   // TODO(b/233324423): Add test coverage for wifi.h
 }
-
 
 }  // namespace
 }  // namespace connections
