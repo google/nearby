@@ -25,9 +25,9 @@
 #include "internal/platform/wifi_utils.h"
 
 // WinRT headers
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
+#include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Networking.Connectivity.h"
 
 namespace nearby {
 namespace windows {

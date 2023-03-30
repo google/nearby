@@ -15,18 +15,21 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_DEVICE_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_DEVICE_H_
 
+// clang-format off
+#include <windows.h>
 #include <guiddef.h>
+// clang-format on
 
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
+#include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {

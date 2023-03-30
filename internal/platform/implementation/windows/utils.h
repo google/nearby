@@ -18,6 +18,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <ctime>
 #include <string>
 #include <vector>
 
