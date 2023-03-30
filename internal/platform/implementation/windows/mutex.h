@@ -13,7 +13,6 @@
 // limitations under the License.
 #ifndef PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #define PLATFORM_IMPL_WINDOWS_MUTEX_H_
-#include <windows.h>
 #include <stdio.h>
 #include <synchapi.h>
 

@@ -15,9 +15,9 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_SCANNING_MOCK_SCANNER_BROKER_H_
 
 #include "gmock/gmock.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/scanning/scanner_broker.h"
 #include "internal/base/observer_list.h"
-#include "fastpair/common/fast_pair_device.h"
 
 namespace nearby {
 namespace fastpair {
@@ -26,7 +26,6 @@ class MockScannerBroker : public ScannerBroker {
  public:
   MOCK_METHOD(void, StartScanning, (Protocol), (override));
   MOCK_METHOD(void, StopScanning, (Protocol), (override));
-
 
   void AddObserver(Observer* observer) override {
     observers_.AddObserver(observer);
@@ -37,13 +36,13 @@ class MockScannerBroker : public ScannerBroker {
   }
 
   void NotifyDeviceFound(const FastPairDevice& device) {
-    for (auto& observer : observers_){
-       observer->OnDeviceFound(device);
+    for (auto& observer : observers_.GetObservers()) {
+      observer->OnDeviceFound(device);
     }
   }
 
-  void NotifyDeviceLost(const FastPairDevice& device)  {
-    for (auto& observer : observers_){
+  void NotifyDeviceLost(const FastPairDevice& device) {
+    for (auto& observer : observers_.GetObservers()) {
       observer->OnDeviceLost(device);
     }
   }

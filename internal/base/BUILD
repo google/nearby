@@ -17,6 +17,8 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [
+        "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_set",
     ],
 )

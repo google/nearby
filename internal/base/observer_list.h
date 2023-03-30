@@ -15,10 +15,9 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_BASE_OBSERVER_LIST_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_BASE_OBSERVER_LIST_H_
 
-#include <string>
-#include <vector>
-
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
+#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 
@@ -29,28 +28,45 @@ class ObserverList {
   using const_iterator =
       typename absl::flat_hash_set<ObserverType*>::const_iterator;
 
-  void AddObserver(ObserverType* observer) { observers_.emplace(observer); }
+  void AddObserver(ObserverType* observer) ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    observers_.insert(observer);
+  }
 
-  void RemoveObserver(ObserverType* observer) { observers_.erase(observer); }
+  void RemoveObserver(ObserverType* observer) ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    observers_.erase(observer);
+  }
 
-  bool HasObserver(ObserverType* observer) {
+  bool HasObserver(ObserverType* observer) ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
     return observers_.contains(observer);
   }
 
-  void Clear() { observers_.clear(); }
+  void Clear() ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    observers_.clear();
+  }
 
-  bool empty() const { return observers_.empty(); }
+  bool empty() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    return observers_.empty();
+  }
 
-  int size() const { return observers_.size(); }
+  int size() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    return observers_.size();
+  }
 
-  // Supports iterators
-  iterator begin() { return observers_.begin(); }
-  iterator end() { return observers_.end(); }
-  const_iterator begin() const { return observers_.begin(); }
-  const_iterator end() const { return observers_.end(); }
+  absl::flat_hash_set<ObserverType*> GetObservers()
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    return observers_;
+  }
 
  private:
-  absl::flat_hash_set<ObserverType*> observers_;
+  mutable Mutex mutex_;
+  absl::flat_hash_set<ObserverType*> observers_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby

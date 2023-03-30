@@ -53,6 +53,10 @@
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 
+#ifdef CreateMutex
+#undef CreateMutex
+#endif
+
 namespace nearby {
 namespace api {
 

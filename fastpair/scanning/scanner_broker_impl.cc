@@ -72,7 +72,7 @@ void ScannerBrokerImpl::StopFastPairScanning() {
 void ScannerBrokerImpl::NotifyDeviceFound(const FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": Notifying device found, model id = "
                     << device.GetModelId();
-  for (auto& observer : observers_) {
+  for (auto& observer : observers_.GetObservers()) {
     observer->OnDeviceFound(device);
   }
 }
@@ -80,7 +80,7 @@ void ScannerBrokerImpl::NotifyDeviceFound(const FastPairDevice& device) {
 void ScannerBrokerImpl::NotifyDeviceLost(const FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": Notifying device lost, model id = "
                     << device.GetModelId();
-  for (auto& observer : observers_) {
+  for (auto& observer : observers_.GetObservers()) {
     observer->OnDeviceLost(device);
   }
 }

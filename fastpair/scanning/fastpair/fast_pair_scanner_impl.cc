@@ -134,13 +134,13 @@ void FastPairScannerImpl::OnDeviceLost(const BlePeripheral& peripheral) {
                     << peripheral.GetName();
   device_address_advertisement_data_map_.erase(peripheral.GetName());
 
-  for (auto& observer : observer_) {
+  for (auto& observer : observer_.GetObservers()) {
     observer->OnDeviceLost(peripheral);
   }
 }
 
 void FastPairScannerImpl::NotifyDeviceFound(const BlePeripheral& peripheral) {
-  for (auto& observer : observer_) {
+  for (auto& observer : observer_.GetObservers()) {
     observer->OnDeviceFound(peripheral);
   }
 }

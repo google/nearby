@@ -340,6 +340,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
+        "//internal/base:__subpackages__",
         "//internal/flags:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//internal/test:__subpackages__",

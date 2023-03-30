@@ -27,7 +27,7 @@ void FastPairNotificationController::RemoveObserver(Observer* observer) {
 
 void FastPairNotificationController::NotifyShowDiscovery(
     const DeviceMetadata& device) {
-  for (Observer* observer : observers_) {
+  for (Observer* observer : observers_.GetObservers()) {
     observer->OnUpdateDevice(device);
   }
 }

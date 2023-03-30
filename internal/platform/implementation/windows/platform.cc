@@ -65,6 +65,10 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
+#ifdef CreateMutex
+#undef CreateMutex
+#endif
+
 namespace nearby {
 namespace api {
 

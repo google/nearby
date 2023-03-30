@@ -26,11 +26,11 @@ void FakeFastPairScanner::RemoveObserver(Observer* observer) {
 }
 
 void FakeFastPairScanner::NotifyDeviceFound(const BlePeripheral& peripheral) {
-  for (auto& obs : observer_) obs->OnDeviceFound(peripheral);
+  for (auto& obs : observer_.GetObservers()) obs->OnDeviceFound(peripheral);
 }
 
 void FakeFastPairScanner::NotifyDeviceLost(const BlePeripheral& peripheral) {
-  for (auto& obs : observer_) obs->OnDeviceLost(peripheral);
+  for (auto& obs : observer_.GetObservers()) obs->OnDeviceLost(peripheral);
 }
 
 }  // namespace fastpair
