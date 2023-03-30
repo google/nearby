@@ -90,7 +90,7 @@ inline bool operator==(const LegacyPresenceScanFilter& a,
           b.remote_public_credentials.size() ||
       a.extended_properties != b.extended_properties)
     return false;
-  for (int i = 0; i < a.remote_public_credentials.size(); ++i) {
+  for (size_t i = 0; i < a.remote_public_credentials.size(); ++i) {
     if (a.remote_public_credentials[i].SerializeAsString() !=
         b.remote_public_credentials[i].SerializeAsString())
       return false;

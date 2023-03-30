@@ -41,14 +41,14 @@ cc_test(
     shard_count = 16,
     deps = [
         ":mediums",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//presence:types",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_googletest//:gtest_main",
     ] + select({
         "//tools/cc_target_os:windows": [
             "//internal/platform/implementation/windows",
