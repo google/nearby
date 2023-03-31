@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ class NearbyHttpClientTest : public ::testing::Test {
 
   api::WebRequest GetWebRequest() { return api::GetContext()->web_request; }
 
-  absl::StatusOr<HttpResponse> GetResponse(
+  absl::StatusOr<HttpResponse> GetResponseAsync(
       absl::string_view url, HttpRequestMethod method,
       const std::multimap<std::string, std::string>& headers,
       absl::string_view body) {
@@ -121,6 +121,28 @@ class NearbyHttpClientTest : public ::testing::Test {
     return result;
   }
 
+  absl::StatusOr<HttpResponse> GetResponse(
+      absl::string_view url, HttpRequestMethod method,
+      const std::multimap<std::string, std::string>& headers,
+      absl::string_view body) {
+    absl::StatusOr<HttpResponse> result;
+    absl::StatusOr<Url> request_url = Url::Create(url);
+    if (!request_url.ok()) {
+      return request_url.status();
+    }
+
+    HttpRequest request{request_url.value()};
+    auto it = headers.begin();
+    while (it != headers.end()) {
+      request.AddHeader(it->first, it->second);
+      ++it;
+    }
+    request.SetMethod(method);
+    request.SetBody(body);
+
+    return client_.GetResponse(request);
+  }
+
   void CheckHeader(const std::multimap<std::string, std::string>& headers,
                    absl::string_view key, absl::string_view expected_value) {
     auto it = headers.find(std::string(key));
@@ -146,8 +168,8 @@ namespace {
 TEST_F(NearbyHttpClientTest, TestGet) {
   MockResponse(HttpStatusCode::kHttpOk, "OK", {{"Content_Type", "text/html"}},
                "web content");
-  auto result =
-      GetResponse("http://www.google.com", HttpRequestMethod::kGet, {}, "");
+  auto result = GetResponseAsync("http://www.google.com",
+                                 HttpRequestMethod::kGet, {}, "");
 
   // Checks request.
   api::WebRequest web_request = GetWebRequest();
@@ -165,8 +187,8 @@ TEST_F(NearbyHttpClientTest, TestGet) {
 TEST_F(NearbyHttpClientTest, TestGetWithQuery) {
   MockResponse(HttpStatusCode::kHttpOk, "OK", {{"Content_Type", "text/html"}},
                "web content");
-  auto result = GetResponse("http://www.google.com?name=name1&age=36",
-                            HttpRequestMethod::kGet, {}, "");
+  auto result = GetResponseAsync("http://www.google.com?name=name1&age=36",
+                                 HttpRequestMethod::kGet, {}, "");
 
   // Checks request.
   api::WebRequest web_request = GetWebRequest();
@@ -180,8 +202,8 @@ TEST_F(NearbyHttpClientTest, TestGetWithQuery) {
 
 TEST_F(NearbyHttpClientTest, TestGetWithErrorResult) {
   MockFailedResponse(absl::InternalError("no connection."));
-  auto result = GetResponse("http://www.google.com?name=name1&age=36",
-                            HttpRequestMethod::kGet, {}, "");
+  auto result = GetResponseAsync("http://www.google.com?name=name1&age=36",
+                                 HttpRequestMethod::kGet, {}, "");
 
   // Checks request.
   api::WebRequest web_request = GetWebRequest();
@@ -190,6 +212,24 @@ TEST_F(NearbyHttpClientTest, TestGetWithErrorResult) {
 
   // Checks response.
   EXPECT_FALSE(result.ok());
+}
+
+TEST_F(NearbyHttpClientTest, TestPostAsync) {
+  MockResponse(HttpStatusCode::kHttpNoContent, "OK",
+               {{"Content_Type", "text/html"}}, "");
+  auto result = GetResponseAsync("http://www.google.com",
+                                 HttpRequestMethod::kPost, {}, "");
+
+  // Checks request.
+  api::WebRequest web_request = GetWebRequest();
+  EXPECT_EQ(web_request.url, "http://www.google.com");
+  EXPECT_EQ(web_request.method, "POST");
+
+  // Checks response.
+  ASSERT_TRUE(result.ok());
+  EXPECT_EQ(result->GetStatusCode(), HttpStatusCode::kHttpNoContent);
+  HttpResponseBody body = result->GetBody();
+  EXPECT_TRUE(body.empty());
 }
 
 TEST_F(NearbyHttpClientTest, TestPost) {
@@ -210,12 +250,12 @@ TEST_F(NearbyHttpClientTest, TestPost) {
   EXPECT_TRUE(body.empty());
 }
 
-TEST_F(NearbyHttpClientTest, TestPostWithHeader) {
+TEST_F(NearbyHttpClientTest, TestPostWithHeaderAsync) {
   MockResponse(HttpStatusCode::kHttpNoContent, "OK",
                {{"Content_Type", "text/html"}}, "");
   auto result =
-      GetResponse("http://www.google.com", HttpRequestMethod::kPost,
-                  {{"Content_Type", "text/json"}, {"size", "596"}}, "");
+      GetResponseAsync("http://www.google.com", HttpRequestMethod::kPost,
+                       {{"Content_Type", "text/json"}, {"size", "596"}}, "");
 
   // Checks request.
   api::WebRequest web_request = GetWebRequest();
@@ -231,11 +271,11 @@ TEST_F(NearbyHttpClientTest, TestPostWithHeader) {
   EXPECT_EQ(result->GetBody().GetRawData(), "");
 }
 
-TEST_F(NearbyHttpClientTest, TestPostWithErrorResult) {
+TEST_F(NearbyHttpClientTest, TestPostWithErrorResultAsync) {
   MockFailedResponse(absl::UnauthenticatedError("no user."));
   auto result =
-      GetResponse("http://www.google.com", HttpRequestMethod::kPost,
-                  {{"Content_Type", "text/json"}, {"size", "596"}}, "");
+      GetResponseAsync("http://www.google.com", HttpRequestMethod::kPost,
+                       {{"Content_Type", "text/json"}, {"size", "596"}}, "");
 
   // Checks request.
   api::WebRequest web_request = GetWebRequest();
@@ -249,11 +289,11 @@ TEST_F(NearbyHttpClientTest, TestPostWithErrorResult) {
   ASSERT_FALSE(result.ok());
 }
 
-TEST_F(NearbyHttpClientTest, TestRequestWithCleanThreads) {
+TEST_F(NearbyHttpClientTest, TestRequestWithCleanThreadsAsync) {
   MockResponse(HttpStatusCode::kHttpOk, "OK", {{"Content_Type", "text/html"}},
                "web content");
-  auto result =
-      GetResponse("http://www.google.com", HttpRequestMethod::kGet, {}, "");
+  auto result = GetResponseAsync("http://www.google.com",
+                                 HttpRequestMethod::kGet, {}, "");
 
   // Checks request.
   api::WebRequest web_request = GetWebRequest();
@@ -263,8 +303,8 @@ TEST_F(NearbyHttpClientTest, TestRequestWithCleanThreads) {
   // Checks response.
   ASSERT_TRUE(result.ok());
 
-  result =
-      GetResponse("http://www.youtube.com", HttpRequestMethod::kGet, {}, "");
+  result = GetResponseAsync("http://www.youtube.com", HttpRequestMethod::kGet,
+                            {}, "");
   ASSERT_TRUE(result.ok());
 }
 

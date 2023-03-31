@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "internal/network/http_client.h"
 
 namespace nearby {
@@ -49,6 +50,11 @@ class FastPairFakeHttpClient : public HttpClient {
     request_info.request = request;
     request_info.callback = callback;
     request_infos_.push_back(std::move(request_info));
+  }
+
+  absl::StatusOr<HttpResponse> GetResponse(
+      const HttpRequest& request) override {
+    return absl::UnimplementedError("unimplemented");
   }
 
   // Mock methods
