@@ -110,16 +110,6 @@ cc_library(
 )
 
 cc_library(
-    name = "mediums_api",
-    hdrs = ["mediums_api.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//internal/platform/implementation/windows/mediums_manager:types",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
     name = "crypto",
     srcs = [
         "crypto.cc",
