@@ -125,6 +125,7 @@ cc_library(
     visibility = [
         "//connections:__pkg__",
         "//connections/implementation/fuzzers:__pkg__",
+        "//location/nearby/cpp/sharing/implementation:__pkg__",
     ],
     deps = [
         ":message_lite",
