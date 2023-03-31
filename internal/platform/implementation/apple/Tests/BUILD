@@ -33,6 +33,7 @@ objc_library(
     deps = [
         "//internal/platform/implementation/apple",
         "//internal/platform/implementation/apple:Shared",
+        "//third_party/apple_frameworks:XCTest",
     ],
 )
 
