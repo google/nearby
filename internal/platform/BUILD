@@ -188,6 +188,7 @@ cc_library(
     ],
     visibility = [
         "//connections/implementation:__subpackages__",
+        "//fastpair:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//presence:__subpackages__",
     ],

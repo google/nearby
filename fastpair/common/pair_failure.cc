@@ -86,6 +86,10 @@ std::ostream& operator<<(std::ostream& stream, PairFailure failure) {
     case PairFailure::kPasskeyMismatch:
       stream << "[Passkeys did not match]";
       break;
+    case PairFailure::kPairingDeviceLostBetweenGattConnectionAttempts:
+      stream
+          << "[Potential pairing device lost between GATT connection attempts]";
+      break;
   }
 
   return stream;

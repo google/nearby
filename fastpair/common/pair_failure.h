@@ -66,7 +66,9 @@ enum class PairFailure {
   kIncorrectPasskeyResponseType = 18,
   // Passkeys did not match.
   kPasskeyMismatch = 19,
-  kMaxValue = kPasskeyMismatch,
+  // Potential pairing device lost between GATT connection attempts.
+  kPairingDeviceLostBetweenGattConnectionAttempts = 20,
+  kMaxValue = kPairingDeviceLostBetweenGattConnectionAttempts,
 };
 
 std::ostream& operator<<(std::ostream& stream, PairFailure failure);
