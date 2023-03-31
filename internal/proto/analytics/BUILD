@@ -33,11 +33,7 @@ proto_library(
     name = "fast_pair_log_proto",
     srcs = ["fast_pair_log.proto"],
     compatible_with = ["//buildenv/target:non_prod"],
-    deps = [
-        "//proto:fast_pair_enums_proto",
-        "//storage/datapol/annotations/proto:datapol_annotations",
-        "//wireless/android/privacy/annotations/proto:collection_basis_annotations",
-    ],
+    deps = ["//proto:fast_pair_enums_proto"],
 )
 
 cc_proto_library(

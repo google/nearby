@@ -16,9 +16,7 @@ syntax = "proto2";
 
 package nearby.proto.fastpair;
 
-// import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "third_party/nearby/proto/fast_pair_enums.proto";
-import "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "nearby.proto.fastpair";
@@ -40,78 +38,42 @@ message FastPairLog {
   // is pairing with a pair of "Bose BayWolf Silver" headphones, this would be
   // 0xF00001. Not unique to a particular user or device, only a model.
   // go/magic-pair-model-ids
-  optional int32 model_id = 1 [(wireless.android.privacy.collection_basis) = {
-    use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-    use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-  }];
+  optional int32 model_id = 1;
 
   // The current bond state with the target device.
   // third_party/nearby/internal/proto/analytics
-  optional nearby.proto.fastpair.FastPairEvent.BondState bond_state = 2
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional nearby.proto.fastpair.FastPairEvent.BondState bond_state = 2;
 
   // If the event is a success, this will be 0 (or unset). Otherwise, nonzero.
   // If this is OTHER_ERROR, more detailed error info may be available in
   // one of the other fields.
-  optional nearby.proto.fastpair.FastPairEvent.ErrorCode error_code = 3
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional nearby.proto.fastpair.FastPairEvent.ErrorCode error_code = 3;
 
   // For events involving GATT operations, this may be present.
-  optional GattEvent gatt_event = 4
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional GattEvent gatt_event = 4;
 
   // For events during the BR/EDR Handover process, this may be present.
-  optional BrEdrHandoverEvent br_edr_handover_event = 5
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional BrEdrHandoverEvent br_edr_handover_event = 5;
 
   // For the CREATE_BOND event, this may be present.
-  optional CreateBondEvent bond_event = 6
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional CreateBondEvent bond_event = 6;
 
   // For the CONNECT_PROFILE event, this may be present.
-  optional ConnectEvent connect_event = 7
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional ConnectEvent connect_event = 7;
 
   // The device address of the beacon, after being irreversibly salted and
   // hashed. The salt rotates on the client. Used for Fast Pair analytics, to
   // detect false positives.
-  optional int64 hashed_salted_device_address = 8 [
-    (datapol.semantic_type) = ST_SESSION_ID,
-    (wireless.android.privacy.collection_basis) = {
-      use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-    }
-  ];
+  optional int64 hashed_salted_device_address = 8;
 
   // The duration about how long this event take to finish in millisecond.
-  optional int64 duration = 9 [(wireless.android.privacy.collection_basis) = {
-    use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-    use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-  }];
+  optional int64 duration = 9;
 
   // For the DEVICE_RECOGNIZED event, this may be present.
-  optional ProviderInfo provider_info = 10
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-      }];
+  optional ProviderInfo provider_info = 10;
 
   // For the WRITE_TO_FOOTPRINTS event, this may be present.
-  optional FootprintsInfo footprints_info = 11
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-      }];
+  optional FootprintsInfo footprints_info = 11;
 
   message GattEvent {
     // Error code returned by the OS, e.g. 133 is common.
@@ -157,18 +119,10 @@ message FastPairLog {
   }
 
   // e.g. phone, tablet, wearable, tv, pc, auto.
-  optional nearby.proto.fastpair.DeviceType device_type = 12
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-        use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-      }];
+  optional nearby.proto.fastpair.DeviceType device_type = 12;
 
   // e.g. android, chrome os.
-  optional nearby.proto.fastpair.OsType os_type = 13
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-        use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-      }];
+  optional nearby.proto.fastpair.OsType os_type = 13;
 
   // Active wifi band 2.4g/5g/6g. E.g. 2412, 2437, 5660, 5745...
   optional int32 active_wifi_frequency = 14;
@@ -178,11 +132,7 @@ message FastPairLog {
   optional int32 number_connected_peripherals = 15;
 
   // Whether the current provider is scanned by the offload scanner.
-  optional bool is_scanned_by_offload_scanner = 16
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-        use_cases: UC_SERVICE_OR_API_PRODUCT_IMPROVEMENT
-      }];
+  optional bool is_scanned_by_offload_scanner = 16;
 
   // For the SECRET_HANDSHAKE event, add more info.
   message KeyBasedPairingInfo {
@@ -197,14 +147,8 @@ message FastPairLog {
   }
 
   // For the SECRET_HANDSHAKE event, add more info
-  optional KeyBasedPairingInfo key_based_pairing_info = 17
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional KeyBasedPairingInfo key_based_pairing_info = 17;
 
   // For the CREATE_BOND event, add bonding transport
-  optional uint32 bonding_transport = 18
-      [(wireless.android.privacy.collection_basis) = {
-        use_cases: UC_SERVICE_OR_API_FUNCTIONAL_DEBUGGING
-      }];
+  optional uint32 bonding_transport = 18;
 }
