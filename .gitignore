@@ -1,2 +1,49 @@
+.DS_Store
+
 build/**
 .build
+
+# We might want to create a real project config at some point, but for now we
+# want to ignore adding the auto-generated one.
+.vscode/
+
+# Xcode
+
+## Build generated
+build/
+DerivedData
+
+## Various settings
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+
+## Other
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
+## Obj-C/Swift specific
+*.hmap
+*.ipa
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Carthage
+Carthage/Build
+.UlyssesRoot
+.Ulysses-Settings.plist
+.Ulysses-Group.plist
