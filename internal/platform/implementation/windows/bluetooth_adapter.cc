@@ -236,74 +236,103 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
 }
 
 void BluetoothAdapter::RestoreRadioNameIfNecessary() {
-  std::string nearby_radio_name;
-  std::string current_radio_name = GetName();
+  try {
+    std::string nearby_radio_name;
+    std::string current_radio_name = GetName();
 
-  std::string settings_path(kLocalSettingsFileName);
+    std::string settings_path(kLocalSettingsFileName);
 
-  auto full_path =
-      nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
+    auto full_path =
+        nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
 
-  auto settings_file =
-      nearby::api::ImplementationPlatform::CreateInputFile(full_path, 0);
-  if (settings_file == nullptr) {
-    return;
-  }
+    auto settings_file =
+        nearby::api::ImplementationPlatform::CreateInputFile(full_path, 0);
+    if (settings_file == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Failed to create input file.";
+      return;
+    }
 
-  auto total_size = settings_file->GetTotalSize();
-  nearby::ExceptionOr<ByteArray> raw_local_settings;
+    auto total_size = settings_file->GetTotalSize();
+    if (total_size == 0) {
+      NEARBY_LOGS(WARNING) << __func__ << ": No data for local settings.";
+      return;
+    }
 
-  raw_local_settings = settings_file->Read(total_size);
-  settings_file->Close();
+    nearby::ExceptionOr<ByteArray> raw_local_settings;
 
-  if (!raw_local_settings.ok()) {
-    return;
-  }
+    raw_local_settings = settings_file->Read(total_size);
+    settings_file->Close();
 
-  auto local_settings =
-      json::parse(raw_local_settings.GetResult().data(), nullptr, false);
+    if (!raw_local_settings.ok()) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Failed to read data file.";
+      return;
+    }
 
-  if (local_settings.is_discarded()) {
-    return;
-  }
+    auto local_settings =
+        json::parse(raw_local_settings.GetResult().data(), nullptr, false);
 
-  LocalSettings settings = local_settings.get<LocalSettings>();
+    if (local_settings.is_discarded()) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Invalid local settings data.";
+      return;
+    }
 
-  if (current_radio_name == settings.nearby_radio_name) {
-    SetName(settings.original_radio_name,
-            /* persist= */ true);
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": loaded settings: " << local_settings.dump();
+
+    LocalSettings settings = local_settings.get<LocalSettings>();
+
+    if (current_radio_name == settings.nearby_radio_name) {
+      SetName(settings.original_radio_name,
+              /* persist= */ true);
+    }
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
   }
 }
 
 void BluetoothAdapter::StoreRadioNames(absl::string_view original_radio_name,
                                        absl::string_view nearby_radio_name) {
-  if (original_radio_name == nullptr || original_radio_name.size() == 0) {
-    return;
+  try {
+    if (original_radio_name.empty() || nearby_radio_name.empty()) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ":Failed to save radio names due to invalid parameters.";
+      return;
+    }
+
+    std::string settings_path(kLocalSettingsFileName);
+    auto full_path =
+        nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
+
+    auto settings_file =
+        nearby::api::ImplementationPlatform::CreateOutputFile(full_path);
+
+    if (settings_file == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Failed to create output file.";
+      return;
+    }
+
+    LocalSettings local_settings = {std::string(original_radio_name),
+                                    std::string(nearby_radio_name)};
+
+    json encoded_local_settings;
+    to_json(encoded_local_settings, local_settings);
+    NEARBY_LOGS(VERBOSE) << __func__ << ": saved settings: "
+                         << encoded_local_settings.dump();
+
+    ByteArray data(encoded_local_settings.dump());
+
+    settings_file->Write(data);
+    settings_file->Close();
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
   }
-  if (nearby_radio_name == nullptr || nearby_radio_name.size() == 0) {
-    return;
-  }
-
-  std::string settings_path(kLocalSettingsFileName);
-  auto full_path =
-      nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
-
-  auto settings_file =
-      nearby::api::ImplementationPlatform::CreateOutputFile(full_path);
-
-  if (settings_file == nullptr) {
-    return;
-  }
-
-  LocalSettings local_settings = {std::string(original_radio_name),
-                                  std::string(nearby_radio_name)};
-
-  json encoded_local_settings = local_settings;
-
-  ByteArray data(encoded_local_settings.dump());
-
-  settings_file->Write(data);
-  settings_file->Close();
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
