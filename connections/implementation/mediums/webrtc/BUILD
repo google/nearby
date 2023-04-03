@@ -32,8 +32,6 @@ cc_library(
     ],
     deps = [
         ":data_types",
-        "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/time",
         "//connections:core_types",
         "//connections/implementation/mediums:utils",
         "//internal/platform:base",
@@ -41,6 +39,8 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/time",
     ] + select({
         "@platforms//cpu:arm": [],
         "//conditions:default": [
