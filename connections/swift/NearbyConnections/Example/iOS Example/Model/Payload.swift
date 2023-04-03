@@ -23,7 +23,7 @@ struct Payload: Identifiable {
     var status: Status
     let isIncoming: Bool
     let cancellationToken: CancellationToken?
-    
+
     enum PayloadType {
         case bytes, stream, file
     }

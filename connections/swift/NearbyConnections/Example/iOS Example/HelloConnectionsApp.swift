@@ -19,7 +19,7 @@ import SwiftUI
 @main
 struct HelloConnectionsApp: App {
     @StateObject private var model = Model()
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -18,7 +18,7 @@ import SwiftUI
 
 struct PayloadView: View {
     var payload: Payload
-    
+
     var body: some View {
         HStack(alignment: .top) {
             Image(systemName: payload.isIncoming

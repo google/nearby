@@ -39,20 +39,20 @@ class Model: ObservableObject {
             invalidateDiscovery()
         }
     }
- 
+
     @Published private(set) var requests: [ConnectionRequest] = []
     @Published private(set) var connections: [ConnectedEndpoint] = []
     @Published private(set) var endpoints: [DiscoveredEndpoint] = []
-    
+
     var connectionManager: ConnectionManager!
     var advertiser: Advertiser?
     var discoverer: Discoverer?
-    
+
     init() {
         invalidateAdvertising()
         invalidateDiscovery()
     }
-    
+
     private var isAdvertising = Config.defaultAdvertisingState
     private func invalidateAdvertising() {
         defer {
@@ -66,12 +66,12 @@ class Model: ObservableObject {
         }
         connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: strategy)
         connectionManager.delegate = self
-        
+
         advertiser = Advertiser(connectionManager: connectionManager)
         advertiser?.delegate = self
         advertiser?.startAdvertising(using: endpointName.data(using: .utf8)!)
     }
-    
+
     private var isDiscovering = Config.defaultDiscoveryState
     private func invalidateDiscovery() {
         defer {
@@ -85,20 +85,20 @@ class Model: ObservableObject {
         }
         connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: strategy)
         connectionManager.delegate = self
-        
+
         discoverer = Discoverer(connectionManager: connectionManager)
         discoverer?.delegate = self
         discoverer?.startDiscovery()
     }
-    
+
     func requestConnection(to endpointID: EndpointID) {
         discoverer?.requestConnection(to: endpointID, using: endpointName.data(using: .utf8)!)
     }
-    
+
     func disconnect(from endpointID: EndpointID) {
         connectionManager.disconnect(from: endpointID)
     }
-    
+
     func sendBytes(to endpointIDs: [EndpointID]) {
         let payloadID = PayloadID.unique()
         let token = connectionManager.send(Config.bytePayload.data(using: .utf8)!, to: endpointIDs, id: payloadID)
@@ -126,7 +126,7 @@ extension Model: DiscovererDelegate {
         )
         endpoints.insert(endpoint, at: 0)
     }
-    
+
     func discoverer(_ discoverer: Discoverer, didLose endpointID: EndpointID) {
         guard let index = endpoints.firstIndex(where: { $0.id == endpointID }) else {
             return
@@ -190,7 +190,7 @@ extension Model: ConnectionManagerDelegate {
         }
         connections[index].payloads.insert(payload, at: 0)
     }
-    
+
     func connectionManager(_ connectionManager: ConnectionManager, didStartReceivingResourceWithID payloadID: PayloadID, from endpointID: EndpointID, at localURL: URL, withName name: String, cancellationToken token: CancellationToken) {
         let payload = Payload(
             id: payloadID,
@@ -204,7 +204,7 @@ extension Model: ConnectionManagerDelegate {
         }
         connections[index].payloads.insert(payload, at: 0)
     }
-    
+
     func connectionManager(_ connectionManager: ConnectionManager, didReceiveTransferUpdate update: TransferUpdate, from endpointID: EndpointID, forPayload payloadID: PayloadID) {
         guard let connectionIndex = connections.firstIndex(where: { $0.id == endpointID }),
               let payloadIndex = connections[connectionIndex].payloads.firstIndex(where: { $0.id == payloadID }) else {

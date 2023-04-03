@@ -26,7 +26,7 @@ class Config {
     static let defaultAdvertisingState = false
     static let defaultDiscoveryState = false
     static let bytePayload = "hello world"
-    
+
 #if os(iOS) || os(watchOS) || os(tvOS)
     static let defaultEndpointName = UIDevice.current.name
 #elseif os(macOS)

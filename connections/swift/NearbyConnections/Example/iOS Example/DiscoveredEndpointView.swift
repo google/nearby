@@ -19,9 +19,9 @@ import SwiftUI
 struct DiscoveredEndpointView: View {
     var endpoint: DiscoveredEndpoint
     var onRequestConnection : () -> ()
-    
+
     @State private var hasResponded = false
-    
+
     var body: some View {
         Section {
             Button("Connect") {

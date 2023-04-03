@@ -20,7 +20,7 @@ struct ConnectedView: View {
     var connection: ConnectedEndpoint
     var onSendBytes : () -> ()
     var onDisconnect : () -> ()
-    
+
     var body: some View {
         Section("Connection Actions") {
             Button("Send Bytes") {

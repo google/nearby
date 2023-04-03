@@ -19,7 +19,7 @@ import NearbyConnections
 
 struct ContentView: View {
     @EnvironmentObject private var model: Model
-    
+
     let strategies: [Strategy: String] = [
         .cluster: "Cluster",
         .pointToPoint: "Point to Point",

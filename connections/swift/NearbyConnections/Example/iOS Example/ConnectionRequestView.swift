@@ -20,9 +20,9 @@ struct ConnectionRequestView: View {
     var connectionRequest: ConnectionRequest
     var onAcceptConnection : () -> ()
     var onRejectConnection : () -> ()
-    
+
     @State private var hasResponded = false
-    
+
     var body: some View {
         Section(footer: Text("Security code: \(connectionRequest.pin)")) {
             Button("Accept") {

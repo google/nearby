@@ -18,22 +18,22 @@ import SwiftUI
 
 struct EndpointDetail: View {
     var endpointID: String
-    
+
     @EnvironmentObject private var model: Model
-    
+
     var body: some View {
         let endpoint = model.endpoints.first { $0.id == endpointID }
         let connectionRequest = model.requests.first { $0.id == endpointID }
         let connection = model.connections.first { $0.id == endpointID }
         let name = connectionRequest?.endpointName ?? connection?.endpointName ?? endpoint?.endpointName
-        
+
         Form {
             if let endpoint {
                 DiscoveredEndpointView(endpoint: endpoint, onRequestConnection: {
                     model.requestConnection(to: endpointID)
                 })
             }
-            
+
             if let connectionRequest {
                 ConnectionRequestView(connectionRequest: connectionRequest, onAcceptConnection: {
                     connectionRequest.shouldAccept(true)
