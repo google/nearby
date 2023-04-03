@@ -245,6 +245,13 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
       return false;
     }
 
+    if (publisher_ == nullptr) {
+      NEARBY_LOGS(WARNING)
+          << "BLE publisher not initialized or already stopped.";
+      is_publisher_started_ = false;
+      return false;
+    }
+
     publisher_.Stop();
 
     // Don't need to wait for the status becomes to `Stopped`. If application
