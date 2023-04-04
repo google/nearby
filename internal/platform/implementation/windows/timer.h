@@ -17,6 +17,10 @@
 
 #include <windows.h>
 
+#include <memory>
+
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/timer.h"
 
 namespace nearby {
@@ -28,18 +32,20 @@ class Timer : public api::Timer {
   ~Timer() override;
 
   bool Create(int delay, int interval,
-              absl::AnyInvocable<void()> callback) override;
-  bool Stop() override;
-  bool FireNow() override;
+              absl::AnyInvocable<void()> callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   static void CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired);
 
-  int delay_;
-  int interval_;
-  absl::AnyInvocable<void()> callback_;
-  HANDLE handle_ = NULL;
-  HANDLE timer_queue_handle_ = NULL;
+  mutable absl::Mutex mutex_;
+  int delay_ ABSL_GUARDED_BY(mutex_);
+  int interval_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> callback_ ABSL_GUARDED_BY(mutex_);
+  HANDLE handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  HANDLE timer_queue_handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
 }  // namespace windows

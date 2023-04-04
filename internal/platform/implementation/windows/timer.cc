@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -25,6 +26,8 @@ Timer::~Timer() { Stop(); }
 
 bool Timer::Create(int delay, int interval,
                    absl::AnyInvocable<void()> callback) {
+  absl::MutexLock lock(&mutex_);
+
   if ((delay < 0) || (interval < 0)) {
     NEARBY_LOGS(WARNING) << "Delay and interval shouldn\'t be negative value.";
     return false;
@@ -58,6 +61,8 @@ bool Timer::Create(int delay, int interval,
 }
 
 bool Timer::Stop() {
+  absl::MutexLock lock(&mutex_);
+
   if (timer_queue_handle_ == nullptr) {
     return true;
   }
@@ -81,6 +86,8 @@ bool Timer::Stop() {
 }
 
 bool Timer::FireNow() {
+  absl::MutexLock lock(&mutex_);
+
   if (!timer_queue_handle_ || !callback_) {
     return false;
   }
@@ -92,7 +99,7 @@ bool Timer::FireNow() {
 void CALLBACK Timer::TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
   absl::AnyInvocable<void()>* callback =
       reinterpret_cast<absl::AnyInvocable<void()>*>(lpParam);
-  if (*callback != NULL) {
+  if (*callback != nullptr) {
     (*callback)();
   }
 }

@@ -50,6 +50,8 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/windows/generated:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
