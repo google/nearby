@@ -19,12 +19,15 @@ cc_library(
     srcs = [
         "fast_pair_data_encryptor_impl.cc",
         "fast_pair_gatt_service_client_impl.cc",
+        "fast_pair_handshake_impl.cc",
     ],
     hdrs = [
         "fast_pair_data_encryptor.h",
         "fast_pair_data_encryptor_impl.h",
         "fast_pair_gatt_service_client.h",
         "fast_pair_gatt_service_client_impl.h",
+        "fast_pair_handshake.h",
+        "fast_pair_handshake_impl.h",
     ],
     visibility = [
         "//:__subpackages__",
@@ -54,6 +57,7 @@ cc_library(
     name = "test_support",
     hdrs = [
         "fake_fast_pair_data_encryptor.h",
+        "fake_fast_pair_gatt_service_client.h",
     ],
     visibility = [
         "//fastpair:__subpackages__",
@@ -114,6 +118,27 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_handshake_impl_test",
+    size = "small",
+    srcs = [
+        "fast_pair_handshake_impl_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":handshake",
+        "//fastpair/common",
+        "//fastpair/server_access:test_support",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
