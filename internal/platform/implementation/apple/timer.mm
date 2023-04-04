@@ -52,12 +52,16 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
                                   dispatch_get_main_queue());
 
   dispatch_source_set_event_handler(timer_, ^{
+    // If our interval is `DISPATCH_TIME_FOREVER`, it means we only want the timer to fire once.
+    // We need to cancel the timer before the callback is called since the `Timer` object may no
+    // longer exist immediately after invoking the callback.
+    if (intervalInNanoseconds == DISPATCH_TIME_FOREVER && timer_ != nil) {
+      dispatch_source_cancel(timer_);
+      timer_ = nil;
+    }
+
     if (callback_ != nil) {
       callback_();
-    }
-    // If our interval is `DISPATCH_TIME_FOREVER`, it means we only want the timer to fire once.
-    if (intervalInNanoseconds == DISPATCH_TIME_FOREVER) {
-      Stop();
     }
   });
 
