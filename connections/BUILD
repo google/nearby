@@ -70,7 +70,6 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections:__subpackages__",
-        "//internal/platform/implementation/apple:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
