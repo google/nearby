@@ -14,6 +14,11 @@
 
 #import "internal/platform/implementation/apple/device_info.h"
 
+#import <Foundation/Foundation.h>
+#if TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+#endif
+
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <optional>
@@ -23,44 +28,137 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/device_info.h"
 
+#import "GoogleToolboxForMac/GTMLogger.h"
+
 namespace nearby {
 namespace apple {
 
-std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const { return u"OS Device Name"; }
+std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
+#if TARGET_OS_IPHONE
+  NSString *name = UIDevice.currentDevice.name;
+  const char16_t *cName = (const char16_t *)[name cStringUsingEncoding:NSUTF16StringEncoding];
+  return std::u16string(cName);
+#elif TARGET_OS_OSX
+  NSString *name = NSHost.currentHost.localizedName;
+  const char16_t *cName = (const char16_t *)[name cStringUsingEncoding:NSUTF16StringEncoding];
+  return std::u16string(cName);
+#else
+  return std::nullopt;
+#endif
+}
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
+#if TARGET_OS_IOS
+  if (@available(iOS 14, *)) {
+    if (NSProcessInfo.processInfo.iOSAppOnMac) {
+      return api::DeviceInfo::DeviceType::kLaptop;
+    }
+  }
+  if ([UIDevice.currentDevice.model isEqual:@"iPad"]) {
+    return api::DeviceInfo::DeviceType::kTablet;
+  }
+  if ([UIDevice.currentDevice.model isEqual:@"iPhone"]) {
+    return api::DeviceInfo::DeviceType::kPhone;
+  }
+  return api::DeviceInfo::DeviceType::kUnknown;
+#elif TARGET_OS_OSX
   return api::DeviceInfo::DeviceType::kLaptop;
+#else
+  return api::DeviceInfo::DeviceType::kUnknown;
+#endif
 }
 
 api::DeviceInfo::OsType DeviceInfo::GetOsType() const { return api::DeviceInfo::OsType::kIos; }
 
-std::optional<std::u16string> DeviceInfo::GetFullName() const { return u"Full Name"; }
-std::optional<std::u16string> DeviceInfo::GetGivenName() const { return u"Given Name"; }
-std::optional<std::u16string> DeviceInfo::GetLastName() const { return u"Last Name"; }
-std::optional<std::string> DeviceInfo::GetProfileUserName() const { return "Username"; }
+std::optional<std::u16string> DeviceInfo::GetFullName() const { return std::nullopt; }
+std::optional<std::u16string> DeviceInfo::GetGivenName() const { return std::nullopt; }
+std::optional<std::u16string> DeviceInfo::GetLastName() const { return std::nullopt; }
+std::optional<std::string> DeviceInfo::GetProfileUserName() const { return std::nullopt; }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
-  return std::filesystem::temp_directory_path();
+  NSFileManager *manager = [NSFileManager defaultManager];
+
+  NSError *error = nil;
+  NSURL *downloadsURL = [manager URLForDirectory:NSDownloadsDirectory
+                                        inDomain:NSUserDomainMask
+                               appropriateForURL:nil
+                                          create:YES
+                                           error:&error];
+  if (!downloadsURL) {
+    GTMLoggerError(@"Failed to get download path: %@", error);
+    return std::nullopt;
+  }
+
+  return std::filesystem::path([downloadsURL.path cString]);
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
-  return std::filesystem::temp_directory_path();
+  NSFileManager *manager = [NSFileManager defaultManager];
+
+  NSError *error = nil;
+  NSURL *applicationSupportURL = [manager URLForDirectory:NSApplicationSupportDirectory
+                                                 inDomain:NSUserDomainMask
+                                        appropriateForURL:nil
+                                                   create:YES
+                                                    error:&error];
+  if (!applicationSupportURL) {
+    GTMLoggerError(@"Failed to get application support path: %@", error);
+    return std::nullopt;
+  }
+
+  return std::filesystem::path([applicationSupportURL.path cString]);
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetCommonAppDataPath() const {
-  return std::filesystem::temp_directory_path();
+  return GetLocalAppDataPath();
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
-  return std::filesystem::temp_directory_path();
+  return std::filesystem::path([NSTemporaryDirectory() cString]);
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
-  return std::filesystem::temp_directory_path();
+  NSFileManager *manager = [NSFileManager defaultManager];
+
+  NSError *error = nil;
+  NSURL *applicationSupportURL = [manager URLForDirectory:NSApplicationSupportDirectory
+                                                 inDomain:NSUserDomainMask
+                                        appropriateForURL:nil
+                                                   create:YES
+                                                    error:&error];
+  if (!applicationSupportURL) {
+    GTMLoggerError(@"Failed to get application support path: %@", error);
+    return std::nullopt;
+  }
+
+  // TODO(b/276937308): This should not hard-code Nearby Share's log directory, but this matches the
+  // current Windows implmementation.
+  NSURL *logsURL =
+      [applicationSupportURL URLByAppendingPathComponent:@"Google/Nearby/Sharing/Logs"];
+
+  return std::filesystem::path([logsURL.path cString]);
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
-  return std::filesystem::temp_directory_path();
+  NSFileManager *manager = [NSFileManager defaultManager];
+
+  NSError *error = nil;
+  NSURL *applicationSupportURL = [manager URLForDirectory:NSApplicationSupportDirectory
+                                                 inDomain:NSUserDomainMask
+                                        appropriateForURL:nil
+                                                   create:YES
+                                                    error:&error];
+  if (!applicationSupportURL) {
+    GTMLoggerError(@"Failed to get application support path: %@", error);
+    return std::nullopt;
+  }
+
+  // TODO(b/276937308): This should not hard-code Nearby Share's crash dump directory, but this
+  // matches the current Windows implmementation.
+  NSURL *crashDumpsURL =
+      [applicationSupportURL URLByAppendingPathComponent:@"Google/Nearby/Sharing/CrashDumps"];
+
+  return std::filesystem::path([crashDumpsURL.path cString]);
 }
 
 bool DeviceInfo::IsScreenLocked() const { return false; }

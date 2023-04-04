@@ -67,7 +67,12 @@ objc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
-    ],
+    ] + select({
+        "//tools/cc_target_os:platform_ios": [
+            "//third_party/apple_frameworks:UIKit",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 objc_library(
