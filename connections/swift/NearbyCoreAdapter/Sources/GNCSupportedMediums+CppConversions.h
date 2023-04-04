@@ -19,10 +19,7 @@
 namespace nearby {
 namespace connections {
 
-template <typename T>
-class MediumSelector;
-
-using BooleanMediumSelector = MediumSelector<bool>;
+class BooleanMediumSelector;
 
 }  // namespace connections
 }  // namespace nearby
