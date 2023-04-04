@@ -67,6 +67,7 @@ WebRtcSocket::WebRtcSocket(
 WebRtcSocket::~WebRtcSocket() {
   NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
                     << ") this: " << this;
+  data_channel_->UnregisterObserver();
   Close();
   NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
                     << ") this: " << this << " done";
@@ -108,7 +109,6 @@ void WebRtcSocket::OnStateChange() {
       NEARBY_LOG(
           ERROR,
           "WebRtcSocket::OnStateChange() unregistering data channel observer.");
-      data_channel_->UnregisterObserver();
       // This will trigger a destruction of the owning connection flow
       // We implicitly depend on the |socket_listener_| to offload from
       // the signaling thread so it does not get blocked.
