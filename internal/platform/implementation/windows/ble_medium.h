@@ -112,12 +112,14 @@ class BleMedium : public api::BleMedium {
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementPublisher publisher_ = nullptr;
+      BluetoothLEAdvertisementPublisher publisher_ ABSL_GUARDED_BY(mutex_) =
+          nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementWatcher watcher_ = nullptr;
+      BluetoothLEAdvertisementWatcher watcher_ ABSL_GUARDED_BY(mutex_) =
+          nullptr;
 
-  bool is_publisher_started_ = false;
-  bool is_watcher_started_ = false;
+  bool is_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
+  bool is_watcher_started_ ABSL_GUARDED_BY(mutex_) = false;
 
   ::winrt::event_token publisher_token_;
   ::winrt::event_token watcher_token_;
