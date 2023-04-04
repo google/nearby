@@ -102,6 +102,9 @@
 }
 
 - (void)close {
+  if (_listener == nil) {
+    return;
+  }
   nw_listener_cancel(_listener);
   _listener = nil;
 }
