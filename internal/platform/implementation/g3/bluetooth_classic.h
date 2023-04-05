@@ -236,6 +236,9 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   api::BluetoothDevice* GetRemoteDevice(
       const std::string& mac_address) override;
 
+  void AddObserver(Observer* observer) override;
+  void RemoveObserver(Observer* observer) override;
+
  private:
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.

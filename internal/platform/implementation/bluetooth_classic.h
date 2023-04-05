@@ -111,6 +111,29 @@ class BluetoothClassicMedium {
         DefaultCallback<BluetoothDevice&>();
   };
 
+  class Observer {
+   public:
+    virtual ~Observer() = default;
+
+    // Called when a new `device` is added to the adapter.
+    virtual void DeviceAdded(BluetoothDevice& device) {}
+
+    // Called when `device` is removed from the adapter.
+    virtual void DeviceRemoved(BluetoothDevice& device) {}
+
+    // Called when the address of `device` changed due to pairing.
+    virtual void DeviceAddressChanged(BluetoothDevice& device,
+                                      absl::string_view old_address) {}
+
+    // Called when the paired property of `device` changed.
+    virtual void DevicePairedChanged(BluetoothDevice& device,
+                                     bool new_paired_status) {}
+
+    // Called when `device` has connected or disconnected.
+    virtual void DeviceConnectedStateChanged(BluetoothDevice& device,
+                                             bool connected) {}
+  };
+
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
   //
   // Returns true once the process of discovery has been initiated.
@@ -152,6 +175,9 @@ class BluetoothClassicMedium {
       const std::string& service_name, const std::string& service_uuid) = 0;
 
   virtual BluetoothDevice* GetRemoteDevice(const std::string& mac_address) = 0;
+
+  virtual void AddObserver(Observer* observer) = 0;
+  virtual void RemoveObserver(Observer* observer) = 0;
 };
 
 }  // namespace api

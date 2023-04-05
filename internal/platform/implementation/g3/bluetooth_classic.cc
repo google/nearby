@@ -277,5 +277,14 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
   return env.FindBluetoothDevice(mac_address);
 }
 
+void BluetoothClassicMedium::AddObserver(
+    api::BluetoothClassicMedium::Observer* observer) {
+  // TODO(b/269521993): Implement observer callbacks.
+}
+void BluetoothClassicMedium::RemoveObserver(
+    api::BluetoothClassicMedium::Observer* observer) {
+  // TODO(b/269521993): Implement observer callbacks.
+}
+
 }  // namespace g3
 }  // namespace nearby
