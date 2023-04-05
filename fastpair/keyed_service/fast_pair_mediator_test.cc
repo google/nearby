@@ -60,6 +60,7 @@ TEST_F(MediatorTest, SannerBrokerCallStartScanning) {
     mediator_ = std::make_unique<Mediator>(
       std::move(scanner_broker_),
       std::move(fast_pair_repository_));
+    mediator_->StartScanning();
 }
 
 }  // namespace

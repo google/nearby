@@ -36,8 +36,10 @@ class Mediator final : public ScannerBroker::Observer {
   void OnDeviceFound(const FastPairDevice& device) override;
   void OnDeviceLost(const FastPairDevice& device) override;
 
+  void StartScanning();
+
  private:
-  void SetFastPairState(bool is_enabled);
+  bool IsFastPairEnabled();
 
   std::unique_ptr<ScannerBroker> scanner_broker_;
   std::unique_ptr<FastPairRepository> fast_pair_repository_;

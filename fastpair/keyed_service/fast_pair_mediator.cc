@@ -27,10 +27,6 @@ Mediator::Mediator(std::unique_ptr<ScannerBroker> scanner_broker,
     : scanner_broker_(std::move(scanner_broker)),
       fast_pair_repository_(std::move(fast_pair_repository)) {
   scanner_broker_->AddObserver(this);
-
-  // TODO(b/275452353): Add  feature_status_tracker IsFastPairEnabled()
-  // Currently default to true.
-  SetFastPairState(true);
 }
 
 void Mediator::OnDeviceFound(const FastPairDevice& device) {
@@ -42,16 +38,19 @@ void Mediator::OnDeviceLost(const FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device;
 }
 
-void Mediator::SetFastPairState(bool is_enabled) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << is_enabled;
-
-  if (is_enabled) {
+void Mediator::StartScanning() {
+  if (IsFastPairEnabled()) {
     scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
     return;
   }
-
   scanner_broker_->StopScanning(Protocol::kFastPairInitialPairing);
 }
 
+bool Mediator::IsFastPairEnabled() {
+  // TODO(b/275452353): Add  feature_status_tracker IsFastPairEnabled()
+  // Currently default to true.
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << true;
+  return true;
+}
 }  // namespace fastpair
 }  // namespace nearby
