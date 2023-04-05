@@ -67,8 +67,12 @@ WebRtcSocket::WebRtcSocket(
 WebRtcSocket::~WebRtcSocket() {
   NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
                     << ") this: " << this;
-  data_channel_->UnregisterObserver();
-  Close();
+
+  if (!IsClosed()) {
+    data_channel_->UnregisterObserver();
+    Close();
+  }
+
   NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
                     << ") this: " << this << " done";
 }
