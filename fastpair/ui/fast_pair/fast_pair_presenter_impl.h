@@ -27,10 +27,23 @@ namespace fastpair {
 
 class FastPairPresenterImpl : public FastPairPresenter {
  public:
+  class Factory {
+   public:
+    static std::unique_ptr<FastPairPresenter> Create();
+
+    static void SetFactoryForTesting(Factory* g_test_factory);
+
+   protected:
+    virtual ~Factory();
+    virtual std::unique_ptr<FastPairPresenter> CreateInstance() = 0;
+
+   private:
+    static Factory* g_test_factory_;
+  };
+
   FastPairPresenterImpl() = default;
   FastPairPresenterImpl(const FastPairPresenterImpl&) = delete;
   FastPairPresenterImpl& operator=(const FastPairPresenterImpl&) = delete;
-  ~FastPairPresenterImpl() override = default;
 
   void ShowDiscovery(
       const FastPairDevice& device,

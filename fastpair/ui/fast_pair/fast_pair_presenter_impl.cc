@@ -25,6 +25,26 @@
 namespace nearby {
 namespace fastpair {
 
+// static
+FastPairPresenterImpl::Factory*
+    FastPairPresenterImpl::Factory::g_test_factory_ = nullptr;
+
+// static
+std::unique_ptr<FastPairPresenter> FastPairPresenterImpl::Factory::Create() {
+  if (g_test_factory_) {
+    return g_test_factory_->CreateInstance();
+  }
+  return std::make_unique<FastPairPresenterImpl>();
+}
+
+// static
+void FastPairPresenterImpl::Factory::SetFactoryForTesting(
+    Factory* g_test_factory) {
+  g_test_factory_ = g_test_factory;
+}
+
+FastPairPresenterImpl::Factory::~Factory() = default;
+
 void FastPairPresenterImpl::ShowDiscovery(
     const FastPairDevice& device,
     FastPairNotificationController& notification_controller) {
