@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#import <Foundation/Foundation.h>
+
 #include <string>
 #include <memory>
 
@@ -40,14 +42,25 @@ namespace api {
 
 std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_folder,
                                                       const std::string& file_name) {
-  // TODO(b/227535777): This needs to be done correctly, we now have a file name and parent folder,
-  // they should be combined with the custom save path
-  NSString* fileName = ObjCStringFromCppString(file_name);
+  NSFileManager* manager = [NSFileManager defaultManager];
 
-  // TODO(b/227535777): If file name matches an existing file, it will be overwritten. Append a
-  // number until a unique file name is reached 'foobar (2).png'.
+  NSURL* parentFolder = [NSURL fileURLWithPath:@(parent_folder.c_str())];
 
-  return CppStringFromObjCString([NSTemporaryDirectory() stringByAppendingPathComponent:fileName]);
+  NSString* fileName = @(file_name.c_str());
+  NSString* baseName = [fileName stringByDeletingPathExtension];
+  NSString* extension = [fileName pathExtension];
+
+  NSURL* url = [parentFolder URLByAppendingPathComponent:fileName];
+
+  NSInteger index = 1;
+  while ([manager fileExistsAtPath:url.path]) {
+    index++;
+    NSString* fileName =
+        [NSString stringWithFormat:@"%@ %@.%@", baseName, [@(index) stringValue], extension];
+    url = [parentFolder URLByAppendingPathComponent:fileName];
+  }
+
+  return [url.path UTF8String];
 }
 
 std::string ImplementationPlatform::GetDownloadPath(const std::string& parent_folder,
