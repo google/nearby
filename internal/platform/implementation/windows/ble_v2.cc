@@ -105,8 +105,6 @@ BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
 // Advertisement packet and populate accordingly.
 bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
                                    AdvertiseParameters advertising_parameters) {
-  absl::MutexLock lock(&mutex_);
-
   std::string service_data_info;
   for (const auto& it : advertising_data.service_data) {
     service_data_info += "{uuid:" + std::string(it.first) +
@@ -139,8 +137,6 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
 }
 
 bool BleV2Medium::StopAdvertising() {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__ << ": Stop advertising.";
   bool result;
   if (is_gatt_publisher_started_) {
@@ -167,8 +163,6 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertise_parameters,
     BleV2Medium::AdvertisingCallback callback) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__
                     << ": advertising_data.is_extended_advertisement="
                     << advertising_data.is_extended_advertisement
@@ -185,8 +179,6 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__
                     << ": service UUID: " << std::string(service_uuid)
                     << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
@@ -246,8 +238,6 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleV2Medium::ScanningCallback callback) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__ << ": Start scanning.";
 
   // TODO(hais): add real impl for windows StartAdvertising.
@@ -256,8 +246,6 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__ << ": Start GATT server.";
 
   auto gatt_server =
@@ -271,8 +259,6 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << "ConnectToGattServer is called, address: "
                     << peripheral.GetAddress()
                     << ", power:" << TxPowerLevelToName(tx_power_level);
@@ -294,8 +280,6 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 }
 
 bool BleV2Medium::StopScanning() {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__ << ": BLE StopScanning: service_uuid: "
                     << std::string(service_uuid_);
   try {
@@ -337,8 +321,6 @@ bool BleV2Medium::StopScanning() {
 
 std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
     const std::string& service_id) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << "OpenServerSocket is called";
 
   auto server_socket = std::make_unique<BleV2ServerSocket>(adapter_);
@@ -355,8 +337,6 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string& service_id, TxPowerLevel tx_power_level,
     api::ble_v2::BlePeripheral& remote_peripheral,
     CancellationFlag* cancellation_flag) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__ << ": Connect to service_id=" << service_id;
 
   if (cancellation_flag == nullptr) {
@@ -387,8 +367,6 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
-  absl::MutexLock lock(&mutex_);
-
   return adapter_->IsExtendedAdvertisingSupported();
 }
 
@@ -634,8 +612,6 @@ bool BleV2Medium::StopGattAdvertising() {
 void BleV2Medium::PublisherHandler(
     BluetoothLEAdvertisementPublisher publisher,
     BluetoothLEAdvertisementPublisherStatusChangedEventArgs args) {
-  absl::MutexLock lock(&mutex_);
-
   // This method is called when publisher's status is changed.
   switch (args.Status()) {
     case BluetoothLEAdvertisementPublisherStatus::Created:
@@ -727,8 +703,6 @@ void BleV2Medium::PublisherHandler(
 void BleV2Medium::WatcherHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementWatcherStoppedEventArgs args) {
-  absl::MutexLock lock(&mutex_);
-
   // This method is called when watcher stopped. Args give more detailed
   // information on the reason.
   switch (args.Error()) {
@@ -791,8 +765,6 @@ void BleV2Medium::WatcherHandler(
 void BleV2Medium::AdvertisementReceivedHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs args) {
-  absl::MutexLock lock(&mutex_);
-
   // Handle all BLE advertisements and determine whether the BLE Medium
   // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
   // 0x16 Service Data) has been received in the handler
@@ -835,13 +807,16 @@ void BleV2Medium::AdvertisementReceivedHandler(
           uint64_to_mac_address_string(args.BluetoothAddress());
       peripheral->SetAddress(mac_address_string);
       BleV2Peripheral* peripheral_ptr = nullptr;
-      if (!peripheral_map_.contains(mac_address_string)) {
-        peripheral_map_[mac_address_string] = std::move(peripheral);
-      } else {
-        peripheral_map_[mac_address_string]->SetAddress(
-            uint64_to_mac_address_string(args.BluetoothAddress()));
+      {
+        absl::MutexLock lock(&peripheral_map_mutex_);
+        if (!peripheral_map_.contains(mac_address_string)) {
+          peripheral_map_[mac_address_string] = std::move(peripheral);
+        } else {
+          peripheral_map_[mac_address_string]->SetAddress(
+              uint64_to_mac_address_string(args.BluetoothAddress()));
+        }
+        peripheral_ptr = peripheral_map_[mac_address_string].get();
       }
-      peripheral_ptr = peripheral_map_[mac_address_string].get();
 
       NEARBY_LOGS(VERBOSE) << "New BLE peripheral: " << peripheral_ptr
                            << ", address: " << peripheral_ptr->GetAddress();

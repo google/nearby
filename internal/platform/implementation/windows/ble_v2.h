@@ -18,7 +18,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -43,75 +42,65 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // Returns true once the Ble advertising has been initiated.
   bool StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      api::ble_v2::AdvertiseParameters advertising_parameters) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
+      api::ble_v2::AdvertiseParameters advertising_parameters) override;
+  bool StopAdvertising() override;
 
   std::unique_ptr<AdvertisingSession> StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertise_set_parameters,
-      AdvertisingCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+      AdvertisingCallback callback) override;
 
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
-                     ScanCallback callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopScanning() override ABSL_LOCKS_EXCLUDED(mutex_);
+                     ScanCallback callback) override;
+  bool StopScanning() override;
   std::unique_ptr<ScanningSession> StartScanning(
       const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-      ScanningCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+      ScanningCallback callback) override;
   std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
-      api::ble_v2::ServerGattConnectionCallback callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      api::ble_v2::ServerGattConnectionCallback callback) override;
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
       api::ble_v2::BlePeripheral& peripheral,
       api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::ClientGattConnectionCallback callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      api::ble_v2::ClientGattConnectionCallback callback) override;
   std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
-      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+      const std::string& service_id) override;
   std::unique_ptr<api::ble_v2::BleSocket> Connect(
       const std::string& service_id, api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::BlePeripheral& remote_peripheral,
-      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
-  bool IsExtendedAdvertisementsAvailable() override ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override;
+  bool IsExtendedAdvertisementsAvailable() override;
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
  private:
   bool StartBleAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      api::ble_v2::AdvertiseParameters advertising_parameters)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool StopBleAdvertising() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      api::ble_v2::AdvertiseParameters advertising_parameters);
+  bool StopBleAdvertising();
 
   bool StartGattAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      api::ble_v2::AdvertiseParameters advertising_parameters)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool StopGattAdvertising() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      api::ble_v2::AdvertiseParameters advertising_parameters);
+  bool StopGattAdvertising();
 
   void PublisherHandler(
       winrt::Windows::Devices::Bluetooth::Advertisement::
           BluetoothLEAdvertisementPublisher publisher,
       winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisherStatusChangedEventArgs args)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+          BluetoothLEAdvertisementPublisherStatusChangedEventArgs args);
 
   void AdvertisementReceivedHandler(
       winrt::Windows::Devices::Bluetooth::Advertisement::
           BluetoothLEAdvertisementWatcher watcher,
       winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementReceivedEventArgs args)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+          BluetoothLEAdvertisementReceivedEventArgs args);
 
   void WatcherHandler(winrt::Windows::Devices::Bluetooth::Advertisement::
                           BluetoothLEAdvertisementWatcher watcher,
                       winrt::Windows::Devices::Bluetooth::Advertisement::
-                          BluetoothLEAdvertisementWatcherStoppedEventArgs args)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+                          BluetoothLEAdvertisementWatcherStoppedEventArgs args);
 
-  mutable absl::Mutex mutex_;
   BluetoothAdapter* adapter_;
   Uuid service_uuid_;
   api::ble_v2::TxPowerLevel tx_power_level_;
@@ -119,26 +108,25 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   // Map to protect the pointer for BlePeripheral because
   // DiscoveredPeripheralCallback only keeps the pointer to the object
+  absl::Mutex peripheral_map_mutex_;
   absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
-      peripheral_map_ ABSL_GUARDED_BY(mutex_);
+      peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementPublisher publisher_ ABSL_GUARDED_BY(mutex_) =
-          nullptr;
+      BluetoothLEAdvertisementPublisher publisher_ = nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementWatcher watcher_ ABSL_GUARDED_BY(mutex_) =
-          nullptr;
+      BluetoothLEAdvertisementWatcher watcher_ = nullptr;
 
-  bool is_ble_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
-  bool is_gatt_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
-  bool is_watcher_started_ ABSL_GUARDED_BY(mutex_) = false;
+  bool is_ble_publisher_started_ = false;
+  bool is_gatt_publisher_started_ = false;
+  bool is_watcher_started_ = false;
 
-  ::winrt::event_token publisher_token_ ABSL_GUARDED_BY(mutex_);
-  ::winrt::event_token watcher_token_ ABSL_GUARDED_BY(mutex_);
-  ::winrt::event_token advertisement_received_token_ ABSL_GUARDED_BY(mutex_);
+  ::winrt::event_token publisher_token_;
+  ::winrt::event_token watcher_token_;
+  ::winrt::event_token advertisement_received_token_;
 
-  BleGattServer* ble_gatt_server_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  BleGattServer* ble_gatt_server_ = nullptr;
 };
 
 }  // namespace windows
