@@ -14,36 +14,38 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_C_MEDIUM_SELECTOR_W_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_C_MEDIUM_SELECTOR_W_H_
 
+#include <vector>
+
 #include "proto/connections_enums.pb.h"
 
 namespace nearby::windows {
 
 using MediumW = ::location::nearby::proto::connections::Medium;
 
-// Generic type: allows definition of a feature T for every Medium.
-template <typename T>
-struct MediumSelectorW {
-  T bluetooth;
-  T ble;
-  T web_rtc;
-  T wifi_lan;
-  T wifi_hotspot;
-  T wifi_direct;
+// Feature On/Off switch for mediums.
+struct BooleanMediumSelectorW {
+  bool bluetooth;
+  bool ble;
+  bool web_rtc;
+  bool wifi_lan;
+  bool wifi_hotspot;
+  bool wifi_direct;
 
-  constexpr MediumSelectorW() = default;
-  constexpr MediumSelectorW(const MediumSelectorW&) = default;
-  constexpr MediumSelectorW& operator=(const MediumSelectorW&) = default;
-  constexpr bool Any(const T& value) const {
+  BooleanMediumSelectorW() = default;
+  constexpr BooleanMediumSelectorW(const BooleanMediumSelectorW&) = default;
+  constexpr BooleanMediumSelectorW& operator=(const BooleanMediumSelectorW&) =
+      default;
+  constexpr bool Any(const bool value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
            wifi_lan == value || wifi_hotspot == value || wifi_direct == value;
   }
 
-  constexpr bool All(const T& value) const {
+  constexpr bool All(const bool value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
            wifi_lan == value && wifi_hotspot == value && wifi_direct == value;
   }
 
-  constexpr int Count(const T& value) const {
+  constexpr int Count(const bool value) const {
     int count = 0;
     if (bluetooth == value) ++count;
     if (ble == value) ++count;
@@ -54,7 +56,7 @@ struct MediumSelectorW {
     return count;
   }
 
-  constexpr MediumSelectorW& SetAll(const T& value) {
+  constexpr BooleanMediumSelectorW& SetAll(const bool value) {
     bluetooth = value;
     ble = value;
     web_rtc = value;
@@ -64,7 +66,7 @@ struct MediumSelectorW {
     return *this;
   }
 
-  std::vector<MediumW> GetMediums(const T& value) const {
+  std::vector<MediumW> GetMediums(const bool value) const {
     std::vector<MediumW> mediums;
     // Mediums are sorted in order of decreasing preference.
     if (wifi_lan == value) mediums.push_back(MediumW::WIFI_LAN);
@@ -76,9 +78,6 @@ struct MediumSelectorW {
     return mediums;
   }
 };
-
-// Feature On/Off switch for mediums.
-using BooleanMediumSelectorW = MediumSelectorW<bool>;
 
 }  // namespace nearby::windows
 

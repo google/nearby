@@ -15,6 +15,7 @@
 #define THIRD_PARTY_NEARBY_CONNECTIONS_C_CONNECTION_OPTIONS_W_H_
 #include <string>
 
+#include "connections/c/dll_config.h"
 #include "connections/c/medium_selector_w.h"
 #include "connections/c/options_base_w.h"
 
@@ -23,9 +24,6 @@ namespace nearby::windows {
 extern "C" {
 
 #define MAX_MEDIUMS 6
-
-// Feature On/Off switch for mediums.
-using BooleanMediumSelector = MediumSelectorW<bool>;
 
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
