@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace windows {
 
 VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE instance, PVOID parameter,
                            PTP_WORK work) {
-  // Instance is not used in thread pool.
+  // Instance is not used in thread pools.
   UNREFERENCED_PARAMETER(instance);
 
   ThreadPool* thread_pool = reinterpret_cast<ThreadPool*>(parameter);
@@ -60,7 +60,7 @@ std::unique_ptr<ThreadPool> ThreadPool::Create(int max_pool_size) {
   }
 
   // Sets thread pool maximum value. In order to release all threads,
-  // will keep at least one thread.
+  // it will keep at least one thread.
   SetThreadpoolThreadMaximum(thread_pool, max_pool_size);
   if (!SetThreadpoolThreadMinimum(thread_pool, 1)) {
     NEARBY_LOGS(ERROR)
@@ -86,7 +86,7 @@ ThreadPool::ThreadPool(PTP_POOL thread_pool,
       thread_pool_environ_(thread_pool_environ),
       max_pool_size_(max_pool_size) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                       << ") is created.";
+                       << ") is created with size:" << max_pool_size_;
 }
 
 ThreadPool::~ThreadPool() {
@@ -97,11 +97,12 @@ ThreadPool::~ThreadPool() {
 }
 
 bool ThreadPool::Run(Runnable task) {
+  absl::MutexLock lock(&mutex_);
+
   if (thread_pool_ == nullptr) {
     return false;
   }
 
-  absl::MutexLock lock(&mutex_);
   PTP_WORK work;
   tasks_.push(std::move(task));
   NEARBY_LOGS(VERBOSE) << __func__ << ": Scheduled to run task("
@@ -124,6 +125,8 @@ bool ThreadPool::Run(Runnable task) {
 }
 
 void ThreadPool::ShutDown() {
+  absl::MutexLock lock(&mutex_);
+
   NEARBY_LOGS(VERBOSE) << __func__ << ": Shutdown thread pool(" << this << ").";
   if (thread_pool_ == nullptr) {
     NEARBY_LOGS(WARNING) << __func__ << ": Shutdown on closed thread pool("
@@ -136,13 +139,14 @@ void ThreadPool::ShutDown() {
 }
 
 void ThreadPool::RunNextTask() {
-  if (thread_pool_ == nullptr) {
-    return;
-  }
-
   Runnable task = nullptr;
+
   {
     absl::MutexLock lock(&mutex_);
+
+    if (thread_pool_ == nullptr) {
+      return;
+    }
     if (!tasks_.empty()) {
       NEARBY_LOGS(VERBOSE) << __func__ << ": Run task(" << &tasks_.front()
                            << ").";

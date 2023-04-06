@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
 
 #include <windows.h>
 
+#include <memory>
 #include <queue>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/runnable.h"
 
@@ -33,13 +35,13 @@ class ThreadPool {
 
   // Runs a task on thread pool. The result indicates whether the task is put
   // into the thread pool.
-  bool Run(Runnable task);
+  bool Run(Runnable task) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // The thread pool is closed immediately if there are no outstanding work,
+  // The thread pool is closed immediately if there is no outstanding work,
   // I/O, timer, or wait objects that are bound to the pool; otherwise, the
   // thread pool is released asynchronously after the outstanding objects are
   // freed.
-  void ShutDown();
+  void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   ThreadPool(PTP_POOL thread_pool, TP_CALLBACK_ENVIRON thread_pool_environ,
@@ -55,13 +57,13 @@ class ThreadPool {
 
   // Keeps the pointer of the thread pool. It is created when constructing the
   // thread pool.
-  PTP_POOL thread_pool_ = nullptr;
+  PTP_POOL thread_pool_ ABSL_GUARDED_BY(mutex_) = nullptr;
 
   // Keeps the environment of the thread pool.
-  TP_CALLBACK_ENVIRON thread_pool_environ_;
+  TP_CALLBACK_ENVIRON thread_pool_environ_ ABSL_GUARDED_BY(mutex_);
 
   // The maximum thread count in the thread pool
-  int max_pool_size_ = 0;
+  int max_pool_size_ ABSL_GUARDED_BY(mutex_) = 0;
 
   friend VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE instance,
                                     PVOID parameter, PTP_WORK work);
