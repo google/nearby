@@ -131,6 +131,9 @@ class BluetoothSocket : public api::BluetoothSocket {
     Buffer write_buffer_{kMaxTransmitPacketSize};
   };
 
+  bool InternalConnect(HostName connectionHostName,
+               winrt::hstring connectionServiceName);
+
   winrt::fire_and_forget Listener_ConnectionStatusChanged(
       winrt::Windows::Devices::Bluetooth::BluetoothDevice device,
       winrt::Windows::Foundation::IInspectable const& args);
@@ -143,6 +146,7 @@ class BluetoothSocket : public api::BluetoothSocket {
   winrt::Windows::Devices::Bluetooth::BluetoothDevice native_bluetooth_device_{
       nullptr};
   winrt::event_token connection_status_changed_token_{};
+  int connect_called_count_ = 0;
 };
 
 }  // namespace windows

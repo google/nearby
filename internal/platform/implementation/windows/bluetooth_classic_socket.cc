@@ -19,6 +19,8 @@
 #include <memory>
 #include <utility>
 
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -29,7 +31,9 @@ namespace nearby {
 namespace windows {
 namespace {
 using ::winrt::Windows::Devices::Bluetooth::BluetoothConnectionStatus;
-}
+constexpr int kMaxConnectRetryCount = 3;
+constexpr absl::Duration kConnectInterval = absl::Seconds(3);
+}  // namespace
 
 BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
     : windows_socket_(streamSocket) {
@@ -123,66 +127,25 @@ api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 // service name.
 bool BluetoothSocket::Connect(HostName connectionHostName,
                               winrt::hstring connectionServiceName) {
-  try {
-    if (connectionHostName == nullptr || connectionServiceName.empty()) {
-      NEARBY_LOGS(ERROR)
-          << __func__
-          << ": Bluetooth socket connection failed. Attempting to "
-             "connect to empty HostName/MAC address or ServiceName.";
-      return false;
+  NEARBY_LOGS(INFO) << __func__ << ": start to connect to bluetooth service:"
+                    << winrt::to_string(connectionServiceName);
+
+  connect_called_count_ = 0;
+  while (connect_called_count_ < kMaxConnectRetryCount) {
+    connect_called_count_ += 1;
+    bool connect_result =
+        InternalConnect(connectionHostName, connectionServiceName);
+    if (connect_result) {
+      return connect_result;
     }
 
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Bluetooth socket connection to host name:"
-                      << winrt::to_string(connectionHostName.DisplayName())
-                      << ", service name:"
-                      << winrt::to_string(connectionServiceName);
+    NEARBY_LOGS(WARNING) << __func__ << ": Failed to connect bluetooth at the "
+                         << connect_called_count_ << "th call.";
 
-    windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
-
-    // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
-    windows_socket_.ConnectAsync(connectionHostName, connectionServiceName)
-        .get();
-
-    auto info = windows_socket_.Information();
-    auto hostName = info.RemoteHostName();
-
-    native_bluetooth_device_ =
-        winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
-            windows_socket_.Information().RemoteHostName())
-            .get();
-
-    if (FeatureFlags::GetInstance()
-            .GetFlags()
-            .enable_bluetooth_connection_status_track) {
-      NEARBY_LOGS(INFO)
-          << "Flag enable_bluetooth_connection_status_track is enabled.";
-      connection_status_changed_token_ =
-          native_bluetooth_device_.ConnectionStatusChanged(
-              {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
-    }
-
-    bluetooth_device_ =
-        std::make_unique<BluetoothDevice>(native_bluetooth_device_);
-
-    input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
-    output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
-
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Bluetooth socket successfully connected to "
-                      << bluetooth_device_->GetName();
-    return true;
-  } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
-    return false;
-  } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
-    return false;
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
-    return false;
+    absl::SleepFor(kConnectInterval);
   }
+
+  return false;
 }
 
 BluetoothSocket::BluetoothInputStream::BluetoothInputStream(
@@ -326,13 +289,77 @@ Exception BluetoothSocket::BluetoothOutputStream::Close() {
   }
 }
 
+bool BluetoothSocket::InternalConnect(HostName connectionHostName,
+                                      winrt::hstring connectionServiceName) {
+  try {
+    if (connectionHostName == nullptr || connectionServiceName.empty()) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ": Bluetooth socket connection failed. Attempting to "
+             "connect to empty HostName/MAC address or ServiceName.";
+      return false;
+    }
+
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Bluetooth socket connection to host name:"
+                      << winrt::to_string(connectionHostName.DisplayName())
+                      << ", service name:"
+                      << winrt::to_string(connectionServiceName);
+
+    windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
+
+    // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
+    windows_socket_.ConnectAsync(connectionHostName, connectionServiceName)
+        .get();
+
+    auto info = windows_socket_.Information();
+    auto hostName = info.RemoteHostName();
+
+    native_bluetooth_device_ =
+        winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+            windows_socket_.Information().RemoteHostName())
+            .get();
+
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .enable_bluetooth_connection_status_track) {
+      NEARBY_LOGS(INFO)
+          << "Flag enable_bluetooth_connection_status_track is enabled.";
+      connection_status_changed_token_ =
+          native_bluetooth_device_.ConnectionStatusChanged(
+              {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+    }
+
+    bluetooth_device_ =
+        std::make_unique<BluetoothDevice>(native_bluetooth_device_);
+
+    input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
+    output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
+
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Bluetooth socket successfully connected to "
+                      << bluetooth_device_->GetName();
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return false;
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return false;
+  }
+}
+
 winrt::fire_and_forget BluetoothSocket::Listener_ConnectionStatusChanged(
     winrt::Windows::Devices::Bluetooth::BluetoothDevice device,
     winrt::Windows::Foundation::IInspectable const& args) {
   // During bandwidth upgrade, Bluetooth connection may be dropped due to
   // unknown reasons. To track this issue, add a log to track the issue.
-  // Based on test, the args is empty, so cannot provide more information on
-  // the status change.
+  // Based on the test, the args are empty, so cannot provide more information
+  // on the status change.
   BluetoothConnectionStatus connection_status = device.ConnectionStatus();
   NEARBY_LOGS(WARNING) << __func__
                        << ": Bluetooth connection status changed to:"
