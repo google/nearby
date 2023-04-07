@@ -18,6 +18,7 @@
 #include <guiddef.h>
 
 #include <future>  //  NOLINT
+#include <list>
 #include <memory>
 #include <string>
 #include <utility>
@@ -101,6 +102,12 @@ class BleMedium : public api::BleMedium {
   absl::Mutex peripheral_map_mutex_;
   absl::flat_hash_map<std::string, std::unique_ptr<BlePeripheral>>
       peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
+
+  // The platform implementation will reference lost peripheral in another
+  // thread after report loss, so we still need to keep the peripheral to
+  // avoid potential memory issues.
+  std::list<std::unique_ptr<BlePeripheral>> lost_peripherals_
+      ABSL_GUARDED_BY(peripheral_map_mutex_);
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::

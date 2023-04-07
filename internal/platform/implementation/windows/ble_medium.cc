@@ -17,6 +17,7 @@
 #include <chrono>  // NOLINT
 #include <exception>
 #include <future>  // NOLINT
+#include <list>
 #include <memory>
 #include <string>
 #include <utility>
@@ -287,6 +288,7 @@ bool BleMedium::StartScanning(
     {
       absl::MutexLock lock(&peripheral_map_mutex_);
       peripheral_map_.clear();
+      lost_peripherals_.clear();
     }
 
     watcher_ = BluetoothLEAdvertisementWatcher();
@@ -596,6 +598,9 @@ void BleMedium::AdvertisementReceivedHandler(
                 /*ble_peripheral*/ *peripheral_map_[peripheral_name],
                 /*service_id*/ service_id_);
 
+            // put the lost peripheral in the lost peripheral list.
+            lost_peripherals_.push_back(
+                std::move(peripheral_map_[peripheral_name]));
           } else {
             // The device is already reported to discover, so don't need to
             // call it again.
