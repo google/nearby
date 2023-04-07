@@ -43,6 +43,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
+        "//location/nearby/cpp/common:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
     ],
