@@ -92,7 +92,18 @@ bool Timer::FireNow() {
     return false;
   }
 
-  callback_();
+  if (task_executor_ == nullptr) {
+    task_executor_ = std::make_unique<SubmittableExecutor>();
+  }
+
+  if (task_executor_ == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << "Failed to fire the task due to cannot create executor.";
+    return false;
+  }
+
+  task_executor_->Execute([&]() { callback_(); });
+
   return true;
 }
 

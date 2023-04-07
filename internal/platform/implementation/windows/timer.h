@@ -22,6 +22,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/timer.h"
+#include "internal/platform/implementation/windows/submittable_executor.h"
 
 namespace nearby {
 namespace windows {
@@ -43,9 +44,11 @@ class Timer : public api::Timer {
   mutable absl::Mutex mutex_;
   int delay_ ABSL_GUARDED_BY(mutex_);
   int interval_ ABSL_GUARDED_BY(mutex_);
-  absl::AnyInvocable<void()> callback_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> callback_;
   HANDLE handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
   HANDLE timer_queue_handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  std::unique_ptr<SubmittableExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
+      nullptr;
 };
 
 }  // namespace windows
