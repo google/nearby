@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
@@ -96,7 +97,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
       std::make_unique<WifiHotspotBwuHandler>(mediums_2, notifications_2);
 
   client_executor.Execute([&handler_2, &client_2, &upgrade_frame, &accept_latch,
-                           &end_latch]() {
+                           &end_latch, &mediums_2]() {
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 
@@ -104,14 +105,22 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
         handler_2->CreateUpgradedEndpointChannel(&client_2, /*service_id=*/"A",
                                                  /*endpoint_id=*/"1",
                                                  bwu_frame.upgrade_path_info());
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_EQ(new_channel->GetMedium(),
-              location::nearby::proto::connections::Medium::WIFI_HOTSPOT);
+    if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+      EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+      EXPECT_EQ(new_channel->GetMedium(),
+                location::nearby::proto::connections::Medium::WIFI_HOTSPOT);
+    } else {
+      accept_latch.CountDown();
+      EXPECT_EQ(new_channel, nullptr);
+    }
+    EXPECT_TRUE(mediums_2.GetWifiHotspot().IsConnectedToHotspot());
+    handler_2->RevertResponderState(/*service_id=*/"A");
     end_latch.CountDown();
   });
 
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+  EXPECT_FALSE(mediums_2.GetWifiHotspot().IsConnectedToHotspot());
 }
 
 }  // namespace connections
