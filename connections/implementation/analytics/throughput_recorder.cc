@@ -102,8 +102,8 @@ bool ThroughputRecorder::Stop() {
     throughput_kbps_ = CalculateThroughputKBps(total_byte_size, total_millis);
     int throughput_mbps = CalculateThroughputMBps(throughput_kbps_);
 
-    // calculate overall throughput if there are multiple mediums
-    if (medium_size > 1) {
+    // calculate overall throughput
+    if (medium_size > 0) {
       if (throughput_kbps_ != kDefaultThroughoutKbps) {
         std::string dump_content = absl::StrFormat(
             "%s %s data(%d bytes) %s, overall used %d milliseconds, "
