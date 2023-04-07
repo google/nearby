@@ -427,7 +427,7 @@ std::vector<CredentialSelector> AdvertisementDecoder::GetCredentialSelectors(
       IdentityType::IDENTITY_TYPE_PRIVATE, IdentityType::IDENTITY_TYPE_TRUSTED,
       IdentityType::IDENTITY_TYPE_PUBLIC,
       IdentityType::IDENTITY_TYPE_PROVISIONED};
-  std::vector<CredentialSelector> selectors(all_types.size());
+  std::vector<CredentialSelector> selectors;
   for (auto identity_type :
        (scan_request.identity_types.empty() ? all_types
                                             : scan_request.identity_types)) {
