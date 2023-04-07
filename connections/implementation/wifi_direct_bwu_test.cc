@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/wifi_direct_bwu_handler.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
@@ -50,7 +51,7 @@ TEST_F(WifiDirectTest, CanCreateBwuHandler) {
   handler.reset();
 }
 
-TEST_F(WifiDirectTest, SoftAPBWUInit_STACreateEndpointChannel) {
+TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   CountDownLatch start_latch(1);
   CountDownLatch accept_latch(1);
   CountDownLatch end_latch(1);
@@ -108,9 +109,14 @@ TEST_F(WifiDirectTest, SoftAPBWUInit_STACreateEndpointChannel) {
         handler_2->CreateUpgradedEndpointChannel(
             &wifi_direct_gc, /*service_id=*/"A",
             /*endpoint_id=*/"1", bwu_frame.upgrade_path_info());
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_EQ(new_channel->GetMedium(),
-              location::nearby::proto::connections::Medium::WIFI_DIRECT);
+    if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+      EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+      EXPECT_EQ(new_channel->GetMedium(),
+                location::nearby::proto::connections::Medium::WIFI_DIRECT);
+    } else {
+      accept_latch.CountDown();
+      EXPECT_EQ(new_channel, nullptr);
+    }
     EXPECT_TRUE(mediums_2.GetWifiDirect().IsConnectedToGO());
     handler_2->RevertResponderState(/*service_id=*/"A");
     end_latch.CountDown();
