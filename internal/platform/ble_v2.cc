@@ -82,12 +82,15 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
               [this](api::ble_v2::BlePeripheral& peripheral,
                      BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
-                if (!peripherals_.contains(&peripheral)) {
+                if (peripherals_.contains(&peripheral)) {
                   NEARBY_LOGS(INFO)
                       << "There is no need to callback due to peripheral impl="
                       << &peripheral << ", which already exists.";
+                  return;
+                } else {
                   peripherals_.insert(&peripheral);
                 }
+
                 BleV2Peripheral proxy(&peripheral);
                 NEARBY_LOGS(INFO)
                     << "New peripheral imp=" << &peripheral
@@ -134,9 +137,8 @@ BleV2Medium::StartScanningTmp(
           service_uuid, tx_power_level,
           api::ble_v2::BleMedium::ScanCallback{
               .advertisement_found_cb =
-                  [this, &callback](
-                      api::ble_v2::BlePeripheral& peripheral,
-                      BleAdvertisementData advertisement_data) {
+                  [this, &callback](api::ble_v2::BlePeripheral& peripheral,
+                                    BleAdvertisementData advertisement_data) {
                     MutexLock lock(&mutex_);
                     if (!peripherals_.contains(&peripheral)) {
                       NEARBY_LOGS(INFO)

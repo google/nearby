@@ -534,8 +534,9 @@ void BleMedium::WatcherHandler(
       break;
   }
 
-  // No matter the reason, should clean up the watcher if it is not empty.
-  // The BLE V1 interface doesn't have API to return the error to upper layer.
+  // No matter the reason, I should clean up the watcher if it is not empty.
+  // The BLE V1 interface doesn't have an API to return the error to the upper
+  // layer.
   if (watcher_ != nullptr) {
     NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the watcher.";
     watcher_.Stopped(watcher_token_);
@@ -590,14 +591,14 @@ void BleMedium::AdvertisementReceivedHandler(
                   service_id_) != advertisement_data) {
             NEARBY_LOGS(INFO) << "BLE reports lost device: " << peripheral_name;
 
-            // Lost the device first and then report discovered the device.
+            // Lost the device first and then the report discovered the device.
             advertisement_received_callback_.peripheral_lost_cb(
                 /*ble_peripheral*/ *peripheral_map_[peripheral_name],
                 /*service_id*/ service_id_);
 
           } else {
-            // The device already reported to discovery, don't need to call it
-            // again.
+            // The device is already reported to discover, so don't need to
+            // call it again.
             return;
           }
         }
