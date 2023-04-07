@@ -17,42 +17,47 @@
 
 #include <string>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"
-#include "internal/platform/logging.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 
-// 6 bytes that spell "BADMAC"
-constexpr absl::string_view kDefunctMacAddr = "\x42\x41\x44\x4D\x41\x43";
-
 class BleConnectionInfo : public ConnectionInfo {
  public:
-  explicit BleConnectionInfo(absl::string_view mac_address)
-      : mac_address_(std::string(mac_address)) {
-    if (mac_address_.size() != kMacAddressLength) {
-      NEARBY_LOGS(WARNING)
-          << "MAC address is not of the expected length! Trying to "
-             "connect to this MAC address will not work!";
-      mac_address_ = std::string(kDefunctMacAddr);
-    }
-  }
+  static absl::StatusOr<BleConnectionInfo> FromDataElementBytes(
+      absl::string_view bytes);
 
-  BleConnectionInfo(BleConnectionInfo const& info) {
-    mac_address_ = info.mac_address_;
+  BleConnectionInfo(absl::string_view mac_address,
+                    absl::string_view gatt_characteristic,
+                    absl::string_view psm, char actions)
+      : mac_address_(std::string(mac_address)),
+        gatt_characteristic_(std::string(gatt_characteristic)),
+        psm_(std::string(psm)),
+        actions_(actions) {}
+
+  ::location::nearby::proto::connections::Medium GetMediumType()
+      const override {
+    return ::location::nearby::proto::connections::Medium::BLE;
   }
-  MediumType GetMediumType() const override { return MediumType::kBle; }
-  ByteArray ToBytes() const override;
-  static BleConnectionInfo FromBytes(ByteArray bytes);
-  ByteArray GetMacAddress() const { return ByteArray(mac_address_); }
+  std::string ToDataElementBytes() const override;
+  std::string GetMacAddress() const { return mac_address_; }
+  std::string GetGattCharacteristic() const { return gatt_characteristic_; }
+  std::string GetPsm() const { return psm_; }
+  char GetActions() const override { return actions_; }
 
  private:
   std::string mac_address_;
+  std::string gatt_characteristic_;
+  std::string psm_;
+  char actions_ = 0;
 };
 
 inline bool operator==(const BleConnectionInfo& a, const BleConnectionInfo& b) {
-  return a.GetMacAddress() == b.GetMacAddress();
+  return a.GetMacAddress() == b.GetMacAddress() &&
+         a.GetActions() == b.GetActions() &&
+         a.GetGattCharacteristic() == b.GetGattCharacteristic();
 }
 
 inline bool operator!=(const BleConnectionInfo& a, const BleConnectionInfo& b) {

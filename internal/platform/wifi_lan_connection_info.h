@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,53 +20,46 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 
 constexpr int kIpv4AddressLength = 4;
 constexpr int kIpv6AddressLength = 16;
-constexpr int kPortLength = 2;
+constexpr int kPortLength = 4;
 constexpr int kBssidLength = 6;
 
 class WifiLanConnectionInfo : public ConnectionInfo {
  public:
-  enum WifiLanConnectionInfoType {
-    kUnknown = 0,
-    kIpv4 = 1,
-    kIpv6 = 2,
-  };
-  WifiLanConnectionInfo(absl::string_view ip_address, absl::string_view port)
-      : ip_address_(ip_address), port_(port), bssid_("") {
-    port_.resize(kPortLength);
-    bssid_.resize(kBssidLength);
-  }
+  static absl::StatusOr<WifiLanConnectionInfo> FromDataElementBytes(
+      absl::string_view bytes);
+
   WifiLanConnectionInfo(absl::string_view ip_address, absl::string_view port,
-                        absl::string_view bssid)
-      : ip_address_(ip_address), port_(port), bssid_(std::string(bssid)) {
-    port_.resize(kPortLength);
-    bssid_.resize(kBssidLength);
+                        char actions)
+      : ip_address_(ip_address), port_(port), bssid_(""), actions_(actions) {}
+  WifiLanConnectionInfo(absl::string_view ip_address, absl::string_view port,
+                        absl::string_view bssid, char actions)
+      : ip_address_(ip_address),
+        port_(port),
+        bssid_(std::string(bssid)),
+        actions_(actions) {}
+
+  ::location::nearby::proto::connections::Medium GetMediumType()
+      const override {
+    return ::location::nearby::proto::connections::Medium::WIFI_LAN;
   }
-  static absl::StatusOr<WifiLanConnectionInfo> FromBytes(ByteArray bytes);
-  MediumType GetMediumType() const override { return MediumType::kWifiLan; }
-  ByteArray ToBytes() const override;
-  ByteArray GetIpAddress() const { return ByteArray(ip_address_); }
-  ByteArray GetPort() const { return ByteArray(port_); }
-  ByteArray GetBssid() const { return ByteArray(bssid_); }
-  WifiLanConnectionInfoType GetWifiLanConnectionInfoType() const {
-    if (ip_address_.size() == kIpv6AddressLength) {
-      return kIpv6;
-    } else if (ip_address_.size() == kIpv4AddressLength) {
-      return kIpv4;
-    }
-    return kUnknown;
-  }
+  std::string ToDataElementBytes() const override;
+  std::string GetIpAddress() const { return ip_address_; }
+  std::string GetPort() const { return port_; }
+  std::string GetBssid() const { return bssid_; }
+  char GetActions() const override { return actions_; }
 
  private:
   std::string ip_address_;
   std::string port_;
   std::string bssid_;
+  char actions_;
 };
 
 inline bool operator==(const WifiLanConnectionInfo& a,

@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,23 +15,37 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_
 
-#include "internal/platform/byte_array.h"
+#include <string>
+
+#include "absl/strings/string_view.h"
+#include "absl/types/variant.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
+inline constexpr uint8_t kDataElementFieldType = 0x14;
+inline constexpr uint8_t kBluetoothMediumType = 0x00;
+inline constexpr uint8_t kBleGattMediumType = 0x01;
+inline constexpr uint8_t kWifiLanMediumType = 0x03;
+inline constexpr int kMacAddressLength = 6;
+inline constexpr int kConnectionInfoMinimumLength = 2;
 
-constexpr int kMacAddressLength = 6;
+class BleConnectionInfo;
+class BluetoothConnectionInfo;
+class WifiLanConnectionInfo;
+
+using ConnectionInfoVariant =
+    absl::variant<absl::monostate, BleConnectionInfo, BluetoothConnectionInfo,
+                  WifiLanConnectionInfo>;
 
 class ConnectionInfo {
  public:
-  enum class MediumType {
-    kUnknown = 0,
-    kBluetooth = 1,
-    kWifiLan = 2,
-    kBle = 3,
-  };
   virtual ~ConnectionInfo() = default;
-  virtual MediumType GetMediumType() const = 0;
-  virtual ByteArray ToBytes() const = 0;
+  virtual ::location::nearby::proto::connections::Medium GetMediumType()
+      const = 0;
+  virtual std::string ToDataElementBytes() const = 0;
+  virtual char GetActions() const = 0;
+  static ConnectionInfoVariant FromDataElementBytes(
+      absl::string_view data_element_bytes);
 };
 }  // namespace nearby
 
