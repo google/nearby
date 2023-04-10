@@ -91,9 +91,14 @@ message ConnectionRequestFrame {
   optional int32 keep_alive_interval_millis = 8;
   optional int32 keep_alive_timeout_millis = 9;
   // The type of {@link Device} object.
-  optional int32 device_type = 10 [default = 0];
+  optional int32 device_type = 10 [default = 0, deprecated = true];
   // The bytes of serialized {@link Device} object.
-  optional bytes device_info = 11;
+  optional bytes device_info = 11 [deprecated = true];
+  // Represents the {@link Device} that invokes the request.
+  oneof Device {
+    ConnectionsDevice connections_device = 12;
+    PresenceDevice presence_device = 13;
+  }
 }
 
 message ConnectionResponseFrame {
@@ -400,4 +405,40 @@ message OsInfo {
   }
 
   optional OsType type = 1;
+}
+
+enum EndpointType {
+  UNKNOWN_ENDPOINT = 0;
+  CONNECTIONS_ENDPOINT = 1;
+  PRESENCE_ENDPOINT = 2;
+}
+
+message ConnectionsDevice {
+  optional string endpoint_id = 1;
+  optional EndpointType endpoint_type = 2;
+  optional bytes connectivity_info_list = 3;  // Data Elements.
+  optional bytes endpoint_info = 4;
+}
+
+message PresenceDevice {
+  enum DeviceType {
+    UNKNOWN = 0;
+    PHONE = 1;
+    TABLET = 2;
+    DISPLAY = 3;
+    LAPTOP = 4;
+    TV = 5;
+    WATCH = 6;
+  }
+
+  optional string endpoint_id = 1;
+  optional EndpointType endpoint_type = 2;
+  optional bytes connectivity_info_list = 3;  // Data Elements.
+  optional int64 device_id = 4;
+  optional string device_name = 5;
+  optional DeviceType device_type = 6;
+  optional string device_image_url = 7;
+  repeated ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
+  repeated int32 actions = 9 [packed = true];
+  repeated int64 identity_type = 10 [packed = true];
 }
