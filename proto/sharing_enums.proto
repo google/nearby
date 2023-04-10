@@ -445,6 +445,7 @@ enum ActivityName {
   QUICK_SETTINGS_ACTIVITY = 9;
   REMOTE_COPY_SHARE_SHEET_ACTIVITY = 10;
   SETUP_WIZARD_ACTIVITY = 11;
+  SETTINGS_REVIEW_ACTIVITY = 12;
 }
 
 // The type of consent page user launches.
