@@ -80,6 +80,24 @@ cc_library(
     urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
 )
 
+http_archive(
+    name = "nlohmann_json",
+    strip_prefix = "json-3.10.5",
+    build_file_content = """
+cc_library(
+  name = "json",
+  hdrs = glob([
+    "include/nlohmann/**/*.hpp",
+  ]),
+  includes = ["include"],
+  visibility = ["//visibility:public"],
+  alwayslink = True,
+)""",
+    urls = [
+        "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
+    ],
+)
+
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 # Load common dependencies.
 protobuf_deps()
