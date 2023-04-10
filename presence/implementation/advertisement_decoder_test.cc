@@ -242,6 +242,22 @@ TEST(AdvertisementDecoder, DecodeBaseNpWithTxActionField) {
                   DataElement(DataElement(ActionBit::kNearbyShareAction))));
 }
 
+TEST(AdvertisementDecoder, DecodeBaseNpV0PublicIdentityWithTxAndActionField) {
+  AdvertisementDecoder decoder(GetScanRequest());
+
+  auto result = decoder.DecodeAdvertisement(
+      // v0 public identity, power and action, action value 8 for active unlock.
+      absl::HexStringToBytes("000336FF0080"));
+
+  EXPECT_OK(result);
+  EXPECT_THAT(result->data_elements,
+              UnorderedElementsAre(
+                  DataElement(DataElement::kPublicIdentityFieldType, ""),
+                  DataElement(DataElement::kTxPowerFieldType,
+                              absl::HexStringToBytes("ff")),
+                  DataElement(DataElement(ActionBit::kActiveUnlockAction))));
+}
+
 TEST(AdvertisementDecoder,
      ScanForEncryptedIdentityIgnoresPublicIdentityAdvertisement) {
   AdvertisementDecoder decoder(
