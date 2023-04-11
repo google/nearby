@@ -47,6 +47,8 @@ using AdvertisingCallback =
 using ::nearby::SingleThreadExecutor;
 
 using CountDownLatch = ::nearby::CountDownLatch;
+// using ::testing::UnorderedElementsAre;
+using ::testing::Contains;
 
 class ScanManagerTest : public testing::Test {
  protected:
@@ -199,6 +201,22 @@ TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
       .on_discovered_cb =
           [this, &address](PresenceDevice pd) {
             if (pd.GetMetadata().bluetooth_mac_address() == address) {
+              EXPECT_THAT(
+                  pd.GetExtendedProperties(),
+                  Contains(
+                      DataElement(DataElement::kPublicIdentityFieldType, ""))
+                      .Times(1));
+              // MakeDefaultScanRequest() used kPresenceManagerAction for
+              // broadcasting. Thus verify DE and action got it recorded.
+              EXPECT_THAT(
+                  pd.GetExtendedProperties(),
+                  Contains(DataElement(ActionBit::kPresenceManagerAction))
+                      .Times(1));
+              EXPECT_THAT(pd.GetActions(),
+                          Contains(PresenceAction{
+                                       (int)ActionBit::kPresenceManagerAction})
+                              .Times(1));
+
               found_latch_.CountDown();
             }
           }};
