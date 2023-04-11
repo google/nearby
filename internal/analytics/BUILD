@@ -20,6 +20,7 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
+        "//fastpair:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
