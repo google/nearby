@@ -36,7 +36,8 @@ class LdtEncryptor {
   LdtEncryptor(LdtEncryptor&& other);
   LdtEncryptor& operator=(const LdtEncryptor&) = delete;
   LdtEncryptor& operator=(LdtEncryptor&& other) {
-    std::swap(ldt_handle_, other.ldt_handle_);
+    std::swap(ldt_encrypt_handle_, other.ldt_encrypt_handle_);
+    std::swap(ldt_decrypt_handle_, other.ldt_decrypt_handle_);
     return *this;
   }
   ~LdtEncryptor();
@@ -58,10 +59,14 @@ class LdtEncryptor {
                                                absl::string_view salt);
 
  private:
-  explicit LdtEncryptor(NpLdtHandle ldt_handle) : ldt_handle_(ldt_handle) {}
+  explicit LdtEncryptor(NpLdtEncryptHandle ldt_encrypt_handle,
+                        NpLdtDecryptHandle ldt_decrypt_handle)
+      : ldt_encrypt_handle_(ldt_encrypt_handle),
+        ldt_decrypt_handle_(ldt_decrypt_handle) {}
   // An opaque handle to the underlying LDT implementation. It can be null iff
   // this object has already been destroyed.
-  NpLdtHandle ldt_handle_;
+  NpLdtEncryptHandle ldt_encrypt_handle_;
+  NpLdtDecryptHandle ldt_decrypt_handle_;
 };
 
 }  // namespace presence
