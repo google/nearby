@@ -33,7 +33,3 @@
 [submodule "third_party/mbedtls"]
 	path = third_party/mbedtls
 	url = https://github.com/ARMmbed/mbedtls
-[submodule "json"]
-	path = json
-	url = https://github.com/nlohmann/json
-	branch = v3.10.5
