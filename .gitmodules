@@ -36,3 +36,4 @@
 [submodule "json"]
 	path = json
 	url = https://github.com/nlohmann/json
+	branch = v3.10.5
