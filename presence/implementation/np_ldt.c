@@ -17,18 +17,26 @@
 // Placeholder, empty implementations of LDT utilities. They will be replaced
 // with implementations in Rust.
 
-NpLdtHandle NpLdtCreate(NpLdtKeySeed key_seed, NpMetadataKeyHmac known_hmac) {
-  return 0;
+NpLdtEncryptHandle NpLdtEncryptCreate(NpLdtKeySeed key_seed) {
+  NpLdtEncryptHandle handle = {0};
+  return handle;
 }
 
-NP_LDT_RESULT NpLdtClose(NpLdtHandle handle) { return NP_LDT_SUCCESS; }
+NpLdtDecryptHandle NpLdtDecryptCreate(NpLdtKeySeed key_seed, NpMetadataKeyHmac hmac_tag) {
+  NpLdtDecryptHandle handle = {0};
+  return handle;
+}
 
-NP_LDT_RESULT NpLdtEncrypt(NpLdtHandle handle, uint8_t* buffer,
+NP_LDT_RESULT NpLdtEncryptClose(NpLdtEncryptHandle handle) { return NP_LDT_SUCCESS; }
+
+NP_LDT_RESULT NpLdtDecryptClose(NpLdtDecryptHandle handle) { return NP_LDT_SUCCESS; }
+
+NP_LDT_RESULT NpLdtEncrypt(NpLdtEncryptHandle handle, uint8_t* buffer,
                            size_t buffer_len, NpLdtSalt salt) {
   return NP_LDT_SUCCESS;
 }
 
-NP_LDT_RESULT NpLdtDecryptAndVerify(NpLdtHandle handle, uint8_t* buffer,
+NP_LDT_RESULT NpLdtDecryptAndVerify(NpLdtDecryptHandle handle, uint8_t* buffer,
                                     size_t buffer_len, NpLdtSalt salt) {
   return NP_LDT_SUCCESS;
 }
