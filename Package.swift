@@ -262,7 +262,7 @@ let package = Package(
         "nlohmann_json.natvis",
         "wsjcpp.yml",
       ],
-      publicHeadersPath: "include/nlohmann/"
+      publicHeadersPath: "include"
     ),
     .target(
       name: "protobuf",
