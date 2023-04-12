@@ -243,6 +243,28 @@ let package = Package(
       ]
     ),
     .target(
+      name: "json",
+      path: "third_party/json",
+      exclude:[
+        "LICENSES",
+        "cmake",
+        "docs",
+        "single_include",
+        "tests",
+        "tools",
+        "CITATION.cff",
+        "CMakeLists.txt",
+        "ChangeLog.md",
+        "LICENSE.MIT",
+        "Makefile",
+        "README.md",
+        "meson.build",
+        "nlohmann_json.natvis",
+        "wsjcpp.yml",
+      ],
+      publicHeadersPath: "include/nlohmann/"
+    ),
+    .target(
       name: "protobuf",
       path: "third_party/protobuf/src",
       exclude: [
@@ -373,6 +395,7 @@ let package = Package(
       name: "NearbyCoreAdapter",
       dependencies: [
         "google-toolbox-for-mac",
+        "json",
         "smhasher",
         "ukey2",
         "protobuf",
