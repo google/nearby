@@ -20,15 +20,10 @@ cc_library(
         "utils.h",
     ],
     visibility = [
-        "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal:__subpackages__",
-        "//internal/platform:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//presence:__subpackages__",
     ],
     deps = [
         "//internal/platform:types",
@@ -51,15 +46,10 @@ cc_library(
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
-        "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal:__subpackages__",
-        "//internal/platform:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//presence:__subpackages__",
     ],
     deps = [
         ":types",
