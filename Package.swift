@@ -262,7 +262,7 @@ let package = Package(
         "json/nlohmann_json.natvis",
         "json/wsjcpp.yml",
       ],
-      sources: [EmptySwiftPackageManagerFile.cpp],
+      sources: ["EmptySwiftPackageManagerFile.cpp"],
       publicHeadersPath: "json/include"
     ),
     .target(
