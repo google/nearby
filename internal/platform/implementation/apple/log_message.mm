@@ -78,18 +78,19 @@ LogMessage::LogMessage(const char* file, int line, Severity severity)
 void LogMessage::Print(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
+  NSString *msg = [[NSString alloc] initWithFormat:@(format) arguments:ap];
   switch (severity_) {
     case kGTMLoggerLevelDebug:
-      [[GTMLogger sharedLogger] logFuncDebug:func_.c_str() msg:@(format), ap];
+      [[GTMLogger sharedLogger] logFuncDebug:func_.c_str() msg:@"%@", msg];
       break;
     case kGTMLoggerLevelInfo:
-      [[GTMLogger sharedLogger] logFuncInfo:func_.c_str() msg:@(format), ap];
+      [[GTMLogger sharedLogger] logFuncInfo:func_.c_str() msg:@"%@", msg];
       break;
     case kGTMLoggerLevelError:
-      [[GTMLogger sharedLogger] logFuncError:func_.c_str() msg:@(format), ap];
+      [[GTMLogger sharedLogger] logFuncError:func_.c_str() msg:@"%@", msg];
       break;
     case kGTMLoggerLevelAssert:
-      [[GTMLogger sharedLogger] logFuncAssert:func_.c_str() msg:@(format), ap];
+      [[GTMLogger sharedLogger] logFuncAssert:func_.c_str() msg:@"%@", msg];
       break;
     case kGTMLoggerLevelUnknown:
       // no-op
