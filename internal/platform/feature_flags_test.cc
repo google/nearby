@@ -21,23 +21,23 @@ namespace nearby {
 namespace {
 
 constexpr FeatureFlags::Flags kTestFeatureFlags{
-    .enable_cancellation_flag = true,
+    .enable_cancellation_flag = false,
     .keep_alive_interval_millis = 5000,
     .keep_alive_timeout_millis = 30000};
 
 TEST(FeatureFlagsTest, ToSetFeatureWorks) {
   const FeatureFlags& features = FeatureFlags::GetInstance();
-  EXPECT_FALSE(features.GetFlags().enable_cancellation_flag);
+  EXPECT_TRUE(features.GetFlags().enable_cancellation_flag);
 
   EXPECT_EQ(5000, features.GetFlags().keep_alive_interval_millis);
   EXPECT_EQ(30000, features.GetFlags().keep_alive_timeout_millis);
 
   MediumEnvironment& medium_environment = MediumEnvironment::Instance();
   medium_environment.SetFeatureFlags(kTestFeatureFlags);
-  EXPECT_TRUE(features.GetFlags().enable_cancellation_flag);
+  EXPECT_FALSE(features.GetFlags().enable_cancellation_flag);
 
   const FeatureFlags& another_features_ref = FeatureFlags::GetInstance();
-  EXPECT_TRUE(another_features_ref.GetFlags().enable_cancellation_flag);
+  EXPECT_FALSE(another_features_ref.GetFlags().enable_cancellation_flag);
 }
 
 }  // namespace
