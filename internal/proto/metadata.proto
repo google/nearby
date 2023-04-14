@@ -66,4 +66,8 @@ enum DeviceType {
 
   // The device is a watch.
   DEVICE_TYPE_WATCH = 6;
+
+  // The device is a ChromeOS device. ChromeOS can be a laptop, desktop, or
+  // convertible (tablet + clamshell).
+  DEVICE_TYPE_CHROMEOS = 7;
 }
