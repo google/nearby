@@ -45,7 +45,6 @@ cc_library(
         "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/apps/better_together/windows:__subpackages__",
-        "//location/nearby/cpp/fastpair/internal:__subpackages__",
         "//location/nearby/cpp/sharing/implementation/internal:__subpackages__",
     ],
 )

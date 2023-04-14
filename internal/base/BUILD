@@ -14,7 +14,6 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal/platform:__pkg__",
-        "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [
@@ -38,7 +37,6 @@ cc_library(
     visibility = [
         "//fastpair:__subpackages__",
         "//internal:__subpackages__",
-        "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [
