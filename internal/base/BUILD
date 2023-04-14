@@ -5,6 +5,7 @@ cc_library(
     srcs = [
     ],
     hdrs = [
+        "default_callback.h",
         "observer_list.h",
     ],
     copts = [
