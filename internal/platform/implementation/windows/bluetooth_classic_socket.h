@@ -101,7 +101,7 @@ class BluetoothSocket : public api::BluetoothSocket {
   IAsyncAction CancelIOAsync();
 
  private:
-  static constexpr int kMaxTransmitPacketSize = 4096;
+  static constexpr int kInitialTransmitPacketSize = 4096;
 
   class BluetoothInputStream : public InputStream {
    public:
@@ -113,7 +113,7 @@ class BluetoothSocket : public api::BluetoothSocket {
 
    private:
     IInputStream winrt_input_stream_{nullptr};
-    Buffer read_buffer_{kMaxTransmitPacketSize};
+    Buffer read_buffer_{kInitialTransmitPacketSize};
   };
 
   class BluetoothOutputStream : public OutputStream {
@@ -128,11 +128,11 @@ class BluetoothSocket : public api::BluetoothSocket {
 
    private:
     IOutputStream winrt_output_stream_{nullptr};
-    Buffer write_buffer_{kMaxTransmitPacketSize};
+    Buffer write_buffer_{kInitialTransmitPacketSize};
   };
 
   bool InternalConnect(HostName connectionHostName,
-               winrt::hstring connectionServiceName);
+                       winrt::hstring connectionServiceName);
 
   winrt::fire_and_forget Listener_ConnectionStatusChanged(
       winrt::Windows::Devices::Bluetooth::BluetoothDevice device,

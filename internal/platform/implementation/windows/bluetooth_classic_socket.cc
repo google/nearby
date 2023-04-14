@@ -156,10 +156,16 @@ BluetoothSocket::BluetoothInputStream::BluetoothInputStream(
 ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     std::int64_t size) {
   try {
-    if (size <= 0 || size > kMaxTransmitPacketSize) {
+    if (size <= 0) {
       NEARBY_LOGS(ERROR) << __func__
                          << ": Invalid transmit packet size: " << size;
       return {Exception::kIo};
+    }
+
+    if (size > read_buffer_.Capacity()) {
+      NEARBY_LOGS(WARNING) << __func__
+                         << ": resize receive buffer to packet size: " << size;
+      read_buffer_ = Buffer(size);
     }
 
     // Init the read buffer.
@@ -223,10 +229,11 @@ BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
 
 Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
   try {
-    if (data.size() > kMaxTransmitPacketSize) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Transmit packet size " << data.size()
-                         << " is too big.";
-      return {Exception::kIo};
+    if (data.size() > write_buffer_.Capacity()) {
+      NEARBY_LOGS(WARNING) << __func__
+                         << ": resize write buffer to packet size: "
+                         << data.size();
+      write_buffer_ = Buffer(data.size());
     }
 
     std::memcpy(write_buffer_.data(), data.data(), data.size());
