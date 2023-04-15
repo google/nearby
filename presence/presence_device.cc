@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#include "internal/crypto/random.h"
+#include "internal/platform/implementation/crypto.h"
 #include "internal/device.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
@@ -28,7 +28,10 @@ namespace presence {
 
 namespace {
 std::string GenerateRandomEndpointId() {
-  return crypto::RandBytes(kEndpointIdLength);
+  std::string result(kEndpointIdLength, 0);
+  crypto::RandBytes(const_cast<std::string::value_type*>(result.data()),
+                    result.size());
+  return result;
 }
 }  // namespace
 

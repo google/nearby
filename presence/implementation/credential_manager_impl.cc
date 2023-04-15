@@ -25,10 +25,17 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#ifdef NEARBY_CHROMIUM
+#include "crypto/aead.h"
+#include "crypto/ec_private_key.h"
+#include "crypto/hkdf.h"
+#include "crypto/random.h"
+#else
 #include "internal/crypto/aead.h"
 #include "internal/crypto/ec_private_key.h"
 #include "internal/crypto/hkdf.h"
 #include "internal/crypto/random.h"
+#endif
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/credential_callbacks.h"
@@ -36,6 +43,7 @@
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
+#include "presence/data_types.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/ldt.h"
 
@@ -56,13 +64,13 @@ constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
 
 // Returns a random duration in [0, max_duration] range.
 absl::Duration RandomDuration(absl::Duration max_duration) {
-  uint32_t random = ::crypto::RandData<uint32_t>();
+  uint32_t random = nearby::RandData<uint32_t>();
   return max_duration * random / std::numeric_limits<uint32_t>::max();
 }
 
 std::string CustomizeBytesSize(absl::string_view bytes, size_t len) {
   return ::crypto::HkdfSha256(
-      /*ikm=*/bytes,
+      /*ikm=*/std::string(bytes),  // NOLINT
       /*salt=*/std::string(CredentialManagerImpl::kAuthenticityKeyByteSize, 0),
       /*info=*/"", /*derived_key_size=*/len);
 }
@@ -164,7 +172,9 @@ CredentialManagerImpl::CreateLocalCredential(const Metadata& metadata,
   private_credential.set_identity_type(identity_type);
 
   // Creates an AES key to encrypt the whole broadcast.
-  std::string secret_key = crypto::RandBytes(kAuthenticityKeyByteSize);
+  std::string secret_key(kAuthenticityKeyByteSize, 0);
+  crypto::RandBytes(const_cast<std::string::value_type*>(secret_key.data()),
+                    secret_key.size());
   private_credential.set_key_seed(secret_key);
 
   // Uses SHA-256 algorithm to generate the credential ID from the
@@ -186,7 +196,9 @@ CredentialManagerImpl::CreateLocalCredential(const Metadata& metadata,
   private_credential.mutable_connection_signing_key()->set_key(
       std::string(private_key.begin(), private_key.end()));
   // Create an AES key to encrypt the device metadata.
-  auto metadata_key = crypto::RandBytes(kBaseMetadataSize);
+  std::string metadata_key(kBaseMetadataSize, 0);
+  crypto::RandBytes(const_cast<std::string::value_type*>(metadata_key.data()),
+                    metadata_key.size());
   private_credential.set_metadata_encryption_key(metadata_key);
 
   // Generate the public credential
@@ -260,7 +272,7 @@ std::string CredentialManagerImpl::DecryptMetadata(
   auto result = aead.Open(encrypted_metadata_bytes,
                           /*nonce=*/
                           iv_bytes,
-                          /*additional_data=*/absl::Span<uint8_t>());
+                          /*additional_data=*/CryptoSpan<uint8_t>());
 
   return std::string(result.value().begin(), result.value().end());
 }
@@ -285,7 +297,7 @@ std::string CredentialManagerImpl::EncryptMetadata(
   auto encrypted = aead.Seal(metadata_bytes,
                              /*nonce=*/
                              iv_bytes,
-                             /*additional_data=*/absl::Span<uint8_t>());
+                             /*additional_data=*/CryptoSpan<uint8_t>());
 
   return std::string(encrypted.begin(), encrypted.end());
 }
@@ -295,8 +307,8 @@ std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
   return crypto::HkdfSha256(
       std::vector<uint8_t>(metadata_encryption_key.begin(),
                            metadata_encryption_key.end()),
-      /*salt=*/absl::Span<uint8_t>(),
-      /*info=*/absl::Span<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
+      /*salt=*/CryptoSpan<uint8_t>(),
+      /*info=*/CryptoSpan<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
 }
 
 void CredentialManagerImpl::GetLocalCredentials(
@@ -354,7 +366,7 @@ SubscriberId CredentialManagerImpl::SubscribeForPublicCredentials(
     const CredentialSelector& credential_selector,
     PublicCredentialType public_credential_type,
     GetPublicCredentialsResultCallback callback) {
-  SubscriberId id = ::crypto::RandData<SubscriberId>();
+  SubscriberId id = nearby::RandData<SubscriberId>();
   RunOnServiceControllerThread(
       "add-subscriber",
       [this, key = SubscriberKey{credential_selector, public_credential_type},

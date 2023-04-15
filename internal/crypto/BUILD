@@ -98,6 +98,7 @@ cc_test(
     ],
     deps = [
         ":crypto",
+        "//internal/platform/implementation:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",

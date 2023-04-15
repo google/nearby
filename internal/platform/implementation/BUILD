@@ -40,6 +40,7 @@ cc_library(
     ],
     visibility = [
         "//fastpair:__subpackages__",
+        "//internal/crypto:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
@@ -49,6 +50,7 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        "//internal/crypto",
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",

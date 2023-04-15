@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "absl/time/time.h"
-#include "internal/crypto/random.h"
+#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "presence/implementation/advertisement_factory.h"
@@ -66,7 +66,7 @@ std::string SelectSalt(LocalCredential& credential,
     if (!credential.consumed_salts().contains(s)) {
       break;
     }
-    s = crypto::RandData<uint16_t>();
+    s = nearby::RandData<uint16_t>();
   }
   credential.mutable_consumed_salts()->insert({s, true});
   return SaltFromInt(s);
@@ -235,7 +235,7 @@ void BroadcastManager::StopBroadcast(BroadcastSessionId id) {
 }
 
 BroadcastSessionId BroadcastManager::GenerateBroadcastSessionId() {
-  return ::crypto::RandData<BroadcastSessionId>();
+  return nearby::RandData<BroadcastSessionId>();
 }
 
 void BroadcastManager::BroadcastSessionState::SetAdvertisingSession(

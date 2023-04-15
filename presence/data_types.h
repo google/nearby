@@ -59,6 +59,15 @@ struct BroadcastCallback {
   };
 };
 
+// Chromium uses its own crypto library instead of nearby/internal/crypto,
+// in which base::span is used instead of absl::Span. See b/276368162.
+#ifdef NEARBY_CHROMIUM
+template <typename T>
+using CryptoSpan = base::span<T>;
+#else
+template <typename T>
+using CryptoSpan = absl::Span<T>;
+#endif
 }  // namespace presence
 }  // namespace nearby
 
