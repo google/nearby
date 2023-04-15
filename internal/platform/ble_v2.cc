@@ -82,12 +82,9 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
               [this](api::ble_v2::BlePeripheral& peripheral,
                      BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
-                if (peripherals_.contains(&peripheral)) {
-                  NEARBY_LOGS(INFO)
-                      << "There is no need to callback due to peripheral impl="
-                      << &peripheral << ", which already exists.";
-                  return;
-                } else {
+                if (!peripherals_.contains(&peripheral)) {
+                  NEARBY_LOGS(INFO) << "Peripheral impl=" << &peripheral
+                                    << " is not existed; adds it to the map.";
                   peripherals_.insert(&peripheral);
                 }
 
