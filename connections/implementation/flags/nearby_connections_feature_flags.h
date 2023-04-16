@@ -27,9 +27,17 @@ constexpr absl::string_view kConfigPackage = "nearby";
 // The Nearby Connections features.
 namespace nearby_connections_feature {
 
+// LINT.IfChanged
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
     flags::Flag<bool>(kConfigPackage, "45401515", false);
+
+// LINT.ThenChange(
+//   //depot/google3/location/nearby/cpp/sharing/clients/windows/nearby_sharing_service_adapter_dart.h,
+//   //depot/google3/location/nearby/cpp/sharing/clients/windows/nearby_sharing_service_adapter_dart.cc,
+//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/ffi_types.dart,
+//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
+// )
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
