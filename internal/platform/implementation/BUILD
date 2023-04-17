@@ -43,6 +43,7 @@ cc_library(
         "//internal/crypto:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/common:__subpackages__",

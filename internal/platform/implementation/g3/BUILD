@@ -139,6 +139,7 @@ cc_library(
         "//internal/flags:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
+        "//internal/preferences:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//internal/test:__subpackages__",
         "//internal/weave:__subpackages__",

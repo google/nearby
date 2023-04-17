@@ -27,6 +27,11 @@ constexpr absl::AnyInvocable<void(Args...)> DefaultCallback() {
   return absl::AnyInvocable<void(Args...)>{[](Args...) {}};
 }
 
+template <typename... Args>
+constexpr std::function<void(Args...)> DefaultFuncCallback() {
+  return [](Args...) {};
+}
+
 }  // namespace nearby
 
 #endif  // PLATFORM_BASE_LISTENERS_H_

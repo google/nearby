@@ -28,6 +28,7 @@
 #import "internal/platform/implementation/apple/log_message.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
+#include "internal/platform/implementation/apple/preferences_repository.h"
 #import "internal/platform/implementation/apple/scheduled_executor.h"
 #import "internal/platform/implementation/apple/single_thread_executor.h"
 #include "internal/platform/implementation/apple/timer.h"
@@ -244,6 +245,12 @@ std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
 // TODO(b/261511530): Add implementation.
 std::unique_ptr<nearby::api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<apple::DeviceInfo>();
+}
+
+// TODO(b/261503919): Add implementation.
+std::unique_ptr<nearby::api::PreferencesRepository>
+ImplementationPlatform::CreatePreferencesRepository(absl::string_view path) {
+  return std::make_unique<apple::PreferencesRepository>(path);
 }
 
 }  // namespace api
