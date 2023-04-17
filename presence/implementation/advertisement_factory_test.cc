@@ -61,7 +61,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
+  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
@@ -85,8 +85,8 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_TRUSTED;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
-  data_elements.emplace_back(DataElement(ActionBit::kFitCastAction));
+  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
+  data_elements.emplace_back(ActionBit::kFitCastAction);
   Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
@@ -110,8 +110,8 @@ TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PROVISIONED;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
-  data_elements.emplace_back(DataElement(ActionBit::kFitCastAction));
+  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
+  data_elements.emplace_back(ActionBit::kFitCastAction);
   Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
@@ -135,7 +135,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PUBLIC;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
+  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
@@ -155,7 +155,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
+  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
