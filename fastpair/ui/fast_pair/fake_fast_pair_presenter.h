@@ -17,6 +17,8 @@
 
 #include <memory>
 
+#include "fastpair/ui/actions.h"
+#include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/fast_pair/fast_pair_presenter_impl.h"
 
 namespace nearby {
@@ -24,10 +26,11 @@ namespace fastpair {
 
 class FakeFastPairPresenter : public FastPairPresenter {
  public:
-  void ShowDiscovery(
-      const FastPairDevice& device,
-      FastPairNotificationController& notification_controller) override {
+  void ShowDiscovery(const FastPairDevice& device,
+                     FastPairNotificationController& notification_controller,
+                     DiscoveryCallback callback) override {
     show_discovery_ = true;
+    callback(DiscoveryAction::kPairToDevice);
   }
   bool show_deiscovery() { return show_discovery_; }
 

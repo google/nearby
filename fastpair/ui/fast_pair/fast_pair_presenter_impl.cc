@@ -15,10 +15,13 @@
 #include "fastpair/ui/fast_pair/fast_pair_presenter_impl.h"
 
 #include <memory>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/repository/device_metadata.h"
 #include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "internal/platform/logging.h"
 
@@ -47,22 +50,24 @@ FastPairPresenterImpl::Factory::~Factory() = default;
 
 void FastPairPresenterImpl::ShowDiscovery(
     const FastPairDevice& device,
-    FastPairNotificationController& notification_controller) {
+    FastPairNotificationController& notification_controller,
+    DiscoveryCallback callback) {
+  callback_ = std::move(callback);
   FastPairRepository::Get()->GetDeviceMetadata(
-      device.GetModelId(),
-      [&notification_controller, this](const DeviceMetadata& device_metadata) {
+      device.GetModelId(), [&device, &notification_controller,
+                            this](const DeviceMetadata& device_metadata) {
         NEARBY_LOGS(INFO) << __func__
                           << "Retrieved metadata to notification controller.";
-        FastPairPresenterImpl::OnDiscoveryMetadataRetrieved(
-            device_metadata, notification_controller);
+        OnDiscoveryMetadataRetrieved(device, device_metadata,
+                                     notification_controller);
       });
 }
 
 void FastPairPresenterImpl::OnDiscoveryMetadataRetrieved(
-    const DeviceMetadata& device_metadata,
+    const FastPairDevice& device, const DeviceMetadata& device_metadata,
     FastPairNotificationController& notification_controller) {
-  notification_controller.ShowGuestDiscoveryNotification(device_metadata);
+  notification_controller.ShowGuestDiscoveryNotification(device_metadata,
+                                                         std::move(callback_));
 }
-
 }  // namespace fastpair
 }  // namespace nearby
