@@ -5,12 +5,15 @@ cc_library(
     srcs = [
         "fast_pair/fast_pair_notification_controller.cc",
         "fast_pair/fast_pair_presenter_impl.cc",
+        "ui_broker_impl.cc",
     ],
     hdrs = [
         "actions.h",
         "fast_pair/fast_pair_notification_controller.h",
         "fast_pair/fast_pair_presenter.h",
         "fast_pair/fast_pair_presenter_impl.h",
+        "ui_broker.h",
+        "ui_broker_impl.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
@@ -23,7 +26,6 @@ cc_library(
         "//internal/base",
         "//internal/platform:logging",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -48,6 +50,7 @@ cc_test(
     srcs = [
         "fast_pair/fast_pair_notification_controller_test.cc",
         "fast_pair/fast_pair_presenter_impl_test.cc",
+        "ui_broker_impl_test.cc",
     ],
     deps = [
         ":fake_fast_pair_ui",
