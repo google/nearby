@@ -213,10 +213,11 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
 
       // found all characteristics.
       NEARBY_LOGS(VERBOSE) << __func__ << ": Found all characteristics.";
-      break;
+      return true;
     }
 
-    return true;
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": Failed to find service and all characteristics.";
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to get GATT services. exception: "
