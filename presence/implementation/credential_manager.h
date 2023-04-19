@@ -95,6 +95,18 @@ class CredentialManager {
   virtual std::string DecryptMetadata(absl::string_view metadata_encryption_key,
                                       absl::string_view key_seed,
                                       absl::string_view metadata_string) = 0;
+
+  // Sets the NP service's device metadata, regenerating credentials if
+  // `regen_credentials` is set to true.
+  virtual void SetLocalDeviceMetadata(
+      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+      absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) = 0;
+
+  // Gets the NP service's device metadata.
+  virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
 };
 
 }  // namespace presence
