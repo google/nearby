@@ -511,7 +511,7 @@ class MediumEnvironment {
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
-  std::unique_ptr<FakeClock> simulated_clock_;
+  std::unique_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby
