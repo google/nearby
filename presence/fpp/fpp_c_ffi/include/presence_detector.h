@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ostream>
+#include <new>
 
 enum class MeasurementConfidence {
  Low,
@@ -52,24 +53,8 @@ struct ProximityEstimate {
  double distance;
  MeasurementConfidence distance_confidence;
  u128 elapsed_real_time_millis;
+ ProximityState proximity_state;
  PresenceDataSource source;
-};
-
-struct ProximityStateResult {
- uint64_t device_id;
- ProximityState current_proximity_state;
- ProximityEstimate current_proximity_estimate;
-};
-
-
-struct ProximityStateOptions {
- double tap_threshold_meters;
- double reach_threshold_meters;
- double short_range_threshold_meters;
- double long_range_threshold_meters;
- double hysteresis_percentage;
- double hysteresis_tap_extra_debounce_meters;
- uint8_t consecutive_scans_required;
 };
 
 extern "C" {
@@ -78,10 +63,7 @@ PresenceDetector *presence_detector_create();
 
 void update_ble_scan_result(PresenceDetector *presence_detector,
                             BleScanResult ble_scan_result,
-                            ProximityStateResult *proximity_state_result);
-
-void fpp_configure_options(PresenceDetector *presence_detector,
-                           ProximityStateOptions proximity_state_options);
+                            ProximityEstimate *proximity_estimate);
 
 void fpp_get_proximity_estimate(PresenceDetector *presence_detector,
                                 uint64_t device_id,

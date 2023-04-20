@@ -3,10 +3,17 @@
 version = 3
 
 [[package]]
+name = "either"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+
+[[package]]
 name = "fpp"
 version = "0.1.0"
 dependencies = [
  "ilog",
+ "itertools",
  "lazy_static",
 ]
 
@@ -22,6 +29,15 @@ name = "ilog"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9d6896d5a5d605a3b80da159ccc5a6e1fad346b4d2c1ad51046e22536b9a362"
+
+[[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "lazy_static"

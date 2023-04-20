@@ -25,25 +25,15 @@ pub unsafe extern "C" fn presence_detector_create() -> *mut PresenceDetector {
 pub unsafe extern "C" fn update_ble_scan_result(
     presence_detector: *mut PresenceDetector,
     ble_scan_result: BleScanResult,
-    proximity_state_result: *mut ProximityStateResult,
+    proximity_estimate: *mut ProximityEstimate,
 ) {
     if let Some(presence_detector) = presence_detector.as_mut() {
-        if let Some(proximity_state_result) = proximity_state_result.as_mut() {
+        if let Some(proximity_estimate) = proximity_estimate.as_mut() {
             let result = presence_detector.on_ble_scan_result(ble_scan_result);
             if let Some(result) = result {
-                *proximity_state_result = result;
+                *proximity_estimate = result;
             }
         }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn fpp_configure_options(
-    presence_detector: *mut PresenceDetector,
-    proximity_state_options: ProximityStateOptions,
-) {
-    if let Some(presence_detector) = presence_detector.as_mut() {
-        presence_detector.configure_proximity_state_options(proximity_state_options);
     }
 }
 
