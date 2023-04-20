@@ -50,6 +50,7 @@ lazy_static! {
 
 // Proximity state from device to another in terms of actionability
 #[derive(Eq, Hash, Copy, Clone, PartialEq)]
+#[repr(C)]
 pub enum ProximityState {
     Unknown,
     Tap,
@@ -61,6 +62,7 @@ pub enum ProximityState {
 
 // Represents the confidence levels for a given measurement
 #[derive(Copy, Clone, PartialEq)]
+#[repr(C)]
 pub enum MeasurementConfidence {
     Low,
     Medium,
@@ -70,6 +72,7 @@ pub enum MeasurementConfidence {
 
 // Data sources that are used to track presence
 #[derive(Copy, Clone, PartialEq)]
+#[repr(C)]
 pub enum PresenceDataSource {
     Ble,
     Uwb,
@@ -78,14 +81,16 @@ pub enum PresenceDataSource {
 }
 
 // A PII-stripped subset of Bluetooth scan result
+#[repr(C)]
 pub struct BleScanResult {
     pub device_id: u64,
-    pub tx_power: Option<u8>,
+    pub tx_power: COption<i16>,
     pub rssi: i16,
     pub elapsed_real_time: u64,
 }
 
 #[derive(Copy, Clone, PartialEq)]
+#[repr(C)]
 pub struct ProximityEstimate {
     pub device_id: u64,
     pub distance: f64,
@@ -95,6 +100,7 @@ pub struct ProximityEstimate {
 }
 
 #[derive(Copy, Clone, PartialEq)]
+#[repr(C)]
 pub struct ProximityStateOptions {
     pub tap_threshold_meters: f64,
     pub reach_threshold_meters: f64,
@@ -103,4 +109,17 @@ pub struct ProximityStateOptions {
     pub hysteresis_percentage: f64,
     pub hysteresis_tap_extra_debounce_meters: f64,
     pub consecutive_scans_required: u8,
+}
+
+#[repr(C)]
+pub struct ProximityStateResult {
+    pub device_id: u64,
+    pub current_proximity_state: ProximityState,
+    pub current_proximity_estimate: ProximityEstimate,
+}
+
+#[repr(C)]
+pub struct COption<T> {
+    pub value: *const T,
+    pub present: bool,
 }

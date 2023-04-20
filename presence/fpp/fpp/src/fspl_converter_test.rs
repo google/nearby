@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 use crate::fspl_converter::compute_distance_meters_at_high_tx_power;
 
 #[test]
@@ -23,7 +21,7 @@ fn test_short_distance() {
 
 #[test]
 fn test_medium_distance() {
-    assert_eq!(compute_distance_meters_at_high_tx_power( -60), 1.0);
+    assert_eq!(compute_distance_meters_at_high_tx_power(-60), 1.0);
 }
 
 #[test]
