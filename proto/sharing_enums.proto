@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 60
+// Next id: 61
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -578,4 +578,11 @@ enum PreferencesActionStatus {
   PREFERENCES_ACTION_STATUS_UNKNOWN = 0;
   PREFERENCES_ACTION_STATUS_SUCCESS = 1;
   PREFERENCES_ACTION_STATUS_FAIL = 2;
+}
+
+// The state of the surface.
+enum SurfaceState {
+  SURFACE_STATE_UNKNOWN = 0;
+  SURFACE_STATE_BACKGROUND = 1;
+  SURFACE_STATE_FOREGROUND = 2;
 }
