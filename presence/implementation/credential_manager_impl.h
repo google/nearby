@@ -31,7 +31,7 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
-#include "internal/proto/metadata.proto.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/implementation/credential_manager.h"
 
 namespace nearby {
