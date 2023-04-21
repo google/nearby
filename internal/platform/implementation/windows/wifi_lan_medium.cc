@@ -350,6 +350,9 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     return nullptr;
   }
 
+  std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
+      nullptr;
+
   HostName host_name{string_to_wstring(std::string(ipv4_address))};
   winrt::hstring service_name{winrt::to_hstring(port)};
 
@@ -363,7 +366,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
       return nullptr;
     }
 
-    connection_cancellation_listener_ =
+    connection_cancellation_listener =
         std::make_unique<nearby::CancellationFlagListener>(
             cancellation_flag, [socket]() {
               NEARBY_LOGS(WARNING)
@@ -384,9 +387,6 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     }
 
     socket.ConnectAsync(host_name, service_name).get();
-    if (connection_cancellation_listener_ != nullptr) {
-      connection_cancellation_listener_ = nullptr;
-    }
 
     if (connection_timeout_ != nullptr) {
       connection_timeout_->Cancel();
@@ -407,10 +407,6 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   } catch (...) {
     NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
                        << ":" << port;
-  }
-
-  if (connection_cancellation_listener_ != nullptr) {
-    connection_cancellation_listener_ = nullptr;
   }
 
   if (connection_timeout_ != nullptr) {

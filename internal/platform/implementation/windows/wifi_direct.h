@@ -29,7 +29,6 @@
 #include <vector>
 
 // Nearby connections headers
-#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
@@ -314,10 +313,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
   // Scheduled task for connection timeout.
   std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
-
-  // Listener to connect cancellation.
-  std::unique_ptr<nearby::CancellationFlagListener>
-      connection_cancellation_listener_ = nullptr;
 };
 
 }  // namespace windows

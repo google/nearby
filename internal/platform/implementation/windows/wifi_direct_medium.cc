@@ -107,6 +107,9 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     try {
       StreamSocket socket{};
 
+      std::unique_ptr<nearby::CancellationFlagListener>
+          connection_cancellation_listener = nullptr;
+
       // setup cancel listener
       if (cancellation_flag != nullptr) {
         if (cancellation_flag->Cancelled()) {
@@ -115,7 +118,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
           return nullptr;
         }
 
-        connection_cancellation_listener_ =
+        connection_cancellation_listener =
             std::make_unique<nearby::CancellationFlagListener>(
                 cancellation_flag, [socket]() {
                   NEARBY_LOGS(WARNING)
@@ -132,9 +135,6 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
           kWifiDirectClientSocketConnectTimeoutMillis);
 
       socket.ConnectAsync(host_name, service_name).get();
-      if (connection_cancellation_listener_ != nullptr) {
-        connection_cancellation_listener_ = nullptr;
-      }
 
       if (connection_timeout_ != nullptr) {
         connection_timeout_->Cancel();
@@ -151,10 +151,6 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
                          << ":" << port << " for the " << i + 1 << " time";
     }
 
-    if (connection_cancellation_listener_ != nullptr) {
-      connection_cancellation_listener_ = nullptr;
-    }
-
     if (connection_timeout_ != nullptr) {
       connection_timeout_->Cancel();
       connection_timeout_ = nullptr;
@@ -165,8 +161,8 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   return nullptr;
 }
 
-std::unique_ptr<api::WifiDirectServerSocket>
-WifiDirectMedium::ListenForService(int port) {
+std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
+    int port) {
   absl::MutexLock lock(&mutex_);
 
   // check current status

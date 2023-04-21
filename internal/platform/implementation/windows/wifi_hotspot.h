@@ -27,7 +27,6 @@
 #include <string>
 
 // Nearby connections headers
-#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
@@ -325,10 +324,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Scheduled task for connection timeout.
   std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
-
-  // Listener to connect cancellation.
-  std::unique_ptr<nearby::CancellationFlagListener>
-      connection_cancellation_listener_ = nullptr;
 };
 
 }  // namespace windows

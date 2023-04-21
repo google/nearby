@@ -34,7 +34,6 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
@@ -368,10 +367,6 @@ class WifiLanMedium : public api::WifiLanMedium {
 
   // Scheduled task for connection timeout.
   std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
-
-  // Listener to connect cancellation.
-  std::unique_ptr<nearby::CancellationFlagListener>
-      connection_cancellation_listener_ = nullptr;
 };
 
 }  // namespace windows
