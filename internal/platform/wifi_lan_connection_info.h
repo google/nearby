@@ -25,10 +25,10 @@
 
 namespace nearby {
 
-constexpr int kIpv4AddressLength = 4;
-constexpr int kIpv6AddressLength = 16;
-constexpr int kPortLength = 4;
-constexpr int kBssidLength = 6;
+inline constexpr int kIpv4AddressLength = 4;
+inline constexpr int kIpv6AddressLength = 16;
+inline constexpr int kPortLength = 2;
+inline constexpr int kBssidLength = 6;
 
 class WifiLanConnectionInfo : public ConnectionInfo {
  public:
@@ -51,6 +51,9 @@ class WifiLanConnectionInfo : public ConnectionInfo {
   }
   std::string ToDataElementBytes() const override;
   std::string GetIpAddress() const { return ip_address_; }
+  // This port is expected to be in hex form, such as \xFF\xFF for a value of
+  // 65535, 2 bytes in length. This field will be represented in network byte
+  // order (aka big-endian), so \x12\x34 will correspond to port 4660 (0x1234).
   std::string GetPort() const { return port_; }
   std::string GetBssid() const { return bssid_; }
   char GetActions() const override { return actions_; }

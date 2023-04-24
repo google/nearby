@@ -30,7 +30,7 @@ namespace {
 constexpr absl::string_view kIpv4Addr = "\x4C\x8B\x1D\xCE";
 constexpr absl::string_view kIpv6Addr =
     "\x4C\x8B\x1D\xCE\x4C\x8B\x1D\xCE\x4C\x8B\x1D\xCE\x4C\x8B\x1D\xCE";
-constexpr absl::string_view kPort = "\x12\x34\x56\x78";
+constexpr absl::string_view kPort = "\x12\x34";
 constexpr absl::string_view kBssid = "\x0A\x1B\x2C\x34\x58\x7E";
 constexpr char kAction = 0x0F;
 
