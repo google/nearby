@@ -33,12 +33,15 @@ class FastPairHandshakeImpl : public FastPairHandshake {
   FastPairHandshakeImpl& operator=(const FastPairHandshakeImpl&) = delete;
 
  private:
-  void OnGattClientInitializedCallback(std::optional<PairFailure> failure);
+  void OnGattClientInitializedCallback(FastPairDevice& device,
+                                       std::optional<PairFailure> failure);
   void OnDataEncryptorCreateAsync(
+      FastPairDevice& device,
       std::unique_ptr<FastPairDataEncryptor> fast_pair_data_encryptor);
-  void OnWriteResponse(absl::string_view response,
+  void OnWriteResponse(FastPairDevice& device, absl::string_view response,
                        std::optional<PairFailure> failure);
-  void OnParseDecryptedResponse(std::optional<DecryptedResponse>& response);
+  void OnParseDecryptedResponse(FastPairDevice& device,
+                                std::optional<DecryptedResponse>& response);
 };
 
 }  // namespace fastpair
