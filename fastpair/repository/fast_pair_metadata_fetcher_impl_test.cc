@@ -26,7 +26,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/internal/test/fast_pair_fake_http_client.h"
-#include "internal/network/http_client.h"
 
 namespace nearby {
 namespace fastpair {
@@ -40,11 +39,6 @@ constexpr char kResponseProto[] = "result_proto";
 constexpr char kRequestUrl[] = "https://googleapis.com/nearbysharing/test";
 constexpr char kQueryParameterAlternateOutputKey[] = "alt";
 constexpr char kQueryParameterAlternateOutputProto[] = "proto";
-
-class MockHttpClient : public network::HttpClient {
- public:
-  ~MockHttpClient() override = default;
-};
 
 const FastPairMetadataFetcher::QueryParameters&
 GetTestRequestProtoAsQueryParameters() {
@@ -130,11 +124,9 @@ class FastPairMetadataFetcherImplTest : public ::testing::Test {
   void CheckFastPairRepositoryGetUnauthRequest(
       const FastPairMetadataFetcher::QueryParameters&
           request_as_query_parameters) {
-    FastPairFakeHttpClient* fake_http_client =
-        reinterpret_cast<FastPairFakeHttpClient*>(http_client_.get());
-    EXPECT_EQ(fake_http_client->GetPendingRequest().size(), 1);
+    EXPECT_EQ(http_client_->GetPendingRequest().size(), 1);
     const network::HttpRequest& request =
-        fake_http_client->GetPendingRequest()[0].request;
+        http_client_->GetPendingRequest()[0].request;
 
     CheckPlatformTypeHeader(request.GetAllHeaders());
 
@@ -154,16 +146,14 @@ class FastPairMetadataFetcherImplTest : public ::testing::Test {
       int error,
       std::optional<network::HttpStatusCode> response_code = std::nullopt,
       const std::optional<std::string>& response_string = std::nullopt) {
-    FastPairFakeHttpClient* client =
-        reinterpret_cast<FastPairFakeHttpClient*>(http_client_.get());
-    client->CompleteRequest(error, response_code, response_string);
+    http_client_->CompleteRequest(error, response_code, response_string);
     EXPECT_TRUE(result_ || network_error_);
   }
   std::unique_ptr<std::string> result_;
   std::unique_ptr<FastPairHttpError> network_error_;
 
  private:
-  std::unique_ptr<network::HttpClient> http_client_;
+  std::unique_ptr<FastPairFakeHttpClient> http_client_;
   FastPairMetadataFetcherImpl flow_{api::DeviceInfo::OsType::kChromeOs};
 };
 
