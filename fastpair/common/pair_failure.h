@@ -68,7 +68,13 @@ enum class PairFailure {
   kPasskeyMismatch = 19,
   // Potential pairing device lost between GATT connection attempts.
   kPairingDeviceLostBetweenGattConnectionAttempts = 20,
-  kMaxValue = kPairingDeviceLostBetweenGattConnectionAttempts,
+  // Potential pairing device lost during pairing.
+  kDeviceLostMidPairing = 21,
+  // Failed to pair and connect with discovered device.
+  kPairingAndConnect = 22,
+  // Potential pairing timeout.
+  kPairingTimeout = 23,
+  kMaxValue = kPairingTimeout,
 };
 
 std::ostream& operator<<(std::ostream& stream, PairFailure failure);

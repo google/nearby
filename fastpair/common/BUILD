@@ -39,3 +39,17 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "pair_failure_test",
+    size = "small",
+    srcs = [
+        "pair_failure_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":common",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
