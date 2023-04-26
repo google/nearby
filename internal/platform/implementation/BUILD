@@ -81,7 +81,6 @@ cc_library(
     copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//internal:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
@@ -116,8 +115,6 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//fastpair:__subpackages__",
-        "//internal:__pkg__",
         "//internal:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
