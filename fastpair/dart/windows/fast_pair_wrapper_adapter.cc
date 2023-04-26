@@ -24,6 +24,11 @@ namespace windows {
 
 static FastPairWrapper *pWrapper_ = nullptr;
 void *InitFastPairWrapper() {
+#if defined(NEARBY_LOG_SEVERITY)
+  // Direct override of logging level.
+  NEARBY_LOG_SET_SEVERITY(NEARBY_LOG_SEVERITY);
+#endif  // LOG_SEVERITY_VERBOSE;
+
   FastPairWrapperImpl *pWrapper = new FastPairWrapperImpl();
   pWrapper_ = pWrapper;
   return pWrapper;
@@ -36,7 +41,7 @@ void CloseFastPairWrapper(FastPairWrapper *pWrapper) {
 }
 
 void __stdcall StartScan(FastPairWrapper *pWrapper) {
-  NEARBY_LOGS(INFO) << "StartScan is called";
+  NEARBY_LOGS(VERBOSE) << "StartScan is called";
   if (pWrapper_ == nullptr) {
     NEARBY_LOGS(INFO) << "The pWrapper is a null pointer.";
     return;
