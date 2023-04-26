@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/synchronization/mutex.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/repository/device_metadata.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
@@ -74,13 +75,15 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
                                  const std::string model_id,
                                  DeviceMetadata& device_metadata);
   void NotifyDeviceFound(FastPairDevice& device);
-
+  absl::Mutex mutex_;
   std::shared_ptr<FastPairScanner> scanner_;
   std::shared_ptr<BluetoothAdapter> adapter_;
   DeviceCallback found_callback_;
   DeviceCallback lost_callback_;
-  absl::flat_hash_map<std::string, FastPairDevice*> notified_devices_;
-  absl::flat_hash_map<std::string, int> model_id_parse_attempts_;
+  absl::flat_hash_map<std::string, std::unique_ptr<FastPairDevice>>
+      notified_devices_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, int> model_id_parse_attempts_
+      ABSL_GUARDED_BY(mutex_);
   ObserverList<FastPairScanner::Observer> observer_list_;
 };
 

@@ -25,6 +25,7 @@
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
@@ -108,8 +109,10 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
                          << ": Device doesn't have any Fast Pair Service Data.";
     return;
   }
-
-  model_id_parse_attempts_[peripheral.GetName()] = 1;
+  {
+    absl::MutexLock lock(&mutex_);
+    model_id_parse_attempts_[peripheral.GetName()] = 1;
+  }
   NEARBY_LOGS(INFO) << __func__ << ": Attempting to get model ID";
   std::vector<uint8_t> service_data;
   std::move(std::begin(fast_pair_service_data),
@@ -125,18 +128,20 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
 void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
     const std::string& address,
     const std::optional<absl::string_view> model_id) {
-  auto it = model_id_parse_attempts_.find(address);
+  {
+    absl::MutexLock lock(&mutex_);
+    auto it = model_id_parse_attempts_.find(address);
 
-  // If there's no entry in the map, the device was lost while parsing.
-  if (it == model_id_parse_attempts_.end()) {
-    NEARBY_LOGS(WARNING)
-        << __func__
-        << ": Returning early because device as lost while parsing.";
-    return;
+    // If there's no entry in the map, the device was lost while parsing.
+    if (it == model_id_parse_attempts_.end()) {
+      NEARBY_LOGS(WARNING)
+          << __func__
+          << ": Returning early because device as lost while parsing.";
+      return;
+    }
+
+    model_id_parse_attempts_.erase(it);
   }
-
-  model_id_parse_attempts_.erase(it);
-
   if (!model_id.has_value()) {
     NEARBY_LOGS(INFO) << __func__
                       << ": Returning early because no model id was parsed.";
@@ -182,9 +187,11 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
                             "Ignoring this advertisement";
     return;
   }
-
-  FastPairDevice device(model_id, address, Protocol::kFastPairInitialPairing);
-  NotifyDeviceFound(device);
+  absl::MutexLock lock(&mutex_);
+  notified_devices_.insert_or_assign(
+      address, std::make_unique<FastPairDevice>(
+                   model_id, address, Protocol::kFastPairInitialPairing));
+  NotifyDeviceFound(*notified_devices_[address]);
 }
 
 void FastPairDiscoverableScannerImpl::NotifyDeviceFound(
@@ -192,23 +199,21 @@ void FastPairDiscoverableScannerImpl::NotifyDeviceFound(
   NEARBY_LOGS(VERBOSE) << "Notify Device found:"
                        << "BluetoothAddress = " << device.GetBleAddress()
                        << ", Model id = " << device.GetModelId();
-  notified_devices_[device.GetBleAddress()] = &device;
   found_callback_(device);
 }
 
 void FastPairDiscoverableScannerImpl::OnDeviceLost(
     const BlePeripheral& peripheral) {
   NEARBY_LOGS(INFO) << __func__ << ": Running lost callback";
-
+  absl::MutexLock lock(&mutex_);
   model_id_parse_attempts_.erase(peripheral.GetName());
 
   auto it = notified_devices_.find(peripheral.GetName());
 
   // Don't invoke callback if we didn't notify this device.
   if (it == notified_devices_.end()) return;
-  FastPairDevice* notified_device = it->second;
+  lost_callback_(*it->second);
   notified_devices_.erase(it);
-  lost_callback_(*notified_device);
 }
 
 }  // namespace fastpair
