@@ -20,6 +20,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "fastpair/handshake/fast_pair_handshake_impl.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace fastpair {

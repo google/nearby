@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -27,7 +28,11 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/fast_pair_device.h"
+#include "fastpair/common/pair_failure.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client.h"
 #include "internal/base/bluetooth_address.h"
@@ -168,7 +173,7 @@ void FastPairGattServiceClientImpl::GetFastPairGattCharacteristics() {
   }
 
   is_initialized_ = true;
-  std::move(on_gatt_initialized_callback_)(absl::nullopt);
+  std::move(on_gatt_initialized_callback_)(std::nullopt);
 }
 
 std::optional<GattCharacteristic>
@@ -340,7 +345,7 @@ void FastPairGattServiceClientImpl::WritePasskeyAsync(
   // Subscribe the notification once the passkey characteristic's value changed
   if (SubscribePasskeyCharacteristic()) {
     is_passkey_notification_subscribed_ = true;
-    // Write passkey confonirmation request to the passkey characteristic
+    // Write passkey confirmation request to the passkey characteristic
     WritePasskeyCharacteristic(
         std::string(data_to_write_vec.begin(), data_to_write_vec.end()));
   }

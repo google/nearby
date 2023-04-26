@@ -15,17 +15,21 @@
 #include "fastpair/handshake/fast_pair_gatt_service_client_impl.h"
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/pair_failure.h"
+#include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fake_fast_pair_data_encryptor.h"
+#include "fastpair/handshake/fast_pair_gatt_service_client.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -188,18 +192,16 @@ class FastPairGattServiceClientTest : public testing::Test {
         passkey_characteristic_.value(), false, {});
   }
 
-  absl::optional<PairFailure> GetInitializedCallbackResult() {
+  std::optional<PairFailure> GetInitializedCallbackResult() {
     return initalized_failure_;
   }
 
   void WriteTestCallback(absl::string_view response,
-                         absl::optional<PairFailure> failure) {
+                         std::optional<PairFailure> failure) {
     write_failure_ = failure;
   }
 
-  absl::optional<PairFailure> GetWriteCallbackResult() {
-    return write_failure_;
-  }
+  std::optional<PairFailure> GetWriteCallbackResult() { return write_failure_; }
 
   void WriteRequestToKeyBased() {
     gatt_client_->WriteRequestAsync(
@@ -240,8 +242,8 @@ class FastPairGattServiceClientTest : public testing::Test {
  private:
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
-  absl::optional<PairFailure> initalized_failure_;
-  absl::optional<PairFailure> write_failure_;
+  std::optional<PairFailure> initalized_failure_;
+  std::optional<PairFailure> write_failure_;
   Property properties_ = Property::kWrite | Property::kNotify;
   Permission permissions_ = Permission::kWrite;
 };
@@ -277,7 +279,7 @@ TEST_F(FastPairGattServiceClientTest, SuccessfulWriteKeyBaseCharacteristics) {
   InitializeFastPairGattServiceClient();
   WriteRequestToKeyBased();
   EXPECT_EQ(TriggerKeyBasedGattChanged(), absl::OkStatus());
-  EXPECT_EQ(GetWriteCallbackResult(), absl::nullopt);
+  EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
 }
 
 TEST_F(FastPairGattServiceClientTest, SuccessfulWritePasskeyCharacteristics) {
@@ -285,7 +287,7 @@ TEST_F(FastPairGattServiceClientTest, SuccessfulWritePasskeyCharacteristics) {
   InitializeFastPairGattServiceClient();
   WriteRequestToPasskey();
   EXPECT_EQ(TriggerPasskeyGattChanged(), absl::OkStatus());
-  EXPECT_EQ(GetWriteCallbackResult(), absl::nullopt);
+  EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
 }
 
 TEST_F(FastPairGattServiceClientTest, FailedSubscribeKeybaseCharacteristic) {
@@ -297,7 +299,7 @@ TEST_F(FastPairGattServiceClientTest, FailedSubscribeKeybaseCharacteristic) {
             PairFailure::kKeyBasedPairingCharacteristicSubscription);
   WriteRequestToPasskey();
   EXPECT_EQ(TriggerPasskeyGattChanged(), absl::OkStatus());
-  EXPECT_EQ(GetWriteCallbackResult(), absl::nullopt);
+  EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
 }
 
 TEST_F(FastPairGattServiceClientTest, FailedSubscribePasskeyCharacteristic) {
@@ -306,7 +308,7 @@ TEST_F(FastPairGattServiceClientTest, FailedSubscribePasskeyCharacteristic) {
   RemoveDiscoveredPasskeyCharacteristic();
   WriteRequestToKeyBased();
   EXPECT_EQ(TriggerKeyBasedGattChanged(), absl::OkStatus());
-  EXPECT_EQ(GetWriteCallbackResult(), absl::nullopt);
+  EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
   WriteRequestToPasskey();
   EXPECT_EQ(GetWriteCallbackResult(),
             PairFailure::kPasskeyCharacteristicSubscription);

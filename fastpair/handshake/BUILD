@@ -43,7 +43,6 @@ cc_library(
         "//fastpair/repository",
         "//fastpair/server_access",
         "//internal/base:bluetooth_address",
-        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
@@ -54,6 +53,8 @@ cc_library(
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -120,6 +121,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
