@@ -21,7 +21,10 @@
 
 namespace nearby {
 
-absl::Time FakeClock::Now() const { return now_; }
+absl::Time FakeClock::Now() const {
+  absl::MutexLock lock(&mutex_);
+  return now_;
+}
 
 void FakeClock::AddObserver(absl::string_view name,
                             std::function<void()> observer) {
@@ -36,9 +39,9 @@ void FakeClock::RemoveObserver(absl::string_view name) {
 
 void FakeClock::FastForward(absl::Duration duration) {
   std::vector<std::string> timer_callback_ids;
-  now_ += duration;
   {
     absl::MutexLock lock(&mutex_);
+    now_ += duration;
     for (const auto& observer : observers_) {
       timer_callback_ids.push_back(observer.first);
     }
