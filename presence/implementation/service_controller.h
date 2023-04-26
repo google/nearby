@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_H_
 
 #include <memory>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "presence/broadcast_request.h"
@@ -40,6 +41,13 @@ class ServiceController {
   virtual absl::StatusOr<BroadcastSessionId> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;
   virtual void StopBroadcast(BroadcastSessionId session_id) = 0;
+  virtual void UpdateLocalDeviceMetadata(
+      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+      absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) = 0;
+  virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
 };
 
 }  // namespace presence

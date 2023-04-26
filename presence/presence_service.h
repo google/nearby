@@ -16,6 +16,8 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_SERVICE_H_
 
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
@@ -45,6 +47,22 @@ class PresenceService {
       BroadcastRequest broadcast_request, BroadcastCallback callback);
 
   void StopBroadcast(BroadcastSessionId session_id);
+
+  void UpdateLocalDeviceMetadata(
+      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+      absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) {
+    service_controller_->UpdateLocalDeviceMetadata(
+        metadata, regen_credentials, manager_app_id, identity_types,
+        credential_life_cycle_days, contiguous_copy_of_credentials,
+        std::move(credentials_generated_cb));
+  }
+
+  ::nearby::internal::Metadata GetLocalDeviceMetadata() {
+    return service_controller_->GetLocalDeviceMetadata();
+  }
 
  private:
   std::unique_ptr<ServiceController> service_controller_;

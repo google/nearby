@@ -24,10 +24,21 @@ namespace nearby {
 namespace presence {
 namespace {
 
+using Metadata = ::nearby::internal::Metadata;
+
 class PresenceServiceTest : public testing::Test {
  protected:
   nearby::MediumEnvironment& env_{nearby::MediumEnvironment::Instance()};
 };
+
+Metadata CreateTestMetadata(absl::string_view account_name) {
+  Metadata metadata;
+  metadata.set_account_name(account_name);
+  metadata.set_device_name("NP test device");
+  metadata.set_device_profile_url("test_image.test.com");
+  metadata.set_bluetooth_mac_address("\xFF\xFF\xFF\xFF\xFF\xFF");
+  return metadata;
+}
 
 TEST_F(PresenceServiceTest, DefaultConstructorWorks) {
   PresenceService presence_service;
@@ -57,6 +68,14 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
   client.StopScan(*scan_session);
   client.StopScan(*scan_session_with_default_params);
   env_.Stop();
+}
+
+TEST_F(PresenceServiceTest, UpdatingLocalMetadataWorks) {
+  PresenceService presence_service;
+  presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata("Test account"),
+                                             false, "Test app", {}, 3, 1, {});
+  EXPECT_EQ(presence_service.GetLocalDeviceMetadata().SerializeAsString(),
+            CreateTestMetadata("Test account").SerializeAsString());
 }
 
 }  // namespace
