@@ -310,7 +310,6 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     }
     nearby::CancellationFlagListener cancellation_flag_listener(
         cancellation_flag, [&rfcomm_socket]() {
-          rfcomm_socket->CancelIOAsync().get();
           rfcomm_socket->Close();
         });
 

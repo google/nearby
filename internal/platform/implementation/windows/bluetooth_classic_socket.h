@@ -98,8 +98,6 @@ class BluetoothSocket : public api::BluetoothSocket {
   bool Connect(HostName connectionHostName,
                winrt::hstring connectionServiceName);
 
-  IAsyncAction CancelIOAsync();
-
  private:
   static constexpr int kInitialTransmitPacketSize = 4096;
 
