@@ -255,6 +255,10 @@ message BandwidthUpgradeNegotiationFrame {
       optional int32 port = 3;
       optional int32 frequency = 4;
       optional string gateway = 5 [default = "0.0.0.0"];
+      // IPv6 link-local address, network order (128bits).
+      // The GO should listen on both IPv4 and IPv6 addresses.
+      // https://en.wikipedia.org/wiki/Link-local_address#IPv6
+      optional bytes ip_v6_address = 6;
     }
 
     // Accompanies Medium.WEB_RTC
