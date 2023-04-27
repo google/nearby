@@ -1,6 +1,4 @@
-load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
-
-# Copyright 2020 Google LLC
+# Copyright 2020-2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +11,10 @@ load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
+load("//googlemac/iPhone/OTPAuth:minimum_os.bzl", "IOS_MINIMUM_OS")
+
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -39,7 +41,7 @@ objc_library(
 
 ios_unit_test(
     name = "PlatformTests",
-    minimum_os_version = "13.0",
+    minimum_os_version = IOS_MINIMUM_OS,
     runner = "//testing/utp/ios:IOS_13",
     deps = [
         ":PlatformTestslib",

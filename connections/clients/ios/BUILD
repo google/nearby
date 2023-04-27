@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020-2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
 load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
+load("//googlemac/iPhone/OTPAuth:minimum_os.bzl", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
@@ -71,7 +72,7 @@ swift_library(
 
 ios_unit_test(
     name = "BuildTests",
-    minimum_os_version = "13.0",
+    minimum_os_version = IOS_MINIMUM_OS,
     runner = "//testing/utp/ios:IOS_13",
     deps = [
         ":BuildTestsLib",
