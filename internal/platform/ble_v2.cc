@@ -26,9 +26,15 @@
 
 namespace nearby {
 
+namespace {
 using ::nearby::api::ble_v2::BleAdvertisementData;
 using ::nearby::api::ble_v2::GattCharacteristic;
 using ::nearby::api::ble_v2::TxPowerLevel;
+using ReadValueCallback =
+    ::nearby::api::ble_v2::ServerGattConnectionCallback::ReadValueCallback;
+using WriteValueCallback =
+    ::nearby::api::ble_v2::ServerGattConnectionCallback::WriteValueCallback;
+}  // namespace
 
 bool BleV2Medium::StartAdvertising(
     const BleAdvertisementData& advertising_data,
@@ -204,6 +210,23 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
                 MutexLock lock(&mutex_);
                 server_gatt_connection_callback_
                     .characteristic_unsubscription_cb(characteristic);
+              },
+          .on_characteristic_read_cb =
+              [this](const api::ble_v2::BlePeripheral& remote_device,
+                     const GattCharacteristic& characteristic, int offset,
+                     ReadValueCallback callback) {
+                MutexLock lock(&mutex_);
+                server_gatt_connection_callback_.on_characteristic_read_cb(
+                    remote_device, characteristic, offset, std::move(callback));
+              },
+          .on_characteristic_write_cb =
+              [this](const api::ble_v2::BlePeripheral& remote_device,
+                     const GattCharacteristic& characteristic, int offset,
+                     absl::string_view data, WriteValueCallback callback) {
+                MutexLock lock(&mutex_);
+                server_gatt_connection_callback_.on_characteristic_write_cb(
+                    remote_device, characteristic, offset, data,
+                    std::move(callback));
               },
       });
   return std::make_unique<GattServer>(std::move(api_gatt_server));

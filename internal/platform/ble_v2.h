@@ -276,14 +276,28 @@ class BleV2Medium final {
                                     const api::ble_v2::BleAdvertisementData&>();
   };
   struct ServerGattConnectionCallback {
-    absl::AnyInvocable<void(
-        const api::ble_v2::GattCharacteristic& characteristic)>
+    using BlePeripheral = api::ble_v2::BlePeripheral;
+    using GattCharacteristic = api::ble_v2::GattCharacteristic;
+    using ReadValueCallback =
+        api::ble_v2::ServerGattConnectionCallback::ReadValueCallback;
+    using WriteValueCallback =
+        api::ble_v2::ServerGattConnectionCallback::WriteValueCallback;
+
+    absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
         characteristic_subscription_cb =
-            nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
-    absl::AnyInvocable<void(
-        const api::ble_v2::GattCharacteristic& characteristic)>
+            nearby::DefaultCallback<const GattCharacteristic&>();
+    absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
         characteristic_unsubscription_cb =
-            nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
+            nearby::DefaultCallback<const GattCharacteristic&>();
+    absl::AnyInvocable<void(const BlePeripheral& remote_device,
+                            const GattCharacteristic& characteristic,
+                            int offset, ReadValueCallback callback)>
+        on_characteristic_read_cb;
+    absl::AnyInvocable<void(const BlePeripheral& remote_device,
+                            const GattCharacteristic& characteristic,
+                            int offset, absl::string_view data,
+                            WriteValueCallback callback)>
+        on_characteristic_write_cb;
   };
   // TODO(b/231318879): Remove this wrapper callback and use impl callback if
   // there is only disconnect function here in the end.
