@@ -26,7 +26,7 @@ class FeatureFlags {
  public:
   // Holds for all the feature flags.
   struct Flags {
-    bool enable_cancellation_flag = true;
+    bool enable_cancellation_flag = false;
     bool enable_async_bandwidth_upgrade = true;
     // If a scheduled runnable is already running, Cancel() will synchronously
     // wait for the task to complete.
