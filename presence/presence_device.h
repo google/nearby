@@ -21,7 +21,7 @@
 
 #include "absl/time/time.h"
 #include "absl/types/variant.h"
-#include "internal/device.h"
+#include "internal/interop/device.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/data_element.h"
 #include "presence/device_motion.h"

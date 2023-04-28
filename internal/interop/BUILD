@@ -2,6 +2,7 @@ cc_library(
     name = "device",
     hdrs = [
         "device.h",
+        "device_provider.h",
     ],
     visibility = [
         "//connections:__subpackages__",

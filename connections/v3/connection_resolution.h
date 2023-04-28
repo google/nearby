@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,25 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
-#define THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
+#ifndef THIRD_PARTY_NEARBY_CONNECTIONS_V3_CONNECTION_RESOLUTION_H_
+#define THIRD_PARTY_NEARBY_CONNECTIONS_V3_CONNECTION_RESOLUTION_H_
 
-#include <string>
-
-#include "internal/device.h"
+#include "connections/status.h"
 
 namespace nearby {
 namespace connections {
+namespace v3 {
 
-using ::nearby::NearbyDevice;
-
-class NearbyDeviceProvider {
-  virtual ~NearbyDeviceProvider() = default;
-  virtual NearbyDevice* GetLocalDevice() = 0;
-  virtual std::string GetServiceId() = 0;
+struct ConnectionResult {
+  nearby::connections::Status status;
 };
 
+}  // namespace v3
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
+#endif  // THIRD_PARTY_NEARBY_CONNECTIONS_V3_CONNECTION_RESOLUTION_H_

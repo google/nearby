@@ -30,7 +30,7 @@
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
-#include "internal/device.h"
+#include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"

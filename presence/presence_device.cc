@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "internal/platform/implementation/crypto.h"
-#include "internal/device.h"
+#include "internal/interop/device.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "presence/device_motion.h"

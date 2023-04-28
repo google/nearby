@@ -245,7 +245,7 @@ let package = Package(
     .target(
       name: "json",
       path: "third_party/json",
-      exclude:[
+      exclude: [
         "json/LICENSES",
         "json/cmake",
         "json/docs",
@@ -430,10 +430,11 @@ let package = Package(
         "connections/implementation/mediums/BUILD",
         "connections/implementation/BUILD",
         "connections/implementation/fuzzers",
+        "connections/v3/BUILD",
         "connections/BUILD",
-        "internal/BUILD",
         "internal/crypto/BUILD",
         "internal/crypto/BUILD.gn",
+        "internal/interop/BUILD",
         "internal/weave/BUILD",
         "internal/platform/flags/BUILD",
         "internal/platform/implementation/shared/BUILD",

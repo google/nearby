@@ -46,8 +46,8 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
-        "//internal:__pkg__",
         "//internal/auth:__subpackages__",
+        "//internal/interop:__pkg__",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/preferences:__subpackages__",
@@ -101,7 +101,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
-        "//internal:__pkg__",
+        "//internal/interop:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
@@ -151,7 +151,7 @@ cc_library(
         "wifi_lan_connection_info.h",
     ],
     visibility = [
-        "//internal:__pkg__",
+        "//internal/interop:__pkg__",
         "//presence:__subpackages__",
     ],
     deps = [

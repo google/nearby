@@ -20,14 +20,18 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "connections/device_provider.h"
+#include "connections/connection_options.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
+#include "connections/payload.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
-#include "internal/device.h"
+#include "internal/interop/device.h"
+#include "internal/interop/device_provider.h"
 
 namespace nearby {
 namespace connections {
@@ -246,33 +250,264 @@ class Core {
 
   std::string Dump();
 
-  //******************************* V2 *******************************
-  void RequestConnectionV2(const NearbyDevice& device,
-                           const ConnectionRequestInfo& info,
-                           ConnectionOptions& connection_options,
-                           ResultCallback callback);
+  //******************************* V3 *******************************
+  // NOTE: Do NOT mix with the V1 APIs above, this might result in undefined
+  // behavior!
 
-  void AcceptConnectionV2(const NearbyDevice& device,
-                          const PayloadListener& listener,
+  // Starts advertising an endpoint for a local app.
+  //
+  // service_id - An identifier to advertise your app to other endpoints.
+  //              This can be an arbitrary string, so long as it uniquely
+  //              identifies your service. A good default is to use your
+  //              app's package name.
+  // advertising_options - The options for advertising.
+  // local_device        - The local device for use when advertising when a
+  //                       `DeviceProvider` has not been registered.
+  // callback - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if advertising started successfully.
+  //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
+  //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
+  //         connected to remote endpoints; call StopAllEndpoints first.
+  void StartAdvertisingV3(absl::string_view service_id,
+                          const AdvertisingOptions& advertising_options,
+                          const NearbyDevice& local_device,
                           ResultCallback callback);
 
-  void RejectConnectionV2(const NearbyDevice& device, ResultCallback callback);
+  // Starts advertising an endpoint for a local app.
+  // Should only be used when DeviceProvider has been registered with this
+  // Nearby Connections instance. Otherwise, use the
+  // StartAdvertisingV3(service_id, advertising_options, local_device, callback)
+  // function above.
+  //
+  // service_id - An identifier to advertise your app to other endpoints.
+  //              This can be an arbitrary string, so long as it uniquely
+  //              identifies your service. A good default is to use your
+  //              app's package name.
+  // advertising_options - The options for advertising.
+  // callback - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if advertising started successfully.
+  //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
+  //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
+  //         connected to remote endpoints; call StopAllEndpoints first.
+  void StartAdvertisingV3(absl::string_view service_id,
+                          const AdvertisingOptions& advertising_options,
+                          ResultCallback callback);
 
-  // Span is being used here as we will not be modifying this block of memory.
-  // We also do not need to own this block of memory, so we can use Span.
-  // We are using NearbyDevice* so as to not lose attributes when using a
-  // vector-like structure of NearbyDevice, as object information is stripped if
-  // using NearbyDevice or NearbyDevice&.
-  void SendPayloadV2(absl::Span<const NearbyDevice*> devices,
-                     const Payload& payload, ResultCallback callback);
+  // Stops advertising a local endpoint. Should be called after calling
+  // StartAdvertising, as soon as the application no longer needs to advertise
+  // itself or goes inactive. Payloads can still be sent to connected
+  // endpoints after advertising ends.
+  //
+  // result_cb - to access the status of the operation when available.
+  void StopAdvertisingV3(ResultCallback result_cb);
 
-  void DisconnectFromDeviceV2(const NearbyDevice& device,
-                              ResultCallback callback);
+  // Starts discovery for remote endpoints with the specified service ID.
+  //
+  // service_id  - The ID for the service to be discovered, as specified in
+  //              the corresponding call to StartAdvertising.
+  // discovery_options    - The options for discovery.
+  // listener_cb - A callback notified when a remote endpoint is discovered.
+  // result_cb   - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if discovery started successfully.
+  //     Status::STATUS_ALREADY_DISCOVERING if the app is already
+  //         discovering the specified service.
+  //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
+  //         connected to remote endpoints; call StopAllEndpoints first.
+  void StartDiscoveryV3(absl::string_view service_id,
+                        const DiscoveryOptions& discovery_options,
+                        v3::DiscoveryListener listener_cb,
+                        ResultCallback callback);
 
-  void InitiateBandwidthUpgradeV2(const NearbyDevice& device,
-                                  ResultCallback callback);
+  // Stops discovery for remote endpoints, after a previous call to
+  // StartDiscovery, when the client no longer needs to discover endpoints or
+  // goes inactive. Payloads can still be sent to connected endpoints after
+  // discovery ends.
+  //
+  // result_cb - to access the status of the operation when available.
+  void StopDiscoveryV3(ResultCallback result_cb);
 
-  void RegisterDeviceProvider(const NearbyDeviceProvider& provider);
+  // Starts listening for incoming connections.
+  //
+  // listener_cb - The connection listener to broadcast any updates.
+  // options - The options for listening for a connection.
+  // result_cb - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if listening started successfully.
+  //     Status::STATUS_ALREADY_LISTENING if the app is already listening.
+  //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
+  //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently connected
+  //         to remote endpoints; call StopAllEndpoints first.
+  void StartListeningForIncomingConnections(
+      const v3::ConnectionListeningOptions& options,
+      v3::ConnectionListener listener_cb, ResultCallback result_cb);
+
+  // Stops listening for incoming connections. Should be called after
+  // calling StartListeningForIncomingConnections.
+  void StopListeningForIncomingConnections();
+
+  // Sends a request to connect to a remote endpoint.
+  //
+  // local_device  - The local device information which will be shown on the
+  //                 remote endpoint. Used only when a DeviceProvider is not
+  //                 registered.
+  // remote_device - The remote device to which a connection request will be
+  //                sent. Should match the value provided in a call to
+  //                DiscoveryListener::endpoint_found_cb()
+  // connection_options - Connection options for the new connection if both
+  //                      sides accept.
+  // connection_cb - The callback to be notified on connection events.
+  // result_cb    - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if the connection request was sent.
+  //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already
+  //         has a connection to the specified endpoint.
+  //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
+  //         issue with Bluetooth/WiFi.
+  //     Status::STATUS_ERROR if we failed to connect for any other reason.
+  void RequestConnectionV3(const NearbyDevice& local_device,
+                           const NearbyDevice& remote_device,
+                           const ConnectionOptions& connection_options,
+                           v3::ConnectionListener connection_cb,
+                           ResultCallback result_cb);
+
+  // Sends a request to connect to a remote endpoint.
+  //
+  // remote_device - The remote device to which a connection request will be
+  //                sent. Should match the value provided in a call to
+  //                DiscoveryListener::endpoint_found_cb()
+  // connection_options - Connection options for the new connection if both
+  //                      sides accept.
+  // connection_cb - The callback to be notified on connection events.
+  // result_cb    - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if the connection request was sent.
+  //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already
+  //         has a connection to the specified endpoint.
+  //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
+  //         issue with Bluetooth/WiFi.
+  //     Status::STATUS_ERROR if we failed to connect for any other reason.
+  void RequestConnectionV3(const NearbyDevice& remote_device,
+                           const ConnectionOptions& connection_options,
+                           v3::ConnectionListener connection_cb,
+                           ResultCallback result_cb);
+
+  // Accepts a connection to a remote endpoint. This method must be called
+  // before Payloads can be exchanged with the remote endpoint.
+  //
+  // remote_device - The remote device. Should match the value provided in a
+  //                 call to ConnectionListener::OnConnectionInitiated.
+  //
+  // listener_cb - A callback for payloads exchanged with the remote endpoint.
+  //
+  // result_cb   - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if the connection request was accepted.
+  //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
+  //         has a connection to the specified endpoint.
+  //     Status::STATUS_ENDPOINT_UNKNOWN if the app doesn't currently have a
+  //         pending connection to the remote device.
+  void AcceptConnectionV3(const NearbyDevice& remote_device,
+                          v3::PayloadListener listener_cb,
+                          ResultCallback result_cb);
+
+  // Rejects a connection to a remote endpoint.
+  //
+  // remote_device - The device for the remote endpoint. Should match the
+  //               value provided in a call to
+  //               v3::ConnectionListener::OnConnectionInitiated().
+  // result_cb   - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK} if the connection request was rejected.
+  //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT} if the app already
+  //         has a connection to the specified endpoint.
+  void RejectConnectionV3(const NearbyDevice& remote_device,
+                          ResultCallback result_cb);
+
+  // Sends a Payload to a remote device. Payloads can only be sent to remote
+  // devices once a notice of connection acceptance has been delivered via
+  // v3::ConnectionListener::OnConnectionResult().
+  //
+  // remote_device - The remote device to which the payload should be sent.
+  // payload      - The Payload to be sent.
+  // result_cb    - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OUT_OF_ORDER_API_CALL if the device has not first
+  //         performed advertisement or discovery (to set the Strategy.
+  //     Status::STATUS_ENDPOINT_UNKNOWN if there's no active (or pending)
+  //         connection to the remote endpoint.
+  //     Status::STATUS_OK if none of the above errors occurred. Note that this
+  //         indicates that Nearby Connections will attempt to send the Payload,
+  //         but not that the send has successfully completed yet. Errors might
+  //         still occur during transmission (and at different times for
+  //         different endpoints), and will be delivered via
+  //         PayloadCallback#onPayloadTransferUpdate.
+  void SendPayloadV3(const NearbyDevice& remote_device, const Payload& payload,
+                     ResultCallback result_cb);
+
+  // Cancels a Payload currently in-flight to or from remote endpoint(s).
+  //
+  // remote_device - The remote device with which the payload is being
+  //                 exchanged.
+  // payload_id - The identifier for the Payload to be canceled.
+  // result_cb  - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK if none of the above errors occurred.
+  void CancelPayloadV3(const NearbyDevice& remote_device, int64_t payload_id,
+                       ResultCallback result_cb);
+
+  // Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
+  // to or received from the endpoint after this method is called.
+  //
+  // remote_device - The remote device to disconnect from.
+  // result_cb   - to access the status of the operation when available.
+  //   Possible status codes include:
+  //     Status::STATUS_OK - finished successfully.
+  void DisconnectFromDeviceV3(const NearbyDevice& remote_device,
+                              ResultCallback result_cb);
+
+  // Disconnects from, and removes all traces, of all connected and/or
+  // discovered endpoints. This call is expected to be preceded by a call to
+  // StopAdvertising() or StopDiscovery() as needed. After calling
+  // StopAllDevices(), no further operations with remote endpoints will be
+  // possible until a new call to one of StartAdvertising() or StartDiscovery().
+  //
+  // result_cb - To access the status of the operation when available.
+  void StopAllDevicesV3(ResultCallback result_cb);
+
+  // Sends a request to initiate connection bandwidth upgrade.
+  //
+  // remote_device - The identifier for the remote device which will be
+  //               switching to a higher connection data rate and possibly
+  //               different wireless protocol. On success, calls
+  //               ConnectionListener::bandwidth_changed_cb().
+  // result_cb   - to access the status of the operation when available.
+  //  Possible status codes include:
+  //    Status::STATUS_OK - finished successfully.
+  void InitiateBandwidthUpgradeV3(const NearbyDevice& remote_device,
+                                  ResultCallback result_cb);
+
+  // Updates AdvertisingOptions. It compares the old AdvertisingOptions and the
+  // new AdvertisingOptions to start/stop each advertising medium.
+  //
+  // advertising_options - The new advertising options a client wishes to use.
+  // result_cb - to access the status of the operation when available.
+  void UpdateAdvertisingOptionsV3(const AdvertisingOptions& advertising_options,
+                                  ResultCallback result_cb);
+
+  // Updates DiscoveryOptions. It compares the old DiscoveryOptions and the new
+  // DiscoveryOptions to start/stop each discovery medium.
+  //
+  // discovery_options - The new discovery options a client wishes to use.
+  // result_cb - to access the status of the operation when available.
+  void UpdateDiscoveryOptionsV3(const DiscoveryOptions& discovery_options,
+                                ResultCallback result_cb);
+
+  // Registers a DeviceProvider to provide functionality for Nearby Connections
+  // to interact with the DeviceProvider for retrieving the local device.
+  void RegisterDeviceProvider(NearbyDeviceProvider&& provider);
 
  private:
   ClientProxy client_;

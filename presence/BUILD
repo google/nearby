@@ -60,8 +60,8 @@ cc_library(
         "scan_request_builder.h",
     ],
     deps = [
-        "//internal:device",
         "//internal/crypto",
+        "//internal/interop:device",
         "//internal/platform:connection_info",
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
