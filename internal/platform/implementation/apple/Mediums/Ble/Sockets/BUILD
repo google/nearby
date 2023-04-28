@@ -13,7 +13,6 @@
 # limitations under the License.
 
 load("//tools/build_defs/swift:swift_explicit_module_build_test.bzl", "swift_explicit_module_build_test")
-load("//googlemac/iPhone/OTPAuth:minimum_os.bzl", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
@@ -88,6 +87,6 @@ objc_library(
 swift_explicit_module_build_test(
     name = "swift_explicit_module_build_test",
     ignore_headerless_targets = True,
-    minimum_os_version = IOS_MINIMUM_OS,
+    minimum_os_version = "15.0",
     platform_type = "ios",
 )

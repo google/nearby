@@ -16,7 +16,6 @@
 
 load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
 load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
-load("//googlemac/iPhone/OTPAuth:minimum_os.bzl", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
@@ -72,8 +71,8 @@ swift_library(
 
 ios_unit_test(
     name = "BuildTests",
-    minimum_os_version = IOS_MINIMUM_OS,
-    runner = "//testing/utp/ios:IOS_13",
+    minimum_os_version = "15.0",
+    runner = "//testing/utp/ios:IOS_LATEST",
     deps = [
         ":BuildTestsLib",
     ],

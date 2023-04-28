@@ -13,7 +13,6 @@
 # limitations under the License.
 
 load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
-load("//googlemac/iPhone/OTPAuth:minimum_os.bzl", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
@@ -41,8 +40,8 @@ objc_library(
 
 ios_unit_test(
     name = "PlatformTests",
-    minimum_os_version = IOS_MINIMUM_OS,
-    runner = "//testing/utp/ios:IOS_13",
+    minimum_os_version = "15.0",
+    runner = "//testing/utp/ios:IOS_LATEST",
     deps = [
         ":PlatformTestslib",
     ],
