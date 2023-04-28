@@ -14,7 +14,12 @@
 
 load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 
-package(default_visibility = ["//location/nearby:__subpackages__"])
+package(
+    default_applicable_licenses = [
+        "//third_party/nearby:license",  # copybara:strip
+    ],
+    default_visibility = ["//location/nearby:__subpackages__"],
+)
 
 licenses(["notice"])
 

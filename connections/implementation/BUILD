@@ -1,5 +1,9 @@
 load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 
+package(default_applicable_licenses = [
+    "//third_party/nearby:license",  # copybara:strip
+])
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

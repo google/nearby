@@ -16,10 +16,15 @@ load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 load("expand_version_template.bzl", "expand_version_template")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
-package(default_visibility = [
-    "//connections:__subpackages__",
-    "//location/nearby:__subpackages__",
-])
+package(
+    default_applicable_licenses = [
+        "//third_party/nearby:license",  # copybara:strip
+    ],
+    default_visibility = [
+        "//connections:__subpackages__",
+        "//location/nearby:__subpackages__",
+    ],
+)
 
 licenses(["notice"])
 

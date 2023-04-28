@@ -13,6 +13,10 @@
 # limitations under the License.
 load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 
+package(default_applicable_licenses = [
+    "//third_party/nearby:license",  # copybara:strip
+])
+
 licenses(["notice"])
 
 lexan.cc_windows_dll(

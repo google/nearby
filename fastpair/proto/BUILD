@@ -1,5 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
+package(default_applicable_licenses = [
+    "//third_party/nearby:license",  # copybara:strip
+])
+
 licenses(["notice"])
 
 proto_library(

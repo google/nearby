@@ -18,7 +18,12 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = [
+        "//third_party/nearby:license",  # copybara:strip
+    ],
+    default_visibility = ["//visibility:public"],
+)
 
 proto_library(
     name = "error_code_enums_proto",

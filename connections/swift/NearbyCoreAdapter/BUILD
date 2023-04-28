@@ -18,7 +18,12 @@ load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS", "IOS_MINIMUM_TEST_
 
 licenses(["notice"])
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = [
+        "//third_party/nearby:license",  # copybara:strip
+    ],
+    default_visibility = ["//visibility:public"],
+)
 
 objc_library(
     name = "NearbyCoreAdapter",

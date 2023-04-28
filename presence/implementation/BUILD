@@ -14,6 +14,10 @@
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("//third_party/bazel_skylib/lib:selects.bzl", "selects")
 
+package(default_applicable_licenses = [
+    "//third_party/nearby:license",  # copybara:strip
+])
+
 licenses(["notice"])
 
 # Command line build option that enables linking with the LDT encryption implementation in Rust.

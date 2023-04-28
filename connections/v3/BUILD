@@ -1,3 +1,7 @@
+package(default_applicable_licenses = [
+    "//third_party/nearby:license",  # copybara:strip
+])
+
 cc_library(
     name = "v3_types",
     hdrs = [

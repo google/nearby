@@ -18,6 +18,9 @@ load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS")
 licenses(["notice"])
 
 package(
+    default_applicable_licenses = [
+        "//third_party/nearby:license",  # copybara:strip
+    ],
     default_visibility = ["//visibility:public"],
 )
 
