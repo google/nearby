@@ -33,6 +33,7 @@ class FakeClock : public Clock {
   FakeClock() { now_ = absl::Now(); }
   FakeClock(FakeClock&&) = default;
   FakeClock& operator=(FakeClock&&) = default;
+  ~FakeClock() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   absl::Time Now() const override;
 

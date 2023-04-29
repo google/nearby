@@ -21,6 +21,11 @@
 
 namespace nearby {
 
+FakeClock::~FakeClock() {
+  absl::MutexLock lock(&mutex_);
+  observers_.clear();
+}
+
 absl::Time FakeClock::Now() const {
   absl::MutexLock lock(&mutex_);
   return now_;
