@@ -207,11 +207,12 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
 
   const std::string kBssid = "34:36:3B:C7:8C:71";
   const std::int32_t kFreq = 5200;
-  constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37};
+  constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37, 0};
 
   connection_options_.connection_info.supports_5_ghz = true;
   connection_options_.connection_info.bssid = kBssid;
   connection_options_.connection_info.ap_frequency = kFreq;
+  connection_options_.connection_info.ip_address.resize(4);
   connection_options_.connection_info.ip_address = std::string(kIp4Bytes);
 
   client_b_.AddCancellationFlag(discovered.endpoint_id);
