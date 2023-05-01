@@ -29,7 +29,7 @@ cc_library(
     ],
     deps = [
         "//fastpair/common",
-        "//fastpair/internal/ble",
+        "//fastpair/internal/mediums",
         "//fastpair/scanning/fastpair:scanning",
         "//internal/base",
         "//internal/platform:base",
@@ -68,7 +68,7 @@ cc_test(
     deps = [
         ":scanner",
         "//fastpair/common",
-        "//fastpair/internal/ble",
+        "//fastpair/internal/mediums",
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/server_access:test_support",
         "//internal/platform:base",

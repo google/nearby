@@ -38,7 +38,8 @@ class FastPairScanner {
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;
 
- protected:
+  virtual void StartScanning() = 0;
+
   virtual ~FastPairScanner() = default;
 };
 

@@ -22,13 +22,15 @@
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/crypto/decrypted_response.h"
 #include "fastpair/handshake/fast_pair_handshake.h"
+#include "fastpair/internal/mediums/mediums.h"
 
 namespace nearby {
 namespace fastpair {
 
 class FastPairHandshakeImpl : public FastPairHandshake {
  public:
-  FastPairHandshakeImpl(FastPairDevice& device, OnCompleteCallback on_complete);
+  explicit FastPairHandshakeImpl(FastPairDevice& device, Mediums& mediums,
+                                 OnCompleteCallback on_complete);
   FastPairHandshakeImpl(const FastPairHandshakeImpl&) = delete;
   FastPairHandshakeImpl& operator=(const FastPairHandshakeImpl&) = delete;
 

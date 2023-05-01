@@ -66,19 +66,16 @@ FastPairDiscoverableScannerImpl::Factory*
     FastPairDiscoverableScannerImpl::Factory::g_test_factory_ = nullptr;
 
 std::unique_ptr<FastPairDiscoverableScanner>
-FastPairDiscoverableScannerImpl::Factory::Create(
-    std::shared_ptr<FastPairScanner> scanner,
-    std::shared_ptr<BluetoothAdapter> adapter, DeviceCallback found_callback,
-    DeviceCallback lost_callback) {
+FastPairDiscoverableScannerImpl::Factory::Create(FastPairScanner& scanner,
+                                                 DeviceCallback found_callback,
+                                                 DeviceCallback lost_callback) {
   if (g_test_factory_) {
-    return g_test_factory_->CreateInstance(
-        std::move(scanner), std::move(adapter), std::move(found_callback),
-        std::move(lost_callback));
+    return g_test_factory_->CreateInstance(scanner, std::move(found_callback),
+                                           std::move(lost_callback));
   }
 
   return std::make_unique<FastPairDiscoverableScannerImpl>(
-      std::move(scanner), std::move(adapter), std::move(found_callback),
-      std::move(lost_callback));
+      scanner, std::move(found_callback), std::move(lost_callback));
 }
 
 void FastPairDiscoverableScannerImpl::Factory::SetFactoryForTesting(
@@ -90,14 +87,12 @@ FastPairDiscoverableScannerImpl::Factory::~Factory() = default;
 
 // FastPairScannerImpl
 FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
-    std::shared_ptr<FastPairScanner> scanner,
-    std::shared_ptr<BluetoothAdapter> adapter, DeviceCallback found_callback,
+    FastPairScanner& scanner, DeviceCallback found_callback,
     DeviceCallback lost_callback)
-    : scanner_(std::move(scanner)),
-      adapter_(std::move(adapter)),
+    : scanner_(scanner),
       found_callback_(std::move(found_callback)),
       lost_callback_(std::move(lost_callback)) {
-  scanner_->AddObserver(this);
+  scanner_.AddObserver(this);
 }
 
 void FastPairDiscoverableScannerImpl::OnDeviceFound(

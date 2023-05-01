@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/internal/ble/ble.h"
+#include "fastpair/internal/mediums/ble.h"
 
 #include <string>
 
 #include "gtest/gtest.h"
-#include "internal/platform/ble.h"
-#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
@@ -26,64 +24,27 @@ namespace nearby {
 namespace fastpair {
 namespace {
 
-using FeatureFlags = FeatureFlags::Flags;
-
+using DiscoveredPeripheralCallback = BleMedium::DiscoveredPeripheralCallback;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kAdvertisementString{"96C12E"};
 constexpr absl::string_view kFastPairServiceUuid{"\x2c\xfe"};
 
-class BleTest : public ::testing::TestWithParam<FeatureFlags> {
- protected:
-  using DiscoveredPeripheralCallback = BleMedium::DiscoveredPeripheralCallback;
-
-  MediumEnvironment& env_{MediumEnvironment::Instance()};
-};
-
-TEST_F(BleTest, ConstructorDestructorWorks) {
-  Ble ble;
-  EXPECT_TRUE(ble.IsAdapterValid());
+TEST(BleTest, ConstructorDestructorWorks) {
+  BluetoothRadio radio;
+  Ble ble(radio);
+  EXPECT_TRUE(ble.IsAvailable());
+  EXPECT_FALSE(ble.IsScanning());
 }
 
-TEST_F(BleTest, CanEnable) {
-  Ble ble;
-  EXPECT_TRUE(ble.IsAdapterValid());
-  EXPECT_TRUE(ble.IsEnabled());
-  EXPECT_TRUE(ble.Disable());
-  EXPECT_FALSE(ble.IsEnabled());
-  EXPECT_TRUE(ble.Enable());
-  EXPECT_TRUE(ble.IsEnabled());
-}
-
-TEST_F(BleTest, CanDisable) {
-  Ble ble;
-  EXPECT_TRUE(ble.IsAdapterValid());
-  EXPECT_TRUE(ble.IsEnabled());
-  EXPECT_TRUE(ble.Disable());
-  EXPECT_FALSE(ble.IsEnabled());
-}
-
-TEST_F(BleTest, CanConstructValidObject) {
-  env_.Start();
-  Ble ble_a;
-  Ble ble_b;
-
-  EXPECT_TRUE(ble_a.IsMediumValid());
-  EXPECT_TRUE(ble_a.IsAdapterValid());
-  EXPECT_TRUE(ble_a.IsAvailable());
-  EXPECT_TRUE(ble_b.IsMediumValid());
-  EXPECT_TRUE(ble_b.IsAdapterValid());
-  EXPECT_TRUE(ble_b.IsAvailable());
-  EXPECT_NE(&ble_a.GetBluetoothAdapter(), &ble_b.GetBluetoothAdapter());
-  env_.Stop();
-}
-
-TEST_F(BleTest, CanStartDiscovery) {
-  env_.Start();
-  Ble ble_a;
-  Ble ble_b;
-  ble_a.Enable();
-  ble_b.Enable();
+TEST(BleTest, CanStartDiscovery) {
+  MediumEnvironment::Instance().Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  Ble ble_a{radio_a};
+  Ble ble_b{radio_b};
+  radio_a.Enable();
+  radio_b.Enable();
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   std::string fast_pair_service_uuid(kFastPairServiceUuid);
@@ -112,16 +73,8 @@ TEST_F(BleTest, CanStartDiscovery) {
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning(service_id));
   EXPECT_FALSE(ble_a.IsScanning());
-  env_.Stop();
+  MediumEnvironment::Instance().Stop();
 }
-
-TEST_F(BleTest, CannConnectToGattServer) {
-  env_.Start();
-  Ble ble;
-  EXPECT_NE(ble.ConnectToGattServer("bleaddress"), nullptr);
-  env_.Stop();
-}
-
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

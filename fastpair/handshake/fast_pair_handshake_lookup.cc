@@ -77,11 +77,11 @@ void FastPairHandshakeLookup::Clear() {
 }
 
 FastPairHandshake* FastPairHandshakeLookup::Create(
-    FastPairDevice& device, OnCompleteCallback on_complete) {
+    FastPairDevice& device, Mediums& mediums, OnCompleteCallback on_complete) {
   absl::MutexLock lock(&mutex_);
   auto it = fast_pair_handshakes_.emplace(
-      &device,
-      std::make_unique<FastPairHandshakeImpl>(device, std::move(on_complete)));
+      &device, std::make_unique<FastPairHandshakeImpl>(device, mediums,
+                                                       std::move(on_complete)));
   DCHECK(it.second);
   return it.first->second.get();
 }

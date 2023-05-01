@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/time/time.h"
 #include "fastpair/common/constant.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
@@ -31,31 +32,9 @@ constexpr absl::Duration kFastPairLowPowerInactiveSeconds = absl::Seconds(3);
 constexpr char kFastPairServiceUuid[] = "0000FE2C-0000-1000-8000-00805F9B34FB";
 }  // namespace
 
-// static
-FastPairScannerImpl::Factory* FastPairScannerImpl::Factory::g_test_factory_ =
-    nullptr;
-
-// static
-std::shared_ptr<FastPairScanner> FastPairScannerImpl::Factory::Create() {
-  if (g_test_factory_) {
-    return g_test_factory_->CreateInstance();
-  }
-
-  return std::make_shared<FastPairScannerImpl>();
-}
-
-// static
-void FastPairScannerImpl::Factory::SetFactoryForTesting(
-    Factory* g_test_factory) {
-  g_test_factory_ = g_test_factory;
-}
-
-FastPairScannerImpl::Factory::~Factory() = default;
-
 // FastPairScannerImpl
-FastPairScannerImpl::FastPairScannerImpl() {
+FastPairScannerImpl::FastPairScannerImpl(Mediums& mediums) : mediums_(mediums) {
   task_runner_ = std::make_unique<TaskRunnerImpl>(1);
-  StartScanning();
 }
 
 void FastPairScannerImpl::AddObserver(FastPairScanner::Observer* observer) {
@@ -67,10 +46,12 @@ void FastPairScannerImpl::RemoveObserver(FastPairScanner::Observer* observer) {
 }
 
 void FastPairScannerImpl::StartScanning() {
+  NEARBY_LOGS(VERBOSE) << __func__;
   task_runner_->PostTask(
       [this]() {
-        if (ble_.Enable() &&
-            ble_.StartScanning(
+        if (mediums_.GetBluetoothRadio().Enable() &&
+            mediums_.GetBle().IsAvailable() &&
+            mediums_.GetBle().StartScanning(
                 kServiceId, kFastPairServiceUuid,
                 {
                     .peripheral_discovered_cb =
@@ -108,7 +89,7 @@ void FastPairScannerImpl::StartScanning() {
 
 void FastPairScannerImpl::StopScanning() {
   DCHECK(IsFastPairLowPowerEnabled());
-  ble_.StopScanning(kServiceId);
+  mediums_.GetBle().StopScanning(kServiceId);
   task_runner_->PostDelayedTask(kFastPairLowPowerInactiveSeconds,
                                 [this]() { StartScanning(); });
 }

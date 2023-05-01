@@ -19,8 +19,6 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "fastpair/scanning/fastpair/fake_fast_pair_scanner.h"
@@ -78,13 +76,11 @@ class FastPairDiscoverableScannerImplTest : public testing::Test {
  public:
   void SetUp() override {
     SetUpMetadata();
-    scanner_ = std::make_shared<FakeFastPairScanner>();
-    adapter_ = std::make_shared<BluetoothAdapter>();
+    scanner_ = std::make_unique<FakeFastPairScanner>();
   }
 
   void TearDown() override {
     scanner_.reset();
-    adapter_.reset();
     repository_.reset();
   }
 
@@ -98,9 +94,8 @@ class FastPairDiscoverableScannerImplTest : public testing::Test {
   // void TearDown() override { discoverable_scanner_.reset(); }
 
  protected:
-  std::shared_ptr<FakeFastPairScanner> scanner_;
+  std::unique_ptr<FakeFastPairScanner> scanner_;
   std::unique_ptr<FakeFastPairRepository> repository_;
-  std::shared_ptr<BluetoothAdapter> adapter_;
   DeviceCallback found_device_callback_;
   DeviceCallback lost_device_callback_;
 };
@@ -117,7 +112,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, ValidModelId) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -136,7 +131,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, InvalidModelId) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral = std::make_unique<FakeBlePeripheral>(
@@ -153,7 +148,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, NoServiceData) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -174,7 +169,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, UnsupportedDeviceType) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -196,7 +191,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, UnsupportedNotifictionType) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -222,7 +217,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, UnspecifiedNotificationType) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -246,7 +241,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, V1NotificationType) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -270,7 +265,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, V2NotificationType) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =
@@ -287,7 +282,7 @@ TEST_F(FastPairDiscoverableScannerImplTest, NearbyShareModelId) {
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral = std::make_unique<FakeBlePeripheral>(
@@ -309,7 +304,7 @@ TEST_F(FastPairDiscoverableScannerImplTest,
   std::unique_ptr<FastPairDiscoverableScanner>
       discoverable_scanner_from_factory =
           FastPairDiscoverableScannerImpl::Factory::Create(
-              scanner_, adapter_, std::move(found_device_callback_),
+              *scanner_, std::move(found_device_callback_),
               std::move(lost_device_callback_));
 
   auto ble_peripheral =

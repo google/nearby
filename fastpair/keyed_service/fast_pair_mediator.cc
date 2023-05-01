@@ -29,12 +29,12 @@ Mediator::Mediator(std::unique_ptr<ScannerBroker> scanner_broker,
   scanner_broker_->AddObserver(this);
 }
 
-void Mediator::OnDeviceFound(const FastPairDevice& device) {
+void Mediator::OnDeviceFound(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device;
   // Show discovery notification
 }
 
-void Mediator::OnDeviceLost(const FastPairDevice& device) {
+void Mediator::OnDeviceLost(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device;
 }
 

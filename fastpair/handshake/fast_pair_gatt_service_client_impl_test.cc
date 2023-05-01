@@ -30,6 +30,7 @@
 #include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fake_fast_pair_data_encryptor.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client.h"
+#include "fastpair/internal/mediums/mediums.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -165,7 +166,9 @@ class FastPairGattServiceClientTest : public testing::Test {
   void InitializeFastPairGattServiceClient() {
     FastPairDevice device(kMetadataId, kProviderAddress,
                           Protocol::kFastPairInitialPairing);
-    gatt_client_ = FastPairGattServiceClientImpl::Factory::Create(device);
+    Mediums mediums;
+    gatt_client_ =
+        FastPairGattServiceClientImpl::Factory::Create(device, mediums);
     gatt_client_->InitializeGattConnection(
         [this](std::optional<PairFailure> failure) {
           initalized_failure_ = failure;

@@ -32,8 +32,8 @@ class ScannerBroker {
    public:
     virtual ~Observer() = default;
 
-    virtual void OnDeviceFound(const FastPairDevice& device) = 0;
-    virtual void OnDeviceLost(const FastPairDevice& device) = 0;
+    virtual void OnDeviceFound(FastPairDevice& device) = 0;
+    virtual void OnDeviceLost(FastPairDevice& device) = 0;
   };
 
   virtual ~ScannerBroker() = default;

@@ -31,10 +31,11 @@ namespace nearby {
 namespace fastpair {
 
 FastPairHandshakeImpl::FastPairHandshakeImpl(FastPairDevice& device,
+                                             Mediums& mediums,
                                              OnCompleteCallback on_complete)
     : FastPairHandshake(std::move(on_complete), nullptr, nullptr) {
   fast_pair_gatt_service_client_ =
-      FastPairGattServiceClientImpl::Factory::Create(device);
+      FastPairGattServiceClientImpl::Factory::Create(device, mediums);
   fast_pair_gatt_service_client_->InitializeGattConnection(
       [&](std::optional<PairFailure> failure) {
         OnGattClientInitializedCallback(device, failure);

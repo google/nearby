@@ -162,8 +162,9 @@ TEST_F(FastPairHandshakeImplTest, Success) {
   FastPairDevice device(kMetadataId, kProviderAddress,
                         Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
+  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device,
+      device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
         EXPECT_EQ(device.public_address(), kPublicAddress);
@@ -180,8 +181,9 @@ TEST_F(FastPairHandshakeImplTest, GattError) {
   FastPairDevice device(kMetadataId, kProviderAddress,
                         Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
+  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device,
+      device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
         EXPECT_EQ(failure.value(), PairFailure::kCreateGattConnection);
@@ -197,8 +199,9 @@ TEST_F(FastPairHandshakeImplTest, DataEncryptorCreateError) {
   FastPairDevice device(kMetadataId, kProviderAddress,
                         Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
+  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device,
+      device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
         EXPECT_EQ(failure.value(), PairFailure::kDataEncryptorRetrieval);
@@ -214,8 +217,9 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseError) {
   FastPairDevice device(kMetadataId, kProviderAddress,
                         Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
+  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device,
+      device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
         EXPECT_EQ(failure.value(),
@@ -233,8 +237,9 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseWrongSize) {
   FastPairDevice device(kMetadataId, kProviderAddress,
                         Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
+  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device,
+      device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
         EXPECT_EQ(failure.value(),
@@ -252,8 +257,9 @@ TEST_F(FastPairHandshakeImplTest, ParseResponseError) {
   FastPairDevice device(kMetadataId, kProviderAddress,
                         Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
+  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device,
+      device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
         EXPECT_EQ(failure.value(),

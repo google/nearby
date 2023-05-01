@@ -12,87 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/internal/ble/ble.h"
+#include "fastpair/internal/mediums/ble.h"
 
-#include <memory>
 #include <string>
 #include <utility>
 
-#include "internal/platform/ble_v2.h"
+#include "fastpair/internal/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace fastpair {
-namespace {
-// A stub BlePeripheral implementation.
-class BlePeripheralStub : public api::ble_v2::BlePeripheral {
- public:
-  explicit BlePeripheralStub(absl::string_view ble_address) {
-    ble_address_ = std::string(ble_address);
-  }
-
-  std::string GetAddress() const override { return ble_address_; }
-
- private:
-  std::string ble_address_;
-};
-}  // namespace
-
-Ble::~Ble() {
-  // We never enabled Bluetooth, nothing to do.
-  if (!ever_saved_state_.Get()) {
-    NEARBY_LOG(INFO, "BT adapter was not used. Not touching HW.");
-    return;
-  }
-
-  NEARBY_LOG(INFO, "Bring BT adapter to original state");
-  if (!SetBluetoothState(originally_enabled_.Get())) {
-    NEARBY_LOG(INFO, "Failed to restore BT adapter original state.");
-  }
-}
-
-bool Ble::Enable() {
-  if (!SaveOriginalState()) {
-    return false;
-  }
-
-  return SetBluetoothState(true);
-}
-
-bool Ble::Disable() {
-  if (!SaveOriginalState()) {
-    return false;
-  }
-
-  return SetBluetoothState(false);
-}
-
-bool Ble::IsEnabled() const {
-  return IsAdapterValid() && IsInDesiredState(true);
-}
-
-bool Ble::SetBluetoothState(bool enable) {
-  return adapter_.SetStatus(enable ? BluetoothAdapter::Status::kEnabled
-                                   : BluetoothAdapter::Status::kDisabled);
-}
-
-bool Ble::IsInDesiredState(bool should_be_enabled) const {
-  return adapter_.IsEnabled() == should_be_enabled;
-}
-
-bool Ble::SaveOriginalState() {
-  if (!IsAdapterValid()) {
-    return false;
-  }
-
-  // If we haven't saved the original state of the radio, save it.
-  if (!ever_saved_state_.Set(true)) {
-    originally_enabled_.Set(adapter_.IsEnabled());
-  }
-
-  return true;
-}
+Ble::Ble(BluetoothRadio& radio) : radio_(radio) {}
 
 bool Ble::IsAvailable() const {
   MutexLock lock(&mutex_);
@@ -122,7 +54,7 @@ bool Ble::StartScanning(const std::string& service_id,
     return false;
   }
 
-  if (!IsEnabled()) {
+  if (!radio_.IsEnabled()) {
     NEARBY_LOGS(INFO)
         << "Can't start BLE scanning because Bluetooth was NOT enabled";
     return false;
@@ -183,18 +115,9 @@ bool Ble::StopScanning(const std::string& service_id) {
   return ret;
 }
 
-std::unique_ptr<GattClient> Ble::ConnectToGattServer(
-    absl::string_view ble_address) {
-  MutexLock lock(&mutex_);
-  auto v2_peripheral = std::make_unique<BlePeripheralStub>(ble_address);
-  return v2_medium_.ConnectToGattServer(BleV2Peripheral(v2_peripheral.get()),
-                                        api::ble_v2::TxPowerLevel::kUnknown,
-                                        {});
-}
-
 bool Ble::IsScanning() {
+  NEARBY_LOGS(INFO) << __func__;
   MutexLock lock(&mutex_);
-
   return IsScanningLocked();
 }
 

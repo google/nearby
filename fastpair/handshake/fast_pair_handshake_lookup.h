@@ -24,6 +24,7 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/handshake/fast_pair_handshake.h"
+#include "fastpair/internal/mediums/mediums.h"
 
 namespace nearby {
 namespace fastpair {
@@ -63,7 +64,7 @@ class FastPairHandshakeLookup {
   // Creates and returns a new instance for |FastPairdevice| if no instance
   // already exists.
   // Returns the existing instance if there is one.
-  FastPairHandshake* Create(FastPairDevice& device,
+  FastPairHandshake* Create(FastPairDevice& device, Mediums& mediums,
                             OnCompleteCallback on_complete);
 
  protected:

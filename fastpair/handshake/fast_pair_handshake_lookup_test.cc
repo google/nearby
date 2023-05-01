@@ -17,15 +17,13 @@
 #include <memory>
 #include <optional>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/common/protocol.h"
+#include "fastpair/internal/mediums/mediums.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace fastpair {
@@ -43,8 +41,9 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
 
   void CreateFastPairHandshkeInstanceForDevice(FastPairDevice& device) {
     CountDownLatch latch(1);
+    Mediums mediums;
     EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Create(
-        device,
+        device, mediums,
         [&](FastPairDevice& cb_device, std::optional<PairFailure> failure) {
           EXPECT_EQ(&device, &cb_device);
           EXPECT_EQ(failure, PairFailure::kCreateGattConnection);

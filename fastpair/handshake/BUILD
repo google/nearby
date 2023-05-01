@@ -39,7 +39,7 @@ cc_library(
         "//fastpair/common",
         "//fastpair/crypto",
         "//fastpair/dataparser",
-        "//fastpair/internal/ble",
+        "//fastpair/internal/mediums",
         "//fastpair/repository",
         "//fastpair/server_access",
         "//internal/base:bluetooth_address",
@@ -87,7 +87,7 @@ cc_test(
         "//fastpair/common",
         "//fastpair/crypto",
         "//fastpair/dataparser",
-        "//fastpair/internal/ble",
+        "//fastpair/internal/mediums",
         "//fastpair/server_access:test_support",
         "//fastpair/testing",
         "//internal/platform:logging",
@@ -112,6 +112,7 @@ cc_test(
         ":handshake",
         ":test_support",
         "//fastpair/common",
+        "//fastpair/internal/mediums",
         "//fastpair/testing",
         "//internal/platform:base",
         "//internal/platform:comm",
@@ -159,6 +160,7 @@ cc_test(
     deps = [
         ":handshake",
         "//fastpair/common",
+        "//fastpair/internal/mediums",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

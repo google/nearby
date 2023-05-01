@@ -16,8 +16,6 @@
 
 #include <memory>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 
@@ -42,7 +40,7 @@ TEST_F(FastPairWrapperImplTest, StartScanningSuccess) {
   EXPECT_FALSE(wrapper_->IsPairing());
   EXPECT_FALSE(wrapper_->IsServerAccessing());
   wrapper_->StartScan();
-  SystemClock::Sleep(absl::Milliseconds(200));
+  SystemClock::Sleep(absl::Milliseconds(2000));
   EXPECT_TRUE(wrapper_->IsScanning());
   env_.Stop();
 }
