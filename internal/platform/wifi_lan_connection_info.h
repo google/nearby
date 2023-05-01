@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -36,10 +37,10 @@ class WifiLanConnectionInfo : public ConnectionInfo {
       absl::string_view bytes);
 
   WifiLanConnectionInfo(absl::string_view ip_address, absl::string_view port,
-                        char actions)
+                        std::vector<uint8_t> actions)
       : ip_address_(ip_address), port_(port), bssid_(""), actions_(actions) {}
   WifiLanConnectionInfo(absl::string_view ip_address, absl::string_view port,
-                        absl::string_view bssid, char actions)
+                        absl::string_view bssid, std::vector<uint8_t> actions)
       : ip_address_(ip_address),
         port_(port),
         bssid_(std::string(bssid)),
@@ -56,13 +57,13 @@ class WifiLanConnectionInfo : public ConnectionInfo {
   // order (aka big-endian), so \x12\x34 will correspond to port 4660 (0x1234).
   std::string GetPort() const { return port_; }
   std::string GetBssid() const { return bssid_; }
-  char GetActions() const override { return actions_; }
+  std::vector<uint8_t> GetActions() const override { return actions_; }
 
  private:
   std::string ip_address_;
   std::string port_;
   std::string bssid_;
-  char actions_;
+  std::vector<uint8_t> actions_;
 };
 
 inline bool operator==(const WifiLanConnectionInfo& a,

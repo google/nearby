@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_BLE_CONNECTION_INFO_H_
 
 #include <string>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -31,7 +32,7 @@ class BleConnectionInfo : public ConnectionInfo {
 
   BleConnectionInfo(absl::string_view mac_address,
                     absl::string_view gatt_characteristic,
-                    absl::string_view psm, char actions)
+                    absl::string_view psm, std::vector<uint8_t> actions)
       : mac_address_(std::string(mac_address)),
         gatt_characteristic_(std::string(gatt_characteristic)),
         psm_(std::string(psm)),
@@ -45,18 +46,18 @@ class BleConnectionInfo : public ConnectionInfo {
   std::string GetMacAddress() const { return mac_address_; }
   std::string GetGattCharacteristic() const { return gatt_characteristic_; }
   std::string GetPsm() const { return psm_; }
-  char GetActions() const override { return actions_; }
+  std::vector<uint8_t> GetActions() const override { return actions_; }
 
  private:
   std::string mac_address_;
   std::string gatt_characteristic_;
   std::string psm_;
-  char actions_ = 0;
+  std::vector<uint8_t> actions_;
 };
 
 inline bool operator==(const BleConnectionInfo& a, const BleConnectionInfo& b) {
   return a.GetMacAddress() == b.GetMacAddress() &&
-         a.GetActions() == b.GetActions() &&
+         a.GetActions() == b.GetActions() && a.GetPsm() == b.GetPsm() &&
          a.GetGattCharacteristic() == b.GetGattCharacteristic();
 }
 

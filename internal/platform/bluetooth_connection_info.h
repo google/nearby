@@ -15,7 +15,9 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_BLUETOOTH_CONNECTION_INFO_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_BLUETOOTH_CONNECTION_INFO_H_
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -30,7 +32,8 @@ class BluetoothConnectionInfo : public ConnectionInfo {
       absl::string_view bytes);
 
   BluetoothConnectionInfo(absl::string_view mac_address,
-                          absl::string_view bluetooth_uuid, char actions)
+                          absl::string_view bluetooth_uuid,
+                          std::vector<uint8_t> actions)
       : mac_address_(std::string(mac_address)),
         bluetooth_uuid_(std::string(bluetooth_uuid)),
         actions_(actions) {}
@@ -42,12 +45,12 @@ class BluetoothConnectionInfo : public ConnectionInfo {
   std::string ToDataElementBytes() const override;
   std::string GetMacAddress() const { return mac_address_; }
   std::string GetBluetoothUuid() const { return bluetooth_uuid_; }
-  char GetActions() const override { return actions_; }
+  std::vector<uint8_t> GetActions() const override { return actions_; }
 
  private:
   std::string mac_address_;
   std::string bluetooth_uuid_;
-  char actions_;
+  std::vector<uint8_t> actions_;
 };
 
 inline bool operator==(const BluetoothConnectionInfo& a,

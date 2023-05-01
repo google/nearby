@@ -38,10 +38,11 @@ constexpr absl::string_view kPsm = "\x45\x56";
 constexpr char kAction = 0x0F;
 
 TEST(BleConnectionInfoTest, TestGetFields) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, {kAction});
   EXPECT_EQ(info.GetMediumType(), Medium::BLE);
   EXPECT_EQ(info.GetGattCharacteristic(), kGattCharacteristic);
-  EXPECT_EQ(info.GetActions(), kAction);
+  ASSERT_EQ(info.GetActions().size(), 1);
+  ASSERT_EQ(info.GetActions()[0], kAction);
   EXPECT_EQ(info.GetMacAddress(), kMacAddr);
   EXPECT_EQ(info.GetPsm(), kPsm);
 }
@@ -57,7 +58,7 @@ TEST(BleConnectionInfoTest, TestFromInvalidBytes) {
 }
 
 TEST(BleConnectionInfoTest, TestFromNoAction) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, {kAction});
   std::string serialized = info.ToDataElementBytes();
   serialized[1] -= 1;
   auto result = BleConnectionInfo::FromDataElementBytes(
@@ -66,7 +67,7 @@ TEST(BleConnectionInfoTest, TestFromNoAction) {
 }
 
 TEST(BleConnectionInfoTest, TestToFromBytes) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -78,7 +79,7 @@ TEST(BleConnectionInfoTest, TestToFromBytes) {
 }
 
 TEST(BleConnectionInfoTest, TestToFromBytesNoGattCharacteristic) {
-  BleConnectionInfo info(kMacAddr, "", kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, "", kPsm, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -90,7 +91,7 @@ TEST(BleConnectionInfoTest, TestToFromBytesNoGattCharacteristic) {
 }
 
 TEST(BleConnectionInfoTest, TestToFromBytesNoMac) {
-  BleConnectionInfo info("", kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info("", kGattCharacteristic, kPsm, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -103,7 +104,7 @@ TEST(BleConnectionInfoTest, TestToFromBytesNoMac) {
 
 TEST(BleConnectionInfoTest, TestToFromBytesLongMac) {
   BleConnectionInfo info(absl::StrCat(kMacAddr, kMacAddr), kGattCharacteristic,
-                         kPsm, kAction);
+                         kPsm, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -115,7 +116,7 @@ TEST(BleConnectionInfoTest, TestToFromBytesLongMac) {
 }
 
 TEST(BleConnectionInfoTest, TestToFromBytesNoPsm) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, "", kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, "", {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -128,7 +129,7 @@ TEST(BleConnectionInfoTest, TestToFromBytesNoPsm) {
 
 TEST(BleConnectionInfoTest, TestToFromBytesLongPsm) {
   BleConnectionInfo info(kMacAddr, kGattCharacteristic,
-                         absl::StrCat(kPsm, kPsm), kAction);
+                         absl::StrCat(kPsm, kPsm), {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -145,186 +146,22 @@ TEST(BleConnectionInfoTest, TestFromEmpty) {
 }
 
 TEST(BleConnectionInfoTest, TestFromBadElementType) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, {kAction});
   std::string serialized = info.ToDataElementBytes();
   serialized[0] = 0x56;
   auto result = BleConnectionInfo::FromDataElementBytes(serialized);
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST(BleConnectionInfoTest, TestFromBadMask) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set mask for MAC address only.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic only.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for PSM only.
-  serialized[3] = 0x10;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Remove all masks.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for MAC address + GATT characteristic.
-  serialized[3] = 0x60;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic + PSM.
-  serialized[3] = 0x30;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for MAC address and PSM.
-  serialized[3] = 0x50;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x70;
-  EXPECT_OK(BleConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BleConnectionInfoTest, TestFromBadMaskNoMac) {
-  BleConnectionInfo info("", kGattCharacteristic, kPsm, kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set mask for MAC address only.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic only.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for PSM only.
-  serialized[3] = 0x10;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for MAC address + GATT characteristic.
-  serialized[3] = 0x60;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for MAC address + PSM.
-  serialized[3] = 0x50;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Remove all masks.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x30;
-  EXPECT_OK(BleConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BleConnectionInfoTest, TestFromBadMaskNoGattCharacteristic) {
-  BleConnectionInfo info(kMacAddr, "", kPsm, kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set mask for MAC address only.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic only.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for PSM only.
-  serialized[3] = 0x10;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for all fields.
-  serialized[3] = 0x70;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for MAC address + GATT characteristic.
-  serialized[3] = 0x60;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic + PSM.
-  serialized[3] = 0x30;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Remove all masks.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x50;
-  EXPECT_OK(BleConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BleConnectionInfoTest, TestFromBadMaskNoPsm) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, "", kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set mask for MAC address only.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic only.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for PSM only.
-  serialized[3] = 0x10;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Remove all masks.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for all fields.
-  serialized[3] = 0x70;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic + PSM.
-  serialized[3] = 0x30;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for MAC address + PSM.
-  serialized[3] = 0x50;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x60;
-  EXPECT_OK(BleConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BleConnectionInfoTest, TestFromBadMaskEmpty) {
-  BleConnectionInfo info("", "", "", kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set mask for MAC address only.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for GATT characteristic only.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for PSM only.
-  serialized[3] = 0x10;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for all fields.
-  serialized[3] = 0x70;
-  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with correct mask.
-  serialized[3] = 0x00;
-  EXPECT_OK(BleConnectionInfo::FromDataElementBytes(serialized));
-}
-
 TEST(BleConnectionInfoTest, TestCopy) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, {kAction});
   BleConnectionInfo copy(info);
   EXPECT_EQ(info, copy);
 }
 
 TEST(BleConnectionInfoTest, TestEquals) {
-  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, kAction);
-  BleConnectionInfo info2(kMacAddr, kGattCharacteristic, kPsm, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, {kAction});
+  BleConnectionInfo info2(kMacAddr, kGattCharacteristic, kPsm, {kAction});
   EXPECT_EQ(info, info2);
 }
 

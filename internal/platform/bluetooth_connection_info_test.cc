@@ -35,21 +35,22 @@ constexpr absl::string_view kBluetoothUuid{"test"};
 constexpr char kAction = 0x0F;
 
 TEST(BluetoothConnectionInfoTest, TestGetFields) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
   EXPECT_EQ(info.GetMediumType(), Medium::BLUETOOTH);
   EXPECT_EQ(info.GetMacAddress(), kMacAddr);
-  EXPECT_EQ(info.GetActions(), kAction);
+  ASSERT_EQ(info.GetActions().size(), 1);
+  EXPECT_EQ(info.GetActions()[0], kAction);
   EXPECT_EQ(info.GetBluetoothUuid(), kBluetoothUuid);
 }
 
 TEST(BluetoothConnectionInfoTest, TestGetLongMacAddr) {
   BluetoothConnectionInfo info(absl::StrCat(kMacAddr, "\x56\x70\x89"),
-                               kBluetoothUuid, kAction);
+                               kBluetoothUuid, {kAction});
   EXPECT_NE(info.GetMacAddress(), kMacAddr);
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromBytes) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -57,18 +58,19 @@ TEST(BluetoothConnectionInfoTest, TestToFromBytes) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromNoMacAddress) {
-  BluetoothConnectionInfo info("", kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info("", kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
   info = result.value();
   EXPECT_EQ(info.GetMacAddress(), "");
   EXPECT_EQ(info.GetBluetoothUuid(), kBluetoothUuid);
-  EXPECT_EQ(info.GetActions(), kAction);
+  ASSERT_EQ(info.GetActions().size(), 1);
+  EXPECT_EQ(info.GetActions()[0], kAction);
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromWrongLength) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   ++serialized[1];
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
@@ -76,7 +78,7 @@ TEST(BluetoothConnectionInfoTest, TestToFromWrongLength) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromNoBluetoothUuid) {
-  BluetoothConnectionInfo info(kMacAddr, "", kAction);
+  BluetoothConnectionInfo info(kMacAddr, "", {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -89,7 +91,7 @@ TEST(BluetoothConnectionInfoTest, TestFromEmptyBytes) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestFromNoAction) {
-  BluetoothConnectionInfo info("", "", kAction);
+  BluetoothConnectionInfo info("", "", {kAction});
   std::string serialized = info.ToDataElementBytes();
   serialized[1] -= 1;
   auto result = BluetoothConnectionInfo::FromDataElementBytes(
@@ -103,106 +105,22 @@ TEST(BluetoothConnectionInfoTest, TestFromInvalidBytes) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestFromBadElementType) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   serialized[0] = 0x56;
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST(BluetoothConnectionInfoTest, TestFromBadMask) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Remove the mask for UUID.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Remove the mask for MAC address and add back UUID.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Remove all masks.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set empty mask.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x60;
-  EXPECT_OK(BluetoothConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BluetoothConnectionInfoTest, TestFromBadMaskNoUuid) {
-  BluetoothConnectionInfo info(kMacAddr, "", kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set the mask for UUID and MAC address.
-  serialized[3] = 0x60;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set the mask for only UUID.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set empty mask.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x40;
-  EXPECT_OK(BluetoothConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BluetoothConnectionInfoTest, TestFromBadMaskNoMac) {
-  BluetoothConnectionInfo info("", kBluetoothUuid, kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set the mask for UUID and MAC address.
-  serialized[3] = 0x60;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set the mask for only MAC address.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set empty mask.
-  serialized[3] = 0x00;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with the correct mask.
-  serialized[3] = 0x20;
-  EXPECT_OK(BluetoothConnectionInfo::FromDataElementBytes(serialized));
-}
-
-TEST(BluetoothConnectionInfoTest, TestFromBadMaskEmpty) {
-  BluetoothConnectionInfo info("", "", kAction);
-  std::string serialized = info.ToDataElementBytes();
-  // Set mask for UUID and MAC address.
-  serialized[3] = 0x60;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for only UUID.
-  serialized[3] = 0x20;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Set mask for only MAC address.
-  serialized[3] = 0x40;
-  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(serialized),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  // Verify OK with correct mask.
-  serialized[3] = 0x00;
-  EXPECT_OK(BluetoothConnectionInfo::FromDataElementBytes(serialized));
-}
-
 TEST(BluetoothConnectionInfoTest, TestCopy) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
   BluetoothConnectionInfo copy(info);
   EXPECT_EQ(info, copy);
 }
 
 TEST(BluetoothConnectionInfoTest, TestEquals) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, kAction);
-  BluetoothConnectionInfo info2(kMacAddr, kBluetoothUuid, kAction);
+  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
+  BluetoothConnectionInfo info2(kMacAddr, kBluetoothUuid, {kAction});
   EXPECT_EQ(info, info2);
 }
 

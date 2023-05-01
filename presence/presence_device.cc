@@ -51,8 +51,14 @@ PresenceDevice::PresenceDevice(DeviceMotion device_motion,
 
 std::vector<nearby::ConnectionInfoVariant> PresenceDevice::GetConnectionInfos()
     const {
+  std::vector<uint8_t> transformed_actions;
+  transformed_actions.reserve(actions_.size());
+  for (const auto& action : actions_) {
+    transformed_actions.push_back(action.GetActionIdentifier());
+  }
   return {nearby::BleConnectionInfo(metadata_.bluetooth_mac_address(),
-                                    /*gatt_characteristic=*/"", /*psm=*/"", 0)};
+                                    /*gatt_characteristic=*/"", /*psm=*/"",
+                                    transformed_actions)};
 }
 }  // namespace presence
 }  // namespace nearby

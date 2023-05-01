@@ -15,10 +15,10 @@
 #include "internal/platform/bluetooth_connection_info.h"
 
 #include <string>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/connection_info.h"
 
@@ -37,19 +37,17 @@ std::string BluetoothConnectionInfo::ToDataElementBytes() const {
   mask |= has_bluetooth_uuid ? kBluetoothUuidMask : 0;
   payload_data.push_back(mask);
   if (has_mac) {
-    payload_data.insert(payload_data.end(), mac_address_.begin(),
-                        mac_address_.end());
+    payload_data.append(mac_address_.begin(), mac_address_.end());
   }
   if (has_bluetooth_uuid) {
-    payload_data.insert(payload_data.end(), bluetooth_uuid_.begin(),
-                        bluetooth_uuid_.end());
+    payload_data.append(bluetooth_uuid_.begin(), bluetooth_uuid_.end());
   }
-  payload_data.push_back(actions_);
+  payload_data.append(actions_.begin(), actions_.end());
   std::string ret;
   ret.push_back(kDataElementFieldType);
   ret.push_back(payload_data.size());
-  ret.insert(ret.end(), payload_data.begin(), payload_data.end());
-  return std::string(ret.data(), ret.size());
+  ret.append(payload_data.begin(), payload_data.end());
+  return ret;
 }
 
 absl::StatusOr<BluetoothConnectionInfo>
@@ -90,14 +88,11 @@ BluetoothConnectionInfo::FromDataElementBytes(absl::string_view bytes) {
   }
   if (bytes.size() == position) {
     return absl::InvalidArgumentError(
-        "Insufficient remaining bytes to read action.");
+        "Insufficient remaining bytes to read actions.");
   }
-  char action = bytes[position];
-  // Check that we don't have any remaining bytes.
-  if (bytes.size() != ++position) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "Nonzero remaining bytes: %d.", bytes.size() - position));
-  }
-  return BluetoothConnectionInfo(address, uuid, action);
+  auto action_str = bytes.substr(position);
+  return BluetoothConnectionInfo(
+      address, uuid,
+      std::vector<uint8_t>(action_str.begin(), action_str.end()));
 }
 }  // namespace nearby

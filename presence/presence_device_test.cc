@@ -72,13 +72,16 @@ TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
   EXPECT_NE(device1, device2);
 }
 
-TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
+TEST(PresenceDeviceTest, TestGetBleConnectionInfo) {
   Metadata metadata = CreateTestMetadata();
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  device.AddAction(PresenceAction(kTestAction));
   auto info = (device.GetConnectionInfos().at(0));
   ASSERT_TRUE(absl::holds_alternative<nearby::BleConnectionInfo>(info));
-  EXPECT_EQ(absl::get<nearby::BleConnectionInfo>(info).GetMacAddress(),
+  auto ble_info = absl::get<nearby::BleConnectionInfo>(info);
+  EXPECT_EQ(ble_info.GetMacAddress(),
             kMacAddr);
+  EXPECT_EQ(ble_info.GetActions(), std::vector<uint8_t>{kTestAction});
 }
 
 TEST(PresenceDevicetest, TestGetAddExtendedProperties) {
