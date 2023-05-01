@@ -1,4 +1,4 @@
-// Copyright 2021-2023 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,14 +28,9 @@ class HttpClient {
  public:
   virtual ~HttpClient() = default;
 
-  // Starts HTTP request in asynchronization mode.
   virtual void StartRequest(
       const HttpRequest& request,
       std::function<void(const absl::StatusOr<HttpResponse>&)> callback) = 0;
-
-  // Gets HTTP response in synchronization mode.
-  virtual absl::StatusOr<HttpResponse> GetResponse(
-      const HttpRequest& request) = 0;
 
   // The error may be corrected if retried at a later time.
   static bool IsRetryableHttpError(absl::Status status) {

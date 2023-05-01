@@ -348,7 +348,6 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/base:__subpackages__",
         "//internal/flags:__subpackages__",
-        "//internal/network:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",

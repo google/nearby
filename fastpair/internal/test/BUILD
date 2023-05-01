@@ -14,8 +14,6 @@ cc_library(
     deps = [
         "//internal/network:types",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
     ],
 )
 
@@ -32,7 +30,6 @@ cc_test(
     deps = [
         ":nearby_fastpair_test",
         "//internal/network:types",
-        "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
