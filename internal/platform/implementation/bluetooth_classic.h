@@ -16,8 +16,11 @@
 #define PLATFORM_API_BLUETOOTH_CLASSIC_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -87,6 +90,105 @@ class BluetoothServerSocket {
   //
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
+};
+
+// https://developer.android.com/reference/com/google/android/things/bluetooth/PairingParams
+//
+// Encapsulates the data for a particular pairing attempt.
+// The caller can use it to determine the pairing approach and choose a suitable
+// way to obtain user consent to conclude the pairing process.
+struct PairingParams {
+  // Pairing type for this pairing attempt.
+  // The Pairing type is based on the User Interface capabilities of both
+  // the pairing devices, and determines the process of pairing.
+  // `kConstent`: the user is expected to consent to the pairing process.
+  // `kDisplayPasskey`: the user is notified of a pairing passkey.
+  // `kDisplayPin`: same as kDisplayPasskey, but different pairing key format.
+  // `kConfirmPasskey`: the user must confirm pairing after verifying a passkey.
+  // `kRequestPin`: the user is supposed to enter a pin to confirm pairing.
+  enum class PairingType {
+    kUnknown = 0,
+    kConsent = 1,
+    kDisplayPasskey = 2,
+    kDisplayPin = 3,
+    kConfirmPasskey = 4,
+    kRequestPin = 5,
+    kLast,
+  };
+  PairingType pairing_type;
+
+  // Pairing pin to notify the user for the pairing process.
+  // If not relevant to the current pairing process, it's empty.
+  std::string passkey;
+};
+
+// https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothPairingCallback
+//
+// This callback is invoked during the Bluetooth pairing process and
+// contains all the relevant pairing information required for pairing.
+struct BluetoothPairingCallback {
+  // https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothPairingCallback.PairingError
+  enum class PairingError {
+    kUnknown = 0,
+    kAuthCanceled = 1,     /* failed because we canceled the pairing process. */
+    kAuthFailed = 2,       /* failed with pins did not match, or no response. */
+    kAuthRejected = 3,     /* failed with the remote device rejected pairing. */
+    kAuthTimeout = 4,      /* failed with authentication timeout. */
+    kFailed = 5,           /* failed with no explicit reason. */
+    kRepeatedAttempts = 6, /* failed with many repeated attempts. */
+    kLast,
+  };
+
+  // Invoked when successfully paired with a device.
+  absl::AnyInvocable<void()> on_paired_cb = DefaultCallback<>();
+
+  // Invoked when pairing with a device is canceled or fails.
+  absl::AnyInvocable<void(BluetoothPairingCallback::PairingError error)>
+      on_pairing_error_cb =
+          DefaultCallback<BluetoothPairingCallback::PairingError>();
+
+  // Invoked when the pairing process has been initiated with a remote
+  // Bluetooth device.
+  absl::AnyInvocable<void(PairingParams pairingParams)>
+      on_pairing_initiated_cb = DefaultCallback<PairingParams>();
+};
+
+// This class is responsible for handling Bluetooth pairing with a remote
+// BluetoothDevice.
+// DCHECK_CALLED_ON_VALID_SEQUENCE
+class BluetoothPairing {
+ public:
+  virtual ~BluetoothPairing() = default;
+
+  // https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothConnectionManager#initiatepairing
+  // https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothConnectionManager#registerpairingcallback
+  //
+  // Initiate Bluetooth pairing process with a remote device.
+  // Register a BluetoothPairingCallback to listen for Bluetooth pairing events
+  // Such as incoming pairing request, devices paired etc.
+  virtual bool InitiatePairing(BluetoothPairingCallback pairing_cb) = 0;
+
+  // https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothConnectionManager#finishpairing
+  //
+  // Invoke this function to finish the pairing process with the remote device.
+  // Should be called only after receiving a callback from onPairingInitiated.
+  // Pin is needed for PairingType::kRequestPin
+  virtual bool FinishPairing(std::optional<absl::string_view> pin_code) = 0;
+
+  // https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothConnectionManager#cancelpairing
+  //
+  // Cancel an ongoing pairing process with a remote device.
+  virtual bool CancelPairing() = 0;
+
+  // https://developer.android.com/reference/com/google/android/things/bluetooth/BluetoothConnectionManager#unpair
+  //
+  // Destroys the existing pairing/bond with the remote device.
+  virtual bool Unpair() = 0;
+
+  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getBondState()
+  //
+  // Get the pairing state of the remote device.
+  virtual bool IsPaired() = 0;
 };
 
 // Container of operations that can be performed over the Bluetooth Classic
@@ -173,6 +275,14 @@ class BluetoothClassicMedium {
   //  Returns nullptr error.
   virtual std::unique_ptr<BluetoothServerSocket> ListenForService(
       const std::string& service_name, const std::string& service_uuid) = 0;
+
+  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#createBond()
+  //
+  // Start the bonding (pairing) process with the remote device.
+  // Return a Bluetooth pairing instance to handle the pairing process with the
+  // remote device.
+  virtual std::unique_ptr<BluetoothPairing> CreatePairing(
+      BluetoothDevice& remote_device) = 0;
 
   virtual BluetoothDevice* GetRemoteDevice(const std::string& mac_address) = 0;
 

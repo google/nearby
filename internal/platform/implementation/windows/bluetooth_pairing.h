@@ -15,27 +15,35 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLUETOOTH_PAIRING_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLUETOOTH_PAIRING_H_
 
-#include <guiddef.h>
+#include <windows.h>
 
-#include <string>
+#include <optional>
 
+#include "absl/strings/string_view.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
 #include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {
 
-class BluetoothPairing {
+class BluetoothPairing : public api::BluetoothPairing {
  public:
   explicit BluetoothPairing(
-      ::winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing&
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device,
+      ::winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing
           custom_pairing);
   BluetoothPairing(const BluetoothPairing&) = default;
   BluetoothPairing& operator=(const BluetoothPairing&) = default;
+  ~BluetoothPairing() override;
 
-  ~BluetoothPairing();
-
-  // Initiates the pairing procedure.
-  void StartPairing();
+  bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
+  bool FinishPairing(std::optional<absl::string_view> pin_code) override;
+  bool CancelPairing() override;
+  bool Unpair() override;
+  bool IsPaired() override;
 
  private:
   void OnPairingRequested(
@@ -48,9 +56,20 @@ class BluetoothPairing {
                   pairing_result);
 
   // WinRT objects
+  ::winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device_;
   ::winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing
       custom_pairing_;
+
   ::winrt::event_token pairing_requested_token_;
+  ::winrt::Windows::Devices::Enumeration::DevicePairingRequestedEventArgs
+      pairing_requested_ = nullptr;
+  ::winrt::Windows::Foundation::Deferral pairing_deferral_ = nullptr;
+  api::BluetoothPairingCallback pairing_callback_;
+
+  // Boolean indicating whether the device is currently pairing and expecting a
+  // PIN Code to be returned.
+  bool expecting_pin_code_ = false;
+  bool was_cancelled_ = false;
 };
 
 }  // namespace windows

@@ -271,6 +271,12 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   return socket;
 }
 
+std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
+    api::BluetoothDevice& remote_device) {
+  // TODO(b/279964840): Add g3 implementation for BluetoothPairing.
+  return nullptr;
+}
+
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
   auto& env = MediumEnvironment::Instance();
