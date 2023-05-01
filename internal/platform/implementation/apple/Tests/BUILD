@@ -26,6 +26,7 @@ objc_library(
         "GNCBleTest.mm",
         "GNCBluetoothAdapterTest.mm",
         "GNCCryptoTest.mm",
+        "GNCIPAddressTest.mm",
         "GNCMultiThreadExecutorTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
@@ -33,9 +34,15 @@ objc_library(
     ],
     features = ["-layering_check"],
     deps = [
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",
-        "//internal/platform/implementation/apple:Shared",
+        "//internal/platform/implementation/apple/Mediums",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
+        "@com_google_absl//absl/time",
     ],
 )
 

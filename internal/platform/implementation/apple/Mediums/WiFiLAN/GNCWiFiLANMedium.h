@@ -14,6 +14,7 @@
 
 #import <Foundation/Foundation.h>
 
+@class GNCIPv4Address;
 @class GNCWiFiLANServerSocket;
 @class GNCWiFiLANSocket;
 
@@ -102,12 +103,12 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 /**
  * Connects to an IP address and port.
  *
- * @param host The 4 byte binary representation IPv4 address to connect to.
+ * @param host The IPv4 address to connect to.
  * @param port The port to connect to.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
-- (nullable GNCWiFiLANSocket *)connectToHost:(nonnull NSString *)host
+- (nullable GNCWiFiLANSocket *)connectToHost:(nonnull GNCIPv4Address *)host
                                         port:(NSInteger)port
                                        error:(NSError **_Nullable)error;
 

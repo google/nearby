@@ -22,6 +22,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
@@ -71,7 +72,7 @@
 
 @synthesize ipAddress = _ipAddress;
 
-- (NSString *)ipAddress {
+- (GNCIPv4Address *)ipAddress {
   if (!_ipAddress) {
     _ipAddress = [GNCWiFiLANServerSocket lookupIpAddress];
   }
@@ -235,7 +236,7 @@
  * Returns the IP address as a 4 byte string. If not available, this returns an empty string to
  * align with the Windows implementation.
  */
-+ (NSString *)lookupIpAddress {
++ (GNCIPv4Address *)lookupIpAddress {
   struct ifaddrs *ifaddr;
 
   // Note: The data returned by `getifaddrs()` is dynamically allocated and should be freed using
@@ -243,7 +244,7 @@
   //
   // See: https://linux.die.net/man/3/getifaddrs
   if (getifaddrs(&ifaddr) == -1) {
-    return @"";
+    return [GNCIPv4Address addressFromFourByteInt:0];
   }
 
   // Walk through linked list, maintaining head pointer so we can free list later.
@@ -264,22 +265,13 @@
       continue;
     }
 
-    // Break the 4 byte binary representation of the hostname into 4 separate bytes.
     uint32_t host = ((struct sockaddr_in *)address)->sin_addr.s_addr;
-    uint8_t byte1 = (host >> (8 * 0)) & 0xff;
-    uint8_t byte2 = (host >> (8 * 1)) & 0xff;
-    uint8_t byte3 = (host >> (8 * 2)) & 0xff;
-    uint8_t byte4 = (host >> (8 * 3)) & 0xff;
-
-    // Join the bytes into a 4 character string.
-    NSString *hostString = [NSString stringWithFormat:@"%c%c%c%c", byte1, byte2, byte3, byte4];
-
     freeifaddrs(ifaddr);
-    return hostString;
+    return [GNCIPv4Address addressFromFourByteInt:host];
   }
 
   freeifaddrs(ifaddr);
-  return @"";
+  return [GNCIPv4Address addressFromFourByteInt:0];
 }
 
 @end

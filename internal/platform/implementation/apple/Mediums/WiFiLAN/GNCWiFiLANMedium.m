@@ -17,6 +17,7 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
@@ -258,9 +259,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return [self connectToEndpoint:endpoint error:error];
 }
 
-- (GNCWiFiLANSocket *)connectToHost:(NSString *)host port:(NSInteger)port error:(NSError **)error {
+- (GNCWiFiLANSocket *)connectToHost:(GNCIPv4Address *)host
+                               port:(NSInteger)port
+                              error:(NSError **)error {
   nw_endpoint_t endpoint =
-      nw_endpoint_create_host([host UTF8String], [[@(port) stringValue] UTF8String]);
+      nw_endpoint_create_host(host.dottedRepresentation.UTF8String, @(port).stringValue.UTF8String);
   return [self connectToEndpoint:endpoint error:error];
 }
 
