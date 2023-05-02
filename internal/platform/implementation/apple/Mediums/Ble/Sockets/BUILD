@@ -17,9 +17,7 @@ load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 objc_library(
     name = "Central",
