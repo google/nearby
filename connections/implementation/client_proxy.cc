@@ -137,7 +137,9 @@ void ClientProxy::StartedAdvertising(
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
-  analytics_recorder_->OnStartAdvertising(strategy, medium_vector, false, 0);
+  analytics_recorder_->OnStartAdvertising(
+      strategy, medium_vector, /*is_extended_advertising_supported=*/false,
+      /*connected_ap_frequency=*/0);
 }
 
 void ClientProxy::StoppedAdvertising() {
@@ -177,7 +179,9 @@ void ClientProxy::StartedDiscovery(
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
-  analytics_recorder_->OnStartDiscovery(strategy, medium_vector, false, 0);
+  analytics_recorder_->OnStartDiscovery(
+      strategy, medium_vector, /*is_extended_advertising_supported=*/false,
+      /*connected_ap_frequency=*/0);
 }
 
 void ClientProxy::StoppedDiscovery() {

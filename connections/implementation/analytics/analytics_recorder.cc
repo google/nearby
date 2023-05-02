@@ -150,13 +150,7 @@ void AnalyticsRecorder::OnStartAdvertising(
       std::make_unique<ConnectionsLog::AdvertisingPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_advertising_phase_->mutable_medium()));
-  // Set a AdvertisingMetadata.
-  auto *advertising_metadata =
-      current_advertising_phase_->mutable_advertising_metadata();
-  advertising_metadata->set_supports_extended_ble_advertisements(
-      is_extended_advertisement_supported);
-  advertising_metadata->set_connected_ap_frequency(connected_ap_frequency);
-  advertising_metadata->set_supports_nfc_technology(is_nfc_available);
+  // TODO(b/258685977): Set an `AdvertisingMetadata`.
 }
 
 void AnalyticsRecorder::OnStopAdvertising() {
@@ -189,13 +183,7 @@ void AnalyticsRecorder::OnStartDiscovery(
   current_discovery_phase_ = std::make_unique<ConnectionsLog::DiscoveryPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_discovery_phase_->mutable_medium()));
-  // Set a DiscoveryMetadata.
-  auto *discovery_metadata =
-      current_discovery_phase_->mutable_discovery_metadata();
-  discovery_metadata->set_supports_extended_ble_advertisements(
-      is_extended_advertisement_supported);
-  discovery_metadata->set_connected_ap_frequency(connected_ap_frequency);
-  discovery_metadata->set_supports_nfc_technology(is_nfc_available);
+  // TODO(b/258685977): Set a `DiscoveryMetadata`.
 }
 
 void AnalyticsRecorder::OnStopDiscovery() {
