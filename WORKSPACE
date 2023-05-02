@@ -81,21 +81,19 @@ cc_library(
 )
 
 http_archive(
-    name = "nlohmann_json",
-    strip_prefix = "json-3.10.5",
+    name = "open_source_parsers_jsoncpp",
+    strip_prefix = "jsoncpp-master",
     build_file_content = """
 cc_library(
-  name = "json",
+  name = "jsoncpp",
   hdrs = glob([
-    "include/nlohmann/**/*.hpp",
+    "include/json/*.h",
   ]),
   includes = ["include"],
   visibility = ["//visibility:public"],
   alwayslink = True,
 )""",
-    urls = [
-        "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
-    ],
+    urls = ["https://github.com/open-source-parsers/jsoncpp/archive/refs/heads/master.zip"],
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")

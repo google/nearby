@@ -18,7 +18,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 
 namespace nearby {
 namespace api {
@@ -34,8 +34,8 @@ class PreferencesRepository {
   explicit PreferencesRepository(absl::string_view path) : path_(path) {}
   virtual ~PreferencesRepository() = default;
 
-  virtual nlohmann::json LoadPreferences() = 0;
-  virtual bool SavePreferences(nlohmann::json preferences) = 0;
+  virtual Json::Value LoadPreferences() = 0;
+  virtual bool SavePreferences(Json::Value preferences) = 0;
 
  protected:
   std::string path_;

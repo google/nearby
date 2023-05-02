@@ -71,7 +71,7 @@ objc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
-        "@nlohmann_json//:json",
+        "@open_source_parsers_jsoncpp//:json:json",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",

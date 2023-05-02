@@ -54,6 +54,7 @@ cc_library(
         "//internal/platform/implementation/windows/generated:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
+        "@open_source_parsers_jsoncpp//:json:json",
     ],
 )
 
@@ -194,6 +195,7 @@ cc_library(
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/windows/generated:types",
+        "//third_party/json",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
@@ -202,7 +204,6 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@nlohmann_json//:json",
     ],
 )
 
@@ -220,7 +221,7 @@ cc_library(
     ],
     deps = [
         "//internal/platform:base",
-        "@nlohmann_json//:json",
+        "@open_source_parsers_jsoncpp//:json:json",
     ],
 )
 
@@ -264,5 +265,6 @@ cc_test(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
+        "@open_source_parsers_jsoncpp//:json:json",
     ],
 )

@@ -57,7 +57,7 @@ cc_library(
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
-        "@nlohmann_json//:json",
+        "@open_source_parsers_jsoncpp//:json:json",
     ],
 )
 

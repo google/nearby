@@ -15,16 +15,16 @@
 #import "internal/platform/implementation/apple/preferences_repository.h"
 
 #include "absl/synchronization/mutex.h"
-#include "nlohmann/json.hpp"
+#include "json/json.h"
 
 namespace nearby::apple {
 
-nlohmann::json PreferencesRepository::LoadPreferences() {
+Json::Value PreferencesRepository::LoadPreferences() {
   absl::MutexLock lock(&mutex_);
-  return nlohmann::json::object();
+  return Json::Value(Json::objectValue);
 }
 
-bool PreferencesRepository::SavePreferences(nlohmann::json preferences) {
+bool PreferencesRepository::SavePreferences(Json::Value preferences) {
   absl::MutexLock lock(&mutex_);
   return false;
 }

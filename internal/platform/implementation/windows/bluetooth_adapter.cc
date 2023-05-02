@@ -36,7 +36,7 @@
 #include <string>
 
 #include "absl/strings/str_format.h"
-#include "third_party/json/src/json.hpp"
+#include "json/json.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -60,20 +60,22 @@ struct LocalSettings {
   std::string nearby_radio_name;
 };
 
-using json = ::nlohmann::json;
+using json = ::Json::Value;
 
 constexpr absl::string_view kLocalSettingsFileName = "settings_file.json";
 constexpr char kOriginalRadioName[] = "OriginalRadioName";
 constexpr char kNearbyRadioName[] = "NearbyRadioName";
 
 void to_json(json &json_output, const LocalSettings &local_settings) {
-  json_output = json{{kOriginalRadioName, local_settings.original_radio_name},
-                     {kNearbyRadioName, local_settings.nearby_radio_name}};
+  json_output = json(std::string("{{") + kOriginalRadioName + ": "
+                     + local_settings.original_radio_name + "},"
+                     "{" + kNearbyRadioName + ": "
+                     + local_settings.nearby_radio_name + "}}");
 }
 
 void from_json(const json &json_input, LocalSettings &local_settings) {
-  json_input.at(kOriginalRadioName).get_to(local_settings.original_radio_name);
-  json_input.at(kNearbyRadioName).get_to(local_settings.nearby_radio_name);
+  json_input[kOriginalRadioName][local_settings.original_radio_name];
+  json_input[kNearbyRadioName][local_settings.nearby_radio_name];
 }
 }  // namespace
 
@@ -268,18 +270,26 @@ void BluetoothAdapter::RestoreRadioNameIfNecessary() {
       return;
     }
 
-    auto local_settings =
-        json::parse(raw_local_settings.GetResult().data(), nullptr, false);
+    Json::Reader reader;
+    Json::Value local_settings;
+    reader.parse(raw_local_settings.GetResult().data(), local_settings, false);
+    // auto local_settings =
+    //     json::parse(raw_local_settings.GetResult().data(), nullptr, false);
 
-    if (local_settings.is_discarded()) {
+    if (local_settings.isNull()) {
       NEARBY_LOGS(ERROR) << __func__ << ": Invalid local settings data.";
       return;
     }
 
     NEARBY_LOGS(VERBOSE) << __func__
-                         << ": loaded settings: " << local_settings.dump();
+                         << ": loaded settings: "
+                         << local_settings.toStyledString();
 
-    LocalSettings settings = local_settings.get<LocalSettings>();
+    // LocalSettings settings = local_settings.get<LocalSettings>();
+    LocalSettings settings;
+    settings.original_radio_name =
+        local_settings[kOriginalRadioName].asString();
+    settings.nearby_radio_name = local_settings[kNearbyRadioName].asString();
 
     if (current_radio_name == settings.nearby_radio_name) {
       SetName(settings.original_radio_name,
@@ -321,9 +331,9 @@ void BluetoothAdapter::StoreRadioNames(absl::string_view original_radio_name,
     json encoded_local_settings;
     to_json(encoded_local_settings, local_settings);
     NEARBY_LOGS(VERBOSE) << __func__ << ": saved settings: "
-                         << encoded_local_settings.dump();
+                         << encoded_local_settings.toStyledString();
 
-    ByteArray data(encoded_local_settings.dump());
+    ByteArray data(encoded_local_settings.toStyledString());
 
     settings_file->Write(data);
     settings_file->Close();
