@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/scan_request.h"

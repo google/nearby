@@ -24,7 +24,9 @@
 namespace nearby {
 namespace presence {
 PresenceService::PresenceService() {
-  this->service_controller_ = std::make_unique<ServiceControllerImpl>();
+  service_controller_ = std::make_unique<ServiceControllerImpl>();
+  provider_ = std::make_unique<PresenceDeviceProvider>(
+      service_controller_->GetLocalDeviceMetadata());
 }
 
 PresenceClient PresenceService::CreatePresenceClient() {
@@ -35,6 +37,7 @@ absl::StatusOr<ScanSessionId> PresenceService::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
   return service_controller_->StartScan(scan_request, std::move(callback));
 }
+
 void PresenceService::StopScan(ScanSessionId id) {
   service_controller_->StopScan(id);
 }

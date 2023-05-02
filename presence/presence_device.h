@@ -60,12 +60,13 @@ class PresenceDevice : public nearby::NearbyDevice {
       const override;
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
   Metadata GetMetadata() const { return metadata_; }
+  void SetMetadata(const Metadata metadata) { metadata_ = metadata; }
   absl::Time GetDiscoveryTimestamp() const { return discovery_timestamp_; }
 
  private:
   const absl::Time discovery_timestamp_;
   const DeviceMotion device_motion_;
-  const Metadata metadata_;
+  Metadata metadata_;
   std::vector<DataElement> extended_properties_;
   std::vector<PresenceAction> actions_;
   std::string endpoint_id_;
@@ -77,7 +78,9 @@ class PresenceDevice : public nearby::NearbyDevice {
 inline bool operator==(const PresenceDevice& d1, const PresenceDevice& d2) {
   return d1.GetDeviceMotion() == d2.GetDeviceMotion() &&
          d1.GetMetadata().SerializeAsString() ==
-             d2.GetMetadata().SerializeAsString();
+             d2.GetMetadata().SerializeAsString() &&
+         d1.GetActions() == d2.GetActions() &&
+         d1.GetExtendedProperties() == d2.GetExtendedProperties();
 }
 
 inline bool operator!=(const PresenceDevice& d1, const PresenceDevice& d2) {

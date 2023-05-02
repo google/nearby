@@ -14,13 +14,13 @@
 
 #include "presence/presence_client.h"
 
-#include <memory>
+#include <optional>
 #include <utility>
-#include <vector>
 
 #include "absl/status/status.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/logging.h"
+#include "presence/presence_device.h"
 #include "presence/presence_service.h"
 
 namespace nearby {
@@ -60,6 +60,14 @@ void PresenceClient::StopBroadcast(BroadcastSessionId session_id) {
   } else {
     NEARBY_LOGS(VERBOSE) << "Session already finished, id: " << session_id;
   }
+}
+
+std::optional<PresenceDevice> PresenceClient::GetLocalDevice() {
+  ::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
+  if (borrowed) {
+    return (*borrowed)->GetLocalDeviceProvider()->GetLocalDevice();
+  }
+  return std::nullopt;
 }
 
 }  // namespace presence

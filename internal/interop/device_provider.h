@@ -22,10 +22,13 @@ namespace nearby {
 // The base device provider class for use with the Nearby Connections V3 APIs.
 // This class currently provides a function to get the local device for whatever
 // client implements it.
+template <typename T, typename std::enable_if<std::is_base_of<
+                          ::nearby::NearbyDevice, T>::value>::type* = nullptr>
 class NearbyDeviceProvider {
+ public:
   virtual ~NearbyDeviceProvider() = default;
 
-  virtual NearbyDevice* GetLocalDevice() = 0;
+  const virtual T& GetLocalDevice() = 0;
 };
 }  // namespace nearby
 

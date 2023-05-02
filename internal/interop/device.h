@@ -41,10 +41,6 @@ class NearbyDevice {
   };
   NearbyDevice() = default;
   virtual ~NearbyDevice() = default;
-  NearbyDevice(NearbyDevice&&) = default;
-  NearbyDevice& operator=(NearbyDevice&&) = default;
-  NearbyDevice(const NearbyDevice&) = delete;
-  NearbyDevice& operator=(const NearbyDevice&) = delete;
   virtual std::string GetEndpointId() const = 0;
   // We will be adding more ConnectionInfo types to this variant as they are
   // implemented.

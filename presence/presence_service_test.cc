@@ -78,6 +78,11 @@ TEST_F(PresenceServiceTest, UpdatingLocalMetadataWorks) {
             CreateTestMetadata("Test account").SerializeAsString());
 }
 
+TEST_F(PresenceServiceTest, TestGetDeviceProvider) {
+  PresenceService presence_service;
+  EXPECT_NE(presence_service.GetLocalDeviceProvider(), nullptr);
+}
+
 }  // namespace
 }  // namespace presence
 }  // namespace nearby

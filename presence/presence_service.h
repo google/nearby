@@ -20,9 +20,11 @@
 #include <vector>
 
 #include "internal/platform/borrowable.h"
+#include "internal/proto/metadata.proto.h"
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller.h"
 #include "presence/presence_client.h"
+#include "presence/presence_device_provider.h"
 
 namespace nearby {
 namespace presence {
@@ -54,12 +56,16 @@ class PresenceService {
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) {
+    provider_->UpdateMetadata(metadata);
     service_controller_->UpdateLocalDeviceMetadata(
         metadata, regen_credentials, manager_app_id, identity_types,
         credential_life_cycle_days, contiguous_copy_of_credentials,
         std::move(credentials_generated_cb));
   }
 
+  PresenceDeviceProvider* GetLocalDeviceProvider() { return provider_.get(); }
+
+  // Testing only.
   ::nearby::internal::Metadata GetLocalDeviceMetadata() {
     return service_controller_->GetLocalDeviceMetadata();
   }
@@ -67,6 +73,7 @@ class PresenceService {
  private:
   std::unique_ptr<ServiceController> service_controller_;
   ::nearby::Lender<PresenceService *> lender_{this};
+  std::unique_ptr<PresenceDeviceProvider> provider_;
 };
 
 }  // namespace presence

@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/implementation/broadcast_manager.h"
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/mediums.h"
@@ -52,6 +53,7 @@ class ServiceControllerImpl : public ServiceController {
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
+
   ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
     return credential_manager_.GetLocalDeviceMetadata();
   }

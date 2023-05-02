@@ -10,6 +10,7 @@ cc_library(
     ],
     deps = [
         "//internal/platform:connection_info",
+        "//internal/platform:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
     ],
