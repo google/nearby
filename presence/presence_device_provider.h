@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_PROVIDER_H_
 
 #include "internal/interop/device_provider.h"
-#include "internal/proto/metadata.proto.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/presence_device.h"
 
 namespace nearby {

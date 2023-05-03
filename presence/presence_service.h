@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "internal/platform/borrowable.h"
-#include "internal/proto/metadata.proto.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller.h"
 #include "presence/presence_client.h"
