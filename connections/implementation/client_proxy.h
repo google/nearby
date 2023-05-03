@@ -199,53 +199,6 @@ class ClientProxy final {
 
   std::string Dump();
 
-  //********************************** V2 **********************************
-  void OnDeviceFound(const absl::string_view service_id,
-                     const NearbyDevice& device,
-                     location::nearby::proto::connections::Medium medium);
-  // Proxies to the client's DiscoveryListener::OnEndpointLost() callback.
-  void OnEndpointLost(absl::string_view service_id, const NearbyDevice& device);
-
-  // Proxies to the client's ConnectionListener::OnInitiated() callback.
-  void OnConnectionInitiated(const NearbyDevice& device,
-                             const ConnectionResponseInfo& info,
-                             const ConnectionOptions& connection_options,
-                             const ConnectionListener& listener,
-                             absl::string_view connection_token);
-
-  void OnConnectionAccepted(const NearbyDevice& device);
-  void OnConnectionRejected(const NearbyDevice& device, const Status& status);
-
-  void OnBandwidthChanged(const NearbyDevice& device, Medium new_medium);
-
-  // If notify is true, also calls the client's
-  // ConnectionListener.disconnected_cb() callback.
-  void OnDisconnected(const NearbyDevice& device, bool notify);
-
-  BooleanMediumSelector GetUpgradableMediums(const NearbyDevice& device) const;
-  bool IsConnectedToEndpoint(const NearbyDevice& device) const;
-  // No payloads should be sent until isConnectedToEndpoint()
-  // returns true.
-  bool HasPendingConnectionToEndpoint(const NearbyDevice& device) const;
-  bool HasLocalEndpointResponded(const NearbyDevice& device) const;
-  bool HasRemoteEndpointResponded(const NearbyDevice& device) const;
-  void LocalEndpointAcceptedConnection(const NearbyDevice& device,
-                                       const PayloadListener& listener);
-  void LocalEndpointRejectedConnection(const NearbyDevice& device);
-  void RemoteEndpointAcceptedConnection(const NearbyDevice& device);
-  void RemoteEndpointRejectedConnection(const NearbyDevice& device);
-  bool IsConnectionAccepted(const NearbyDevice& device) const;
-  bool IsConnectionRejected(const NearbyDevice& device) const;
-
-  void OnPayload(const NearbyDevice& device, Payload payload);
-  void OnPayloadProgress(const NearbyDevice& device,
-                         const PayloadProgressInfo& info);
-  bool LocalConnectionIsAccepted(const NearbyDevice& device) const;
-  bool RemoteConnectionIsAccepted(const NearbyDevice& device) const;
-  void AddCancellationFlag(const NearbyDevice& device);
-  CancellationFlag* GetCancellationFlag(const NearbyDevice& device);
-  void CancelEndpoint(const NearbyDevice& device);
-
   const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
   std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfo(
       absl::string_view endpoint_id) const;
