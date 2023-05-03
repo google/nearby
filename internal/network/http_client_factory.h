@@ -16,7 +16,6 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_FACTORY_H_
 
 #include <memory>
-#include <utility>
 
 #include "internal/network/http_client.h"
 

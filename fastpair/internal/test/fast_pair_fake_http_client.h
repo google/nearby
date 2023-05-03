@@ -16,11 +16,13 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_TEST_FAST_PAIR_FAKE_HTTP_CLIENT_H_
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "internal/network/http_client.h"
 
 namespace nearby {
@@ -49,6 +51,16 @@ class FastPairFakeHttpClient : public HttpClient {
     request_info.request = request;
     request_info.callback = callback;
     request_infos_.push_back(std::move(request_info));
+  }
+
+  void StartCancellableRequest(
+      std::unique_ptr<CancellableRequest> request,
+      std::function<void(const absl::StatusOr<HttpResponse>&)> callback)
+      override {}
+
+  absl::StatusOr<HttpResponse> GetResponse(
+      const HttpRequest& request) override {
+    return absl::UnimplementedError("unimplemented");
   }
 
   // Mock methods
