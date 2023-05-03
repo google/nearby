@@ -50,7 +50,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [

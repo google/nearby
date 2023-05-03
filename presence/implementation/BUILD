@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
-load("//third_party/bazel_skylib/lib:selects.bzl", "selects")
+load("@bazel_skylib//lib:selects.bzl", "selects")
 
 licenses(["notice"])
 
@@ -36,8 +36,8 @@ selects.config_setting_group(
     name = "norust_or_windows_or_android",
     match_any = [
         ":no_link_with_rust",
-        "//tools/cc_target_os:windows",
-        "//tools/cc_target_os:android",
+        "@platforms//os:windows",
+        "@platforms//os:android",
     ],
 )
 
@@ -159,7 +159,7 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -183,7 +183,7 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -206,7 +206,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -227,7 +227,7 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -247,7 +247,7 @@ cc_test(
         "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -267,7 +267,7 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -294,7 +294,7 @@ cc_test(
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
@@ -317,7 +317,7 @@ cc_test(
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "//tools/cc_target_os:windows": [
+        "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
         "//conditions:default": [
