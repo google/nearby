@@ -18,7 +18,7 @@
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
-#include "internal/crypto/random.h"
+#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/timer_impl.h"
 
 namespace nearby {
@@ -66,6 +66,6 @@ bool TaskRunnerImpl::PostDelayedTask(absl::Duration delay,
   return false;
 }
 
-uint64_t TaskRunnerImpl::GenerateId() { return ::crypto::RandData<uint64_t>(); }
+uint64_t TaskRunnerImpl::GenerateId() { return nearby::RandData<uint64_t>(); }
 
 }  // namespace nearby

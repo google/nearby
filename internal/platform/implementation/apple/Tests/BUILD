@@ -1,6 +1,4 @@
-load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
-
-# Copyright 2020 Google LLC
+# Copyright 2020-2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +11,10 @@ load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
+load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS", "IOS_MINIMUM_TEST_RUNNER")
+
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -24,6 +26,7 @@ objc_library(
         "GNCBleTest.mm",
         "GNCBluetoothAdapterTest.mm",
         "GNCCryptoTest.mm",
+        "GNCIPAddressTest.mm",
         "GNCMultiThreadExecutorTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
@@ -31,16 +34,22 @@ objc_library(
     ],
     features = ["-layering_check"],
     deps = [
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",
-        "//internal/platform/implementation/apple:Shared",
+        "//internal/platform/implementation/apple/Mediums",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
+        "@com_google_absl//absl/time",
     ],
 )
 
 ios_unit_test(
     name = "PlatformTests",
-    minimum_os_version = "13.0",
-    runner = "//testing/utp/ios:IOS_13",
+    minimum_os_version = IOS_MINIMUM_OS,
+    runner = IOS_MINIMUM_TEST_RUNNER,
     deps = [
         ":PlatformTestslib",
     ],

@@ -22,9 +22,9 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
-#include "fastpair/ui/fast_pair/fast_pair_presenter.h"
 
 namespace nearby {
 namespace fastpair {
@@ -42,7 +42,11 @@ class FastPairPresenterImplTest : public ::testing::Test {
     controller_.AddObserver(&notification_controller_observer_);
   }
 
+  void OnDiscoveryAction(DiscoveryAction action) { discovery_action_ = action; }
+
  protected:
+  DiscoveryAction discovery_action_;
+
   FakeFastPairRepository repository_;
   FastPairPresenterImpl fast_pair_presenter_;
   FastPairNotificationController controller_;
@@ -54,8 +58,12 @@ TEST_F(FastPairPresenterImplTest, ShowDiscovery) {
                         Protocol::kFastPairInitialPairing);
 
   EXPECT_EQ(0, notification_controller_observer_.on_update_device_count());
-  fast_pair_presenter_.ShowDiscovery(device, controller_);
+  fast_pair_presenter_.ShowDiscovery(
+      device, controller_,
+      [this](DiscoveryAction action) { OnDiscoveryAction(action); });
   EXPECT_EQ(1, notification_controller_observer_.on_update_device_count());
+  controller_.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
+  EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
 }
 }  // namespace
 }  // namespace fastpair

@@ -33,8 +33,8 @@ class Mediator final : public ScannerBroker::Observer {
   ~Mediator() override = default;
 
   // ScannerBroker::Observer
-  void OnDeviceFound(const FastPairDevice& device) override;
-  void OnDeviceLost(const FastPairDevice& device) override;
+  void OnDeviceFound(FastPairDevice& device) override;
+  void OnDeviceLost(FastPairDevice& device) override;
 
   void StartScanning();
 

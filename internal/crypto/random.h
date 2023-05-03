@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//*** WARNING!!! Do not add more functions and Data types to this file. ***
+// This file needs to be in sync with:
+// https://source.chromium.org/chromium/chromium/src/+/main:crypto/random.h
+
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_RANDOM_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_RANDOM_H_
 
@@ -31,18 +35,6 @@ CRYPTO_EXPORT void RandBytes(void *bytes, size_t length);
 
 // Fills |bytes| with cryptographically-secure random bits.
 CRYPTO_EXPORT void RandBytes(absl::Span<uint8_t> bytes);
-
-// Returns |length| random bytes.
-CRYPTO_EXPORT std::string RandBytes(size_t length);
-
-// Creates an object of type T initialized with random data.
-// This template should be used for simple data types: int, char, etc.
-template <typename T>
-T RandData() {
-  T data;
-  RandBytes(&data, sizeof(data));
-  return data;
-}
 
 }  // namespace crypto
 

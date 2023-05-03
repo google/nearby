@@ -15,6 +15,7 @@
 #include "presence/implementation/service_controller_impl.h"
 
 #include <utility>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "presence/data_types.h"
@@ -38,6 +39,18 @@ absl::StatusOr<BroadcastSessionId> ServiceControllerImpl::StartBroadcast(
 
 void ServiceControllerImpl::StopBroadcast(BroadcastSessionId id) {
   broadcast_manager_.StopBroadcast(id);
+}
+
+void ServiceControllerImpl::UpdateLocalDeviceMetadata(
+    const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+    absl::string_view manager_app_id,
+    const std::vector<nearby::internal::IdentityType>& identity_types,
+    int credential_life_cycle_days, int contiguous_copy_of_credentials,
+    GenerateCredentialsResultCallback credentials_generated_cb) {
+  credential_manager_.SetLocalDeviceMetadata(
+      metadata, regen_credentials, manager_app_id, identity_types,
+      credential_life_cycle_days, contiguous_copy_of_credentials,
+      std::move(credentials_generated_cb));
 }
 
 }  // namespace presence

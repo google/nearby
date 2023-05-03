@@ -46,9 +46,11 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
-        "//internal:__pkg__",
+        "//internal/auth:__subpackages__",
+        "//internal/interop:__pkg__",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
+        "//internal/preferences:__subpackages__",
         "//internal/weave:__pkg__",
         "//location/nearby/cpp:__subpackages__",
         "//presence:__subpackages__",
@@ -99,7 +101,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
-        "//internal:__pkg__",
+        "//internal/interop:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
@@ -149,7 +151,7 @@ cc_library(
         "wifi_lan_connection_info.h",
     ],
     visibility = [
-        "//internal:__pkg__",
+        "//internal/interop:__pkg__",
         "//presence:__subpackages__",
     ],
     deps = [
@@ -346,8 +348,9 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/base:__subpackages__",
         "//internal/flags:__subpackages__",
-        "//internal/network:__subpackages__",
+        "//internal/interop:__pkg__",
         "//internal/platform/implementation/windows:__subpackages__",
+        "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",
         "//internal/weave:__pkg__",
         "//location/nearby/cpp:__subpackages__",

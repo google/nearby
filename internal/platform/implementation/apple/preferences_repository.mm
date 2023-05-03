@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,25 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
-#define THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
+#import "internal/platform/implementation/apple/preferences_repository.h"
 
-#include <string>
+#include "absl/synchronization/mutex.h"
+#include "nlohmann/json.hpp"
 
-#include "internal/device.h"
+namespace nearby::apple {
 
-namespace nearby {
-namespace connections {
+nlohmann::json PreferencesRepository::LoadPreferences() {
+  absl::MutexLock lock(&mutex_);
+  return nlohmann::json::object();
+}
 
-using ::nearby::NearbyDevice;
+bool PreferencesRepository::SavePreferences(nlohmann::json preferences) {
+  absl::MutexLock lock(&mutex_);
+  return false;
+}
 
-class NearbyDeviceProvider {
-  virtual ~NearbyDeviceProvider() = default;
-  virtual NearbyDevice* GetLocalDevice() = 0;
-  virtual std::string GetServiceId() = 0;
-};
-
-}  // namespace connections
-}  // namespace nearby
-
-#endif  // THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
+}  // namespace nearby::apple

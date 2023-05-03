@@ -20,7 +20,9 @@
 #include <string>
 #include <vector>
 
+#include "absl/synchronization/mutex.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/device_metadata.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
@@ -36,25 +38,22 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
   class Factory {
    public:
     static std::unique_ptr<FastPairDiscoverableScanner> Create(
-        std::shared_ptr<FastPairScanner> scanner,
-        std::shared_ptr<BluetoothAdapter> adapter,
-        DeviceCallback found_callback, DeviceCallback lost_callback);
+        FastPairScanner& scanner, DeviceCallback found_callback,
+        DeviceCallback lost_callback);
 
     static void SetFactoryForTesting(Factory* g_test_factory);
 
    protected:
     virtual ~Factory();
     virtual std::unique_ptr<FastPairDiscoverableScanner> CreateInstance(
-        std::shared_ptr<FastPairScanner> scanner,
-        std::shared_ptr<BluetoothAdapter> adapter,
-        DeviceCallback found_callback, DeviceCallback lost_callback) = 0;
+        FastPairScanner& scanner, DeviceCallback found_callback,
+        DeviceCallback lost_callback) = 0;
 
    private:
     static Factory* g_test_factory_;
   };
 
-  FastPairDiscoverableScannerImpl(std::shared_ptr<FastPairScanner> scanner,
-                                  std::shared_ptr<BluetoothAdapter> adapter,
+  FastPairDiscoverableScannerImpl(FastPairScanner& scanner,
                                   DeviceCallback found_callback,
                                   DeviceCallback lost_callback);
   FastPairDiscoverableScannerImpl(const FastPairDiscoverableScannerImpl&) =
@@ -75,12 +74,14 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
                                  DeviceMetadata& device_metadata);
   void NotifyDeviceFound(FastPairDevice& device);
 
-  std::shared_ptr<FastPairScanner> scanner_;
-  std::shared_ptr<BluetoothAdapter> adapter_;
+  absl::Mutex mutex_;
+  FastPairScanner& scanner_;
   DeviceCallback found_callback_;
   DeviceCallback lost_callback_;
-  absl::flat_hash_map<std::string, FastPairDevice*> notified_devices_;
-  absl::flat_hash_map<std::string, int> model_id_parse_attempts_;
+  absl::flat_hash_map<std::string, std::unique_ptr<FastPairDevice>>
+      notified_devices_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, int> model_id_parse_attempts_
+      ABSL_GUARDED_BY(mutex_);
   ObserverList<FastPairScanner::Observer> observer_list_;
 };
 

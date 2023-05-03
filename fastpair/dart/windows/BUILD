@@ -27,6 +27,7 @@ lexan.cc_windows_dll(
         "-Ithird_party",
     ],
     defines = [
+        "LOG_SEVERITY_VERBOSE",
         "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows-dll"],
@@ -57,6 +58,7 @@ lexan.cc_windows_dll(
         "-Ithird_party",
     ],
     defines = [
+        "LOG_SEVERITY_VERBOSE",
         "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows-dll"],

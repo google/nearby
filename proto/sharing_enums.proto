@@ -513,6 +513,7 @@ enum PermissionRequestType {
   PERMISSION_WIFI = 2;
   PERMISSION_BLUETOOTH = 3;
   PERMISSION_LOCATION = 4;
+  PERMISSION_WIFI_HOTSPOT = 5;
 }
 
 enum SharingUseCase {

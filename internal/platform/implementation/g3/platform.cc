@@ -32,6 +32,7 @@
 #include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
+#include "internal/platform/implementation/preferences_repository.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/server_sync.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
@@ -52,6 +53,7 @@
 #include "internal/platform/implementation/g3/log_message.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/mutex.h"
+#include "internal/platform/implementation/g3/preferences_repository.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/implementation/g3/timer.h"
@@ -233,6 +235,11 @@ std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
 std::unique_ptr<nearby::api::DeviceInfo>
 ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<g3::DeviceInfo>();
+}
+
+std::unique_ptr<nearby::api::PreferencesRepository>
+ImplementationPlatform::CreatePreferencesRepository(absl::string_view path) {
+  return std::make_unique<g3::PreferencesRepository>(path);
 }
 
 }  // namespace api

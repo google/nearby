@@ -88,7 +88,8 @@ void FastPairDataEncryptorImpl::Factory::CreateAsyncWithKeyExchange(
   NEARBY_LOGS(INFO) << __func__ << ": Attempting to get device metadata.";
   FastPairRepository::Get()->GetDeviceMetadata(
       device.GetModelId(),
-      [&on_get_instance_callback](DeviceMetadata& metadata) {
+      [on_get_instance_callback = std::move(on_get_instance_callback)](
+          DeviceMetadata& metadata) mutable {
         FastPairDataEncryptorImpl::Factory::DeviceMetadataRetrieved(
             std::move(on_get_instance_callback), metadata);
       });

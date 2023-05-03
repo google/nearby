@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -27,11 +28,15 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/fast_pair_device.h"
+#include "fastpair/common/pair_failure.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client.h"
+#include "fastpair/internal/mediums/mediums.h"
 #include "internal/base/bluetooth_address.h"
-#include "internal/platform/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include <openssl/rand.h>
@@ -63,12 +68,13 @@ FastPairGattServiceClientImpl::Factory*
 
 // static
 std::unique_ptr<FastPairGattServiceClient>
-FastPairGattServiceClientImpl::Factory::Create(const FastPairDevice& device) {
+FastPairGattServiceClientImpl::Factory::Create(const FastPairDevice& device,
+                                               Mediums& mediums) {
   if (g_test_factory_) {
     return g_test_factory_->CreateInstance();
   }
 
-  return std::make_unique<FastPairGattServiceClientImpl>(device);
+  return std::make_unique<FastPairGattServiceClientImpl>(device, mediums);
 }
 
 // static
@@ -80,8 +86,8 @@ void FastPairGattServiceClientImpl::Factory::SetFactoryForTesting(
 FastPairGattServiceClientImpl::Factory::~Factory() = default;
 
 FastPairGattServiceClientImpl::FastPairGattServiceClientImpl(
-    const FastPairDevice& device)
-    : device_address_(device.GetBleAddress()) {}
+    const FastPairDevice& device, Mediums& mediums)
+    : device_address_(device.GetBleAddress()), mediums_(mediums) {}
 
 void FastPairGattServiceClientImpl::InitializeGattConnection(
     absl::AnyInvocable<void(std::optional<PairFailure>)>
@@ -113,7 +119,10 @@ void FastPairGattServiceClientImpl::AttemptGattConnection() {
 
 void FastPairGattServiceClientImpl::CreateGattConnection() {
   NEARBY_LOGS(INFO) << __func__ << " : Create Gatt Connection to the device.";
-  gatt_client_ = ble_.ConnectToGattServer(device_address_);
+  if (mediums_.GetBluetoothRadio().Enable() &&
+      mediums_.GetBleV2().IsAvailable()) {
+    gatt_client_ = mediums_.GetBleV2().ConnectToGattServer(device_address_);
+  }
   if (!gatt_client_) {
     // The device must have been lost between connection attempts.
     NotifyInitializedError(
@@ -168,7 +177,7 @@ void FastPairGattServiceClientImpl::GetFastPairGattCharacteristics() {
   }
 
   is_initialized_ = true;
-  std::move(on_gatt_initialized_callback_)(absl::nullopt);
+  std::move(on_gatt_initialized_callback_)(std::nullopt);
 }
 
 std::optional<GattCharacteristic>
@@ -255,7 +264,7 @@ void FastPairGattServiceClientImpl::WriteRequestAsync(
   std::vector<uint8_t> data_to_write_vec(data_to_write.begin(),
                                          data_to_write.end());
 
-  // Append the public version of the private key to the message so thedevice
+  // Append the public version of the private key to the message so the device
   // can generate the shared secret to decrypt the message.
   const std::optional<std::array<uint8_t, 64>> public_key =
       fast_pair_data_encryptor.GetPublicKey();
@@ -340,7 +349,7 @@ void FastPairGattServiceClientImpl::WritePasskeyAsync(
   // Subscribe the notification once the passkey characteristic's value changed
   if (SubscribePasskeyCharacteristic()) {
     is_passkey_notification_subscribed_ = true;
-    // Write passkey confonirmation request to the passkey characteristic
+    // Write passkey confirmation request to the passkey characteristic
     WritePasskeyCharacteristic(
         std::string(data_to_write_vec.begin(), data_to_write_vec.end()));
   }

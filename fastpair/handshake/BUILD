@@ -20,6 +20,7 @@ cc_library(
         "fast_pair_data_encryptor_impl.cc",
         "fast_pair_gatt_service_client_impl.cc",
         "fast_pair_handshake_impl.cc",
+        "fast_pair_handshake_lookup.cc",
     ],
     hdrs = [
         "fast_pair_data_encryptor.h",
@@ -28,6 +29,7 @@ cc_library(
         "fast_pair_gatt_service_client_impl.h",
         "fast_pair_handshake.h",
         "fast_pair_handshake_impl.h",
+        "fast_pair_handshake_lookup.h",
     ],
     visibility = [
         "//:__subpackages__",
@@ -37,19 +39,22 @@ cc_library(
         "//fastpair/common",
         "//fastpair/crypto",
         "//fastpair/dataparser",
-        "//fastpair/internal/ble",
+        "//fastpair/internal/mediums",
         "//fastpair/repository",
         "//fastpair/server_access",
         "//internal/base:bluetooth_address",
-        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "@boringssl//:crypto",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -82,7 +87,7 @@ cc_test(
         "//fastpair/common",
         "//fastpair/crypto",
         "//fastpair/dataparser",
-        "//fastpair/internal/ble",
+        "//fastpair/internal/mediums",
         "//fastpair/server_access:test_support",
         "//fastpair/testing",
         "//internal/platform:logging",
@@ -107,6 +112,7 @@ cc_test(
         ":handshake",
         ":test_support",
         "//fastpair/common",
+        "//fastpair/internal/mediums",
         "//fastpair/testing",
         "//internal/platform:base",
         "//internal/platform:comm",
@@ -116,6 +122,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
@@ -138,6 +145,26 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_handshake_lookup_test",
+    size = "small",
+    srcs = [
+        "fast_pair_handshake_lookup_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":handshake",
+        "//fastpair/common",
+        "//fastpair/internal/mediums",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],

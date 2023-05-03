@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,20 +16,21 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_IMPL_H_
 
 #include <functional>
-#include <memory>
+#include <future> // NOLINT
+#include <thread> // NOLINT
+#include <utility>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/network/http_client.h"
-#include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 namespace network {
 
 class NearbyHttpClient : public HttpClient {
  public:
-  NearbyHttpClient();
+  NearbyHttpClient() = default;
   ~NearbyHttpClient() override = default;
 
   NearbyHttpClient(const NearbyHttpClient&) = default;
@@ -37,19 +38,15 @@ class NearbyHttpClient : public HttpClient {
   NearbyHttpClient(NearbyHttpClient&&) = default;
   NearbyHttpClient& operator=(NearbyHttpClient&&) = default;
 
-  // Starts HTTP request in asynchronization mode.
   void StartRequest(const HttpRequest& request,
                     std::function<void(const absl::StatusOr<HttpResponse>&)>
                         callback) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Gets HTTP response in synchronization mode.
-  absl::StatusOr<HttpResponse> GetResponse(const HttpRequest& request) override;
-
  private:
-  absl::StatusOr<HttpResponse> InternalGetResponse(const HttpRequest& request);
+  void CleanThreads() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
 
-  Mutex mutex_;
-  std::unique_ptr<MultiThreadExecutor> network_executor_ = nullptr;
+  absl::Mutex mutex_;
+  std::vector<std::future<void>> http_threads_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace network

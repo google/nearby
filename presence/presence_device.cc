@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-#include "internal/crypto/random.h"
-#include "internal/device.h"
+#include "internal/platform/implementation/crypto.h"
+#include "internal/interop/device.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "presence/device_motion.h"
@@ -28,7 +28,10 @@ namespace presence {
 
 namespace {
 std::string GenerateRandomEndpointId() {
-  return crypto::RandBytes(kEndpointIdLength);
+  std::string result(kEndpointIdLength, 0);
+  crypto::RandBytes(const_cast<std::string::value_type*>(result.data()),
+                    result.size());
+  return result;
 }
 }  // namespace
 
@@ -48,8 +51,14 @@ PresenceDevice::PresenceDevice(DeviceMotion device_motion,
 
 std::vector<nearby::ConnectionInfoVariant> PresenceDevice::GetConnectionInfos()
     const {
+  std::vector<uint8_t> transformed_actions;
+  transformed_actions.reserve(actions_.size());
+  for (const auto& action : actions_) {
+    transformed_actions.push_back(action.GetActionIdentifier());
+  }
   return {nearby::BleConnectionInfo(metadata_.bluetooth_mac_address(),
-                                    /*gatt_characteristic=*/"", /*psm=*/"", 0)};
+                                    /*gatt_characteristic=*/"", /*psm=*/"",
+                                    transformed_actions)};
 }
 }  // namespace presence
 }  // namespace nearby

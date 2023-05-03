@@ -23,6 +23,7 @@
 #include "internal/platform/borrowable.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
+#include "presence/presence_device.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
@@ -77,6 +78,11 @@ class PresenceClient {
   // Terminates a broadcast session. Does nothing if the session is already
   // terminated.
   void StopBroadcast(BroadcastSessionId session_id);
+
+  // Returns the local PresenceDevice describing the current device's actions,
+  // connectivity info and unique identifier for use in Connections and
+  // Presence.
+  std::optional<PresenceDevice> GetLocalDevice();
 
  private:
   BorrowablePresenceService service_;

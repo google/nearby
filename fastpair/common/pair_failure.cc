@@ -90,6 +90,15 @@ std::ostream& operator<<(std::ostream& stream, PairFailure failure) {
       stream
           << "[Potential pairing device lost between GATT connection attempts]";
       break;
+    case PairFailure::kDeviceLostMidPairing:
+      stream << "[Potential pairing device lost during pairing.]";
+      break;
+    case PairFailure::kPairingAndConnect:
+      stream << "[Failed to pair with discovered device.]";
+      break;
+    case PairFailure::kPairingTimeout:
+      stream << "[Potential pairing failed with timeout.]";
+      break;
   }
 
   return stream;

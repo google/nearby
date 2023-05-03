@@ -31,6 +31,7 @@
 		23252B5729D739E400BB0370 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		23252B5929D739E500BB0370 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		23252B5C29D739E500BB0370 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		236C727829F83A1F00E54333 /* iOS-Example-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "iOS-Example-Info.plist"; sourceTree = SOURCE_ROOT; };
 		23D1FD2329D8A73200620802 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		23D1FD2529D8A9FF00620802 /* DiscoveredEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredEndpoint.swift; sourceTree = "<group>"; };
 		23D1FD2729D8AA2200620802 /* ConnectionRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionRequest.swift; sourceTree = "<group>"; };
@@ -78,6 +79,7 @@
 		23252B5429D739E400BB0370 /* iOS Example */ = {
 			isa = PBXGroup;
 			children = (
+				236C727829F83A1F00E54333 /* iOS-Example-Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
 				23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */,
 				23252B5729D739E400BB0370 /* ContentView.swift */,
@@ -345,6 +347,9 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS-Example-Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Bluetooth.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Local Network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -374,6 +379,9 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS-Example-Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Bluetooth.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Local Network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

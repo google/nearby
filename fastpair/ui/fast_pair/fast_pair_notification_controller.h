@@ -18,17 +18,19 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/repository/device_metadata.h"
+#include "fastpair/ui/actions.h"
 #include "internal/base/observer_list.h"
 
 namespace nearby {
 namespace fastpair {
-using RepeatingClosure = absl::AnyInvocable<void()>;
+
+using DiscoveryCallback = absl::AnyInvocable<void(DiscoveryAction) const>;
+
 enum class FastPairNotificationDismissReason {
   kDismissedByUser,
   kDismissedByOs,
   kDismissedByTimeout,
 };
-
 // This controller creates and manages messages for each FastPair corresponding
 // notification event.
 class FastPairNotificationController {
@@ -52,9 +54,14 @@ class FastPairNotificationController {
   void NotifyShowDiscovery(const DeviceMetadata& device);
 
   // Creates and displays corresponding notification.
-  void ShowGuestDiscoveryNotification(const DeviceMetadata& device_metadata);
+  void ShowGuestDiscoveryNotification(const DeviceMetadata& device_metadata,
+                                      DiscoveryCallback callback);
+
+  // Triggers callback when the related action is clicked.
+  void OnDiscoveryClicked(DiscoveryAction action);
 
  private:
+  DiscoveryCallback callback_;
   ObserverList<Observer> observers_;
 };
 }  // namespace fastpair

@@ -35,13 +35,13 @@ class MockScannerBroker : public ScannerBroker {
     observers_.RemoveObserver(observer);
   }
 
-  void NotifyDeviceFound(const FastPairDevice& device) {
+  void NotifyDeviceFound(FastPairDevice& device) {
     for (auto& observer : observers_.GetObservers()) {
       observer->OnDeviceFound(device);
     }
   }
 
-  void NotifyDeviceLost(const FastPairDevice& device) {
+  void NotifyDeviceLost(FastPairDevice& device) {
     for (auto& observer : observers_.GetObservers()) {
       observer->OnDeviceLost(device);
     }

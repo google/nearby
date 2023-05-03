@@ -31,6 +31,7 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/implementation/credential_manager.h"
 
 namespace nearby {
@@ -127,6 +128,24 @@ class CredentialManagerImpl : public CredentialManager {
   std::vector<uint8_t> ExtendMetadataEncryptionKey(
       absl::string_view metadata_encryption_key);
 
+  void SetLocalDeviceMetadata(
+      const Metadata& metadata, bool regen_credentials,
+      absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) override {
+    metadata_ = metadata;
+    if (regen_credentials) {
+      GenerateCredentials(
+          metadata, manager_app_id, identity_types, credential_life_cycle_days,
+          contiguous_copy_of_credentials, std::move(credentials_generated_cb));
+    }
+  }
+
+  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
+    return metadata_;
+  }
+
  private:
   struct SubscriberKey {
     CredentialSelector credential_selector;
@@ -185,6 +204,7 @@ class CredentialManagerImpl : public CredentialManager {
       ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
   std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr_;
+  Metadata metadata_;
 };
 
 }  // namespace presence

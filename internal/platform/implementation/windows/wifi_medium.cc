@@ -192,7 +192,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
                   p_connect_info->wlanAssociationAttributes.dot11Bssid),
               kMacAddrLen);
       wifi_information_.bssid = absl::StrFormat(
-          "%2llx:%2llx:%2llx:%2llx:%2llx:%2llx", str_tmp[0], str_tmp[1],
+          "%02llx:%02llx:%02llx:%02llx:%02llx:%02llx", str_tmp[0], str_tmp[1],
           str_tmp[2], str_tmp[3], str_tmp[4], str_tmp[5]);
       NEARBY_LOGS(INFO) << "wifi bssid is: " << wifi_information_.bssid;
     }
@@ -241,7 +241,7 @@ std::string WifiMedium::InternalGetWifiIpAddress() {
                   winrt::to_string(profile_details.GetConnectedSsid())) {
             NEARBY_LOGS(INFO)
                 << "SSID of this IP matches with this WiFi interface's SSID:"
-                << wifi_information_.ssid << ", return this IP";
+                << wifi_information_.ssid << ", return this IP: " << ipv4_s;
             return ipv4_s;
           }
         }

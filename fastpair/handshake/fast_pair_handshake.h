@@ -49,11 +49,10 @@ class FastPairHandshake {
       FastPairDevice& device, std::optional<PairFailure> failure)>;
 
   FastPairHandshake(
-      FastPairDevice& device, OnCompleteCallback on_complete_cb,
+      OnCompleteCallback on_complete_cb,
       std::unique_ptr<FastPairDataEncryptor> data_encryptor,
       std::unique_ptr<FastPairGattServiceClient> gatt_service_client)
-      : device_(&device),
-        on_complete_callback_(std::move(on_complete_cb)),
+      : on_complete_callback_(std::move(on_complete_cb)),
         fast_pair_data_encryptor_(std::move(data_encryptor)),
         fast_pair_gatt_service_client_(std::move(gatt_service_client)) {}
 
@@ -73,7 +72,6 @@ class FastPairHandshake {
 
  protected:
   bool completed_successfully_ = false;
-  FastPairDevice* device_;
   OnCompleteCallback on_complete_callback_;
   std::unique_ptr<FastPairDataEncryptor> fast_pair_data_encryptor_;
   std::unique_ptr<FastPairGattServiceClient> fast_pair_gatt_service_client_;

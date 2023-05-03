@@ -31,23 +31,24 @@ namespace nearby {
 namespace fastpair {
 
 FastPairHandshakeImpl::FastPairHandshakeImpl(FastPairDevice& device,
+                                             Mediums& mediums,
                                              OnCompleteCallback on_complete)
-    : FastPairHandshake(device, std::move(on_complete), nullptr, nullptr) {
+    : FastPairHandshake(std::move(on_complete), nullptr, nullptr) {
   fast_pair_gatt_service_client_ =
-      FastPairGattServiceClientImpl::Factory::Create(device);
+      FastPairGattServiceClientImpl::Factory::Create(device, mediums);
   fast_pair_gatt_service_client_->InitializeGattConnection(
-      [this](std::optional<PairFailure> failure) {
-        OnGattClientInitializedCallback(failure);
+      [&](std::optional<PairFailure> failure) {
+        OnGattClientInitializedCallback(device, failure);
       });
 }
 
 void FastPairHandshakeImpl::OnGattClientInitializedCallback(
-    std::optional<PairFailure> failure) {
+    FastPairDevice& device, std::optional<PairFailure> failure) {
   if (failure.has_value()) {
     NEARBY_LOGS(WARNING) << __func__
                          << ": Failed to init gatt client with failure = "
                          << failure.value();
-    std::move(on_complete_callback_)(*device_, failure.value());
+    std::move(on_complete_callback_)(device, failure.value());
     return;
   }
 
@@ -55,16 +56,19 @@ void FastPairHandshakeImpl::OnGattClientInitializedCallback(
       << __func__
       << ": Fast Pair GATT service client initialization successful.";
   FastPairDataEncryptorImpl::Factory::CreateAsync(
-      *device_, absl::bind_front(
-                    &FastPairHandshakeImpl::OnDataEncryptorCreateAsync, this));
+      device,
+      [&](std::unique_ptr<FastPairDataEncryptor> fast_pair_data_encryptor) {
+        OnDataEncryptorCreateAsync(device, std::move(fast_pair_data_encryptor));
+      });
 }
 
 void FastPairHandshakeImpl::OnDataEncryptorCreateAsync(
+    FastPairDevice& device,
     std::unique_ptr<FastPairDataEncryptor> fast_pair_data_encryptor) {
   if (!fast_pair_data_encryptor) {
     NEARBY_LOGS(WARNING) << __func__
                          << ": Failed to create Fast Pair Data Encryptor.";
-    std::move(on_complete_callback_)(*device_,
+    std::move(on_complete_callback_)(device,
                                      PairFailure::kDataEncryptorRetrieval);
     return;
   }
@@ -74,21 +78,22 @@ void FastPairHandshakeImpl::OnDataEncryptorCreateAsync(
   fast_pair_gatt_service_client_->WriteRequestAsync(
       /*message_type=*/kKeyBasedPairingType,
       /*flags=*/kInitialOrSubsequentFlags,
-      /*provider_address=*/device_->GetBleAddress(),
+      /*provider_address=*/device.GetBleAddress(),
       /*seekers_address=*/"", *fast_pair_data_encryptor_,
-      [this](absl::string_view response, std::optional<PairFailure> failure) {
-        OnWriteResponse(response, failure);
+      [&](absl::string_view response, std::optional<PairFailure> failure) {
+        OnWriteResponse(device, response, failure);
       });
 }
 
 void FastPairHandshakeImpl::OnWriteResponse(
-    absl::string_view response, std::optional<PairFailure> failure) {
+    FastPairDevice& device, absl::string_view response,
+    std::optional<PairFailure> failure) {
   if (failure.has_value()) {
     NEARBY_LOGS(WARNING)
         << __func__
         << ": Failed during key-based pairing protocol with failure = "
         << failure.value();
-    std::move(on_complete_callback_)(*device_, failure.value());
+    std::move(on_complete_callback_)(device, failure.value());
     return;
   }
 
@@ -98,33 +103,33 @@ void FastPairHandshakeImpl::OnWriteResponse(
     NEARBY_LOGS(WARNING)
         << __func__ << ": Handshake failed because of incorrect response size.";
     std::move(on_complete_callback_)(
-        *device_, PairFailure::kKeybasedPairingResponseDecryptFailure);
+        device, PairFailure::kKeybasedPairingResponseDecryptFailure);
     return;
   }
 
   std::vector<uint8_t> response_bytes(response.begin(), response.end());
   fast_pair_data_encryptor_->ParseDecryptResponse(
-      response_bytes, [this](std::optional<DecryptedResponse> response) {
-        OnParseDecryptedResponse(response);
+      response_bytes, [&](std::optional<DecryptedResponse> response) {
+        OnParseDecryptedResponse(device, response);
       });
 }
 
 void FastPairHandshakeImpl::OnParseDecryptedResponse(
-    std::optional<DecryptedResponse>& response) {
+    FastPairDevice& device, std::optional<DecryptedResponse>& response) {
   if (!response.has_value()) {
     NEARBY_LOGS(WARNING) << __func__
                          << ": Missing decrypted response from parse.";
     std::move(on_complete_callback_)(
-        *device_, PairFailure::kKeybasedPairingResponseDecryptFailure);
+        device, PairFailure::kKeybasedPairingResponseDecryptFailure);
     return;
   }
   NEARBY_LOGS(INFO) << __func__
                     << ": Successfully decrypted and parsed response.";
 
-  device_->set_public_address(
+  device.set_public_address(
       device::CanonicalizeBluetoothAddress(response->address_bytes));
   completed_successfully_ = true;
-  std::move(on_complete_callback_)(*device_, absl::nullopt);
+  std::move(on_complete_callback_)(device, absl::nullopt);
 }
 
 }  // namespace fastpair

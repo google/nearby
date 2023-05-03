@@ -50,6 +50,7 @@ void MediumEnvironment::Start(EnvironmentConfig config) {
     NEARBY_LOGS(INFO) << "MediumEnvironment::Start()";
     config_ = std::move(config);
     if (config_.use_simulated_clock) {
+      MutexLock lock(&mutex_);
       simulated_clock_ = std::make_unique<FakeClock>();
     }
     Reset();
@@ -60,8 +61,11 @@ void MediumEnvironment::Stop() {
   if (enabled_.exchange(false)) {
     NEARBY_LOGS(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
+    if (config_.use_simulated_clock) {
+      MutexLock lock(&mutex_);
+      simulated_clock_.reset();
+    }
     config_ = {};
-    simulated_clock_.reset();
   }
 }
 
@@ -1205,6 +1209,7 @@ void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
 }
 
 absl::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
+  MutexLock lock(&mutex_);
   if (simulated_clock_) {
     return absl::optional<FakeClock*>(simulated_clock_.get());
   }

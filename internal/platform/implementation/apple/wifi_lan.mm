@@ -13,11 +13,13 @@
 // limitations under the License.
 
 #import "internal/platform/implementation/apple/wifi_lan.h"
+#import <Foundation/Foundation.h>
 
 #include <memory>
 #include <string>
 #include <utility>
 
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANMedium.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
@@ -94,7 +96,8 @@ WifiLanServerSocket::WifiLanServerSocket(GNCWiFiLANServerSocket* server_socket)
     : server_socket_(server_socket) {}
 
 std::string WifiLanServerSocket::GetIPAddress() const {
-  return [server_socket_.ipAddress UTF8String];
+  NSData* addressData = server_socket_.ipAddress.binaryRepresentation;
+  return std::string((char*)addressData.bytes, addressData.length);
 }
 
 int WifiLanServerSocket::GetPort() const { return server_socket_.port; }
@@ -204,7 +207,12 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port, CancellationFlag* cancellation_flag) {
   NSError* error = nil;
-  NSString* host = @(ip_address.c_str());
+  if (ip_address.size() != 4) {
+    GTMLoggerError(@"Error IP address must be 4 bytes, but is %lu bytes", ip_address.size());
+    return nil;
+  }
+  NSData* hostData = [NSData dataWithBytes:ip_address.data() length:ip_address.size()];
+  GNCIPv4Address* host = [GNCIPv4Address addressFromData:hostData];
   GNCWiFiLANSocket* socket = [medium_ connectToHost:host port:port error:&error];
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);

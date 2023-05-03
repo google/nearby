@@ -27,6 +27,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -284,6 +285,9 @@ struct ClientGattConnectionCallback {
 
 // Callback for asynchronous events on the server side of a GATT connection.
 struct ServerGattConnectionCallback {
+  using ReadValueCallback =
+      absl::AnyInvocable<void(absl::StatusOr<absl::string_view> data)>;
+  using WriteValueCallback = absl::AnyInvocable<void(absl::Status result)>;
   // Called when a remote peripheral connected to us and subscribed to one of
   // our characteristics.
   absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
@@ -293,6 +297,24 @@ struct ServerGattConnectionCallback {
   // characteristics.
   absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
       characteristic_unsubscription_cb;
+
+  // Called when a gatt client is reading from the characteristic.
+  // Must call `callback` with the read result.
+  // When a characteristic has a static value set with
+  // `GattServer::UpdateCharacteristic()`, then reading from the characteristic
+  // yields that static value. The read callback is not called.
+  // Otherwise, the gatt server calls the read callback to get the value.
+  absl::AnyInvocable<void(const BlePeripheral& remote_device,
+                          const GattCharacteristic& characteristic, int offset,
+                          ReadValueCallback callback)>
+      on_characteristic_read_cb;
+
+  // Called when a gatt client is writing to the characteristic.
+  // Must call `callback` with the write result.
+  absl::AnyInvocable<void(const BlePeripheral& remote_device,
+                          const GattCharacteristic& characteristic, int offset,
+                          absl::string_view data, WriteValueCallback callback)>
+      on_characteristic_write_cb;
 };
 
 // A BLE GATT client socket for requesting GATT socket.

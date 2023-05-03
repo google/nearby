@@ -20,19 +20,34 @@
 #include "absl/status/status.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
+#include "presence/presence_device.h"
 #include "presence/presence_service.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 
+using ::nearby::internal::Metadata;
 using ::testing::status::StatusIs;
+
+constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 
 // Creates a PresenceClient and destroys PresenceService that was used to create
 // it.
 PresenceClient CreateDefunctPresenceClient() {
   PresenceService presence_service;
   return presence_service.CreatePresenceClient();
+}
+
+Metadata CreateTestMetadata() {
+  Metadata metadata;
+  metadata.set_device_type(internal::DEVICE_TYPE_PHONE);
+  metadata.set_account_name("test_account");
+  metadata.set_device_name("NP test device");
+  metadata.set_user_name("Test user");
+  metadata.set_device_profile_url("test_image.test.com");
+  metadata.set_bluetooth_mac_address(kMacAddr);
+  return metadata;
 }
 
 class PresenceClientTest : public testing::Test {
@@ -104,6 +119,23 @@ TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
   env_.Stop();
 }
 
+TEST_F(PresenceClientTest, GettingDeviceWorks) {
+  PresenceService presence_service;
+  PresenceClient presence_client = presence_service.CreatePresenceClient();
+  presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata(), false, "",
+                                             {}, 0, 0, {});
+  auto device = presence_client.GetLocalDevice();
+  ASSERT_NE(device, std::nullopt);
+  EXPECT_EQ(device->GetEndpointId().length(), kEndpointIdLength);
+  EXPECT_EQ(device->GetMetadata().SerializeAsString(),
+            CreateTestMetadata().SerializeAsString());
+}
+
+TEST_F(PresenceClientTest, TestGettingDeviceDefunct) {
+  PresenceClient presence_client = CreateDefunctPresenceClient();
+  auto device = presence_client.GetLocalDevice();
+  EXPECT_EQ(device, std::nullopt);
+}
 }  // namespace
 }  // namespace presence
 }  // namespace nearby

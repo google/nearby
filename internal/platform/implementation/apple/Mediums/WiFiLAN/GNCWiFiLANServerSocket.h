@@ -14,6 +14,7 @@
 
 #import <Foundation/Foundation.h>
 
+@class GNCIPv4Address;
 @class GNCWiFiLANSocket;
 
 @interface GNCWiFiLANServerSocket : NSObject
@@ -31,9 +32,9 @@
 - (nonnull instancetype)initWithPort:(NSInteger)port NS_DESIGNATED_INITIALIZER;
 
 /**
- * The 4 byte binary representation for the IPv4 address of the physical network interface.
+ * The IPv4 address of the physical network interface.
  */
-@property(nonatomic, readonly, copy) NSString *ipAddress;
+@property(nonatomic, readonly, copy) GNCIPv4Address *ipAddress;
 
 /**
  * The port of the server socket.

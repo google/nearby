@@ -16,10 +16,7 @@ cc_library(
     copts = [
         "-Ithird_party",
     ],
-    visibility = [
-        "//fastpair:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
-    ],
+    visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",

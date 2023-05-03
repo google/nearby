@@ -25,7 +25,7 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client.h"
-#include "fastpair/internal/ble/ble.h"
+#include "fastpair/internal/mediums/mediums.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/timer_impl.h"
 
@@ -41,7 +41,7 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   class Factory {
    public:
     static std::unique_ptr<FastPairGattServiceClient> Create(
-        const FastPairDevice& device);
+        const FastPairDevice& device, Mediums& mediums);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
@@ -52,7 +52,8 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
     static Factory* g_test_factory_;
   };
 
-  explicit FastPairGattServiceClientImpl(const FastPairDevice& device);
+  explicit FastPairGattServiceClientImpl(const FastPairDevice& device,
+                                         Mediums& mediums);
   FastPairGattServiceClientImpl(const FastPairGattServiceClientImpl&) = delete;
   FastPairGattServiceClientImpl& operator=(
       const FastPairGattServiceClientImpl&) = delete;
@@ -144,7 +145,7 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   bool is_initialized_ = false;
   std::string device_address_;
   std::unique_ptr<GattClient> gatt_client_;
-  Ble ble_;
+  Mediums& mediums_;
 };
 }  // namespace fastpair
 }  // namespace nearby

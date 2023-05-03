@@ -21,6 +21,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/local_credential.pb.h"
 
 namespace nearby {
 namespace api {

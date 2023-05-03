@@ -233,6 +233,11 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
       const std::string& service_name, const std::string& service_uuid) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Return a Bluetooth pairing instance to handle the pairing process with the
+  // remote device.
+  std::unique_ptr<api::BluetoothPairing> CreatePairing(
+      api::BluetoothDevice& remote_device) override;
+
   api::BluetoothDevice* GetRemoteDevice(
       const std::string& mac_address) override;
 

@@ -14,15 +14,15 @@
 
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
-#include <algorithm>
-#include <memory>
 #include <string>
-#include <vector>
+#include <utility>
+#include <memory>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "fastpair/repository/device_metadata.h"
+#include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
 
 namespace nearby {
@@ -39,12 +39,19 @@ class FastPairNotificationControllerTest : public ::testing::Test {
     notification_controller_.AddObserver(&notification_controller_obsesrver_);
   }
 
-  void TriggerOnUpdateDevice(DeviceMetadata& device) {
-    notification_controller_.ShowGuestDiscoveryNotification(device);
+  void TriggerOnUpdateDevice(DeviceMetadata& device,
+                             DiscoveryCallback callback) {
+    notification_controller_.ShowGuestDiscoveryNotification(
+        device, std::move(callback));
+  }
+
+  void DiscoveryActionClicked(DiscoveryAction action) {
+    discovery_action_ = action;
   }
 
   FastPairNotificationController notification_controller_;
   FakeFastPairNotificationControllerObserver notification_controller_obsesrver_;
+  DiscoveryAction discovery_action_;
 };
 
 TEST_F(FastPairNotificationControllerTest, ShowGuestDiscoveryNotification) {
@@ -52,10 +59,14 @@ TEST_F(FastPairNotificationControllerTest, ShowGuestDiscoveryNotification) {
   response.mutable_device()->set_id(kDeviceId);
   response.mutable_device()->set_name(kDeviceName);
   DeviceMetadata device_metadata(response);
-  TriggerOnUpdateDevice(device_metadata);
+  TriggerOnUpdateDevice(device_metadata, [this](DiscoveryAction action) {
+    DiscoveryActionClicked(action);
+  });
   EXPECT_TRUE(notification_controller_obsesrver_
                   .CheckDeviceMetadataListContainTestDevice(kDeviceName));
   EXPECT_EQ(1, notification_controller_obsesrver_.on_update_device_count());
+  notification_controller_.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
+  EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
 }
 
 }  // namespace

@@ -32,6 +32,7 @@ class FakeFastPairScanner final : public FastPairScanner {
   void RemoveObserver(Observer* observer) override;
   void NotifyDeviceFound(const BlePeripheral& peripheral);
   void NotifyDeviceLost(const BlePeripheral& peripheral);
+  void StartScanning() override {};
 
  private:
   ObserverList<FastPairScanner::Observer> observer_;

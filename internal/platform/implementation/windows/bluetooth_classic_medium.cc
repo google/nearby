@@ -19,6 +19,7 @@
 
 #include <codecvt>
 #include <fstream>
+#include <functional>
 #include <locale>
 #include <map>
 #include <memory>
@@ -29,10 +30,12 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
+#include "internal/platform/implementation/windows/bluetooth_pairing.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
@@ -45,7 +48,6 @@
 namespace nearby {
 namespace windows {
 namespace {
-
 using winrt::Windows::Foundation::IInspectable;
 using winrt::Windows::Foundation::Collections::IMapView;
 
@@ -310,7 +312,6 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     }
     nearby::CancellationFlagListener cancellation_flag_listener(
         cancellation_flag, [&rfcomm_socket]() {
-          rfcomm_socket->CancelIOAsync().get();
           rfcomm_socket->Close();
         });
 
@@ -335,6 +336,37 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
                        << ", error message: " << winrt::to_string(ex.message());
     return nullptr;
   }
+}
+
+std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
+    api::BluetoothDevice& remote_device) {
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Start to createPairing with device: "
+                       << remote_device.GetMacAddress();
+  try {
+    winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device =
+        winrt::Windows::Devices::Bluetooth::BluetoothDevice::
+            FromBluetoothAddressAsync(
+                mac_address_string_to_uint64(remote_device.GetMacAddress()))
+                .get();
+    winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing
+        custom_pairing =
+            bluetooth_device.DeviceInformation().Pairing().Custom();
+    if (custom_pairing) {
+      return std::make_unique<BluetoothPairing>(bluetooth_device,
+                                                custom_pairing);
+    }
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": Failed to get DeviceInformationCustomPairing.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << " : Failed to create pairing. exception: "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to create pairing. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
+  }
+  return nullptr;
 }
 
 bool BluetoothClassicMedium::HaveAccess(winrt::hstring device_id) {

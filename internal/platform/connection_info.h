@@ -15,8 +15,11 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 #include "proto/connections_enums.pb.h"
@@ -43,7 +46,7 @@ class ConnectionInfo {
   virtual ::location::nearby::proto::connections::Medium GetMediumType()
       const = 0;
   virtual std::string ToDataElementBytes() const = 0;
-  virtual char GetActions() const = 0;
+  virtual std::vector<uint8_t> GetActions() const = 0;
   static ConnectionInfoVariant FromDataElementBytes(
       absl::string_view data_element_bytes);
 };

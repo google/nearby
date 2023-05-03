@@ -14,7 +14,13 @@
 
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
+#include <utility>
+
+#include "absl/functional/any_invocable.h"
 #include "fastpair/repository/device_metadata.h"
+#include "fastpair/ui/actions.h"
+#include "internal/platform/logging.h"
+
 namespace nearby {
 namespace fastpair {
 void FastPairNotificationController::AddObserver(Observer* observer) {
@@ -33,8 +39,18 @@ void FastPairNotificationController::NotifyShowDiscovery(
 }
 
 void FastPairNotificationController::ShowGuestDiscoveryNotification(
-    const DeviceMetadata& device) {
+    const DeviceMetadata& device, DiscoveryCallback callback) {
+  callback_ = std::move(callback);
+  NEARBY_LOGS(INFO) << __func__ << "Notify show guest discovery notification. ";
   NotifyShowDiscovery(device);
+}
+
+void FastPairNotificationController::OnDiscoveryClicked(
+    DiscoveryAction action) {
+  NEARBY_LOGS(INFO) << __func__
+                    << "Discovery action button is clicked in the app.";
+  DCHECK(callback_);
+  callback_(action);
 }
 
 }  // namespace fastpair

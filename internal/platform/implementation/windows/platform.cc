@@ -53,6 +53,7 @@
 #include "internal/platform/implementation/windows/listenable_future.h"
 #include "internal/platform/implementation/windows/log_message.h"
 #include "internal/platform/implementation/windows/mutex.h"
+#include "internal/platform/implementation/windows/preferences_repository.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/server_sync.h"
 #include "internal/platform/implementation/windows/settable_future.h"
@@ -141,7 +142,7 @@ std::string ImplementationPlatform::GetAppDataPath(
       FOLDERID_LocalAppData,  //  rfid: A reference to the KNOWNFOLDERID that
                               //  identifies the folder.
       0,           // dwFlags: Flags that specify special retrieval options.
-      NULL,        // hToken: An access token that represents a particular user.
+      nullptr,     // hToken: An access token that represents a particular user.
       &basePath);  // ppszPath: When this method returns, contains the address
                    // of a pointer to a null-terminated Unicode string that
                    // specifies the path of the known folder. The calling
@@ -149,7 +150,7 @@ std::string ImplementationPlatform::GetAppDataPath(
                    // is no longer needed by calling CoTaskMemFree, whether
                    // SHGetKnownFolderPath succeeds or not.
   size_t bufferSize;
-  wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
+  wcstombs_s(&bufferSize, nullptr, 0, basePath, 0);
   std::string fullpathUTF8(bufferSize - 1, '\0');
   wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
   CoTaskMemFree(basePath);
@@ -318,6 +319,11 @@ std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
 
 std::unique_ptr<DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<windows::DeviceInfo>();
+}
+
+std::unique_ptr<nearby::api::PreferencesRepository>
+ImplementationPlatform::CreatePreferencesRepository(absl::string_view path) {
+  return std::make_unique<windows::PreferencesRepository>(path);
 }
 
 }  // namespace api

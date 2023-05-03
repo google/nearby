@@ -43,26 +43,28 @@ class FakeFastPairGattServiceClient : public FastPairGattServiceClient {
       WriteResponseCallback write_response_callback) override {
     key_based_write_response_callback_ = std::move(write_response_callback);
   }
+
   void WritePasskeyAsync(
       uint8_t message_type, uint32_t passkey,
       const FastPairDataEncryptor& fast_pair_data_encryptor,
       WriteResponseCallback write_response_callback) override {
     passkey_write_response_callback_ = std::move(write_response_callback);
   }
+
   void RunOnGattClientInitializedCallback(
-      std::optional<PairFailure> failure = absl::nullopt) {
+      std::optional<PairFailure> failure = std::nullopt) {
     std::move(on_initialized_callback_)(failure);
   }
 
   void RunWriteResponseCallback(
       absl::string_view value,
-      std::optional<PairFailure> failure = absl::nullopt) {
+      std::optional<PairFailure> failure = std::nullopt) {
     std::move(key_based_write_response_callback_)(value, failure);
   }
 
   void RunWritePasskeyCallback(
       absl::string_view value,
-      std::optional<PairFailure> failure = absl::nullopt) {
+      std::optional<PairFailure> failure = std::nullopt) {
     std::move(passkey_write_response_callback_)(value, failure);
   }
 

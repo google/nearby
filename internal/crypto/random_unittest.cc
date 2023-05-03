@@ -20,6 +20,7 @@
 
 #include "gtest/gtest.h"
 #include "internal/crypto/nearby_base.h"
+#include "internal/platform/implementation/crypto.h"
 
 // Basic functionality tests. Does NOT test the security of the random data.
 
@@ -46,15 +47,16 @@ TEST(RandBytes, RandBytes) {
 TEST(RandBytes, RandomString) {
   constexpr size_t kSize = 30;
 
-  std::string bytes = RandBytes(kSize);
+  std::string bytes(kSize, 0);
+  RandBytes(const_cast<std::string::value_type*>(bytes.data()), bytes.size());
 
   EXPECT_EQ(bytes.size(), kSize);
   EXPECT_TRUE(!IsTrivial(bytes));
 }
 
 TEST(RandBytes, RandData) {
-  uint64_t x = RandData<uint64_t>();
-  uint64_t y = RandData<uint64_t>();
+  uint64_t x = nearby::RandData<uint64_t>();
+  uint64_t y = nearby::RandData<uint64_t>();
 
   // Once in a billion years, consecutively generated random numbers will be
   // the same and the test will fail.

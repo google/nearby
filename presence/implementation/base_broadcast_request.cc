@@ -19,7 +19,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "internal/crypto/random.h"
+#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "presence/broadcast_request.h"
 #include "presence/implementation/action_factory.h"
@@ -72,9 +72,14 @@ BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
                               .account_name = account_name_,
                               .identity_type = identity_},
       .action = action_};
+
+  std::string bytes(kSaltSize, 0);
+  crypto::RandBytes(const_cast<std::string::value_type*>(bytes.data()),
+                    bytes.size());
+
   BaseBroadcastRequest broadcast_request{
       .variant = presence,
-      .salt = salt_.size() == kSaltSize ? salt_ : crypto::RandBytes(kSaltSize),
+      .salt = salt_.size() == kSaltSize ? salt_ : bytes,
       .tx_power = tx_power_,
       .power_mode = power_mode_};
   return broadcast_request;

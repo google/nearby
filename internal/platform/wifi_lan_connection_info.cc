@@ -15,12 +15,13 @@
 #include "internal/platform/wifi_lan_connection_info.h"
 
 #include <string>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/connection_info.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace {
@@ -42,19 +43,18 @@ std::string WifiLanConnectionInfo::ToDataElementBytes() const {
   mask |= has_bssid ? kBssidMask : 0;
   payload_data.push_back(mask);
   if (has_ipv4 || has_ipv6) {
-    payload_data.insert(payload_data.end(), ip_address_.begin(),
-                        ip_address_.end());
+    payload_data.append(ip_address_.begin(), ip_address_.end());
   }
-  payload_data.insert(payload_data.end(), port_.begin(), port_.end());
+  payload_data.append(port_.begin(), port_.end());
   if (has_bssid) {
-    payload_data.insert(payload_data.end(), bssid_.begin(), bssid_.end());
+    payload_data.append(bssid_.begin(), bssid_.end());
   }
-  payload_data.push_back(actions_);
+  payload_data.append(actions_.begin(), actions_.end());
   std::string ret;
   ret.push_back(kDataElementFieldType);
   ret.push_back(payload_data.size());
-  ret.insert(ret.end(), payload_data.begin(), payload_data.end());
-  return std::string(ret.data(), ret.size());
+  ret.append(payload_data.begin(), payload_data.end());
+  return ret;
 }
 
 absl::StatusOr<WifiLanConnectionInfo>
@@ -121,13 +121,10 @@ WifiLanConnectionInfo::FromDataElementBytes(absl::string_view bytes) {
     return absl::InvalidArgumentError(
         "Insufficient remaining bytes to read action.");
   }
-  char action = bytes[position];
-  // Check that we don't have any remaining bytes.
-  if (bytes.size() != ++position) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "Nonzero remaining bytes: %d.", bytes.size() - position));
-  }
-  return WifiLanConnectionInfo(address, port, bssid, action);
+  auto action_str = bytes.substr(position);
+  return WifiLanConnectionInfo(
+      address, port, bssid,
+      std::vector<uint8_t>(action_str.begin(), action_str.end()));
 }
 
 }  // namespace nearby

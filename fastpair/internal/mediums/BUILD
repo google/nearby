@@ -15,12 +15,17 @@
 licenses(["notice"])
 
 cc_library(
-    name = "ble",
+    name = "mediums",
     srcs = [
         "ble.cc",
+        "ble_v2.cc",
+        "bluetooth_radio.cc",
     ],
     hdrs = [
         "ble.h",
+        "ble_v2.h",
+        "bluetooth_radio.h",
+        "mediums.h",
     ],
     visibility = [
         "//fastpair:__subpackages__",
@@ -30,10 +35,38 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+    ],
+)
+
+cc_test(
+    name = "bluetooth_radio_test",
+    size = "small",
+    srcs = [
+        "bluetooth_radio_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":mediums",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "mediums_test",
+    size = "small",
+    srcs = [
+        "mediums_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":mediums",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -45,7 +78,7 @@ cc_test(
     ],
     shard_count = 16,
     deps = [
-        ":ble",
+        ":mediums",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
@@ -54,6 +87,21 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "ble_v2_test",
+    size = "small",
+    srcs = [
+        "ble_v2_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":mediums",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

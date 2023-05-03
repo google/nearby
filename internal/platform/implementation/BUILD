@@ -31,6 +31,7 @@ cc_library(
         "log_message.h",
         "mutex.h",
         "output_file.h",
+        "preferences_repository.h",
         "scheduled_executor.h",
         "settable_future.h",
         "submittable_executor.h",
@@ -39,8 +40,10 @@ cc_library(
     ],
     visibility = [
         "//fastpair:__subpackages__",
+        "//internal/crypto:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/common:__subpackages__",
@@ -48,11 +51,13 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        "//internal/crypto",
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@nlohmann_json//:json",
     ],
 )
 
@@ -76,7 +81,6 @@ cc_library(
     copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//internal:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
@@ -111,13 +115,10 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//fastpair:__subpackages__",
-        "//internal:__pkg__",
         "//internal:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [

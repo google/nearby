@@ -28,6 +28,11 @@ class ObserverList {
   using const_iterator =
       typename absl::flat_hash_set<ObserverType*>::const_iterator;
 
+  ~ObserverList() ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    observers_.clear();
+  }
+
   void AddObserver(ObserverType* observer) ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     observers_.insert(observer);

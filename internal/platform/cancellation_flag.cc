@@ -27,7 +27,10 @@ CancellationFlag::CancellationFlag(bool cancelled) {
   cancelled_ = cancelled;
 }
 
-CancellationFlag::~CancellationFlag() { listeners_.clear(); }
+CancellationFlag::~CancellationFlag() {
+  absl::MutexLock lock(mutex_.get());
+  listeners_.clear();
+}
 
 void CancellationFlag::Cancel() {
   // Return immediately as no-op if feature flag is not enabled.

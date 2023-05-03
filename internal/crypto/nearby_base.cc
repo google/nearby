@@ -19,7 +19,7 @@
 #include <string>
 
 #ifdef NEARBY_CHROMIUM
-#include "base/check.h"
+#include "internal/platform/logging.h"
 #elif defined(NEARBY_SWIFTPM)
 #include "internal/platform/logging.h"
 #else

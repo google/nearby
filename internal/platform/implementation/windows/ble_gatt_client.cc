@@ -26,9 +26,12 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -213,10 +216,11 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
 
       // found all characteristics.
       NEARBY_LOGS(VERBOSE) << __func__ << ": Found all characteristics.";
-      break;
+      return true;
     }
 
-    return true;
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": Failed to find service and all characteristics.";
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to get GATT services. exception: "
@@ -623,10 +627,30 @@ void BleGattClient::OnCharacteristicValueChanged(
   }
   NEARBY_LOGS(VERBOSE) << __func__
                        << ": Got characteristic value length= " << data.size();
-  absl::MutexLock lock(&mutex_);
-  DCHECK(
-      native_characteristic_map_[characteristic].on_characteristic_changed_cb);
-  native_characteristic_map_[characteristic].on_characteristic_changed_cb(data);
+
+  absl::AnyInvocable<void(absl::string_view value)>
+      on_characteristic_changed_cb;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!native_characteristic_map_.contains(characteristic) ||
+        !native_characteristic_map_[characteristic]
+             .on_characteristic_changed_cb) {
+      NEARBY_LOGS(INFO) << __func__
+                        << ": No registered callback for characteristic.";
+      return;
+    }
+    on_characteristic_changed_cb =
+        std::move(native_characteristic_map_[characteristic]
+                      .on_characteristic_changed_cb);
+  }
+
+  on_characteristic_changed_cb(std::move(data));
+
+  {
+    absl::MutexLock lock(&mutex_);
+    native_characteristic_map_[characteristic].on_characteristic_changed_cb =
+        std::move(on_characteristic_changed_cb);
+  }
 }
 
 }  // namespace windows

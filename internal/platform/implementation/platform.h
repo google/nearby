@@ -46,6 +46,9 @@
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
+#ifndef NEARBY_CHROMIUM
+#include "internal/platform/implementation/preferences_repository.h"
+#endif
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
@@ -148,6 +151,11 @@ class ImplementationPlatform {
   //         return WebResponse if HTTP status code between 200 and 300.
   //         other cases will return absl Status in error.
   static absl::StatusOr<WebResponse> SendRequest(const WebRequest& request);
+
+#ifndef NEARBY_CHROMIUM
+  static std::unique_ptr<nearby::api::PreferencesRepository>
+  CreatePreferencesRepository(absl::string_view path);
+#endif
 };
 
 }  // namespace api
