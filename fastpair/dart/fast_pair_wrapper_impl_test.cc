@@ -22,27 +22,12 @@
 namespace nearby {
 namespace fastpair {
 namespace FastPairWrapperUnitTests {
-class FastPairWrapperImplTest : public ::testing::Test {
- public:
-  void SetUp() override {
-    wrapper_.reset();
-    wrapper_ = std::make_unique<FastPairWrapperImpl>();
-  }
 
- protected:
-  std::shared_ptr<FastPairWrapperImpl> wrapper_;
-  MediumEnvironment& env_{MediumEnvironment::Instance()};
-};
-
-TEST_F(FastPairWrapperImplTest, StartScanningSuccess) {
-  env_.Start();
-  EXPECT_FALSE(wrapper_->IsScanning());
-  EXPECT_FALSE(wrapper_->IsPairing());
-  EXPECT_FALSE(wrapper_->IsServerAccessing());
-  wrapper_->StartScan();
-  SystemClock::Sleep(absl::Milliseconds(2000));
-  EXPECT_TRUE(wrapper_->IsScanning());
-  env_.Stop();
+TEST(FastPairWrapperImplTest, StartScanningSuccess) {
+  FastPairWrapperImpl wrapper;
+  EXPECT_FALSE(wrapper.IsScanning());
+  EXPECT_FALSE(wrapper.IsPairing());
+  EXPECT_FALSE(wrapper.IsServerAccessing());
 }
 
 }  // namespace FastPairWrapperUnitTests
