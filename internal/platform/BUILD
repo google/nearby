@@ -151,6 +151,7 @@ cc_library(
         "wifi_lan_connection_info.h",
     ],
     visibility = [
+        "//connections/v3:__pkg__",
         "//internal/interop:__pkg__",
         "//presence:__subpackages__",
     ],
