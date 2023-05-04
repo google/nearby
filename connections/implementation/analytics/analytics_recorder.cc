@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/time/time.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/logging.h"
@@ -445,6 +446,14 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
   if (!CanRecordAnalyticsLocked("OnConnectionClosed")) {
     return;
   }
+
+  if (current_strategy_session_ == nullptr) {
+    NEARBY_LOGS(VERBOSE)
+        << "AnalyticsRecorder CanRecordAnalytics Unexpected call " << __func__
+        << " since current_strategy_session_ is required.";
+    return;
+  }
+
   auto it = active_connections_.find(endpoint_id);
   if (it == active_connections_.end()) {
     return;
@@ -457,24 +466,11 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
     // re-established with a new ConnectionRequest.
     auto pair = active_connections_.extract(it);
     std::unique_ptr<LogicalConnection> &logical_connection = pair.mapped();
-    logical_connection->GetEstablisedConnections();
 
-    // TODO(b/245553737): the recent change in protobuf may broken the class of
-    // RepeatedFieldPtr. Our app will crash after sending file. The app also
-    // crashes even only print the size of mutable_established_connection. we
-    // need to reccover the code when protobuf fixes the issue.
-
-    //     auto pair = active_connections_.extract(it);
-    //     std::unique_ptr<LogicalConnection> &logical_connection =
-    //     pair.mapped();
-
-    //     std::vector<ConnectionsLog::EstablishedConnection> connections =
-    //         logical_connection->GetEstablisedConnections();
-    //     auto established_connections =
-    //         current_strategy_session_->mutable_established_connection();
-    //     for (auto &connection : connections) {
-    //       established_connections->Add(std::move(connection));
-    //     }
+    absl::c_copy(
+        logical_connection->GetEstablisedConnections(),
+        RepeatedFieldBackInserter(
+            current_strategy_session_->mutable_established_connection()));
   }
 }
 

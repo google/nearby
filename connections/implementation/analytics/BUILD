@@ -36,6 +36,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/time",
@@ -58,6 +59,7 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto/analytics:connections_log_cc_proto",
+        "//net/proto2/contrib/parse_proto:parse_text_proto",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",

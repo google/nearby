@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 
+#include "net/proto2/contrib/parse_proto/parse_text_proto.h"
 #include "google/protobuf/message_lite.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -65,6 +66,7 @@ using ::location::nearby::proto::connections::WIFI_LAN;
 using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
 using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
 using ::nearby::analytics::EventLogger;
+using ::proto2::contrib::parse_proto::ParseTextProtoOrDie;
 using ::testing::Contains;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::Not;
@@ -770,46 +772,44 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  // TODO(b/245553737): recover the codes.
-  // EXPECT_THAT(event_logger.GetLoggedClientSession(),
-  // Partially(EqualsProto(R"pb(
-  //               strategy_session <
-  //                 strategy: P2P_STAR
-  //                 role: ADVERTISER
-  //                 advertising_phase <
-  //                   medium: BLE
-  //                   medium: BLUETOOTH
-  //                   advertising_metadata <
-  //                     supports_extended_ble_advertisements: false
-  //                     connected_ap_frequency: 0
-  //                     supports_nfc_technology: false
-  //                   >
-  //                 >
-  //                 established_connection <
-  //                   medium: BLUETOOTH
-  //                   sent_payload <
-  //                     type: FILE
-  //                     total_size_bytes: 50
-  //                     num_bytes_transferred: 20
-  //                     num_chunks: 2
-  //                     status: MOVED_TO_NEW_MEDIUM
-  //                   >
-  //                   disconnection_reason: UPGRADED
-  //                   connection_token: "connection_token"
-  //                 >
-  //                 established_connection <
-  //                   medium: WIFI_LAN
-  //                   sent_payload <
-  //                     type: FILE
-  //                     total_size_bytes: 50
-  //                     num_bytes_transferred: 30
-  //                     num_chunks: 3
-  //                     status: SUCCESS
-  //                   >
-  //                   disconnection_reason: LOCAL_DISCONNECTION
-  //                   connection_token: "connection_token"
-  //                 >
-  //               >)pb")));
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  established_connection <
+                    medium: BLUETOOTH
+                    sent_payload <
+                      type: FILE
+                      total_size_bytes: 50
+                      num_bytes_transferred: 20
+                      num_chunks: 2
+                      status: MOVED_TO_NEW_MEDIUM
+                    >
+                    disconnection_reason: UPGRADED
+                    connection_token: "connection_token"
+                  >
+                  established_connection <
+                    medium: WIFI_LAN
+                    sent_payload <
+                      type: FILE
+                      total_size_bytes: 50
+                      num_bytes_transferred: 30
+                      num_chunks: 3
+                      status: SUCCESS
+                    >
+                    disconnection_reason: LOCAL_DISCONNECTION
+                    connection_token: "connection_token"
+                  >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
@@ -1736,6 +1736,56 @@ TEST(AnalyticsRecorderTest,
                     >
                   >
                 >)pb"))));
+}
+
+TEST(AnalyticsRecorderOnConnectionClosedTest,
+     NotAddNewConnectionWithoutCallingOnStartAdvertising) {
+  std::string endpoint_id = "endpoint_id";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  // via OnStartAdvertising, current_strategy_session_ is set in
+  // UpdateStrategySessionLocked.
+  analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
+                                        /*mediums=*/{BLE, BLUETOOTH});
+  analytics_recorder.OnStopAdvertising();
+
+  // LogSession
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  ConnectionsLog::ClientSession strategy_session_proto =
+      ParseTextProtoOrDie(R"pb(
+        strategy_session <
+          strategy: P2P_STAR
+          role: ADVERTISER
+          advertising_phase <
+            medium: BLE
+            medium: BLUETOOTH
+            advertising_metadata <
+              supports_extended_ble_advertisements: false
+              connected_ap_frequency: 0
+              supports_nfc_technology: false
+            >
+          >
+        >)pb");
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Partially(EqualsProto(strategy_session_proto)));
+
+  // Without calling OnStartAdvertising won't create new
+  // current_strategy_session_.
+  analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
+                                             /*connection_token=*/"");
+  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);
+
+  analytics_recorder.LogSession();
+
+  // The proto won't change.
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Partially(EqualsProto(strategy_session_proto)));
 }
 
 }  // namespace
