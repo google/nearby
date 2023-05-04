@@ -39,6 +39,8 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
     device_->set_public_address(kPubliceAddress);
   }
 
+  ~FastPairHandshakeLookupTest() override { delete device_; }
+
   void CreateFastPairHandshkeInstanceForDevice(FastPairDevice& device) {
     CountDownLatch latch(1);
     Mediums mediums;
