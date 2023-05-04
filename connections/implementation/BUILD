@@ -121,7 +121,10 @@ cc_library(
         "wifi_lan_endpoint_channel.h",
         "wifi_lan_service_info.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
+    copts = [
+        "-DCORE_ADAPTER_DLL",
+        "-DNO_WEBRTC",
+    ],
     visibility = [
         "//connections:__pkg__",
         "//connections/implementation/fuzzers:__pkg__",

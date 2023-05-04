@@ -57,6 +57,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        # TODO: Support WebRTC
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -65,12 +66,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
-    ] + select({
-        "@platforms//cpu:arm": [],
-        "//conditions:default": [
-            # TODO: Support WebRTC
-        ],
-    }),
+    ],
 )
 
 cc_library(

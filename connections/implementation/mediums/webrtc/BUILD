@@ -26,7 +26,10 @@ cc_library(
         "session_description_wrapper.h",
         "signaling_frames.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
+    copts = [
+        "-DCORE_ADAPTER_DLL",
+        "-DNO_WEBRTC",
+    ],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -39,14 +42,10 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        # TODO: Support WebRTC
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",
-    ] + select({
-        "@platforms//cpu:arm": [],
-        "//conditions:default": [
-            # TODO: Support WebRTC
-        ],
-    }),
+    ],
 )
 
 cc_library(
@@ -57,7 +56,10 @@ cc_library(
     hdrs = [
         "webrtc_socket_impl.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
+    copts = [
+        "-DCORE_ADAPTER_DLL",
+        "-DNO_WEBRTC",
+    ],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -65,12 +67,8 @@ cc_library(
         "//connections:core_types",
         "//internal/platform:base",
         "//internal/platform:types",
-    ] + select({
-        "@platforms//cpu:arm": [],
-        "//conditions:default": [
-            # TODO: Support WebRTC
-        ],
-    }),
+        # TODO: Support WebRTC
+    ],
 )
 
 cc_test(
