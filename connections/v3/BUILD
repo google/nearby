@@ -5,6 +5,7 @@ cc_library(
         "connection_listening_options.h",
         "connection_resolution.h",
         "connections_device.h",
+        "connections_device_provider.h",
         "listeners.h",
     ],
     visibility = [
@@ -23,6 +24,7 @@ cc_library(
 cc_test(
     name = "v3_types_test",
     srcs = [
+        "connections_device_provider_test.cc",
         "connections_device_test.cc",
     ],
     deps = [

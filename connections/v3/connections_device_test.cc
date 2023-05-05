@@ -54,6 +54,16 @@ TEST(ConnectionsDeviceTest, TestThreeArgumentConstructor) {
   EXPECT_EQ(device.GetEndpointInfo(), "connections endpoint");
 }
 
+TEST(ConnectionsDeviceTest, TestLongEndpointId) {
+  auto connection_infos = CreateDefaultConnectionInfos();
+  ConnectionsDevice device("ABCDEF", "connections endpoint", connection_infos);
+  EXPECT_EQ(device.GetConnectionInfos(), connection_infos);
+  EXPECT_EQ(device.GetType(), NearbyDevice::Type::kConnectionsDevice);
+  EXPECT_EQ(device.GetEndpointId().length(), 4);
+  EXPECT_NE(device.GetEndpointId(), "ABCDEF");
+  EXPECT_EQ(device.GetEndpointInfo(), "connections endpoint");
+}
+
 }  // namespace
 }  // namespace v3
 }  // namespace connections
