@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2022-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,16 @@
 
 #include "connections/implementation/analytics/throughput_recorder.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <stdint.h>
+
+#include <ostream>
+#include <string>
+
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/logging.h"
-#include "proto/connections_enums.proto.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {

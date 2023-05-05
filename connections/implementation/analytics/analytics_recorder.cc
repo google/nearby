@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2022-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,19 +15,24 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <iterator>
 #include <memory>
-#include <optional>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/container/btree_map.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/analytics/event_logger.h"
+#include "internal/platform/error_code_params.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/system_clock.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 

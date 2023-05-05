@@ -39,6 +39,7 @@ cc_library(
         "timer.h",
     ],
     visibility = [
+        "//connections/implementation/analytics:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal/crypto:__pkg__",
         "//internal/platform:__pkg__",

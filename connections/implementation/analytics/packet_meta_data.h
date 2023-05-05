@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2022-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 #define NEARBY_CONNECTIONS_IMPLEMENTATION_ANALYTICS_PACKET_META_DATA_H_
 
 #include <cstdint>
-#include <string>
 
 #include "absl/time/time.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/system_clock.h"
 
 namespace nearby {

@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2022-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,19 @@
 
 #include "connections/implementation/analytics/throughput_recorder.h"
 
+#include <stdint.h>
+
+#include <new>
+#include <ostream>
 #include <string>
+#include <type_traits>
 #include <utility>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/meta/type_traits.h"
+#include "absl/strings/str_format.h"
+#include "absl/time/time.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
