@@ -65,9 +65,10 @@ bool IsDataElementAllowed(uint8_t header) {
     case DataElement::kProvisionedIdentityFieldType:
     case DataElement::kTrustedIdentityFieldType:
       return length >= 2 && length <= 6;
+    case DataElement::kTxPowerFieldType:
+      return length == 1;
     case DataElement::kActionFieldType:
-      // In v0 OTA format, this is a combined TX and Action DE.
-      return length >= 1 && length <= 5;
+      return length >= 1 && length <= 3;
     case DataElement::kModelIdFieldType:
       return length == 3;
     case DataElement::kEddystoneIdFieldType:
@@ -185,27 +186,20 @@ bool ContainsAny(const std::vector<DataElement>& data_elements,
 
 }  // namespace
 
-void AdvertisementDecoder::DecodeBaseTxAndAction(
+void AdvertisementDecoder::DecodeBaseAction(
     absl::string_view serialized_action) {
-  if (serialized_action.size() < sizeof(uint8_t) ||
-      serialized_action.size() > sizeof(uint8_t) + sizeof(uint32_t)) {
+  if (serialized_action.empty() || serialized_action.size() > 3) {
     NEARBY_LOGS(WARNING) << "Base NP action \'"
                          << absl::BytesToHexString(serialized_action)
                          << "\' has wrong length " << serialized_action.size()
-                         << " , expected size in range [1 - 5]";
+                         << " , expected size in range [1 - 3]";
     return;
   }
-  // TX power.
-  uint8_t tx_power = serialized_action[0];
-  decoded_advertisement_.data_elements.emplace_back(
-      DataElement::kTxPowerFieldType, tx_power);
-
-  // Action, 0-4 bytes in Big Endian order.
+  // Action, 0-2 bytes in Big Endian order.
   Action action = {.action = 0};
-  constexpr int kActionOffset = sizeof(uint8_t);
-  for (int i = 0; i < serialized_action.size() - kActionOffset; ++i) {
+  for (int i = 0; i < serialized_action.size(); ++i) {
     int offset = (sizeof(uint32_t) - 1 - i) * 8;
-    action.action |= serialized_action[i + kActionOffset] << offset;
+    action.action |= serialized_action[i] << offset;
   }
 
   ActionFactory::DecodeAction(action, decoded_advertisement_.data_elements);
@@ -262,8 +256,7 @@ absl::Status AdvertisementDecoder::DecryptDataElements(
       return internal_elem.status();
     }
     if (internal_elem->GetType() == DataElement::kActionFieldType) {
-      // In v0 OTA format, this is a combined TX and Action DE.
-      DecodeBaseTxAndAction(internal_elem->GetValue());
+      DecodeBaseAction(internal_elem->GetValue());
     } else {
       decoded_advertisement_.data_elements.push_back(*std::move(internal_elem));
     }
@@ -371,8 +364,7 @@ absl::StatusOr<Advertisement> AdvertisementDecoder::DecodeAdvertisement(
       }
     } else {
       if (elem->GetType() == DataElement::kActionFieldType) {
-        // In v0 OTA format, this is a combined TX and Action DE.
-        DecodeBaseTxAndAction(elem->GetValue());
+        DecodeBaseAction(elem->GetValue());
       } else {
         decoded_advertisement_.data_elements.push_back(*std::move(elem));
       }

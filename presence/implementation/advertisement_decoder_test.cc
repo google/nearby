@@ -94,7 +94,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisement) {
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00414142ceb073b0e34f58d7dc6dea370783ac943fa5"));
+      absl::HexStringToBytes("00514142c2c30e79fee14599e36e34d5d42e49fc37b0df"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -117,7 +117,7 @@ TEST(AdvertisementDecoder,
   AdvertisementDecoder decoder(GetScanRequest(credentials));
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00414142ceb073b0e34f58d7dc6dea370783ac943fa5"));
+      absl::HexStringToBytes("00514142c2c30e79fee14599e36e34d5d42e49fc37b0df"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -141,7 +141,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpTrustedAdvertisement) {
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00424142253536ac63191a96894d95f0ffa38b57cf9b"));
+      absl::HexStringToBytes("00524142099500aeef8bff5df05169a79726e11563b865"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -168,7 +168,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00444142253536ac63191a96894d95f0ffa38b57cf9b"));
+      absl::HexStringToBytes("00544142099500aeef8bff5df05169a79726e11563b865"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -221,14 +221,14 @@ TEST(AdvertisementDecoder, DecodeBaseNpPublicAdvertisement) {
                               absl::HexStringToBytes("EE"))));
 }
 
-TEST(AdvertisementDecoder, DecodeBaseNpWithTxActionField) {
+TEST(AdvertisementDecoder, DecodeBaseNpWithTxAndActionFields) {
   std::string salt = "AB";
   AdvertisementDecoder decoder(GetScanRequest());
 
   auto result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00204142034650B04180"));
+      absl::HexStringToBytes("0020414203155036B04180"));
 
-  EXPECT_OK(result);
+  ASSERT_OK(result);
   EXPECT_THAT(result->data_elements,
               UnorderedElementsAre(
                   DataElement(DataElement::kSaltFieldType, salt),
@@ -242,12 +242,12 @@ TEST(AdvertisementDecoder, DecodeBaseNpWithTxActionField) {
                   DataElement(DataElement(ActionBit::kNearbyShareAction))));
 }
 
-TEST(AdvertisementDecoder, DecodeBaseNpV0PublicIdentityWithTxAndActionField) {
+TEST(AdvertisementDecoder, DecodeBaseNpV0PublicIdentityWithTxAndActionFields) {
   AdvertisementDecoder decoder(GetScanRequest());
 
   auto result = decoder.DecodeAdvertisement(
       // v0 public identity, power and action, action value 8 for active unlock.
-      absl::HexStringToBytes("000336FF0080"));
+      absl::HexStringToBytes("000315FF260080"));
 
   EXPECT_OK(result);
   EXPECT_THAT(result->data_elements,

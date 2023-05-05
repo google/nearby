@@ -76,7 +76,7 @@ class AdvertisementDecoder {
   absl::Status DecryptDataElements(const DataElement& elem);
   absl::StatusOr<std::string> Decrypt(absl::string_view salt,
                                       absl::string_view encrypted);
-  void DecodeBaseTxAndAction(absl::string_view serialized_action);
+  void DecodeBaseAction(absl::string_view serialized_action);
   absl::StatusOr<std::string> DecryptLdt(
       const std::vector<internal::SharedCredential>& credentials,
       absl::string_view salt, absl::string_view data_elements);

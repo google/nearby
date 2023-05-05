@@ -77,7 +77,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "00414142ceb073b0e34f58d7dc6dea370783ac943fa5");
+            "00514142c2c30e79fee14599e36e34d5d42e49fc37b0df");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
@@ -102,7 +102,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "00424142253536ac63191a96894d95f0ffa38b57cf9b");
+            "00524142099500aeef8bff5df05169a79726e11563b865");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
@@ -127,7 +127,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "00444142253536ac63191a96894d95f0ffa38b57cf9b");
+            "00544142099500aeef8bff5df05169a79726e11563b865");
 }
 #endif /*USE_RUST_LDT*/
 
@@ -148,7 +148,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
-  EXPECT_EQ(absl::BytesToHexString(result->content), "000320414236050080");
+  EXPECT_EQ(absl::BytesToHexString(result->content), "00032041421505260080");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
