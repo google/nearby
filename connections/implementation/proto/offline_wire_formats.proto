@@ -103,6 +103,7 @@ message ConnectionRequestFrame {
     ConnectionsDevice connections_device = 12;
     PresenceDevice presence_device = 13;
   }
+  repeated int32 service_id_hash_salts = 14 [packed = true];
 }
 
 message ConnectionResponseFrame {
