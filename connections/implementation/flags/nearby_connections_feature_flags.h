@@ -32,6 +32,10 @@ namespace nearby_connections_feature {
 constexpr auto kEnableBleV2 =
     flags::Flag<bool>(kConfigPackage, "45401515", false);
 
+// The timeout in millis to report peripheral device lost.
+constexpr auto kBlePeripheralLostTimeoutMillis =
+    flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
+
 // LINT.ThenChange(
 //   //depot/google3/location/nearby/cpp/sharing/clients/windows/nearby_sharing_service_adapter_dart.h,
 //   //depot/google3/location/nearby/cpp/sharing/clients/windows/nearby_sharing_service_adapter_dart.cc,
