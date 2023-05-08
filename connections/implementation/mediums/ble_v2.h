@@ -55,8 +55,6 @@ class BleV2 final {
         accepted_cb = DefaultCallback<BleV2Socket, const std::string&>();
   };
 
-  static constexpr absl::Duration kPeripheralLostTimeout = absl::Seconds(3);
-
   explicit BleV2(BluetoothRadio& bluetooth_radio);
   ~BleV2();
 

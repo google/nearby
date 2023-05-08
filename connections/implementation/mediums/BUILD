@@ -47,9 +47,11 @@ cc_library(
     deps = [
         ":utils",
         "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
         "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
@@ -118,7 +120,9 @@ cc_test(
     deps = [
         ":mediums",
         ":utils",
+        "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",

@@ -21,7 +21,9 @@
 #include <vector>
 
 #include "absl/strings/escaping.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
@@ -29,6 +31,7 @@
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/power_level.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/logging.h"
@@ -51,9 +54,6 @@ constexpr int kDummyServiceIdLength = 128;
 void AssumeHeld(Mutex& m) ABSL_ASSERT_EXCLUSIVE_LOCK(m) {}
 
 }  // namespace
-
-// These definitions are necessary before C++17.
-constexpr absl::Duration BleV2::kPeripheralLostTimeout;
 
 BleV2::BleV2(BluetoothRadio& radio)
     : radio_(radio), adapter_(radio_.GetBluetoothAdapter()) {}
@@ -303,6 +303,10 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
     return false;
   }
 
+  absl::Duration peripheral_lost_timeout =
+      absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_connections_feature::
+              kBlePeripheralLostTimeoutMillis));
   // Set up lost alarm.
   lost_alarm_ = std::make_unique<CancelableAlarm>(
       "BLE.StartScanning() onLost",
@@ -310,7 +314,7 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
         MutexLock lock(&mutex_);
         discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
       },
-      kPeripheralLostTimeout, &alarm_executor_, /*is_recurring=*/true);
+      peripheral_lost_timeout, &alarm_executor_, /*is_recurring=*/true);
 
   NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id;
   return true;
