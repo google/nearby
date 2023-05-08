@@ -6,6 +6,7 @@ cc_library(
         "packetizer.cc",
     ],
     hdrs = [
+        "control_packet_write_request.h",
         "packet.h",
         "packet_sequence_number_generator.h",
         "packetizer.h",
@@ -53,6 +54,20 @@ cc_test(
     name = "packetizer_test",
     srcs = [
         "packetizer_test.cc",
+    ],
+    deps = [
+        ":weave",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "control_packet_write_request_test",
+    srcs = [
+        "control_packet_write_request_test.cc",
     ],
     deps = [
         ":weave",

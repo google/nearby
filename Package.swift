@@ -573,6 +573,7 @@ let package = Package(
         "internal/test/fake_timer_test.cc",
         "internal/test/fake_device_info_test.cc",
         "internal/test/fake_task_runner_test.cc",
+        "internal/weave/control_packet_write_request_test.cc",
         "internal/weave/packet_test.cc",
         "internal/weave/packet_sequence_number_generator_test.cc",
         "internal/weave/packetizer_test.cc",
