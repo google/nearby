@@ -56,10 +56,6 @@
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 
-#ifdef CreateMutex
-#undef CreateMutex
-#endif
-
 namespace nearby {
 namespace api {
 
@@ -103,7 +99,12 @@ class ImplementationPlatform {
 
   static std::unique_ptr<CountDownLatch> CreateCountDownLatch(
       std::int32_t count);
+
+#pragma push_macro("CreateMutex")
+#undef CreateMutex
   static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
+#pragma pop_macro("CreateMutex")
+
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
 

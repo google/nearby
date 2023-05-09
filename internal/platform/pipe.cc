@@ -24,10 +24,15 @@ namespace {
 using Platform = api::ImplementationPlatform;
 }
 
+#pragma push_macro("CreateMutex")
+#undef CreateMutex
+
 Pipe::Pipe() {
   auto mutex = Platform::CreateMutex(api::Mutex::Mode::kRegular);
   auto cond = Platform::CreateConditionVariable(mutex.get());
   Setup(std::move(mutex), std::move(cond));
 }
+
+#pragma pop_macro("CreateMutex")
 
 }  // namespace nearby

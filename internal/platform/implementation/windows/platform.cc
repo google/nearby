@@ -66,10 +66,6 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
-#ifdef CreateMutex
-#undef CreateMutex
-#endif
-
 namespace nearby {
 namespace api {
 
@@ -183,9 +179,12 @@ std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
   return absl::make_unique<shared::CountDownLatch>(count);
 }
 
+#pragma push_macro("CreateMutex")
+#undef CreateMutex
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
   return absl::make_unique<windows::Mutex>(mode);
 }
+#pragma pop_macro("CreateMutex")
 
 std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
