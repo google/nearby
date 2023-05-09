@@ -65,7 +65,9 @@ void FakeTimer::ClockUpdated() {
 
   if (duration >= delay_ && fired_count_ == 0) {
     ++fired_count_;
-    callback_();
+    if (callback_ != nullptr) {
+      callback_();
+    }
   }
 
   if (period_ == 0 || duration < delay_ ||
@@ -77,7 +79,9 @@ void FakeTimer::ClockUpdated() {
   int should_fire_count = count - fired_count_ + 1;
   for (int i = 0; i < should_fire_count; ++i) {
     ++fired_count_;
-    callback_();
+    if (callback_ != nullptr) {
+      callback_();
+    }
   }
 }
 
