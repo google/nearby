@@ -20,7 +20,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/synchronization/mutex.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/device_metadata.h"
@@ -28,6 +27,7 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/mutex.h"
 
 namespace nearby {
 namespace fastpair {
@@ -74,7 +74,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
                                  DeviceMetadata& device_metadata);
   void NotifyDeviceFound(FastPairDevice& device);
 
-  absl::Mutex mutex_;
+  mutable Mutex mutex_;
   FastPairScanner& scanner_;
   DeviceCallback found_callback_;
   DeviceCallback lost_callback_;
