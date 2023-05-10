@@ -16,10 +16,9 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cinttypes>
 #include <cstdint>
 #include <memory>
-#include <new>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -32,6 +31,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 
@@ -138,7 +138,7 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
     }
     // We don't care if there is an adapter already since all we store is a
     // pointer. Pointer must remain valid for the duration of a Core session
-    // (since it is owned by the correspoinding Medium, and mediums lifetime
+    // (since it is owned by the corresponding Medium, and mediums lifetime
     // matches Core lifetime).
     if (enabled) {
       bluetooth_adapters_.emplace(&adapter, &adapter_device);
@@ -562,7 +562,7 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
             BleV2MediumContext& remote_context = medium_info.second;
             // Do not send notification to the same medium.
             if (remote_medium == &medium) continue;
-            // Do not send notification to the medium that is not scannig.
+            // Do not send notification to the medium that is not scanning.
             if (!remote_context.scanning) continue;
             absl::flat_hash_set<Uuid> remote_scanning_service_uuids;
             for (auto& element : remote_context.scan_callback_map) {
@@ -1216,4 +1216,138 @@ absl::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
   return absl::nullopt;
 }
 
+void MediumEnvironment::ConfigBluetoothPairingContext(
+    api::BluetoothDevice* device, api::PairingParams pairing_params) {
+  if (!enabled_) return;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    BluetoothPairingContext pairing_context;
+    pairing_context.pairing_params = std::move(pairing_params);
+    devices_pairing_contexts_[device] = std::move(pairing_context);
+    latch.CountDown();
+  });
+  latch.Await();
+}
+
+bool MediumEnvironment::SetPairingState(api::BluetoothDevice* device,
+                                        bool paired) {
+  if (!enabled_) return false;
+  bool updated = false;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    auto it = devices_pairing_contexts_.find(device);
+    if (it != devices_pairing_contexts_.end()) {
+      it->second.is_paired = paired;
+      updated = true;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return updated;
+}
+
+bool MediumEnvironment::SetPairingResult(
+    api::BluetoothDevice* device,
+    std::optional<api::BluetoothPairingCallback::PairingError> error) {
+  if (!enabled_) return false;
+  bool notified = false;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    auto it = devices_pairing_contexts_.find(device);
+    if (it != devices_pairing_contexts_.end()) {
+      it->second.pairing_error = error;
+      notified = true;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return notified;
+}
+
+bool MediumEnvironment::InitiatePairing(
+    api::BluetoothDevice* remote_device,
+    api::BluetoothPairingCallback pairing_cb) {
+  if (!enabled_) return false;
+  CountDownLatch latch(1);
+  bool initiated = false;
+  BluetoothPairingContext* pairing_context = nullptr;
+  RunOnMediumEnvironmentThread([&]() mutable {
+    auto it = devices_pairing_contexts_.find(remote_device);
+    if (it != devices_pairing_contexts_.end()) {
+      pairing_context = &it->second;
+      initiated = true;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (!initiated) return false;
+  pairing_context->pairing_callback = std::move(pairing_cb);
+  pairing_context->pairing_callback.on_pairing_initiated_cb(
+      pairing_context->pairing_params);
+  return true;
+}
+
+bool MediumEnvironment::FinishPairing(api::BluetoothDevice* device) {
+  if (!enabled_) return false;
+  bool finshed = false;
+  CountDownLatch latch(1);
+  BluetoothPairingContext* pairing_context = nullptr;
+  RunOnMediumEnvironmentThread([&]() {
+    auto it = devices_pairing_contexts_.find(device);
+    if (it != devices_pairing_contexts_.end()) {
+      finshed = true;
+      pairing_context = &it->second;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (pairing_context->pairing_error.has_value()) {
+    pairing_context->pairing_callback.on_pairing_error_cb(
+        pairing_context->pairing_error.value());
+  } else {
+    pairing_context->is_paired = true;
+    pairing_context->pairing_callback.on_paired_cb();
+  }
+  return finshed;
+}
+
+bool MediumEnvironment::CancelPairing(api::BluetoothDevice* device) {
+  if (!enabled_) return false;
+  bool canceled = false;
+  CountDownLatch latch(1);
+  BluetoothPairingContext* pairing_context = nullptr;
+  RunOnMediumEnvironmentThread([&]() {
+    auto it = devices_pairing_contexts_.find(device);
+    if (it != devices_pairing_contexts_.end()) {
+      canceled = true;
+      pairing_context = &it->second;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (!canceled) return false;
+  pairing_context->pairing_callback.on_pairing_error_cb(
+      api::BluetoothPairingCallback::PairingError::kAuthCanceled);
+  return true;
+}
+
+bool MediumEnvironment::IsPaired(api::BluetoothDevice* device) {
+  if (!enabled_) return false;
+  bool is_paired = false;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    auto it = devices_pairing_contexts_.find(device);
+    if (it != devices_pairing_contexts_.end()) {
+      is_paired = it->second.is_paired;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return is_paired;
+}
+
+void MediumEnvironment::ClearBluetoothDevicesForPairing() {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([&]() { devices_pairing_contexts_.clear(); });
+}
 }  // namespace nearby

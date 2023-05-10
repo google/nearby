@@ -109,7 +109,8 @@ class MessageStreamTest : public testing::Test {
   void SetUp() override {
     MediumEnvironment::Instance().Start();
 
-    fp_device_.set_public_address(provider_.GetMacAddress());
+    fp_device_.set_public_address(
+        absl::BytesToHexString(provider_.GetMacAddress()));
     provider_.DiscoverProvider(seeker_medium_);
     provider_.EnableProviderRfcomm();
   }
@@ -122,7 +123,7 @@ class MessageStreamTest : public testing::Test {
     MessageStream message_stream = MessageStream(
         fp_device_, std::optional<BluetoothClassicMedium*>(&seeker_medium_),
         observer_);
-    CHECK(message_stream.OpenRfcomm().ok());
+    CHECK_OK(message_stream.OpenRfcomm());
     CHECK(observer_.connection_result_.Get().ok());
     CHECK(observer_.connection_result_.Get().GetResult().ok());
     return message_stream;

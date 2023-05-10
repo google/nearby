@@ -15,6 +15,8 @@
 #include "internal/platform/bluetooth_classic.h"
 
 #include <memory>
+#include <optional>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -22,6 +24,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
@@ -30,6 +33,8 @@ namespace nearby {
 namespace {
 
 using FeatureFlags = FeatureFlags::Flags;
+using PairingError = api::BluetoothPairingCallback::PairingError;
+constexpr absl::string_view kPairingPasskKey("123456");
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{
@@ -56,6 +61,7 @@ class BluetoothClassicMediumTest
     adapter_b_->SetStatus(BluetoothAdapter::Status::kEnabled);
     env_.Sync();
   }
+
   ~BluetoothClassicMediumTest() override {
     env_.Sync(false);
     adapter_a_->SetStatus(BluetoothAdapter::Status::kDisabled);
@@ -375,6 +381,194 @@ TEST_F(BluetoothClassicMediumTest, CanListenForService) {
 TEST_F(BluetoothClassicMediumTest, FailIfDiscovering) {
   EXPECT_TRUE(bt_a_->StartDiscovery({}));
   EXPECT_FALSE(bt_a_->StartDiscovery({}));
+}
+
+TEST_F(BluetoothClassicMediumTest, BluetoothPairingSuccess) {
+  // Discovered remote device
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  BluetoothDevice* discovered_device = nullptr;
+  CountDownLatch found_latch(1);
+  bt_a_->StartDiscovery(
+      DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
+        NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+        EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+        discovered_device = &device;
+        found_latch.CountDown();
+      }});
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  found_latch.Await();
+
+  // Create bluetooth pairing instance to handle the pairing process
+  // with the remote device
+  auto bluetooth_pairing = bt_a_->CreatePairing(*discovered_device);
+  EXPECT_TRUE(bluetooth_pairing);
+  EXPECT_FALSE(bluetooth_pairing->IsPaired());
+
+  // Configure the remote device's pairing context
+  api::PairingParams pairing_params;
+  pairing_params.pairing_type =
+      api::PairingParams::PairingType::kConfirmPasskey;
+  pairing_params.passkey = kPairingPasskKey;
+  env_.ConfigBluetoothPairingContext(&discovered_device->GetImpl(),
+                                     pairing_params);
+
+  // Initiates pairing request with remote device
+  std::string received_passkey;
+  CountDownLatch paired_latch(1);
+  CountDownLatch initiated_latch(1);
+  CountDownLatch error_latch(1);
+  EXPECT_TRUE(bluetooth_pairing->InitiatePairing({
+      .on_paired_cb = [&]() { paired_latch.CountDown(); },
+      .on_pairing_error_cb =
+          [&](api::BluetoothPairingCallback::PairingError error) {
+            EXPECT_EQ(
+                error,
+                api::BluetoothPairingCallback::PairingError::kAuthTimeout);
+            error_latch.CountDown();
+          },
+      .on_pairing_initiated_cb =
+          [&](api::PairingParams pairingParams) {
+            EXPECT_EQ(pairingParams.passkey, pairing_params.passkey);
+            EXPECT_EQ(pairingParams.pairing_type, pairing_params.pairing_type);
+            received_passkey = pairingParams.passkey;
+            initiated_latch.CountDown();
+          },
+  }));
+  initiated_latch.Await();
+
+  // Mocks pairing success result for the remote device.
+  EXPECT_TRUE(
+      env_.SetPairingResult(&discovered_device->GetImpl(), std::nullopt));
+  // Finishes pairing with remote device.
+  EXPECT_TRUE(bluetooth_pairing->FinishPairing(received_passkey));
+  paired_latch.Await();
+  EXPECT_TRUE(bluetooth_pairing->IsPaired());
+
+  // Unpairs with remote device.
+  EXPECT_TRUE(bluetooth_pairing->Unpair());
+  EXPECT_FALSE(bluetooth_pairing->IsPaired());
+}
+
+TEST_F(BluetoothClassicMediumTest, BluetoothPairingFailure) {
+  // Discovered remote device
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  BluetoothDevice* discovered_device = nullptr;
+  CountDownLatch found_latch(1);
+  bt_a_->StartDiscovery(
+      DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
+        NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+        EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+        discovered_device = &device;
+        found_latch.CountDown();
+      }});
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  found_latch.Await();
+
+  // Create bluetooth pairing instance to handle the pairing process
+  // with the remote device
+  auto bluetooth_pairing = bt_a_->CreatePairing(*discovered_device);
+  EXPECT_TRUE(bluetooth_pairing);
+  EXPECT_FALSE(bluetooth_pairing->IsPaired());
+
+  // Configure the remote device's pairing context
+  api::PairingParams pairing_params;
+  pairing_params.pairing_type =
+      api::PairingParams::PairingType::kConfirmPasskey;
+  pairing_params.passkey = kPairingPasskKey;
+  env_.ConfigBluetoothPairingContext(&discovered_device->GetImpl(),
+                                     pairing_params);
+
+  // Initiates pairing request with remote device
+  std::string received_passkey;
+  CountDownLatch paired_latch(1);
+  CountDownLatch initiated_latch(1);
+  CountDownLatch error_latch(1);
+  EXPECT_TRUE(bluetooth_pairing->InitiatePairing({
+      .on_paired_cb = [&]() { paired_latch.CountDown(); },
+      .on_pairing_error_cb =
+          [&](api::BluetoothPairingCallback::PairingError error) {
+            EXPECT_EQ(
+                error,
+                api::BluetoothPairingCallback::PairingError::kAuthTimeout);
+            error_latch.CountDown();
+          },
+      .on_pairing_initiated_cb =
+          [&](api::PairingParams pairingParams) {
+            EXPECT_EQ(pairingParams.passkey, pairing_params.passkey);
+            EXPECT_EQ(pairingParams.pairing_type, pairing_params.pairing_type);
+            received_passkey = pairingParams.passkey;
+            initiated_latch.CountDown();
+          },
+  }));
+  initiated_latch.Await();
+
+  // Mocks pairing failure result for the remote device.
+  EXPECT_TRUE(env_.SetPairingResult(
+      &discovered_device->GetImpl(),
+      api::BluetoothPairingCallback::PairingError::kAuthTimeout));
+  // Finishes pairing with remote device.
+  EXPECT_TRUE(bluetooth_pairing->FinishPairing(received_passkey));
+  error_latch.Await();
+  EXPECT_FALSE(bluetooth_pairing->IsPaired());
+}
+TEST_F(BluetoothClassicMediumTest, CancelBluetoothPairing) {
+  // Discovered remote device
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  BluetoothDevice* discovered_device = nullptr;
+  CountDownLatch found_latch(1);
+  bt_a_->StartDiscovery(
+      DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
+        NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+        NEARBY_LOG(INFO, "Device discovered address: %s",
+                   device.GetMacAddress().c_str());
+        EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+        discovered_device = &device;
+        found_latch.CountDown();
+      }});
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  found_latch.Await();
+
+  // Create bluetooth pairing instance to handle the pairing process
+  // with the remote device
+  auto bluetooth_pairing = bt_a_->CreatePairing(*discovered_device);
+  EXPECT_FALSE(bluetooth_pairing->IsPaired());
+
+  // Configure the remote device's pairing context
+  api::PairingParams pairing_params;
+  pairing_params.pairing_type =
+      api::PairingParams::PairingType::kConfirmPasskey;
+  pairing_params.passkey = "123456";
+  env_.ConfigBluetoothPairingContext(&discovered_device->GetImpl(),
+                                     pairing_params);
+
+  // Initiates pairing request with remote device
+  PairingError received_error = PairingError::kUnknown;
+  CountDownLatch error_latch(1);
+  CountDownLatch initiated_latch(1);
+  EXPECT_TRUE(bluetooth_pairing->InitiatePairing({
+      .on_pairing_error_cb =
+          [&](api::BluetoothPairingCallback::PairingError error) {
+            received_error = error;
+            error_latch.CountDown();
+          },
+      .on_pairing_initiated_cb =
+          [&](api::PairingParams pairingParams) {
+            EXPECT_EQ(pairingParams.passkey, pairing_params.passkey);
+            EXPECT_EQ(pairingParams.pairing_type, pairing_params.pairing_type);
+            initiated_latch.CountDown();
+          },
+  }));
+  initiated_latch.Await();
+
+  // Cancels the ongoing pairing with remote device.
+  EXPECT_TRUE(bluetooth_pairing->CancelPairing());
+  error_latch.Await();
+  EXPECT_EQ(received_error, PairingError::kAuthCanceled);
+  EXPECT_FALSE(bluetooth_pairing->IsPaired());
+
+  // Clear Bluetooth devices for pairing
+  bluetooth_pairing.reset();
+  EXPECT_FALSE(env_.SetPairingState(&discovered_device->GetImpl(), false));
 }
 
 }  // namespace

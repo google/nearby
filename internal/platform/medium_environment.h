@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -384,6 +385,35 @@ class MediumEnvironment {
 
   absl::optional<FakeClock*> GetSimulatedClock();
 
+  // Configures the BluetoothPairingContext for remote BluetoothDevice.
+  void ConfigBluetoothPairingContext(api::BluetoothDevice* device,
+                                     api::PairingParams pairing_params);
+
+  // Sets the current pairing states of remote BluetoothDevice.
+  bool SetPairingState(api::BluetoothDevice* device, bool paired);
+
+  // Mocks the pairing result for remote BluetoothDevice.
+  bool SetPairingResult(
+      api::BluetoothDevice* device,
+      std::optional<api::BluetoothPairingCallback::PairingError> error);
+
+  // Requests for pairing with remote BluetoothDevice,
+  // and registers BluetoothPairingCallback.
+  bool InitiatePairing(api::BluetoothDevice* remote_device,
+                       api::BluetoothPairingCallback pairing_cb);
+
+  // Finishes pairing for remote BluetoothDevice.
+  bool FinishPairing(api::BluetoothDevice* device);
+
+  // Cancels ongoing pairing for remote BluetoothDevice.
+  bool CancelPairing(api::BluetoothDevice* device);
+
+  // Returns the pairing states of remote BluetoothDevice.
+  bool IsPaired(api::BluetoothDevice* device);
+
+  // Clears the map `devices_pairing_contexts_`.
+  void ClearBluetoothDevicesForPairing();
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
@@ -434,6 +464,13 @@ class MediumEnvironment {
     // Set "true" when SoftAP is started or STA is connected
     bool is_active = false;
     HotspotCredentials* hotspot_credentials;
+  };
+
+  struct BluetoothPairingContext {
+    api::PairingParams pairing_params;
+    api::BluetoothPairingCallback pairing_callback;
+    bool is_paired = false;
+    std::optional<api::BluetoothPairingCallback::PairingError> pairing_error;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -488,7 +525,8 @@ class MediumEnvironment {
   absl::flat_hash_map<api::ble_v2::GattCharacteristic,
                       absl::AnyInvocable<void(absl::string_view value)>>
       subscribed_characteristic_;
-
+  absl::flat_hash_map<api::BluetoothDevice*, BluetoothPairingContext>
+      devices_pairing_contexts_;
 #ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.
   absl::flat_hash_map<std::string, OnSignalingMessageCallback>
