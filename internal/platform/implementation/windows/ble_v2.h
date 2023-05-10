@@ -73,6 +73,12 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
+  bool GetRemotePeripheral(absl::string_view mac_address,
+                           GetRemotePeripheralCallback callback) override;
+
+  bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
+                           GetRemotePeripheralCallback callback) override;
+
  private:
   bool StartBleAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
@@ -127,6 +133,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   ::winrt::event_token advertisement_received_token_;
 
   BleGattServer* ble_gatt_server_ = nullptr;
+
+  absl::flat_hash_map<BleV2Peripheral::UniqueId,
+                      std::unique_ptr<BleV2Peripheral>>
+      peripherals_;
 };
 
 }  // namespace windows

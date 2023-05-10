@@ -229,7 +229,8 @@ class MediumEnvironment {
   // expects they should communicate.
   // The registered `medium` must refer to a valid instance that outlives this
   // object.
-  void RegisterBleV2Medium(api::ble_v2::BleMedium& medium);
+  void RegisterBleV2Medium(api::ble_v2::BleMedium& medium,
+                           api::ble_v2::BlePeripheral* peripheral);
 
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
@@ -384,6 +385,9 @@ class MediumEnvironment {
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
   absl::optional<FakeClock*> GetSimulatedClock();
+
+  api::ble_v2::BleMedium* FindBleV2Medium(absl::string_view address);
+  api::ble_v2::BleMedium* FindBleV2Medium(uint64_t id);
 
   // Configures the BluetoothPairingContext for remote BluetoothDevice.
   void ConfigBluetoothPairingContext(api::BluetoothDevice* device,

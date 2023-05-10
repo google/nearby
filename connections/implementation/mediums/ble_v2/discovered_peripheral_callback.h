@@ -18,8 +18,7 @@
 #include <functional>
 #include <string>
 
-#include "connections/listeners.h"
-#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {

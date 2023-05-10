@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/g3/ble_v2.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -54,6 +55,17 @@ std::string TxPowerLevelToName(TxPowerLevel power_mode) {
 }
 
 }  // namespace
+
+BleV2Peripheral::BleV2Peripheral(BluetoothAdapter* adapter)
+    : adapter_(*adapter) {}
+
+std::string BleV2Peripheral::GetAddress() const {
+  return adapter_.GetMacAddress();
+}
+
+api::ble_v2::BlePeripheral::UniqueId BleV2Peripheral::GetUniqueId() const {
+  return adapter_.GetUniqueId();
+}
 
 BleV2Socket::~BleV2Socket() {
   absl::MutexLock lock(&mutex_);
@@ -104,7 +116,10 @@ BleV2Peripheral* BleV2Socket::GetRemotePeripheral() {
     }
     remote_adapter = remote_socket_->adapter_;
   }
-  return remote_adapter ? &remote_adapter->GetPeripheralV2() : nullptr;
+  if (remote_adapter == nullptr || remote_adapter->GetBleV2Medium() == nullptr)
+    return nullptr;
+  return &(static_cast<BleV2Medium*>(remote_adapter->GetBleV2Medium())
+               ->GetPeripheral());
 }
 
 void BleV2Socket::DoClose() {
@@ -201,7 +216,8 @@ Exception BleV2ServerSocket::DoClose() {
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {
   adapter_->SetBleV2Medium(this);
-  MediumEnvironment::Instance().RegisterBleV2Medium(*this);
+
+  MediumEnvironment::Instance().RegisterBleV2Medium(*this, &peripheral_);
 }
 
 BleV2Medium::~BleV2Medium() {
@@ -228,7 +244,7 @@ bool BleV2Medium::StartAdvertising(
 
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
+      /*enabled=*/true, *this, GetPeripheral(), advertising_data);
   return true;
 }
 
@@ -238,7 +254,7 @@ bool BleV2Medium::StopAdvertising() {
 
   BleAdvertisementData empty_advertisement_data = {};
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/false, *this, /*mutable=*/adapter_->GetPeripheralV2(),
+      /*enabled=*/false, *this, /*mutable=*/GetPeripheral(),
       empty_advertisement_data);
   return true;
 }
@@ -266,7 +282,7 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
   }
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
+      /*enabled=*/true, *this, GetPeripheral(), advertising_data);
   return std::make_unique<AdvertisingSession>(
       AdvertisingSession{.stop_advertising = [this] {
         return StopAdvertising()
@@ -295,7 +311,8 @@ bool BleV2Medium::StopScanning() {
   for (auto element : scanning_internal_session_ids_) {
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
         /*enabled=*/false,
-        /*service_uuid=*/element.first, /*internal_session_id*/ element.second,
+        /*service_uuid=*/element.first,
+        /*internal_session_id*/ element.second,
         /*callback=*/{}, *this);
   }
   return true;
@@ -350,6 +367,50 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return is_support_extended_advertisement_;
+}
+
+bool BleV2Medium::GetRemotePeripheral(absl::string_view mac_address,
+                                      GetRemotePeripheralCallback callback) {
+  NEARBY_LOGS(INFO) << "GetRemotePeripheral, address= " << mac_address;
+  absl::MutexLock lock(&mutex_);
+  for (auto& item : remote_peripherals_) {
+    auto* peripheral = item.second.get();
+    if (peripheral->GetAddress() == mac_address) {
+      callback(*peripheral);
+      return true;
+    }
+  }
+  BleV2Medium* remote_medium = static_cast<BleV2Medium*>(
+      MediumEnvironment::Instance().FindBleV2Medium(mac_address));
+  if (remote_medium == nullptr) {
+    return false;
+  }
+  auto id = remote_medium->GetPeripheral().GetUniqueId();
+  remote_peripherals_[id] =
+      std::make_unique<BleV2Peripheral>(&remote_medium->GetAdapter());
+  callback(*remote_peripherals_[id]);
+  return true;
+}
+
+bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
+                                      GetRemotePeripheralCallback callback) {
+  absl::MutexLock lock(&mutex_);
+  auto it = remote_peripherals_.find(id);
+  if (it != remote_peripherals_.end()) {
+    callback(*it->second);
+    return true;
+  }
+
+  BleV2Medium* remote_medium = static_cast<BleV2Medium*>(
+      MediumEnvironment::Instance().FindBleV2Medium(id));
+  if (remote_medium == nullptr) {
+    NEARBY_LOGS(INFO) << "Peripheral not found, id= " << id;
+    return false;
+  }
+  remote_peripherals_[id] =
+      std::make_unique<BleV2Peripheral>(&remote_medium->GetAdapter());
+  callback(*remote_peripherals_[id]);
+  return true;
 }
 
 std::optional<api::ble_v2::GattCharacteristic>
@@ -521,7 +582,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     CancellationFlag* cancellation_flag) {
   NEARBY_LOGS(INFO) << "G3 Ble Connect [self]: medium=" << this
                     << ", adapter=" << &GetAdapter()
-                    << ", peripheral=" << &GetAdapter().GetPeripheralV2()
+                    << ", peripheral=" << &GetPeripheral()
                     << ", service_id=" << service_id;
   // First, find an instance of remote medium, that exposed this peripheral.
   auto& remote_adapter =

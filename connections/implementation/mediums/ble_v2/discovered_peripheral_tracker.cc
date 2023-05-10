@@ -26,7 +26,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
-#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/mutex_lock.h"
 
 namespace nearby {
@@ -339,7 +339,6 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
     GattAdvertisementInfo gatt_advertisement_info = {
         .service_id = service_id,
         .advertisement_header = new_advertisement_header,
-        .mac_address = peripheral.GetAddress(),
         .peripheral = peripheral};
     gatt_advertisement_infos_.insert_or_assign(
         gatt_advertisement, std::move(gatt_advertisement_info));

@@ -33,7 +33,18 @@
 namespace nearby {
 namespace g3 {
 
-class BleV2nMedium;
+// BlePeripheral implementation.
+class BleV2Peripheral : public api::ble_v2::BlePeripheral {
+ public:
+  explicit BleV2Peripheral(BluetoothAdapter* adapter);
+  std::string GetAddress() const override;
+  api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override;
+
+  BluetoothAdapter& GetAdapter() { return adapter_; }
+
+ private:
+  BluetoothAdapter& adapter_;
+};
 
 class BleV2Socket : public api::ble_v2::BleSocket {
  public:
@@ -205,6 +216,14 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
+  BleV2Peripheral& GetPeripheral() { return peripheral_; }
+
+  bool GetRemotePeripheral(absl::string_view mac_address,
+                           GetRemotePeripheralCallback callback) override;
+
+  bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
+                           GetRemotePeripheralCallback callback) override;
+
  private:
   // A concrete implementation for GattServer.
   class GattServer : public api::ble_v2::GattServer {
@@ -261,6 +280,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
+  BleV2Peripheral peripheral_{adapter_};
+  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId,
+                      std::unique_ptr<BleV2Peripheral>>
+      remote_peripherals_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, BleV2ServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>

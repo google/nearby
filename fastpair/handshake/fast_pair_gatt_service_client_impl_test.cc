@@ -49,7 +49,6 @@ using WriteType = nearby::api::ble_v2::GattClient::WriteType;
 
 constexpr absl::Duration kGattOperationTimeout = absl::Seconds(15);
 constexpr absl::string_view kMetadataId("test_id");
-constexpr absl::string_view kProviderAddress("11:22:33:44:55:66");
 constexpr absl::string_view kSeekerAddress("AA:BB:CC:DD:EE:00");
 constexpr Uuid kFastPairServiceUuid(0x0000FE2C00001000, 0x800000805F9B34FB);
 constexpr Uuid kKeyBasedCharacteristicUuidV2(0xFE2C123483664814,
@@ -76,6 +75,14 @@ constexpr std::array<uint8_t, 64> kPublicKey = {
     0x1D, 0x01, 0x5E, 0x3F, 0x45, 0x61, 0xC3, 0x32, 0x1D};
 }  //  namespace
 
+class MediumEnvironmentStarter {
+ public:
+  MediumEnvironmentStarter() {
+    MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  }
+  ~MediumEnvironmentStarter() { MediumEnvironment::Instance().Stop(); }
+};
+
 class FastPairGattServiceClientTest : public testing::Test {
  public:
   FastPairGattServiceClientTest() {
@@ -84,10 +91,9 @@ class FastPairGattServiceClientTest : public testing::Test {
   }
 
   void SetUp() override {
-    env_.Start({.use_simulated_clock = true});
-    BluetoothAdapter adapter;
-    BleV2Medium ble(adapter);
-    gatt_server_ = ble.StartGattServer(/*ServerGattConnectionCallback=*/{});
+    gatt_server_ =
+        provider_ble_.StartGattServer(/*ServerGattConnectionCallback=*/{});
+    provider_address_ = provider_adapter_.GetMacAddress();
   }
 
   void TearDown() override {
@@ -98,7 +104,6 @@ class FastPairGattServiceClientTest : public testing::Test {
     gatt_client_.reset();
     gatt_server_->Stop();
     gatt_server_.reset();
-    env_.Stop();
   }
 
   void InsertCorrectGattCharacteristics() {
@@ -164,7 +169,7 @@ class FastPairGattServiceClientTest : public testing::Test {
   }
 
   void InitializeFastPairGattServiceClient() {
-    FastPairDevice device(kMetadataId, kProviderAddress,
+    FastPairDevice device(kMetadataId, provider_address_,
                           Protocol::kFastPairInitialPairing);
     Mediums mediums;
     gatt_client_ =
@@ -176,23 +181,27 @@ class FastPairGattServiceClientTest : public testing::Test {
   }
 
   void RemoveDiscoveredKeyBasedCharacteristic() {
-    env_.EraseBleV2MediumGattCharacteristicsForDiscovery(
-        key_based_characteristic_.value());
+    MediumEnvironment::Instance()
+        .EraseBleV2MediumGattCharacteristicsForDiscovery(
+            key_based_characteristic_.value());
   }
 
   void RemoveDiscoveredPasskeyCharacteristic() {
-    env_.EraseBleV2MediumGattCharacteristicsForDiscovery(
-        passkey_characteristic_.value());
+    MediumEnvironment::Instance()
+        .EraseBleV2MediumGattCharacteristicsForDiscovery(
+            passkey_characteristic_.value());
   }
 
   bool UnsubceibeKeyBasedCharacteristic() {
-    return env_.SetBleV2MediumGattCharacteristicSubscription(
-        key_based_characteristic_.value(), false, {});
+    return MediumEnvironment::Instance()
+        .SetBleV2MediumGattCharacteristicSubscription(
+            key_based_characteristic_.value(), false, {});
   }
 
   bool UnsubceibePasskeyCharacteristic() {
-    return env_.SetBleV2MediumGattCharacteristicSubscription(
-        passkey_characteristic_.value(), false, {});
+    return MediumEnvironment::Instance()
+        .SetBleV2MediumGattCharacteristicSubscription(
+            passkey_characteristic_.value(), false, {});
   }
 
   std::optional<PairFailure> GetInitializedCallbackResult() {
@@ -208,7 +217,7 @@ class FastPairGattServiceClientTest : public testing::Test {
 
   void WriteRequestToKeyBased() {
     gatt_client_->WriteRequestAsync(
-        kMessageType, kFlags, kProviderAddress, /* Seeker Address*/ "",
+        kMessageType, kFlags, provider_address_, /* Seeker Address*/ "",
         *fast_pair_data_encryptor_,
         [&](absl::string_view response, std::optional<PairFailure> failure) {
           WriteTestCallback(response, failure);
@@ -236,10 +245,13 @@ class FastPairGattServiceClientTest : public testing::Test {
   }
 
  protected:
-  MediumEnvironment& env_{MediumEnvironment::Instance()};
+  MediumEnvironmentStarter env_;
+  BluetoothAdapter provider_adapter_;
+  BleV2Medium provider_ble_{provider_adapter_};
   std::unique_ptr<GattClient> internal_gatt_client_;
   std::unique_ptr<FastPairGattServiceClient> gatt_client_;
   std::unique_ptr<GattServer> gatt_server_;
+  std::string provider_address_;
   std::unique_ptr<FakeFastPairDataEncryptor> fast_pair_data_encryptor_;
 
  private:
@@ -322,7 +334,7 @@ TEST_F(FastPairGattServiceClientTest, KeyBasedPairingResponseTimeout) {
   InitializeFastPairGattServiceClient();
   CountDownLatch latch(1);
   gatt_client_->WriteRequestAsync(
-      kMessageType, kFlags, kProviderAddress, kSeekerAddress,
+      kMessageType, kFlags, provider_address_, kSeekerAddress,
       *fast_pair_data_encryptor_,
       [&](absl::string_view response, std::optional<PairFailure> failure) {
         WriteTestCallback(response, failure);

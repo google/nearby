@@ -140,6 +140,7 @@ cc_test(
         ":handshake",
         "//fastpair/common",
         "//fastpair/server_access:test_support",
+        "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

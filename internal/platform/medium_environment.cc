@@ -230,6 +230,51 @@ api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
   return device;
 }
 
+api::ble_v2::BleMedium* MediumEnvironment::FindBleV2Medium(
+    absl::string_view address) {
+  api::ble_v2::BleMedium* device = nullptr;
+  CountDownLatch latch(1);
+  NEARBY_LOGS(INFO) << "FindBleV2Medium " << address;
+  RunOnMediumEnvironmentThread([&]() {
+    for (auto& item : ble_v2_mediums_) {
+      auto* medium = item.first;
+      auto* peripheral = item.second.ble_peripheral;
+      if (peripheral != nullptr && peripheral->GetAddress() == address) {
+        device = medium;
+        break;
+      }
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (device == nullptr) {
+    NEARBY_LOGS(INFO) << "FindBleV2Medium, not found: " << address;
+  }
+  return device;
+}
+
+api::ble_v2::BleMedium* MediumEnvironment::FindBleV2Medium(uint64_t id) {
+  api::ble_v2::BleMedium* device = nullptr;
+  CountDownLatch latch(1);
+  NEARBY_LOGS(INFO) << "FindBleV2Medium " << id;
+  RunOnMediumEnvironmentThread([&]() {
+    for (auto& item : ble_v2_mediums_) {
+      auto* medium = item.first;
+      auto* peripheral = item.second.ble_peripheral;
+      if (peripheral != nullptr && peripheral->GetUniqueId() == id) {
+        device = medium;
+        break;
+      }
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (device == nullptr) {
+    NEARBY_LOGS(INFO) << "FindBleV2Medium, not found: " << id;
+  }
+  return device;
+}
+
 void MediumEnvironment::OnBlePeripheralStateChanged(
     BleMediumContext& info, api::BlePeripheral& peripheral,
     const std::string& service_id, bool fast_advertisement, bool enabled) {
@@ -525,10 +570,12 @@ void MediumEnvironment::CallBleAcceptedConnectionCallback(
       });
 }
 
-void MediumEnvironment::RegisterBleV2Medium(api::ble_v2::BleMedium& medium) {
+void MediumEnvironment::RegisterBleV2Medium(
+    api::ble_v2::BleMedium& medium, api::ble_v2::BlePeripheral* peripheral) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium]() {
-    ble_v2_mediums_.insert({&medium, BleV2MediumContext{}});
+  RunOnMediumEnvironmentThread([this, &medium, peripheral]() {
+    ble_v2_mediums_.insert(
+        {&medium, BleV2MediumContext{.ble_peripheral = peripheral}});
     NEARBY_LOGS(INFO) << "G3 Registered: medium:" << &medium;
   });
 }
@@ -675,25 +722,24 @@ bool MediumEnvironment::DiscoverBleV2MediumGattCharacteristics(
   if (!enabled_) return false;
   int found_characteristic = 0;
   CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread(
-      [this, &found_characteristic, &latch, &service_uuid,
-       &characteristic_uuids]() {
-        for (const auto& item : gatt_advertisement_bytes_) {
-          if (item.first.service_uuid == service_uuid) {
-            Uuid char_uuid_key = item.first.uuid;
-            auto it = std::find_if(characteristic_uuids.rbegin(),
-                                   characteristic_uuids.rend(),
-                                   [char_uuid_key](const auto& char_uuid) {
-                                     return char_uuid == char_uuid_key;
-                                   });
-            if (it != characteristic_uuids.rend()) {
-              discovered_gatt_advertisement_bytes_[item.first] = item.second;
-              found_characteristic++;
-            }
-          }
+  RunOnMediumEnvironmentThread([this, &found_characteristic, &latch,
+                                &service_uuid, &characteristic_uuids]() {
+    for (const auto& item : gatt_advertisement_bytes_) {
+      if (item.first.service_uuid == service_uuid) {
+        Uuid char_uuid_key = item.first.uuid;
+        auto it = std::find_if(characteristic_uuids.rbegin(),
+                               characteristic_uuids.rend(),
+                               [char_uuid_key](const auto& char_uuid) {
+                                 return char_uuid == char_uuid_key;
+                               });
+        if (it != characteristic_uuids.rend()) {
+          discovered_gatt_advertisement_bytes_[item.first] = item.second;
+          found_characteristic++;
         }
-        latch.CountDown();
-      });
+      }
+    }
+    latch.CountDown();
+  });
   latch.Await();
   return found_characteristic == characteristic_uuids.size();
 }

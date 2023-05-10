@@ -26,6 +26,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -840,6 +841,35 @@ void BleV2Medium::AdvertisementReceivedHandler(
                                             ble_advertisement_data);
     }
   }
+}
+
+bool BleV2Medium::GetRemotePeripheral(absl::string_view mac_address,
+                                      GetRemotePeripheralCallback callback) {
+  for (auto& item : peripherals_) {
+    if (item.second->GetAddress() == mac_address) {
+      callback(*(item.second));
+      return true;
+    }
+  }
+  auto peripheral = std::make_unique<BleV2Peripheral>();
+  peripheral->SetAddress(mac_address);
+  if (peripheral->GetUniqueId() == 0) {
+    return false;
+  }
+  BleV2Peripheral* ptr = peripheral.get();
+  peripherals_[peripheral->GetUniqueId()] = std::move(peripheral);
+  callback(*ptr);
+  return true;
+}
+
+bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
+                                      GetRemotePeripheralCallback callback) {
+  auto it = peripherals_.find(id);
+  if (it == peripherals_.end()) {
+    return false;
+  }
+  callback(*(it->second));
+  return true;
 }
 
 }  // namespace windows

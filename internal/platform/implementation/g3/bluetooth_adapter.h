@@ -15,7 +15,9 @@
 #ifndef PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 #define PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
@@ -52,21 +54,6 @@ class BlePeripheral : public api::BlePeripheral {
 
   BluetoothAdapter& adapter_;
   ByteArray advertisement_bytes_;
-};
-
-// BlePeripheral implementation.
-class BleV2Peripheral : public api::ble_v2::BlePeripheral {
- public:
-  std::string GetAddress() const override;
-  BluetoothAdapter& GetAdapter() { return adapter_; }
-
- private:
-  // Only BluetoothAdapter may instantiate BlePeripheral.
-  friend class BluetoothAdapter;
-
-  explicit BleV2Peripheral(BluetoothAdapter* adapter);
-
-  BluetoothAdapter& adapter_;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
@@ -134,7 +121,6 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   }
 
   BlePeripheral& GetPeripheral() { return peripheral_; }
-  BleV2Peripheral& GetPeripheralV2() { return peripheral_v2_; }
 
   void SetBleMedium(api::BleMedium* medium);
   api::BleMedium* GetBleMedium() { return ble_medium_; }
@@ -144,11 +130,12 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   void SetMacAddress(std::string& mac_address) { mac_address_ = mac_address; }
 
+  std::uint64_t GetUniqueId() { return unique_id_; }
+
  private:
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
   BlePeripheral peripheral_{this};
-  BleV2Peripheral peripheral_v2_{this};
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
   api::BleMedium* ble_medium_ = nullptr;
   api::ble_v2::BleMedium* ble_v2_medium_ = nullptr;
@@ -156,6 +143,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";
   bool enabled_ ABSL_GUARDED_BY(mutex_) = true;
+  std::uint64_t unique_id_;
 };
 
 }  // namespace g3

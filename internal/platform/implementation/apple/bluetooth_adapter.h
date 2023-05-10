@@ -17,10 +17,10 @@
 
 #include <string>
 
+#import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleCentral.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
-
-#import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleCentral.h"
+#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace apple {
@@ -31,6 +31,10 @@ class BluetoothAdapter;
 class BlePeripheral : public api::ble_v2::BlePeripheral {
  public:
   std::string GetAddress() const override;
+
+  api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override {
+    return unique_id_;
+  }
 
   std::string GetPeripheralId() const { return peripheral_id_; }
 
@@ -50,11 +54,14 @@ class BlePeripheral : public api::ble_v2::BlePeripheral {
   // Only BluetoothAdapter may instantiate BlePeripheral.
   friend class BluetoothAdapter;
 
-  explicit BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
+  explicit BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {
+    unique_id_ = Prng().NextInt64();
+  }
 
   BluetoothAdapter& adapter_;
   std::string peripheral_id_;
   GNCMBleConnectionRequester connection_requester_;
+  api::ble_v2::BlePeripheral::UniqueId unique_id_;
 };
 
 // Concrete BluetoothAdapter implementation.

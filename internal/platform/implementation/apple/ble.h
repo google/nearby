@@ -145,6 +145,16 @@ class BleMedium : public api::ble_v2::BleMedium {
                                                   CancellationFlag *cancellation_flag) override;
   bool IsExtendedAdvertisementsAvailable() override;
 
+  bool GetRemotePeripheral(absl::string_view mac_address,
+                           GetRemotePeripheralCallback callback) override {
+    return false;
+  }
+
+  bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
+                           GetRemotePeripheralCallback callback) override {
+    return false;
+  }
+
  private:
   // A concrete implemenation for GattServer.
   class GattServer : public api::ble_v2::GattServer {

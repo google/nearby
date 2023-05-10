@@ -47,64 +47,6 @@ class BlePeripheral final {
   api::BlePeripheral* impl_;
 };
 
-// Opaque wrapper over a BLE peripheral. Must contain enough data about a
-// particular BLE peripheral to connect to its GATT server.
-class BleV2Peripheral final {
- public:
-  BleV2Peripheral() = default;
-  explicit BleV2Peripheral(api::ble_v2::BlePeripheral* peripheral)
-      : impl_(peripheral) {}
-  BleV2Peripheral(const BleV2Peripheral&) = default;
-  BleV2Peripheral& operator=(const BleV2Peripheral&) = default;
-  BleV2Peripheral(BleV2Peripheral&& other) {
-    impl_ = other.impl_;
-    id_ = std::move(other.id_);
-    psm_ = other.psm_;
-
-    other.impl_ = nullptr;
-    other.psm_ = 0;
-  }
-
-  BleV2Peripheral& operator=(BleV2Peripheral&& other) {
-    if (this != &other) {
-      impl_ = other.impl_;
-      id_ = std::move(other.id_);
-      psm_ = other.psm_;
-
-      other.impl_ = nullptr;
-      other.psm_ = 0;
-    }
-    return *this;
-  }
-
-  std::string GetAddress() const { return impl_->GetAddress(); }
-
-  ByteArray GetId() const { return id_; }
-  void SetId(const ByteArray& id) { id_ = id; }
-
-  int GetPsm() const { return psm_; }
-  void SetPsm(int psm) { psm_ = psm; }
-
-  // Returns reference to platform implementation.
-  // This is used to communicate with platform code, and for debugging purposes.
-  api::ble_v2::BlePeripheral& GetImpl() const { return *impl_; }
-  bool IsValid() const { return impl_ != nullptr; }
-
- private:
-  // Does not take ownership. It refers to a valid `api::ble_v2::BlePeripheral`
-  // that outlives this object.
-  api::ble_v2::BlePeripheral* impl_ = nullptr;
-
-  // A unique identifier for this peripheral. It is the BLE advertisement bytes
-  // it was found on.
-  ByteArray id_ = {};
-
-  // The psm (protocol service multiplexer) value is used for create data
-  // connection on L2CAP socket. It only exists when remote device supports
-  // L2CAP socket feature.
-  int psm_ = 0;
-};
-
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice final {
  public:

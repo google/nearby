@@ -33,7 +33,6 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
 
@@ -86,13 +85,17 @@ struct BleAdvertisementData {
 // peripheral so that we can connect to its GATT server.
 class BlePeripheral {
  public:
+  using UniqueId = std::uint64_t;
   virtual ~BlePeripheral() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getAddress()
   //
-  // This should be the MAC address when possible. If the implementation is
-  // unable to retrieve that, any unique identifier should suffice.
+  // Returns the current address.
   virtual std::string GetAddress() const = 0;
+
+  // Returns an immutable unique identifier. The identifier must not change when
+  // the BLE address is rotated.
+  virtual UniqueId GetUniqueId() const = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic
@@ -365,6 +368,7 @@ class BleServerSocket {
 // for all BLE and GATT related operations.
 class BleMedium {
  public:
+  using GetRemotePeripheralCallback = absl::AnyInvocable<void(BlePeripheral&)>;
   virtual ~BleMedium() = default;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#startAdvertising(android.bluetooth.le.AdvertiseSettings,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseCallback)
@@ -493,6 +497,16 @@ class BleMedium {
 
   // Requests if support extended advertisement.
   virtual bool IsExtendedAdvertisementsAvailable() = 0;
+
+  // Calls `callback` and returns true if `mac_address` is a valid BLE address.
+  // Otherwise, does not call the callback and returns false.
+  virtual bool GetRemotePeripheral(absl::string_view mac_address,
+                                   GetRemotePeripheralCallback callback) = 0;
+
+  // Calls `callback` and returns true if `id` refers to a known BLE peripheral.
+  // Otherwise, does not call the callback and returns false.
+  virtual bool GetRemotePeripheral(BlePeripheral::UniqueId id,
+                                   GetRemotePeripheralCallback callback) = 0;
 };
 
 }  // namespace ble_v2

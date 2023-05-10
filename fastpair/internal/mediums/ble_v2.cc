@@ -21,20 +21,6 @@
 
 namespace nearby {
 namespace fastpair {
-namespace {
-// A stub BlePeripheral implementation.
-class BlePeripheralStub : public api::ble_v2::BlePeripheral {
- public:
-  explicit BlePeripheralStub(absl::string_view ble_address) {
-    ble_address_ = std::string(ble_address);
-  }
-
-  std::string GetAddress() const override { return ble_address_; }
-
- private:
-  std::string ble_address_;
-};
-}  // namespace
 
 BleV2::BleV2(BluetoothRadio& radio) : radio_(radio) {}
 
@@ -61,8 +47,9 @@ std::unique_ptr<GattClient> BleV2::ConnectToGattServer(
         << "Can't connect to GattServer because BleV2 isn't available.";
     return nullptr;
   }
-  auto v2_peripheral = std::make_unique<BlePeripheralStub>(ble_address);
-  return medium_.ConnectToGattServer(BleV2Peripheral(v2_peripheral.get()),
+
+  BleV2Peripheral v2_peripheral = medium_.GetRemotePeripheral(ble_address);
+  return medium_.ConnectToGattServer(v2_peripheral,
                                      api::ble_v2::TxPowerLevel::kUnknown, {});
 }
 }  // namespace fastpair

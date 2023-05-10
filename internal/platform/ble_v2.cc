@@ -19,7 +19,6 @@
 #include <utility>
 
 #include "absl/status/status.h"
-#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -94,7 +93,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                   peripherals_.insert(&peripheral);
                 }
 
-                BleV2Peripheral proxy(&peripheral);
+                BleV2Peripheral proxy(*this, peripheral);
                 NEARBY_LOGS(INFO)
                     << "New peripheral imp=" << &peripheral
                     << ", callback the proxy peripheral=" << &proxy;
@@ -240,34 +239,70 @@ std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
     client_gatt_connection_callback_ = std::move(callback);
   }
 
-  std::unique_ptr<api::ble_v2::GattClient> api_gatt_client =
-      impl_->ConnectToGattServer(
-          peripheral.GetImpl(), tx_power_level,
-          {
-              .disconnected_cb =
-                  [this]() {
-                    MutexLock lock(&mutex_);
-                    client_gatt_connection_callback_.disconnected_cb();
-                  },
-          });
+  std::unique_ptr<api::ble_v2::GattClient> api_gatt_client;
+  peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
+    api_gatt_client = impl_->ConnectToGattServer(
+        device, tx_power_level,
+        {
+            .disconnected_cb =
+                [this]() {
+                  MutexLock lock(&mutex_);
+                  client_gatt_connection_callback_.disconnected_cb();
+                },
+        });
+  });
+
   return std::make_unique<GattClient>(std::move(api_gatt_client));
 }
 
 BleV2ServerSocket BleV2Medium::OpenServerSocket(const std::string& service_id) {
-  return BleV2ServerSocket(impl_->OpenServerSocket(service_id));
+  return BleV2ServerSocket(*this, impl_->OpenServerSocket(service_id));
 }
 
 BleV2Socket BleV2Medium::Connect(const std::string& service_id,
                                  TxPowerLevel tx_power_level,
                                  const BleV2Peripheral& peripheral,
                                  CancellationFlag* cancellation_flag) {
-  return BleV2Socket(impl_->Connect(service_id, tx_power_level,
-                                    /*mutated=*/peripheral.GetImpl(),
-                                    cancellation_flag));
+  BleV2Socket socket;
+  peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
+    socket = BleV2Socket(peripheral, impl_->Connect(service_id, tx_power_level,
+                                                    device, cancellation_flag));
+  });
+  return socket;
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return impl_->IsExtendedAdvertisementsAvailable();
+}
+
+BleV2Peripheral BleV2Medium::GetRemotePeripheral(
+    absl::string_view mac_address) {
+  BleV2Peripheral peripheral;
+  impl_->GetRemotePeripheral(mac_address,
+                             [&](api::ble_v2::BlePeripheral& device) {
+                               peripheral = BleV2Peripheral(*this, device);
+                             });
+  return peripheral;
+}
+
+absl::optional<std::string> BleV2Peripheral::GetAddress() const {
+  absl::optional<std::string> address;
+  GetImpl([&](api::ble_v2::BlePeripheral& device) {
+    address = device.GetAddress();
+  });
+  return address;
+}
+
+bool BleV2Peripheral::IsValid() const {
+  return GetImpl([&](api::ble_v2::BlePeripheral& device) {});
+}
+
+bool BleV2Peripheral::GetImpl(
+    absl::AnyInvocable<void(api::ble_v2::BlePeripheral& device)> callback)
+    const {
+  if (!unique_id_.has_value()) return false;
+  return medium_->GetImpl()->GetRemotePeripheral(unique_id_.value(),
+                                                 std::move(callback));
 }
 
 }  // namespace nearby

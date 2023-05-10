@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -24,17 +25,25 @@
 #include "fastpair/common/protocol.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace fastpair {
 namespace {
 constexpr absl::string_view kValidModelId("718c17");
-constexpr absl::string_view kBLEAddress("ble_address");
 constexpr absl::string_view kPubliceAddress("public_address");
+
+class MediumEnvironmentStarter {
+ public:
+  MediumEnvironmentStarter() { MediumEnvironment::Instance().Start(); }
+  ~MediumEnvironmentStarter() { MediumEnvironment::Instance().Stop(); }
+};
+
 class FastPairHandshakeLookupTest : public ::testing::Test {
  public:
   FastPairHandshakeLookupTest() {
-    device_ = new FastPairDevice(kValidModelId, kBLEAddress,
+    provider_address_ = adapter_.GetMacAddress();
+    device_ = new FastPairDevice(kValidModelId, provider_address_,
                                  Protocol::kFastPairInitialPairing);
     device_->set_public_address(kPubliceAddress);
   }
@@ -54,12 +63,18 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
     latch.Await();
   }
 
+ protected:
+  MediumEnvironmentStarter env_;
+  BluetoothAdapter adapter_;
+  BleV2Medium ble_{adapter_};
+  std::string provider_address_;
+
   FastPairDevice* device_ = nullptr;
 };
 
 TEST_F(FastPairHandshakeLookupTest, CreateFastPairHandshkeInstanceForDevice) {
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(device_));
-  EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(kBLEAddress));
+  EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(provider_address_));
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(kPubliceAddress));
 
   CreateFastPairHandshkeInstanceForDevice(*device_);
@@ -67,7 +82,7 @@ TEST_F(FastPairHandshakeLookupTest, CreateFastPairHandshkeInstanceForDevice) {
   // GetFastPairHandshakeWithDevicePtr
   EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Get(device_));
   // GetFastPairHandshakeWithBLEAddress
-  EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Get(kBLEAddress));
+  EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Get(provider_address_));
   // GetFastPairHandshakeWithPublicAddress
   EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Get(kPubliceAddress));
   // GetFastPairHandshakeWithDevicePtr
@@ -84,7 +99,8 @@ TEST_F(FastPairHandshakeLookupTest, EraseFastPairHandshakeWithDevicePtr) {
   EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Erase(device_));
   // Already Erased
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(device_));
-  EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Erase(kBLEAddress));
+  EXPECT_FALSE(
+      FastPairHandshakeLookup::GetInstance()->Erase(provider_address_));
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Erase(kPubliceAddress));
 }
 
@@ -95,7 +111,7 @@ TEST_F(FastPairHandshakeLookupTest, EraseFastPairHandshakeWithBLEAddress) {
   // Erase Wrong Address
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Erase(""));
 
-  EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Erase(kBLEAddress));
+  EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Erase(provider_address_));
   // Already Erased
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(device_));
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Erase(device_));
@@ -111,7 +127,8 @@ TEST_F(FastPairHandshakeLookupTest, EraseFastPairHandshakeWithPublicAddress) {
   // Already Erased
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Get(device_));
   EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Erase(device_));
-  EXPECT_FALSE(FastPairHandshakeLookup::GetInstance()->Erase(kBLEAddress));
+  EXPECT_FALSE(
+      FastPairHandshakeLookup::GetInstance()->Erase(provider_address_));
 }
 
 TEST_F(FastPairHandshakeLookupTest, ClearAllFastPairHandshakeInstances) {

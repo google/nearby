@@ -127,11 +127,6 @@ class DiscoveredPeripheralTracker {
     // gatt_advertisements_.
     BleAdvertisementHeader advertisement_header;
 
-    // Used when we need to make a socket connection based off of the GATT
-    // advertisement alone. Entries are modified every time a GATT
-    // advertisement's advertisement header is seen.
-    std::string mac_address;
-
     // A proxy BlePeripheral for found/lost disovery callback.
     BleV2Peripheral peripheral;
   };

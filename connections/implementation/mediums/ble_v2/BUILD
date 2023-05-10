@@ -77,6 +77,7 @@ cc_test(
         ":ble_v2",
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
         "//proto/mediums:ble_frames_cc_proto",

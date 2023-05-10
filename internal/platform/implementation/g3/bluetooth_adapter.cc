@@ -38,13 +38,6 @@ void BlePeripheral::SetAdvertisementBytes(
   advertisement_bytes_ = advertisement_bytes;
 }
 
-BleV2Peripheral::BleV2Peripheral(BluetoothAdapter* adapter)
-    : adapter_(*adapter) {}
-
-std::string BleV2Peripheral::GetAddress() const {
-  return adapter_.GetMacAddress();
-}
-
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
@@ -57,7 +50,7 @@ std::string BluetoothDevice::GetMacAddress() const {
 BluetoothAdapter::BluetoothAdapter() {
   std::string mac_address;
   mac_address.resize(6);
-  int64_t raw_mac_addr = Prng().NextInt64();
+  std::uint64_t raw_mac_addr = Prng().NextInt64();
   mac_address[0] = static_cast<char>(raw_mac_addr >> 40);
   mac_address[1] = static_cast<char>(raw_mac_addr >> 32);
   mac_address[2] = static_cast<char>(raw_mac_addr >> 24);
@@ -65,6 +58,7 @@ BluetoothAdapter::BluetoothAdapter() {
   mac_address[4] = static_cast<char>(raw_mac_addr >> 8);
   mac_address[5] = static_cast<char>(raw_mac_addr >> 0);
   SetMacAddress(mac_address);
+  unique_id_ = raw_mac_addr;
 }
 
 BluetoothAdapter::~BluetoothAdapter() { SetStatus(Status::kDisabled); }
