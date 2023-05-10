@@ -82,6 +82,7 @@ packet size.
 class Packet {
  public:
   static constexpr int kMaxPacketCounter = 0b111;
+  static constexpr int kPacketHeaderLength = 1;
   enum class ControlPacketType {
     kControlConnectionRequest = 0,
     kControlConnectionConfirm = 1,
@@ -134,7 +135,6 @@ class Packet {
   static constexpr char kFirstPacketBit = 0b00001000;
   static constexpr char kLastPacketBit = 0b00000100;
   static constexpr char kMaskType = 0b10000000;
-  static constexpr int kPacketHeaderLength = 1;
 
   static Packet CreateControlPacket(ControlPacketType command_number,
                                     int payload_size);
