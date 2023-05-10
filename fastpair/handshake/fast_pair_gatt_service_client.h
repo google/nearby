@@ -15,10 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_GATT_SERVICE_CLIENT_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_GATT_SERVICE_CLIENT_H_
 
+#include <array>
 #include <optional>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
@@ -28,6 +30,8 @@ namespace nearby {
 namespace fastpair {
 using WriteResponseCallback = absl::AnyInvocable<void(
     absl::string_view value, std::optional<PairFailure> failure)>;
+using WriteAccountkeyCallback = absl::AnyInvocable<void(
+    std::optional<AccountKey> account_key, std::optional<PairFailure> failure)>;
 
 // This class is responsible for connecting to the Fast Pair GATT service for a
 // device and invoking a callback when ready, or when an error is discovered
@@ -59,6 +63,11 @@ class FastPairGattServiceClient {
       uint8_t message_type, uint32_t passkey,
       const FastPairDataEncryptor& fast_pair_data_encryptor,
       WriteResponseCallback write_response_callback) = 0;
+
+  // Writes the account key to the account key characteristic.
+  virtual void WriteAccountKey(
+      const FastPairDataEncryptor& fast_pair_data_encryptor,
+      WriteAccountkeyCallback write_accountkey_callback) = 0;
 };
 
 }  // namespace fastpair
