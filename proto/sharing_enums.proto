@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 58
+// Next id: 60
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -216,6 +216,12 @@ enum EventType {
 
   // The result of the setup wizard flow
   SETUP_WIZARD = 57;
+
+  // Sender taps a QR code
+  TAP_QR_CODE = 58;
+
+  // QR code link shown
+  QR_CODE_LINK_SHOWN = 59;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -525,6 +531,7 @@ enum SharingUseCase {
   USE_CASE_APP_SHARE = 4;
   USE_CASE_QUICK_SETTING_FILE_SHARE = 5;
   USE_CASE_SETUP_WIZARD = 6;
+  USE_CASE_NEARBY_SHARE_WITH_QR_CODE = 7;
 }
 
 // Used only for Windows App now.
