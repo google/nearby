@@ -30,14 +30,12 @@ namespace presence {
 enum class ActionBit {
   kActiveUnlockAction = 8,
   kNearbyShareAction = 9,
-  kFitCastAction = 10,
-  kPresenceManagerAction = 11,
-  kInstantTetheringAction = 12,
-  kCrossDeviceCallingAction = 13,
-  kPhoneHubAction = 14,
+  kInstantTetheringAction = 10,
+  kPhoneHubAction = 11,
+  kPresenceManagerAction = 12,
+  kFinderAction = 13,
+  kFastPairSassAction = 14,
   kTapToTransferAction = 15,
-  kEddystoneAction = 16,
-  kFastPairAction = 17,
   kLastAction
 };
 

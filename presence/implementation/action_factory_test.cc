@@ -31,7 +31,7 @@ namespace {
 using ::testing::ElementsAre;
 
 constexpr uint32_t kActiveUnlockBitMask = 1 << 23;
-constexpr uint32_t kFastPairBitMask = 1 << 14;
+constexpr uint32_t kFastPairBitMask = 1 << 17;
 
 TEST(ActionFactory, CreateActiveUnlockAction) {
   std::vector<DataElement> data_elements;
@@ -71,7 +71,7 @@ TEST(ActionFactory, CreateContextTimestampAndFastPair) {
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kContextTimestampFieldType,
                              kTimestamp);
-  data_elements.emplace_back(ActionBit::kFastPairAction);
+  data_elements.emplace_back(ActionBit::kFastPairSassAction);
 
   Action action = ActionFactory::CreateAction(data_elements);
 
@@ -99,7 +99,7 @@ TEST(ActionFactory, DecodeContextTimestampAndFastPair) {
       data_elements,
       ElementsAre(DataElement(DataElement::kContextTimestampFieldType,
                               absl::HexStringToBytes("0B")),
-                  DataElement(DataElement(ActionBit::kFastPairAction))));
+                  DataElement(DataElement(ActionBit::kFastPairSassAction))));
 }
 
 }  // namespace

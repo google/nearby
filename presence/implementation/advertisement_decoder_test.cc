@@ -237,7 +237,6 @@ TEST(AdvertisementDecoder, DecodeBaseNpWithTxAndActionFields) {
                               absl::HexStringToBytes("50")),
                   DataElement(DataElement::kContextTimestampFieldType,
                               absl::HexStringToBytes("0B")),
-                  DataElement(DataElement(ActionBit::kEddystoneAction)),
                   DataElement(DataElement(ActionBit::kTapToTransferAction)),
                   DataElement(DataElement(ActionBit::kNearbyShareAction))));
 }
@@ -388,10 +387,10 @@ TEST(AdvertisementDecoder, MatchesLegacyPresenceScanFilterWithActions) {
   DataElement model_id =
       DataElement(DataElement::kModelIdFieldType, "model id");
   DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
-  DataElement eddystone_action = DataElement(ActionBit::kEddystoneAction);
+  DataElement ttt_action = DataElement(ActionBit::kTapToTransferAction);
   LegacyPresenceScanFilter filter = {
       .actions = {static_cast<int>(ActionBit::kActiveUnlockAction),
-                  static_cast<int>(ActionBit::kEddystoneAction)},
+                  static_cast<int>(ActionBit::kTapToTransferAction)},
       .extended_properties = {model_id, salt}};
 
   AdvertisementDecoder decoder(
@@ -399,7 +398,7 @@ TEST(AdvertisementDecoder, MatchesLegacyPresenceScanFilterWithActions) {
       ScanRequestBuilder().AddScanFilter(filter).Build());
 
   EXPECT_FALSE(decoder.MatchesScanFilter({salt, model_id}));
-  EXPECT_TRUE(decoder.MatchesScanFilter({salt, eddystone_action, model_id}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, ttt_action, model_id}));
 }
 
 TEST(AdvertisementDecoder, MatchesMultipleFilters) {
@@ -408,11 +407,11 @@ TEST(AdvertisementDecoder, MatchesMultipleFilters) {
   DataElement model_id =
       DataElement(DataElement::kModelIdFieldType, "model id");
   DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
-  DataElement eddystone_action = DataElement(ActionBit::kEddystoneAction);
+  DataElement ttt_action = DataElement(ActionBit::kTapToTransferAction);
   PresenceScanFilter presence_filter = {.extended_properties = {model_id}};
   LegacyPresenceScanFilter legacy_filter = {
       .actions = {static_cast<int>(ActionBit::kActiveUnlockAction),
-                  static_cast<int>(ActionBit::kEddystoneAction)},
+                  static_cast<int>(ActionBit::kTapToTransferAction)},
       .extended_properties = {salt}};
 
   AdvertisementDecoder decoder(ScanRequestBuilder()
@@ -421,8 +420,8 @@ TEST(AdvertisementDecoder, MatchesMultipleFilters) {
                                    .Build());
 
   EXPECT_TRUE(decoder.MatchesScanFilter({model_id}));
-  EXPECT_TRUE(decoder.MatchesScanFilter({salt, eddystone_action}));
-  EXPECT_FALSE(decoder.MatchesScanFilter({eddystone_action}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, ttt_action}));
+  EXPECT_FALSE(decoder.MatchesScanFilter({ttt_action}));
 }
 
 }  // namespace
