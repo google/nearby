@@ -86,12 +86,16 @@
   __block BOOL blockResult = NO;
   __block NSError *blockError = nil;
 
+  __block NSData *blockData = [data copy];
   dispatch_data_t dispatchData =
-      dispatch_data_create(data.bytes, data.length, dispatch_get_main_queue(),
-                           ^{
-                               // Since we block until the send is complete, `data` should stay
-                               // alive when needed and released at the end of this method.
-                           });
+      dispatch_data_create(blockData.bytes, blockData.length, dispatch_get_main_queue(), ^{
+        // One would assume that since `write` blocks execution until the send is complete, that
+        // `data` would stay alive when needed and released at the end of the method. However, that
+        // doesn't seem to be the case. We must keep a reference to `blockData` in this callback to
+        // keep it alive until `dispatchData` is done being used.
+        // See: b/280525159
+        blockData = nil;
+      });
 
   nw_connection_send(connection, dispatchData, NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT, false,
                      ^(nw_error_t error) {
