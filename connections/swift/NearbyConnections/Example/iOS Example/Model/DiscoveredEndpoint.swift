@@ -18,6 +18,7 @@ import Foundation
 import NearbyConnections
 
 struct DiscoveredEndpoint: Identifiable {
-    let id: EndpointID
+    let id: UUID
+    let endpointID: EndpointID
     let endpointName: String
 }

@@ -42,7 +42,8 @@ struct ConnectionRequestView_Previews: PreviewProvider {
         Form {
             ConnectionRequestView(
                 connectionRequest: ConnectionRequest(
-                    id: "",
+                    id: UUID(),
+                    endpointID: "",
                     endpointName: "Example",
                     pin: "1234",
                     shouldAccept: { _ in }

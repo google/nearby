@@ -18,7 +18,8 @@ import Foundation
 import NearbyConnections
 
 struct ConnectionRequest: Identifiable {
-    let id: EndpointID
+    let id: UUID
+    let endpointID: EndpointID
     let endpointName: String
     let pin: String
     let shouldAccept: ((Bool) -> Void)

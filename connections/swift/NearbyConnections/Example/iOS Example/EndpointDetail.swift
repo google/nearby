@@ -22,16 +22,16 @@ struct EndpointDetail: View {
     @EnvironmentObject private var model: Model
 
     var body: some View {
-        let endpoint = model.endpoints.first { $0.id == endpointID }
-        let connectionRequest = model.requests.first { $0.id == endpointID }
-        let connection = model.connections.first { $0.id == endpointID }
+        let endpoint = model.endpoints.first { $0.endpointID == endpointID }
+        let connectionRequest = model.requests.first { $0.endpointID == endpointID }
+        let connection = model.connections.first { $0.endpointID == endpointID }
         let name = connectionRequest?.endpointName ?? connection?.endpointName ?? endpoint?.endpointName
 
         Form {
             if let endpoint {
                 DiscoveredEndpointView(endpoint: endpoint, onRequestConnection: {
                     model.requestConnection(to: endpointID)
-                })
+                }).id(endpoint.id)
             }
 
             if let connectionRequest {
@@ -39,7 +39,7 @@ struct EndpointDetail: View {
                     connectionRequest.shouldAccept(true)
                 }, onRejectConnection: {
                     connectionRequest.shouldAccept(false)
-                })
+                }).id(connectionRequest.id)
             }
 
             if let connection {
@@ -47,7 +47,7 @@ struct EndpointDetail: View {
                     model.sendBytes(to: [endpointID])
                 }, onDisconnect: {
                     model.disconnect(from: endpointID)
-                })
+                }).id(connection.id)
             }
         }
         .navigationTitle(name ?? "")

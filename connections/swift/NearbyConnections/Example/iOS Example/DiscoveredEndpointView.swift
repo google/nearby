@@ -37,7 +37,8 @@ struct DiscoveredEndpointView_Previews: PreviewProvider {
         Form {
             DiscoveredEndpointView(
                 endpoint: DiscoveredEndpoint(
-                    id: "",
+                    id: UUID(),
+                    endpointID: "",
                     endpointName: "Example"
                 ),
                 onRequestConnection: {}

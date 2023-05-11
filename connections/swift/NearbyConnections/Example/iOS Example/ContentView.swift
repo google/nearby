@@ -44,7 +44,7 @@ struct ContentView: View {
                 if !model.requests.isEmpty {
                     Section(header: Text("Pending Connections")) {
                         ForEach(model.requests) { request in
-                            NavigationLink(value: request.id) {
+                            NavigationLink(value: request.endpointID) {
                                 Text(request.endpointName)
                             }
                         }
@@ -54,7 +54,7 @@ struct ContentView: View {
                 if !model.connections.isEmpty {
                     Section(header: Text("Connections")) {
                         ForEach(model.connections) { connection in
-                            NavigationLink(value: connection.id) {
+                            NavigationLink(value: connection.endpointID) {
                                 Text(connection.endpointName)
                             }
                         }
@@ -64,7 +64,7 @@ struct ContentView: View {
                 if !model.endpoints.isEmpty {
                     Section(header: Text("Endpoints")) {
                         ForEach(model.endpoints) { endpoint in
-                            NavigationLink(value: endpoint.id) {
+                            NavigationLink(value: endpoint.endpointID) {
                                 Text(endpoint.endpointName)
                             }
                         }

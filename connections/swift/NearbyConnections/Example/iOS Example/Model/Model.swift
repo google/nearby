@@ -110,7 +110,7 @@ class Model: ObservableObject {
             cancellationToken: token
         )
         for endpointID in endpointIDs {
-            guard let index = connections.firstIndex(where: { $0.id == endpointID }) else {
+            guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
                 return
             }
             connections[index].payloads.insert(payload, at: 0)
@@ -121,14 +121,15 @@ class Model: ObservableObject {
 extension Model: DiscovererDelegate {
     func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, with context: Data) {
         let endpoint = DiscoveredEndpoint(
-            id: endpointID,
+            id: UUID(),
+            endpointID: endpointID,
             endpointName: String(data: context, encoding: .utf8)!
         )
         endpoints.insert(endpoint, at: 0)
     }
 
     func discoverer(_ discoverer: Discoverer, didLose endpointID: EndpointID) {
-        guard let index = endpoints.firstIndex(where: { $0.id == endpointID }) else {
+        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
             return
         }
         endpoints.remove(at: index)
@@ -138,7 +139,8 @@ extension Model: DiscovererDelegate {
 extension Model: AdvertiserDelegate {
     func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
         let endpoint = DiscoveredEndpoint(
-            id: endpointID,
+            id: UUID(),
+            endpointID: endpointID,
             endpointName: String(data: context, encoding: .utf8)!
         )
         endpoints.insert(endpoint, at: 0)
@@ -148,12 +150,13 @@ extension Model: AdvertiserDelegate {
 
 extension Model: ConnectionManagerDelegate {
     func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointID: EndpointID, verificationHandler: @escaping (Bool) -> Void) {
-        guard let index = endpoints.firstIndex(where: { $0.id == endpointID }) else {
+        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
             return
         }
         let endpoint = endpoints.remove(at: index)
         let request = ConnectionRequest(
-            id: endpointID,
+            id: endpoint.id,
+            endpointID: endpointID,
             endpointName: endpoint.endpointName,
             pin: verificationCode,
             shouldAccept: { accept in
@@ -171,7 +174,7 @@ extension Model: ConnectionManagerDelegate {
             isIncoming: true,
             cancellationToken: nil
         )
-        guard let index = connections.firstIndex(where: { $0.id == endpointID }) else {
+        guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
             return
         }
         connections[index].payloads.insert(payload, at: 0)
@@ -185,7 +188,7 @@ extension Model: ConnectionManagerDelegate {
             isIncoming: true,
             cancellationToken: token
         )
-        guard let index = connections.firstIndex(where: { $0.id == endpointID }) else {
+        guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
             return
         }
         connections[index].payloads.insert(payload, at: 0)
@@ -199,14 +202,14 @@ extension Model: ConnectionManagerDelegate {
             isIncoming: true,
             cancellationToken: token
         )
-        guard let index = connections.firstIndex(where: { $0.id == endpointID }) else {
+        guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
             return
         }
         connections[index].payloads.insert(payload, at: 0)
     }
 
     func connectionManager(_ connectionManager: ConnectionManager, didReceiveTransferUpdate update: TransferUpdate, from endpointID: EndpointID, forPayload payloadID: PayloadID) {
-        guard let connectionIndex = connections.firstIndex(where: { $0.id == endpointID }),
+        guard let connectionIndex = connections.firstIndex(where: { $0.endpointID == endpointID }),
               let payloadIndex = connections[connectionIndex].payloads.firstIndex(where: { $0.id == payloadID }) else {
             return
         }
@@ -227,22 +230,23 @@ extension Model: ConnectionManagerDelegate {
         case .connecting:
             break
         case .connected:
-            guard let index = requests.firstIndex(where: { $0.id == endpointID }) else {
+            guard let index = requests.firstIndex(where: { $0.endpointID == endpointID }) else {
                 return
             }
             let request = requests.remove(at: index)
             let connection = ConnectedEndpoint(
-                id: endpointID,
+                id: request.id,
+                endpointID: endpointID,
                 endpointName: request.endpointName
             )
             connections.insert(connection, at: 0)
         case .disconnected:
-            guard let index = connections.firstIndex(where: { $0.id == endpointID }) else {
+            guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
                 return
             }
             connections.remove(at: index)
         case .rejected:
-            guard let index = requests.firstIndex(where: { $0.id == endpointID }) else {
+            guard let index = requests.firstIndex(where: { $0.endpointID == endpointID }) else {
                 return
             }
             requests.remove(at: index)

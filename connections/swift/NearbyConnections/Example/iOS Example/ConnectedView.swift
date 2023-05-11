@@ -46,7 +46,8 @@ struct ConnectedView_Previews: PreviewProvider {
         Form {
             ConnectedView(
                 connection: ConnectedEndpoint(
-                    id: "",
+                    id: UUID(),
+                    endpointID: "",
                     endpointName: "Example"
                 ),
                 onSendBytes: {},
