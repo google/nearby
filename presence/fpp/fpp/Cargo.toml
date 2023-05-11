@@ -6,6 +6,4 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ilog = "1.0.1"
 itertools = "0.10.5"
-lazy_static = "1.4.0"
