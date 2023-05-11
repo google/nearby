@@ -123,7 +123,7 @@ void FastPairGattServiceClientImpl::CreateGattConnection() {
       mediums_.GetBleV2().IsAvailable()) {
     gatt_client_ = mediums_.GetBleV2().ConnectToGattServer(device_address_);
   }
-  if (!gatt_client_) {
+  if (!gatt_client_ || !gatt_client_->IsValid()) {
     // The device must have been lost between connection attempts.
     NotifyInitializedError(
         PairFailure::kPairingDeviceLostBetweenGattConnectionAttempts);

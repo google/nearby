@@ -206,8 +206,9 @@ class BleV2ServerSocket final {
 // LINT.IfChange
 class GattServer final {
  public:
-  explicit GattServer(std::unique_ptr<api::ble_v2::GattServer> gatt_server)
-      : impl_(std::move(gatt_server)) {}
+  GattServer(BleV2Medium& medium,
+             std::unique_ptr<api::ble_v2::GattServer> gatt_server)
+      : medium_(medium), impl_(std::move(gatt_server)) {}
   ~GattServer() { Stop(); }
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
@@ -240,12 +241,17 @@ class GattServer final {
   // it is not safe to call any other method.
   bool IsValid() const { return impl_ != nullptr; }
 
+  BleV2Peripheral GetBlePeripheral() {
+    return BleV2Peripheral(medium_, impl_->GetBlePeripheral());
+  }
+
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging
   // purposes.
   api::ble_v2::GattServer* GetImpl() { return impl_.get(); }
 
  private:
+  BleV2Medium& medium_;
   std::unique_ptr<api::ble_v2::GattServer> impl_;
 };
 // LINT.ThenChange(//depot/google3/third_party/nearby/internal/platform/implementation/ble_v2.h)
@@ -285,6 +291,8 @@ class GattClient final {
     return impl_->WriteCharacteristic(characteristic, value, write_type);
   }
 
+  // TODO(qinwangz): We should not need  `on_characteristic_changed_cb` when
+  // unsubscribing.
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   bool SetCharacteristicSubscription(
       const api::ble_v2::GattCharacteristic& characteristic, bool enable,

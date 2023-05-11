@@ -215,20 +215,33 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
                      const GattCharacteristic& characteristic, int offset,
                      ReadValueCallback callback) {
                 MutexLock lock(&mutex_);
-                server_gatt_connection_callback_.on_characteristic_read_cb(
-                    remote_device, characteristic, offset, std::move(callback));
+                if (server_gatt_connection_callback_
+                        .on_characteristic_read_cb) {
+                  server_gatt_connection_callback_.on_characteristic_read_cb(
+                      remote_device, characteristic, offset,
+                      std::move(callback));
+                } else {
+                  callback(absl::FailedPreconditionError(
+                      "Read characteristic callback is not set"));
+                }
               },
           .on_characteristic_write_cb =
               [this](const api::ble_v2::BlePeripheral& remote_device,
                      const GattCharacteristic& characteristic, int offset,
                      absl::string_view data, WriteValueCallback callback) {
                 MutexLock lock(&mutex_);
-                server_gatt_connection_callback_.on_characteristic_write_cb(
-                    remote_device, characteristic, offset, data,
-                    std::move(callback));
+                if (server_gatt_connection_callback_
+                        .on_characteristic_write_cb) {
+                  server_gatt_connection_callback_.on_characteristic_write_cb(
+                      remote_device, characteristic, offset, data,
+                      std::move(callback));
+                } else {
+                  callback(absl::FailedPreconditionError(
+                      "Write characteristic callback is not set"));
+                }
               },
       });
-  return std::make_unique<GattServer>(std::move(api_gatt_server));
+  return std::make_unique<GattServer>(*this, std::move(api_gatt_server));
 }
 
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(

@@ -396,7 +396,7 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
   if (!peripheral_) {
     peripheral_ = [[GNCMBlePeripheral alloc] init];
   }
-  return std::make_unique<GattServer>(peripheral_);
+  return std::make_unique<GattServer>(adapter_, peripheral_);
 }
 
 std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(

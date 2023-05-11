@@ -351,6 +351,7 @@ cc_library(
         "//internal/flags:__subpackages__",
         "//internal/interop:__pkg__",
         "//internal/network:__subpackages__",
+        "//internal/platform/implementation/g3:__pkg__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",

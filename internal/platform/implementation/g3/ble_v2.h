@@ -20,13 +20,16 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/pipe.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
 
@@ -228,6 +231,13 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // A concrete implementation for GattServer.
   class GattServer : public api::ble_v2::GattServer {
    public:
+    GattServer(BleV2Medium& medium,
+               api::ble_v2::ServerGattConnectionCallback callback);
+    ~GattServer() override;
+
+    api::ble_v2::BlePeripheral& GetBlePeripheral() override {
+      return ble_peripheral_;
+    }
     std::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
         const Uuid& service_uuid, const Uuid& characteristic_uuid,
         api::ble_v2::GattCharacteristic::Permission permission,
@@ -242,11 +252,53 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         const ByteArray& new_value) override;
 
     void Stop() override;
+
+    bool DiscoverBleV2MediumGattCharacteristics(
+        const Uuid& service_uuid,
+        const std::vector<Uuid>& characteristic_uuids);
+
+    absl::StatusOr<ByteArray> ReadCharacteristic(
+        const BleV2Peripheral& remote_device,
+        const api::ble_v2::GattCharacteristic& characteristic, int offset);
+
+    absl::Status WriteCharacteristic(
+        const BleV2Peripheral& remote_device,
+        const api::ble_v2::GattCharacteristic& characteristic, int offset,
+        absl::string_view data);
+
+    bool AddCharacteristicSubscription(
+        const BleV2Peripheral& remote_device,
+        const api::ble_v2::GattCharacteristic& characteristic,
+        absl::AnyInvocable<void(absl::string_view value)>);
+    bool RemoveCharacteristicSubscription(
+        const BleV2Peripheral& remote_device,
+        const api::ble_v2::GattCharacteristic& characteristic);
+
+   private:
+    using SubscriberKey =
+        std::pair<const BleV2Peripheral*, api::ble_v2::GattCharacteristic>;
+    using SubscriberCallback =
+        absl::AnyInvocable<void(absl::string_view value)>;
+    BleV2Medium& medium_;
+    api::ble_v2::ServerGattConnectionCallback callback_;
+    BleV2Peripheral ble_peripheral_;
+    absl::flat_hash_map<api::ble_v2::GattCharacteristic,
+                        absl::StatusOr<ByteArray>>
+        characteristics_;
+    absl::flat_hash_map<SubscriberKey, SubscriberCallback> subscribers_;
+
+    Lender<api::ble_v2::GattServer*> lender_{this};
   };
 
   // A concrete implementation for GattClient.
   class GattClient : public api::ble_v2::GattClient {
    public:
+    GattClient(api::ble_v2::BlePeripheral& peripheral,
+               Borrowable<api::ble_v2::GattServer*> gatt_server,
+               api::ble_v2::ClientGattConnectionCallback callback)
+        : peripheral_(static_cast<BleV2Peripheral&>(peripheral)),
+          gatt_server_(gatt_server),
+          callback_(std::move(callback)) {}
     bool DiscoverServiceAndCharacteristics(
         const Uuid& service_uuid,
         const std::vector<Uuid>& characteristic_uuids) override;
@@ -273,9 +325,12 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     absl::Mutex mutex_;
 
     // A flag to indicate the gatt connection alive or not. If it is
-    // disconnected/*false*/, the instance needs to be created again to bring it
-    // alive.
+    // disconnected/*false*/, the instance needs to be created again to bring
+    // it alive.
     bool is_connection_alive_ ABSL_GUARDED_BY(mutex_) = true;
+    BleV2Peripheral& peripheral_;
+    Borrowable<api::ble_v2::GattServer*> gatt_server_;
+    api::ble_v2::ClientGattConnectionCallback callback_;
   };
 
   absl::Mutex mutex_;

@@ -24,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
@@ -56,6 +57,10 @@ class BleGattServer : public api::ble_v2::GattServer {
 
   bool StartAdvertisement(const ByteArray& service_data, bool is_connectable);
   bool StopAdvertisement();
+
+  api::ble_v2::BlePeripheral& GetBlePeripheral() override {
+    return peripheral_;
+  }
 
  private:
   // Used to save native data related to the GATT characteristic.
@@ -105,6 +110,7 @@ class BleGattServer : public api::ble_v2::GattServer {
           GattServiceProviderAdvertisementStatusChangedEventArgs const& args);
 
   BluetoothAdapter* adapter_ = nullptr;
+  BleV2Peripheral peripheral_;
 
   ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
       GattServiceProvider gatt_service_provider_ = nullptr;

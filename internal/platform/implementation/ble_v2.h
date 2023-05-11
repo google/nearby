@@ -28,6 +28,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -164,6 +165,12 @@ struct GattCharacteristic {
     return this->uuid == rhs.uuid && this->service_uuid == rhs.service_uuid &&
            this->permission == rhs.permission && this->property == rhs.property;
   }
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const GattCharacteristic& c) {
+    absl::Format(&sink, "(service:%s, uuid:%s, permission:%v, property%v)",
+                 std::string(c.service_uuid), std::string(c.uuid), c.permission,
+                 c.property);
+  }
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGatt
@@ -236,6 +243,9 @@ class GattClient {
 class GattServer {
  public:
   virtual ~GattServer() = default;
+
+  // Returns the local BlePeripheral.
+  virtual BlePeripheral& GetBlePeripheral() = 0;
 
   // Creates a characteristic and adds it to the GATT server under the given
   // characteristic and service UUIDs. Returns no value upon error.

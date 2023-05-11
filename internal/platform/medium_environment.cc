@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -699,156 +700,6 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
   });
 }
 
-void MediumEnvironment::InsertBleV2MediumGattCharacteristics(
-    const api::ble_v2::GattCharacteristic& characteristic,
-    const ByteArray& gatt_advertisement_byte) {
-  if (!enabled_) return;
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread(
-      [this, &latch, &characteristic, &gatt_advertisement_byte]() {
-        gatt_advertisement_bytes_[characteristic] = gatt_advertisement_byte;
-        latch.CountDown();
-      });
-  latch.Await();
-}
-
-void MediumEnvironment::ClearBleV2MediumGattCharacteristics() {
-  if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this]() { gatt_advertisement_bytes_.clear(); });
-}
-
-bool MediumEnvironment::DiscoverBleV2MediumGattCharacteristics(
-    const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
-  if (!enabled_) return false;
-  int found_characteristic = 0;
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread([this, &found_characteristic, &latch,
-                                &service_uuid, &characteristic_uuids]() {
-    for (const auto& item : gatt_advertisement_bytes_) {
-      if (item.first.service_uuid == service_uuid) {
-        Uuid char_uuid_key = item.first.uuid;
-        auto it = std::find_if(characteristic_uuids.rbegin(),
-                               characteristic_uuids.rend(),
-                               [char_uuid_key](const auto& char_uuid) {
-                                 return char_uuid == char_uuid_key;
-                               });
-        if (it != characteristic_uuids.rend()) {
-          discovered_gatt_advertisement_bytes_[item.first] = item.second;
-          found_characteristic++;
-        }
-      }
-    }
-    latch.CountDown();
-  });
-  latch.Await();
-  return found_characteristic == characteristic_uuids.size();
-}
-
-ByteArray MediumEnvironment::ReadBleV2MediumGattCharacteristics(
-    const api::ble_v2::GattCharacteristic& characteristic) {
-  if (!enabled_) return {};
-  ByteArray gatt_advertisement_byte = {};
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread(
-      [this, &latch, &characteristic, &gatt_advertisement_byte]() {
-        auto it = discovered_gatt_advertisement_bytes_.find(characteristic);
-        if (it != discovered_gatt_advertisement_bytes_.end()) {
-          gatt_advertisement_byte = it->second;
-        }
-        latch.CountDown();
-      });
-  latch.Await();
-  return gatt_advertisement_byte;
-}
-
-bool MediumEnvironment::WriteBleV2MediumGattCharacteristic(
-    const api::ble_v2::GattCharacteristic& characteristic,
-    absl::string_view value) {
-  if (!enabled_) return false;
-  bool success = false;
-  CountDownLatch latch(1);
-  ByteArray gatt_request_byte((std::string(value)));
-  RunOnMediumEnvironmentThread(
-      [this, &latch, &success, &characteristic, &gatt_request_byte]() {
-        auto it = discovered_gatt_advertisement_bytes_.find(characteristic);
-        if (it != discovered_gatt_advertisement_bytes_.end()) {
-          it->second = gatt_request_byte;
-          success = true;
-        }
-        latch.CountDown();
-      });
-  latch.Await();
-  return success;
-}
-
-bool MediumEnvironment::SetBleV2MediumGattCharacteristicSubscription(
-    const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-    absl::AnyInvocable<void(absl::string_view value)>
-        on_characteristic_changed_cb) {
-  if (!enabled_) return false;
-  bool success = false;
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread([this, &latch, &success, &characteristic,
-                                &enable, &on_characteristic_changed_cb]() {
-    auto it = discovered_gatt_advertisement_bytes_.find(characteristic);
-    if (it != discovered_gatt_advertisement_bytes_.end()) {
-      if (!enable) {
-        subscribed_characteristic_.erase(characteristic);
-      } else {
-        subscribed_characteristic_.insert(
-            {characteristic, std::move(on_characteristic_changed_cb)});
-      }
-      success = true;
-    }
-    latch.CountDown();
-  });
-  latch.Await();
-  return success;
-}
-
-absl::Status MediumEnvironment::NotifyBleV2MediumGattCharacteristicChanged(
-    const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
-    const ByteArray& new_value) {
-  if (!enabled_) return absl::UnknownError("MediumEnvironment not enabled.");
-  absl::Status status = absl::NotFoundError(
-      "Characteristic not subscribed to receive notification.");
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread(
-      [this, &latch, &status, &new_value, &confirm, &characteristic]() {
-        auto it = subscribed_characteristic_.find(characteristic);
-        if (it != subscribed_characteristic_.end()) {
-          if (!confirm) {
-            // Send a notification
-            it->second(new_value.string_data());
-          } else {
-            // Request confirmation from the client (indication)
-            // no-op for now as the method is not hooked up at platform layer.
-          }
-          status = absl::OkStatus();
-        }
-        latch.CountDown();
-      });
-  latch.Await();
-  return status;
-}
-
-void MediumEnvironment::ClearBleV2MediumGattCharacteristicsForDiscovery() {
-  if (!enabled_) return;
-  RunOnMediumEnvironmentThread(
-      [this]() { discovered_gatt_advertisement_bytes_.clear(); });
-}
-
-void MediumEnvironment::EraseBleV2MediumGattCharacteristicsForDiscovery(
-    const api::ble_v2::GattCharacteristic& characteristic) {
-  if (!enabled_) return;
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread([this, &latch, &characteristic]() {
-    discovered_gatt_advertisement_bytes_.erase(characteristic);
-    latch.CountDown();
-  });
-  latch.Await();
-}
-
 void MediumEnvironment::UnregisterBleV2Medium(api::ble_v2::BleMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
@@ -1260,6 +1111,67 @@ absl::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
     return absl::optional<FakeClock*>(simulated_clock_.get());
   }
   return absl::nullopt;
+}
+
+void MediumEnvironment::RegisterGattServer(
+    api::ble_v2::BleMedium& medium, api::ble_v2::BlePeripheral* peripheral,
+    Borrowable<api::ble_v2::GattServer*> gatt_server) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium, peripheral, gatt_server]() {
+    NEARBY_LOGS(INFO) << "RegisterGattServer for " << peripheral->GetAddress();
+    auto it = ble_v2_mediums_.find(&medium);
+    if (it == ble_v2_mediums_.end()) {
+      NEARBY_LOGS(INFO) << "G3 RegisterGattServer failed. There is no "
+                           "medium registered.";
+      return;
+    }
+    auto& context = it->second;
+    CHECK_EQ(context.gatt_server, nullptr);
+    context.gatt_server =
+        std::make_unique<Borrowable<api::ble_v2::GattServer*>>(gatt_server);
+    context.ble_peripheral = peripheral;
+  });
+}
+
+void MediumEnvironment::UnregisterGattServer(api::ble_v2::BleMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    auto it = ble_v2_mediums_.find(&medium);
+    if (it == ble_v2_mediums_.end()) {
+      NEARBY_LOGS(INFO) << "G3 UnregisterGattServer failed. There is no "
+                           "medium registered.";
+      return;
+    }
+    auto& context = it->second;
+    context.gatt_server = nullptr;
+  });
+}
+
+Borrowable<api::ble_v2::GattServer*>* MediumEnvironment::GetGattServer(
+    api::ble_v2::BlePeripheral& peripheral) {
+  Borrowable<api::ble_v2::GattServer*>* result = nullptr;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    for (const auto& medium_info : ble_v2_mediums_) {
+      const BleV2MediumContext& remote_context = medium_info.second;
+      const api::ble_v2::BlePeripheral* ble_peripheral =
+          remote_context.ble_peripheral;
+      if (ble_peripheral != nullptr &&
+          (ble_peripheral->GetAddress() == peripheral.GetAddress())) {
+        if (remote_context.gatt_server == nullptr) {
+          break;
+        }
+        result = remote_context.gatt_server.get();
+      }
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (result == nullptr) {
+    NEARBY_LOGS(INFO) << "G3 GetGattServer failed. No GATT server for "
+                      << peripheral.GetAddress();
+  }
+  return result;
 }
 
 void MediumEnvironment::ConfigBluetoothPairingContext(

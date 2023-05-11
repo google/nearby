@@ -46,6 +46,7 @@ using ::nearby::api::ble_v2::BleAdvertisementData;
 using ::nearby::api::ble_v2::GattCharacteristic;
 using ::nearby::api::ble_v2::TxPowerLevel;
 using ::testing::Optional;
+using ::testing::status::StatusIs;
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
@@ -544,9 +545,11 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
       gatt_server->UpdateCharacteristic(*server_characteristic, server_value));
 
   // Start GattClient
-  std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
-      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress()), kTxPowerLevel,
-      /*ClientGattConnectionCallback=*/{});
+  BleV2Peripheral ble_peripheral =
+      ble_b.GetRemotePeripheral(*gatt_server->GetBlePeripheral().GetAddress());
+  std::unique_ptr<GattClient> gatt_client =
+      ble_b.ConnectToGattServer(BleV2Peripheral(ble_peripheral), kTxPowerLevel,
+                                /*ClientGattConnectionCallback=*/{});
 
   ASSERT_NE(gatt_client, nullptr);
 
@@ -576,22 +579,34 @@ TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
   BleV2Medium ble_b(adapter_b);
   Uuid service_uuid(1234, 5678);
   Uuid characteristic_uuid(5678, 1234);
+  std::string written_data;
+  // Start GattServer.
+  std::unique_ptr<GattServer> gatt_server =
+      ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{
+          .on_characteristic_write_cb =
+              [&](const api::ble_v2::BlePeripheral& remote_device,
+                  const api::ble_v2::GattCharacteristic& characteristic,
+                  int offset, absl::string_view data,
+                  BleV2Medium::ServerGattConnectionCallback::WriteValueCallback
+                      callback) {
+                written_data = data;
+                callback(absl::OkStatus());
+              }});
+  ASSERT_NE(gatt_server, nullptr);
+  BleV2Peripheral server_ble = gatt_server->GetBlePeripheral();
 
   // Start GattClient.
-  std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
-      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress()), kTxPowerLevel,
-      /*ClientGattConnectionCallback=*/{});
+  BleV2Peripheral ble_peripheral =
+      ble_b.GetRemotePeripheral(*server_ble.GetAddress());
+  ASSERT_TRUE(ble_peripheral.IsValid());
+  std::unique_ptr<GattClient> gatt_client =
+      ble_b.ConnectToGattServer(BleV2Peripheral(ble_peripheral), kTxPowerLevel,
+                                /*ClientGattConnectionCallback=*/{});
 
   ASSERT_NE(gatt_client, nullptr);
   // Can't not discover service and characteristic.
   EXPECT_FALSE(gatt_client->DiscoverServiceAndCharacteristics(
       service_uuid, {characteristic_uuid}));
-
-  // Start GattServer.
-  std::unique_ptr<GattServer> gatt_server =
-      ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
-
-  ASSERT_NE(gatt_server, nullptr);
 
   // Add characteristic and its value.
   GattCharacteristic::Permission permissions =
@@ -622,8 +637,7 @@ TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
   EXPECT_TRUE(gatt_client->WriteCharacteristic(
       *client_characteristic, "hello",
       api::ble_v2::GattClient::WriteType::kWithResponse));
-  EXPECT_THAT(gatt_client->ReadCharacteristic(*client_characteristic),
-              Optional(std::string("hello")));
+  EXPECT_EQ(written_data, "hello");
 
   gatt_client->Disconnect();
 
@@ -656,6 +670,7 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
       ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
 
   ASSERT_NE(gatt_server, nullptr);
+  BleV2Peripheral server_ble = gatt_server->GetBlePeripheral();
   // Add characteristic and its value.
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> server_characteristic =
@@ -665,9 +680,12 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
                                                 ByteArray("any")));
 
   // Start GattClient
-  std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
-      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress()), kTxPowerLevel,
-      /*ClientGattConnectionCallback=*/{});
+  BleV2Peripheral ble_peripheral =
+      ble_b.GetRemotePeripheral(*server_ble.GetAddress());
+  ASSERT_TRUE(ble_peripheral.IsValid());
+  std::unique_ptr<GattClient> gatt_client =
+      ble_b.ConnectToGattServer(BleV2Peripheral(ble_peripheral), kTxPowerLevel,
+                                /*ClientGattConnectionCallback=*/{});
   ASSERT_NE(gatt_client, nullptr);
 
   EXPECT_TRUE(gatt_client->DiscoverServiceAndCharacteristics(
@@ -683,24 +701,28 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
                 server_characteristic.value(), false, ByteArray("hello")),
             absl::OkStatus());
 
+  std::string notified_value;
+  CountDownLatch latch(1);
   // Subscribes notification
   EXPECT_TRUE(gatt_client->SetCharacteristicSubscription(
-      server_characteristic.value(), true,
-      [](absl::string_view value) { EXPECT_EQ(value, "hello"); }));
+      server_characteristic.value(), true, [&](absl::string_view value) {
+        notified_value = value;
+        latch.CountDown();
+      }));
   // Sends indication
   EXPECT_EQ(gatt_server->NotifyCharacteristicChanged(
                 server_characteristic.value(), true, ByteArray("any")),
             absl::OkStatus());
+  latch.Await();
+  EXPECT_EQ(notified_value, "any");
 
   // Unsubscribes notification
-  bool notified = false;
   EXPECT_TRUE(gatt_client->SetCharacteristicSubscription(
-      server_characteristic.value(), true,
-      [&](absl::string_view value) { notified = true; }));
-  EXPECT_EQ(gatt_server->NotifyCharacteristicChanged(
-                server_characteristic.value(), true, ByteArray("any")),
-            absl::OkStatus());
-  EXPECT_FALSE(notified);
+      server_characteristic.value(), false,
+      [&](absl::string_view value) { GTEST_FAIL(); }));
+  EXPECT_THAT(gatt_server->NotifyCharacteristicChanged(
+                  server_characteristic.value(), true, ByteArray("any")),
+              StatusIs(absl::StatusCode::kNotFound));
 
   gatt_client->Disconnect();
   // Failed to subscribe characteristic notification as gatt is disconnected.

@@ -71,8 +71,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       CancellationFlag* cancellation_flag) override;
   bool IsExtendedAdvertisementsAvailable() override;
 
-  BluetoothAdapter& GetAdapter() { return *adapter_; }
-
   bool GetRemotePeripheral(absl::string_view mac_address,
                            GetRemotePeripheralCallback callback) override;
 

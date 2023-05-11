@@ -57,7 +57,7 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
         device, mediums,
         [&](FastPairDevice& cb_device, std::optional<PairFailure> failure) {
           EXPECT_EQ(&device, &cb_device);
-          EXPECT_EQ(failure, PairFailure::kCreateGattConnection);
+          EXPECT_TRUE(failure.has_value());
           latch.CountDown();
         }));
     latch.Await();

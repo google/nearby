@@ -26,6 +26,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -154,6 +155,9 @@ class MediumEnvironment {
   // Returns a Bluetooth Device object matching given mac address to nullptr.
   api::BluetoothDevice* FindBluetoothDevice(const std::string& mac_address);
 
+  api::ble_v2::BlePeripheral* FindBleV2Peripheral(
+      absl::string_view mac_address);
+
   const EnvironmentConfig& GetEnvironmentConfig();
 #ifndef NO_WEBRTC
   // Registers |message_callback| to receive messages sent to device with id
@@ -253,52 +257,6 @@ class MediumEnvironment {
                                     BleScanCallback callback,
                                     api::ble_v2::BleMedium& medium);
 
-  // Inserts the BLE GATT characteristic and its value BleAdvertisement byte
-  // array.
-  void InsertBleV2MediumGattCharacteristics(
-      const api::ble_v2::GattCharacteristic& characteristic,
-      const ByteArray& gatt_advertisement_byte);
-
-  // Clears the map `gatt_advertisement_bytes_`.
-  void ClearBleV2MediumGattCharacteristics();
-
-  // Discover `service_uuid` and `characteristic_uuids`. This is to save the
-  // matched `gatt_advertisement_bytes_` to the
-  // `discovered_gatt_advertisement_bytes_`.
-  bool DiscoverBleV2MediumGattCharacteristics(
-      const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids);
-
-  // Reads the BLE GATT characteristic value. If the GATT characteristic is not
-  // existed, return empty byte array.
-  ByteArray ReadBleV2MediumGattCharacteristics(
-      const api::ble_v2::GattCharacteristic& characteristic);
-
-  // Writes the BLE GATT characteristic value.
-  bool WriteBleV2MediumGattCharacteristic(
-      const api::ble_v2::GattCharacteristic& characteristic,
-      absl::string_view value);
-
-  // Subscribes the notification once characteristic value changed.
-  // This is to save the `on_characteristic_changed_cb` to
-  // the map `subscribed_characteristic_`.
-  bool SetBleV2MediumGattCharacteristicSubscription(
-      const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(absl::string_view value)>
-          on_characteristic_changed_cb);
-
-  // Notifies the characteristic value changed. This is to trigger the stored
-  // `on_characteristic_changed_cb` in the map `subscribed_characteristic_`
-  absl::Status NotifyBleV2MediumGattCharacteristicChanged(
-      const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
-      const ByteArray& new_value);
-
-  // Clears the map `discovered_gatt_advertisement_bytes_`.
-  void ClearBleV2MediumGattCharacteristicsForDiscovery();
-
-  // Erases Characteristic from the map `discovered_gatt_advertisement_bytes_`.
-  void EraseBleV2MediumGattCharacteristicsForDiscovery(
-      const api::ble_v2::GattCharacteristic& characteristic);
-
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
 
@@ -389,6 +347,14 @@ class MediumEnvironment {
   api::ble_v2::BleMedium* FindBleV2Medium(absl::string_view address);
   api::ble_v2::BleMedium* FindBleV2Medium(uint64_t id);
 
+  void RegisterGattServer(api::ble_v2::BleMedium& medium,
+                          api::ble_v2::BlePeripheral* peripheral,
+                          Borrowable<api::ble_v2::GattServer*> gatt_server);
+  void UnregisterGattServer(api::ble_v2::BleMedium& medium);
+
+  Borrowable<api::ble_v2::GattServer*>* GetGattServer(
+      api::ble_v2::BlePeripheral& peripheral);
+
   // Configures the BluetoothPairingContext for remote BluetoothDevice.
   void ConfigBluetoothPairingContext(api::BluetoothDevice* device,
                                      api::PairingParams pairing_params);
@@ -442,6 +408,7 @@ class MediumEnvironment {
     api::ble_v2::BleAdvertisementData advertisement_data;
     bool advertising = false;
     bool scanning = false;
+    std::unique_ptr<Borrowable<api::ble_v2::GattServer*>> gatt_server = nullptr;
   };
 
   struct WifiLanMediumContext {
@@ -522,13 +489,6 @@ class MediumEnvironment {
   absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
   absl::flat_hash_map<api::ble_v2::BleMedium*, BleV2MediumContext>
       ble_v2_mediums_;
-  absl::flat_hash_map<api::ble_v2::GattCharacteristic, nearby::ByteArray>
-      gatt_advertisement_bytes_;
-  absl::flat_hash_map<api::ble_v2::GattCharacteristic, nearby::ByteArray>
-      discovered_gatt_advertisement_bytes_;
-  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
-                      absl::AnyInvocable<void(absl::string_view value)>>
-      subscribed_characteristic_;
   absl::flat_hash_map<api::BluetoothDevice*, BluetoothPairingContext>
       devices_pairing_contexts_;
 #ifndef NO_WEBRTC

@@ -44,6 +44,7 @@ using Permission = nearby::api::ble_v2::GattCharacteristic::Permission;
 using ::nearby::api::ble_v2::GattCharacteristic;
 
 constexpr absl::string_view kMetadataId("718c17");
+constexpr absl::string_view kPublicAddress("5E:3F:45:61:C3:32");
 constexpr absl::string_view kKeyBasedResponse("keybasedresponse");
 constexpr absl::string_view kWrongResponse("wrongresponse");
 constexpr absl::string_view kPublicAntiSpoof =
@@ -74,12 +75,50 @@ class MediumEnvironmentStarter {
   ~MediumEnvironmentStarter() { MediumEnvironment::Instance().Stop(); }
 };
 
+struct CharacteristicData {
+  // Value written to the characteristic by the gatt client
+  Future<std::string> write_value;
+  // Write result returned to the gatt client.
+  absl::Status write_result = absl::OkStatus();
+  // Value returned to the gatt client when they try to read the characteristic
+  absl::StatusOr<std::string> read_value =
+      absl::FailedPreconditionError("characteristic not set");
+};
+
 class FastPairHandshakeImplTest : public testing::Test {
  public:
   void SetUp() override {
     repository_ = std::make_unique<FakeFastPairRepository>();
-    gatt_server_ = ble_.StartGattServer(/*ServerGattConnectionCallback=*/{});
-    provider_address_ = adapter_.GetMacAddress();
+    gatt_server_ =
+        provider_ble_.StartGattServer(/*ServerGattConnectionCallback=*/{
+            .on_characteristic_read_cb =
+                [&](const api::ble_v2::BlePeripheral& remote_device,
+                    const api::ble_v2::GattCharacteristic& characteristic,
+                    int offset,
+                    BleV2Medium::ServerGattConnectionCallback::ReadValueCallback
+                        callback) {
+                  auto it = characteristics_.find(characteristic);
+                  if (it == characteristics_.end()) {
+                    callback(absl::NotFoundError("characteristic not found"));
+                    return;
+                  }
+                  callback(it->second.read_value);
+                },
+            .on_characteristic_write_cb =
+                [&](const api::ble_v2::BlePeripheral& remote_device,
+                    const api::ble_v2::GattCharacteristic& characteristic,
+                    int offset, absl::string_view data,
+                    BleV2Medium::ServerGattConnectionCallback::
+                        WriteValueCallback callback) {
+                  auto it = characteristics_.find(characteristic);
+                  if (it == characteristics_.end()) {
+                    callback(absl::NotFoundError("characteristic not found"));
+                    return;
+                  }
+                  it->second.write_value.Set(std::string(data));
+                  callback(it->second.write_result);
+                }});
+    provider_address_ = *gatt_server_->GetBlePeripheral().GetAddress();
   }
 
   void TearDown() override {
@@ -95,16 +134,14 @@ class FastPairHandshakeImplTest : public testing::Test {
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
         properties_);
-    gatt_server_->UpdateCharacteristic(
-        key_based_characteristic_.value(),
-        ByteArray(std::string(kKeyBasedCharacteristicAdvertisementByte)));
+    characteristics_[*key_based_characteristic_].read_value =
+        kKeyBasedCharacteristicAdvertisementByte;
 
     passkey_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
         properties_);
-    gatt_server_->UpdateCharacteristic(
-        passkey_characteristic_.value(),
-        ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
+    characteristics_[*passkey_characteristic_].read_value =
+        kPasskeyharacteristicAdvertisementByte;
   }
 
   void SetUpFastPairRepository() {
@@ -150,11 +187,12 @@ class FastPairHandshakeImplTest : public testing::Test {
  protected:
   MediumEnvironmentStarter env_;
   std::unique_ptr<FastPairHandshake> handshake_;
-  BluetoothAdapter adapter_;
-  BleV2Medium ble_{adapter_};
+  BluetoothAdapter provider_adapter_;
+  BleV2Medium provider_ble_{provider_adapter_};
   std::string provider_address_;
 
  private:
+  absl::flat_hash_map<GattCharacteristic, CharacteristicData> characteristics_;
   std::unique_ptr<GattServer> gatt_server_;
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
@@ -174,9 +212,7 @@ TEST_F(FastPairHandshakeImplTest, Success) {
       device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
-        // TODO(jsobczak): G3 provider address should be in human readable
-        // format.
-        // EXPECT_EQ(device.public_address(), provider_address_);
+        EXPECT_EQ(device.public_address(), kPublicAddress);
         EXPECT_FALSE(failure.has_value());
         latch.CountDown();
       });
