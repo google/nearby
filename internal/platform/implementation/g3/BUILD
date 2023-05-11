@@ -18,7 +18,7 @@ cc_library(
     testonly = True,
     srcs = [
         "log_message.cc",
-        "preferences_repository.cc",
+        "preferences_manager.cc",
         "scheduled_executor.cc",
         "system_clock.cc",
     ],
@@ -31,13 +31,14 @@ cc_library(
         "multi_thread_executor.h",
         "mutex.h",
         "pipe.h",
-        "preferences_repository.h",
+        "preferences_manager.h",
         "scheduled_executor.h",
         "single_thread_executor.h",
         "timer.h",
     ],
     visibility = ["//location/nearby/cpp:__subpackages__"],
     deps = [
+        ":preferences_repository",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:test_util",
@@ -52,6 +53,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
         "@com_google_glog//:glog",
         "@com_google_nisaba//nisaba/port:thread_pool",
         "@nlohmann_json//:json",
@@ -156,11 +158,21 @@ cc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "preferences_repository",
+    srcs = ["preferences_repository.cc"],
+    hdrs = ["preferences_repository.h"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@nlohmann_json//:json",
     ],
 )

@@ -53,7 +53,7 @@
 #include "internal/platform/implementation/windows/listenable_future.h"
 #include "internal/platform/implementation/windows/log_message.h"
 #include "internal/platform/implementation/windows/mutex.h"
-#include "internal/platform/implementation/windows/preferences_repository.h"
+#include "internal/platform/implementation/windows/preferences_manager.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/server_sync.h"
 #include "internal/platform/implementation/windows/settable_future.h"
@@ -320,9 +320,9 @@ std::unique_ptr<DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<windows::DeviceInfo>();
 }
 
-std::unique_ptr<nearby::api::PreferencesRepository>
-ImplementationPlatform::CreatePreferencesRepository(absl::string_view path) {
-  return std::make_unique<windows::PreferencesRepository>(path);
+std::unique_ptr<nearby::api::PreferencesManager>
+ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
+  return std::make_unique<windows::PreferencesManager>(path);
 }
 
 }  // namespace api

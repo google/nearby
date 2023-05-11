@@ -19,6 +19,7 @@
 #include <string>
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
 #include "internal/platform/implementation/apple/ble.h"
@@ -28,7 +29,7 @@
 #import "internal/platform/implementation/apple/log_message.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
-#include "internal/platform/implementation/apple/preferences_repository.h"
+#include "internal/platform/implementation/apple/preferences_manager.h"
 #import "internal/platform/implementation/apple/scheduled_executor.h"
 #import "internal/platform/implementation/apple/single_thread_executor.h"
 #include "internal/platform/implementation/apple/timer.h"
@@ -248,9 +249,9 @@ std::unique_ptr<nearby::api::DeviceInfo> ImplementationPlatform::CreateDeviceInf
 }
 
 // TODO(b/261503919): Add implementation.
-std::unique_ptr<nearby::api::PreferencesRepository>
-ImplementationPlatform::CreatePreferencesRepository(absl::string_view path) {
-  return std::make_unique<apple::PreferencesRepository>(path);
+std::unique_ptr<nearby::api::PreferencesManager> ImplementationPlatform::CreatePreferencesManager(
+    absl::string_view path) {
+  return std::make_unique<apple::PreferencesManager>(path);
 }
 
 }  // namespace api

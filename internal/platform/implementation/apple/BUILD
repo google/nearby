@@ -29,7 +29,7 @@ objc_library(
         "log_message.mm",
         "multi_thread_executor.mm",
         "platform.mm",
-        "preferences_repository.mm",
+        "preferences_manager.mm",
         "scheduled_executor.mm",
         "timer.mm",
         "utils.mm",
@@ -41,7 +41,7 @@ objc_library(
         "device_info.h",
         "log_message.h",
         "multi_thread_executor.h",
-        "preferences_repository.h",
+        "preferences_manager.h",
         "scheduled_executor.h",
         "single_thread_executor.h",
         "timer.h",
@@ -71,6 +71,7 @@ objc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
         "@nlohmann_json//:json",
     ] + select({
         "@platforms//os:platform_ios": [

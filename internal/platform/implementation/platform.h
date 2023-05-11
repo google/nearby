@@ -47,7 +47,7 @@
 #include "internal/platform/implementation/webrtc.h"
 #endif
 #ifndef NEARBY_CHROMIUM
-#include "internal/platform/implementation/preferences_repository.h"
+#include "internal/platform/implementation/preferences_manager.h"
 #endif
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_direct.h"
@@ -93,7 +93,7 @@ class ImplementationPlatform {
   static std::unique_ptr<AtomicBoolean> CreateAtomicBoolean(bool initial_value);
 
   // Supports enums and integers up to 32-bit.
-  // Does not use locking, if platform supports 32-bit atimics natively.
+  // Does not use locking, if platform supports 32-bit atomics natively.
   // Does not use dynamic memory allocations in operations.
   static std::unique_ptr<AtomicUint32> CreateAtomicUint32(std::uint32_t value);
 
@@ -154,8 +154,8 @@ class ImplementationPlatform {
   static absl::StatusOr<WebResponse> SendRequest(const WebRequest& request);
 
 #ifndef NEARBY_CHROMIUM
-  static std::unique_ptr<nearby::api::PreferencesRepository>
-  CreatePreferencesRepository(absl::string_view path);
+  static std::unique_ptr<nearby::api::PreferencesManager>
+  CreatePreferencesManager(absl::string_view path);
 #endif
 };
 

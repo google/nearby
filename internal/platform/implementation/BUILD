@@ -31,7 +31,7 @@ cc_library(
         "log_message.h",
         "mutex.h",
         "output_file.h",
-        "preferences_repository.h",
+        "preferences_manager.h",
         "scheduled_executor.h",
         "settable_future.h",
         "submittable_executor.h",
@@ -58,6 +58,7 @@ cc_library(
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
         "@nlohmann_json//:json",
     ],
 )
