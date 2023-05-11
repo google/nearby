@@ -19,11 +19,13 @@ cc_library(
     srcs = [
         "ble.cc",
         "ble_v2.cc",
+        "bluetooth_classic.cc",
         "bluetooth_radio.cc",
     ],
     hdrs = [
         "ble.h",
         "ble_v2.h",
+        "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
     ],
@@ -102,6 +104,24 @@ cc_test(
         ":mediums",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "bluetooth_classic_test",
+    size = "small",
+    srcs = [
+        "bluetooth_classic_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":mediums",
+        "//internal/platform:comm",
+        "//internal/platform:test_util",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

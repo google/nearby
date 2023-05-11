@@ -79,7 +79,7 @@ TEST_F(FastPairScannerImplTest, StartScanning) {
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{absl::HexStringToBytes(kModelId)};
   std::string fast_pair_service_uuid(kFastPairServiceUuid);
-  mediums_2.GetBle().getMedium().StartAdvertising(
+  mediums_2.GetBle().GetMedium().StartAdvertising(
       service_id, advertisement_bytes, fast_pair_service_uuid);
 
   // Fast Pair scanner startScanning
@@ -88,7 +88,7 @@ TEST_F(FastPairScannerImplTest, StartScanning) {
   EXPECT_TRUE(accept_latch.Await(kTaskWaitTimeout).result());
 
   // Advertiser stopAdvertising
-  mediums_2.GetBle().getMedium().StopAdvertising(service_id);
+  mediums_2.GetBle().GetMedium().StopAdvertising(service_id);
   // Notify device lost
   EXPECT_TRUE(lost_latch.Await(kTaskWaitTimeout).result());
 

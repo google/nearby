@@ -17,6 +17,7 @@
 
 #include "fastpair/internal/mediums/ble.h"
 #include "fastpair/internal/mediums/ble_v2.h"
+#include "fastpair/internal/mediums/bluetooth_classic.h"
 #include "fastpair/internal/mediums/bluetooth_radio.h"
 
 namespace nearby {
@@ -37,6 +38,8 @@ class Mediums {
   // Returns a handle to the Ble medium.
   BleV2& GetBleV2() { return ble_v2_; }
 
+  BluetoothClassic& GetBluetoothClassic() { return bluetooth_classic_; }
+
  private:
   // The order of declaration is critical for both construction and
   // destruction.
@@ -49,6 +52,7 @@ class Mediums {
   BluetoothRadio bluetooth_radio_;
   Ble ble_{bluetooth_radio_};
   BleV2 ble_v2_{bluetooth_radio_};
+  BluetoothClassic bluetooth_classic_{bluetooth_radio_};
 };
 
 }  // namespace fastpair

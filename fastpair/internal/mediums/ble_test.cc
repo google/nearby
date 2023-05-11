@@ -50,7 +50,7 @@ TEST(BleTest, CanStartDiscovery) {
   std::string fast_pair_service_uuid(kFastPairServiceUuid);
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
-  ble_b.getMedium().StartAdvertising(service_id, advertisement_bytes,
+  ble_b.GetMedium().StartAdvertising(service_id, advertisement_bytes,
                                      fast_pair_service_uuid);
 
   EXPECT_TRUE(ble_a.StartScanning(
@@ -69,7 +69,7 @@ TEST(BleTest, CanStartDiscovery) {
       }));
   EXPECT_TRUE(ble_a.IsScanning());
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  ble_b.getMedium().StopAdvertising(service_id);
+  ble_b.GetMedium().StopAdvertising(service_id);
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning(service_id));
   EXPECT_FALSE(ble_a.IsScanning());

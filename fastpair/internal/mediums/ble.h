@@ -54,7 +54,7 @@ class Ble {
   bool IsScanning() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Return BleMedium
-  BleMedium& getMedium() { return medium_; }
+  BleMedium& GetMedium() { return medium_; }
 
  private:
   // Same as IsAvailable(), but must be called with mutex_ held.
