@@ -18,7 +18,8 @@ import Foundation
 import NearbyConnections
 
 struct ConnectedEndpoint: Identifiable {
-    let id: EndpointID
+    let id: UUID
+    let endpointID: EndpointID
     let endpointName: String
     var payloads: [Payload] = []
 }
