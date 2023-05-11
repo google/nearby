@@ -19,23 +19,21 @@
 #include <fstream>
 #include <optional>
 
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
 namespace {
-using json = ::nlohmann::json;
 
 constexpr char kPreferencesFileName[] = "preferences.json";
 constexpr char kPreferencesBackupFileName[] = "preferences_bak.json";
 
 }  // namespace
 
-json PreferencesRepository::LoadPreferences() {
+Json::Value PreferencesRepository::LoadPreferences() {
   absl::MutexLock lock(&mutex_);
-  std::optional<json> preferences = AttemptLoad();
+  std::optional<Json::Value> preferences = AttemptLoad();
   if (preferences.has_value()) {
     return preferences.value();
   }
@@ -52,10 +50,10 @@ json PreferencesRepository::LoadPreferences() {
 
   NEARBY_LOGS(ERROR) << "Failed to load preferences file from back up.";
 
-  return json::object();
+  return Json::objectValue;
 }
 
-bool PreferencesRepository::SavePreferences(json preferences) {
+bool PreferencesRepository::SavePreferences(Json::Value preferences) {
   absl::MutexLock lock(&mutex_);
   try {
     std::filesystem::path path = path_;
@@ -96,7 +94,7 @@ bool PreferencesRepository::SavePreferences(json preferences) {
   return true;
 }
 
-std::optional<json> PreferencesRepository::AttemptLoad() {
+std::optional<Json::Value> PreferencesRepository::AttemptLoad() {
   std::filesystem::path path = path_;
   std::filesystem::path full_name = path / kPreferencesFileName;
   if (!std::filesystem::exists(path) || !std::filesystem::exists(full_name)) {
@@ -109,10 +107,12 @@ std::optional<json> PreferencesRepository::AttemptLoad() {
       return std::nullopt;
     }
 
-    json preferences = json::parse(preferences_file, nullptr, false);
+    Json::Reader reader;
+    Json::Value preferences;
+    reader.parse(preferences_file, preferences, false);
     preferences_file.close();
 
-    if (preferences.is_discarded()) {
+    if (preferences.isNull()) {
       NEARBY_LOGS(ERROR) << "Preferences file corrupted.";
       return std::nullopt;
     }
@@ -124,7 +124,7 @@ std::optional<json> PreferencesRepository::AttemptLoad() {
   }
 }
 
-std::optional<json> PreferencesRepository::RestoreFromBackup() {
+std::optional<Json::Value> PreferencesRepository::RestoreFromBackup() {
   std::filesystem::path path = path_;
   std::filesystem::path full_name = path / kPreferencesFileName;
   std::filesystem::path full_name_backup = path / kPreferencesBackupFileName;

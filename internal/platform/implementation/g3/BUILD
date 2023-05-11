@@ -54,7 +54,7 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_glog//:glog",
         "@com_google_nisaba//nisaba/port:thread_pool",
-        "@nlohmann_json//:json",
+        "@open_source_parsers_jsoncpp//:json:json",
     ],
     alwayslink = 1,
 )

@@ -17,7 +17,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 #include "internal/platform/implementation/preferences_repository.h"
 
 namespace nearby::apple {
@@ -27,8 +27,8 @@ class PreferencesRepository : public api::PreferencesRepository {
   explicit PreferencesRepository(absl::string_view path)
       : api::PreferencesRepository(path) {}
 
-  nlohmann::json LoadPreferences() override ABSL_LOCKS_EXCLUDED(&mutex_);
-  bool SavePreferences(nlohmann::json preferences) override
+  Json::Value LoadPreferences() override ABSL_LOCKS_EXCLUDED(&mutex_);
+  bool SavePreferences(Json::Value preferences) override
       ABSL_LOCKS_EXCLUDED(&mutex_);
 
  private:

@@ -19,8 +19,7 @@
 #include <optional>
 
 #include "gtest/gtest.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/platform.h"
 
@@ -28,7 +27,7 @@ namespace nearby {
 namespace windows {
 namespace {
 
-using json = ::nlohmann::json;
+using json = ::Json::Value;
 
 constexpr char kPreferencesFileName[] = "preferences.json";
 constexpr char kPreferencesBackupFileName[] = "preferences_bak.json";

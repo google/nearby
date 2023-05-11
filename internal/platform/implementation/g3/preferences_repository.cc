@@ -18,16 +18,12 @@
 #include <fstream>
 
 #include "absl/synchronization/mutex.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 
 namespace nearby {
 namespace g3 {
-namespace {
-using json = nlohmann::json;
-}  // namespace
 
-json PreferencesRepository::LoadPreferences() {
+Json::Value PreferencesRepository::LoadPreferences() {
   absl::MutexLock lock(&mutex_);
 
   // Emulate Windows implementation
@@ -45,10 +41,12 @@ json PreferencesRepository::LoadPreferences() {
     if (!preferences_file.good()) {
       return value_;
     }
-    json preferences = json::parse(preferences_file, nullptr, false);
+    Json::Reader reader;
+    Json::Value preferences;
+    reader.parse(preferences_file, preferences, false);
     preferences_file.close();
 
-    if (preferences.is_discarded()) {
+    if (preferences.empty()) {
       return value_;
     }
 
@@ -60,7 +58,7 @@ json PreferencesRepository::LoadPreferences() {
   return value_;
 }
 
-bool PreferencesRepository::SavePreferences(json preferences) {
+bool PreferencesRepository::SavePreferences(Json::Value preferences) {
   absl::MutexLock lock(&mutex_);
   value_ = preferences;
   return true;

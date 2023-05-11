@@ -20,7 +20,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 #include "internal/platform/implementation/preferences_repository.h"
 
 namespace nearby {
@@ -31,12 +31,12 @@ class PreferencesRepository : public api::PreferencesRepository {
   explicit PreferencesRepository(absl::string_view path)
       : api::PreferencesRepository(path) {}
 
-  nlohmann::json LoadPreferences() override ABSL_LOCKS_EXCLUDED(&mutex_);
-  bool SavePreferences(nlohmann::json preferences) override
+  Json::Value LoadPreferences() override ABSL_LOCKS_EXCLUDED(&mutex_);
+  bool SavePreferences(Json::Value preferences) override
       ABSL_LOCKS_EXCLUDED(&mutex_);
 
-  std::optional<nlohmann::json> AttemptLoad();
-  std::optional<nlohmann::json> RestoreFromBackup();
+  std::optional<Json::Value> AttemptLoad();
+  std::optional<Json::Value> RestoreFromBackup();
 
  private:
   absl::Mutex mutex_;

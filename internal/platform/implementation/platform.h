@@ -46,9 +46,7 @@
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
-#ifndef NEARBY_CHROMIUM
 #include "internal/platform/implementation/preferences_repository.h"
-#endif
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"

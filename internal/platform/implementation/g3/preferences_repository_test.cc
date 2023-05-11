@@ -18,14 +18,13 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#include "json/json.h"
 
 namespace nearby {
 namespace platform {
 namespace g3 {
 namespace {
-using json = ::nlohmann::json;
+using json = ::Json::Value;
 }  // namespace
 
 TEST(Preferences, TestSaveAndGetPreferences) {
