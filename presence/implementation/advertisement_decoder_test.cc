@@ -38,7 +38,6 @@ using ::nearby::ByteArray;  // NOLINT
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::SharedCredential;  // NOLINT
 using ::testing::ElementsAre;
-using ::protobuf_matchers::EqualsProto;
 using ::testing::Matcher;
 using ::testing::Pointwise;
 using ::testing::Return;
@@ -55,7 +54,7 @@ ScanRequest GetScanRequest() {
                              IdentityType::IDENTITY_TYPE_PROVISIONED}};
 }
 
-#if USE_RUST_LDT == 1
+#ifdef USE_RUST_LDT
 ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
   LegacyPresenceScanFilter scan_filter = {.remote_public_credentials =
                                               credentials};

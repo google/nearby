@@ -74,7 +74,7 @@ cc_library(
         "service_controller_impl.h",
     ],
     defines = select({
-        ":norust_or_windows_or_android": ["USE_RUST_LDT=0"],
+        ":norust_or_windows_or_android": [],
         "//conditions:default": ["USE_RUST_LDT=1"],
     }),
     visibility = [

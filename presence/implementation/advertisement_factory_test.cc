@@ -40,7 +40,7 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::status::StatusIs;
 
-#if USE_RUST_LDT == 1
+#ifdef USE_RUST_LDT
 LocalCredential CreateLocalCredential(IdentityType identity_type) {
   // Values copied from LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,

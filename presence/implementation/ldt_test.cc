@@ -29,7 +29,7 @@ namespace {
 using ::nearby::ByteArray;
 using ::nearby::internal::SharedCredential;
 
-#if USE_RUST_LDT == 1
+#ifdef USE_RUST_LDT
 
 // Test data from Android tests.
 constexpr absl::string_view kKeySeedBase16 =
