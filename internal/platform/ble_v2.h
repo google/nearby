@@ -157,7 +157,7 @@ class BleV2ServerSocket final {
  public:
   BleV2ServerSocket(BleV2Medium& medium,
                     std::unique_ptr<api::ble_v2::BleServerSocket> socket)
-      : medium_(medium), impl_(std::move(socket)) {}
+      : medium_(&medium), impl_(std::move(socket)) {}
   BleV2ServerSocket(const BleV2ServerSocket&) = default;
   BleV2ServerSocket& operator=(const BleV2ServerSocket&) = default;
 
@@ -178,7 +178,7 @@ class BleV2ServerSocket final {
     } else {
       auto* platform_peripheral = socket->GetRemotePeripheral();
       if (platform_peripheral != nullptr) {
-        peripheral = BleV2Peripheral(medium_, *platform_peripheral);
+        peripheral = BleV2Peripheral(*medium_, *platform_peripheral);
       }
     }
     return BleV2Socket(peripheral, std::move(socket));
@@ -194,7 +194,7 @@ class BleV2ServerSocket final {
   api::ble_v2::BleServerSocket& GetImpl() { return *impl_; }
 
  private:
-  BleV2Medium& medium_;
+  BleV2Medium* medium_;
   std::shared_ptr<api::ble_v2::BleServerSocket> impl_;
 };
 
