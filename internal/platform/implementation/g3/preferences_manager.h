@@ -44,7 +44,7 @@ class PreferencesManager : public api::PreferencesManager {
 
   // Sets values
 
-  bool Set(const std::string& key, const nlohmann::json& value) override
+  bool Set(absl::string_view key, const nlohmann::json& value) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool SetBoolean(absl::string_view key, bool value) override

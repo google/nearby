@@ -41,7 +41,7 @@ class PreferencesManager {
 
   // Sets values
 
-  virtual bool Set(const std::string& key, const nlohmann::json& value) = 0;
+  virtual bool Set(absl::string_view key, const nlohmann::json& value) = 0;
 
   virtual bool SetBoolean(absl::string_view key, bool value) = 0;
   virtual bool SetInteger(absl::string_view key, int value) = 0;

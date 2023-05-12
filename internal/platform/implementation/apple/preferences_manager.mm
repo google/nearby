@@ -29,8 +29,9 @@ namespace nearby::apple {
 PreferencesManager::PreferencesManager(absl::string_view file_path)
     : api::PreferencesManager(file_path) {}
 
-bool PreferencesManager::Set(const std::string& key, const nlohmann::json& value) {
-  [[NSUserDefaults standardUserDefaults] setObject:@(value.dump().c_str()) forKey:@(key.c_str())];
+bool PreferencesManager::Set(absl::string_view key, const nlohmann::json& value) {
+  [[NSUserDefaults standardUserDefaults] setObject:@(value.dump().c_str())
+                                            forKey:@(std::string(key).c_str())];
   return true;
 }
 

@@ -48,7 +48,7 @@ PreferencesManager::PreferencesManager(absl::string_view file_path)
   value_ = preferences_repository_->LoadPreferences();
 }
 
-bool PreferencesManager::Set(const std::string& key, const json& value) {
+bool PreferencesManager::Set(absl::string_view key, const json& value) {
   absl::MutexLock lock(&mutex_);
   return SetValue(key, value);
 }
