@@ -15,7 +15,6 @@
 #include "fastpair/ui/ui_broker_impl.h"
 
 #include <memory>
-#include <string>
 
 #include "gtest/gtest.h"
 #include "fastpair/ui/actions.h"
@@ -56,8 +55,7 @@ class UIBrokerImplTest : public ::testing::Test, public UIBroker::Observer {
 TEST_F(UIBrokerImplTest, ShowDiscovery) {
   FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
   ui_broker_->ShowDiscovery(device, notification_controller_);
-  EXPECT_TRUE(
-      presenter_factory_->fake_fast_pair_presenter()->show_deiscovery());
+  EXPECT_TRUE(presenter_factory_->fake_fast_pair_presenter()->show_discovery());
   EXPECT_TRUE(on_discovery_action_notified_);
   EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
 }
@@ -66,8 +64,7 @@ TEST_F(UIBrokerImplTest, ShowDiscoveryWithoutObserver) {
   FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
   ui_broker_->RemoveObserver(this);
   ui_broker_->ShowDiscovery(device, notification_controller_);
-  EXPECT_TRUE(
-      presenter_factory_->fake_fast_pair_presenter()->show_deiscovery());
+  EXPECT_TRUE(presenter_factory_->fake_fast_pair_presenter()->show_discovery());
   EXPECT_FALSE(on_discovery_action_notified_);
 }
 

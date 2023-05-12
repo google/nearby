@@ -14,10 +14,6 @@
 
 #include "fastpair/ui/fast_pair/fast_pair_presenter_impl.h"
 
-#include <memory>
-#include <optional>
-#include <string>
-
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
@@ -29,16 +25,14 @@
 namespace nearby {
 namespace fastpair {
 
-constexpr absl::string_view kModelId = "718C17";
-constexpr absl::string_view kAddress = "74:74:46:01:6C:21";
-constexpr absl::string_view kDeviceName = "Pixel Buds A-Series";
+constexpr absl::string_view kModelId = "000000";
+constexpr absl::string_view kAddress = "00:00:00:00:00:00";
+constexpr absl::string_view kPublicKey = "test public key";
 
 namespace {
 class FastPairPresenterImplTest : public ::testing::Test {
  public:
   FastPairPresenterImplTest() {
-    proto::Device device;
-    repository_.SetFakeMetadata(kModelId, device);
     controller_.AddObserver(&notification_controller_observer_);
   }
 
@@ -46,16 +40,16 @@ class FastPairPresenterImplTest : public ::testing::Test {
 
  protected:
   DiscoveryAction discovery_action_;
-
   FakeFastPairRepository repository_;
   FastPairPresenterImpl fast_pair_presenter_;
   FastPairNotificationController controller_;
   FakeFastPairNotificationControllerObserver notification_controller_observer_;
 };
 
-TEST_F(FastPairPresenterImplTest, ShowDiscovery) {
-  FastPairDevice device(kModelId.data(), kAddress.data(),
-                        Protocol::kFastPairInitialPairing);
+TEST_F(FastPairPresenterImplTest, ShowDiscoveryForV1Version) {
+  proto::Device v1_version_device;
+  repository_.SetFakeMetadata(kModelId, v1_version_device);
+  FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
 
   EXPECT_EQ(0, notification_controller_observer_.on_update_device_count());
   fast_pair_presenter_.ShowDiscovery(
@@ -64,7 +58,26 @@ TEST_F(FastPairPresenterImplTest, ShowDiscovery) {
   EXPECT_EQ(1, notification_controller_observer_.on_update_device_count());
   controller_.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
   EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
+  EXPECT_EQ(DeviceFastPairVersion::kV1, device.version());
 }
+
+TEST_F(FastPairPresenterImplTest, ShowDiscoveryForHigherThanV1Version) {
+  proto::Device higher_than_v1_version_device;
+  higher_than_v1_version_device.mutable_anti_spoofing_key_pair()
+      ->set_public_key(kPublicKey);
+  repository_.SetFakeMetadata(kModelId, higher_than_v1_version_device);
+  FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
+
+  EXPECT_EQ(0, notification_controller_observer_.on_update_device_count());
+  fast_pair_presenter_.ShowDiscovery(
+      device, controller_,
+      [this](DiscoveryAction action) { OnDiscoveryAction(action); });
+  EXPECT_EQ(1, notification_controller_observer_.on_update_device_count());
+  controller_.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
+  EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
+  EXPECT_EQ(DeviceFastPairVersion::kHigherThanV1, device.version());
+}
+
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

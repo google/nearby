@@ -15,6 +15,7 @@
 #include "fastpair/ui/ui_broker_impl.h"
 
 #include <memory>
+#include <utility>
 
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
@@ -38,16 +39,16 @@ void UIBrokerImpl::RemoveObserver(Observer* observer) {
 }
 
 void UIBrokerImpl::ShowDiscovery(
-    const FastPairDevice& device,
+    FastPairDevice& device,
     FastPairNotificationController& notification_controller) {
   switch (device.GetProtocol()) {
     case Protocol::kFastPairInitialPairing:
     case Protocol::kFastPairSubsequentPairing:
       fast_pair_presenter_->ShowDiscovery(
-          device, notification_controller,
-          [&device, this](DiscoveryAction action) {
-            NEARBY_LOGS(INFO)
-                << __func__ << ": Notify discovery action to all observers.";
+          device, notification_controller, [&](DiscoveryAction action) {
+            NEARBY_LOGS(VERBOSE)
+                << __func__
+                << "ui broker notify discovery action of device: " << device;
             NotifyDiscoveryAction(device, action);
           });
       break;
@@ -59,7 +60,7 @@ void UIBrokerImpl::ShowDiscovery(
   }
 }
 
-void UIBrokerImpl::NotifyDiscoveryAction(const FastPairDevice& device,
+void UIBrokerImpl::NotifyDiscoveryAction(FastPairDevice& device,
                                          DiscoveryAction action) {
   for (auto& observer : observers_.GetObservers())
     observer->OnDiscoveryAction(device, action);

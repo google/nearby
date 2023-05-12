@@ -15,11 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAST_PAIR_PRESENTER_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAST_PAIR_PRESENTER_H_
 
-#include <functional>
-
-#include "absl/functional/any_invocable.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
 namespace nearby {
@@ -30,7 +26,7 @@ class FastPairPresenter {
  public:
   // observer_list of notification_controller is updated
   virtual void ShowDiscovery(
-      const FastPairDevice& device,
+      FastPairDevice& device,
       FastPairNotificationController& notification_controller,
       DiscoveryCallback callback) = 0;
   virtual ~FastPairPresenter() = default;

@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_UI_UI_BROKER_H_
 
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/common/protocol.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
@@ -40,7 +41,7 @@ class UIBroker {
   virtual void RemoveObserver(Observer* observer) = 0;
 
   virtual void ShowDiscovery(
-      const FastPairDevice& device,
+      FastPairDevice& device,
       FastPairNotificationController& notification_controller) = 0;
 };
 

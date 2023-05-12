@@ -1,3 +1,17 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 licenses(["notice"])
 
 cc_library(
@@ -32,6 +46,7 @@ cc_library(
 
 cc_library(
     name = "fake_fast_pair_ui",
+    testonly = True,
     hdrs = [
         "fast_pair/fake_fast_pair_notification_controller_observer.h",
         "fast_pair/fake_fast_pair_presenter.h",
@@ -41,7 +56,26 @@ cc_library(
     ],
     deps = [
         ":fast_pair_ui",
+        "//fastpair/common",
         "//fastpair/repository",
+    ],
+)
+
+cc_library(
+    name = "mock_fast_pair_ui",
+    hdrs = [
+        "fast_pair/mock_fast_pair_notification_controller.h",
+        "mock_ui_broker.h",
+    ],
+    visibility = [
+        "//fastpair:__subpackages__",
+    ],
+    deps = [
+        ":fast_pair_ui",
+        "//fastpair/common",
+        "//fastpair/repository",
+        "//internal/base",
+        "//testing/base/public:gunit_for_library",
     ],
 )
 

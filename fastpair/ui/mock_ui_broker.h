@@ -12,40 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_UI_BROKER_IMPL_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_UI_BROKER_IMPL_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_UI_MOCK_UI_BROKER_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_UI_MOCK_UI_BROKER_H_
 
-#include <memory>
-
+#include "gmock/gmock.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/ui/actions.h"
-#include "fastpair/ui/fast_pair/fast_pair_presenter.h"
+#include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/ui_broker.h"
 #include "internal/base/observer_list.h"
 
 namespace nearby {
 namespace fastpair {
 
-class UIBrokerImpl : public UIBroker {
+class MockUIBroker : public UIBroker {
  public:
-  UIBrokerImpl();
-  UIBrokerImpl(const UIBrokerImpl &) = delete;
-  UIBrokerImpl &operator=(const UIBrokerImpl &) = delete;
+  MOCK_METHOD(void, ShowDiscovery,
+              (FastPairDevice&, FastPairNotificationController&), (override));
 
-  void AddObserver(Observer *observer) override;
-  void RemoveObserver(Observer *observer) override;
-  void ShowDiscovery(
-      FastPairDevice &device,
-      FastPairNotificationController &notification_controller) override;
+  void AddObserver(Observer* observer) override {
+    observers_.AddObserver(observer);
+  }
+
+  void RemoveObserver(Observer* observer) override {
+    observers_.RemoveObserver(observer);
+  }
+
+  void NotifyDiscoveryAction(const FastPairDevice& device,
+                             DiscoveryAction action) {
+    for (auto& observer : observers_.GetObservers())
+      observer->OnDiscoveryAction(device, action);
+  }
 
  private:
-  void NotifyDiscoveryAction(FastPairDevice &device, DiscoveryAction action);
-
-  std::unique_ptr<FastPairPresenter> fast_pair_presenter_;
   ObserverList<Observer> observers_;
 };
 
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_UI_BROKER_IMPL_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_UI_MOCK_UI_BROKER_H_
