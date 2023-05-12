@@ -30,18 +30,40 @@
 #include "fastpair/common/constant.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/message_stream/message.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/uuid.h"
+#include <openssl/base.h>
+#include <openssl/evp.h>
 
 namespace nearby {
 namespace fastpair {
 
 // Fake BT device with the Provider role. Tailored to testing message stream.
 class FakeProvider {
+  using Property = nearby::api::ble_v2::GattCharacteristic::Property;
+  using Permission = nearby::api::ble_v2::GattCharacteristic::Permission;
+  using GattCharacteristic = nearby::api::ble_v2::GattCharacteristic;
+  using WriteType = nearby::api::ble_v2::GattClient::WriteType;
+
+  static constexpr inline Uuid kFastPairServiceUuid{0x0000FE2C00001000,
+                                                    0x800000805F9B34FB};
+  static constexpr inline Uuid kKeyBasedCharacteristicUuidV2{
+      0xFE2C123483664814, 0x8EB001DE32100BEA};
+  static constexpr inline Uuid kPasskeyCharacteristicUuidV2{0xFE2C123583664814,
+                                                            0x8EB001DE32100BEA};
+  static constexpr inline absl::string_view
+      kKeyBasedCharacteristicAdvertisementByte = "keyBasedCharacte";
+  static constexpr inline absl::string_view
+      kPasskeyharacteristicAdvertisementByte = "passkeyCharacter";
+
  public:
+  using KeyBasedPairingCallback =
+      absl::AnyInvocable<std::string(absl::string_view)>;
   ~FakeProvider() { Shutdown(); }
 
   void Shutdown() { provider_thread_.Shutdown(); }
@@ -114,11 +136,48 @@ class FakeProvider {
     return provider_adapter_.GetMacAddress();
   }
 
+  void StartGattServer(KeyBasedPairingCallback kbp_callback);
+
+  void InsertCorrectGattCharacteristics() {
+    key_based_characteristic_ = gatt_server_->CreateCharacteristic(
+        kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
+        properties_);
+    gatt_server_->UpdateCharacteristic(
+        key_based_characteristic_.value(),
+        ByteArray(std::string(kKeyBasedCharacteristicAdvertisementByte)));
+
+    passkey_characteristic_ = gatt_server_->CreateCharacteristic(
+        kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
+        properties_);
+    gatt_server_->UpdateCharacteristic(
+        passkey_characteristic_.value(),
+        ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
+  }
+
+  void LoadAntiSpoofingKey(absl::string_view private_key,
+                           absl::string_view public_key);
+
+  std::string DecryptKbpRequest(absl::string_view request);
+  std::string Encrypt(absl::string_view data);
+
+  std::optional<GattCharacteristic> key_based_characteristic_;
+  std::optional<GattCharacteristic> passkey_characteristic_;
+
  private:
+  std::string GenSec256r1Secret(absl::string_view remote_party_public_key);
+  std::string CreateSharedSecret(absl::string_view remote_public_key);
   BluetoothAdapter provider_adapter_;
   BluetoothClassicMedium provider_medium_{provider_adapter_};
   BluetoothServerSocket provider_server_socket_;
   BluetoothSocket provider_socket_;
+  BleV2Medium ble_{provider_adapter_};
+  std::unique_ptr<GattServer> gatt_server_;
+  Property properties_ = Property::kWrite | Property::kNotify;
+  Permission permissions_ = Permission::kWrite;
+  std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)> anti_spoofing_key_{
+      nullptr, EVP_PKEY_free};
+  std::string account_key_;
+  KeyBasedPairingCallback kbp_callback_;
   SingleThreadExecutor provider_thread_;
 };
 

@@ -17,9 +17,9 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <optional>
 #include <string_view>
 #include <vector>
-#include <optional>
 
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
@@ -80,9 +80,9 @@ void* KDF(const void* in, size_t inlen, void* out, size_t* outlen) {
 std::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
     std::string_view decoded_public_anti_spoofing) {
   if (decoded_public_anti_spoofing.size() != kPublicKeyByteSize) {
-    NEARBY_LOGS(VERBOSE) << "Expected " << kPublicKeyByteSize
-                         << " byte value for anti-spoofing key. Got:"
-                         << decoded_public_anti_spoofing.size();
+    NEARBY_LOGS(INFO) << "Expected " << kPublicKeyByteSize
+                      << " byte value for anti-spoofing key. Got:"
+                      << decoded_public_anti_spoofing.size();
     return std::nullopt;
   }
 
@@ -93,7 +93,7 @@ std::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
       EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
 
   if (!EC_KEY_generate_key(ec_key.get())) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Failed to generate ec key";
+    NEARBY_LOGS(INFO) << __func__ << ": Failed to generate ec key";
     return std::nullopt;
   }
 
@@ -107,9 +107,9 @@ std::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
       uncompressed_private_key.size(), nullptr);
 
   if (point_bytes_written != uncompressed_private_key.size()) {
-    NEARBY_LOGS(VERBOSE) << __func__
-                         << ": EC_POINT_point2oct failed to convert public key "
-                            "to uncompressed x9.62 format.";
+    NEARBY_LOGS(INFO) << __func__
+                      << ": EC_POINT_point2oct failed to convert public key "
+                         "to uncompressed x9.62 format.";
     return std::nullopt;
   }
 
@@ -118,7 +118,7 @@ std::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
                                           decoded_public_anti_spoofing);
 
   if (!public_anti_spoofing_point) {
-    NEARBY_LOGS(VERBOSE)
+    NEARBY_LOGS(INFO)
         << __func__
         << ": Failed to convert Public Anti-Spoofing key to EC_POINT";
     return std::nullopt;
@@ -130,7 +130,7 @@ std::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
                        public_anti_spoofing_point.get(), ec_key.get(), &KDF);
 
   if (computed_key_size != kSharedSecretKeyByteSize) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": ECDH_compute_key failed.";
+    NEARBY_LOGS(INFO) << __func__ << ": ECDH_compute_key failed.";
     return std::nullopt;
   }
 

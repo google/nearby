@@ -146,11 +146,14 @@ ByteArray Medium::Serialize(Message message, bool compute_and_append_mac) {
 }
 
 void Medium::SetSocket(BluetoothSocket socket) {
+  if (!socket.IsValid()) return;
   MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "SetSocket 1";
   if (cancellation_flag_.Cancelled()) {
     NEARBY_LOGS(INFO) << "Medium already closed. Closing socket";
     socket.Close();
   } else {
+    NEARBY_LOGS(INFO) << "SetSocket 2";
     socket_ = std::move(socket);
   }
 }

@@ -46,6 +46,7 @@ cc_library(
 cc_library(
     name = "fake_provider",
     testonly = True,
+    srcs = ["fake_provider.cc"],
     hdrs = [
         "fake_provider.h",
     ],
@@ -60,6 +61,8 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform:uuid",
+        "@boringssl//:crypto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",

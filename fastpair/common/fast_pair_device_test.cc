@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/protocol.h"
 
 namespace nearby {
@@ -29,61 +30,58 @@ namespace fastpair {
 namespace {
 
 TEST(FastPairDevice, GetAndSetAccountKey) {
-  FastPairDevice device_("model_id", "ble_address",
-                         Protocol::kFastPairInitialPairing);
-  std::optional<std::vector<uint8_t>> accountKey;
-  std::vector<uint8_t> data = {0};
-  device_.set_account_key(data);
-  accountKey = device_.account_key();
-  EXPECT_EQ(accountKey, data);
+  FastPairDevice device("model_id", "ble_address",
+                        Protocol::kFastPairInitialPairing);
+  AccountKey firstKey = AccountKey::CreateRandomKey();
+  device.SetAccountKey(firstKey);
+  EXPECT_EQ(device.GetAccountKey(), firstKey);
 
   // Test that overriding works.
-  std::vector<uint8_t> more_data = {1};
-  device_.set_account_key(more_data);
-  accountKey = device_.account_key();
-  EXPECT_EQ(accountKey, more_data);
+  AccountKey secondKey = AccountKey::CreateRandomKey();
+  device.SetAccountKey(secondKey);
+  EXPECT_EQ(device.GetAccountKey(), secondKey);
 }
 
 TEST(FastPairDevice, GetAndSetName) {
-  FastPairDevice device_("model_id", "ble_address",
-                         Protocol::kFastPairInitialPairing);
+  FastPairDevice device("model_id", "ble_address",
+                        Protocol::kFastPairInitialPairing);
   // Test that name returns null before any sets.
-  std::optional<std::string> name = device_.display_name();
+  std::optional<std::string> name = device.display_name();
   EXPECT_FALSE(name.has_value());
 
   // Test that name returns the set value.
   std::string test_name = "test_name";
-  device_.set_display_name(test_name);
-  name = device_.display_name();
+  device.set_display_name(test_name);
+  name = device.display_name();
   EXPECT_TRUE(name.has_value());
   EXPECT_EQ(name.value(), test_name);
 
   // Test that overriding works.
   std::string new_test_name = "new_test_name";
-  device_.set_display_name(new_test_name);
-  name = device_.display_name();
+  device.set_display_name(new_test_name);
+  name = device.display_name();
   EXPECT_TRUE(name.has_value());
   EXPECT_EQ(name.value(), new_test_name);
 }
 
 TEST(FastPairDevice, GetAndPublicAddress) {
-  FastPairDevice device_("model_id", "ble_address",
-                         Protocol::kFastPairInitialPairing);
+  FastPairDevice device("model_id", "ble_address",
+                        Protocol::kFastPairInitialPairing);
   // Test that public address returns null before any sets.
-  std::optional<std::string> public_address = device_.public_address();
+  std::optional<std::string> public_address = device.public_address();
   EXPECT_FALSE(public_address.has_value());
 
   // Test that name returns the set value.
   std::string test_public_address = "test_public_address ";
-  device_.set_public_address(test_public_address);
-  public_address = device_.public_address();
+  device.set_public_address(test_public_address);
+  public_address = device.public_address();
   EXPECT_TRUE(public_address.has_value());
   EXPECT_EQ(public_address.value(), test_public_address);
 
   // Test that overriding works.
   std::string new_test_public_address = "new_test_public_address ";
-  device_.set_public_address(new_test_public_address);
-  public_address = device_.public_address();
+  device.set_public_address(new_test_public_address);
+  public_address = device.public_address();
   EXPECT_TRUE(public_address.has_value());
   EXPECT_EQ(public_address.value(), new_test_public_address);
 }

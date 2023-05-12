@@ -27,6 +27,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -227,7 +228,6 @@ FastPairGattServiceClientImpl::CreateRequest(
     std::copy(seeker_address_bytes.begin(), seeker_address_bytes.end(),
               std::begin(data_to_write) + kSeekerAddressStartIndex);
   }
-
   return data_to_write;
 }
 

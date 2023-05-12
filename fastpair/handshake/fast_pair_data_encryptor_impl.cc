@@ -74,8 +74,13 @@ void FastPairDataEncryptorImpl::Factory::CreateAsync(
     return;
   }
 
-  if (device.GetProtocol() == Protocol::kFastPairInitialPairing) {
+  if (device.GetProtocol() == Protocol::kFastPairInitialPairing ||
+      device.GetProtocol() == Protocol::kFastPairRetroactivePairing) {
     CreateAsyncWithKeyExchange(device, std::move(on_get_instance_callback));
+  } else {
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Can't create FP encryptor. Invalid protocol.";
+    on_get_instance_callback(nullptr);
   }
 }
 

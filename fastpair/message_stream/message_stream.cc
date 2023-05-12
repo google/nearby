@@ -23,6 +23,7 @@
 
 #include "absl/time/time.h"
 #include "fastpair/message_stream/message.h"
+#include "internal/platform/bluetooth_utils.h"
 
 namespace nearby {
 namespace fastpair {
@@ -40,15 +41,6 @@ constexpr int kMaxBatteryLevels = 3;
 constexpr int kUnknownBatteryLevel = 0x7F;
 constexpr absl::Duration kActiveComponentsTimeout = absl::Seconds(1);
 constexpr absl::Duration kRingAckTimeout = absl::Seconds(1);
-
-int GetModelIdFromString(absl::string_view s) {
-  int model_id = static_cast<uint8_t>(s[0]);
-  model_id <<= 8;
-  model_id |= static_cast<uint8_t>(s[1]);
-  model_id <<= 8;
-  model_id |= static_cast<uint8_t>(s[2]);
-  return model_id;
-}
 
 MessageStream::BatteryInfo ConvertBatteryInfo(uint8_t battery_value) {
   // The highest bit represents `is_charging`, the rest the battery level (in
@@ -202,8 +194,7 @@ bool MessageStream::HandleDeviceInformationEvent(const Message& message) {
                              << " but is " << message.payload.size();
         break;
       }
-      int model_id = GetModelIdFromString(message.payload);
-      observer_.OnModelId(model_id);
+      observer_.OnModelId(message.payload);
       return true;
     }
     case MessageCode::kBleAddressUpdated: {
@@ -213,7 +204,8 @@ bool MessageStream::HandleDeviceInformationEvent(const Message& message) {
             << " but is " << message.payload.size();
         break;
       }
-      observer_.OnBleAddressUpdated(message.payload);
+      ByteArray address(message.payload);
+      observer_.OnBleAddressUpdated(BluetoothUtils::ToString(address));
       return true;
     }
     case MessageCode::kBatteryUpdated: {

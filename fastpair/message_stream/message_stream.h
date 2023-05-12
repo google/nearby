@@ -47,8 +47,9 @@ class MessageStream : public Medium::Observer {
 
     virtual void OnLogBufferFull() = 0;
 
-    virtual void OnModelId(int model_id) = 0;
+    virtual void OnModelId(absl::string_view model_id) = 0;
 
+    // `address` is in canonical, human-readable format.
     virtual void OnBleAddressUpdated(absl::string_view address) = 0;
 
     virtual void OnBatteryUpdated(std::vector<BatteryInfo> battery_levels) = 0;

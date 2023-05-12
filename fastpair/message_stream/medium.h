@@ -52,10 +52,15 @@ class Medium {
 
   ~Medium() {
     NEARBY_LOGS(INFO) << "Destructing FP Medium";
-    cancellation_flag_.Cancel();
-    if (socket_.IsValid()) {
-      socket_.Close();
+    {
+      MutexLock lock(&mutex_);
+      cancellation_flag_.Cancel();
+      NEARBY_LOGS(INFO) << "Destructing FP Medium 1";
+      if (socket_.IsValid()) {
+        socket_.Close();
+      }
     }
+    NEARBY_LOGS(INFO) << "Destructing FP Medium 2";
     executor_.Shutdown();
     NEARBY_LOGS(INFO) << "Destructed FP Medium";
   }

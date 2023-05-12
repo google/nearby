@@ -9,6 +9,7 @@ cc_library(
         "protocol.cc",
     ],
     hdrs = [
+        "account_key.h",
         "constant.h",
         "fast_pair_device.h",
         "fast_pair_http_result.h",
@@ -19,6 +20,7 @@ cc_library(
         "//fastpair:__subpackages__",
     ],
     deps = [
+        "//internal/crypto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
