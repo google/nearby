@@ -49,7 +49,6 @@ ByteArray BluetoothUtils::FromString(absl::string_view bluetooth_mac_address) {
   if (bt_mac_address.length() != kBluetoothMacAddressLength * 2) {
     return ByteArray();
   }
-
   // Convert to bytes. If MAC Address bytes are unset, return a null byte array.
   auto bt_mac_address_string(absl::HexStringToBytes(bt_mac_address));
   auto bt_mac_address_bytes =
@@ -68,6 +67,29 @@ bool BluetoothUtils::IsBluetoothMacAddressUnset(
     }
   }
   return true;
+}
+
+std::string BluetoothUtils::FromNumber(std::uint64_t address) {
+  // Gets byte `index` from `address`.
+  auto b = [&](int index) {
+    return (std::uint8_t)(address >> (56 - 8 * index));
+  };
+  return absl::StrFormat("%02X:%02X:%02X:%02X:%02X:%02X", b(2), b(3), b(4),
+                         b(5), b(6), b(7));
+}
+
+std::uint64_t BluetoothUtils::ToNumber(std::string address) {
+  ByteArray binary = FromString(address);
+  if (binary.size() != kBluetoothMacAddressLength) {
+    return 0;
+  }
+  std::uint64_t result = 0;
+  for (char ch : binary.AsStringView()) {
+    result <<= 8;
+    result |= static_cast<uint8_t>(ch);
+  }
+
+  return result;
 }
 
 }  // namespace nearby
