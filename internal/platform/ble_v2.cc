@@ -289,7 +289,7 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
 }
 
 BleV2Peripheral BleV2Medium::GetRemotePeripheral(
-    absl::string_view mac_address) {
+    const std::string& mac_address) {
   BleV2Peripheral peripheral;
   impl_->GetRemotePeripheral(mac_address,
                              [&](api::ble_v2::BlePeripheral& device) {

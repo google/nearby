@@ -444,7 +444,7 @@ class BleV2Medium final {
 
   // Returns a `BleV2Peripheral` with given mac address. `mac_address` is in
   // canonical format.
-  BleV2Peripheral GetRemotePeripheral(absl::string_view mac_address);
+  BleV2Peripheral GetRemotePeripheral(const std::string& mac_address);
 
   api::ble_v2::BleMedium* GetImpl() const { return impl_.get(); }
   BluetoothAdapter& GetAdapter() { return adapter_; }

@@ -145,7 +145,7 @@ class BleMedium : public api::ble_v2::BleMedium {
                                                   CancellationFlag *cancellation_flag) override;
   bool IsExtendedAdvertisementsAvailable() override;
 
-  bool GetRemotePeripheral(absl::string_view mac_address,
+  bool GetRemotePeripheral(const std::string& mac_address,
                            GetRemotePeripheralCallback callback) override {
     return false;
   }

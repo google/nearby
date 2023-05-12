@@ -843,7 +843,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
   }
 }
 
-bool BleV2Medium::GetRemotePeripheral(absl::string_view mac_address,
+bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
                                       GetRemotePeripheralCallback callback) {
   for (auto& item : peripherals_) {
     if (item.second->GetAddress() == mac_address) {

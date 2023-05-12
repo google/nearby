@@ -378,7 +378,7 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return is_support_extended_advertisement_;
 }
 
-bool BleV2Medium::GetRemotePeripheral(absl::string_view mac_address,
+bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
                                       GetRemotePeripheralCallback callback) {
   NEARBY_LOGS(INFO) << "GetRemotePeripheral, address= " << mac_address;
   absl::MutexLock lock(&mutex_);

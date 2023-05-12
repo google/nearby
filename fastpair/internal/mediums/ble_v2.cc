@@ -48,7 +48,8 @@ std::unique_ptr<GattClient> BleV2::ConnectToGattServer(
     return nullptr;
   }
 
-  BleV2Peripheral v2_peripheral = medium_.GetRemotePeripheral(ble_address);
+  BleV2Peripheral v2_peripheral =
+      medium_.GetRemotePeripheral(std::string(ble_address));
   return medium_.ConnectToGattServer(v2_peripheral,
                                      api::ble_v2::TxPowerLevel::kUnknown, {});
 }
