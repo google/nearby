@@ -301,7 +301,7 @@ ImplementationPlatform::CreateWifiDirectMedium() {
   return nullptr;
 }
 
-// TODO(b/184975123): replace with real implementation.
+// TODO(b/261663238) replace with real implementation.
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   return nullptr;
 }

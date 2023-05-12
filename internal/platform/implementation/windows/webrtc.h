@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 #define PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 
+#include <string>
+
 #include "internal/platform/implementation/webrtc.h"
 
 namespace nearby {
@@ -22,53 +24,49 @@ namespace windows {
 
 class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  public:
-  // TODO(b/184975123): replace with real implementation.
+  using OnSignalingMessageCallback =
+      api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
+  using OnSignalingCompleteCallback =
+      api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
+
+  explicit WebRtcSignalingMessenger(
+      absl::string_view self_id,
+      const location::nearby::connections::LocationHint& location_hint);
   ~WebRtcSignalingMessenger() override = default;
 
-  // TODO(b/184975123): replace with real implementation.
   bool SendMessage(absl::string_view peer_id,
-                   const ByteArray& message) override {
-    return false;
-  }
-
-  // TODO(b/184975123): replace with real implementation.
+                   const ByteArray& message) override;
   bool StartReceivingMessages(
-      api::WebRtcSignalingMessenger::OnSignalingMessageCallback
-          on_message_callback,
-      api::WebRtcSignalingMessenger::OnSignalingCompleteCallback
-          on_complete_callback) override {
-    return false;
-  }
-  // TODO(b/184975123): replace with real implementation.
-  void StopReceivingMessages() override {}
+      OnSignalingMessageCallback on_message_callback,
+      OnSignalingCompleteCallback on_complete_callback) override;
+  void StopReceivingMessages() override;
+
+ private:
+  std::string self_id_;
+  location::nearby::connections::LocationHint location_hint_;
 };
 
 class WebRtcMedium : public api::WebRtcMedium {
  public:
-  // TODO(b/184975123): replace with real implementation.
+  // TODO(b/261663238): replace with real implementation.
   ~WebRtcMedium() override = default;
 
   // Gets the default two-letter country code associated with current locale.
   // For example, en_US locale resolves to "US".
-  // TODO(b/184975123): replace with real implementation.
-  const std::string GetDefaultCountryCode() override {
-    return "Un-implemented";
-  }
+  // This follows the ISO 3166-1 Alpha-2 standard.
+  const std::string GetDefaultCountryCode() override;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
-  // TODO(b/184975123): replace with real implementation.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
-                            PeerConnectionCallback callback) override {}
+                            PeerConnectionCallback callback) override;
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
-  // TODO(b/184975123): replace with real implementation.
+  // TODO(b/261663238): replace with real implementation.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
       const location::nearby::connections::LocationHint& location_hint)
-      override {
-    return nullptr;
-  }
+      override;
 };
 
 }  // namespace windows
