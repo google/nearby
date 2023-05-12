@@ -18,7 +18,6 @@
 #include <optional>
 #include <string>
 
-#include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -310,13 +309,7 @@ std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
-  std::string bt_mac_address = mac_address;
-  // Remove the colon delimiters.
-  bt_mac_address.erase(
-      std::remove(bt_mac_address.begin(), bt_mac_address.end(), ':'),
-      bt_mac_address.end());
-  auto& env = MediumEnvironment::Instance();
-  return env.FindBluetoothDevice(absl::HexStringToBytes(bt_mac_address));
+  return MediumEnvironment::Instance().FindBluetoothDevice(mac_address);
 }
 
 void BluetoothClassicMedium::AddObserver(

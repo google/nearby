@@ -86,8 +86,7 @@ TEST_F(MediumTest, ConnectWithNonExistingDeviceFails) {
 TEST_F(MediumTest, Connect) {
   FastPairDevice fp_device("model id", "ble address",
                            Protocol::kFastPairRetroactivePairing);
-  fp_device.set_public_address(
-      absl::BytesToHexString(provider_.GetMacAddress()));
+  fp_device.set_public_address(provider_.GetMacAddress());
   provider_.DiscoverProvider(seeker_medium_);
   provider_.EnableProviderRfcomm();
   Medium medium =
@@ -102,8 +101,7 @@ TEST_F(MediumTest, Connect) {
 TEST_F(MediumTest, ProviderDisconnectsCallsOnDisconnectCallback) {
   FastPairDevice fp_device("model id", "ble address",
                            Protocol::kFastPairRetroactivePairing);
-  fp_device.set_public_address(
-      absl::BytesToHexString(provider_.GetMacAddress()));
+  fp_device.set_public_address(provider_.GetMacAddress());
   provider_.DiscoverProvider(seeker_medium_);
   provider_.EnableProviderRfcomm();
   Medium medium =
@@ -122,8 +120,7 @@ TEST_F(MediumTest, ProviderDisconnectsCallsOnDisconnectCallback) {
 TEST_F(MediumTest, DisconnectSendFails) {
   FastPairDevice fp_device("model id", "ble address",
                            Protocol::kFastPairRetroactivePairing);
-  fp_device.set_public_address(
-      absl::BytesToHexString(provider_.GetMacAddress()));
+  fp_device.set_public_address(provider_.GetMacAddress());
   provider_.DiscoverProvider(seeker_medium_);
   provider_.EnableProviderRfcomm();
   Medium medium =
@@ -148,8 +145,7 @@ TEST_F(MediumTest, SendMessage) {
   std::string expected_result = absl::HexStringToBytes("030A0003ABCDEF");
   FastPairDevice fp_device("model id", "ble address",
                            Protocol::kFastPairRetroactivePairing);
-  fp_device.set_public_address(
-      absl::BytesToHexString(provider_.GetMacAddress()));
+  fp_device.set_public_address(provider_.GetMacAddress());
   provider_.DiscoverProvider(seeker_medium_);
   provider_.EnableProviderRfcomm();
   Medium medium =
@@ -174,8 +170,7 @@ TEST_F(MediumTest, ReceiveMessage) {
   std::string input = absl::HexStringToBytes("030A0003ABCDEF");
   FastPairDevice fp_device("model id", "ble address",
                            Protocol::kFastPairRetroactivePairing);
-  fp_device.set_public_address(
-      absl::BytesToHexString(provider_.GetMacAddress()));
+  fp_device.set_public_address(provider_.GetMacAddress());
   provider_.DiscoverProvider(seeker_medium_);
   provider_.EnableProviderRfcomm();
   Medium medium =
@@ -197,8 +192,7 @@ class MediumFuzzTest : public fuzztest::PerIterationFixtureAdapter<MediumTest> {
   void HandlesAnyInput(absl::string_view input) {
     FastPairDevice fp_device("model id", "ble address",
                              Protocol::kFastPairRetroactivePairing);
-    fp_device.set_public_address(
-        absl::BytesToHexString(provider_.GetMacAddress()));
+    fp_device.set_public_address(provider_.GetMacAddress());
     provider_.DiscoverProvider(seeker_medium_);
     provider_.EnableProviderRfcomm();
     Medium medium = Medium(
@@ -219,8 +213,7 @@ class MediumFuzzTest : public fuzztest::PerIterationFixtureAdapter<MediumTest> {
         .payload = std::string(payload)};
     FastPairDevice fp_device("model id", "ble address",
                              Protocol::kFastPairRetroactivePairing);
-    fp_device.set_public_address(
-        absl::BytesToHexString(provider_.GetMacAddress()));
+    fp_device.set_public_address(provider_.GetMacAddress());
     provider_.DiscoverProvider(seeker_medium_);
     provider_.EnableProviderRfcomm();
     Medium medium = Medium(

@@ -128,7 +128,9 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   void SetBleV2Medium(api::ble_v2::BleMedium* medium);
   api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
 
-  void SetMacAddress(std::string& mac_address) { mac_address_ = mac_address; }
+  void SetMacAddress(absl::string_view mac_address) {
+    mac_address_ = std::string(mac_address);
+  }
 
   std::uint64_t GetUniqueId() { return unique_id_; }
 

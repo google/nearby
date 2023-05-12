@@ -60,10 +60,11 @@ TEST(BluetoothAdapterTest, CanSetMode) {
 
 TEST(BluetoothAdapterTest, CanGetMacAddress) {
   BluetoothAdapter adapter;
-  std::string bt_mac =
-      BluetoothUtils::ToString(ByteArray(adapter.GetMacAddress()));
-  NEARBY_LOG(INFO, "BT MAC: '%s'", bt_mac.c_str());
-  EXPECT_NE(bt_mac, "");
+
+  std::string canonical_address = adapter.GetMacAddress();
+
+  EXPECT_NE(canonical_address, "");
+  EXPECT_NE(BluetoothUtils::FromString(canonical_address), ByteArray());
 }
 
 }  // namespace

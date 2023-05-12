@@ -15,7 +15,6 @@
 #include "fastpair/internal/mediums/bluetooth_classic.h"
 
 #include "gtest/gtest.h"
-#include "absl/strings/escaping.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/medium_environment.h"
 
@@ -32,8 +31,8 @@ TEST(BluetoothClassicTest, CanCreatePairing) {
   BluetoothClassicMedium bt_provider(provider_adapter);
 
   EXPECT_TRUE(bluetooth_classic.IsAvailable());
-  EXPECT_TRUE(bluetooth_classic.CreatePairing(
-      absl::BytesToHexString(provider_adapter.GetMacAddress())));
+  EXPECT_TRUE(
+      bluetooth_classic.CreatePairing(provider_adapter.GetMacAddress()));
   MediumEnvironment::Instance().Stop();
 }
 
@@ -46,8 +45,7 @@ TEST(BluetoothClassicTest, RemoteDeviceNotFound) {
   BluetoothClassicMedium bt_provider(provider_adapter);
 
   EXPECT_TRUE(bluetooth_classic.IsAvailable());
-  EXPECT_FALSE(
-      bluetooth_classic.CreatePairing(absl::BytesToHexString("bleaddress")));
+  EXPECT_FALSE(bluetooth_classic.CreatePairing("bleaddress"));
   MediumEnvironment::Instance().Stop();
 }
 
@@ -60,8 +58,8 @@ TEST(BluetoothClassicTest, RadioDisable) {
   radio.Disable();
 
   EXPECT_FALSE(bluetooth_classic.IsAvailable());
-  EXPECT_FALSE(bluetooth_classic.CreatePairing(
-      absl::BytesToHexString(provider_adapter.GetMacAddress())));
+  EXPECT_FALSE(
+      bluetooth_classic.CreatePairing(provider_adapter.GetMacAddress()));
 }
 
 TEST(BluetoothClassicTest, BluetoothAdapterDisable) {
@@ -73,8 +71,8 @@ TEST(BluetoothClassicTest, BluetoothAdapterDisable) {
   BluetoothClassicMedium bt_provider(adapter_provider);
 
   EXPECT_FALSE(bluetooth_classic.IsAvailable());
-  EXPECT_FALSE(bluetooth_classic.CreatePairing(
-      absl::BytesToHexString(adapter_provider.GetMacAddress())));
+  EXPECT_FALSE(
+      bluetooth_classic.CreatePairing(adapter_provider.GetMacAddress()));
 }
 
 TEST(BluetoothClassicTest, GetMedium) {

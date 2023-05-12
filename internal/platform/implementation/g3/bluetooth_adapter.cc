@@ -17,12 +17,16 @@
 #include <string>
 #include <utility>
 
+#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 
 namespace nearby {
 namespace g3 {
+namespace {
+constexpr std::uint64_t kMacAddressMask = 0x0000FFFFFFFFFFFF;
+}
 
 BlePeripheral::BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
 
@@ -48,16 +52,8 @@ std::string BluetoothDevice::GetMacAddress() const {
 }
 
 BluetoothAdapter::BluetoothAdapter() {
-  std::string mac_address;
-  mac_address.resize(6);
-  std::uint64_t raw_mac_addr = Prng().NextInt64();
-  mac_address[0] = static_cast<char>(raw_mac_addr >> 40);
-  mac_address[1] = static_cast<char>(raw_mac_addr >> 32);
-  mac_address[2] = static_cast<char>(raw_mac_addr >> 24);
-  mac_address[3] = static_cast<char>(raw_mac_addr >> 16);
-  mac_address[4] = static_cast<char>(raw_mac_addr >> 8);
-  mac_address[5] = static_cast<char>(raw_mac_addr >> 0);
-  SetMacAddress(mac_address);
+  std::uint64_t raw_mac_addr = Prng().NextInt64() & kMacAddressMask;
+  SetMacAddress(BluetoothUtils::FromNumber(raw_mac_addr));
   unique_id_ = raw_mac_addr;
 }
 

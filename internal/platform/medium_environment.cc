@@ -213,13 +213,11 @@ api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
   api::BluetoothDevice* device = nullptr;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([this, &device, &latch, &mac_address]() {
-    NEARBY_LOGS(INFO) << " Looking for: "
-                      << absl::BytesToHexString(mac_address);
+    NEARBY_LOGS(INFO) << " Looking for: " << mac_address;
     for (auto& item : bluetooth_mediums_) {
       auto* adapter = item.second.adapter;
       if (!adapter) continue;
-      NEARBY_LOGS(INFO) << " Adapter: "
-                        << absl::BytesToHexString(adapter->GetMacAddress());
+      NEARBY_LOGS(INFO) << " Adapter: " << adapter->GetMacAddress();
       if (adapter->GetMacAddress() == mac_address) {
         device = bluetooth_adapters_[adapter];
         break;

@@ -109,8 +109,7 @@ class MessageStreamTest : public testing::Test {
   void SetUp() override {
     MediumEnvironment::Instance().Start();
 
-    fp_device_.set_public_address(
-        absl::BytesToHexString(provider_.GetMacAddress()));
+    fp_device_.set_public_address(provider_.GetMacAddress());
     provider_.DiscoverProvider(seeker_medium_);
     provider_.EnableProviderRfcomm();
   }
