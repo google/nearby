@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/presence_service.h"
+#include "presence/presence_service_impl.h"
 
 #include <memory>
 #include <utility>
@@ -20,35 +20,37 @@
 #include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller_impl.h"
+#include "presence/presence_client_impl.h"
 
 namespace nearby {
 namespace presence {
-PresenceService::PresenceService() {
+
+PresenceServiceImpl::PresenceServiceImpl() {
   service_controller_ = std::make_unique<ServiceControllerImpl>();
   provider_ = std::make_unique<PresenceDeviceProvider>(
       service_controller_->GetLocalDeviceMetadata());
 }
 
-PresenceClient PresenceService::CreatePresenceClient() {
-  return PresenceClient(lender_.GetBorrowable());
+std::unique_ptr<PresenceClient> PresenceServiceImpl::CreatePresenceClient() {
+  return PresenceClientImpl::Factory::Create(lender_.GetBorrowable());
 }
 
-absl::StatusOr<ScanSessionId> PresenceService::StartScan(
+absl::StatusOr<ScanSessionId> PresenceServiceImpl::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
   return service_controller_->StartScan(scan_request, std::move(callback));
 }
 
-void PresenceService::StopScan(ScanSessionId id) {
+void PresenceServiceImpl::StopScan(ScanSessionId id) {
   service_controller_->StopScan(id);
 }
 
-absl::StatusOr<BroadcastSessionId> PresenceService::StartBroadcast(
+absl::StatusOr<BroadcastSessionId> PresenceServiceImpl::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
   return service_controller_->StartBroadcast(broadcast_request,
                                              std::move(callback));
 }
 
-void PresenceService::StopBroadcast(BroadcastSessionId session) {
+void PresenceServiceImpl::StopBroadcast(BroadcastSessionId session) {
   service_controller_->StopBroadcast(session);
 }
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/presence_client.h"
+#include <memory>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -21,7 +21,7 @@
 #include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
 #include "presence/presence_device.h"
-#include "presence/presence_service.h"
+#include "presence/presence_service_impl.h"
 
 namespace nearby {
 namespace presence {
@@ -32,10 +32,10 @@ using ::testing::status::StatusIs;
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 
-// Creates a PresenceClient and destroys PresenceService that was used to create
-// it.
-PresenceClient CreateDefunctPresenceClient() {
-  PresenceService presence_service;
+// Creates a PresenceClient and destroys PresenceServiceImpl that was used to
+// create it.
+std::unique_ptr<PresenceClient> CreateDefunctPresenceClient() {
+  PresenceServiceImpl presence_service;
   return presence_service.CreatePresenceClient();
 }
 
@@ -59,9 +59,10 @@ TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
   env_.Start();
   absl::Status broadcast_result;
 
-  PresenceService presence_service;
-  PresenceClient presence_client = presence_service.CreatePresenceClient();
-  auto unused = presence_client.StartBroadcast(
+  PresenceServiceImpl presence_service;
+  std::unique_ptr<PresenceClient> presence_client =
+      presence_service.CreatePresenceClient();
+  auto unused = presence_client->StartBroadcast(
       {}, {
               .start_broadcast_cb =
                   [&](absl::Status status) { broadcast_result = status; },
@@ -71,12 +72,12 @@ TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
   env_.Stop();
 }
 
-TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceIsGone) {
+TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceImplIsGone) {
   env_.Start();
   absl::Status broadcast_result = absl::UnknownError("");
 
   absl::StatusOr<BroadcastSessionId> session_id =
-      CreateDefunctPresenceClient().StartBroadcast(
+      CreateDefunctPresenceClient()->StartBroadcast(
           {}, {
                   .start_broadcast_cb =
                       [&](absl::Status status) { broadcast_result = status; },
@@ -94,21 +95,22 @@ TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
       .start_scan_cb = [&](absl::Status status) { scan_result.Set(status); },
   };
 
-  PresenceService presence_service;
-  PresenceClient presence_client = presence_service.CreatePresenceClient();
-  EXPECT_OK(presence_client.StartScan({}, std::move(scan_callback)));
+  PresenceServiceImpl presence_service;
+  std::unique_ptr<PresenceClient> presence_client =
+      presence_service.CreatePresenceClient();
+  EXPECT_OK(presence_client->StartScan({}, std::move(scan_callback)));
 
   EXPECT_TRUE(scan_result.Get().ok());
   EXPECT_OK(scan_result.Get().GetResult());
   env_.Stop();
 }
 
-TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
+TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceImplIsGone) {
   env_.Start();
   absl::Status scan_result = absl::UnknownError("");
 
   absl::StatusOr<ScanSessionId> session_id =
-      CreateDefunctPresenceClient().StartScan(
+      CreateDefunctPresenceClient()->StartScan(
           {}, {
                   .start_scan_cb =
                       [&](absl::Status status) { scan_result = status; },
@@ -119,21 +121,10 @@ TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
   env_.Stop();
 }
 
-TEST_F(PresenceClientTest, GettingDeviceWorks) {
-  PresenceService presence_service;
-  PresenceClient presence_client = presence_service.CreatePresenceClient();
-  presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata(), false, "",
-                                             {}, 0, 0, {});
-  auto device = presence_client.GetLocalDevice();
-  ASSERT_NE(device, std::nullopt);
-  EXPECT_EQ((*device).GetEndpointId().length(), kEndpointIdLength);
-  EXPECT_EQ((*device).GetMetadata().SerializeAsString(),
-            CreateTestMetadata().SerializeAsString());
-}
-
 TEST_F(PresenceClientTest, TestGettingDeviceDefunct) {
-  PresenceClient presence_client = CreateDefunctPresenceClient();
-  auto device = presence_client.GetLocalDevice();
+  std::unique_ptr<PresenceClient> presence_client =
+      CreateDefunctPresenceClient();
+  auto device = presence_client->GetLocalDevice();
   EXPECT_EQ(device, std::nullopt);
 }
 }  // namespace

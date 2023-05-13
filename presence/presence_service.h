@@ -15,65 +15,42 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_SERVICE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_SERVICE_H_
 
-#include <memory>
-#include <utility>
 #include <vector>
 
-#include "internal/platform/borrowable.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/data_types.h"
-#include "presence/implementation/service_controller.h"
 #include "presence/presence_client.h"
 #include "presence/presence_device_provider.h"
 
 namespace nearby {
 namespace presence {
 
-/*
- * PresenceService hosts presence functions by routing invokes to the unique
- * {@code ServiceController}. PresenceService should be initialized once and
- * only once in the process that hosting presence functions.
- */
 class PresenceService {
  public:
-  PresenceService();
-  ~PresenceService() { lender_.Release(); }
+  virtual ~PresenceService() = default;
 
-  PresenceClient CreatePresenceClient();
+  virtual std::unique_ptr<PresenceClient> CreatePresenceClient() = 0;
 
-  absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
-                                          ScanCallback callback);
-  void StopScan(ScanSessionId session_id);
+  virtual absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
+                                                  ScanCallback callback) = 0;
+  virtual void StopScan(ScanSessionId session_id) = 0;
 
-  absl::StatusOr<BroadcastSessionId> StartBroadcast(
-      BroadcastRequest broadcast_request, BroadcastCallback callback);
+  virtual absl::StatusOr<BroadcastSessionId> StartBroadcast(
+      BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;
 
-  void StopBroadcast(BroadcastSessionId session_id);
+  virtual void StopBroadcast(BroadcastSessionId session_id) = 0;
 
-  void UpdateLocalDeviceMetadata(
+  virtual void UpdateLocalDeviceMetadata(
       const ::nearby::internal::Metadata& metadata, bool regen_credentials,
       absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
-      GenerateCredentialsResultCallback credentials_generated_cb) {
-    provider_->UpdateMetadata(metadata);
-    service_controller_->UpdateLocalDeviceMetadata(
-        metadata, regen_credentials, manager_app_id, identity_types,
-        credential_life_cycle_days, contiguous_copy_of_credentials,
-        std::move(credentials_generated_cb));
-  }
+      GenerateCredentialsResultCallback credentials_generated_cb) = 0;
 
-  PresenceDeviceProvider* GetLocalDeviceProvider() { return provider_.get(); }
+  virtual PresenceDeviceProvider* GetLocalDeviceProvider() = 0;
 
   // Testing only.
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() {
-    return service_controller_->GetLocalDeviceMetadata();
-  }
-
- private:
-  std::unique_ptr<ServiceController> service_controller_;
-  ::nearby::Lender<PresenceService *> lender_{this};
-  std::unique_ptr<PresenceDeviceProvider> provider_;
+  virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
 };
 
 }  // namespace presence

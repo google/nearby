@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,36 +12,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_IMPL_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_IMPL_H_
 
+#include <memory>
 #include <optional>
 
 #include "absl/status/statusor.h"
 #include "internal/platform/borrowable.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
+#include "presence/presence_client.h"
 #include "presence/presence_device.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
 
-class PresenceService;
 /**
  * Interface for detecting and interacting with nearby devices that are also
  * part of the Presence ecosystem.
  */
-class PresenceClient {
+class PresenceClientImpl : public PresenceClient {
  public:
   using BorrowablePresenceService = ::nearby::Borrowable<PresenceService*>;
 
-  explicit PresenceClient(BorrowablePresenceService service)
-      : service_(service) {}
-  PresenceClient(const PresenceClient&) = delete;
-  PresenceClient(PresenceClient&&) = default;
-  PresenceClient& operator=(const PresenceClient&) = delete;
-  virtual ~PresenceClient() = default;
+  class Factory {
+   public:
+    static std::unique_ptr<PresenceClient> Create(
+        BorrowablePresenceService service);
+    static void SetFactoryForTesting(Factory* test_factory);
+
+    // protected:
+    virtual ~Factory();
+    virtual std::unique_ptr<PresenceClient> CreateInstance(
+        BorrowablePresenceService service) = 0;
+
+    // private:
+    static Factory* g_test_factory_;
+  };
+
+  explicit PresenceClientImpl(BorrowablePresenceService service)
+      : PresenceClient(service) {}
+  PresenceClientImpl(const PresenceClientImpl&) = delete;
+  PresenceClientImpl(PresenceClientImpl&&) = default;
+  PresenceClientImpl& operator=(const PresenceClientImpl&) = delete;
+  ~PresenceClientImpl() override = default;
 
   // Starts a Nearby Presence scan and registers `ScanCallback`
   // which will be invoked when a matching `PresenceDevice` is detected,
@@ -54,12 +70,12 @@ class PresenceClient {
   // `ScanRequest` contains the options like scan power mode
   // and type; the filters including credentials, actions and extended
   // properties.
-  virtual absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
-                                          ScanCallback callback) = 0;
+  absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
+                                          ScanCallback callback) override;
 
   // Terminates the scan session. Does nothing if the session is already
   // terminated.
-  virtual void StopScan(ScanSessionId session_id) = 0;
+  void StopScan(ScanSessionId session_id) override;
 
   // Starts a Nearby Presence broadcast and registers `BroadcastCallback`
   // which will be invoked after broadcast is started.
@@ -71,23 +87,21 @@ class PresenceClient {
   // `BroadcastRequest` contains the options like tx_power,
   // the credential info like salt and private credential, the actions and
   // extended properties.
-  virtual absl::StatusOr<BroadcastSessionId> StartBroadcast(
-      BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;
+  absl::StatusOr<BroadcastSessionId> StartBroadcast(
+      BroadcastRequest broadcast_request, BroadcastCallback callback) override;
 
   // Terminates a broadcast session. Does nothing if the session is already
   // terminated.
-  virtual void StopBroadcast(BroadcastSessionId session_id) = 0;
+  void StopBroadcast(BroadcastSessionId session_id) override;
 
   // Returns the local PresenceDevice describing the current device's actions,
   // connectivity info and unique identifier for use in Connections and
   // Presence.
-  virtual std::optional<PresenceDevice> GetLocalDevice() = 0;
-
- protected:
-  BorrowablePresenceService service_;
+  std::optional<PresenceDevice> GetLocalDevice() override;
 };
 
 }  // namespace presence
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
+
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_IMPL_H_
