@@ -15,9 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
 
-#include <functional>
-#include <memory>
-#include <vector>
+#include <optional>
 
 #include "absl/status/statusor.h"
 #include "internal/platform/borrowable.h"

@@ -15,9 +15,8 @@
 #ifndef CORE_CORE_H_
 #define CORE_CORE_H_
 
-#include <functional>
+#include <memory>
 #include <string>
-#include <type_traits>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -508,9 +507,7 @@ class Core {
 
   // Registers a DeviceProvider to provide functionality for Nearby Connections
   // to interact with the DeviceProvider for retrieving the local device.
-  template <typename T, typename std::enable_if<std::is_base_of<
-                            NearbyDevice, T>::value>::type* = nullptr>
-  void RegisterDeviceProvider(NearbyDeviceProvider<T>* provider);
+  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider);
 
  private:
   ClientProxy client_;

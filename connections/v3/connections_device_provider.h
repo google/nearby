@@ -24,8 +24,7 @@ namespace nearby {
 namespace connections {
 namespace v3 {
 
-class ConnectionsDeviceProvider
-    : public NearbyDeviceProvider<ConnectionsDevice> {
+class ConnectionsDeviceProvider : public NearbyDeviceProvider {
  public:
   ConnectionsDeviceProvider(
       absl::string_view endpoint_info,
@@ -36,7 +35,7 @@ class ConnectionsDeviceProvider
       const std::vector<ConnectionInfoVariant> connection_infos)
       : device_{endpoint_id, endpoint_info, connection_infos} {}
 
-  const ConnectionsDevice& GetLocalDevice() override { return device_; }
+  const NearbyDevice* GetLocalDevice() override { return &device_; }
 
  private:
   ConnectionsDevice device_;

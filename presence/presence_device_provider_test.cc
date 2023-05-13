@@ -49,21 +49,23 @@ TEST(PresenceDeviceProviderTest, ProviderIsNotTriviallyConstructible) {
 TEST(PresenceDeviceProviderTest, DeviceProviderWorks) {
   PresenceDeviceProvider provider(CreateTestMetadata());
   auto device = provider.GetLocalDevice();
-  EXPECT_EQ(device.GetMetadata().SerializeAsString(),
+  ASSERT_EQ(device->GetType(), NearbyDevice::Type::kPresenceDevice);
+  auto presence_device = static_cast<const PresenceDevice*>(device);
+  EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
             CreateTestMetadata().SerializeAsString());
 }
 
 TEST(PresenceDeviceProviderTest, DeviceProviderCanUpdateDevice) {
   PresenceDeviceProvider provider(CreateTestMetadata());
   auto device = provider.GetLocalDevice();
-  EXPECT_EQ(device.GetMetadata().SerializeAsString(),
+  ASSERT_EQ(device->GetType(), NearbyDevice::Type::kPresenceDevice);
+  auto presence_device = static_cast<const PresenceDevice*>(device);
+  EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
             CreateTestMetadata().SerializeAsString());
   Metadata new_metadata = CreateTestMetadata();
   new_metadata.set_device_name("NP interop device");
   provider.UpdateMetadata(new_metadata);
-  EXPECT_NE(device.GetMetadata().SerializeAsString(),
-            new_metadata.SerializeAsString());
-  EXPECT_EQ(provider.GetLocalDevice().GetMetadata().SerializeAsString(),
+  EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
             new_metadata.SerializeAsString());
 }
 

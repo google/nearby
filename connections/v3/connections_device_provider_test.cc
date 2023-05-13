@@ -28,21 +28,22 @@ constexpr absl::string_view kEndpointInfo = "NC endpoint";
 
 TEST(ConnectionsDeviceProviderTest, TestProviderWorksTwoArgs) {
   ConnectionsDeviceProvider provider(kEndpointInfo, {});
-  EXPECT_EQ(provider.GetLocalDevice().GetEndpointInfo(), kEndpointInfo);
-  EXPECT_EQ(provider.GetLocalDevice().GetType(),
-            NearbyDevice::Type::kConnectionsDevice);
-  EXPECT_EQ(provider.GetLocalDevice().GetConnectionInfos().size(), 0);
-  EXPECT_EQ(provider.GetLocalDevice().GetEndpointId().size(),
-            kEndpointIdLength);
+  auto device = provider.GetLocalDevice();
+  ASSERT_EQ(device->GetType(), NearbyDevice::Type::kConnectionsDevice);
+  auto connections_device = static_cast<const ConnectionsDevice*>(device);
+  EXPECT_EQ(connections_device->GetEndpointInfo(), kEndpointInfo);
+  EXPECT_EQ(connections_device->GetConnectionInfos().size(), 0);
+  EXPECT_EQ(connections_device->GetEndpointId().size(), kEndpointIdLength);
 }
 
 TEST(ConnectionsDeviceProviderTest, TestProviderWorksThreeArgs) {
   ConnectionsDeviceProvider provider(kEndpointId, kEndpointInfo, {});
-  EXPECT_EQ(provider.GetLocalDevice().GetEndpointInfo(), kEndpointInfo);
-  EXPECT_EQ(provider.GetLocalDevice().GetType(),
-            NearbyDevice::Type::kConnectionsDevice);
-  EXPECT_EQ(provider.GetLocalDevice().GetConnectionInfos().size(), 0);
-  EXPECT_EQ(provider.GetLocalDevice().GetEndpointId(), kEndpointId);
+  auto device = provider.GetLocalDevice();
+  ASSERT_EQ(device->GetType(), NearbyDevice::Type::kConnectionsDevice);
+  auto connections_device = static_cast<const ConnectionsDevice*>(device);
+  EXPECT_EQ(connections_device->GetEndpointInfo(), kEndpointInfo);
+  EXPECT_EQ(connections_device->GetConnectionInfos().size(), 0);
+  EXPECT_EQ(connections_device->GetEndpointId(), kEndpointId);
 }
 
 }  // namespace

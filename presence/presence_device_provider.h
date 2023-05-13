@@ -22,12 +22,12 @@
 namespace nearby {
 namespace presence {
 
-class PresenceDeviceProvider : public NearbyDeviceProvider<PresenceDevice> {
+class PresenceDeviceProvider : public NearbyDeviceProvider {
  public:
   explicit PresenceDeviceProvider(::nearby::internal::Metadata metadata)
       : device_{metadata} {}
 
-  const PresenceDevice& GetLocalDevice() override { return device_; }
+  const NearbyDevice* GetLocalDevice() override { return &device_; }
 
   void UpdateMetadata(const ::nearby::internal::Metadata& metadata) {
     device_.SetMetadata(metadata);

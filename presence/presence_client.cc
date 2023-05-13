@@ -65,7 +65,9 @@ void PresenceClient::StopBroadcast(BroadcastSessionId session_id) {
 std::optional<PresenceDevice> PresenceClient::GetLocalDevice() {
   ::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
   if (borrowed) {
-    return (*borrowed)->GetLocalDeviceProvider()->GetLocalDevice();
+    const PresenceDevice* device = static_cast<const PresenceDevice*>(
+        (*borrowed)->GetLocalDeviceProvider()->GetLocalDevice());
+    return PresenceDevice(*device);
   }
   return std::nullopt;
 }

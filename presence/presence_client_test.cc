@@ -126,8 +126,8 @@ TEST_F(PresenceClientTest, GettingDeviceWorks) {
                                              {}, 0, 0, {});
   auto device = presence_client.GetLocalDevice();
   ASSERT_NE(device, std::nullopt);
-  EXPECT_EQ(device->GetEndpointId().length(), kEndpointIdLength);
-  EXPECT_EQ(device->GetMetadata().SerializeAsString(),
+  EXPECT_EQ((*device).GetEndpointId().length(), kEndpointIdLength);
+  EXPECT_EQ((*device).GetMetadata().SerializeAsString(),
             CreateTestMetadata().SerializeAsString());
 }
 
