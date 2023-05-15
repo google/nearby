@@ -46,10 +46,7 @@ objc_library(
     deprecation = "Please use //third_party/nearby/connections/swift/NearbyConnections",
     features = ["-layering_check"],
     module_name = "NearbyConnections",
-    visibility = [
-        "//googlemac/iPhone/Nearby/HelloConnections:__pkg__",
-        "//googlemac/iPhone/Nearby/Sharing/Source/UI/HomeViewController:__pkg__",
-    ],
+    visibility = ["//googlemac/iPhone/Nearby/Sharing/Source/UI/HomeViewController:__pkg__"],
     deps = [
         "//connections:core",
         "//connections:core_types",
