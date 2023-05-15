@@ -27,6 +27,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
+#include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
@@ -70,11 +71,13 @@ std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 
 std::string ClientProxy::GetLocalEndpointId() {
   MutexLock lock(&mutex_);
-  if (local_endpoint_id_.empty()) {
+  if (!local_endpoint_id_.empty()) {
+    return local_endpoint_id_;
+  }
+  if (device_provider_ == nullptr) {
     local_endpoint_id_ = GenerateLocalEndpointId();
-    NEARBY_LOGS(INFO) << "ClientProxy [Local Endpoint Generated]: client="
-                      << GetClientId()
-                      << "; endpoint_id=" << local_endpoint_id_;
+  } else {
+    local_endpoint_id_ = device_provider_->GetLocalDevice()->GetEndpointId();
   }
   return local_endpoint_id_;
 }

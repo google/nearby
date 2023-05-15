@@ -20,6 +20,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "connections/advertising_options.h"
@@ -31,6 +32,7 @@
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
+#include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
@@ -206,6 +208,10 @@ class ClientProxy final {
       absl::string_view endpoint_id,
       const location::nearby::connections::OsInfo& remote_os_info);
 
+  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider) {
+    device_provider_ = std::move(provider);
+  }
+
  private:
   struct Connection {
     // Status: may be either:
@@ -282,7 +288,7 @@ class ClientProxy final {
   // Bluetooth Classic enabled. When high_visibility_mode_ is true, the endpoint
   // id is stable for 30s. When high_visibility_mode_ is false, the endpoint id
   // always rotates.
-  bool high_vis_mode_{false};
+  bool high_vis_mode_ = false;
   // Caches the endpoint id when it is in high visibility mode advertisement for
   // 30s. Currently, Nearby Connections keeps rotating endpoint id. The client
   // (Nearby Share) treats different endpoints as different receivers, duplicate
@@ -339,6 +345,7 @@ class ClientProxy final {
   std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
   // Local device OS information.
   location::nearby::connections::OsInfo local_os_info_;
+  std::unique_ptr<NearbyDeviceProvider> device_provider_;
 };
 
 }  // namespace connections
