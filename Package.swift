@@ -569,6 +569,7 @@ let package = Package(
         "internal/network/http_request_test.cc",
         "internal/network/http_client_impl_test.cc",
         "internal/network/http_status_code_test.cc",
+        "internal/test/google3_only/fake_authentication_manager_test.cc",
         "internal/test/fake_clock_test.cc",
         "internal/test/fake_timer_test.cc",
         "internal/test/fake_device_info_test.cc",
