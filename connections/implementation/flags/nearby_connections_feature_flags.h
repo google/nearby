@@ -37,8 +37,8 @@ constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
 
 // LINT.ThenChange(
-//   //depot/google3/location/nearby/cpp/sharing/clients/windows/nearby_sharing_service_adapter_dart.h,
-//   //depot/google3/location/nearby/cpp/sharing/clients/windows/nearby_sharing_service_adapter_dart.cc,
+//   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.h,
+//   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.cc,
 //   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/ffi_types.dart,
 //   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
 // )
