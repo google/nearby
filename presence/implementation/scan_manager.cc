@@ -58,7 +58,6 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                         absl::Status ble_status) mutable {
                       start_scan_client(ble_status);
                     },
-                // TODO(b/256686710): Track known devices
                 .advertisement_found_cb =
                     [this, id](BlePeripheral& peripheral,
                                BleAdvertisementData data) {
