@@ -191,9 +191,9 @@ let package = Package(
         "ukey2/NOTICE",
         "ukey2/README",
         "ukey2/README.md",
-        "compiled_proto/src/main/proto/securemessage.pb.cc",
       ],
       sources: [
+        "ukey2/src/securemessage/src/securemessage",
         "ukey2/src/main/cpp/src/securegcm",
         "compiled_proto",
       ],
