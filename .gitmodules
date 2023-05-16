@@ -17,7 +17,7 @@
 [submodule "third_party/ukey2/ukey2"]
 	path = third_party/ukey2/ukey2
 	url = https://github.com/google/ukey2
-	branch = master
+	branch = c2436e55116964d88532080784f6ed496b0d11f9
 [submodule "third_party/smhasher/smhasher"]
 	path = third_party/smhasher/smhasher
 	url = https://github.com/aappleby/smhasher
