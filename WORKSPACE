@@ -59,10 +59,10 @@ http_archive(
     urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
 )
 
-new_local_repository(
+http_archive(
     name = "com_google_ukey2",
-    path = "./third_party/ukey2/ukey2",
-    build_file_content = _ALL_CONTENT,
+    strip_prefix = "ukey2-master",
+    urls = ["https://github.com/google/ukey2/archive/master.zip"],
 )
 
 http_archive(
