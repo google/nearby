@@ -17,6 +17,7 @@
 
 #include <stddef.h>
 
+#include <cstdint>
 #include <array>
 #include <string>
 
