@@ -18,12 +18,14 @@ cc_library(
     name = "test",
     srcs = [
         "fake_clock.cc",
+        "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
         "fake_timer.cc",
     ],
     hdrs = [
         "fake_clock.h",
         "fake_device_info.h",
+        "fake_single_thread_executor.h",
         "fake_task_runner.h",
         "fake_timer.h",
     ],

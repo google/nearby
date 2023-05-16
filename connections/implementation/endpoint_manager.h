@@ -153,6 +153,11 @@ class EndpointManager {
   // blocked here.
   void DiscardEndpoint(ClientProxy* client, const std::string& endpoint_id);
 
+ protected:
+  // For unit tests only to control executing tasks on the executor.
+  EndpointManager(EndpointChannelManager* manager,
+                  std::unique_ptr<SingleThreadExecutor> serial_executor);
+
  private:
   class EndpointState {
    public:
@@ -288,7 +293,18 @@ class EndpointManager {
   // We keep track of all registered channel endpoints here.
   absl::flat_hash_map<std::string, EndpointState> endpoints_;
 
-  SingleThreadExecutor serial_executor_;
+  // Indicates whether the destructor has been called yet. If `is_shutdown_`
+  // is true, assume any `ClientProxy` pointers are invalid, and should not
+  // be used.
+  //
+  // The ordering of these objects is important: `serial_executor_` must be
+  // destroyed before `is_shutdown_` because `serial_executor_` runs all
+  // pending tasks during it's destruction, and the "discard-endpoints"
+  // task checks `is_shutdown_` to prevent accessing an invalid `ClientProxy`
+  // pointer.
+  bool is_shutdown_ = false;
+
+  std::unique_ptr<SingleThreadExecutor> serial_executor_;
 };
 
 // Operator overloads when comparing FrameProcessor*.

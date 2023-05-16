@@ -24,7 +24,7 @@ namespace nearby {
 // queue.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--
-class ABSL_LOCKABLE SingleThreadExecutor final : public SubmittableExecutor {
+class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
  public:
   using Platform = api::ImplementationPlatform;
   SingleThreadExecutor()

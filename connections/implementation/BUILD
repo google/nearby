@@ -107,13 +107,11 @@ cc_library(
         "//location/nearby/cpp/sharing/implementation:__pkg__",
     ],
     deps = [
-        ":message_lite",
         "//connections:core_types",
         "//connections/implementation/analytics",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",
-        "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
@@ -232,6 +230,7 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/test",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_set",

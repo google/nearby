@@ -287,10 +287,16 @@ bool operator<(const EndpointManager::FrameProcessor& lhs,
 }
 
 EndpointManager::EndpointManager(EndpointChannelManager* manager)
-    : channel_manager_(manager) {}
+    : EndpointManager(manager, std::make_unique<SingleThreadExecutor>()) {}
+
+EndpointManager::EndpointManager(
+    EndpointChannelManager* manager,
+    std::unique_ptr<SingleThreadExecutor> serial_executor)
+    : channel_manager_(manager), serial_executor_(std::move(serial_executor)) {}
 
 EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "Initiating shutdown of EndpointManager.");
+  is_shutdown_ = true;
   analytics::ThroughputRecorderContainer::GetInstance().Shutdown();
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
@@ -301,7 +307,7 @@ EndpointManager::~EndpointManager() {
   latch.Await();
 
   NEARBY_LOG(INFO, "Bringing down control thread");
-  serial_executor_.Shutdown();
+  serial_executor_->Shutdown();
   NEARBY_LOG(INFO, "EndpointManager is down");
 }
 
@@ -524,10 +530,48 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
   NEARBY_LOGS(VERBOSE) << "DiscardEndpoint for endpoint " << endpoint_id;
-  RunOnEndpointManagerThread("discard-endpoint", [this, client, endpoint_id]() {
-    RemoveEndpoint(client, endpoint_id,
-                   /*notify=*/client->IsConnectedToEndpoint(endpoint_id));
-  });
+  RunOnEndpointManagerThread(
+      "discard-endpoint", [this, client, endpoint_id]() {
+        // `ClientProxy` is destroyed before `EndpointManager` in
+        // `~NearbyConnections`, which means "discard-endpoint" needs to check
+        // if this task is being executing during `~EndpointManager` to
+        // prevent accessing an invalid `ClientProxy` pointer. There are two
+        // cases where "discard-endpoint" can be executed during destruction,
+        // both of which can safely use `is_shutdown_` to check if this is being
+        // executed during the destruction of the object:
+        //
+        // Case 1: "discard-endpoints" is posted to the thread before
+        // destruction, but not executed yet: `~EndpointManager` blocks on
+        // "bring-down-endpoints" and because the executor is a single thread
+        // executor, tasks are guaranteed to execute sequentially
+        // (see
+        // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--)
+        // and this means that the "discard-endpoints" will be executed before
+        // "bring-down-endpoints", blocking the destruction of `is_shutdown_`
+        // and therefore `is_shutdown_` is not garbage memory.
+        //
+        // Case 2: "discard-endpoints" is posted to the thread during
+        // destruction, after "bring-down-endpoints" is called: the executor
+        // will be destructed before `is_shutdown_` because of the ordering of
+        // `EndpointManager`'s member variables, and the executor's destructor
+        // blocks on running all pending tasks
+        // (see
+        // https://source.chromium.org/chromium/chromium/src/+/refs/heads/main:chrome/services/sharing/nearby/platform/scheduled_executor.cc;l=67;drc=e0e0d24aaa54727dc0a8bc4b159ccdf80d3f5d8d),
+        // which means that "discard-endpoints" will run during the destruction
+        // of `serial_executor_` and will still have access to a valid
+        // `is_shutdown_`.
+        //
+        // TODO(b/280653613): Develop a more robost solution to prevent
+        // accessing an already destroyed `ClientProxy` during destruction.
+        if (is_shutdown_) {
+          NEARBY_LOGS(VERBOSE)
+              << "DiscardEndpoint called during destruction, returning early.";
+          return;
+        }
+
+        RemoveEndpoint(client, endpoint_id,
+                       /*notify=*/client->IsConnectedToEndpoint(endpoint_id));
+      });
 }
 
 std::vector<std::string> EndpointManager::SendControlMessage(
@@ -698,7 +742,7 @@ void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
 
 void EndpointManager::RunOnEndpointManagerThread(const std::string& name,
                                                  Runnable runnable) {
-  serial_executor_.Execute(name, std::move(runnable));
+  serial_executor_->Execute(name, std::move(runnable));
 }
 
 }  // namespace connections
