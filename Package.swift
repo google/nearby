@@ -169,68 +169,29 @@ let package = Package(
       ]
     ),
     .target(
-      name: "securemessage",
-      dependencies: [
-        "protobuf",
-        .product(name: "openssl_grpc", package: "BoringSSL-GRPC"),
-      ],
-      path: "third_party/securemessage",
-      exclude: [
-        "securemessage/cmake",
-        "securemessage/cpp/src/securemessage/CMakeLists.txt",
-        "securemessage/cpp/test",
-        "securemessage/cpp/CMakeLists.txt",
-        "securemessage/cpp/Makefile",
-        "securemessage/cpp/README.md",
-        "securemessage/java",
-        "securemessage/js",
-        "securemessage/proto",
-        "securemessage/third_party",
-        "securemessage/CMakeLists.txt",
-        "securemessage/CONTRIBUTORS",
-        "securemessage/CONTRIBUTING.md",
-        "securemessage/LICENSE",
-        "securemessage/README.md",
-      ],
-      sources: [
-        "securemessage/cpp/src/securemessage",
-        "compiled_proto",
-      ],
-      publicHeadersPath: "include",
-      cSettings: [
-        .headerSearchPath("securemessage/cpp/include/"),
-        .headerSearchPath("compiled_proto/"),
-      ]
-    ),
-    .target(
       name: "ukey2",
       dependencies: [
-        "securemessage",
         "protobuf",
         .product(name: "abseil", package: "abseil"),
+        .product(name: "openssl_grpc", package: "BoringSSL-GRPC"),
       ],
       path: "third_party/ukey2",
       exclude: [
-        "ukey2/cmake",
-        "ukey2/src/main/cpp/src/securegcm/CMakeLists.txt",
         "ukey2/src/main/cpp/src/securegcm/ukey2_shell.cc",
         "ukey2/src/main/cpp/test",
-        "ukey2/src/main/cpp/CMakeLists.txt",
         "ukey2/src/main/java",
         "ukey2/src/main/javatest",
         "ukey2/src/main/proto",
-        "ukey2/src/main/CMakeLists.txt",
         "ukey2/third_party",
         "ukey2/Android.bp",
         "ukey2/build.gradle",
-        "ukey2/CMakeLists.txt",
         "ukey2/CONTRIBUTING.md",
         "ukey2/LICENSE",
         "ukey2/MODULE_LICENSE_APACHE2",
         "ukey2/NOTICE",
         "ukey2/README",
         "ukey2/README.md",
-        "compiled_proto/proto/securemessage.pb.cc",
+        "compiled_proto/src/main/proto/securemessage.pb.cc",
       ],
       sources: [
         "ukey2/src/main/cpp/src/securegcm",
@@ -238,8 +199,9 @@ let package = Package(
       ],
       publicHeadersPath: "include",
       cSettings: [
-        .headerSearchPath("ukey2/src/main/cpp/include/"),
+        .headerSearchPath("ukey2/"),
         .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("compiled_proto/src/main/"),
       ]
     ),
     .target(
@@ -605,6 +567,8 @@ let package = Package(
       cSettings: [
         .headerSearchPath("./"),
         .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("third_party/ukey2/ukey2/"),
+        .headerSearchPath("third_party/ukey2/compiled_proto/"),
         .define("NO_WEBRTC"),
         .define("NEARBY_SWIFTPM"),
       ]
