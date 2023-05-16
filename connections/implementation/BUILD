@@ -130,7 +130,6 @@ cc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation/shared:file",
         "//proto:connections_enums_cc_proto",
-        "//third_party/ukey2/ukey2",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -141,6 +140,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
+        "@com_google_ukey2//src/main/cpp",
     ],
 )
 
