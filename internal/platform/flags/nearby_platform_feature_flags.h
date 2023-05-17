@@ -31,6 +31,10 @@ namespace nearby_platform_feature {
 constexpr auto kEnableHotspotWin32Socket =
     flags::Flag<bool>(kConfigPackage, "45401992", true);
 
+// Apply platform thread to network library.
+constexpr auto kEnablePlatformThreadToNetwork =
+    flags::Flag<bool>(kConfigPackage, "45412711", true);
+
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform
