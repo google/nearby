@@ -233,8 +233,8 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest
     webResponse.headers.insert({[key UTF8String], [value UTF8String]});
   }
   if (blockData != nil) {
-    webResponse.body = [[[NSString alloc] initWithData:blockData
-                                              encoding:NSUTF8StringEncoding] UTF8String];
+    // Body is not a UTF-8 encoded string and is just using `std::string` as a container for data.
+    webResponse.body = std::string((char *)blockData.bytes, blockData.length);
   }
   return webResponse;
 }
