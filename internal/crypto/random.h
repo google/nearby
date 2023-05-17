@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 
+#include <cstdint>
 #include <string>
 
 #include "absl/types/span.h"

@@ -19,6 +19,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_NEARBY_BASE_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_NEARBY_BASE_H_
 
+#include <cstdint>
 #include <cstddef>
 #include <limits>
 #include <string>
