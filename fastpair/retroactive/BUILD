@@ -47,6 +47,7 @@ cc_test(
     ],
     deps = [
         ":retroactive",
+        "//fastpair/message_stream:fake_gatt_callbacks",
         "//fastpair/message_stream:fake_provider",
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/server_access:test_support",

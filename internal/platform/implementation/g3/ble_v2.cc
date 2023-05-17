@@ -565,6 +565,11 @@ bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
   return false;
 }
 
+bool BleV2Medium::GattServer::HasCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic) {
+  return characteristics_.find(characteristic) != characteristics_.end();
+}
+
 void BleV2Medium::GattServer::Stop() {
   NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
   characteristics_.clear();
@@ -611,13 +616,12 @@ BleV2Medium::GattClient::GetCharacteristic(const Uuid& service_uuid,
   }
   BleV2Medium::GattServer* gatt_server =
       static_cast<BleV2Medium::GattServer*>(*borrowed);
-  absl::StatusOr<ByteArray> value = gatt_server->ReadCharacteristic(
-      peripheral_, characteristic, /*offset=*/0);
-  if (!value.ok()) {
+  if (!gatt_server->HasCharacteristic(characteristic)) {
     NEARBY_LOGS(WARNING)
-        << "G3 Ble GattClient GetCharacteristic, can't read characteristic=("
+        << "G3 Ble GattClient GetCharacteristic, characteristic=("
         << characteristic.service_uuid.Get16BitAsString() << ","
-        << std::string(characteristic.uuid) << ")" << value.status();
+        << std::string(characteristic.uuid)
+        << ") not registered on GATT server";
     return std::nullopt;
   }
   NEARBY_LOGS(INFO)

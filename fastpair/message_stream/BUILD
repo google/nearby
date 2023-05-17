@@ -57,6 +57,7 @@ cc_library(
     deps = [
         ":message_stream",
         "//fastpair/common",
+        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:test_util",
@@ -67,6 +68,25 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_for_library_testonly",
+    ],
+)
+
+cc_library(
+    name = "fake_gatt_callbacks",
+    testonly = True,
+    hdrs = [
+        "fake_gatt_callbacks.h",
+    ],
+    visibility = [
+        "//:__subpackages__",
+        "//fastpair:__subpackages__",
+    ],
+    deps = [
+        "//internal/platform:comm",
+        "//internal/platform:types",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
     ],
 )
 

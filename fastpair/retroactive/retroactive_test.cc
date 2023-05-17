@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
@@ -54,8 +55,7 @@ class RetroactiveTest : public testing::Test {
 
     provider_.DiscoverProvider(seeker_medium);
     remote_device_ = seeker_medium.GetRemoteDevice(provider_.GetMacAddress());
-    provider_.StartGattServer(
-        [this](absl::string_view data) { return KbpCallback(data); });
+    provider_.StartGattServer(gatt_callbacks_.GetGattCallback());
     provider_.InsertCorrectGattCharacteristics();
     ASSERT_TRUE(remote_device_.IsValid());
   }
@@ -73,15 +73,40 @@ class RetroactiveTest : public testing::Test {
     repository_.SetFakeMetadata(model_id, metadata);
   }
 
-  std::string KbpCallback(absl::string_view request) {
+  // The medium environment must be initialized (started) before adding
+  // adapters.
+  MediumEnvironmentStarter env_;
+  Mediums mediums_;
+  FakeProvider provider_;
+  BluetoothDevice remote_device_;
+  FakeFastPairRepository repository_;
+  FakeGattCallbacks gatt_callbacks_;
+};
+
+TEST_F(RetroactiveTest, Constructor) {
+  FastPairController controller(&mediums_, remote_device_);
+  Retroactive retro(&controller);
+}
+
+TEST_F(RetroactiveTest, Pair) {
+  SetUpFastPairRepository(kModelId, absl::HexStringToBytes(kBobPublicKey));
+  FastPairController controller(&mediums_, remote_device_);
+  provider_.EnableProviderRfcomm();
+  provider_.LoadAntiSpoofingKey(absl::HexStringToBytes(kBobPrivateKey),
+                                absl::HexStringToBytes(kBobPublicKey));
+  std::string provider_ble_address = provider_.GetMacAddressAsBytes();
+  gatt_callbacks_.characteristics_[*provider_.key_based_characteristic_]
+      .write_callback = [&](absl::string_view request) {
     // https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.1
+    // Example valid KBP request: "0010aabbccddeeff111213141516"
     // Byte 0, 0x00 = Key-based Pairing Request
     // Byte 1, 0x10 (Bit 3 set) = retroactive pairing
     // Bytes 2 - 7, aabbccddeeff, provider's address
     // Bytes 8 - 13, 111213141516, seeker's address
     // Bytes 14 - 15, (not included), random salt
-    std::string expected_kbp_request =
-        absl::HexStringToBytes("0010aabbccddeeff111213141516");
+    std::string expected_kbp_request = absl::HexStringToBytes("0010") +
+                                       provider_ble_address +
+                                       absl::HexStringToBytes("111213141516");
 
     // https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.2.2
     // Byte 0, 0x01 = Key-based Pairing Response
@@ -93,35 +118,17 @@ class RetroactiveTest : public testing::Test {
     NEARBY_LOGS(INFO) << "KBP request " << absl::BytesToHexString(request);
     std::string decrypted_request = provider_.DecryptKbpRequest(request);
     EXPECT_EQ(decrypted_request.size(), kEncryptedDataByteSize);
+    NEARBY_LOGS(INFO) << "KBP decrypted request "
+                      << absl::BytesToHexString(decrypted_request);
     // The last bytes in decrypted request are random, so we ignore them.
     EXPECT_EQ(decrypted_request.substr(0, expected_kbp_request.size()),
               expected_kbp_request);
 
     ByteArray response(provider_.Encrypt(kbp_response));
+    EXPECT_OK(provider_.NotifyKeyBasedPairing(response));
+    return absl::OkStatus();
+  };
 
-    return response.string_data();
-  }
-
-  // The medium environment must be initialized (started) before adding
-  // adapters.
-  MediumEnvironmentStarter env_;
-  Mediums mediums_;
-  FakeProvider provider_;
-  BluetoothDevice remote_device_;
-  FakeFastPairRepository repository_;
-};
-
-TEST_F(RetroactiveTest, Constructor) {
-  FastPairController controller(&mediums_, remote_device_);
-  Retroactive retro(&controller);
-}
-
-TEST_F(RetroactiveTest, DISABLED_Pair) {
-  SetUpFastPairRepository(kModelId, absl::HexStringToBytes(kBobPublicKey));
-  FastPairController controller(&mediums_, remote_device_);
-  provider_.EnableProviderRfcomm();
-  provider_.LoadAntiSpoofingKey(absl::HexStringToBytes(kBobPrivateKey),
-                                absl::HexStringToBytes(kBobPublicKey));
   Retroactive retro(&controller);
 
   Future<absl::Status> result = retro.Pair();
@@ -129,10 +136,11 @@ TEST_F(RetroactiveTest, DISABLED_Pair) {
   // Provider sends their ModelId.
   provider_.WriteProviderBytes(absl::HexStringToBytes("03010003ABCDEF"));
   // Provider sends their BLE address.
-  provider_.WriteProviderBytes(absl::HexStringToBytes("03020006AABBCCDDEEFF"));
+  EXPECT_EQ(provider_ble_address.size(), 6);
+  provider_.WriteProviderBytes(absl::HexStringToBytes("03020006") +
+                               provider_ble_address);
 
-  // EXPECT_TRUE(result.Get(absl::Minutes(5)).ok());
-  EXPECT_TRUE(result.Get(absl::Seconds(5)).ok());
+  EXPECT_TRUE(result.Get(absl::Minutes(5)).ok());
 }
 
 }  // namespace

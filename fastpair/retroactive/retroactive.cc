@@ -138,8 +138,7 @@ void Retroactive::SetPairingStep(PairingStep step) {
               return;
             }
             NEARBY_LOGS(INFO) << "Sending Key Based Pairing request to "
-                              << absl::BytesToHexString(
-                                     controller_->GetDevice().GetBleAddress());
+                              << controller_->GetDevice().GetBleAddress();
             auto decryptor = data_encryptor_.Get().result().get();
             // TODO(jsobczak): Use real seeker address
             (gatt.result())

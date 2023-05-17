@@ -274,6 +274,9 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         const BleV2Peripheral& remote_device,
         const api::ble_v2::GattCharacteristic& characteristic);
 
+    bool HasCharacteristic(
+        const api::ble_v2::GattCharacteristic& characteristic);
+
    private:
     using SubscriberKey =
         std::pair<const BleV2Peripheral*, api::ble_v2::GattCharacteristic>;

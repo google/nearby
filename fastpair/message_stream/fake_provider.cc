@@ -27,6 +27,7 @@ namespace nearby {
 namespace fastpair {
 
 namespace {
+
 static EC_POINT *load_public_key(absl::string_view public_key) {
   CHECK_EQ(public_key.size(), kPublicKeyByteSize);
   BN_CTX *bn_ctx;
@@ -198,31 +199,16 @@ std::string FakeProvider::CreateSharedSecret(
       Crypto::Sha256(secret).AsStringView().substr(0, kAccountKeySize));
 }
 
-void FakeProvider::StartGattServer(KeyBasedPairingCallback kbp_callback) {
-  kbp_callback_ = std::move(kbp_callback);
-  gatt_server_ = ble_.StartGattServer(/*ServerGattConnectionCallback=*/{
-      .on_characteristic_write_cb =
-          [this](const api::ble_v2::BlePeripheral &remote_device,
-                 const api::ble_v2::GattCharacteristic &characteristic,
-                 int offset, absl::string_view data,
-                 BleV2Medium::ServerGattConnectionCallback::WriteValueCallback
-                     callback) {
-            if (characteristic == key_based_characteristic_) {
-              std::string response = kbp_callback_(data);
-              if (response.empty()) {
-                callback(absl::InvalidArgumentError("KBP write failed"));
-              } else {
-                callback(absl::OkStatus());
-                absl::Status status = gatt_server_->NotifyCharacteristicChanged(
-                    characteristic, false, ByteArray(response));
-                if (!status.ok()) {
-                  NEARBY_LOGS(INFO) << "Notify KBP failed " << status;
-                }
-              }
-            } else {
-              callback(absl::OkStatus());
-            }
-          }});
+void FakeProvider::StartGattServer(
+    BleV2Medium::ServerGattConnectionCallback callback) {
+  gatt_server_ = ble_.StartGattServer(std::move(callback));
+}
+
+absl::Status FakeProvider::NotifyKeyBasedPairing(ByteArray response) {
+  CHECK_NE(gatt_server_, nullptr);
+  CHECK(key_based_characteristic_.has_value());
+  return gatt_server_->NotifyCharacteristicChanged(*key_based_characteristic_,
+                                                   false, response);
 }
 
 }  // namespace fastpair

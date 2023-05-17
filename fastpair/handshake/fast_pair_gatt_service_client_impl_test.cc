@@ -173,32 +173,6 @@ class FastPairGattServiceClientTest : public testing::Test {
         ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
   }
 
-  void InsertKeyBasedGattCharacteristicsWithNoValue() {
-    key_based_characteristic_ = gatt_server_->CreateCharacteristic(
-        kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
-        properties_);
-
-    passkey_characteristic_ = gatt_server_->CreateCharacteristic(
-        kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
-        properties_);
-    gatt_server_->UpdateCharacteristic(
-        passkey_characteristic_.value(),
-        ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
-  }
-
-  void InsertPasskeyGattCharacteristicsWithNoValue() {
-    key_based_characteristic_ = gatt_server_->CreateCharacteristic(
-        kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
-        properties_);
-    gatt_server_->UpdateCharacteristic(
-        key_based_characteristic_.value(),
-        ByteArray(std::string(kKeyBasedCharacteristicAdvertisementByte)));
-
-    passkey_characteristic_ = gatt_server_->CreateCharacteristic(
-        kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
-        properties_);
-  }
-
   void InitializeFastPairGattServiceClient() {
     FastPairDevice device(kMetadataId, provider_address_,
                           Protocol::kFastPairInitialPairing);
@@ -281,20 +255,6 @@ TEST_F(FastPairGattServiceClientTest, FailedDiscoverServiceAndCharacteristics) {
   InsertCharacteristicsWithWrongServiceId();
   InitializeFastPairGattServiceClient();
   EXPECT_EQ(GetInitializedCallbackResult(), PairFailure::kCreateGattConnection);
-}
-
-TEST_F(FastPairGattServiceClientTest, FailedGetKeyBasedCharacteristics) {
-  InsertKeyBasedGattCharacteristicsWithNoValue();
-  InitializeFastPairGattServiceClient();
-  EXPECT_EQ(GetInitializedCallbackResult(),
-            PairFailure::kKeyBasedPairingCharacteristicDiscovery);
-}
-
-TEST_F(FastPairGattServiceClientTest, FailedToGetPasskeyCharacteristics) {
-  InsertPasskeyGattCharacteristicsWithNoValue();
-  InitializeFastPairGattServiceClient();
-  EXPECT_EQ(GetInitializedCallbackResult(),
-            PairFailure::kPasskeyCharacteristicDiscovery);
 }
 
 TEST_F(FastPairGattServiceClientTest, SuccessfulWriteKeyBaseCharacteristics) {

@@ -17,6 +17,7 @@
 
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -32,6 +33,7 @@
 #include "fastpair/message_stream/message.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -136,22 +138,24 @@ class FakeProvider {
     return provider_adapter_.GetMacAddress();
   }
 
-  void StartGattServer(KeyBasedPairingCallback kbp_callback);
+  std::string GetMacAddressAsBytes() const {
+    return std::string(
+        BluetoothUtils::FromString(provider_adapter_.GetMacAddress()));
+  }
+
+  void StartGattServer(BleV2Medium::ServerGattConnectionCallback callback);
 
   void InsertCorrectGattCharacteristics() {
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
         properties_);
-    gatt_server_->UpdateCharacteristic(
-        key_based_characteristic_.value(),
-        ByteArray(std::string(kKeyBasedCharacteristicAdvertisementByte)));
+    CHECK(key_based_characteristic_.has_value());
 
     passkey_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
         properties_);
-    gatt_server_->UpdateCharacteristic(
-        passkey_characteristic_.value(),
-        ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
+
+    CHECK(passkey_characteristic_.has_value());
   }
 
   void LoadAntiSpoofingKey(absl::string_view private_key,
@@ -160,6 +164,7 @@ class FakeProvider {
   std::string DecryptKbpRequest(absl::string_view request);
   std::string Encrypt(absl::string_view data);
 
+  absl::Status NotifyKeyBasedPairing(ByteArray response);
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
 
@@ -177,7 +182,6 @@ class FakeProvider {
   std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)> anti_spoofing_key_{
       nullptr, EVP_PKEY_free};
   std::string account_key_;
-  KeyBasedPairingCallback kbp_callback_;
   SingleThreadExecutor provider_thread_;
 };
 
