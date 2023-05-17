@@ -3,10 +3,10 @@
     "pins": [
       {
         "package": "abseil",
-        "repositoryURL": "https://github.com/firebase/abseil-cpp-SwiftPM.git",
+        "repositoryURL": "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
         "state": {
-          "branch": "main",
-          "revision": "06e7506b74bfc47c70f3353e2927ea3e2275230c",
+          "branch": "cxx17",
+          "revision": "a7042563d167160f56e614cd1e2a32616510d9ec",
           "version": null
         }
       },

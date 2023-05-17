@@ -24,7 +24,6 @@ namespace fastpair {
 constexpr char kServiceId[] = "Fast Pair";
 
 constexpr char kRfcommUuid[] = "df21fe2c-2515-4fdb-8886-f12c4d67927c";
-
 constexpr int kAccountKeySize = 16;
 
 // Key pair
@@ -60,6 +59,13 @@ constexpr uint8_t kAccountKeyStartByte = 0x04;
 constexpr uint8_t kKeyBasedPairingType = 0x00;
 constexpr uint8_t kInitialOrSubsequentFlags = 0x00;
 constexpr uint8_t kRetroactiveFlags = 0x10;
+
+// Battery Info
+constexpr int kBatteryChargingMask = 0b10000000;
+constexpr int kBatteryPercentageMask = 0b01111111;
+constexpr int kBatteryIsChargingByte = 0b11111111;
+constexpr int kBatteryNotChargingByte = 0b01111111;
+
 }  // namespace fastpair
 }  // namespace nearby
 

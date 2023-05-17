@@ -34,6 +34,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "internal/test/fake_single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -111,6 +112,13 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
               (override));
 };
 
+class TestEndpointManager : public EndpointManager {
+ public:
+  TestEndpointManager(EndpointChannelManager* manager,
+                      std::unique_ptr<SingleThreadExecutor> serial_executor)
+      : EndpointManager(manager, std::move(serial_executor)) {}
+};
+
 class EndpointManagerTest : public ::testing::Test {
  protected:
   void RegisterEndpoint(std::unique_ptr<MockEndpointChannel> channel,
@@ -127,14 +135,15 @@ class EndpointManagerTest : public ::testing::Test {
     EXPECT_CALL(*channel, GetLastWriteTimestamp())
         .WillRepeatedly(Return(start_time_));
     EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
-    em_.RegisterEndpoint(&client_, endpoint_id_, info_, connection_options_,
-                         std::move(channel), listener_, connection_token);
+    em_.RegisterEndpoint(client_.get(), endpoint_id_, info_,
+                         connection_options_, std::move(channel), listener_,
+                         connection_token);
     if (should_close) {
       EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
     }
   }
 
-  ClientProxy client_;
+  std::unique_ptr<ClientProxy> client_ = std::make_unique<ClientProxy>();
   ConnectionOptions connection_options_{
       .keep_alive_interval_millis = 5000,
       .keep_alive_timeout_millis = 30000,
@@ -195,7 +204,7 @@ TEST_F(EndpointManagerTest, UnregisterEndpointCallsOnDisconnected) {
   // (IMO, it should be called as long as any connection callback was called
   // before. (in this case initiated_cb is called)).
   // Test captures current protocol behavior.
-  em_.UnregisterEndpoint(&client_, endpoint_id_);
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
 }
 
 TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
@@ -250,7 +259,7 @@ TEST_F(EndpointManagerTest, UnregisterFrameProcessorWorks) {
   processors_.emplace_back(std::move(connect_request));
   // Endpoint will not send OnDisconnect notification to frame processor.
   RegisterEndpoint(std::move(endpoint_channel), false);
-  em_.UnregisterEndpoint(&client_, endpoint_id_);
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
 }
 
 TEST_F(EndpointManagerTest, SendControlMessageWorks) {
@@ -286,7 +295,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
       em_.SendControlMessage(header, control, std::vector{endpoint_id_});
   EXPECT_EQ(failed_ids, std::vector<std::string>{});
   NEARBY_LOG(INFO, "Will unregister endpoint now");
-  em_.UnregisterEndpoint(&client_, endpoint_id_);
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
   NEARBY_LOG(INFO, "Will call destructors now");
 }
 
@@ -299,6 +308,48 @@ TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
   EXPECT_CALL(*endpoint_channel, Close(_)).Times(1);
   RegisterEndpoint(std::move(endpoint_channel));
+}
+
+// Regression test for b/278729669.
+//
+// During the destruction of NearbyConnections, Core (which owns ClientProxy)
+// is destructed before ServiceController (which owns EndpointManager), which
+// means any pending tasks on the EndpointManager than use ClientProxy will
+// be using garbage memory, and cause crashes. This test enforces the fix.
+TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
+  // This test uses a `FakeSingleThreadExecutor` in order to control when
+  // tasks are executed in order to simulate the scenario where
+  // `DiscardEndpoint` is posted to the executor before the EndpointManager
+  // is destructed, and executed during it's destruction.
+  std::unique_ptr<SingleThreadExecutor> serial_executor =
+      std::make_unique<FakeSingleThreadExecutor>();
+  FakeSingleThreadExecutor* fake_serial_executor =
+      static_cast<FakeSingleThreadExecutor*>(serial_executor.get());
+  std::unique_ptr<EndpointManager> endpoint_manager =
+      std::make_unique<TestEndpointManager>(&ecm_, std::move(serial_executor));
+
+  // DiscardEndpoint posts a task to the executor to run "discard-endpoint",
+  // however the `FakeSingleThreadExecutor` will not run this task
+  // immediately.
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/false);
+  endpoint_manager->DiscardEndpoint(client_.get(), endpoint_id_);
+
+  // Simulate Core destruction of ClientProxy by destroying `client_`.
+  client_.reset();
+
+  // Simulate ServiceController destruction of EndpointManager by destroying
+  // `endpoint_manager`, and set the `FakeSingleThreadExecutor` to run
+  // executables on calls `Execute`. When `endpoint_manager` is destructed, it
+  // will block on calls to `Execute` to run all pending executables, notably
+  // "discard-endpoint" from above. However, "discard-endpoint" will have a
+  // reference to a destroyed ClientProxy.
+  //
+  // Expect no crash when "discard-endpoints" is executed during the
+  // destruction.
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/true);
+  endpoint_manager.reset();
 }
 
 }  // namespace

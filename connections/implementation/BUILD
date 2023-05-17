@@ -1,5 +1,3 @@
-load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,28 +12,6 @@ load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 # See the License for the specific language governing permissions and
 # limitations under the License.
 licenses(["notice"])
-
-cmake(
-    name = "ukey2",
-    env = {
-        "CC": "clang",
-        "CXX": "clang++",
-    },
-    generate_args = [
-        "-DBYPASS_TESTING=ON",  # Set the flags in CMakeLists.txt (ukey2 & its dependencies) here.
-        "-Dukey2_USE_LOCAL_ABSL=ON",
-        "-Dukey2_USE_LOCAL_PROTOBUF=ON",  # Add -DCMAKE_BUILD_TYPE=Debug for debugger & Valgrind
-    ],
-    lib_source = "@com_google_ukey2//:all_srcs",
-    out_static_libs = [
-        "libproto_device_to_device_messages_cc_proto.a",
-        "libproto_securegcm_cc_proto.a",
-        "libproto_securemessage_cc_proto.a",
-        "libproto_ukey_cc_proto.a",
-        "libsecuremessage.a",
-        "libukey2.a",
-    ],
-)
 
 cc_library(
     name = "internal",
@@ -131,15 +107,13 @@ cc_library(
         "//location/nearby/cpp/sharing/implementation:__pkg__",
     ],
     deps = [
-        ":message_lite",
-        ":ukey2",
         "//connections:core_types",
         "//connections/implementation/analytics",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",
-        "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
         "//internal/flags:nearby_flags",
         "//internal/interop:device",
@@ -164,6 +138,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
+        "@com_google_ukey2//:ukey2",
     ],
 )
 
@@ -242,11 +217,11 @@ cc_test(
     deps = [
         ":internal",
         ":internal_test",
-        ":ukey2",
         "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
@@ -255,6 +230,7 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/test",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -265,5 +241,6 @@ cc_test(
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@com_google_ukey2//:ukey2",
     ],
 )

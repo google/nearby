@@ -15,6 +15,7 @@
 #include "connections/implementation/client_proxy.h"
 
 #include <cstdio>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -28,6 +29,7 @@
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/strategy.h"
+#include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
@@ -424,6 +426,16 @@ TEST_F(ClientProxyTest, DumpString) {
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
+  EXPECT_NE(client1_.GetLocalEndpointId(), client2_.GetLocalEndpointId());
+}
+
+TEST_F(ClientProxyTest, GeneratedEndpointIdIsUniqueWithDeviceProvider) {
+  client1_.RegisterDeviceProvider(
+      std::make_unique<v3::ConnectionsDeviceProvider>(
+          v3::ConnectionsDeviceProvider("", {})));
+  client2_.RegisterDeviceProvider(
+      std::make_unique<v3::ConnectionsDeviceProvider>(
+          v3::ConnectionsDeviceProvider("", {})));
   EXPECT_NE(client1_.GetLocalEndpointId(), client2_.GetLocalEndpointId());
 }
 

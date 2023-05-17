@@ -38,7 +38,7 @@ void NearbyHttpClient::StartRequest(
   CleanThreads();
 
   std::future<void> http_thread = std::async(
-      std::launch::async, [&, request, callback = std::move(callback)]() {
+      std::launch::async, [=]() {
         NEARBY_LOGS(INFO) << __func__ << ": Start async request to url="
                           << request.GetUrl().GetUrlPath();
         absl::StatusOr<HttpResponse> response = InternalGetResponse(request);

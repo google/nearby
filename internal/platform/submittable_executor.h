@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
@@ -53,7 +54,7 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
     }
     return *this;
   }
-  void Execute(const std::string& name, Runnable&& runnable)
+  virtual void Execute(const std::string& name, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     if (impl_)
