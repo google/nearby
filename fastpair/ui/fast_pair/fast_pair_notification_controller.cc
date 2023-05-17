@@ -33,6 +33,7 @@ void FastPairNotificationController::RemoveObserver(Observer* observer) {
 
 void FastPairNotificationController::NotifyShowDiscovery(
     const DeviceMetadata& device) {
+  NEARBY_LOGS(INFO) << __func__;
   for (Observer* observer : observers_.GetObservers()) {
     observer->OnUpdateDevice(device);
   }

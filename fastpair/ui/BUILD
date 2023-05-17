@@ -58,6 +58,7 @@ cc_library(
         ":fast_pair_ui",
         "//fastpair/common",
         "//fastpair/repository",
+        "//internal/platform:types",
     ],
 )
 
@@ -80,21 +81,47 @@ cc_library(
 )
 
 cc_test(
-    name = "fast_pair_ui_test",
+    name = "fast_pair_notification_controller_test",
     srcs = [
         "fast_pair/fast_pair_notification_controller_test.cc",
+    ],
+    deps = [
+        ":fake_fast_pair_ui",
+        ":fast_pair_ui",
+        "//fastpair/repository",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_presenter_test",
+    srcs = [
         "fast_pair/fast_pair_presenter_impl_test.cc",
-        "ui_broker_impl_test.cc",
     ],
     deps = [
         ":fake_fast_pair_ui",
         ":fast_pair_ui",
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
-        "//fastpair/repository",
         "//fastpair/server_access:test_support",
-        "//internal/network:types",
-        "//internal/platform/implementation/g3",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "ui_broker_test",
+    srcs = [
+        "ui_broker_impl_test.cc",
+    ],
+    deps = [
+        ":fake_fast_pair_ui",
+        ":fast_pair_ui",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

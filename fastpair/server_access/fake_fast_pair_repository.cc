@@ -15,6 +15,7 @@
 #include "fastpair/server_access/fake_fast_pair_repository.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
@@ -35,11 +36,12 @@ void FakeFastPairRepository::ClearFakeMetadata(absl::string_view hex_model_id) {
 
 void FakeFastPairRepository::GetDeviceMetadata(
     absl::string_view hex_model_id, DeviceMetadataCallback callback) {
-  callback_ = std::move(callback);
-  if (data_.contains(hex_model_id)) {
-    std::move(callback_)(*data_[hex_model_id]);
-    return;
-  }
+  executor_.Execute([callback = std::move(callback), this,
+                     hex_model_id = std::string(hex_model_id)]() mutable {
+    if (data_.contains(hex_model_id)) {
+      callback(*data_[hex_model_id]);
+    }
+  });
 }
 
 }  // namespace fastpair

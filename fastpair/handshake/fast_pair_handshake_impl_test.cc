@@ -19,10 +19,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "fastpair/common/constant.h"
@@ -31,7 +33,7 @@
 #include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client_impl.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
-#include "internal/platform/bluetooth_utils.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
@@ -69,9 +71,7 @@ constexpr absl::Duration kGattOperationTimeout = absl::Seconds(15);
 
 class MediumEnvironmentStarter {
  public:
-  MediumEnvironmentStarter() {
-    MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  }
+  MediumEnvironmentStarter() { MediumEnvironment::Instance().Start(); }
   ~MediumEnvironmentStarter() { MediumEnvironment::Instance().Stop(); }
 };
 
@@ -87,8 +87,17 @@ struct CharacteristicData {
 
 class FastPairHandshakeImplTest : public testing::Test {
  public:
-  void SetUp() override {
-    repository_ = std::make_unique<FakeFastPairRepository>();
+  void TearDown() override {
+    repository_.reset();
+    key_based_characteristic_ = std::nullopt;
+    passkey_characteristic_ = std::nullopt;
+    gatt_server_->Stop();
+    gatt_server_.reset();
+    handshake_.reset();
+  }
+
+  void StartGattServer(
+      absl::AnyInvocable<void()> trigger_keybase_value_change) {
     gatt_server_ =
         provider_ble_.StartGattServer(/*ServerGattConnectionCallback=*/{
             .on_characteristic_read_cb =
@@ -105,11 +114,13 @@ class FastPairHandshakeImplTest : public testing::Test {
                   callback(it->second.read_value);
                 },
             .on_characteristic_write_cb =
-                [&](const api::ble_v2::BlePeripheral& remote_device,
+                [&, trigger_keybase_value_change =
+                        std::move(trigger_keybase_value_change)](
+                    const api::ble_v2::BlePeripheral& remote_device,
                     const api::ble_v2::GattCharacteristic& characteristic,
                     int offset, absl::string_view data,
                     BleV2Medium::ServerGattConnectionCallback::
-                        WriteValueCallback callback) {
+                        WriteValueCallback callback) mutable {
                   auto it = characteristics_.find(characteristic);
                   if (it == characteristics_.end()) {
                     callback(absl::NotFoundError("characteristic not found"));
@@ -117,17 +128,12 @@ class FastPairHandshakeImplTest : public testing::Test {
                   }
                   it->second.write_value.Set(std::string(data));
                   callback(it->second.write_result);
+                  if (it->second.write_result.ok() &&
+                      characteristic == *key_based_characteristic_) {
+                    trigger_keybase_value_change();
+                  }
                 }});
     provider_address_ = *gatt_server_->GetBlePeripheral().GetAddress();
-  }
-
-  void TearDown() override {
-    repository_.reset();
-    key_based_characteristic_ = std::nullopt;
-    passkey_characteristic_ = std::nullopt;
-    gatt_server_->Stop();
-    gatt_server_.reset();
-    handshake_.reset();
   }
 
   void InsertCorrectGattCharacteristics() {
@@ -145,6 +151,7 @@ class FastPairHandshakeImplTest : public testing::Test {
   }
 
   void SetUpFastPairRepository() {
+    repository_ = std::make_unique<FakeFastPairRepository>();
     proto::Device metadata;
     std::string decoded_key;
     absl::Base64Unescape(kPublicAntiSpoof, &decoded_key);
@@ -153,6 +160,7 @@ class FastPairHandshakeImplTest : public testing::Test {
   }
 
   void FailedFastPairRepository() {
+    repository_ = std::make_unique<FakeFastPairRepository>();
     proto::Device metadata;
     std::string decoded_key;
     absl::Base64Unescape(kInvalidPublicAntiSpoof, &decoded_key);
@@ -202,6 +210,11 @@ class FastPairHandshakeImplTest : public testing::Test {
 };
 
 TEST_F(FastPairHandshakeImplTest, Success) {
+  bool notified = false;
+  StartGattServer([&]() {
+    notified = true;
+    EXPECT_OK(TriggerKeyBasedGattChanged());
+  });
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   FastPairDevice device(kMetadataId, provider_address_,
@@ -216,12 +229,17 @@ TEST_F(FastPairHandshakeImplTest, Success) {
         EXPECT_FALSE(failure.has_value());
         latch.CountDown();
       });
-  EXPECT_OK(TriggerKeyBasedGattChanged());
   latch.Await();
+  EXPECT_TRUE(notified);
   EXPECT_TRUE(handshake_->completed_successfully());
 }
 
 TEST_F(FastPairHandshakeImplTest, GattError) {
+  bool notified = false;
+  StartGattServer([&]() {
+    notified = true;
+    EXPECT_OK(TriggerKeyBasedGattChanged());
+  });
   SetUpFastPairRepository();
   FastPairDevice device(kMetadataId, provider_address_,
                         Protocol::kFastPairInitialPairing);
@@ -235,10 +253,16 @@ TEST_F(FastPairHandshakeImplTest, GattError) {
         latch.CountDown();
       });
   latch.Await();
+  EXPECT_FALSE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
 }
 
 TEST_F(FastPairHandshakeImplTest, DataEncryptorCreateError) {
+  bool notified = false;
+  StartGattServer([&]() {
+    notified = true;
+    EXPECT_OK(TriggerKeyBasedGattChanged());
+  });
   FailedFastPairRepository();
   InsertCorrectGattCharacteristics();
   FastPairDevice device(kMetadataId, provider_address_,
@@ -253,10 +277,12 @@ TEST_F(FastPairHandshakeImplTest, DataEncryptorCreateError) {
         latch.CountDown();
       });
   latch.Await();
+  EXPECT_FALSE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
 }
 
 TEST_F(FastPairHandshakeImplTest, WriteResponseError) {
+  StartGattServer([]() {});
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   FastPairDevice device(kMetadataId, provider_address_,
@@ -271,12 +297,16 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseError) {
                   PairFailure::kKeyBasedPairingResponseTimeout);
         latch.CountDown();
       });
-  SystemClock::Sleep(kGattOperationTimeout);
   latch.Await();
   EXPECT_FALSE(handshake_->completed_successfully());
 }
 
 TEST_F(FastPairHandshakeImplTest, WriteResponseWrongSize) {
+  bool notified = false;
+  StartGattServer([&]() {
+    notified = true;
+    EXPECT_OK(TriggerKeyBasedGattChangedWithWrongSizeResponse());
+  });
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   FastPairDevice device(kMetadataId, provider_address_,
@@ -291,12 +321,17 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseWrongSize) {
                   PairFailure::kKeybasedPairingResponseDecryptFailure);
         latch.CountDown();
       });
-  EXPECT_OK(TriggerKeyBasedGattChangedWithWrongSizeResponse());
   latch.Await();
+  EXPECT_TRUE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
 }
 
 TEST_F(FastPairHandshakeImplTest, ParseResponseError) {
+  bool notified = false;
+  StartGattServer([&]() {
+    notified = true;
+    EXPECT_OK(TriggerKeyBasedGattChangedWithWrongResponse());
+  });
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   FastPairDevice device(kMetadataId, provider_address_,
@@ -311,8 +346,8 @@ TEST_F(FastPairHandshakeImplTest, ParseResponseError) {
                   PairFailure::kKeybasedPairingResponseDecryptFailure);
         latch.CountDown();
       });
-  EXPECT_OK(TriggerKeyBasedGattChangedWithWrongResponse());
   latch.Await();
+  EXPECT_TRUE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
 }
 }  // namespace fastpair

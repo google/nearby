@@ -57,6 +57,7 @@ cc_library(
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/repository",
+        "//internal/platform:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
     ],

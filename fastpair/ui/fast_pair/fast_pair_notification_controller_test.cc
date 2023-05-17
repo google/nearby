@@ -14,9 +14,10 @@
 
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
-#include <memory>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -36,7 +37,11 @@ const char kDeviceName[] = "Pixel Buds Pro";
 class FastPairNotificationControllerTest : public ::testing::Test {
  protected:
   FastPairNotificationControllerTest() {
-    notification_controller_.AddObserver(&notification_controller_obsesrver_);
+    notification_controller_obsesrver_ =
+        std::make_unique<FakeFastPairNotificationControllerObserver>(
+            std::nullopt);
+    notification_controller_.AddObserver(
+        notification_controller_obsesrver_.get());
   }
 
   void TriggerOnUpdateDevice(DeviceMetadata& device,
@@ -50,7 +55,8 @@ class FastPairNotificationControllerTest : public ::testing::Test {
   }
 
   FastPairNotificationController notification_controller_;
-  FakeFastPairNotificationControllerObserver notification_controller_obsesrver_;
+  std::unique_ptr<FakeFastPairNotificationControllerObserver>
+      notification_controller_obsesrver_;
   DiscoveryAction discovery_action_;
 };
 
@@ -62,9 +68,10 @@ TEST_F(FastPairNotificationControllerTest, ShowGuestDiscoveryNotification) {
   TriggerOnUpdateDevice(device_metadata, [this](DiscoveryAction action) {
     DiscoveryActionClicked(action);
   });
+
   EXPECT_TRUE(notification_controller_obsesrver_
-                  .CheckDeviceMetadataListContainTestDevice(kDeviceName));
-  EXPECT_EQ(1, notification_controller_obsesrver_.on_update_device_count());
+                  ->CheckDeviceMetadataListContainTestDevice(kDeviceName));
+  EXPECT_EQ(1, notification_controller_obsesrver_->on_update_device_count());
   notification_controller_.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
   EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
 }

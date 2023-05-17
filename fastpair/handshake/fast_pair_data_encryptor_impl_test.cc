@@ -21,17 +21,14 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/escaping.h"
-#include "absl/time/time.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/common/protocol.h"
-#include "fastpair/crypto/fast_pair_message_type.h"
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "internal/platform/count_down_latch.h"
 
 namespace nearby {
 namespace fastpair {
@@ -51,19 +48,22 @@ constexpr char kInvalidPublicAntiSpoof[] = "InvalidPublicAntiSpoof";
 
 constexpr char kValidModelId[] = "718c17";
 constexpr char kTestAddress[] = "test_address";
+constexpr absl::Duration kWaitTimeout = absl::Milliseconds(200);
 
 class FastPairDataEncryptorImplTest : public testing::Test {
  public:
   void TearDown() override { data_encryptor_.reset(); }
 
   void FailedSetUpNoMetadata() {
+    CountDownLatch latch(1);
     repository_ = std::make_unique<FakeFastPairRepository>();
     FastPairDevice device(kValidModelId, kTestAddress,
                           Protocol::kFastPairInitialPairing);
     FastPairDataEncryptorImpl::Factory::CreateAsync(
-        device,
-        absl::bind_front(
-            &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync, this));
+        device, absl::bind_front(
+                    &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync,
+                    this, latch));
+    EXPECT_FALSE(latch.Await(kWaitTimeout).GetResult());
   }
 
   void FailedSetUpNoKeyPair() {
@@ -75,10 +75,12 @@ class FastPairDataEncryptorImplTest : public testing::Test {
     repository_->SetFakeMetadata(kValidModelId, metadata);
     FastPairDevice device(kValidModelId, kTestAddress,
                           Protocol::kFastPairInitialPairing);
+    CountDownLatch latch(1);
     FastPairDataEncryptorImpl::Factory::CreateAsync(
-        device,
-        absl::bind_front(
-            &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync, this));
+        device, absl::bind_front(
+                    &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync,
+                    this, latch));
+    latch.Await();
   }
 
   void SuccessfulSetUp() {
@@ -90,15 +92,19 @@ class FastPairDataEncryptorImplTest : public testing::Test {
     repository_->SetFakeMetadata(kValidModelId, metadata);
     FastPairDevice device(kValidModelId, kTestAddress,
                           Protocol::kFastPairInitialPairing);
+    CountDownLatch latch(1);
     FastPairDataEncryptorImpl::Factory::CreateAsync(
-        device,
-        absl::bind_front(
-            &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync, this));
+        device, absl::bind_front(
+                    &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync,
+                    this, latch));
+    latch.Await();
   }
 
   void OnDataEncryptorCreateAsync(
+      CountDownLatch latch,
       std::unique_ptr<FastPairDataEncryptor> fast_pair_data_encryptor) {
     data_encryptor_ = std::move(fast_pair_data_encryptor);
+    latch.CountDown();
   }
 
   std::array<uint8_t, kAesBlockByteSize> EncryptBytes() {
@@ -108,53 +114,66 @@ class FastPairDataEncryptorImplTest : public testing::Test {
   void ParseDecryptedResponse() {
     const std::array<uint8_t, kAesBlockByteSize> bytes =
         data_encryptor_->EncryptBytes(kResponseBytes);
-
+    CountDownLatch latch(1);
     data_encryptor_->ParseDecryptResponse(
         std::vector<uint8_t>(bytes.begin(), bytes.end()),
         absl::bind_front(
             &FastPairDataEncryptorImplTest::ParseDecryptedResponseCallback,
-            this));
+            this, latch));
+    latch.Await();
   }
 
   void ParseDecryptedResponseInvalidBytes() {
     const std::array<uint8_t, kAesBlockByteSize> bytes =
         data_encryptor_->EncryptBytes(kResponseBytes);
-
+    CountDownLatch latch(1);
     data_encryptor_->ParseDecryptResponse(
         std::vector<uint8_t>(bytes.begin() + 3, bytes.end()),
         absl::bind_front(
             &FastPairDataEncryptorImplTest::ParseDecryptedResponseCallback,
-            this));
+            this, latch));
+    latch.Await();
   }
 
   void ParseDecryptedResponseCallback(
-      const std::optional<DecryptedResponse>& response) {
+      CountDownLatch latch, const std::optional<DecryptedResponse>& response) {
     response_ = response;
+    latch.CountDown();
   }
 
   void ParseDecryptedPasskey() {
     const std::array<uint8_t, kAesBlockByteSize> bytes =
         data_encryptor_->EncryptBytes(kPasskeyBytes);
-
+    CountDownLatch latch(1);
     data_encryptor_->ParseDecryptPasskey(
         std::vector<uint8_t>(bytes.begin(), bytes.end()),
         absl::bind_front(
-            &FastPairDataEncryptorImplTest::ParseDecryptPasskeyCallback, this));
+            &FastPairDataEncryptorImplTest::ParseDecryptPasskeyCallback, this,
+            latch));
+    latch.Await();
   }
 
   void ParseDecryptedPasskeyInvalidBytes() {
     const std::array<uint8_t, kAesBlockByteSize> bytes =
         data_encryptor_->EncryptBytes(kPasskeyBytes);
-
+    CountDownLatch latch(1);
     data_encryptor_->ParseDecryptPasskey(
         std::vector<uint8_t>(bytes.begin() + 3, bytes.end()),
         absl::bind_front(
-            &FastPairDataEncryptorImplTest::ParseDecryptPasskeyCallback, this));
+            &FastPairDataEncryptorImplTest::ParseDecryptPasskeyCallback, this,
+            latch));
+    latch.Await();
+  }
+
+  void ParseDecryptResponseCallback(
+      CountDownLatch latch, const std::optional<DecryptedResponse>& response) {
+    response_ = response;
   }
 
   void ParseDecryptPasskeyCallback(
-      const std::optional<DecryptedPasskey>& passkey) {
+      CountDownLatch latch, const std::optional<DecryptedPasskey>& passkey) {
     passkey_ = passkey;
+    latch.CountDown();
   }
 
  protected:

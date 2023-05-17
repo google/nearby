@@ -19,11 +19,12 @@ namespace nearby {
 namespace fastpair {
 
 enum class DiscoveryAction {
-  kPairToDevice = 0,
-  kDismissedByUser = 1,
-  kDismissedByOs = 2,
-  kLearnMore = 3,
-  kDismissedByTimeout = 4,
+  kUnknown = 0,
+  kPairToDevice = 1,
+  kDismissedByUser = 2,
+  kDismissedByOs = 3,
+  kLearnMore = 4,
+  kDismissedByTimeout = 5,
 };
 
 }  // namespace fastpair

@@ -16,20 +16,30 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAKE_FAST_PAIR_NOTIFICATION_CONTROLLER_OBSERVER_H_
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "fastpair/repository/device_metadata.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
+#include "internal/platform/count_down_latch.h"
 
 namespace nearby {
 namespace fastpair {
 class FakeFastPairNotificationControllerObserver
     : public FastPairNotificationController::Observer {
  public:
+  explicit FakeFastPairNotificationControllerObserver(
+      std::optional<CountDownLatch> latch) {
+    latch_ = latch;
+  }
+
   void OnUpdateDevice(const DeviceMetadata& device) override {
     device_metadata_name_list_.push_back(device.GetDetails().name());
     on_update_device_count_++;
+    if (latch_.has_value()) {
+      latch_->CountDown();
+    }
   }
 
   bool CheckDeviceMetadataListContainTestDevice(
@@ -48,6 +58,7 @@ class FakeFastPairNotificationControllerObserver
  private:
   std::vector<std::string> device_metadata_name_list_;
   int on_update_device_count_ = 0;
+  std::optional<CountDownLatch> latch_;
 };
 }  // namespace fastpair
 }  // namespace nearby
