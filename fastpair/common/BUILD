@@ -3,6 +3,7 @@ licenses(["notice"])
 cc_library(
     name = "common",
     srcs = [
+        "account_key_filter.cc",
         "battery_notification.cc",
         "fast_pair_device.cc",
         "fast_pair_http_result.cc",
@@ -11,6 +12,7 @@ cc_library(
     ],
     hdrs = [
         "account_key.h",
+        "account_key_filter.h",
         "battery_notification.h",
         "constant.h",
         "fast_pair_device.h",
@@ -28,6 +30,22 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "account_key_filter_test",
+    size = "small",
+    srcs = [
+        "account_key_filter_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":common",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

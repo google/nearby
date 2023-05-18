@@ -17,6 +17,7 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
@@ -30,6 +31,9 @@ class AccountKey {
  public:
   AccountKey() = default;
   explicit AccountKey(absl::string_view bytes) : bytes_(bytes) {}
+  explicit AccountKey(const std::vector<uint8_t> bytes) {
+    bytes_ = std::string(bytes.begin(), bytes.end());
+  }
 
   static AccountKey CreateRandomKey() {
     std::string key(kAccountKeySize, 0);
