@@ -47,3 +47,6 @@ Carthage/Build
 .UlyssesRoot
 .Ulysses-Settings.plist
 .Ulysses-Group.plist
+
+# Bazel Build Directories
+bazel-*
