@@ -46,7 +46,7 @@ FastPairHandshake* FastPairHandshakeLookup::Get(FastPairDevice* device) {
 FastPairHandshake* FastPairHandshakeLookup::Get(absl::string_view address) {
   absl::MutexLock lock(&mutex_);
   for (const auto& pair : fast_pair_handshakes_) {
-    if (pair.first->public_address() == address ||
+    if (pair.first->GetPublicAddress() == address ||
         pair.first->GetBleAddress() == address) {
       return pair.second.get();
     }
@@ -62,7 +62,7 @@ bool FastPairHandshakeLookup::Erase(FastPairDevice* device) {
 bool FastPairHandshakeLookup::Erase(absl::string_view address) {
   absl::MutexLock lock(&mutex_);
   for (const auto& pair : fast_pair_handshakes_) {
-    if (pair.first->public_address() == address ||
+    if (pair.first->GetPublicAddress() == address ||
         pair.first->GetBleAddress() == address) {
       fast_pair_handshakes_.erase(pair.first);
       return true;

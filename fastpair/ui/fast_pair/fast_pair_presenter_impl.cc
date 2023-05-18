@@ -64,7 +64,7 @@ void FastPairPresenterImpl::ShowDiscovery(
 void FastPairPresenterImpl::OnDiscoveryMetadataRetrieved(
     FastPairDevice& device, const DeviceMetadata& device_metadata,
     FastPairNotificationController& notification_controller) {
-  device.set_version(device_metadata.GetFastPairVersion());
+  device.SetVersion(device_metadata.GetFastPairVersion());
   notification_controller.ShowGuestDiscoveryNotification(device_metadata,
                                                          std::move(callback_));
 }

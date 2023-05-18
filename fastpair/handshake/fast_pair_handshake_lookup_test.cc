@@ -45,7 +45,7 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
     provider_address_ = adapter_.GetMacAddress();
     device_ = new FastPairDevice(kValidModelId, provider_address_,
                                  Protocol::kFastPairInitialPairing);
-    device_->set_public_address(kPubliceAddress);
+    device_->SetPublicAddress(kPubliceAddress);
   }
 
   ~FastPairHandshakeLookupTest() override { delete device_; }

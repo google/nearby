@@ -58,7 +58,7 @@ TEST(FastPairPresenterImplTest, ShowDiscoveryForV1Version) {
                                     });
   latch_1->Await();
   EXPECT_EQ(notification_controller_observer.on_update_device_count(), 1);
-  EXPECT_EQ(device.version(), DeviceFastPairVersion::kV1);
+  EXPECT_EQ(device.GetVersion(), DeviceFastPairVersion::kV1);
   controller.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
   latch_2.Await();
   EXPECT_EQ(discovery_action, DiscoveryAction::kPairToDevice);
@@ -92,7 +92,7 @@ TEST(FastPairPresenterImplTest, ShowDiscoveryForHigherThanV1Version) {
                                     });
   latch_1->Await();
   EXPECT_EQ(notification_controller_observer.on_update_device_count(), 1);
-  EXPECT_EQ(device.version(), DeviceFastPairVersion::kHigherThanV1);
+  EXPECT_EQ(device.GetVersion(), DeviceFastPairVersion::kHigherThanV1);
   controller.OnDiscoveryClicked(DiscoveryAction::kDismissedByUser);
   latch_2.Await();
   EXPECT_EQ(discovery_action, DiscoveryAction::kDismissedByUser);

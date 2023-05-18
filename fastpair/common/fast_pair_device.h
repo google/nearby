@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/protocol.h"
 
@@ -48,25 +49,23 @@ class FastPairDevice {
   FastPairDevice& operator=(FastPairDevice&&) = delete;
   ~FastPairDevice() = default;
 
-  const std::optional<std::string>& public_address() const {
+  std::optional<std::string> GetPublicAddress() const {
     return public_address_;
   }
 
-  void set_public_address(absl::string_view address) {
+  void SetPublicAddress(absl::string_view address) {
     public_address_ = std::string(address);
   }
 
-  const std::optional<std::string>& display_name() const {
-    return display_name_;
+  std::optional<std::string> GetDisplayName() const { return display_name_; }
+
+  void SetDisplayName(absl::string_view display_name) {
+    display_name_ = std::string(display_name);
   }
 
-  void set_display_name(const std::optional<std::string>& display_name) {
-    display_name_ = display_name;
-  }
+  std::optional<DeviceFastPairVersion> GetVersion() { return version_; }
 
-  std::optional<DeviceFastPairVersion> version() { return version_; }
-
-  void set_version(std::optional<DeviceFastPairVersion> version) {
+  void SetVersion(std::optional<DeviceFastPairVersion> version) {
     version_ = version;
   }
 
@@ -74,7 +73,10 @@ class FastPairDevice {
 
   void SetAccountKey(AccountKey account_key) { account_key_ = account_key; }
 
-  void SetModelId(absl::string_view model_id) { model_id_ = model_id; }
+  void SetModelId(absl::string_view model_id) {
+    model_id_ = std::string(model_id);
+  }
+
   absl::string_view GetModelId() const { return model_id_; }
 
   void SetBleAddress(absl::string_view address) {

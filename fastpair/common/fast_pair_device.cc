@@ -26,8 +26,8 @@ namespace fastpair {
 std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device) {
   stream << "[Device: model_id = " << device.GetModelId()
          << ", ble_address = " << device.GetBleAddress()
-         << ", public_address = " << device.public_address().value_or("null")
-         << ", display_name = " << device.display_name().value_or("null")
+         << ", public_address = " << device.GetPublicAddress().value_or("null")
+         << ", display_name = " << device.GetDisplayName().value_or("null")
          << ", " << device.GetAccountKey()
          << ", protocol = " << device.GetProtocol() << "]";
 
