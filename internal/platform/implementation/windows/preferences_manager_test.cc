@@ -16,8 +16,10 @@
 
 #include <stdint.h>
 
+#include <codecvt>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
+#include <locale>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -29,6 +31,7 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
@@ -38,27 +41,27 @@ constexpr absl::Duration kTimeOut = absl::Milliseconds(200);
 constexpr char kPreferencesFilePath[] = "Google/Nearby/Sharing";
 }  // namespace
 
+
 TEST(PreferencesManager, CorruptedConfigFile) {
   std::filesystem::path settingsPath =
-      std::filesystem::temp_directory_path() / "settings.json";
-  std::ofstream output_stream{settingsPath};
-  output_stream << "{\"data\":8, \"names\": [\"In valid\"}" << std::endl;
-  output_stream.close();
+      std::filesystem::temp_directory_path();
+  std::ofstream output_stream{settingsPath / "preferences.json"};
+  output_stream << "CORRUPTED" << std::endl;
 
-  // Should use an empty setting for a corrupted configuration file.
-  EXPECT_EQ(PreferencesManager(kPreferencesFilePath).GetInteger("data", 100),
+  NEARBY_LOGS(INFO) << "Loading preferences from: " << settingsPath.string();
+  EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
             100);
 }
 
 TEST(PreferencesManager, ValidConfigFile) {
   std::filesystem::path settingsPath =
-      std::filesystem::temp_directory_path() / "settings.json";
-  std::ofstream output_stream{settingsPath};
+      std::filesystem::temp_directory_path();
+  std::ofstream output_stream{settingsPath / "preferences.json"};
   output_stream << "{\"data\":8, \"name\": \"Valid\"}" << std::endl;
   output_stream.close();
 
-  // Should use an empty setting for a corrupted configuration file.
-  EXPECT_EQ(PreferencesManager(kPreferencesFilePath).GetInteger("data", 100),
+  NEARBY_LOGS(INFO) << "Loading preferences from: " << settingsPath.string();
+  EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
             8);
 }
 

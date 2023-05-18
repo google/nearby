@@ -194,6 +194,12 @@ bool PreferencesManager::Commit() {
 }
 
 bool PreferencesManager::SetValue(absl::string_view key, const json& value) {
+  if (!value_.is_object()) {
+    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+                       << value_.dump(4);
+    value_ = json::object();
+  }
+
   if (value_[absl::StrCat(key)] == value) {
     return false;
   }
@@ -205,6 +211,12 @@ bool PreferencesManager::SetValue(absl::string_view key, const json& value) {
 template <typename T>
 T PreferencesManager::GetValue(absl::string_view key,
                                const T& default_value) const {
+  if (!value_.is_object()) {
+    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+                       << value_.dump(4);
+    return default_value;
+  }
+
   auto it = value_.find(absl::StrCat(key));
   if (it == value_.end()) {
     return default_value;
@@ -215,6 +227,12 @@ T PreferencesManager::GetValue(absl::string_view key,
 template <typename T>
 bool PreferencesManager::SetArrayValue(absl::string_view key,
                                        absl::Span<const T> value) {
+  if (!value_.is_object()) {
+    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+                       << value_.dump(4);
+    value_ = json::object();
+  }
+
   json array_value = json::array();
   for (const T& item_value : value) {
     array_value.push_back(item_value);
@@ -232,6 +250,16 @@ template <typename T>
 std::vector<T> PreferencesManager::GetArrayValue(
     absl::string_view key, absl::Span<const T> default_value) const {
   std::vector<T> result;
+
+  if (!value_.is_object()) {
+    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+                       << value_.dump(4);
+
+    for (const T& value : default_value) {
+      result.push_back(value);
+    }
+    return result;
+  }
 
   auto array_value = value_.find(absl::StrCat(key));
   if (array_value == value_.end() || !array_value->is_array()) {
