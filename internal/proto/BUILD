@@ -42,3 +42,22 @@ cc_proto_library(
     ],
     deps = [":metadata_proto"],
 )
+
+proto_library(
+    name = "tachyon_proto",
+    srcs = [
+        "duration.proto",
+        "ice.proto",
+        "tachyon.proto",
+        "tachyon_common.proto",
+        "tachyon_enums.proto",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+)
+
+cc_proto_library(
+    name = "tachyon_cc_proto",
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [":tachyon_proto"],
+)
