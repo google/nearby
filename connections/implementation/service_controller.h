@@ -83,7 +83,7 @@ class ServiceController {
       const ConnectionOptions& connection_options) = 0;
   virtual Status AcceptConnection(ClientProxy* client,
                                   const std::string& endpoint_id,
-                                  const PayloadListener& listener) = 0;
+                                  PayloadListener listener) = 0;
   virtual Status RejectConnection(ClientProxy* client,
                                   const std::string& endpoint_id) = 0;
 

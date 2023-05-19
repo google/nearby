@@ -85,7 +85,7 @@ class ServiceControllerRouter {
                                  const ResultCallback& callback);
   virtual void AcceptConnection(ClientProxy* client,
                                 absl::string_view endpoint_id,
-                                const PayloadListener& listener,
+                                PayloadListener listener,
                                 const ResultCallback& callback);
   virtual void RejectConnection(ClientProxy* client,
                                 absl::string_view endpoint_id,

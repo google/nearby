@@ -158,7 +158,6 @@ class ServiceControllerRouterTest : public testing::Test {
   }
 
   void AcceptConnection(ClientProxy* client, const std::string endpoint_id,
-                        const PayloadListener& listener,
                         const ResultCallback& callback) {
     EXPECT_CALL(*mock_, AcceptConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
@@ -167,11 +166,13 @@ class ServiceControllerRouterTest : public testing::Test {
     {
       MutexLock lock(&mutex_);
       complete_ = false;
-      router_.AcceptConnection(client, endpoint_id, listener, callback);
+      router_.AcceptConnection(client, endpoint_id, {},
+                               callback);
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->LocalEndpointAcceptedConnection(endpoint_id, listener);
+    client->LocalEndpointAcceptedConnection(endpoint_id,
+                                            {});
     client->RemoteEndpointAcceptedConnection(endpoint_id);
     EXPECT_TRUE(client->IsConnectionAccepted(endpoint_id));
     client->OnConnectionAccepted(endpoint_id);
@@ -314,7 +315,6 @@ class ServiceControllerRouterTest : public testing::Test {
   };
 
   DiscoveryListener discovery_listener_;
-  PayloadListener payload_listener_;
 
   Mutex mutex_;
   ConditionVariable cond_{&mutex_};
@@ -372,7 +372,7 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     kCallback);
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, payload_listener_, kCallback);
+  AcceptConnection(&client_, kRemoteEndpointId, kCallback);
 }
 
 TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
@@ -394,7 +394,7 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     kCallback);
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, payload_listener_, kCallback);
+  AcceptConnection(&client_, kRemoteEndpointId, kCallback);
   // Now we can change connection bandwidth.
   InitiateBandwidthUpgrade(&client_, kRemoteEndpointId, kCallback);
 }
@@ -407,7 +407,7 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     kCallback);
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, payload_listener_, kCallback);
+  AcceptConnection(&client_, kRemoteEndpointId, kCallback);
   // Now we can send payload.
   SendPayload(&client_, std::vector<std::string>{kRemoteEndpointId},
               Payload{ByteArray("data")}, kCallback);
@@ -421,7 +421,7 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     kCallback);
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, payload_listener_, kCallback);
+  AcceptConnection(&client_, kRemoteEndpointId, kCallback);
   // We have to know payload id, before we can cancel payload transfer.
   // It is either after a call to SendPayload, or after receiving
   // PayloadProgress callback. Let's assume we have it, and proceed.
@@ -436,7 +436,7 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     kCallback);
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, payload_listener_, kCallback);
+  AcceptConnection(&client_, kRemoteEndpointId, kCallback);
   // We can disconnect at any time after RequestConnection.
   DisconnectFromEndpoint(&client_, kRemoteEndpointId, kCallback);
 }

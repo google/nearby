@@ -191,12 +191,12 @@ void ServiceControllerRouter::RequestConnection(
 
 void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
                                                absl::string_view endpoint_id,
-                                               const PayloadListener& listener,
+                                               PayloadListener listener,
                                                const ResultCallback& callback) {
   RouteToServiceController(
       "scr-accept-connection",
-      [this, client, endpoint_id = std::string(endpoint_id), listener,
-       callback]() {
+      [this, client, endpoint_id = std::string(endpoint_id),
+       listener = std::move(listener), callback]() mutable {
         if (client->IsConnectedToEndpoint(endpoint_id)) {
           callback.result_cb({Status::kAlreadyConnectedToEndpoint});
           return;
@@ -213,7 +213,7 @@ void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
         }
 
         callback.result_cb(GetServiceController()->AcceptConnection(
-            client, endpoint_id, listener));
+            client, endpoint_id, std::move(listener)));
       });
 }
 

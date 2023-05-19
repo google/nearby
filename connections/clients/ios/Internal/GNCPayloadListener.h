@@ -41,8 +41,8 @@ class GNCPayloadListener : public PayloadListener {
                      GNCPayloadsProvider payloadsProvider)
       : core_(core), handlers_provider_(handlersProvider), payloads_provider_(payloadsProvider) {}
 
-  void OnPayload(const std::string &endpoint_id, Payload payload);
-  void OnPayloadProgress(const std::string &endpoint_id, const PayloadProgressInfo &info);
+  void OnPayload(absl::string_view endpoint_id, Payload payload);
+  void OnPayloadProgress(absl::string_view endpoint_id, const PayloadProgressInfo &info);
 
  private:
   GNCCore *core_;

@@ -64,7 +64,7 @@ class PcpManager {
                            const ConnectionRequestInfo& info,
                            const ConnectionOptions& connection_options);
   Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
-                          const PayloadListener& payload_listener);
+                          PayloadListener payload_listener);
   Status RejectConnection(ClientProxy* client, const string& endpoint_id);
 
   location::nearby::proto::connections::Medium GetBandwidthUpgradeMedium();

@@ -172,8 +172,8 @@ class OfflineSimulationUser {
   void OnEndpointLost(const std::string& endpoint_id);
 
   // PayloadListener callbacks
-  void OnPayload(const std::string& endpoint_id, Payload payload);
-  void OnPayloadProgress(const std::string& endpoint_id,
+  void OnPayload(absl::string_view endpoint_id, Payload payload);
+  void OnPayloadProgress(absl::string_view endpoint_id,
                          const PayloadProgressInfo& info);
 
   std::string service_id_;

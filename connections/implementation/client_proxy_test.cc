@@ -85,9 +85,9 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   };
   struct MockPayloadListener {
     StrictMock<
-        MockFunction<void(const std::string& endpoint_id, Payload payload)>>
+        MockFunction<void(absl::string_view endpoint_id, Payload payload)>>
         payload_cb;
-    StrictMock<MockFunction<void(const std::string& endpoint_id,
+    StrictMock<MockFunction<void(absl::string_view endpoint_id,
                                  const PayloadProgressInfo& info)>>
         payload_progress_cb;
   };
@@ -178,7 +178,13 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
                                           const Endpoint& endpoint) {
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint.id));
     EXPECT_FALSE(client->HasLocalEndpointResponded(endpoint.id));
-    client->LocalEndpointAcceptedConnection(endpoint.id, payload_listener_);
+    client->LocalEndpointAcceptedConnection(
+        endpoint.id,
+        {
+            .payload_cb = mock_discovery_payload_.payload_cb.AsStdFunction(),
+            .payload_progress_cb =
+                mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
+        });
     EXPECT_TRUE(client->HasLocalEndpointResponded(endpoint.id));
     EXPECT_TRUE(client->LocalConnectionIsAccepted(endpoint.id));
   }
@@ -291,11 +297,6 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   DiscoveryListener discovery_listener_{
       .endpoint_found_cb = mock_discovery_.endpoint_found_cb.AsStdFunction(),
       .endpoint_lost_cb = mock_discovery_.endpoint_lost_cb.AsStdFunction(),
-  };
-  PayloadListener payload_listener_{
-      .payload_cb = mock_discovery_payload_.payload_cb.AsStdFunction(),
-      .payload_progress_cb =
-          mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
   };
   ConnectionOptions connection_options_;
   AdvertisingOptions advertising_options_;

@@ -128,7 +128,8 @@ void Core::AcceptConnection(absl::string_view endpoint_id,
                             PayloadListener listener, ResultCallback callback) {
   assert(!endpoint_id.empty());
 
-  router_->AcceptConnection(&client_, endpoint_id, listener, callback);
+  router_->AcceptConnection(&client_, endpoint_id, std::move(listener),
+                            callback);
 }
 
 void Core::RejectConnection(absl::string_view endpoint_id,

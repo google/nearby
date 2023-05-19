@@ -62,7 +62,7 @@ TEST(ListenersTest, PayloadListener_PayloadCb_Works) {
 
   PayloadListener listener{
       .payload_cb =
-          [&](const std::string& endpoint_id, Payload payload) {
+          [&](absl::string_view endpoint_id, Payload payload) {
             if (payload.AsBytes().data() == input_bytes) {
               payload_content_match = true;
             }

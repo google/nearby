@@ -157,7 +157,7 @@ class ClientProxy final {
   bool HasRemoteEndpointResponded(const std::string& endpoint_id) const;
   // Marks the local endpoint as having accepted the connection.
   void LocalEndpointAcceptedConnection(const std::string& endpoint_id,
-                                       const PayloadListener& listener);
+                                       PayloadListener listener);
   // Marks the local endpoint as having rejected the connection.
   void LocalEndpointRejectedConnection(const std::string& endpoint_id);
   // Marks the remote endpoint as having accepted the connection.
@@ -236,13 +236,13 @@ class ClientProxy final {
     bool is_incoming{false};
     Status status{kPending};
     ConnectionListener connection_listener;
-    PayloadListener payload_listener;
     ConnectionOptions connection_options;
     DiscoveryOptions discovery_options;
     AdvertisingOptions advertising_options;
     std::string connection_token;
     std::optional<location::nearby::connections::OsInfo> os_info;
   };
+  using ConnectionPair = std::pair<Connection, PayloadListener>;
 
   struct AdvertisingInfo {
     std::string service_id;
@@ -265,8 +265,8 @@ class ClientProxy final {
   void AppendConnectionStatus(const std::string& endpoint_id,
                               Connection::Status status_to_append);
 
-  const Connection* LookupConnection(absl::string_view endpoint_id) const;
-  Connection* LookupConnection(absl::string_view endpoint_id);
+  const ConnectionPair* LookupConnection(absl::string_view endpoint_id) const;
+  ConnectionPair* LookupConnection(absl::string_view endpoint_id);
   bool ConnectionStatusMatches(const std::string& endpoint_id,
                                Connection::Status status) const;
   std::vector<std::string> GetMatchingEndpoints(
@@ -323,7 +323,7 @@ class ClientProxy final {
   DiscoveryOptions discovery_options_;
 
   // Maps endpoint_id to endpoint connection state.
-  absl::flat_hash_map<std::string, Connection> connections_;
+  absl::flat_hash_map<std::string, ConnectionPair> connections_;
 
   // A cache of endpoint ids that we've already notified the discoverer of. We
   // check this cache before calling onEndpointFound() so that we don't notify

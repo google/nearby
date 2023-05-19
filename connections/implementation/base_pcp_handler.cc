@@ -870,13 +870,14 @@ bool BasePcpHandler::AutoUpgradeBandwidth(
   return local_advertising_options.auto_upgrade_bandwidth;
 }
 
-Status BasePcpHandler::AcceptConnection(
-    ClientProxy* client, const std::string& endpoint_id,
-    const PayloadListener& payload_listener) {
+Status BasePcpHandler::AcceptConnection(ClientProxy* client,
+                                        const std::string& endpoint_id,
+                                        PayloadListener payload_listener) {
   Future<Status> response;
   RunOnPcpHandlerThread(
-      "accept-connection", [this, client, endpoint_id, payload_listener,
-                            &response]() RUN_ON_PCP_HANDLER_THREAD() {
+      "accept-connection", [this, client, endpoint_id,
+                            payload_listener = std::move(payload_listener),
+                            &response]() RUN_ON_PCP_HANDLER_THREAD() mutable {
         NEARBY_LOGS(INFO) << "AcceptConnection: endpoint_id=" << endpoint_id;
         if (!pending_connections_.count(endpoint_id)) {
           NEARBY_LOGS(INFO)
@@ -918,8 +919,8 @@ Status BasePcpHandler::AcceptConnection(
 
         NEARBY_LOGS(INFO) << "AcceptConnection: accepting locally: endpoint_id="
                           << endpoint_id;
-        connection_info.LocalEndpointAcceptedConnection(endpoint_id,
-                                                        payload_listener);
+        connection_info.LocalEndpointAcceptedConnection(
+            endpoint_id, std::move(payload_listener));
         EvaluateConnectionResult(client, endpoint_id,
                                  false /* can_close_immediately */);
         response.Set({Status::kSuccess});
@@ -1722,8 +1723,9 @@ BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
 }
 
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointAcceptedConnection(
-    const std::string& endpoint_id, const PayloadListener& payload_listener) {
-  client->LocalEndpointAcceptedConnection(endpoint_id, payload_listener);
+    const std::string& endpoint_id, PayloadListener payload_listener) {
+  client->LocalEndpointAcceptedConnection(endpoint_id,
+                                          std::move(payload_listener));
 }
 
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(

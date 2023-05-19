@@ -69,7 +69,6 @@ class BasePcpHandler : public PcpHandler,
  public:
   using FrameProcessor = EndpointManager::FrameProcessor;
 
-  // TODO(apolyudov): Add SecureRandom.
   BasePcpHandler(Mediums* mediums, EndpointManager* endpoint_manager,
                  EndpointChannelManager* channel_manager,
                  BwuManager* bwu_manager, Pcp pcp);
@@ -118,7 +117,7 @@ class BasePcpHandler : public PcpHandler,
   // Until both parties call it, connection will not reach a data phase.
   // Updates state in ClientProxy.
   Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
-                          const PayloadListener& payload_listener) override;
+                          PayloadListener payload_listener) override;
 
   // Called by either party to reject connection on their part.
   // If either party does call it, connection will terminate.
@@ -326,9 +325,8 @@ class BasePcpHandler : public PcpHandler,
     void SetCryptoContext(std::unique_ptr<securegcm::UKey2Handshake> ukey2);
 
     // Pass Accept notification to client.
-    void LocalEndpointAcceptedConnection(
-        const std::string& endpoint_id,
-        const PayloadListener& payload_listener);
+    void LocalEndpointAcceptedConnection(const std::string& endpoint_id,
+                                         PayloadListener payload_listener);
 
     // Pass Reject notification to client.
     void LocalEndpointRejectedConnection(const std::string& endpoint_id);

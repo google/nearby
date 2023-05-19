@@ -63,13 +63,12 @@ void SimulationUser::OnEndpointLost(const std::string& endpoint_id) {
   if (lost_latch_) lost_latch_->CountDown();
 }
 
-void SimulationUser::OnPayload(const std::string& endpoint_id,
-                               Payload payload) {
+void SimulationUser::OnPayload(absl::string_view endpoint_id, Payload payload) {
   payload_ = std::move(payload);
   if (payload_latch_) payload_latch_->CountDown();
 }
 
-void SimulationUser::OnPayloadProgress(const std::string& endpoint_id,
+void SimulationUser::OnPayloadProgress(absl::string_view endpoint_id,
                                        const PayloadProgressInfo& info) {
   MutexLock lock(&progress_mutex_);
   progress_info_ = info;
