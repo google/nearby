@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -507,7 +508,9 @@ class Core {
 
   // Registers a DeviceProvider to provide functionality for Nearby Connections
   // to interact with the DeviceProvider for retrieving the local device.
-  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider);
+  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider) {
+    client_.RegisterDeviceProvider(std::move(provider));
+  }
 
  private:
   ClientProxy client_;
