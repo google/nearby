@@ -18,7 +18,7 @@
 #include "absl/functional/any_invocable.h"
 #include "connections/listeners.h"
 #include "connections/v3/bandwidth_info.h"
-#include "connections/v3/connection_resolution.h"
+#include "connections/v3/connection_result.h"
 #include "internal/interop/device.h"
 
 namespace nearby {
@@ -44,8 +44,9 @@ struct ConnectionListener {
   // remote_device - The identifier for the remote endpoint.
   // info -  Other relevant information about the connection.
   absl::AnyInvocable<void(const NearbyDevice& remote_device,
-                          const ConnectionResponseInfo& info)>
-      initiated_cb = [](const NearbyDevice&, const ConnectionResponseInfo&) {};
+                          const v3::InitialConnectionInfo& info)>
+      initiated_cb =
+          [](const NearbyDevice&, const v3::InitialConnectionInfo&) {};
 
   // Called when both sides have accepted or either side has rejected the
   // connection. If the {@link ConnectionResolution}'s status is {@link
