@@ -365,10 +365,12 @@ bool BleMedium::StartScanning(const Uuid& service_uuid, TxPowerLevel tx_power_le
   __block ScanCallback callback = std::move(scan_callback);
   [central_ startScanningWithServiceUUID:ObjCStringFromCppString(service_uuid.Get16BitAsString())
       scanResultHandler:^(NSString* peripheralID, NSData* serviceData) {
+        NSLog(@"NIKO - %@ %@", peripheralID, serviceData);
         BleAdvertisementData advertisement_data;
         advertisement_data.service_data = {{service_uuid, ByteArrayFromNSData(serviceData)}};
         BlePeripheral& peripheral = adapter_->GetPeripheral();
         peripheral.SetPeripheralId(CppStringFromObjCString(peripheralID));
+         NSLog(@"NIKO - GetPeripheralId: %s", peripheral.GetPeripheralId().c_str());
         callback.advertisement_found_cb(peripheral, advertisement_data);
       }
       requestConnectionHandler:^(GNCMBleConnectionRequester connectionRequester) {

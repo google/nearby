@@ -235,8 +235,12 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
 
   // Look for the NC advertisement header in either the service data (from non-iOS) or the
   // advertised name (from iOS).
-  NSData *serviceData = advertisementData[CBAdvertisementDataServiceDataKey][_serviceUUID]
-                            ?: advertisementData[CBAdvertisementDataLocalNameKey];
+  NSData *serviceData = advertisementData[CBAdvertisementDataServiceDataKey][_serviceUUID];
+  NSData *localName = advertisementData[CBAdvertisementDataLocalNameKey];
+
+  NSLog(@"NIKO - stuff: %@", advertisementData[CBAdvertisementDataServiceDataKey]);
+             
+  serviceData = serviceData ?: localName;
 
   // Try to look up the peripheral by ID.
   GNCMPeripheralInfo *info = _nearbyPeripheralsByID[peripheral.identifier];

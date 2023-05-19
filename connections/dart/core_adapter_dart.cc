@@ -377,10 +377,10 @@ void EnableBleV2Dart(Core *pCore, int64_t enable, Dart_Port result_cb) {
   }
   port = result_cb;
 
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableBleV2,
-      enable);
+  // NearbyFlags::GetInstance().OverrideBoolFlagValue(
+  //     connections::config_package_nearby::nearby_connections_feature::
+  //         kEnableBleV2,
+  //     enable);
   PostResult(result_cb, Status::kSuccess);
 }
 

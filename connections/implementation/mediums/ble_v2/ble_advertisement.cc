@@ -81,6 +81,21 @@ void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
   psm_ = psm;
 }
 
+
+// static constexpr int kServiceIdHashLength = 3;
+// static constexpr int kDeviceTokenLength = 2;
+// static constexpr int kVersionLength = 1;
+// static constexpr int kVersionBitmask               = 0b1110 0000;
+// static constexpr int kSocketVersionBitmask         = 0b0001 1100;
+// static constexpr int kFastAdvertisementFlagBitmask = 0b0000 0010;
+// static constexpr int kDataSizeLength = 4;      // Length of one int.
+// static constexpr int kFastDataSizeLength = 1;  // Length of one byte.
+// static constexpr int kMinAdvertisementLength = 1 + 3 + 4;
+// static constexpr int kMaxAdvertisementLength = 512;
+// static constexpr int kMinFastAdvertisementLegth = 1 + 1;
+// static constexpr int kMaxFastAdvertisementLength = 27;
+// static constexpr int kExtraFieldsMaskLength = 1;
+
 BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
   if (ble_advertisement_bytes.Empty()) {
     NEARBY_LOG(INFO,

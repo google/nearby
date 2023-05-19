@@ -57,9 +57,11 @@
         }
 #if __LP64__
         // This cast is only safe in a 64-bit runtime.
-        blockResult = (NSData *)content;
+        NSData *ccc = (NSData *)content;
+        blockResult = [ccc copy];
 #else
         blockResult = nil;
+        NSLog(@"NIKO - OH NO WE ARE NOT LP64!!!!!!!!!!!!!!!!!!!!");
 #endif
         [condition signal];
         [condition unlock];

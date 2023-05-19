@@ -94,9 +94,9 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                 }
 
                 BleV2Peripheral proxy(*this, peripheral);
-                NEARBY_LOGS(INFO)
-                    << "New peripheral imp=" << &peripheral
-                    << ", callback the proxy peripheral=" << &proxy;
+                // NEARBY_LOGS(INFO)
+                //     << "New peripheral imp=" << &peripheral
+                //     << ", callback the proxy peripheral=" << &proxy;
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
                                                       advertisement_data);
@@ -307,7 +307,8 @@ absl::optional<std::string> BleV2Peripheral::GetAddress() const {
 }
 
 bool BleV2Peripheral::IsValid() const {
-  return GetImpl([&](api::ble_v2::BlePeripheral& device) {});
+  return true;
+  // return GetImpl([&](api::ble_v2::BlePeripheral& device) {});
 }
 
 bool BleV2Peripheral::GetImpl(

@@ -30,7 +30,7 @@ namespace nearby_connections_feature {
 // LINT.IfChanged
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
-    flags::Flag<bool>(kConfigPackage, "45401515", false);
+    flags::Flag<bool>(kConfigPackage, "45401515", true);
 
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =

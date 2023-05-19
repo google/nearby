@@ -238,10 +238,8 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   if (_centralManager.cbCentralManagerState == CBCentralManagerStatePoweredOn) {
     NSDictionary<NSString *, id> *options = @{
       CBConnectPeripheralOptionNotifyOnDisconnectionKey : @YES,
-#if TARGET_OS_IPHONE
       CBConnectPeripheralOptionNotifyOnConnectionKey : @YES,
       CBConnectPeripheralOptionNotifyOnNotificationKey : @YES,
-#endif
     };
     [_centralManager connectPeripheralForPeer:self options:options];
 

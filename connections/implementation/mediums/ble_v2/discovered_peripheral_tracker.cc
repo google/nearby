@@ -77,12 +77,19 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     return;
   }
 
-  if (!peripheral.IsValid() || advertisement_data.service_data.empty()) {
-    NEARBY_LOGS(INFO)
-        << "Ignoring BLE advertisement header because the peripheral is "
-           "invalid or the given service data is empty.";
+  if (advertisement_data.service_data.empty()) {
+    // NEARBY_LOGS(INFO)
+    //     << "Ignoring BLE advertisement header because the peripheral is "
+    //        "invalid or the given service data is empty.";
     return;
   }
+
+  // if (!peripheral.IsValid() || advertisement_data.service_data.empty()) {
+  //   // NEARBY_LOGS(INFO)
+  //   //     << "Ignoring BLE advertisement header because the peripheral is "
+  //   //        "invalid or the given service data is empty.";
+  //   return;
+  // }
 
   if (IsSkippableGattAdvertisement(advertisement_data)) {
     NEARBY_LOGS(INFO)
