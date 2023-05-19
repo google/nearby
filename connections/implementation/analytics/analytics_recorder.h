@@ -34,7 +34,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {
@@ -327,9 +327,9 @@ class AnalyticsRecorder {
       bool erase_item = true) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishStrategySessionLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Reset the client cession's logging resources (e.g. current_strategy_,
+  // Reset the client session's logging resources (e.g. current_strategy_,
   // current_advertising_phase_, current_discovery_phase_, etc)
-  void ResetClientSessionLoggingResouces();
+  void ResetClientSessionLoggingResources();
 
   location::nearby::proto::connections::ConnectionsStrategy
   StrategyToConnectionStrategy(connections::Strategy strategy);

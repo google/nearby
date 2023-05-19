@@ -23,7 +23,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {

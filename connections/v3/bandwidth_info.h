@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_V3_BANDWIDTH_INFO_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_V3_BANDWIDTH_INFO_H_
 
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -44,7 +44,7 @@ enum class Quality {
 // e.g. BT -> WiFi direct.
 struct BandwidthInfo {
   Quality quality;
-  ::location::nearby::proto::connections::Medium medium;
+  ::location::nearby::internal::connections::proto::Medium medium;
 };
 
 }  // namespace v3

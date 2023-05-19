@@ -14,14 +14,14 @@
 
 syntax = "proto2";
 
-package location.nearby.mediums;
+package location.nearby.internal.mediums;
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
 
 // option (datapol.file_vetting_status) = "latest";
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "NfcFramesProto";
-option java_package = "com.google.location.nearby.mediums.proto";
+option java_package = "com.google.location.nearby.internal.mediums.proto";
 
 // The data to be sent to scanning devices from advertising devices during
 // adveritising.

@@ -15,34 +15,36 @@
 #include "internal/platform/error_code_recorder.h"
 
 #include "internal/platform/logging.h"
-#include "proto/errorcode/error_code_enums.pb.h"
+#include "internal/proto/errorcode/error_code_enums.pb.h"
 
 namespace nearby {
 
-using ::location::nearby::errorcode::proto::CommonError;
-using ::location::nearby::errorcode::proto::CommonError_IsValid;
-using ::location::nearby::errorcode::proto::CONNECT;
-using ::location::nearby::errorcode::proto::ConnectError;
-using ::location::nearby::errorcode::proto::Description;
-using ::location::nearby::errorcode::proto::DISCONNECT;
-using ::location::nearby::errorcode::proto::DisconnectError;
-using ::location::nearby::errorcode::proto::Event;
-using ::location::nearby::errorcode::proto::START_ADVERTISING;
-using ::location::nearby::errorcode::proto::START_DISCOVERING;
-using ::location::nearby::errorcode::proto::START_LISTENING_INCOMING_CONNECTION;
-using ::location::nearby::errorcode::proto::StartAdvertisingError;
-using ::location::nearby::errorcode::proto::StartDiscoveringError;
-using ::location::nearby::errorcode::proto::
+using ::location::nearby::internal::connections::proto::Medium;
+using ::location::nearby::internal::proto::errorcode::CommonError;
+using ::location::nearby::internal::proto::errorcode::CommonError_IsValid;
+using ::location::nearby::internal::proto::errorcode::CONNECT;
+using ::location::nearby::internal::proto::errorcode::ConnectError;
+using ::location::nearby::internal::proto::errorcode::Description;
+using ::location::nearby::internal::proto::errorcode::DISCONNECT;
+using ::location::nearby::internal::proto::errorcode::DisconnectError;
+using ::location::nearby::internal::proto::errorcode::Event;
+using ::location::nearby::internal::proto::errorcode::START_ADVERTISING;
+using ::location::nearby::internal::proto::errorcode::START_DISCOVERING;
+using ::location::nearby::internal::proto::errorcode::
+    START_LISTENING_INCOMING_CONNECTION;
+using ::location::nearby::internal::proto::errorcode::StartAdvertisingError;
+using ::location::nearby::internal::proto::errorcode::StartDiscoveringError;
+using ::location::nearby::internal::proto::errorcode::
     StartListeningIncomingConnectionError;
-using ::location::nearby::errorcode::proto::STOP_ADVERTISING;
-using ::location::nearby::errorcode::proto::STOP_DISCOVERING;
-using ::location::nearby::errorcode::proto::STOP_LISTENING_INCOMING_CONNECTION;
-using ::location::nearby::errorcode::proto::StopAdvertisingError;
-using ::location::nearby::errorcode::proto::StopDiscoveringError;
-using ::location::nearby::errorcode::proto::
+using ::location::nearby::internal::proto::errorcode::STOP_ADVERTISING;
+using ::location::nearby::internal::proto::errorcode::STOP_DISCOVERING;
+using ::location::nearby::internal::proto::errorcode::
+    STOP_LISTENING_INCOMING_CONNECTION;
+using ::location::nearby::internal::proto::errorcode::StopAdvertisingError;
+using ::location::nearby::internal::proto::errorcode::StopDiscoveringError;
+using ::location::nearby::internal::proto::errorcode::
     StopListeningIncomingConnectionError;
-using ::location::nearby::errorcode::proto::UNKNOWN_ERROR;
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::internal::proto::errorcode::UNKNOWN_ERROR;
 
 // Default static no-op listener
 ErrorCodeRecorder::ErrorCodeListener ErrorCodeRecorder::listener_ =

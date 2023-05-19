@@ -19,7 +19,7 @@
 #include "connections/medium_selector.h"
 #include "connections/strategy.h"
 #include "internal/platform/byte_array.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

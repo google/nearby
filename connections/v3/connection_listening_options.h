@@ -19,7 +19,7 @@
 
 #include "connections/strategy.h"
 #include "internal/interop/device.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -35,7 +35,8 @@ struct ConnectionListeningOptions {
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints = true;
   std::vector<location::nearby::proto::connections::Medium> upgrade_mediums;
-  std::vector<::location::nearby::proto::connections::Medium> listening_mediums;
+  std::vector<::location::nearby::internal::connections::proto::Medium>
+      listening_mediums;
   nearby::NearbyDevice::Type listening_endpoint_type =
       NearbyDevice::Type::kConnectionsDevice;
 };

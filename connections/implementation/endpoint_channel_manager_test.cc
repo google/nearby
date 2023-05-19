@@ -35,14 +35,14 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::internal::connections::proto::DisconnectionReason;
+using ::location::nearby::internal::connections::proto::Medium;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
 constexpr absl::string_view kEndpointId = "EndpointId";

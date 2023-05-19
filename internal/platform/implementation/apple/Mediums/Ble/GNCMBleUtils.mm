@@ -19,7 +19,7 @@
 
 #import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
-#include "proto/mediums/ble_frames.pb.h"
+#include "internal/proto/mediums/ble_frames.pb.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -33,11 +33,12 @@ NSData *GNCMServiceIDHash(NSString *serviceID) {
 }
 
 NSData *GNCMGenerateBLEFramesIntroductionPacket(NSData *serviceIDHash) {
-  ::location::nearby::mediums::SocketControlFrame socket_control_frame;
+  ::location::nearby::internal::mediums::SocketControlFrame socket_control_frame;
 
-  socket_control_frame.set_type(::location::nearby::mediums::SocketControlFrame::INTRODUCTION);
+  socket_control_frame.set_type(
+      ::location::nearby::internal::mediums::SocketControlFrame::INTRODUCTION);
   auto *introduction_frame = socket_control_frame.mutable_introduction();
-  introduction_frame->set_socket_version(::location::nearby::mediums::SocketVersion::V2);
+  introduction_frame->set_socket_version(::location::nearby::internal::mediums::SocketVersion::V2);
   std::string service_id_hash((char *)serviceIDHash.bytes, (size_t)serviceIDHash.length);
   introduction_frame->set_service_id_hash(service_id_hash);
 
@@ -51,16 +52,16 @@ NSData *GNCMGenerateBLEFramesIntroductionPacket(NSData *serviceIDHash) {
 }
 
 NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data) {
-  ::location::nearby::mediums::SocketControlFrame socket_control_frame;
+  ::location::nearby::internal::mediums::SocketControlFrame socket_control_frame;
   NSUInteger prefixLength = sizeof(kGNCMControlPacketServiceIDHash);
   NSData *packet = [data subdataWithRange:NSMakeRange(prefixLength, data.length - prefixLength)];
   if (socket_control_frame.ParseFromArray(packet.bytes, (int)packet.length)) {
     if (socket_control_frame.type() ==
-            ::location::nearby::mediums::SocketControlFrame::INTRODUCTION &&
+            ::location::nearby::internal::mediums::SocketControlFrame::INTRODUCTION &&
         socket_control_frame.has_introduction() &&
         socket_control_frame.introduction().has_socket_version() &&
         socket_control_frame.introduction().socket_version() ==
-            ::location::nearby::mediums::SocketVersion::V2 &&
+            ::location::nearby::internal::mediums::SocketVersion::V2 &&
         socket_control_frame.introduction().has_service_id_hash()) {
       std::string service_id_hash = socket_control_frame.introduction().service_id_hash();
       return [NSData dataWithBytes:service_id_hash.data() length:service_id_hash.length()];
@@ -71,9 +72,10 @@ NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data) {
 }
 
 NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash) {
-  ::location::nearby::mediums::SocketControlFrame socket_control_frame;
+  ::location::nearby::internal::mediums::SocketControlFrame socket_control_frame;
 
-  socket_control_frame.set_type(::location::nearby::mediums::SocketControlFrame::DISCONNECTION);
+  socket_control_frame.set_type(
+      ::location::nearby::internal::mediums::SocketControlFrame::DISCONNECTION);
   auto *disconnection_frame = socket_control_frame.mutable_disconnection();
   std::string service_id_hash((char *)serviceIDHash.bytes, (size_t)serviceIDHash.length);
   disconnection_frame->set_service_id_hash(service_id_hash);

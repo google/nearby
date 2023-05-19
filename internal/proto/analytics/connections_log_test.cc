@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/analytics/connections_log.pb.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {

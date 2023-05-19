@@ -25,13 +25,13 @@
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/payload_type.h"
 #include "internal/platform/mutex.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {
 
 // The following aliases are only for users' convenience.
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::internal::connections::proto::Medium;
 using ::nearby::connections::PayloadType;
 // Enum to represent if a payload is incoming or outgoing.
 using ::nearby::connections::PayloadDirection;

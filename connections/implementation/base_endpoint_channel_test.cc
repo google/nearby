@@ -28,22 +28,22 @@
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::internal::connections::proto::DisconnectionReason;
+using ::location::nearby::internal::connections::proto::Medium;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
 class TestEndpointChannel : public BaseEndpointChannel {

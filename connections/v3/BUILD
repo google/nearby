@@ -16,7 +16,7 @@ cc_library(
         "//internal/crypto",
         "//internal/interop:device",
         "//internal/platform:connection_info",
-        "//proto:connections_enums_cc_proto",
+        "//internal/proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )

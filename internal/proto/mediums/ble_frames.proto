@@ -14,11 +14,11 @@
 
 syntax = "proto2";
 
-package location.nearby.mediums;
+package location.nearby.internal.mediums;
 
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "BleFramesProto";
-option java_package = "com.google.location.nearby.mediums.proto";
+option java_package = "com.google.location.nearby.internal.mediums.proto";
 option objc_class_prefix = "GNCM";
 
 // This should map exactly to BleAdvertisement's socket versions.

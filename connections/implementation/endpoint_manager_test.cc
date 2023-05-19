@@ -34,8 +34,8 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "internal/proto/connections_enums.pb.h"
 #include "internal/test/fake_single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -44,8 +44,8 @@ namespace {
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::internal::connections::proto::DisconnectionReason;
+using ::location::nearby::internal::connections::proto::Medium;
 using ::testing::_;
 using ::testing::MockFunction;
 using ::testing::Return;

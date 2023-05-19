@@ -22,12 +22,12 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace {
 
-using Medium = ::location::nearby::proto::connections::Medium;
+using Medium = ::location::nearby::internal::connections::proto::Medium;
 using ::testing::status::StatusIs;
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";

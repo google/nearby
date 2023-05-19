@@ -19,7 +19,7 @@
 
 #include "absl/strings/str_format.h"
 #include "internal/platform/prng.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 
@@ -61,13 +61,14 @@ class HotspotCredentials {
   int GetFrequency() const { return frequency_; }
 
   // Gets the Band
-  location::nearby::proto::connections::ConnectionBand GetBand() const {
+  location::nearby::internal::proto::connections::ConnectionBand GetBand()
+      const {
     return band_;
   }
 
   // Gets the Technology
-  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
-      const {
+  location::nearby::internal::proto::connections::ConnectionTechnology
+  GetTechnology() const {
     return technology_;
   }
 
@@ -78,8 +79,9 @@ class HotspotCredentials {
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;
   int frequency_ = -1;
-  location::nearby::proto::connections::ConnectionBand band_;
-  location::nearby::proto::connections::ConnectionTechnology technology_;
+  location::nearby::internal::proto::connections::ConnectionBand band_;
+  location::nearby::internal::proto::connections::ConnectionTechnology
+      technology_;
 };
 
 // Credentials for the currently-hosted WifiDirect GO (if any)
@@ -120,13 +122,14 @@ class WifiDirectCredentials {
   int GetFrequency() const { return frequency_; }
 
   // Gets the Band
-  location::nearby::proto::connections::ConnectionBand GetBand() const {
+  location::nearby::internal::proto::connections::ConnectionBand GetBand()
+      const {
     return band_;
   }
 
   // Gets the Technology
-  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
-      const {
+  location::nearby::internal::proto::connections::ConnectionTechnology
+  GetTechnology() const {
     return technology_;
   }
 
@@ -137,8 +140,9 @@ class WifiDirectCredentials {
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;
   int frequency_ = -1;
-  location::nearby::proto::connections::ConnectionBand band_;
-  location::nearby::proto::connections::ConnectionTechnology technology_;
+  location::nearby::internal::proto::connections::ConnectionBand band_;
+  location::nearby::internal::proto::connections::ConnectionTechnology
+      technology_;
 };
 
 }  // namespace nearby

@@ -36,7 +36,7 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/prng.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

@@ -21,14 +21,14 @@
 #include "absl/strings/str_cat.h"
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
-#include "proto/mediums/ble_frames.pb.h"
+#include "internal/proto/mediums/ble_frames.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 
-using ::location::nearby::mediums::SocketControlFrame;
-using ::location::nearby::mediums::SocketVersion;
+using ::location::nearby::internal::mediums::SocketControlFrame;
+using ::location::nearby::internal::mediums::SocketVersion;
 
 // The 3 0x00 bytes are used in the control packet to identify the packet.
 constexpr char kControlPacketServiceIdHash[] = "\x00\x00\x00";

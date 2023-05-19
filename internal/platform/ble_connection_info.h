@@ -21,7 +21,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/connection_info.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 
@@ -38,9 +38,9 @@ class BleConnectionInfo : public ConnectionInfo {
         psm_(std::string(psm)),
         actions_(actions) {}
 
-  ::location::nearby::proto::connections::Medium GetMediumType()
+  ::location::nearby::internal::connections::proto::Medium GetMediumType()
       const override {
-    return ::location::nearby::proto::connections::Medium::BLE;
+    return ::location::nearby::internal::connections::proto::Medium::BLE;
   }
   std::string ToDataElementBytes() const override;
   std::string GetMacAddress() const { return mac_address_; }

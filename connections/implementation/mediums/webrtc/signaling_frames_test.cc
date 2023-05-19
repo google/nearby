@@ -29,8 +29,8 @@ namespace webrtc_frames {
 
 namespace {
 
-using ::location::nearby::mediums::IceCandidate;
-using ::location::nearby::mediums::WebRtcSignalingFrame;
+using ::location::nearby::internal::mediums::IceCandidate;
+using ::location::nearby::internal::mediums::WebRtcSignalingFrame;
 const char kSampleSdp[] =
     "v=0\r\no=- 7859371131 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 "
     "0\r\na=msid-semantic: WMS\r\n";

@@ -22,7 +22,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace {
@@ -35,7 +35,7 @@ constexpr absl::string_view kBssid = "\x0A\x1B\x2C\x34\x58\x7E";
 constexpr char kAction = 0x0F;
 
 using ::testing::status::StatusIs;
-using Medium = ::location::nearby::proto::connections::Medium;
+using Medium = ::location::nearby::internal::connections::proto::Medium;
 
 TEST(WifiLanConnectionInfoTest, TestMediumType) {
   WifiLanConnectionInfo info(kIpv4Addr, kPort, {kAction});

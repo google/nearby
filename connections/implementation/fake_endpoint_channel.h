@@ -27,7 +27,7 @@ namespace connections {
 // output can be set.
 class FakeEndpointChannel : public EndpointChannel {
  public:
-  using Medium = ::location::nearby::proto::connections::Medium;
+  using Medium = ::location::nearby::internal::connections::proto::Medium;
 
   FakeEndpointChannel(Medium medium, const std::string& service_id)
       : medium_(medium), service_id_(service_id) {}

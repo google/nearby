@@ -32,7 +32,7 @@
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/exception.h"
 #include "internal/proto/analytics/connections_log.proto.h"
-#include "proto/connections_enums.proto.h"
+#include "internal/proto/connections_enums.proto.h"
 #include "third_party/protobuf/message_lite.h"
 
 namespace nearby {
@@ -40,35 +40,38 @@ namespace analytics {
 namespace {
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
-using ::location::nearby::errorcode::proto::DISCONNECT;
-using ::location::nearby::errorcode::proto::DISCONNECT_NETWORK_FAILED;
-using ::location::nearby::errorcode::proto::INVALID_PARAMETER;
-using ::location::nearby::errorcode::proto::NULL_BLUETOOTH_DEVICE_NAME;
-using ::location::nearby::errorcode::proto::START_DISCOVERING;
-using ::location::nearby::errorcode::proto::START_EXTENDED_DISCOVERING_FAILED;
-using ::location::nearby::errorcode::proto::
+using ::location::nearby::internal::connections::proto::BLE;
+using ::location::nearby::internal::connections::proto::BLUETOOTH;
+using ::location::nearby::internal::connections::proto::CLIENT_SESSION;
+using ::location::nearby::internal::connections::proto::ERROR_CODE;
+using ::location::nearby::internal::connections::proto::EventType;
+using ::location::nearby::internal::connections::proto::INCOMING;
+using ::location::nearby::internal::connections::proto::INITIAL;
+using ::location::nearby::internal::connections::proto::LOCAL_DISCONNECTION;
+using ::location::nearby::internal::connections::proto::Medium;
+using ::location::nearby::internal::connections::proto::RESULT_ERROR;
+using ::location::nearby::internal::connections::proto::RESULT_SUCCESS;
+using ::location::nearby::internal::connections::proto::START_CLIENT_SESSION;
+using ::location::nearby::internal::connections::proto::START_STRATEGY_SESSION;
+using ::location::nearby::internal::connections::proto::STOP_CLIENT_SESSION;
+using ::location::nearby::internal::connections::proto::STOP_STRATEGY_SESSION;
+using ::location::nearby::internal::connections::proto::SUCCESS;
+using ::location::nearby::internal::connections::proto::UPGRADED;
+using ::location::nearby::internal::connections::proto::WEB_RTC;
+using ::location::nearby::internal::connections::proto::WIFI_LAN;
+using ::location::nearby::internal::connections::proto::WIFI_LAN_MEDIUM_ERROR;
+using ::location::nearby::internal::connections::proto::
+    WIFI_LAN_SOCKET_CREATION;
+using ::location::nearby::internal::proto::errorcode::DISCONNECT;
+using ::location::nearby::internal::proto::errorcode::DISCONNECT_NETWORK_FAILED;
+using ::location::nearby::internal::proto::errorcode::INVALID_PARAMETER;
+using ::location::nearby::internal::proto::errorcode::
+    NULL_BLUETOOTH_DEVICE_NAME;
+using ::location::nearby::internal::proto::errorcode::START_DISCOVERING;
+using ::location::nearby::internal::proto::errorcode::
+    START_EXTENDED_DISCOVERING_FAILED;
+using ::location::nearby::internal::proto::errorcode::
     TACHYON_SEND_MESSAGE_STATUS_EXCEPTION;
-using ::location::nearby::proto::connections::BLE;
-using ::location::nearby::proto::connections::BLUETOOTH;
-using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::ERROR_CODE;
-using ::location::nearby::proto::connections::EventType;
-using ::location::nearby::proto::connections::INCOMING;
-using ::location::nearby::proto::connections::INITIAL;
-using ::location::nearby::proto::connections::LOCAL_DISCONNECTION;
-using ::location::nearby::proto::connections::Medium;
-using ::location::nearby::proto::connections::RESULT_ERROR;
-using ::location::nearby::proto::connections::RESULT_SUCCESS;
-using ::location::nearby::proto::connections::START_CLIENT_SESSION;
-using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
-using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::SUCCESS;
-using ::location::nearby::proto::connections::UPGRADED;
-using ::location::nearby::proto::connections::WEB_RTC;
-using ::location::nearby::proto::connections::WIFI_LAN;
-using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
-using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
 using ::nearby::analytics::EventLogger;
 using ::proto2::contrib::parse_proto::ParseTextProtoOrDie;
 using ::testing::Contains;
@@ -667,9 +670,9 @@ TEST(AnalyticsRecorderTest,
 
   auto connections_attempt_metadata_params =
       analytics_recorder.BuildConnectionAttemptMetadataParams(
-          ::location::nearby::proto::connections::
+          ::location::nearby::internal::connections::proto::
               CONNECTION_TECHNOLOGY_HOTSPOT_LOCALONLY,
-          ::location::nearby::proto::connections::
+          ::location::nearby::internal::connections::proto::
               CONNECTION_BAND_WIFI_BAND_6GHZ,
           /*frequency*/ 2400, /*try_count*/ 0, /*network_operator*/ {},
           /*country_code*/ {}, /*is_tdls_used*/ false,
@@ -1120,7 +1123,7 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
 
   // LogSession
-  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResources
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
@@ -1224,7 +1227,7 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
 
   // LogSession
-  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResources
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
@@ -1328,7 +1331,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
                                              connection_token);
 
   // LogSession
-  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResources
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
@@ -1436,7 +1439,7 @@ TEST(AnalyticsRecorderTest,
       endpoint_id_2, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
 
   // LogSession
-  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResources
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   // - if the current_strategy_session_ and advertising_phase_ are not

@@ -16,11 +16,11 @@
 
 #include <vector>
 
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby::windows {
 
-using MediumW = ::location::nearby::proto::connections::Medium;
+using MediumW = ::location::nearby::internal::connections::proto::Medium;
 
 // Feature On/Off switch for mediums.
 struct BooleanMediumSelectorW {

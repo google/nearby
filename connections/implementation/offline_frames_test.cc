@@ -36,7 +36,7 @@ using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
-using Medium = ::location::nearby::proto::connections::Medium;
+using Medium = ::location::nearby::internal::connections::proto::Medium;
 using ::protobuf_matchers::EqualsProto;
 
 constexpr absl::string_view kEndpointId{"ABC"};

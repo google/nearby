@@ -14,14 +14,14 @@
 
 syntax = "proto2";
 
-package nearby.proto.fastpair;
+package nearby.internal.proto.fastpair;
 
 // import "logs/proto/logs_annotations/logs_annotations.proto";
 
 // option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option optimize_for = LITE_RUNTIME;
 // option java_api_version = 2;
-option java_package = "nearby.proto.fastpair";
+option java_package = "nearby.internal.proto.fastpair";
 option java_outer_classname = "FastPairEnums";
 option objc_class_prefix = "GNFP";
 

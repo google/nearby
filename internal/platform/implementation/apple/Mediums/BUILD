@@ -49,7 +49,7 @@ objc_library(
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Central",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Peripheral",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
-        "//proto/mediums:ble_frames_cc_proto",
+        "//internal/proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:Network",

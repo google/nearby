@@ -22,7 +22,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 inline constexpr uint8_t kDataElementFieldType = 0x14;
@@ -43,8 +43,8 @@ using ConnectionInfoVariant =
 class ConnectionInfo {
  public:
   virtual ~ConnectionInfo() = default;
-  virtual ::location::nearby::proto::connections::Medium GetMediumType()
-      const = 0;
+  virtual ::location::nearby::internal::connections::proto::Medium
+  GetMediumType() const = 0;
   virtual std::string ToDataElementBytes() const = 0;
   virtual std::vector<uint8_t> GetActions() const = 0;
   static ConnectionInfoVariant FromDataElementBytes(

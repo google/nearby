@@ -24,8 +24,8 @@ proto_library(
         "connections_log.proto",
     ],
     deps = [
-        "//proto:connections_enums_proto",
-        "//proto/errorcode:error_code_enums_proto",
+        "//internal/proto:connections_enums_proto",
+        "//internal/proto/errorcode:error_code_enums_proto",
     ],
 )
 
@@ -33,7 +33,7 @@ proto_library(
     name = "fast_pair_log_proto",
     srcs = ["fast_pair_log.proto"],
     compatible_with = ["//buildenv/target:non_prod"],
-    deps = ["//proto:fast_pair_enums_proto"],
+    deps = ["//internal/proto:fast_pair_enums_proto"],
 )
 
 cc_proto_library(
@@ -66,7 +66,7 @@ cc_test(
         ":connections_log_cc_proto",
         "//internal/platform:logging",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//proto:connections_enums_cc_proto",
+        "//internal/proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",

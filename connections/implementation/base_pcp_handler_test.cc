@@ -35,14 +35,14 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
 using ::location::nearby::connections::OsInfo;
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::internal::connections::proto::Medium;
 using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Invoke;

@@ -45,7 +45,7 @@ namespace connections {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::V1Frame;
-using ::location::nearby::proto::connections::DisconnectionReason;
+using ::location::nearby::internal::connections::proto::DisconnectionReason;
 
 // Required for C++ 14 support in Chrome
 constexpr absl::Duration BwuManager::kReadClientIntroductionFrameTimeout;

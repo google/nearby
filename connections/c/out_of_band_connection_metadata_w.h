@@ -19,7 +19,7 @@
 #include "connections/c/medium_selector_w.h"
 #include "connections/c/strategy_w.h"
 #include "internal/platform/byte_array.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby::windows {
 

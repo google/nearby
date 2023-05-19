@@ -34,7 +34,7 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {
@@ -45,54 +45,57 @@ constexpr absl::string_view kOnStartClientSession = "OnStartClientSession";
 }  // namespace
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
-using ::location::nearby::proto::connections::ACCEPTED;
-using ::location::nearby::proto::connections::ADVERTISER;
-using ::location::nearby::proto::connections::BandwidthUpgradeErrorStage;
-using ::location::nearby::proto::connections::BandwidthUpgradeResult;
-using ::location::nearby::proto::connections::BYTES;
-using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::CONNECTION_CLOSED;
-using ::location::nearby::proto::connections::ConnectionAttemptDirection;
-using ::location::nearby::proto::connections::ConnectionAttemptResult;
-using ::location::nearby::proto::connections::ConnectionAttemptType;
-using ::location::nearby::proto::connections::ConnectionBand;
-using ::location::nearby::proto::connections::ConnectionRequestResponse;
-using ::location::nearby::proto::connections::ConnectionsStrategy;
-using ::location::nearby::proto::connections::ConnectionTechnology;
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::DISCOVERER;
-using ::location::nearby::proto::connections::ERROR_CODE;
-using ::location::nearby::proto::connections::EventType;
-using ::location::nearby::proto::connections::FILE;
-using ::location::nearby::proto::connections::IGNORED;
-using ::location::nearby::proto::connections::INCOMING;
-using ::location::nearby::proto::connections::INITIAL;
-using ::location::nearby::proto::connections::Medium;
-using ::location::nearby::proto::connections::MOVED_TO_NEW_MEDIUM;
-using ::location::nearby::proto::connections::NOT_SENT;
-using ::location::nearby::proto::connections::OUTGOING;
-using ::location::nearby::proto::connections::P2P_CLUSTER;
-using ::location::nearby::proto::connections::P2P_POINT_TO_POINT;
-using ::location::nearby::proto::connections::P2P_STAR;
-using ::location::nearby::proto::connections::PayloadStatus;
-using ::location::nearby::proto::connections::PayloadType;
-using ::location::nearby::proto::connections::REJECTED;
-using ::location::nearby::proto::connections::RESULT_SUCCESS;
-using ::location::nearby::proto::connections::SessionRole;
-using ::location::nearby::proto::connections::START_CLIENT_SESSION;
-using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
-using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STREAM;
-using ::location::nearby::proto::connections::UNFINISHED;
-using ::location::nearby::proto::connections::UNFINISHED_ERROR;
-using ::location::nearby::proto::connections::UNKNOWN_MEDIUM;
-using ::location::nearby::proto::connections::UNKNOWN_PAYLOAD_TYPE;
-using ::location::nearby::proto::connections::UNKNOWN_STRATEGY;
-using ::location::nearby::proto::connections::UPGRADE_RESULT_SUCCESS;
-using ::location::nearby::proto::connections::UPGRADE_SUCCESS;
-using ::location::nearby::proto::connections::UPGRADE_UNFINISHED;
-using ::location::nearby::proto::connections::UPGRADED;
+using ::location::nearby::internal::connections::proto::ACCEPTED;
+using ::location::nearby::internal::connections::proto::ADVERTISER;
+using ::location::nearby::internal::connections::proto::
+    BandwidthUpgradeErrorStage;
+using ::location::nearby::internal::connections::proto::BandwidthUpgradeResult;
+using ::location::nearby::internal::connections::proto::BYTES;
+using ::location::nearby::internal::connections::proto::CLIENT_SESSION;
+using ::location::nearby::internal::connections::proto::CONNECTION_CLOSED;
+using ::location::nearby::internal::connections::proto::
+    ConnectionAttemptDirection;
+using ::location::nearby::internal::connections::proto::ConnectionAttemptResult;
+using ::location::nearby::internal::connections::proto::ConnectionAttemptType;
+using ::location::nearby::internal::connections::proto::ConnectionBand;
+using ::location::nearby::internal::connections::proto::
+    ConnectionRequestResponse;
+using ::location::nearby::internal::connections::proto::ConnectionsStrategy;
+using ::location::nearby::internal::connections::proto::ConnectionTechnology;
+using ::location::nearby::internal::connections::proto::DisconnectionReason;
+using ::location::nearby::internal::connections::proto::DISCOVERER;
+using ::location::nearby::internal::connections::proto::ERROR_CODE;
+using ::location::nearby::internal::connections::proto::EventType;
+using ::location::nearby::internal::connections::proto::FILE;
+using ::location::nearby::internal::connections::proto::IGNORED;
+using ::location::nearby::internal::connections::proto::INCOMING;
+using ::location::nearby::internal::connections::proto::INITIAL;
+using ::location::nearby::internal::connections::proto::Medium;
+using ::location::nearby::internal::connections::proto::MOVED_TO_NEW_MEDIUM;
+using ::location::nearby::internal::connections::proto::NOT_SENT;
+using ::location::nearby::internal::connections::proto::OUTGOING;
+using ::location::nearby::internal::connections::proto::P2P_CLUSTER;
+using ::location::nearby::internal::connections::proto::P2P_POINT_TO_POINT;
+using ::location::nearby::internal::connections::proto::P2P_STAR;
+using ::location::nearby::internal::connections::proto::PayloadStatus;
+using ::location::nearby::internal::connections::proto::PayloadType;
+using ::location::nearby::internal::connections::proto::REJECTED;
+using ::location::nearby::internal::connections::proto::RESULT_SUCCESS;
+using ::location::nearby::internal::connections::proto::SessionRole;
+using ::location::nearby::internal::connections::proto::START_CLIENT_SESSION;
+using ::location::nearby::internal::connections::proto::START_STRATEGY_SESSION;
+using ::location::nearby::internal::connections::proto::STOP_CLIENT_SESSION;
+using ::location::nearby::internal::connections::proto::STOP_STRATEGY_SESSION;
+using ::location::nearby::internal::connections::proto::STREAM;
+using ::location::nearby::internal::connections::proto::UNFINISHED;
+using ::location::nearby::internal::connections::proto::UNFINISHED_ERROR;
+using ::location::nearby::internal::connections::proto::UNKNOWN_MEDIUM;
+using ::location::nearby::internal::connections::proto::UNKNOWN_PAYLOAD_TYPE;
+using ::location::nearby::internal::connections::proto::UNKNOWN_STRATEGY;
+using ::location::nearby::internal::connections::proto::UPGRADE_RESULT_SUCCESS;
+using ::location::nearby::internal::connections::proto::UPGRADE_SUCCESS;
+using ::location::nearby::internal::connections::proto::UPGRADE_UNFINISHED;
+using ::location::nearby::internal::connections::proto::UPGRADED;
 using ::nearby::analytics::EventLogger;
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
@@ -104,7 +107,7 @@ AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
 
 AnalyticsRecorder::~AnalyticsRecorder() {
   serial_executor_.Shutdown();
-  ResetClientSessionLoggingResouces();
+  ResetClientSessionLoggingResources();
 }
 
 bool AnalyticsRecorder::IsSessionLogged() {
@@ -112,7 +115,7 @@ bool AnalyticsRecorder::IsSessionLogged() {
   return session_was_logged_;
 }
 
-void AnalyticsRecorder::ResetClientSessionLoggingResouces() {
+void AnalyticsRecorder::ResetClientSessionLoggingResources() {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "Reset AnalyticsRecorder ctor event_logger_="
                     << event_logger_;
@@ -762,7 +765,7 @@ void AnalyticsRecorder::LogClientSession() {
             << connections_log.DebugString();
 
         event_logger_->Log(connections_log);
-        ResetClientSessionLoggingResouces();
+        ResetClientSessionLoggingResources();
       });
 }
 

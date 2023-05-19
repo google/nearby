@@ -28,7 +28,7 @@ namespace {
 // pure virtual functions in order to test BaseBwuHandler's bookkeeping logic.
 class BwuHandlerImpl : public BaseBwuHandler {
  public:
-  using Medium = ::location::nearby::proto::connections::Medium;
+  using Medium = ::location::nearby::internal::connections::proto::Medium;
 
   // The arguments passed to the BwuHandler methods. Not all values are set
   // for every method.

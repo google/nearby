@@ -17,11 +17,11 @@ syntax = "proto2";
 package location.nearby.analytics.proto;
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
-import "proto/connections_enums.proto";
-import "proto/errorcode/error_code_enums.proto";
+import "internal/proto/connections_enums.proto";
+import "internal/proto/errorcode/error_code_enums.proto";
 
 option optimize_for = LITE_RUNTIME;
-option java_package = "com.google.location.nearby.analytics.proto";
+option java_package = "com.google.location.nearby.internal.proto.analytics";
 option java_outer_classname = "ConnectionsLogProto";
 option objc_class_prefix = "GNCP";
 
@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 // Next Tag: 7
 message ConnectionsLog {
   // The type of this log.
-  optional location.nearby.proto.connections.EventType event_type = 1;
+  optional location.nearby.internal.proto.connections.EventType event_type = 1;
 
   // Non-null for EventType.CLIENT_SESSION.
   // Encapsulates all client activity between connecting to and disconnecting
@@ -76,7 +76,8 @@ message ConnectionsLog {
     optional int64 duration_millis = 1;
 
     // The Strategy used for this session.
-    optional location.nearby.proto.connections.ConnectionsStrategy strategy = 2;
+    optional location.nearby.internal.proto.connections.ConnectionsStrategy
+        strategy = 2;
 
     // The role(s) played by this device during this StrategySession.
     repeated location.nearby.proto.connections.SessionRole role = 3;

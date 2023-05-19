@@ -21,7 +21,7 @@
 
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "internal/platform/byte_array.h"
-#include "proto/mediums/web_rtc_signaling_frames.pb.h"
+#include "internal/proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace nearby {

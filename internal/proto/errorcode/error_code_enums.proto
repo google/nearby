@@ -14,13 +14,13 @@
 
 syntax = "proto2";
 
-package location.nearby.errorcode.proto;
+package location.nearby.internal.proto.errorcode;
 
 // import "logs/proto/logs_annotations/logs_annotations.proto";
 
 // option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option optimize_for = LITE_RUNTIME;
-option java_package = "com.google.location.nearby.errorcode.proto";
+option java_package = "com.google.location.nearby.internal.proto.errorcode";
 option java_outer_classname = "ErrorCodeEnums";
 option objc_class_prefix = "GNCP";
 
