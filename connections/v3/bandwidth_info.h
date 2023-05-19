@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_V3_BANDWIDTH_INFO_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_V3_BANDWIDTH_INFO_H_
 
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

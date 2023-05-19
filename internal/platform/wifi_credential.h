@@ -19,7 +19,7 @@
 
 #include "absl/strings/str_format.h"
 #include "internal/platform/prng.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 

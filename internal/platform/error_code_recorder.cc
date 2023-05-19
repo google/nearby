@@ -15,7 +15,7 @@
 #include "internal/platform/error_code_recorder.h"
 
 #include "internal/platform/logging.h"
-#include "proto/errorcode/error_code_enums.pb.h"
+#include "internal/proto/errorcode/error_code_enums.pb.h"
 
 namespace nearby {
 

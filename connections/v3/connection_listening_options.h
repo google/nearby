@@ -19,7 +19,7 @@
 
 #include "connections/strategy.h"
 #include "internal/interop/device.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

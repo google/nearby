@@ -18,7 +18,7 @@
 
 #include "internal/analytics/event_logger.h"
 #include "internal/proto/analytics/fast_pair_log.proto.h"
-#include "proto/fast_pair_enums.proto.h"
+#include "internal/proto/fast_pair_enums.proto.h"
 #include "third_party/protobuf/message_lite.h"
 
 namespace nearby {

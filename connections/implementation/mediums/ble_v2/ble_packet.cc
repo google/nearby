@@ -21,7 +21,7 @@
 #include "absl/strings/str_cat.h"
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
-#include "proto/mediums/ble_frames.pb.h"
+#include "internal/proto/mediums/ble_frames.pb.h"
 
 namespace nearby {
 namespace connections {

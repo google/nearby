@@ -49,7 +49,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:util",
         "//internal/platform:uuid",
-        "//proto/mediums:ble_frames_cc_proto",
+        "//internal/proto/mediums:ble_frames_cc_proto",
         "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -80,7 +80,7 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        "//proto/mediums:ble_frames_cc_proto",
+        "//internal/proto/mediums:ble_frames_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status:statusor",

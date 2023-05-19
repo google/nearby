@@ -21,7 +21,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/statusor.h"
-#include "proto/mediums/ble_frames.proto.h"
+#include "internal/proto/mediums/ble_frames.proto.h"
 
 namespace nearby {
 namespace connections {

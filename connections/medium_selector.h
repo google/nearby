@@ -15,7 +15,8 @@
 #define CORE_MEDIUM_SELECTOR_H_
 
 #include <vector>
-#include "proto/connections_enums.pb.h"
+
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

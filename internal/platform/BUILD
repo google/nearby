@@ -56,7 +56,7 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        "//proto:connections_enums_cc_proto",
+        "//internal/proto:connections_enums_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/meta:type_traits",
@@ -157,7 +157,7 @@ cc_library(
     ],
     deps = [
         ":logging",
-        "//proto:connections_enums_cc_proto",
+        "//internal/proto:connections_enums_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -178,8 +178,8 @@ cc_library(
     visibility = ["//connections/implementation:__subpackages__"],
     deps = [
         ":logging",
-        "//proto:connections_enums_cc_proto",
-        "//proto/errorcode:error_code_enums_cc_proto",
+        "//internal/proto:connections_enums_cc_proto",
+        "//internal/proto/errorcode:error_code_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )
@@ -484,8 +484,8 @@ cc_test(
         ":uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:connections_enums_cc_proto",
         "//internal/proto:credential_cc_proto",
-        "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",

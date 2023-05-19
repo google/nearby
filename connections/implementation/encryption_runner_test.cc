@@ -24,7 +24,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/system_clock.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

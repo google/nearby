@@ -32,7 +32,7 @@
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/exception.h"
 #include "internal/proto/analytics/connections_log.proto.h"
-#include "proto/connections_enums.proto.h"
+#include "internal/proto/connections_enums.proto.h"
 #include "third_party/protobuf/message_lite.h"
 
 namespace nearby {

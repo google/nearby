@@ -17,8 +17,8 @@ syntax = "proto2";
 package location.nearby.analytics.proto;
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
-import "proto/connections_enums.proto";
-import "proto/errorcode/error_code_enums.proto";
+import "internal/proto/connections_enums.proto";
+import "internal/proto/errorcode/error_code_enums.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.analytics.proto";

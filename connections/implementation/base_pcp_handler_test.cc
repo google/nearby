@@ -35,7 +35,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

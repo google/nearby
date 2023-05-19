@@ -77,7 +77,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",
-        "//proto:connections_enums_cc_proto",
+        "//internal/proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/types:variant",
     ],

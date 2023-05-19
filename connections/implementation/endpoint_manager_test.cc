@@ -34,8 +34,8 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "internal/proto/connections_enums.pb.h"
 #include "internal/test/fake_single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

@@ -41,7 +41,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "//internal/proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",

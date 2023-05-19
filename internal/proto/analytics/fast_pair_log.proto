@@ -16,7 +16,7 @@ syntax = "proto2";
 
 package nearby.proto.fastpair;
 
-import "third_party/nearby/proto/fast_pair_enums.proto";
+import "internal/proto/fast_pair_enums.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "nearby.proto.fastpair";

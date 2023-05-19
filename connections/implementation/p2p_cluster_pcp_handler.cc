@@ -32,7 +32,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/types.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

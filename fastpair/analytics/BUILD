@@ -27,8 +27,8 @@ cc_library(
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//internal/analytics:event_logger",
+        "//internal/proto:fast_pair_enums_cc_proto",
         "//internal/proto/analytics:fast_pair_log_cc_proto",
-        "//proto:fast_pair_enums_cc_proto",
         "//third_party/protobuf:protobuf_lite",
     ],
 )
@@ -39,8 +39,8 @@ cc_test(
     deps = [
         ":analytics",
         "//internal/analytics:event_logger",
+        "//internal/proto:fast_pair_enums_cc_proto",
         "//internal/proto/analytics:fast_pair_log_cc_proto",
-        "//proto:fast_pair_enums_cc_proto",
         "//third_party/protobuf:protobuf_lite",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

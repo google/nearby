@@ -15,8 +15,8 @@
 #ifndef PLATFORM_BASE_ERROR_CORE_PARAMS_H_
 #define PLATFORM_BASE_ERROR_CORE_PARAMS_H_
 
-#include "proto/connections_enums.pb.h"
-#include "proto/errorcode/error_code_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
+#include "internal/proto/errorcode/error_code_enums.pb.h"
 
 namespace nearby {
 

@@ -25,7 +25,7 @@
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/payload_type.h"
 #include "internal/platform/mutex.h"
-#include "proto/connections_enums.pb.h"
+#include "internal/proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace analytics {

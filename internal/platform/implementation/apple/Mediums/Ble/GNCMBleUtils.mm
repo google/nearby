@@ -19,7 +19,7 @@
 
 #import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
-#include "proto/mediums/ble_frames.pb.h"
+#include "internal/proto/mediums/ble_frames.pb.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN

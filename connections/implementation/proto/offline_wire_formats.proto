@@ -77,7 +77,7 @@ message ConnectionRequestFrame {
     BLE_L2CAP = 10;
     USB = 11;
   }
-  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
+  // LINT.ThenChange(//depot/google3/third_party/nearby/internal/proto/connections_enums.proto)
 
   optional string endpoint_id = 1;
   optional string endpoint_name = 2;
