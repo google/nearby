@@ -296,7 +296,10 @@ EndpointManager::EndpointManager(
 
 EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "Initiating shutdown of EndpointManager.");
-  is_shutdown_ = true;
+  {
+    MutexLock lock(&mutex_);
+    is_shutdown_ = true;
+  }
   analytics::ThroughputRecorderContainer::GetInstance().Shutdown();
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
@@ -413,11 +416,12 @@ void EndpointManager::RegisterEndpoint(
         absl::Milliseconds(connection_options.keep_alive_interval_millis);
     absl::Duration keep_alive_timeout =
         absl::Milliseconds(connection_options.keep_alive_timeout_millis);
-    NEARBY_LOGS(INFO)
-        << "Registering endpoint " << endpoint_id << " for client "
-        << client->GetClientId() << " with keep-alive frame as interval="
-        << absl::FormatDuration(keep_alive_interval)
-        << ", timeout=" << absl::FormatDuration(keep_alive_timeout);
+    NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id
+                      << " for client " << client->GetClientId()
+                      << " with keep-alive frame as interval="
+                      << absl::FormatDuration(keep_alive_interval)
+                      << ", timeout="
+                      << absl::FormatDuration(keep_alive_timeout);
 
     // Pass ownership of channel to EndpointChannelManager
     NEARBY_LOGS(INFO) << "Registering endpoint with channel manager: endpoint "
@@ -530,48 +534,50 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
   NEARBY_LOGS(VERBOSE) << "DiscardEndpoint for endpoint " << endpoint_id;
-  RunOnEndpointManagerThread(
-      "discard-endpoint", [this, client, endpoint_id]() {
-        // `ClientProxy` is destroyed before `EndpointManager` in
-        // `~NearbyConnections`, which means "discard-endpoint" needs to check
-        // if this task is being executing during `~EndpointManager` to
-        // prevent accessing an invalid `ClientProxy` pointer. There are two
-        // cases where "discard-endpoint" can be executed during destruction,
-        // both of which can safely use `is_shutdown_` to check if this is being
-        // executed during the destruction of the object:
-        //
-        // Case 1: "discard-endpoints" is posted to the thread before
-        // destruction, but not executed yet: `~EndpointManager` blocks on
-        // "bring-down-endpoints" and because the executor is a single thread
-        // executor, tasks are guaranteed to execute sequentially
-        // (see
-        // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--)
-        // and this means that the "discard-endpoints" will be executed before
-        // "bring-down-endpoints", blocking the destruction of `is_shutdown_`
-        // and therefore `is_shutdown_` is not garbage memory.
-        //
-        // Case 2: "discard-endpoints" is posted to the thread during
-        // destruction, after "bring-down-endpoints" is called: the executor
-        // will be destructed before `is_shutdown_` because of the ordering of
-        // `EndpointManager`'s member variables, and the executor's destructor
-        // blocks on running all pending tasks
-        // (see
-        // https://source.chromium.org/chromium/chromium/src/+/refs/heads/main:chrome/services/sharing/nearby/platform/scheduled_executor.cc;l=67;drc=e0e0d24aaa54727dc0a8bc4b159ccdf80d3f5d8d),
-        // which means that "discard-endpoints" will run during the destruction
-        // of `serial_executor_` and will still have access to a valid
-        // `is_shutdown_`.
-        //
-        // TODO(b/280653613): Develop a more robost solution to prevent
-        // accessing an already destroyed `ClientProxy` during destruction.
-        if (is_shutdown_) {
-          NEARBY_LOGS(VERBOSE)
-              << "DiscardEndpoint called during destruction, returning early.";
-          return;
-        }
+  RunOnEndpointManagerThread("discard-endpoint", [this, client, endpoint_id]() {
+    // `ClientProxy` is destroyed before `EndpointManager` in
+    // `~NearbyConnections`, which means "discard-endpoint" needs to check
+    // if this task is being executing during `~EndpointManager` to
+    // prevent accessing an invalid `ClientProxy` pointer. There are two
+    // cases where "discard-endpoint" can be executed during destruction,
+    // both of which can safely use `is_shutdown_` to check if this is being
+    // executed during the destruction of the object:
+    //
+    // Case 1: "discard-endpoints" is posted to the thread before
+    // destruction, but not executed yet: `~EndpointManager` blocks on
+    // "bring-down-endpoints" and because the executor is a single thread
+    // executor, tasks are guaranteed to execute sequentially
+    // (see
+    // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--)
+    // and this means that the "discard-endpoints" will be executed before
+    // "bring-down-endpoints", blocking the destruction of `is_shutdown_`
+    // and therefore `is_shutdown_` is not garbage memory.
+    //
+    // Case 2: "discard-endpoints" is posted to the thread during
+    // destruction, after "bring-down-endpoints" is called: the executor
+    // will be destructed before `is_shutdown_` because of the ordering of
+    // `EndpointManager`'s member variables, and the executor's destructor
+    // blocks on running all pending tasks
+    // (see
+    // https://source.chromium.org/chromium/chromium/src/+/refs/heads/main:chrome/services/sharing/nearby/platform/scheduled_executor.cc;l=67;drc=e0e0d24aaa54727dc0a8bc4b159ccdf80d3f5d8d),
+    // which means that "discard-endpoints" will run during the destruction
+    // of `serial_executor_` and will still have access to a valid
+    // `is_shutdown_`.
+    //
+    // TODO(b/280653613): Develop a more robost solution to prevent
+    // accessing an already destroyed `ClientProxy` during destruction.
+    {
+      MutexLock lock(&mutex_);
+      if (is_shutdown_) {
+        NEARBY_LOGS(VERBOSE)
+            << "DiscardEndpoint called during destruction, returning early.";
+        return;
+      }
+    }
 
-        RemoveEndpoint(client, endpoint_id,
-                       /*notify=*/client->IsConnectedToEndpoint(endpoint_id));
-      });
+    RemoveEndpoint(client, endpoint_id,
+                   /*notify=*/client->IsConnectedToEndpoint(endpoint_id));
+  });
 }
 
 std::vector<std::string> EndpointManager::SendControlMessage(

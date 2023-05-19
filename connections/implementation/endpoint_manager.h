@@ -302,7 +302,8 @@ class EndpointManager {
   // pending tasks during it's destruction, and the "discard-endpoints"
   // task checks `is_shutdown_` to prevent accessing an invalid `ClientProxy`
   // pointer.
-  bool is_shutdown_ = false;
+  mutable RecursiveMutex mutex_;
+  bool is_shutdown_ ABSL_GUARDED_BY(mutex_) = false;
 
   std::unique_ptr<SingleThreadExecutor> serial_executor_;
 };
