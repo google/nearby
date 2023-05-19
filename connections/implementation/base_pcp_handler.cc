@@ -1119,29 +1119,41 @@ void BasePcpHandler::OnEndpointFound(
 void BasePcpHandler::OnEndpointLost(
     ClientProxy* client, const BasePcpHandler::DiscoveredEndpoint& endpoint) {
   // Look up the DiscoveredEndpoint we have in our cache.
-  const auto* discovered_endpoint = GetDiscoveredEndpoint(endpoint.endpoint_id);
-  if (discovered_endpoint == nullptr) {
+  NEARBY_LOGS(INFO) << "OnEndpointLost: id=" << endpoint.endpoint_id;
+
+  auto range = discovered_endpoints_.equal_range(endpoint.endpoint_id);
+  bool is_range_empty = range.first == range.second;
+  if (is_range_empty) {
     NEARBY_LOGS(INFO) << "No previous endpoint (nothing to lose): endpoint_id="
                       << endpoint.endpoint_id;
     return;
   }
+  int count = discovered_endpoints_.count(endpoint.endpoint_id);
+  absl::btree_multimap<std::string,
+                       std::shared_ptr<DiscoveredEndpoint>>::iterator item;
+  for (item = range.first; item != range.second; ++item) {
+    auto& discovered_endpoint = item->second;
+    if (discovered_endpoint->medium != endpoint.medium) continue;
 
-  // Validate that the cached endpoint has the same info as the one reported as
-  // onLost. If the info differs, then no-op. This likely means that the remote
-  // device changed their info. We reported onFound for the new info and are
-  // just now figuring out that we lost the old info.
-  if (discovered_endpoint->endpoint_info != endpoint.endpoint_info) {
-    NEARBY_LOGS(INFO) << "Previous endpoint name mismatch; passed="
-                      << absl::BytesToHexString(endpoint.endpoint_info.data())
-                      << "; expected="
-                      << absl::BytesToHexString(
-                             discovered_endpoint->endpoint_info.data());
-    return;
-  }
-
-  auto item = discovered_endpoints_.extract(endpoint.endpoint_id);
-  if (!discovered_endpoints_.count(endpoint.endpoint_id)) {
-    client->OnEndpointLost(endpoint.service_id, endpoint.endpoint_id);
+    // Validate that the cached endpoint has the same info as the one reported
+    // as onLost. If the info differs, we still remove it. This likely means
+    // that the remote device changed their info. We reported onFound for the
+    // new info and are just now figuring out that we lost the old info.
+    if (discovered_endpoint->endpoint_info != endpoint.endpoint_info) {
+      NEARBY_LOGS(INFO) << "Previous endpoint name mismatch; passed="
+                        << absl::BytesToHexString(endpoint.endpoint_info.data())
+                        << "; expected="
+                        << absl::BytesToHexString(
+                               discovered_endpoint->endpoint_info.data());
+    }
+    NEARBY_LOGS(INFO) << "Erase Endpoint with Meduim: "
+                      << location::nearby::proto::connections::Medium_Name(
+                             discovered_endpoint->medium);
+    if (--count == 0) {
+      client->OnEndpointLost(endpoint.service_id, endpoint.endpoint_id);
+    }
+    discovered_endpoints_.erase(item);
+    break;
   }
 }
 
