@@ -191,6 +191,7 @@ std::vector<std::string> GetIpv4Addresses() {
             break;
     }
   }
+  freeifaddrs(interface);
   return result;
 }
 
