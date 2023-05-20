@@ -28,8 +28,8 @@ namespace api {
 class DeviceInfo {
  public:
   enum class ScreenStatus { kUndetermined = 0, kLocked, kUnlocked };
-  enum class DeviceType { kUnknown = 0, kPhone, kTablet, kLaptop };
-  enum class OsType { kUnknown = 0, kAndroid, kChromeOs, kIos, kWindows };
+  enum class DeviceType { kUnknown = 0, kPhone, kTablet, kLaptop, kDesktop };
+  enum class OsType { kUnknown = 0, kAndroid, kChromeOs, kIos, kWindows, kLinux };
 
   virtual ~DeviceInfo() = default;
 
