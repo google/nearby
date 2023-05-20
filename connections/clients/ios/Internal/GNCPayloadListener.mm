@@ -35,7 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
 namespace nearby {
 namespace connections {
 
-void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload payload) {
+void GNCPayloadListener::OnPayload(absl::string_view endpoint_id, Payload payload) {
   GNCConnectionHandlers *handlers = handlers_provider_();
   int64_t payloadId = payload.GetId();
 
@@ -180,7 +180,7 @@ void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload paylo
   }
 }
 
-void GNCPayloadListener::OnPayloadProgress(const std::string &endpoint_id,
+void GNCPayloadListener::OnPayloadProgress(absl::string_view endpoint_id,
                                            const PayloadProgressInfo &info) {
   // Note: The logic in this callback for handling progress updates and payload completion is
   // identical for Bytes, Stream and File payloads.

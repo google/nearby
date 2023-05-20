@@ -40,6 +40,25 @@ TEST(PreferencesRepository, LoadWithBadPath) {
   EXPECT_TRUE(result.empty());
 }
 
+TEST(PreferencesRepository, RecoverFromBadPreferences) {
+  std::optional<std::filesystem::path> app_data_path =
+      api::ImplementationPlatform::CreateDeviceInfo()->GetLocalAppDataPath();
+  ASSERT_TRUE(app_data_path.has_value());
+  std::filesystem::path full_path = *app_data_path / kPreferencesPath;
+  std::filesystem::path full_name = full_path / kPreferencesFileName;
+
+  if (std::filesystem::exists(full_name)) {
+    std::filesystem::remove(full_name);
+  }
+
+  std::ofstream pref_file(full_name.c_str());
+  pref_file << "\"Bad top level object\"";
+  pref_file.close();
+
+  PreferencesRepository preferences_repository{full_path.string()};
+  EXPECT_EQ(preferences_repository.LoadPreferences(), json::object());
+}
+
 TEST(PreferencesRepository, SaveAndLoadPreferences) {
   std::optional<std::filesystem::path> app_data_path =
       api::ImplementationPlatform::CreateDeviceInfo()->GetLocalAppDataPath();

@@ -225,7 +225,7 @@ TEST_F(FastPairHandshakeImplTest, Success) {
       device, mediums,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
         EXPECT_EQ(&device, &callback_device);
-        EXPECT_EQ(device.public_address(), kPublicAddress);
+        EXPECT_EQ(device.GetPublicAddress(), kPublicAddress);
         EXPECT_FALSE(failure.has_value());
         latch.CountDown();
       });

@@ -27,6 +27,7 @@
 //   default-initialized.
 // - callbacks may be initialized with lambdas; lambda definitions are concize.
 
+#include "absl/functional/any_invocable.h"
 #include "connections/connection_options.h"
 #include "connections/payload.h"
 #include "connections/status.h"
@@ -170,8 +171,8 @@ struct PayloadListener {
   // endpoint_id - The identifier for the remote endpoint that sent the
   //               payload.
   // payload     - The Payload object received.
-  std::function<void(const std::string& endpoint_id, Payload payload)>
-      payload_cb = [](const std::string&, Payload) {};
+  absl::AnyInvocable<void(absl::string_view endpoint_id, Payload payload) const>
+      payload_cb = [](absl::string_view, Payload) {};
 
   // Called with progress information about an active Payload transfer, either
   // incoming or outgoing.
@@ -180,10 +181,10 @@ struct PayloadListener {
   //               receiving this payload.
   // info -  The PayloadProgressInfo structure describing the status of
   //         the transfer.
-  std::function<void(const std::string& endpoint_id,
-                     const PayloadProgressInfo& info)>
+  absl::AnyInvocable<void(absl::string_view endpoint_id,
+                          const PayloadProgressInfo& info)>
       payload_progress_cb =
-          [](const std::string&, const PayloadProgressInfo&) {};
+          [](absl::string_view, const PayloadProgressInfo&) {};
 };
 
 }  // namespace connections

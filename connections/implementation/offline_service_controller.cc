@@ -89,12 +89,13 @@ Status OfflineServiceController::RequestConnection(
 
 Status OfflineServiceController::AcceptConnection(
     ClientProxy* client, const std::string& endpoint_id,
-    const PayloadListener& listener) {
+    PayloadListener listener) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " accepted the connection with endpoint_id="
                     << endpoint_id;
-  return pcp_manager_.AcceptConnection(client, endpoint_id, listener);
+  return pcp_manager_.AcceptConnection(client, endpoint_id,
+                                       std::move(listener));
 }
 
 Status OfflineServiceController::RejectConnection(

@@ -109,12 +109,13 @@ Status PcpManager::RequestConnection(
 
 Status PcpManager::AcceptConnection(ClientProxy* client,
                                     const string& endpoint_id,
-                                    const PayloadListener& payload_listener) {
+                                    PayloadListener payload_listener) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
   }
 
-  return current_->AcceptConnection(client, endpoint_id, payload_listener);
+  return current_->AcceptConnection(client, endpoint_id,
+                                    std::move(payload_listener));
 }
 
 Status PcpManager::RejectConnection(ClientProxy* client,

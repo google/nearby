@@ -62,7 +62,7 @@ class ScheduledExecutor : public api::ScheduledExecutor {
         : task_(std::move(task)), duration_(duration) {}
 
     bool Cancel() override {
-      if (is_executed_) {
+      if (is_executed_ || is_cancelled_) {
         return false;
       }
 

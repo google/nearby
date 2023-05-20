@@ -37,6 +37,15 @@ json PreferencesRepository::LoadPreferences() {
   absl::MutexLock lock(&mutex_);
   std::optional<json> preferences = AttemptLoad();
   if (preferences.has_value()) {
+    // The top level root should be an object, if it's not then something went
+    // wrong or the file was corrupted.
+    if (!preferences.value().is_object()) {
+      NEARBY_LOGS(ERROR) << "Preferences loaded was not a valid object: "
+                         << preferences.value().dump(4);
+
+      return json::object();
+    }
+
     return preferences.value();
   }
 

@@ -213,7 +213,8 @@ void AcceptConnection(connections::Core *pCore, const char *endpoint_id,
   }
   connections::PayloadListener payload_listener =
       std::move(*listener.GetImpl());
-  pCore->AcceptConnection(endpoint_id, payload_listener, *callback.GetImpl());
+  pCore->AcceptConnection(endpoint_id, std::move(payload_listener),
+                          *callback.GetImpl());
 }
 
 void RejectConnection(connections::Core *pCore, const char *endpoint_id,

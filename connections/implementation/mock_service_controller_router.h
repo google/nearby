@@ -60,7 +60,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
 
   MOCK_METHOD(void, AcceptConnection,
               (ClientProxy * client, absl::string_view endpoint_id,
-               const PayloadListener& listener, const ResultCallback& callback),
+               PayloadListener listener, const ResultCallback& callback),
               (override));
 
   MOCK_METHOD(void, RejectConnection,

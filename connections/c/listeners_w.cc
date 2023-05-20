@@ -193,7 +193,7 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
           new connections::PayloadListener())) {
   CHECK(payload_cb != nullptr);
   auto pcb = payload_cb;
-  impl_->payload_cb = [pcb](const std::string &endpoint_id,
+  impl_->payload_cb = [pcb](absl::string_view endpoint_id,
                             connections::Payload payload) {
     PayloadW payloadW;
 
@@ -221,13 +221,13 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
         break;
       }
     }
-    pcb(endpoint_id.c_str(), payloadW);
+    pcb(std::string(endpoint_id).c_str(), payloadW);
   };
 
   CHECK(payload_progress_cb != nullptr);
   auto ppcb = payload_progress_cb;
   impl_->payload_progress_cb =
-      [ppcb](const std::string &endpoint_id,
+      [ppcb](absl::string_view endpoint_id,
              connections::PayloadProgressInfo payload_progress_info) {
         PayloadProgressInfoW payload_progress_info_w;
         payload_progress_info_w.payload_id = payload_progress_info.payload_id;
@@ -254,7 +254,7 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
             break;
         }
 
-        ppcb(endpoint_id.c_str(), payload_progress_info_w);
+        ppcb(std::string(endpoint_id).c_str(), payload_progress_info_w);
       };
 }
 

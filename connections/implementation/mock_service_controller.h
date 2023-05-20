@@ -60,7 +60,7 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(Status, AcceptConnection,
               (ClientProxy * client, const std::string& endpoint_id,
-               const PayloadListener& listener),
+               PayloadListener listener),
               (override));
 
   MOCK_METHOD(Status, RejectConnection,

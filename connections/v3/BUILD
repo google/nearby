@@ -3,7 +3,7 @@ cc_library(
     hdrs = [
         "bandwidth_info.h",
         "connection_listening_options.h",
-        "connection_resolution.h",
+        "connection_result.h",
         "connections_device.h",
         "connections_device_provider.h",
         "listeners.h",

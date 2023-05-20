@@ -46,44 +46,34 @@ TEST(FastPairDevice, GetAndSetName) {
   FastPairDevice device("model_id", "ble_address",
                         Protocol::kFastPairInitialPairing);
   // Test that name returns null before any sets.
-  std::optional<std::string> name = device.display_name();
-  EXPECT_FALSE(name.has_value());
+  EXPECT_FALSE(device.GetDisplayName().has_value());
 
   // Test that name returns the set value.
   std::string test_name = "test_name";
-  device.set_display_name(test_name);
-  name = device.display_name();
-  EXPECT_TRUE(name.has_value());
-  EXPECT_EQ(name.value(), test_name);
+  device.SetDisplayName(test_name);
+  EXPECT_EQ(device.GetDisplayName().value(), test_name);
 
   // Test that overriding works.
   std::string new_test_name = "new_test_name";
-  device.set_display_name(new_test_name);
-  name = device.display_name();
-  EXPECT_TRUE(name.has_value());
-  EXPECT_EQ(name.value(), new_test_name);
+  device.SetDisplayName(new_test_name);
+  EXPECT_EQ(device.GetDisplayName().value(), new_test_name);
 }
 
 TEST(FastPairDevice, GetAndPublicAddress) {
   FastPairDevice device("model_id", "ble_address",
                         Protocol::kFastPairInitialPairing);
   // Test that public address returns null before any sets.
-  std::optional<std::string> public_address = device.public_address();
-  EXPECT_FALSE(public_address.has_value());
+  EXPECT_FALSE(device.GetPublicAddress().has_value());
 
   // Test that name returns the set value.
-  std::string test_public_address = "test_public_address ";
-  device.set_public_address(test_public_address);
-  public_address = device.public_address();
-  EXPECT_TRUE(public_address.has_value());
-  EXPECT_EQ(public_address.value(), test_public_address);
+  std::string test_GetPublicAddress = "test_GetPublicAddress ";
+  device.SetPublicAddress(test_GetPublicAddress);
+  EXPECT_EQ(device.GetPublicAddress().value(), test_GetPublicAddress);
 
   // Test that overriding works.
-  std::string new_test_public_address = "new_test_public_address ";
-  device.set_public_address(new_test_public_address);
-  public_address = device.public_address();
-  EXPECT_TRUE(public_address.has_value());
-  EXPECT_EQ(public_address.value(), new_test_public_address);
+  std::string new_test_GetPublicAddress = "new_test_GetPublicAddress ";
+  device.SetPublicAddress(new_test_GetPublicAddress);
+  EXPECT_EQ(device.GetPublicAddress().value(), new_test_GetPublicAddress);
 }
 
 }  // namespace

@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_CONNECTIONS_V3_CONNECTION_RESOLUTION_H_
-#define THIRD_PARTY_NEARBY_CONNECTIONS_V3_CONNECTION_RESOLUTION_H_
+syntax = "proto3";
 
-#include "connections/status.h"
+package nearby.internal.tachyon_proto;
 
-namespace nearby {
-namespace connections {
-namespace v3 {
+option optimize_for = LITE_RUNTIME;
 
-struct ConnectionResult {
-  nearby::connections::Status status;
-};
-
-}  // namespace v3
-}  // namespace connections
-}  // namespace nearby
-
-#endif  // THIRD_PARTY_NEARBY_CONNECTIONS_V3_CONNECTION_RESOLUTION_H_
+message Duration {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}

@@ -33,7 +33,7 @@ namespace fastpair {
 FastPairController::FastPairController(Mediums* mediums,
                                        const BluetoothDevice& device)
     : mediums_(mediums), device_(Protocol::kFastPairRetroactivePairing) {
-  device_.set_public_address(device.GetMacAddress());
+  device_.SetPublicAddress(device.GetMacAddress());
 }
 
 absl::Status FastPairController::OpenMessageStream() {

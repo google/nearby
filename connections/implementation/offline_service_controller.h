@@ -59,7 +59,7 @@ class OfflineServiceController : public ServiceController {
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) override;
   Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
-                          const PayloadListener& listener) override;
+                          PayloadListener listener) override;
   Status RejectConnection(ClientProxy* client,
                           const std::string& endpoint_id) override;
 

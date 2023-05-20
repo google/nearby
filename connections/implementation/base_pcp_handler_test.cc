@@ -17,6 +17,7 @@
 #include <array>
 #include <atomic>
 #include <memory>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -178,6 +179,10 @@ class MockPcpHandler : public BasePcpHandler {
   void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint)
       ABSL_NO_THREAD_SAFETY_ANALYSIS {
     BasePcpHandler::OnEndpointLost(client, endpoint);
+  }
+  BasePcpHandler::DiscoveredEndpoint* GetDiscoveredEndpoint(
+      const std::string& endpoint_id) {
+    return BasePcpHandler::GetDiscoveredEndpoint(endpoint_id);
   }
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
       const std::string& endpoint_id) {
@@ -733,10 +738,15 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
     EXPECT_EQ(pcp_handler.AcceptConnection(&client, endpoint_id, {}),
               Status{Status::kSuccess});
     EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+    auto endpoint_disc = pcp_handler.GetDiscoveredEndpoint(endpoint_id);
+    pcp_handler.OnEndpointLost(&client, *endpoint_disc);
+    EXPECT_NE(pcp_handler.GetDiscoveredEndpoint(endpoint_id), nullptr);
     for (const auto* endpoint :
          pcp_handler.GetDiscoveredEndpoints(endpoint_id)) {
       pcp_handler.OnEndpointLost(&client, *endpoint);
     }
+    EXPECT_EQ(pcp_handler.GetDiscoveredEndpoint(endpoint_id), nullptr);
+    EXPECT_FALSE(client.IsConnectedToEndpoint(endpoint_id));
     NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
     channel_b->Close();
     bwu.Shutdown();
