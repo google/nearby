@@ -49,7 +49,7 @@ std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
     return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(name);
   }
 
-  NEARBY_LOGS(ERROR) << ": Failed to get device name, error:"
+  NEARBY_LOGS(ERROR) << ": Failed to get device name, error: "
                      << strerror(errno);
   delete[] device_name;
   return std::nullopt;
@@ -210,6 +210,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
     delete[] path;
     return std::nullopt;
   }
+
   delete fp;
   std::filesystem::path fpath = std::filesystem::path(path);
   delete[] path;
@@ -217,15 +218,32 @@ std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
-  //TODO: Figure out how to get cross distro path
+  // From lots of research I have done, it seems there is no way to get a path
+  // for this cross distro wise, some distros might implement this path in
+  // a different way. Because of that, this will have to be hard-coded and in
+  // the future may be able to detect which distro and if the path is different
+  // deal with that.
+  
+  std::string app_data_dir(getenv("HOME"));
+  app_data_dir.append("/.local/share");
+
+  if (std::filesystem::is_directory(app_data_dir)) {
+      return app_data_dir;
+  }
 
   return std::nullopt;
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetCommonAppDataPath() const {
-  //TODO: Figure out how to get cross distro path
+  // From lots of research I have done, it seems there is no way to get a path
+  // for this cross distro wise, some distros might implement this path in
+  // a different way. Because of that, this will have to be hard-coded and in
+  // the future may be able to detect which distro and if the path is different
+  // deal with that.
+  
+  // Also there is no common appdata path on Linux
 
-  return std::nullopt;
+  return GetLocalAppDataPath();
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
@@ -233,14 +251,13 @@ std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
-  //TODO: Figure out how to get cross distro path
-
-  return std::nullopt;
+    return std::nullopt;
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
-  //TODO: Figure out how to get cross distro path
-
+  // Crash dumps are handled by the system, it will generate a core (crash) dump
+  // and put it in a directory.
+  // E.g. "Segmentation fault (core dumped)"
   return std::nullopt;
 }
 
