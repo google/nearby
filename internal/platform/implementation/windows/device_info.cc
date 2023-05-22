@@ -270,7 +270,7 @@ std::optional<std::u16string> DeviceInfo::GetLastName() const {
   }
 
   // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
+  // returned in the IVectorView is always the current user.1
   // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
   User current_user = users.GetAt(0);
 
