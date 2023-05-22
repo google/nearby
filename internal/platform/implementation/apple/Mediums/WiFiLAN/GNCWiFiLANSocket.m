@@ -57,7 +57,7 @@
         }
 #if __LP64__
         // This cast is only safe in a 64-bit runtime.
-        blockResult = (NSData *)content;
+        blockResult = [(NSData *)content copy];
 #else
         blockResult = nil;
 #endif
