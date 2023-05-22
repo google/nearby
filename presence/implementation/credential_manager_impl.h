@@ -88,7 +88,8 @@ class CredentialManagerImpl : public CredentialManager {
   GetLocalCredentialsSync(const CredentialSelector& credential_selector,
                           absl::Duration timeout);
 
-  // Used to fetch remote public creds when scanning.
+  // Used to fetch local/remote public creds based on the value of
+  // public_credential_type.
   void GetPublicCredentials(
       const CredentialSelector& credential_selector,
       PublicCredentialType public_credential_type,

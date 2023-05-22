@@ -65,6 +65,15 @@ class PresenceService {
 
   PresenceDeviceProvider* GetLocalDeviceProvider() { return provider_.get(); }
 
+  void GetLocalPublicCredentials(const CredentialSelector& credential_selector,
+                                 GetPublicCredentialsResultCallback callback);
+
+  void UpdateRemotePublicCredentials(
+      absl::string_view manager_app_id, absl::string_view account_name,
+      const std::vector<nearby::internal::SharedCredential>&
+          remote_public_creds,
+      UpdateRemotePublicCredentialsCallback credentials_updated_cb);
+
   // Testing only.
   ::nearby::internal::Metadata GetLocalDeviceMetadata() {
     return service_controller_->GetLocalDeviceMetadata();

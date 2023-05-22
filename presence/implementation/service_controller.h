@@ -49,6 +49,14 @@ class ServiceController {
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) = 0;
   virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
+  virtual void GetLocalPublicCredentials(
+      const CredentialSelector& credential_selector,
+      GetPublicCredentialsResultCallback callback) = 0;
+  virtual void UpdateRemotePublicCredentials(
+      absl::string_view manager_app_id, absl::string_view account_name,
+      const std::vector<nearby::internal::SharedCredential>&
+          remote_public_creds,
+      UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 };
 
 }  // namespace presence

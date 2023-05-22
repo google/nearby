@@ -70,7 +70,8 @@ class CredentialManager {
       const CredentialSelector& credential_selector,
       GetLocalCredentialsResultCallback callback) = 0;
 
-  // Used to fetch remote public creds when scanning.
+  // Used to fetch local/remote public creds based on the value
+  // of public_credential_type.
   virtual void GetPublicCredentials(
       const CredentialSelector& credential_selector,
       PublicCredentialType public_credential_type,

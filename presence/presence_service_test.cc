@@ -14,9 +14,14 @@
 
 #include "presence/presence_service.h"
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/presence_client.h"
 
@@ -25,6 +30,9 @@ namespace presence {
 namespace {
 
 using Metadata = ::nearby::internal::Metadata;
+
+constexpr absl::string_view kManagerAppId = "TEST_MANAGER_APP";
+constexpr absl::string_view kAccountName = "test account";
 
 class PresenceServiceTest : public testing::Test {
  protected:
@@ -38,6 +46,14 @@ Metadata CreateTestMetadata(absl::string_view account_name) {
   metadata.set_device_profile_url("test_image.test.com");
   metadata.set_bluetooth_mac_address("\xFF\xFF\xFF\xFF\xFF\xFF");
   return metadata;
+}
+
+CredentialSelector BuildDefaultCredentialSelector() {
+  CredentialSelector credential_selector;
+  credential_selector.manager_app_id = std::string(kManagerAppId);
+  credential_selector.account_name = std::string(kAccountName);
+  credential_selector.identity_type = internal::IDENTITY_TYPE_PRIVATE;
+  return credential_selector;
 }
 
 TEST_F(PresenceServiceTest, DefaultConstructorWorks) {
@@ -81,6 +97,49 @@ TEST_F(PresenceServiceTest, UpdatingLocalMetadataWorks) {
 TEST_F(PresenceServiceTest, TestGetDeviceProvider) {
   PresenceService presence_service;
   EXPECT_NE(presence_service.GetLocalDeviceProvider(), nullptr);
+}
+
+TEST_F(PresenceServiceTest, TestGetPublicCredentials) {
+  PresenceService presence_service;
+  CredentialSelector selector = BuildDefaultCredentialSelector();
+  absl::Status status;
+  nearby::CountDownLatch fetched_latch(1);
+  presence_service.GetLocalPublicCredentials(
+      selector,
+      {.credentials_fetched_cb =
+           [&status, &fetched_latch](
+               absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
+                   result) {
+             status = result.status();
+             fetched_latch.CountDown();
+           }});
+  EXPECT_TRUE(fetched_latch.Await().Ok());
+  EXPECT_THAT(status, testing::status::StatusIs(absl::StatusCode::kNotFound));
+}
+
+TEST_F(PresenceServiceTest, TestUpdateRemotePublicCredentials) {
+  PresenceService presence_service;
+  internal::SharedCredential public_credential_for_test;
+  public_credential_for_test.set_identity_type(
+      internal::IdentityType::IDENTITY_TYPE_TRUSTED);
+  std::vector<internal::SharedCredential> public_credentials{
+      {public_credential_for_test}};
+
+  nearby::CountDownLatch updated_latch(1);
+  UpdateRemotePublicCredentialsCallback update_credentials_cb{
+      .credentials_updated_cb =
+          [&updated_latch](absl::Status status) {
+            if (status.ok()) {
+              updated_latch.CountDown();
+            }
+          },
+  };
+
+  presence_service.UpdateRemotePublicCredentials(
+      kManagerAppId, kAccountName, public_credentials,
+      std::move(update_credentials_cb));
+
+  EXPECT_TRUE(updated_latch.Await().Ok());
 }
 
 }  // namespace

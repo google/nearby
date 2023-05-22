@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
@@ -50,6 +51,22 @@ absl::StatusOr<BroadcastSessionId> PresenceService::StartBroadcast(
 
 void PresenceService::StopBroadcast(BroadcastSessionId session) {
   service_controller_->StopBroadcast(session);
+}
+
+void PresenceService::GetLocalPublicCredentials(
+    const CredentialSelector& credential_selector,
+    GetPublicCredentialsResultCallback callback) {
+  service_controller_->GetLocalPublicCredentials(credential_selector,
+                                                 std::move(callback));
+}
+
+void PresenceService::UpdateRemotePublicCredentials(
+    absl::string_view manager_app_id, absl::string_view account_name,
+    const std::vector<nearby::internal::SharedCredential>& remote_public_creds,
+    UpdateRemotePublicCredentialsCallback credentials_updated_cb) {
+  service_controller_->UpdateRemotePublicCredentials(
+      manager_app_id, account_name, remote_public_creds,
+      std::move(credentials_updated_cb));
 }
 
 }  // namespace presence

@@ -53,5 +53,22 @@ void ServiceControllerImpl::UpdateLocalDeviceMetadata(
       std::move(credentials_generated_cb));
 }
 
+void ServiceControllerImpl::GetLocalPublicCredentials(
+    const CredentialSelector& credential_selector,
+    GetPublicCredentialsResultCallback callback) {
+  credential_manager_.GetPublicCredentials(
+      credential_selector, PublicCredentialType::kLocalPublicCredential,
+      std::move(callback));
+}
+
+void ServiceControllerImpl::UpdateRemotePublicCredentials(
+    absl::string_view manager_app_id, absl::string_view account_name,
+    const std::vector<nearby::internal::SharedCredential>& remote_public_creds,
+    UpdateRemotePublicCredentialsCallback credentials_updated_cb) {
+  credential_manager_.UpdateRemotePublicCredentials(
+      manager_app_id, account_name, remote_public_creds,
+      std::move(credentials_updated_cb));
+}
+
 }  // namespace presence
 }  // namespace nearby
