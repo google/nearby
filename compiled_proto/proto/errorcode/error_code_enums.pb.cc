@@ -107,13 +107,14 @@ bool Event_IsValid(int value) {
     case 11:
     case 12:
     case 13:
+    case 14:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Event_strings[14] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Event_strings[15] = {};
 
 static const char Event_names[] =
   "ACCEPT_CONNECTION"
@@ -129,7 +130,8 @@ static const char Event_names[] =
   "STOP_ADVERTISING"
   "STOP_DISCOVERING"
   "STOP_LISTENING_INCOMING_CONNECTION"
-  "UNKNOWN_EVENT";
+  "UNKNOWN_EVENT"
+  "UPGRADE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry Event_entries[] = {
   { {Event_names + 0, 17}, 9 },
@@ -146,6 +148,7 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry Event_entries[] = {
   { {Event_names + 177, 16}, 6 },
   { {Event_names + 193, 34}, 4 },
   { {Event_names + 227, 13}, 0 },
+  { {Event_names + 240, 7}, 14 },
 };
 
 static const int Event_entries_by_number[] = {
@@ -163,6 +166,7 @@ static const int Event_entries_by_number[] = {
   6, // 11 -> SEND_PAYLOAD
   1, // 12 -> CANCEL_PAYLOAD
   4, // 13 -> RECEIVE_PAYLOAD
+  14, // 14 -> UPGRADE
 };
 
 const std::string& Event_Name(
@@ -171,12 +175,12 @@ const std::string& Event_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           Event_entries,
           Event_entries_by_number,
-          14, Event_strings);
+          15, Event_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       Event_entries,
       Event_entries_by_number,
-      14, value);
+      15, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      Event_strings[idx].get();
 }
@@ -184,7 +188,7 @@ bool Event_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, Event* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      Event_entries, 14, name, &int_value);
+      Event_entries, 15, name, &int_value);
   if (success) {
     *value = static_cast<Event>(int_value);
   }
@@ -865,6 +869,261 @@ bool DisconnectError_Parse(
   }
   return success;
 }
+bool SendPayloadError_IsValid(int value) {
+  switch (value) {
+    case 31:
+    case 32:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SendPayloadError_strings[2] = {};
+
+static const char SendPayloadError_names[] =
+  "SEND_PAYLOAD_FAILED"
+  "UNKNOWN_SEND_PAYLOAD_ERROR";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SendPayloadError_entries[] = {
+  { {SendPayloadError_names + 0, 19}, 32 },
+  { {SendPayloadError_names + 19, 26}, 31 },
+};
+
+static const int SendPayloadError_entries_by_number[] = {
+  1, // 31 -> UNKNOWN_SEND_PAYLOAD_ERROR
+  0, // 32 -> SEND_PAYLOAD_FAILED
+};
+
+const std::string& SendPayloadError_Name(
+    SendPayloadError value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          SendPayloadError_entries,
+          SendPayloadError_entries_by_number,
+          2, SendPayloadError_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      SendPayloadError_entries,
+      SendPayloadError_entries_by_number,
+      2, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     SendPayloadError_strings[idx].get();
+}
+bool SendPayloadError_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SendPayloadError* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      SendPayloadError_entries, 2, name, &int_value);
+  if (success) {
+    *value = static_cast<SendPayloadError>(int_value);
+  }
+  return success;
+}
+bool ReceivePayloadError_IsValid(int value) {
+  switch (value) {
+    case 31:
+    case 32:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ReceivePayloadError_strings[2] = {};
+
+static const char ReceivePayloadError_names[] =
+  "RECEIVE_PAYLOAD_FAILED"
+  "UNKNOWN_RECEIVE_PAYLOAD_ERROR";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ReceivePayloadError_entries[] = {
+  { {ReceivePayloadError_names + 0, 22}, 32 },
+  { {ReceivePayloadError_names + 22, 29}, 31 },
+};
+
+static const int ReceivePayloadError_entries_by_number[] = {
+  1, // 31 -> UNKNOWN_RECEIVE_PAYLOAD_ERROR
+  0, // 32 -> RECEIVE_PAYLOAD_FAILED
+};
+
+const std::string& ReceivePayloadError_Name(
+    ReceivePayloadError value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ReceivePayloadError_entries,
+          ReceivePayloadError_entries_by_number,
+          2, ReceivePayloadError_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ReceivePayloadError_entries,
+      ReceivePayloadError_entries_by_number,
+      2, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ReceivePayloadError_strings[idx].get();
+}
+bool ReceivePayloadError_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ReceivePayloadError* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ReceivePayloadError_entries, 2, name, &int_value);
+  if (success) {
+    *value = static_cast<ReceivePayloadError>(int_value);
+  }
+  return success;
+}
+bool UpgradeError_IsValid(int value) {
+  switch (value) {
+    case 31:
+    case 32:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> UpgradeError_strings[2] = {};
+
+static const char UpgradeError_names[] =
+  "CREATE_P2P_GROUP_FAILED"
+  "UNKNOWN_UPGRADE_ERROR";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry UpgradeError_entries[] = {
+  { {UpgradeError_names + 0, 23}, 32 },
+  { {UpgradeError_names + 23, 21}, 31 },
+};
+
+static const int UpgradeError_entries_by_number[] = {
+  1, // 31 -> UNKNOWN_UPGRADE_ERROR
+  0, // 32 -> CREATE_P2P_GROUP_FAILED
+};
+
+const std::string& UpgradeError_Name(
+    UpgradeError value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          UpgradeError_entries,
+          UpgradeError_entries_by_number,
+          2, UpgradeError_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      UpgradeError_entries,
+      UpgradeError_entries_by_number,
+      2, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     UpgradeError_strings[idx].get();
+}
+bool UpgradeError_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, UpgradeError* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      UpgradeError_entries, 2, name, &int_value);
+  if (success) {
+    *value = static_cast<UpgradeError>(int_value);
+  }
+  return success;
+}
+bool AcceptConnectionError_IsValid(int value) {
+  switch (value) {
+    case 31:
+    case 32:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AcceptConnectionError_strings[2] = {};
+
+static const char AcceptConnectionError_names[] =
+  "RESPOND_ACCEPT_CONNECTION_FAILED"
+  "UNKNOWN_ACCEPT_CONNECTION_ERROR";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry AcceptConnectionError_entries[] = {
+  { {AcceptConnectionError_names + 0, 32}, 32 },
+  { {AcceptConnectionError_names + 32, 31}, 31 },
+};
+
+static const int AcceptConnectionError_entries_by_number[] = {
+  1, // 31 -> UNKNOWN_ACCEPT_CONNECTION_ERROR
+  0, // 32 -> RESPOND_ACCEPT_CONNECTION_FAILED
+};
+
+const std::string& AcceptConnectionError_Name(
+    AcceptConnectionError value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          AcceptConnectionError_entries,
+          AcceptConnectionError_entries_by_number,
+          2, AcceptConnectionError_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      AcceptConnectionError_entries,
+      AcceptConnectionError_entries_by_number,
+      2, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     AcceptConnectionError_strings[idx].get();
+}
+bool AcceptConnectionError_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AcceptConnectionError* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      AcceptConnectionError_entries, 2, name, &int_value);
+  if (success) {
+    *value = static_cast<AcceptConnectionError>(int_value);
+  }
+  return success;
+}
+bool RejectConnectionError_IsValid(int value) {
+  switch (value) {
+    case 31:
+    case 32:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> RejectConnectionError_strings[2] = {};
+
+static const char RejectConnectionError_names[] =
+  "RESPOND_REJECT_CONNECTION_FAILED"
+  "UNKNOWN_REJECT_CONNECTION_ERROR";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry RejectConnectionError_entries[] = {
+  { {RejectConnectionError_names + 0, 32}, 32 },
+  { {RejectConnectionError_names + 32, 31}, 31 },
+};
+
+static const int RejectConnectionError_entries_by_number[] = {
+  1, // 31 -> UNKNOWN_REJECT_CONNECTION_ERROR
+  0, // 32 -> RESPOND_REJECT_CONNECTION_FAILED
+};
+
+const std::string& RejectConnectionError_Name(
+    RejectConnectionError value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          RejectConnectionError_entries,
+          RejectConnectionError_entries_by_number,
+          2, RejectConnectionError_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      RejectConnectionError_entries,
+      RejectConnectionError_entries_by_number,
+      2, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     RejectConnectionError_strings[idx].get();
+}
+bool RejectConnectionError_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, RejectConnectionError* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      RejectConnectionError_entries, 2, name, &int_value);
+  if (success) {
+    *value = static_cast<RejectConnectionError>(int_value);
+  }
+  return success;
+}
 bool Description_IsValid(int value) {
   switch (value) {
     case 0:
@@ -1037,13 +1296,29 @@ bool Description_IsValid(int value) {
     case 169:
     case 170:
     case 171:
+    case 172:
+    case 173:
+    case 174:
+    case 175:
+    case 176:
+    case 177:
+    case 178:
+    case 179:
+    case 180:
+    case 181:
+    case 182:
+    case 183:
+    case 184:
+    case 185:
+    case 186:
+    case 187:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Description_strings[170] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Description_strings[186] = {};
 
 static const char Description_names[] =
   "ACQUIRE_P2P_CHANNEL_FAILED"
@@ -1068,9 +1343,11 @@ static const char Description_names[] =
   "BLUETOOTH_SCAN_REJUVENATE_FAILED"
   "BLUETOOTH_SOCKET_CLOSED_AFTER_CONNECTED"
   "BLUETOOTH_SOCKET_NOT_IN_LISTENING_STATE"
+  "BROKEN_PIPE"
   "BUSY"
   "CLOSE_SERVER_SOCKET_FAILED"
   "CONNECTIONS_FEATURE_DISABLED"
+  "CONNECTION_ABORT"
   "CONNET_TO_SOCKET_CANCELLED"
   "CREATE_OFFER_FAILED"
   "EMPTY_TACHYON_ICE_SERVER"
@@ -1081,6 +1358,9 @@ static const char Description_names[] =
   "FEATURE_BLUETOOTH_NOT_SUPPORTED"
   "FEATURE_NFC_HOST_CARD_EMULATION_NOT_SUPPORTED"
   "FEATURE_NFC_NOT_SUPPORTED"
+  "FEATURE_USB_ACCESSORY_NOT_SUPPORTED"
+  "FEATURE_USB_HOST_NOT_SUPPORTED"
+  "FEATURE_USB_PORTS_NOT_FOUND"
   "FEATURE_WIFI_AWARE_NOT_SUPPORTED"
   "FEATURE_WIFI_DIRECT_NOT_SUPPORTED"
   "FEATURE_WIFI_NOT_SUPPORTED"
@@ -1113,6 +1393,14 @@ static const char Description_names[] =
   "JOIN_AWARE_NETWORK_CANCELLED"
   "L2CAP_UNAVAILABLE"
   "MULTICAST_NOT_SUPPORTED"
+  "MULTIPLEX_SOCKET_DISABLED"
+  "MULTIPLEX_SOCKET_EXECUTION_EXCEPTION"
+  "MULTIPLEX_SOCKET_INTERRUPTED_EXCEPTION"
+  "MULTIPLEX_SOCKET_IOEXCEPTION"
+  "MULTIPLEX_SOCKET_NOT_LISTENING"
+  "MULTIPLEX_SOCKET_TIMEOUT"
+  "MULTIPLEX_SOCKET_UNKNOWN_ERROR"
+  "MULTIPLEX_SOCKET_UNKNOWN_RESPONSE_CODE"
   "NETWORK_ALREADY_JOINED"
   "NETWORK_ERROR_EHOSTUNREACH"
   "NETWORK_ERROR_ENETUNREACH"
@@ -1201,9 +1489,12 @@ static const char Description_names[] =
   "UNSUPPORTED_DEVICE_TYPE"
   "UNSUPPORTED_DEVICE_TYPE_AUTO"
   "UNSUPPORTED_DEVICE_TYPE_CHROME_OS"
+  "UNSUPPORTED_DEVICE_TYPE_PHONE"
+  "UNSUPPORTED_DEVICE_TYPE_TABLET"
   "UNSUPPORTED_DEVICE_TYPE_TV"
   "UNSUPPORTED_DEVICE_TYPE_WEAR"
   "UPDATE_NETWORK_FAILED"
+  "USER_RESTRICTION_DISALLOWED"
   "WEBRTC_ALREADY_INITIALIZED"
   "WEBRTC_CONNECTION_FLOW_EXIST"
   "WIFI_AWARE_STARTED"
@@ -1240,327 +1531,359 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry Description_entries[] 
   { {Description_names + 565, 32}, 51 },
   { {Description_names + 597, 39}, 57 },
   { {Description_names + 636, 39}, 135 },
-  { {Description_names + 675, 4}, 99 },
-  { {Description_names + 679, 26}, 149 },
-  { {Description_names + 705, 28}, 3 },
-  { {Description_names + 733, 26}, 90 },
-  { {Description_names + 759, 19}, 148 },
-  { {Description_names + 778, 24}, 126 },
-  { {Description_names + 802, 23}, 44 },
-  { {Description_names + 825, 19}, 20 },
-  { {Description_names + 844, 28}, 129 },
-  { {Description_names + 872, 34}, 6 },
-  { {Description_names + 906, 31}, 5 },
-  { {Description_names + 937, 45}, 27 },
-  { {Description_names + 982, 25}, 26 },
-  { {Description_names + 1007, 32}, 36 },
-  { {Description_names + 1039, 33}, 93 },
-  { {Description_names + 1072, 26}, 76 },
-  { {Description_names + 1098, 18}, 138 },
-  { {Description_names + 1116, 26}, 162 },
-  { {Description_names + 1142, 19}, 144 },
-  { {Description_names + 1161, 14}, 98 },
-  { {Description_names + 1175, 21}, 19 },
-  { {Description_names + 1196, 33}, 11 },
-  { {Description_names + 1229, 12}, 106 },
-  { {Description_names + 1241, 25}, 58 },
-  { {Description_names + 1266, 36}, 136 },
-  { {Description_names + 1302, 38}, 137 },
-  { {Description_names + 1340, 45}, 56 },
-  { {Description_names + 1385, 31}, 10 },
-  { {Description_names + 1416, 26}, 9 },
-  { {Description_names + 1442, 20}, 65 },
-  { {Description_names + 1462, 20}, 66 },
-  { {Description_names + 1482, 18}, 108 },
-  { {Description_names + 1500, 20}, 62 },
-  { {Description_names + 1520, 21}, 61 },
-  { {Description_names + 1541, 19}, 32 },
-  { {Description_names + 1560, 34}, 12 },
-  { {Description_names + 1594, 22}, 142 },
-  { {Description_names + 1616, 15}, 68 },
-  { {Description_names + 1631, 20}, 146 },
-  { {Description_names + 1651, 17}, 23 },
-  { {Description_names + 1668, 13}, 75 },
-  { {Description_names + 1681, 19}, 140 },
-  { {Description_names + 1700, 28}, 86 },
-  { {Description_names + 1728, 17}, 164 },
-  { {Description_names + 1745, 23}, 30 },
-  { {Description_names + 1768, 22}, 85 },
-  { {Description_names + 1790, 26}, 101 },
-  { {Description_names + 1816, 25}, 102 },
-  { {Description_names + 1841, 19}, 87 },
-  { {Description_names + 1860, 24}, 83 },
-  { {Description_names + 1884, 16}, 81 },
-  { {Description_names + 1900, 22}, 80 },
-  { {Description_names + 1922, 14}, 107 },
-  { {Description_names + 1936, 15}, 31 },
-  { {Description_names + 1951, 12}, 67 },
-  { {Description_names + 1963, 24}, 2 },
-  { {Description_names + 1987, 19}, 52 },
-  { {Description_names + 2006, 22}, 8 },
-  { {Description_names + 2028, 21}, 59 },
-  { {Description_names + 2049, 26}, 21 },
-  { {Description_names + 2075, 19}, 53 },
-  { {Description_names + 2094, 35}, 13 },
-  { {Description_names + 2129, 32}, 43 },
-  { {Description_names + 2161, 22}, 7 },
-  { {Description_names + 2183, 20}, 60 },
-  { {Description_names + 2203, 13}, 42 },
-  { {Description_names + 2216, 25}, 37 },
-  { {Description_names + 2241, 17}, 147 },
-  { {Description_names + 2258, 23}, 113 },
-  { {Description_names + 2281, 18}, 139 },
-  { {Description_names + 2299, 12}, 171 },
-  { {Description_names + 2311, 12}, 25 },
-  { {Description_names + 2323, 13}, 92 },
-  { {Description_names + 2336, 15}, 1 },
-  { {Description_names + 2351, 17}, 40 },
-  { {Description_names + 2368, 17}, 33 },
-  { {Description_names + 2385, 17}, 34 },
-  { {Description_names + 2402, 9}, 91 },
-  { {Description_names + 2411, 23}, 38 },
-  { {Description_names + 2434, 20}, 84 },
-  { {Description_names + 2454, 17}, 77 },
-  { {Description_names + 2471, 21}, 94 },
-  { {Description_names + 2492, 16}, 41 },
-  { {Description_names + 2508, 16}, 95 },
-  { {Description_names + 2524, 15}, 97 },
-  { {Description_names + 2539, 19}, 155 },
-  { {Description_names + 2558, 36}, 127 },
-  { {Description_names + 2594, 34}, 134 },
-  { {Description_names + 2628, 26}, 72 },
-  { {Description_names + 2654, 16}, 100 },
-  { {Description_names + 2670, 16}, 55 },
-  { {Description_names + 2686, 27}, 45 },
-  { {Description_names + 2713, 43}, 46 },
-  { {Description_names + 2756, 30}, 49 },
-  { {Description_names + 2786, 31}, 48 },
-  { {Description_names + 2817, 26}, 47 },
-  { {Description_names + 2843, 37}, 50 },
-  { {Description_names + 2880, 25}, 161 },
-  { {Description_names + 2905, 30}, 69 },
-  { {Description_names + 2935, 35}, 70 },
-  { {Description_names + 2970, 20}, 22 },
-  { {Description_names + 2990, 20}, 143 },
-  { {Description_names + 3010, 24}, 79 },
-  { {Description_names + 3034, 25}, 131 },
-  { {Description_names + 3059, 13}, 78 },
-  { {Description_names + 3072, 24}, 64 },
-  { {Description_names + 3096, 16}, 141 },
-  { {Description_names + 3112, 21}, 39 },
-  { {Description_names + 3133, 17}, 4 },
-  { {Description_names + 3150, 37}, 115 },
-  { {Description_names + 3187, 37}, 124 },
-  { {Description_names + 3224, 39}, 125 },
-  { {Description_names + 3263, 38}, 120 },
-  { {Description_names + 3301, 43}, 118 },
-  { {Description_names + 3344, 30}, 116 },
-  { {Description_names + 3374, 35}, 117 },
-  { {Description_names + 3409, 40}, 121 },
-  { {Description_names + 3449, 31}, 119 },
-  { {Description_names + 3480, 35}, 122 },
-  { {Description_names + 3515, 37}, 123 },
-  { {Description_names + 3552, 33}, 114 },
-  { {Description_names + 3585, 15}, 160 },
-  { {Description_names + 3600, 7}, 24 },
-  { {Description_names + 3607, 26}, 54 },
-  { {Description_names + 3633, 24}, 63 },
-  { {Description_names + 3657, 26}, 128 },
-  { {Description_names + 3683, 25}, 132 },
-  { {Description_names + 3708, 7}, 0 },
-  { {Description_names + 3715, 20}, 71 },
-  { {Description_names + 3735, 29}, 133 },
-  { {Description_names + 3764, 23}, 166 },
-  { {Description_names + 3787, 28}, 168 },
-  { {Description_names + 3815, 33}, 167 },
-  { {Description_names + 3848, 26}, 169 },
-  { {Description_names + 3874, 28}, 170 },
-  { {Description_names + 3902, 21}, 104 },
-  { {Description_names + 3923, 26}, 145 },
-  { {Description_names + 3949, 28}, 112 },
-  { {Description_names + 3977, 18}, 150 },
-  { {Description_names + 3995, 20}, 73 },
-  { {Description_names + 4015, 34}, 109 },
-  { {Description_names + 4049, 29}, 110 },
-  { {Description_names + 4078, 25}, 154 },
-  { {Description_names + 4103, 28}, 88 },
-  { {Description_names + 4131, 22}, 111 },
-  { {Description_names + 4153, 30}, 35 },
-  { {Description_names + 4183, 28}, 89 },
-  { {Description_names + 4211, 17}, 130 },
+  { {Description_names + 675, 11}, 175 },
+  { {Description_names + 686, 4}, 99 },
+  { {Description_names + 690, 26}, 149 },
+  { {Description_names + 716, 28}, 3 },
+  { {Description_names + 744, 16}, 176 },
+  { {Description_names + 760, 26}, 90 },
+  { {Description_names + 786, 19}, 148 },
+  { {Description_names + 805, 24}, 126 },
+  { {Description_names + 829, 23}, 44 },
+  { {Description_names + 852, 19}, 20 },
+  { {Description_names + 871, 28}, 129 },
+  { {Description_names + 899, 34}, 6 },
+  { {Description_names + 933, 31}, 5 },
+  { {Description_names + 964, 45}, 27 },
+  { {Description_names + 1009, 25}, 26 },
+  { {Description_names + 1034, 35}, 178 },
+  { {Description_names + 1069, 30}, 177 },
+  { {Description_names + 1099, 27}, 179 },
+  { {Description_names + 1126, 32}, 36 },
+  { {Description_names + 1158, 33}, 93 },
+  { {Description_names + 1191, 26}, 76 },
+  { {Description_names + 1217, 18}, 138 },
+  { {Description_names + 1235, 26}, 162 },
+  { {Description_names + 1261, 19}, 144 },
+  { {Description_names + 1280, 14}, 98 },
+  { {Description_names + 1294, 21}, 19 },
+  { {Description_names + 1315, 33}, 11 },
+  { {Description_names + 1348, 12}, 106 },
+  { {Description_names + 1360, 25}, 58 },
+  { {Description_names + 1385, 36}, 136 },
+  { {Description_names + 1421, 38}, 137 },
+  { {Description_names + 1459, 45}, 56 },
+  { {Description_names + 1504, 31}, 10 },
+  { {Description_names + 1535, 26}, 9 },
+  { {Description_names + 1561, 20}, 65 },
+  { {Description_names + 1581, 20}, 66 },
+  { {Description_names + 1601, 18}, 108 },
+  { {Description_names + 1619, 20}, 62 },
+  { {Description_names + 1639, 21}, 61 },
+  { {Description_names + 1660, 19}, 32 },
+  { {Description_names + 1679, 34}, 12 },
+  { {Description_names + 1713, 22}, 142 },
+  { {Description_names + 1735, 15}, 68 },
+  { {Description_names + 1750, 20}, 146 },
+  { {Description_names + 1770, 17}, 23 },
+  { {Description_names + 1787, 13}, 75 },
+  { {Description_names + 1800, 19}, 140 },
+  { {Description_names + 1819, 28}, 86 },
+  { {Description_names + 1847, 17}, 164 },
+  { {Description_names + 1864, 23}, 30 },
+  { {Description_names + 1887, 25}, 182 },
+  { {Description_names + 1912, 36}, 186 },
+  { {Description_names + 1948, 38}, 187 },
+  { {Description_names + 1986, 28}, 184 },
+  { {Description_names + 2014, 30}, 181 },
+  { {Description_names + 2044, 24}, 183 },
+  { {Description_names + 2068, 30}, 180 },
+  { {Description_names + 2098, 38}, 185 },
+  { {Description_names + 2136, 22}, 85 },
+  { {Description_names + 2158, 26}, 101 },
+  { {Description_names + 2184, 25}, 102 },
+  { {Description_names + 2209, 19}, 87 },
+  { {Description_names + 2228, 24}, 83 },
+  { {Description_names + 2252, 16}, 81 },
+  { {Description_names + 2268, 22}, 80 },
+  { {Description_names + 2290, 14}, 107 },
+  { {Description_names + 2304, 15}, 31 },
+  { {Description_names + 2319, 12}, 67 },
+  { {Description_names + 2331, 24}, 2 },
+  { {Description_names + 2355, 19}, 52 },
+  { {Description_names + 2374, 22}, 8 },
+  { {Description_names + 2396, 21}, 59 },
+  { {Description_names + 2417, 26}, 21 },
+  { {Description_names + 2443, 19}, 53 },
+  { {Description_names + 2462, 35}, 13 },
+  { {Description_names + 2497, 32}, 43 },
+  { {Description_names + 2529, 22}, 7 },
+  { {Description_names + 2551, 20}, 60 },
+  { {Description_names + 2571, 13}, 42 },
+  { {Description_names + 2584, 25}, 37 },
+  { {Description_names + 2609, 17}, 147 },
+  { {Description_names + 2626, 23}, 113 },
+  { {Description_names + 2649, 18}, 139 },
+  { {Description_names + 2667, 12}, 171 },
+  { {Description_names + 2679, 12}, 25 },
+  { {Description_names + 2691, 13}, 92 },
+  { {Description_names + 2704, 15}, 1 },
+  { {Description_names + 2719, 17}, 40 },
+  { {Description_names + 2736, 17}, 33 },
+  { {Description_names + 2753, 17}, 34 },
+  { {Description_names + 2770, 9}, 91 },
+  { {Description_names + 2779, 23}, 38 },
+  { {Description_names + 2802, 20}, 84 },
+  { {Description_names + 2822, 17}, 77 },
+  { {Description_names + 2839, 21}, 94 },
+  { {Description_names + 2860, 16}, 41 },
+  { {Description_names + 2876, 16}, 95 },
+  { {Description_names + 2892, 15}, 97 },
+  { {Description_names + 2907, 19}, 155 },
+  { {Description_names + 2926, 36}, 127 },
+  { {Description_names + 2962, 34}, 134 },
+  { {Description_names + 2996, 26}, 72 },
+  { {Description_names + 3022, 16}, 100 },
+  { {Description_names + 3038, 16}, 55 },
+  { {Description_names + 3054, 27}, 45 },
+  { {Description_names + 3081, 43}, 46 },
+  { {Description_names + 3124, 30}, 49 },
+  { {Description_names + 3154, 31}, 48 },
+  { {Description_names + 3185, 26}, 47 },
+  { {Description_names + 3211, 37}, 50 },
+  { {Description_names + 3248, 25}, 161 },
+  { {Description_names + 3273, 30}, 69 },
+  { {Description_names + 3303, 35}, 70 },
+  { {Description_names + 3338, 20}, 22 },
+  { {Description_names + 3358, 20}, 143 },
+  { {Description_names + 3378, 24}, 79 },
+  { {Description_names + 3402, 25}, 131 },
+  { {Description_names + 3427, 13}, 78 },
+  { {Description_names + 3440, 24}, 64 },
+  { {Description_names + 3464, 16}, 141 },
+  { {Description_names + 3480, 21}, 39 },
+  { {Description_names + 3501, 17}, 4 },
+  { {Description_names + 3518, 37}, 115 },
+  { {Description_names + 3555, 37}, 124 },
+  { {Description_names + 3592, 39}, 125 },
+  { {Description_names + 3631, 38}, 120 },
+  { {Description_names + 3669, 43}, 118 },
+  { {Description_names + 3712, 30}, 116 },
+  { {Description_names + 3742, 35}, 117 },
+  { {Description_names + 3777, 40}, 121 },
+  { {Description_names + 3817, 31}, 119 },
+  { {Description_names + 3848, 35}, 122 },
+  { {Description_names + 3883, 37}, 123 },
+  { {Description_names + 3920, 33}, 114 },
+  { {Description_names + 3953, 15}, 160 },
+  { {Description_names + 3968, 7}, 24 },
+  { {Description_names + 3975, 26}, 54 },
+  { {Description_names + 4001, 24}, 63 },
+  { {Description_names + 4025, 26}, 128 },
+  { {Description_names + 4051, 25}, 132 },
+  { {Description_names + 4076, 7}, 0 },
+  { {Description_names + 4083, 20}, 71 },
+  { {Description_names + 4103, 29}, 133 },
+  { {Description_names + 4132, 23}, 166 },
+  { {Description_names + 4155, 28}, 168 },
+  { {Description_names + 4183, 33}, 167 },
+  { {Description_names + 4216, 29}, 173 },
+  { {Description_names + 4245, 30}, 174 },
+  { {Description_names + 4275, 26}, 169 },
+  { {Description_names + 4301, 28}, 170 },
+  { {Description_names + 4329, 21}, 104 },
+  { {Description_names + 4350, 27}, 172 },
+  { {Description_names + 4377, 26}, 145 },
+  { {Description_names + 4403, 28}, 112 },
+  { {Description_names + 4431, 18}, 150 },
+  { {Description_names + 4449, 20}, 73 },
+  { {Description_names + 4469, 34}, 109 },
+  { {Description_names + 4503, 29}, 110 },
+  { {Description_names + 4532, 25}, 154 },
+  { {Description_names + 4557, 28}, 88 },
+  { {Description_names + 4585, 22}, 111 },
+  { {Description_names + 4607, 30}, 35 },
+  { {Description_names + 4637, 28}, 89 },
+  { {Description_names + 4665, 17}, 130 },
 };
 
 static const int Description_entries_by_number[] = {
-  149, // 0 -> UNKNOWN
-  95, // 1 -> NULL_SERVICE_ID
-  77, // 2 -> NULL_ADVERTISEMENT_BYTES
-  24, // 3 -> CONNECTIONS_FEATURE_DISABLED
-  130, // 4 -> STALE_SDK_VERSION
-  32, // 5 -> FEATURE_BLUETOOTH_NOT_SUPPORTED
-  31, // 6 -> FEATURE_BLUETOOTH_LE_NOT_SUPPORTED
-  85, // 7 -> NULL_BLUETOOTH_MANAGER
-  79, // 8 -> NULL_BLUETOOTH_ADAPTER
-  50, // 9 -> INVALID_FAST_PAIR_MODEL_ID
-  49, // 10 -> INVALID_FAST_ADVERTISEMENT_DATA
-  43, // 11 -> INVALID_ADVERTISEMENT_HEADER_DATA
-  57, // 12 -> INVALID_REGULAR_ADVERTISEMENT_DATA
-  83, // 13 -> NULL_BLUETOOTH_LE_ADVERTISER_COMPAT
+  162, // 0 -> UNKNOWN
+  108, // 1 -> NULL_SERVICE_ID
+  90, // 2 -> NULL_ADVERTISEMENT_BYTES
+  25, // 3 -> CONNECTIONS_FEATURE_DISABLED
+  143, // 4 -> STALE_SDK_VERSION
+  34, // 5 -> FEATURE_BLUETOOTH_NOT_SUPPORTED
+  33, // 6 -> FEATURE_BLUETOOTH_LE_NOT_SUPPORTED
+  98, // 7 -> NULL_BLUETOOTH_MANAGER
+  92, // 8 -> NULL_BLUETOOTH_ADAPTER
+  55, // 9 -> INVALID_FAST_PAIR_MODEL_ID
+  54, // 10 -> INVALID_FAST_ADVERTISEMENT_DATA
+  48, // 11 -> INVALID_ADVERTISEMENT_HEADER_DATA
+  62, // 12 -> INVALID_REGULAR_ADVERTISEMENT_DATA
+  96, // 13 -> NULL_BLUETOOTH_LE_ADVERTISER_COMPAT
   2, // 14 -> ADVERTISE_FAILED_ALREADY_STARTED
   3, // 15 -> ADVERTISE_FAILED_DATA_TOO_LARGE
   4, // 16 -> ADVERTISE_FAILED_FEATURE_UNSUPPORTED
   5, // 17 -> ADVERTISE_FAILED_INTERNAL_ERROR
   6, // 18 -> ADVERTISE_FAILED_TOO_MANY_ADVERTISERS
-  42, // 19 -> INTERRUPTED_EXCEPTION
-  29, // 20 -> EXECUTION_EXCEPTION
-  81, // 21 -> NULL_BLUETOOTH_DEVICE_NAME
-  122, // 22 -> SET_SCAN_MODE_FAILED
-  61, // 23 -> INVOKE_API_FAILED
-  144, // 24 -> TIMEOUT
-  93, // 25 -> NULL_NFC_TAG
-  34, // 26 -> FEATURE_NFC_NOT_SUPPORTED
-  33, // 27 -> FEATURE_NFC_HOST_CARD_EMULATION_NOT_SUPPORTED
-  66, // 30 -> MULTICAST_NOT_SUPPORTED
-  75, // 31 -> NSD_NOT_ENABLED
-  56, // 32 -> INVALID_PORT_NUMBER
-  97, // 33 -> NULL_SERVICE_NAME
-  98, // 34 -> NULL_SERVICE_TYPE
-  167, // 35 -> WITHOUT_CONNECTED_WIFI_NETWORK
-  35, // 36 -> FEATURE_WIFI_AWARE_NOT_SUPPORTED
-  88, // 37 -> NULL_CONNECTIVITY_MANAGER
-  100, // 38 -> NULL_WIFI_AWARE_MANAGER
-  129, // 39 -> STALE_ANDROID_VERSION
-  96, // 40 -> NULL_SERVICE_INFO
-  104, // 41 -> NULL_WORK_SOURCE
-  87, // 42 -> NULL_CALLBACK
-  84, // 43 -> NULL_BLUETOOTH_LE_SCANNER_COMPAT
-  28, // 44 -> EMPTY_WORK_SOURCE_CACHE
-  113, // 45 -> SCAN_FAILED_ALREADY_STARTED
-  114, // 46 -> SCAN_FAILED_APPLICATION_REGISTRATION_FAILED
-  117, // 47 -> SCAN_FAILED_INTERNAL_ERROR
-  116, // 48 -> SCAN_FAILED_FEATURE_UNSUPPORTED
-  115, // 49 -> SCAN_FAILED_BLUETOOTH_DISABLED
-  118, // 50 -> SCAN_FILTERS_NOT_ALLOWED_FOR_LOCATION
+  47, // 19 -> INTERRUPTED_EXCEPTION
+  31, // 20 -> EXECUTION_EXCEPTION
+  94, // 21 -> NULL_BLUETOOTH_DEVICE_NAME
+  135, // 22 -> SET_SCAN_MODE_FAILED
+  66, // 23 -> INVOKE_API_FAILED
+  157, // 24 -> TIMEOUT
+  106, // 25 -> NULL_NFC_TAG
+  36, // 26 -> FEATURE_NFC_NOT_SUPPORTED
+  35, // 27 -> FEATURE_NFC_HOST_CARD_EMULATION_NOT_SUPPORTED
+  71, // 30 -> MULTICAST_NOT_SUPPORTED
+  88, // 31 -> NSD_NOT_ENABLED
+  61, // 32 -> INVALID_PORT_NUMBER
+  110, // 33 -> NULL_SERVICE_NAME
+  111, // 34 -> NULL_SERVICE_TYPE
+  183, // 35 -> WITHOUT_CONNECTED_WIFI_NETWORK
+  40, // 36 -> FEATURE_WIFI_AWARE_NOT_SUPPORTED
+  101, // 37 -> NULL_CONNECTIVITY_MANAGER
+  113, // 38 -> NULL_WIFI_AWARE_MANAGER
+  142, // 39 -> STALE_ANDROID_VERSION
+  109, // 40 -> NULL_SERVICE_INFO
+  117, // 41 -> NULL_WORK_SOURCE
+  100, // 42 -> NULL_CALLBACK
+  97, // 43 -> NULL_BLUETOOTH_LE_SCANNER_COMPAT
+  30, // 44 -> EMPTY_WORK_SOURCE_CACHE
+  126, // 45 -> SCAN_FAILED_ALREADY_STARTED
+  127, // 46 -> SCAN_FAILED_APPLICATION_REGISTRATION_FAILED
+  130, // 47 -> SCAN_FAILED_INTERNAL_ERROR
+  129, // 48 -> SCAN_FAILED_FEATURE_UNSUPPORTED
+  128, // 49 -> SCAN_FAILED_BLUETOOTH_DISABLED
+  131, // 50 -> SCAN_FILTERS_NOT_ALLOWED_FOR_LOCATION
   19, // 51 -> BLUETOOTH_SCAN_REJUVENATE_FAILED
-  78, // 52 -> NULL_BLE_PERIPHERAL
-  82, // 53 -> NULL_BLUETOOTH_GATT
-  145, // 54 -> UNEXPECTED_BLUETOOTH_STATE
-  112, // 55 -> REMOTE_EXCEPTION
-  48, // 56 -> INVALID_BLUETOOTH_SOCKET_STATE_BEFORE_CONNECT
+  91, // 52 -> NULL_BLE_PERIPHERAL
+  95, // 53 -> NULL_BLUETOOTH_GATT
+  158, // 54 -> UNEXPECTED_BLUETOOTH_STATE
+  125, // 55 -> REMOTE_EXCEPTION
+  53, // 56 -> INVALID_BLUETOOTH_SOCKET_STATE_BEFORE_CONNECT
   20, // 57 -> BLUETOOTH_SOCKET_CLOSED_AFTER_CONNECTED
-  45, // 58 -> INVALID_BLUETOOTH_CHANNEL
-  80, // 59 -> NULL_BLUETOOTH_DEVICE
-  86, // 60 -> NULL_BLUETOOTH_PROXY
-  55, // 61 -> INVALID_PACKET_LENGTH
-  54, // 62 -> INVALID_PACKET_BYTES
-  146, // 63 -> UNEXPECTED_EOF_EXCEPTION
-  127, // 64 -> SOCKET_CLOSED_OR_TIMEOUT
-  51, // 65 -> INVALID_IPV4_ADDRESS
-  52, // 66 -> INVALID_IPV6_ADDRESS
-  76, // 67 -> NULL_ADDRESS
-  59, // 68 -> INVALID_VERSION
-  120, // 69 -> SET_CONNECTION_PRIORITY_FAILED
-  121, // 70 -> SET_CONNECTION_PRIORITY_INTERRUPTED
-  150, // 71 -> UNKNOWN_IO_EXCEPTION
-  110, // 72 -> READ_CHARACTERISTIC_FAILED
-  161, // 73 -> WIFI_HOTSPOT_ENABLED
+  50, // 58 -> INVALID_BLUETOOTH_CHANNEL
+  93, // 59 -> NULL_BLUETOOTH_DEVICE
+  99, // 60 -> NULL_BLUETOOTH_PROXY
+  60, // 61 -> INVALID_PACKET_LENGTH
+  59, // 62 -> INVALID_PACKET_BYTES
+  159, // 63 -> UNEXPECTED_EOF_EXCEPTION
+  140, // 64 -> SOCKET_CLOSED_OR_TIMEOUT
+  56, // 65 -> INVALID_IPV4_ADDRESS
+  57, // 66 -> INVALID_IPV6_ADDRESS
+  89, // 67 -> NULL_ADDRESS
+  64, // 68 -> INVALID_VERSION
+  133, // 69 -> SET_CONNECTION_PRIORITY_FAILED
+  134, // 70 -> SET_CONNECTION_PRIORITY_INTERRUPTED
+  163, // 71 -> UNKNOWN_IO_EXCEPTION
+  123, // 72 -> READ_CHARACTERISTIC_FAILED
+  177, // 73 -> WIFI_HOTSPOT_ENABLED
   16, // 74 -> AWARE_UNAVAILABLE
-  62, // 75 -> IN_BLACK_LIST
-  37, // 76 -> FEATURE_WIFI_NOT_SUPPORTED
-  102, // 77 -> NULL_WIFI_MANAGER
-  126, // 78 -> SOCKET_CLOSED
-  124, // 79 -> SOCKET_ALREADY_CONNECTED
-  73, // 80 -> NFC_TECH_NOT_SUPPORTED
-  72, // 81 -> NFC_SERVICE_DIED
+  67, // 75 -> IN_BLACK_LIST
+  42, // 76 -> FEATURE_WIFI_NOT_SUPPORTED
+  115, // 77 -> NULL_WIFI_MANAGER
+  139, // 78 -> SOCKET_CLOSED
+  137, // 79 -> SOCKET_ALREADY_CONNECTED
+  86, // 80 -> NFC_TECH_NOT_SUPPORTED
+  85, // 81 -> NFC_SERVICE_DIED
   18, // 82 -> BIND_NFC_SERVICE_FAILED
-  71, // 83 -> NFC_CREATE_SOCKET_FAILED
-  101, // 84 -> NULL_WIFI_AWARE_PEER
-  67, // 85 -> NETWORK_ALREADY_JOINED
-  64, // 86 -> JOIN_AWARE_NETWORK_CANCELLED
-  70, // 87 -> NETWORK_UNAVAILABLE
-  165, // 88 -> WITHOUT_ACTIVE_AWARE_NETWORK
-  168, // 89 -> WITHOUT_JOINED_AWARE_NETWORK
-  25, // 90 -> CONNET_TO_SOCKET_CANCELLED
-  99, // 91 -> NULL_SSID
-  94, // 92 -> NULL_PASSWORD
-  36, // 93 -> FEATURE_WIFI_DIRECT_NOT_SUPPORTED
-  103, // 94 -> NULL_WIFI_P2P_MANAGER
-  105, // 95 -> P2P_GROUP_FORMED
+  84, // 83 -> NFC_CREATE_SOCKET_FAILED
+  114, // 84 -> NULL_WIFI_AWARE_PEER
+  80, // 85 -> NETWORK_ALREADY_JOINED
+  69, // 86 -> JOIN_AWARE_NETWORK_CANCELLED
+  83, // 87 -> NETWORK_UNAVAILABLE
+  181, // 88 -> WITHOUT_ACTIVE_AWARE_NETWORK
+  184, // 89 -> WITHOUT_JOINED_AWARE_NETWORK
+  27, // 90 -> CONNET_TO_SOCKET_CANCELLED
+  112, // 91 -> NULL_SSID
+  107, // 92 -> NULL_PASSWORD
+  41, // 93 -> FEATURE_WIFI_DIRECT_NOT_SUPPORTED
+  116, // 94 -> NULL_WIFI_P2P_MANAGER
+  118, // 95 -> P2P_GROUP_FORMED
   0, // 96 -> ACQUIRE_P2P_CHANNEL_FAILED
-  106, // 97 -> P2P_UNSUPPORTED
-  41, // 98 -> INTERNAL_ERROR
-  22, // 99 -> BUSY
-  111, // 100 -> REFLECTION_ERROR
-  68, // 101 -> NETWORK_ERROR_EHOSTUNREACH
-  69, // 102 -> NETWORK_ERROR_ENETUNREACH
+  119, // 97 -> P2P_UNSUPPORTED
+  46, // 98 -> INTERNAL_ERROR
+  23, // 99 -> BUSY
+  124, // 100 -> REFLECTION_ERROR
+  81, // 101 -> NETWORK_ERROR_EHOSTUNREACH
+  82, // 102 -> NETWORK_ERROR_ENETUNREACH
   1, // 103 -> ADD_NETWORK_FAILED
-  157, // 104 -> UPDATE_NETWORK_FAILED
+  172, // 104 -> UPDATE_NETWORK_FAILED
   8, // 105 -> ALREADY_IN_PROGRESS
-  44, // 106 -> INVALID_ARGS
-  74, // 107 -> NOT_AUTHORIZED
-  53, // 108 -> INVALID_NETWORK_ID
-  162, // 109 -> WIFI_MANAGER_ENABLE_NETWORK_FAILED
-  163, // 110 -> WIFI_MANAGER_RECONNECT_FAILED
-  166, // 111 -> WITHOUT_ACTIVE_NETWORK
-  159, // 112 -> WEBRTC_CONNECTION_FLOW_EXIST
-  90, // 113 -> NULL_DROID_GUARD_RESULT
-  142, // 114 -> TACHYON_SIGNALING_MESSENGER_EXIST
-  131, // 115 -> TACHYON_ALREADY_START_RECEIVE_MESSAGE
-  136, // 116 -> TACHYON_RECEIVE_MESSAGE_FAILED
-  137, // 117 -> TACHYON_RECEIVE_MESSAGE_INTERRUPTED
-  135, // 118 -> TACHYON_RECEIVE_MESSAGE_EXECUTION_EXCEPTION
-  139, // 119 -> TACHYON_RECEIVE_MESSAGE_TIMEOUT
-  134, // 120 -> TACHYON_RECEIVE_MESSAGE_AUTH_EXCEPTION
-  138, // 121 -> TACHYON_RECEIVE_MESSAGE_STATUS_EXCEPTION
-  140, // 122 -> TACHYON_SEND_MESSAGE_AUTH_EXCEPTION
-  141, // 123 -> TACHYON_SEND_MESSAGE_STATUS_EXCEPTION
-  132, // 124 -> TACHYON_GET_ICE_SERVER_AUTH_EXCEPTION
-  133, // 125 -> TACHYON_GET_ICE_SERVER_STATUS_EXCEPTION
-  27, // 126 -> EMPTY_TACHYON_ICE_SERVER
-  108, // 127 -> POTENTIAL_WEBRTC_LIB_LOADING_FAILURE
-  147, // 128 -> UNEXPECTED_GATT_DESCRIPTOR
-  30, // 129 -> FAIL_TO_RECEIVE_L2CAP_PACKET
-  169, // 130 -> WITHOUT_PSM_VALUE
-  125, // 131 -> SOCKET_BIND_LISTEN_FAILED
-  148, // 132 -> UNEXPECTED_PACKET_CONTENT
-  151, // 133 -> UNREGISTER_NSD_MANAGER_FAILED
-  109, // 134 -> PUBLISH_EMPTY_ADVERTISEMENT_FAILED
+  49, // 106 -> INVALID_ARGS
+  87, // 107 -> NOT_AUTHORIZED
+  58, // 108 -> INVALID_NETWORK_ID
+  178, // 109 -> WIFI_MANAGER_ENABLE_NETWORK_FAILED
+  179, // 110 -> WIFI_MANAGER_RECONNECT_FAILED
+  182, // 111 -> WITHOUT_ACTIVE_NETWORK
+  175, // 112 -> WEBRTC_CONNECTION_FLOW_EXIST
+  103, // 113 -> NULL_DROID_GUARD_RESULT
+  155, // 114 -> TACHYON_SIGNALING_MESSENGER_EXIST
+  144, // 115 -> TACHYON_ALREADY_START_RECEIVE_MESSAGE
+  149, // 116 -> TACHYON_RECEIVE_MESSAGE_FAILED
+  150, // 117 -> TACHYON_RECEIVE_MESSAGE_INTERRUPTED
+  148, // 118 -> TACHYON_RECEIVE_MESSAGE_EXECUTION_EXCEPTION
+  152, // 119 -> TACHYON_RECEIVE_MESSAGE_TIMEOUT
+  147, // 120 -> TACHYON_RECEIVE_MESSAGE_AUTH_EXCEPTION
+  151, // 121 -> TACHYON_RECEIVE_MESSAGE_STATUS_EXCEPTION
+  153, // 122 -> TACHYON_SEND_MESSAGE_AUTH_EXCEPTION
+  154, // 123 -> TACHYON_SEND_MESSAGE_STATUS_EXCEPTION
+  145, // 124 -> TACHYON_GET_ICE_SERVER_AUTH_EXCEPTION
+  146, // 125 -> TACHYON_GET_ICE_SERVER_STATUS_EXCEPTION
+  29, // 126 -> EMPTY_TACHYON_ICE_SERVER
+  121, // 127 -> POTENTIAL_WEBRTC_LIB_LOADING_FAILURE
+  160, // 128 -> UNEXPECTED_GATT_DESCRIPTOR
+  32, // 129 -> FAIL_TO_RECEIVE_L2CAP_PACKET
+  185, // 130 -> WITHOUT_PSM_VALUE
+  138, // 131 -> SOCKET_BIND_LISTEN_FAILED
+  161, // 132 -> UNEXPECTED_PACKET_CONTENT
+  164, // 133 -> UNREGISTER_NSD_MANAGER_FAILED
+  122, // 134 -> PUBLISH_EMPTY_ADVERTISEMENT_FAILED
   21, // 135 -> BLUETOOTH_SOCKET_NOT_IN_LISTENING_STATE
-  46, // 136 -> INVALID_BLUETOOTH_SOCKET_SIGNAL_SIZE
-  47, // 137 -> INVALID_BLUETOOTH_SOCKET_SIGNAL_STATUS
-  38, // 138 -> GET_ADDRESS_FAILED
-  91, // 139 -> NULL_LOCAL_ADDRESS
-  63, // 140 -> IS_LOOPBACK_ADDRESS
-  128, // 141 -> SOCKET_NOT_BOUND
-  58, // 142 -> INVALID_REMOTE_ADDRESS
-  123, // 143 -> SOCKET_ALREADY_BOUND
-  40, // 144 -> HOTSPOT_NOT_STARTED
-  158, // 145 -> WEBRTC_ALREADY_INITIALIZED
-  60, // 146 -> INVALID_WEBRTC_STATE
-  89, // 147 -> NULL_DATA_CHANNEL
-  26, // 148 -> CREATE_OFFER_FAILED
-  23, // 149 -> CLOSE_SERVER_SOCKET_FAILED
-  160, // 150 -> WIFI_AWARE_STARTED
+  51, // 136 -> INVALID_BLUETOOTH_SOCKET_SIGNAL_SIZE
+  52, // 137 -> INVALID_BLUETOOTH_SOCKET_SIGNAL_STATUS
+  43, // 138 -> GET_ADDRESS_FAILED
+  104, // 139 -> NULL_LOCAL_ADDRESS
+  68, // 140 -> IS_LOOPBACK_ADDRESS
+  141, // 141 -> SOCKET_NOT_BOUND
+  63, // 142 -> INVALID_REMOTE_ADDRESS
+  136, // 143 -> SOCKET_ALREADY_BOUND
+  45, // 144 -> HOTSPOT_NOT_STARTED
+  174, // 145 -> WEBRTC_ALREADY_INITIALIZED
+  65, // 146 -> INVALID_WEBRTC_STATE
+  102, // 147 -> NULL_DATA_CHANNEL
+  28, // 148 -> CREATE_OFFER_FAILED
+  24, // 149 -> CLOSE_SERVER_SOCKET_FAILED
+  176, // 150 -> WIFI_AWARE_STARTED
   14, // 151 -> AWARE_PUBLISH_SESSION_RAN_OUT
   15, // 152 -> AWARE_SUBSCRIBE_SESSION_RAN_OUT
   9, // 153 -> AWARE_DATA_PATH_RAN_OUT
-  164, // 154 -> WIFI_SIGNAL_STRENGTH_POOR
-  107, // 155 -> POTENTIAL_SRD_ISSUE
+  180, // 154 -> WIFI_SIGNAL_STRENGTH_POOR
+  120, // 155 -> POTENTIAL_SRD_ISSUE
   11, // 156 -> AWARE_L2_MESSAGE_HOST_NETWORK_ERROR
   13, // 157 -> AWARE_L2_MESSAGE_NETWORK_AVAILABLE_ERROR
   12, // 158 -> AWARE_L2_MESSAGE_IP_AVAILABLE_ERROR
   10, // 159 -> AWARE_L2_MESSAGE_CANCELLATION_RECEIVED
-  143, // 160 -> TIE_BREAK_LOSER
-  119, // 161 -> SERVER_SOCKET_UNAVAILABLE
-  39, // 162 -> HOSTED_NETWORK_UNAVAILABLE
+  156, // 160 -> TIE_BREAK_LOSER
+  132, // 161 -> SERVER_SOCKET_UNAVAILABLE
+  44, // 162 -> HOSTED_NETWORK_UNAVAILABLE
   17, // 163 -> AWARE_UPDATE_PUBLISHING_CONFIG_FAILED
-  65, // 164 -> L2CAP_UNAVAILABLE
+  70, // 164 -> L2CAP_UNAVAILABLE
   7, // 165 -> ALREADY_HAS_GATT_CONNECTION
-  152, // 166 -> UNSUPPORTED_DEVICE_TYPE
-  154, // 167 -> UNSUPPORTED_DEVICE_TYPE_CHROME_OS
-  153, // 168 -> UNSUPPORTED_DEVICE_TYPE_AUTO
-  155, // 169 -> UNSUPPORTED_DEVICE_TYPE_TV
-  156, // 170 -> UNSUPPORTED_DEVICE_TYPE_WEAR
-  92, // 171 -> NULL_MESSAGE
+  165, // 166 -> UNSUPPORTED_DEVICE_TYPE
+  167, // 167 -> UNSUPPORTED_DEVICE_TYPE_CHROME_OS
+  166, // 168 -> UNSUPPORTED_DEVICE_TYPE_AUTO
+  170, // 169 -> UNSUPPORTED_DEVICE_TYPE_TV
+  171, // 170 -> UNSUPPORTED_DEVICE_TYPE_WEAR
+  105, // 171 -> NULL_MESSAGE
+  173, // 172 -> USER_RESTRICTION_DISALLOWED
+  168, // 173 -> UNSUPPORTED_DEVICE_TYPE_PHONE
+  169, // 174 -> UNSUPPORTED_DEVICE_TYPE_TABLET
+  22, // 175 -> BROKEN_PIPE
+  26, // 176 -> CONNECTION_ABORT
+  38, // 177 -> FEATURE_USB_HOST_NOT_SUPPORTED
+  37, // 178 -> FEATURE_USB_ACCESSORY_NOT_SUPPORTED
+  39, // 179 -> FEATURE_USB_PORTS_NOT_FOUND
+  78, // 180 -> MULTIPLEX_SOCKET_UNKNOWN_ERROR
+  76, // 181 -> MULTIPLEX_SOCKET_NOT_LISTENING
+  72, // 182 -> MULTIPLEX_SOCKET_DISABLED
+  77, // 183 -> MULTIPLEX_SOCKET_TIMEOUT
+  75, // 184 -> MULTIPLEX_SOCKET_IOEXCEPTION
+  79, // 185 -> MULTIPLEX_SOCKET_UNKNOWN_RESPONSE_CODE
+  73, // 186 -> MULTIPLEX_SOCKET_EXECUTION_EXCEPTION
+  74, // 187 -> MULTIPLEX_SOCKET_INTERRUPTED_EXCEPTION
 };
 
 const std::string& Description_Name(
@@ -1569,12 +1892,12 @@ const std::string& Description_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           Description_entries,
           Description_entries_by_number,
-          170, Description_strings);
+          186, Description_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       Description_entries,
       Description_entries_by_number,
-      170, value);
+      186, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      Description_strings[idx].get();
 }
@@ -1582,7 +1905,7 @@ bool Description_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, Description* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      Description_entries, 170, name, &int_value);
+      Description_entries, 186, name, &int_value);
   if (success) {
     *value = static_cast<Description>(int_value);
   }

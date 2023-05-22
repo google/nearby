@@ -39,6 +39,8 @@ constexpr V1Frame::V1Frame(
   , keep_alive_(nullptr)
   , disconnection_(nullptr)
   , paired_key_encryption_(nullptr)
+  , authentication_message_(nullptr)
+  , authentication_result_(nullptr)
   , type_(0)
 {}
 struct V1FrameDefaultTypeInternal {
@@ -62,7 +64,8 @@ constexpr ConnectionRequestFrame::ConnectionRequestFrame(
   , nonce_(0)
   , keep_alive_interval_millis_(0)
   , keep_alive_timeout_millis_(0)
-  , device_type_(0){}
+  , device_type_(0)
+  , _oneof_case_{}{}
 struct ConnectionRequestFrameDefaultTypeInternal {
   constexpr ConnectionRequestFrameDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -78,7 +81,9 @@ constexpr ConnectionResponseFrame::ConnectionResponseFrame(
   , os_info_(nullptr)
   , status_(0)
   , response_(0)
-{}
+
+  , multiplex_socket_bitmask_(0)
+  , nearby_connections_version_(0){}
 struct ConnectionResponseFrameDefaultTypeInternal {
   constexpr ConnectionResponseFrameDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -211,6 +216,7 @@ constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials
   : ssid_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , password_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , gateway_(nullptr)
+  , ip_v6_address_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , port_(0)
   , frequency_(0){}
 struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentialsDefaultTypeInternal {
@@ -309,7 +315,9 @@ struct KeepAliveFrameDefaultTypeInternal {
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT KeepAliveFrameDefaultTypeInternal _KeepAliveFrame_default_instance_;
 constexpr DisconnectionFrame::DisconnectionFrame(
-  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized){}
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : request_safe_to_disconnect_(false)
+  , ack_safe_to_disconnect_(false){}
 struct DisconnectionFrameDefaultTypeInternal {
   constexpr DisconnectionFrameDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -331,6 +339,30 @@ struct PairedKeyEncryptionFrameDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PairedKeyEncryptionFrameDefaultTypeInternal _PairedKeyEncryptionFrame_default_instance_;
+constexpr AuthenticationMessageFrame::AuthenticationMessageFrame(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : auth_message_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string){}
+struct AuthenticationMessageFrameDefaultTypeInternal {
+  constexpr AuthenticationMessageFrameDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~AuthenticationMessageFrameDefaultTypeInternal() {}
+  union {
+    AuthenticationMessageFrame _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT AuthenticationMessageFrameDefaultTypeInternal _AuthenticationMessageFrame_default_instance_;
+constexpr AuthenticationResultFrame::AuthenticationResultFrame(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : result_(0){}
+struct AuthenticationResultFrameDefaultTypeInternal {
+  constexpr AuthenticationResultFrameDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~AuthenticationResultFrameDefaultTypeInternal() {}
+  union {
+    AuthenticationResultFrame _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT AuthenticationResultFrameDefaultTypeInternal _AuthenticationResultFrame_default_instance_;
 constexpr MediumMetadata::MediumMetadata(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : bssid_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
@@ -456,6 +488,48 @@ struct OsInfoDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT OsInfoDefaultTypeInternal _OsInfo_default_instance_;
+constexpr ConnectionsDevice::ConnectionsDevice(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : endpoint_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , connectivity_info_list_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , endpoint_info_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , endpoint_type_(0)
+{}
+struct ConnectionsDeviceDefaultTypeInternal {
+  constexpr ConnectionsDeviceDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~ConnectionsDeviceDefaultTypeInternal() {}
+  union {
+    ConnectionsDevice _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionsDeviceDefaultTypeInternal _ConnectionsDevice_default_instance_;
+constexpr PresenceDevice::PresenceDevice(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : discovery_medium_()
+  , _discovery_medium_cached_byte_size_(0)
+  , actions_()
+  , _actions_cached_byte_size_(0)
+  , identity_type_()
+  , _identity_type_cached_byte_size_(0)
+  , endpoint_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , connectivity_info_list_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , device_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , device_image_url_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , device_id_(int64_t{0})
+  , endpoint_type_(0)
+
+  , device_type_(0)
+{}
+struct PresenceDeviceDefaultTypeInternal {
+  constexpr PresenceDeviceDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~PresenceDeviceDefaultTypeInternal() {}
+  union {
+    PresenceDevice _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PresenceDeviceDefaultTypeInternal _PresenceDevice_default_instance_;
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
@@ -530,15 +604,19 @@ bool V1Frame_FrameType_IsValid(int value) {
     case 5:
     case 6:
     case 7:
+    case 8:
+    case 9:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> V1Frame_FrameType_strings[8] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> V1Frame_FrameType_strings[10] = {};
 
 static const char V1Frame_FrameType_names[] =
+  "AUTHENTICATION_MESSAGE"
+  "AUTHENTICATION_RESULT"
   "BANDWIDTH_UPGRADE_NEGOTIATION"
   "CONNECTION_REQUEST"
   "CONNECTION_RESPONSE"
@@ -549,25 +627,29 @@ static const char V1Frame_FrameType_names[] =
   "UNKNOWN_FRAME_TYPE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry V1Frame_FrameType_entries[] = {
-  { {V1Frame_FrameType_names + 0, 29}, 4 },
-  { {V1Frame_FrameType_names + 29, 18}, 1 },
-  { {V1Frame_FrameType_names + 47, 19}, 2 },
-  { {V1Frame_FrameType_names + 66, 13}, 6 },
-  { {V1Frame_FrameType_names + 79, 10}, 5 },
-  { {V1Frame_FrameType_names + 89, 21}, 7 },
-  { {V1Frame_FrameType_names + 110, 16}, 3 },
-  { {V1Frame_FrameType_names + 126, 18}, 0 },
+  { {V1Frame_FrameType_names + 0, 22}, 8 },
+  { {V1Frame_FrameType_names + 22, 21}, 9 },
+  { {V1Frame_FrameType_names + 43, 29}, 4 },
+  { {V1Frame_FrameType_names + 72, 18}, 1 },
+  { {V1Frame_FrameType_names + 90, 19}, 2 },
+  { {V1Frame_FrameType_names + 109, 13}, 6 },
+  { {V1Frame_FrameType_names + 122, 10}, 5 },
+  { {V1Frame_FrameType_names + 132, 21}, 7 },
+  { {V1Frame_FrameType_names + 153, 16}, 3 },
+  { {V1Frame_FrameType_names + 169, 18}, 0 },
 };
 
 static const int V1Frame_FrameType_entries_by_number[] = {
-  7, // 0 -> UNKNOWN_FRAME_TYPE
-  1, // 1 -> CONNECTION_REQUEST
-  2, // 2 -> CONNECTION_RESPONSE
-  6, // 3 -> PAYLOAD_TRANSFER
-  0, // 4 -> BANDWIDTH_UPGRADE_NEGOTIATION
-  4, // 5 -> KEEP_ALIVE
-  3, // 6 -> DISCONNECTION
-  5, // 7 -> PAIRED_KEY_ENCRYPTION
+  9, // 0 -> UNKNOWN_FRAME_TYPE
+  3, // 1 -> CONNECTION_REQUEST
+  4, // 2 -> CONNECTION_RESPONSE
+  8, // 3 -> PAYLOAD_TRANSFER
+  2, // 4 -> BANDWIDTH_UPGRADE_NEGOTIATION
+  6, // 5 -> KEEP_ALIVE
+  5, // 6 -> DISCONNECTION
+  7, // 7 -> PAIRED_KEY_ENCRYPTION
+  0, // 8 -> AUTHENTICATION_MESSAGE
+  1, // 9 -> AUTHENTICATION_RESULT
 };
 
 const std::string& V1Frame_FrameType_Name(
@@ -576,12 +658,12 @@ const std::string& V1Frame_FrameType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           V1Frame_FrameType_entries,
           V1Frame_FrameType_entries_by_number,
-          8, V1Frame_FrameType_strings);
+          10, V1Frame_FrameType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       V1Frame_FrameType_entries,
       V1Frame_FrameType_entries_by_number,
-      8, value);
+      10, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      V1Frame_FrameType_strings[idx].get();
 }
@@ -589,7 +671,7 @@ bool V1Frame_FrameType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, V1Frame_FrameType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      V1Frame_FrameType_entries, 8, name, &int_value);
+      V1Frame_FrameType_entries, 10, name, &int_value);
   if (success) {
     *value = static_cast<V1Frame_FrameType>(int_value);
   }
@@ -604,6 +686,8 @@ constexpr V1Frame_FrameType V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION;
 constexpr V1Frame_FrameType V1Frame::KEEP_ALIVE;
 constexpr V1Frame_FrameType V1Frame::DISCONNECTION;
 constexpr V1Frame_FrameType V1Frame::PAIRED_KEY_ENCRYPTION;
+constexpr V1Frame_FrameType V1Frame::AUTHENTICATION_MESSAGE;
+constexpr V1Frame_FrameType V1Frame::AUTHENTICATION_RESULT;
 constexpr V1Frame_FrameType V1Frame::FrameType_MIN;
 constexpr V1Frame_FrameType V1Frame::FrameType_MAX;
 constexpr int V1Frame::FrameType_ARRAYSIZE;
@@ -905,29 +989,33 @@ bool PayloadTransferFrame_ControlMessage_EventType_IsValid(int value) {
     case 0:
     case 1:
     case 2:
+    case 3:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> PayloadTransferFrame_ControlMessage_EventType_strings[3] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> PayloadTransferFrame_ControlMessage_EventType_strings[4] = {};
 
 static const char PayloadTransferFrame_ControlMessage_EventType_names[] =
   "PAYLOAD_CANCELED"
   "PAYLOAD_ERROR"
+  "PAYLOAD_RECEIVED_ACK"
   "UNKNOWN_EVENT_TYPE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry PayloadTransferFrame_ControlMessage_EventType_entries[] = {
   { {PayloadTransferFrame_ControlMessage_EventType_names + 0, 16}, 2 },
   { {PayloadTransferFrame_ControlMessage_EventType_names + 16, 13}, 1 },
-  { {PayloadTransferFrame_ControlMessage_EventType_names + 29, 18}, 0 },
+  { {PayloadTransferFrame_ControlMessage_EventType_names + 29, 20}, 3 },
+  { {PayloadTransferFrame_ControlMessage_EventType_names + 49, 18}, 0 },
 };
 
 static const int PayloadTransferFrame_ControlMessage_EventType_entries_by_number[] = {
-  2, // 0 -> UNKNOWN_EVENT_TYPE
+  3, // 0 -> UNKNOWN_EVENT_TYPE
   1, // 1 -> PAYLOAD_ERROR
   0, // 2 -> PAYLOAD_CANCELED
+  2, // 3 -> PAYLOAD_RECEIVED_ACK
 };
 
 const std::string& PayloadTransferFrame_ControlMessage_EventType_Name(
@@ -936,12 +1024,12 @@ const std::string& PayloadTransferFrame_ControlMessage_EventType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           PayloadTransferFrame_ControlMessage_EventType_entries,
           PayloadTransferFrame_ControlMessage_EventType_entries_by_number,
-          3, PayloadTransferFrame_ControlMessage_EventType_strings);
+          4, PayloadTransferFrame_ControlMessage_EventType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       PayloadTransferFrame_ControlMessage_EventType_entries,
       PayloadTransferFrame_ControlMessage_EventType_entries_by_number,
-      3, value);
+      4, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      PayloadTransferFrame_ControlMessage_EventType_strings[idx].get();
 }
@@ -949,7 +1037,7 @@ bool PayloadTransferFrame_ControlMessage_EventType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PayloadTransferFrame_ControlMessage_EventType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      PayloadTransferFrame_ControlMessage_EventType_entries, 3, name, &int_value);
+      PayloadTransferFrame_ControlMessage_EventType_entries, 4, name, &int_value);
   if (success) {
     *value = static_cast<PayloadTransferFrame_ControlMessage_EventType>(int_value);
   }
@@ -959,6 +1047,7 @@ bool PayloadTransferFrame_ControlMessage_EventType_Parse(
 constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage::UNKNOWN_EVENT_TYPE;
 constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage::PAYLOAD_ERROR;
 constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage::PAYLOAD_CANCELED;
+constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage::PAYLOAD_RECEIVED_ACK;
 constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage::EventType_MIN;
 constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage::EventType_MAX;
 constexpr int PayloadTransferFrame_ControlMessage::EventType_ARRAYSIZE;
@@ -1353,6 +1442,144 @@ constexpr OsInfo_OsType OsInfo::OsType_MIN;
 constexpr OsInfo_OsType OsInfo::OsType_MAX;
 constexpr int OsInfo::OsType_ARRAYSIZE;
 #endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool PresenceDevice_DeviceType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> PresenceDevice_DeviceType_strings[7] = {};
+
+static const char PresenceDevice_DeviceType_names[] =
+  "DISPLAY"
+  "LAPTOP"
+  "PHONE"
+  "TABLET"
+  "TV"
+  "UNKNOWN"
+  "WATCH";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry PresenceDevice_DeviceType_entries[] = {
+  { {PresenceDevice_DeviceType_names + 0, 7}, 3 },
+  { {PresenceDevice_DeviceType_names + 7, 6}, 4 },
+  { {PresenceDevice_DeviceType_names + 13, 5}, 1 },
+  { {PresenceDevice_DeviceType_names + 18, 6}, 2 },
+  { {PresenceDevice_DeviceType_names + 24, 2}, 5 },
+  { {PresenceDevice_DeviceType_names + 26, 7}, 0 },
+  { {PresenceDevice_DeviceType_names + 33, 5}, 6 },
+};
+
+static const int PresenceDevice_DeviceType_entries_by_number[] = {
+  5, // 0 -> UNKNOWN
+  2, // 1 -> PHONE
+  3, // 2 -> TABLET
+  0, // 3 -> DISPLAY
+  1, // 4 -> LAPTOP
+  4, // 5 -> TV
+  6, // 6 -> WATCH
+};
+
+const std::string& PresenceDevice_DeviceType_Name(
+    PresenceDevice_DeviceType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          PresenceDevice_DeviceType_entries,
+          PresenceDevice_DeviceType_entries_by_number,
+          7, PresenceDevice_DeviceType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      PresenceDevice_DeviceType_entries,
+      PresenceDevice_DeviceType_entries_by_number,
+      7, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     PresenceDevice_DeviceType_strings[idx].get();
+}
+bool PresenceDevice_DeviceType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PresenceDevice_DeviceType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      PresenceDevice_DeviceType_entries, 7, name, &int_value);
+  if (success) {
+    *value = static_cast<PresenceDevice_DeviceType>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr PresenceDevice_DeviceType PresenceDevice::UNKNOWN;
+constexpr PresenceDevice_DeviceType PresenceDevice::PHONE;
+constexpr PresenceDevice_DeviceType PresenceDevice::TABLET;
+constexpr PresenceDevice_DeviceType PresenceDevice::DISPLAY;
+constexpr PresenceDevice_DeviceType PresenceDevice::LAPTOP;
+constexpr PresenceDevice_DeviceType PresenceDevice::TV;
+constexpr PresenceDevice_DeviceType PresenceDevice::WATCH;
+constexpr PresenceDevice_DeviceType PresenceDevice::DeviceType_MIN;
+constexpr PresenceDevice_DeviceType PresenceDevice::DeviceType_MAX;
+constexpr int PresenceDevice::DeviceType_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool EndpointType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EndpointType_strings[3] = {};
+
+static const char EndpointType_names[] =
+  "CONNECTIONS_ENDPOINT"
+  "PRESENCE_ENDPOINT"
+  "UNKNOWN_ENDPOINT";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EndpointType_entries[] = {
+  { {EndpointType_names + 0, 20}, 1 },
+  { {EndpointType_names + 20, 17}, 2 },
+  { {EndpointType_names + 37, 16}, 0 },
+};
+
+static const int EndpointType_entries_by_number[] = {
+  2, // 0 -> UNKNOWN_ENDPOINT
+  0, // 1 -> CONNECTIONS_ENDPOINT
+  1, // 2 -> PRESENCE_ENDPOINT
+};
+
+const std::string& EndpointType_Name(
+    EndpointType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          EndpointType_entries,
+          EndpointType_entries_by_number,
+          3, EndpointType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      EndpointType_entries,
+      EndpointType_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     EndpointType_strings[idx].get();
+}
+bool EndpointType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EndpointType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      EndpointType_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<EndpointType>(int_value);
+  }
+  return success;
+}
 
 // ===================================================================
 
@@ -1612,7 +1839,7 @@ class V1Frame::_Internal {
  public:
   using HasBits = decltype(std::declval<V1Frame>()._has_bits_);
   static void set_has_type(HasBits* has_bits) {
-    (*has_bits)[0] |= 128u;
+    (*has_bits)[0] |= 512u;
   }
   static const ::location::nearby::connections::ConnectionRequestFrame& connection_request(const V1Frame* msg);
   static void set_has_connection_request(HasBits* has_bits) {
@@ -1641,6 +1868,14 @@ class V1Frame::_Internal {
   static const ::location::nearby::connections::PairedKeyEncryptionFrame& paired_key_encryption(const V1Frame* msg);
   static void set_has_paired_key_encryption(HasBits* has_bits) {
     (*has_bits)[0] |= 64u;
+  }
+  static const ::location::nearby::connections::AuthenticationMessageFrame& authentication_message(const V1Frame* msg);
+  static void set_has_authentication_message(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
+  }
+  static const ::location::nearby::connections::AuthenticationResultFrame& authentication_result(const V1Frame* msg);
+  static void set_has_authentication_result(HasBits* has_bits) {
+    (*has_bits)[0] |= 256u;
   }
 };
 
@@ -1671,6 +1906,14 @@ V1Frame::_Internal::disconnection(const V1Frame* msg) {
 const ::location::nearby::connections::PairedKeyEncryptionFrame&
 V1Frame::_Internal::paired_key_encryption(const V1Frame* msg) {
   return *msg->paired_key_encryption_;
+}
+const ::location::nearby::connections::AuthenticationMessageFrame&
+V1Frame::_Internal::authentication_message(const V1Frame* msg) {
+  return *msg->authentication_message_;
+}
+const ::location::nearby::connections::AuthenticationResultFrame&
+V1Frame::_Internal::authentication_result(const V1Frame* msg) {
+  return *msg->authentication_result_;
 }
 V1Frame::V1Frame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -1720,6 +1963,16 @@ V1Frame::V1Frame(const V1Frame& from)
   } else {
     paired_key_encryption_ = nullptr;
   }
+  if (from._internal_has_authentication_message()) {
+    authentication_message_ = new ::location::nearby::connections::AuthenticationMessageFrame(*from.authentication_message_);
+  } else {
+    authentication_message_ = nullptr;
+  }
+  if (from._internal_has_authentication_result()) {
+    authentication_result_ = new ::location::nearby::connections::AuthenticationResultFrame(*from.authentication_result_);
+  } else {
+    authentication_result_ = nullptr;
+  }
   type_ = from.type_;
   // @@protoc_insertion_point(copy_constructor:location.nearby.connections.V1Frame)
 }
@@ -1747,6 +2000,8 @@ inline void V1Frame::SharedDtor() {
   if (this != internal_default_instance()) delete keep_alive_;
   if (this != internal_default_instance()) delete disconnection_;
   if (this != internal_default_instance()) delete paired_key_encryption_;
+  if (this != internal_default_instance()) delete authentication_message_;
+  if (this != internal_default_instance()) delete authentication_result_;
 }
 
 void V1Frame::ArenaDtor(void* object) {
@@ -1766,7 +2021,7 @@ void V1Frame::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       GOOGLE_DCHECK(connection_request_ != nullptr);
       connection_request_->Clear();
@@ -1795,6 +2050,14 @@ void V1Frame::Clear() {
       GOOGLE_DCHECK(paired_key_encryption_ != nullptr);
       paired_key_encryption_->Clear();
     }
+    if (cached_has_bits & 0x00000080u) {
+      GOOGLE_DCHECK(authentication_message_ != nullptr);
+      authentication_message_->Clear();
+    }
+  }
+  if (cached_has_bits & 0x00000100u) {
+    GOOGLE_DCHECK(authentication_result_ != nullptr);
+    authentication_result_->Clear();
   }
   type_ = 0;
   _has_bits_.Clear();
@@ -1877,6 +2140,22 @@ const char* V1Frame::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::in
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.connections.AuthenticationMessageFrame authentication_message = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
+          ptr = ctx->ParseMessage(_internal_mutable_authentication_message(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.connections.AuthenticationResultFrame authentication_result = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          ptr = ctx->ParseMessage(_internal_mutable_authentication_result(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -1909,7 +2188,7 @@ uint8_t* V1Frame::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional .location.nearby.connections.V1Frame.FrameType type = 1;
-  if (cached_has_bits & 0x00000080u) {
+  if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       1, this->_internal_type(), target);
@@ -1969,6 +2248,22 @@ uint8_t* V1Frame::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
         8, _Internal::paired_key_encryption(this), target, stream);
+  }
+
+  // optional .location.nearby.connections.AuthenticationMessageFrame authentication_message = 9;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        9, _Internal::authentication_message(this), target, stream);
+  }
+
+  // optional .location.nearby.connections.AuthenticationResultFrame authentication_result = 10;
+  if (cached_has_bits & 0x00000100u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        10, _Internal::authentication_result(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2038,8 +2333,24 @@ size_t V1Frame::ByteSizeLong() const {
           *paired_key_encryption_);
     }
 
-    // optional .location.nearby.connections.V1Frame.FrameType type = 1;
+    // optional .location.nearby.connections.AuthenticationMessageFrame authentication_message = 9;
     if (cached_has_bits & 0x00000080u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *authentication_message_);
+    }
+
+  }
+  if (cached_has_bits & 0x00000300u) {
+    // optional .location.nearby.connections.AuthenticationResultFrame authentication_result = 10;
+    if (cached_has_bits & 0x00000100u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *authentication_result_);
+    }
+
+    // optional .location.nearby.connections.V1Frame.FrameType type = 1;
+    if (cached_has_bits & 0x00000200u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
     }
@@ -2089,6 +2400,14 @@ void V1Frame::MergeFrom(const V1Frame& from) {
       _internal_mutable_paired_key_encryption()->::location::nearby::connections::PairedKeyEncryptionFrame::MergeFrom(from._internal_paired_key_encryption());
     }
     if (cached_has_bits & 0x00000080u) {
+      _internal_mutable_authentication_message()->::location::nearby::connections::AuthenticationMessageFrame::MergeFrom(from._internal_authentication_message());
+    }
+  }
+  if (cached_has_bits & 0x00000300u) {
+    if (cached_has_bits & 0x00000100u) {
+      _internal_mutable_authentication_result()->::location::nearby::connections::AuthenticationResultFrame::MergeFrom(from._internal_authentication_result());
+    }
+    if (cached_has_bits & 0x00000200u) {
       type_ = from.type_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -2160,11 +2479,51 @@ class ConnectionRequestFrame::_Internal {
   static void set_has_device_info(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
+  static const ::location::nearby::connections::ConnectionsDevice& connections_device(const ConnectionRequestFrame* msg);
+  static const ::location::nearby::connections::PresenceDevice& presence_device(const ConnectionRequestFrame* msg);
 };
 
 const ::location::nearby::connections::MediumMetadata&
 ConnectionRequestFrame::_Internal::medium_metadata(const ConnectionRequestFrame* msg) {
   return *msg->medium_metadata_;
+}
+const ::location::nearby::connections::ConnectionsDevice&
+ConnectionRequestFrame::_Internal::connections_device(const ConnectionRequestFrame* msg) {
+  return *msg->Device_.connections_device_;
+}
+const ::location::nearby::connections::PresenceDevice&
+ConnectionRequestFrame::_Internal::presence_device(const ConnectionRequestFrame* msg) {
+  return *msg->Device_.presence_device_;
+}
+void ConnectionRequestFrame::set_allocated_connections_device(::location::nearby::connections::ConnectionsDevice* connections_device) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_Device();
+  if (connections_device) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::ConnectionsDevice>::GetOwningArena(connections_device);
+    if (message_arena != submessage_arena) {
+      connections_device = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, connections_device, submessage_arena);
+    }
+    set_has_connections_device();
+    Device_.connections_device_ = connections_device;
+  }
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionRequestFrame.connections_device)
+}
+void ConnectionRequestFrame::set_allocated_presence_device(::location::nearby::connections::PresenceDevice* presence_device) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_Device();
+  if (presence_device) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::PresenceDevice>::GetOwningArena(presence_device);
+    if (message_arena != submessage_arena) {
+      presence_device = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, presence_device, submessage_arena);
+    }
+    set_has_presence_device();
+    Device_.presence_device_ = presence_device;
+  }
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionRequestFrame.presence_device)
 }
 ConnectionRequestFrame::ConnectionRequestFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -2229,6 +2588,20 @@ ConnectionRequestFrame::ConnectionRequestFrame(const ConnectionRequestFrame& fro
   ::memcpy(&nonce_, &from.nonce_,
     static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
     reinterpret_cast<char*>(&nonce_)) + sizeof(device_type_));
+  clear_has_Device();
+  switch (from.Device_case()) {
+    case kConnectionsDevice: {
+      _internal_mutable_connections_device()->::location::nearby::connections::ConnectionsDevice::MergeFrom(from._internal_connections_device());
+      break;
+    }
+    case kPresenceDevice: {
+      _internal_mutable_presence_device()->::location::nearby::connections::PresenceDevice::MergeFrom(from._internal_presence_device());
+      break;
+    }
+    case DEVICE_NOT_SET: {
+      break;
+    }
+  }
   // @@protoc_insertion_point(copy_constructor:location.nearby.connections.ConnectionRequestFrame)
 }
 
@@ -2257,6 +2630,7 @@ device_info_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString
     reinterpret_cast<char*>(&medium_metadata_) - reinterpret_cast<char*>(this)),
     0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
     reinterpret_cast<char*>(&medium_metadata_)) + sizeof(device_type_));
+clear_has_Device();
 }
 
 ConnectionRequestFrame::~ConnectionRequestFrame() {
@@ -2274,6 +2648,9 @@ inline void ConnectionRequestFrame::SharedDtor() {
   endpoint_info_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   device_info_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete medium_metadata_;
+  if (has_Device()) {
+    clear_Device();
+  }
 }
 
 void ConnectionRequestFrame::ArenaDtor(void* object) {
@@ -2285,6 +2662,29 @@ void ConnectionRequestFrame::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) 
 void ConnectionRequestFrame::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
+
+void ConnectionRequestFrame::clear_Device() {
+// @@protoc_insertion_point(one_of_clear_start:location.nearby.connections.ConnectionRequestFrame)
+  switch (Device_case()) {
+    case kConnectionsDevice: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete Device_.connections_device_;
+      }
+      break;
+    }
+    case kPresenceDevice: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete Device_.presence_device_;
+      }
+      break;
+    }
+    case DEVICE_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[0] = DEVICE_NOT_SET;
+}
+
 
 void ConnectionRequestFrame::Clear() {
 // @@protoc_insertion_point(message_clear_start:location.nearby.connections.ConnectionRequestFrame)
@@ -2325,6 +2725,7 @@ void ConnectionRequestFrame::Clear() {
         reinterpret_cast<char*>(&device_type_) -
         reinterpret_cast<char*>(&keep_alive_timeout_millis_)) + sizeof(device_type_));
   }
+  clear_Device();
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -2428,7 +2829,7 @@ const char* ConnectionRequestFrame::_InternalParse(const char* ptr, ::PROTOBUF_N
         } else
           goto handle_unusual;
         continue;
-      // optional int32 device_type = 10 [default = 0];
+      // optional int32 device_type = 10 [default = 0, deprecated = true];
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
           _Internal::set_has_device_type(&has_bits);
@@ -2437,11 +2838,27 @@ const char* ConnectionRequestFrame::_InternalParse(const char* ptr, ::PROTOBUF_N
         } else
           goto handle_unusual;
         continue;
-      // optional bytes device_info = 11;
+      // optional bytes device_info = 11 [deprecated = true];
       case 11:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           auto str = _internal_mutable_device_info();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .location.nearby.connections.ConnectionsDevice connections_device = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
+          ptr = ctx->ParseMessage(_internal_mutable_connections_device(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .location.nearby.connections.PresenceDevice presence_device = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+          ptr = ctx->ParseMessage(_internal_mutable_presence_device(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -2534,18 +2951,35 @@ uint8_t* ConnectionRequestFrame::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(9, this->_internal_keep_alive_timeout_millis(), target);
   }
 
-  // optional int32 device_type = 10 [default = 0];
+  // optional int32 device_type = 10 [default = 0, deprecated = true];
   if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(10, this->_internal_device_type(), target);
   }
 
-  // optional bytes device_info = 11;
+  // optional bytes device_info = 11 [deprecated = true];
   if (cached_has_bits & 0x00000010u) {
     target = stream->WriteBytesMaybeAliased(
         11, this->_internal_device_info(), target);
   }
 
+  switch (Device_case()) {
+    case kConnectionsDevice: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          12, _Internal::connections_device(this), target, stream);
+      break;
+    }
+    case kPresenceDevice: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          13, _Internal::presence_device(this), target, stream);
+      break;
+    }
+    default: ;
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -2602,7 +3036,7 @@ size_t ConnectionRequestFrame::ByteSizeLong() const {
           this->_internal_endpoint_info());
     }
 
-    // optional bytes device_info = 11;
+    // optional bytes device_info = 11 [deprecated = true];
     if (cached_has_bits & 0x00000010u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
@@ -2633,11 +3067,30 @@ size_t ConnectionRequestFrame::ByteSizeLong() const {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_keep_alive_timeout_millis());
     }
 
-    // optional int32 device_type = 10 [default = 0];
+    // optional int32 device_type = 10 [default = 0, deprecated = true];
     if (cached_has_bits & 0x00000200u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_device_type());
     }
 
+  }
+  switch (Device_case()) {
+    // .location.nearby.connections.ConnectionsDevice connections_device = 12;
+    case kConnectionsDevice: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *Device_.connections_device_);
+      break;
+    }
+    // .location.nearby.connections.PresenceDevice presence_device = 13;
+    case kPresenceDevice: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *Device_.presence_device_);
+      break;
+    }
+    case DEVICE_NOT_SET: {
+      break;
+    }
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -2697,6 +3150,19 @@ void ConnectionRequestFrame::MergeFrom(const ConnectionRequestFrame& from) {
     }
     _has_bits_[0] |= cached_has_bits;
   }
+  switch (from.Device_case()) {
+    case kConnectionsDevice: {
+      _internal_mutable_connections_device()->::location::nearby::connections::ConnectionsDevice::MergeFrom(from._internal_connections_device());
+      break;
+    }
+    case kPresenceDevice: {
+      _internal_mutable_presence_device()->::location::nearby::connections::PresenceDevice::MergeFrom(from._internal_presence_device());
+      break;
+    }
+    case DEVICE_NOT_SET: {
+      break;
+    }
+  }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
 
@@ -2749,6 +3215,8 @@ void ConnectionRequestFrame::InternalSwap(ConnectionRequestFrame* other) {
       - PROTOBUF_FIELD_OFFSET(ConnectionRequestFrame, medium_metadata_)>(
           reinterpret_cast<char*>(&medium_metadata_),
           reinterpret_cast<char*>(&other->medium_metadata_));
+  swap(Device_, other->Device_);
+  swap(_oneof_case_[0], other->_oneof_case_[0]);
 }
 
 std::string ConnectionRequestFrame::GetTypeName() const {
@@ -2773,6 +3241,12 @@ class ConnectionResponseFrame::_Internal {
   static const ::location::nearby::connections::OsInfo& os_info(const ConnectionResponseFrame* msg);
   static void set_has_os_info(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
+  }
+  static void set_has_multiplex_socket_bitmask(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
+  static void set_has_nearby_connections_version(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
   }
 };
 
@@ -2807,8 +3281,8 @@ ConnectionResponseFrame::ConnectionResponseFrame(const ConnectionResponseFrame& 
     os_info_ = nullptr;
   }
   ::memcpy(&status_, &from.status_,
-    static_cast<size_t>(reinterpret_cast<char*>(&response_) -
-    reinterpret_cast<char*>(&status_)) + sizeof(response_));
+    static_cast<size_t>(reinterpret_cast<char*>(&nearby_connections_version_) -
+    reinterpret_cast<char*>(&status_)) + sizeof(nearby_connections_version_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.connections.ConnectionResponseFrame)
 }
 
@@ -2819,8 +3293,8 @@ handshake_data_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStr
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&os_info_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&response_) -
-    reinterpret_cast<char*>(&os_info_)) + sizeof(response_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&nearby_connections_version_) -
+    reinterpret_cast<char*>(&os_info_)) + sizeof(nearby_connections_version_));
 }
 
 ConnectionResponseFrame::~ConnectionResponseFrame() {
@@ -2862,10 +3336,10 @@ void ConnectionResponseFrame::Clear() {
       os_info_->Clear();
     }
   }
-  if (cached_has_bits & 0x0000000cu) {
+  if (cached_has_bits & 0x0000003cu) {
     ::memset(&status_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&response_) -
-        reinterpret_cast<char*>(&status_)) + sizeof(response_));
+        reinterpret_cast<char*>(&nearby_connections_version_) -
+        reinterpret_cast<char*>(&status_)) + sizeof(nearby_connections_version_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -2913,6 +3387,24 @@ const char* ConnectionResponseFrame::_InternalParse(const char* ptr, ::PROTOBUF_
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_os_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 multiplex_socket_bitmask = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+          _Internal::set_has_multiplex_socket_bitmask(&has_bits);
+          multiplex_socket_bitmask_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 nearby_connections_version = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _Internal::set_has_nearby_connections_version(&has_bits);
+          nearby_connections_version_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -2975,6 +3467,18 @@ uint8_t* ConnectionResponseFrame::_InternalSerialize(
         4, _Internal::os_info(this), target, stream);
   }
 
+  // optional int32 multiplex_socket_bitmask = 5;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_multiplex_socket_bitmask(), target);
+  }
+
+  // optional int32 nearby_connections_version = 6;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(6, this->_internal_nearby_connections_version(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -2992,7 +3496,7 @@ size_t ConnectionResponseFrame::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000003fu) {
     // optional bytes handshake_data = 2;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -3018,6 +3522,16 @@ size_t ConnectionResponseFrame::ByteSizeLong() const {
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_response());
     }
 
+    // optional int32 multiplex_socket_bitmask = 5;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_multiplex_socket_bitmask());
+    }
+
+    // optional int32 nearby_connections_version = 6;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_nearby_connections_version());
+    }
+
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -3040,7 +3554,7 @@ void ConnectionResponseFrame::MergeFrom(const ConnectionResponseFrame& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000003fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_handshake_data(from._internal_handshake_data());
     }
@@ -3052,6 +3566,12 @@ void ConnectionResponseFrame::MergeFrom(const ConnectionResponseFrame& from) {
     }
     if (cached_has_bits & 0x00000008u) {
       response_ = from.response_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      multiplex_socket_bitmask_ = from.multiplex_socket_bitmask_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      nearby_connections_version_ = from.nearby_connections_version_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -3081,8 +3601,8 @@ void ConnectionResponseFrame::InternalSwap(ConnectionResponseFrame* other) {
       &other->handshake_data_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, response_)
-      + sizeof(ConnectionResponseFrame::response_)
+      PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, nearby_connections_version_)
+      + sizeof(ConnectionResponseFrame::nearby_connections_version_)
       - PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, os_info_)>(
           reinterpret_cast<char*>(&os_info_),
           reinterpret_cast<char*>(&other->os_info_));
@@ -5563,13 +6083,16 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_I
     (*has_bits)[0] |= 2u;
   }
   static void set_has_port(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 16u;
   }
   static void set_has_frequency(HasBits* has_bits) {
-    (*has_bits)[0] |= 16u;
+    (*has_bits)[0] |= 32u;
   }
   static void set_has_gateway(HasBits* has_bits) {
     (*has_bits)[0] |= 4u;
+  }
+  static void set_has_ip_v6_address(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
   }
 };
 
@@ -5608,6 +6131,14 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Bandwidt
     gateway_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::NonEmptyDefault{}, from._internal_gateway(), 
       GetArenaForAllocation());
   }
+  ip_v6_address_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    ip_v6_address_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_ip_v6_address()) {
+    ip_v6_address_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_ip_v6_address(), 
+      GetArenaForAllocation());
+  }
   ::memcpy(&port_, &from.port_,
     static_cast<size_t>(reinterpret_cast<char*>(&frequency_) -
     reinterpret_cast<char*>(&port_)) + sizeof(frequency_));
@@ -5624,6 +6155,10 @@ password_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlr
   password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 gateway_.UnsafeSetDefault(nullptr);
+ip_v6_address_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  ip_v6_address_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&port_) - reinterpret_cast<char*>(this)),
     0, static_cast<size_t>(reinterpret_cast<char*>(&frequency_) -
@@ -5642,6 +6177,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
   ssid_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   password_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   gateway_.DestroyNoArena(nullptr);
+  ip_v6_address_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::ArenaDtor(void* object) {
@@ -5661,7 +6197,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Cle
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000000fu) {
     if (cached_has_bits & 0x00000001u) {
       ssid_.ClearNonDefaultToEmpty();
     }
@@ -5671,8 +6207,11 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Cle
     if (cached_has_bits & 0x00000004u) {
       gateway_.ClearToDefault(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_i_give_permission_to_break_this_code_default_gateway_, GetArenaForAllocation());
        }
+    if (cached_has_bits & 0x00000008u) {
+      ip_v6_address_.ClearNonDefaultToEmpty();
+    }
   }
-  if (cached_has_bits & 0x00000018u) {
+  if (cached_has_bits & 0x00000030u) {
     ::memset(&port_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&frequency_) -
         reinterpret_cast<char*>(&port_)) + sizeof(frequency_));
@@ -5733,6 +6272,15 @@ const char* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
         } else
           goto handle_unusual;
         continue;
+      // optional bytes ip_v6_address = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
+          auto str = _internal_mutable_ip_v6_address();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -5777,13 +6325,13 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials:
   }
 
   // optional int32 port = 3;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_port(), target);
   }
 
   // optional int32 frequency = 4;
-  if (cached_has_bits & 0x00000010u) {
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_frequency(), target);
   }
@@ -5792,6 +6340,12 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials:
   if (cached_has_bits & 0x00000004u) {
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_gateway(), target);
+  }
+
+  // optional bytes ip_v6_address = 6;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->WriteBytesMaybeAliased(
+        6, this->_internal_ip_v6_address(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -5811,7 +6365,7 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::B
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     // optional string ssid = 1;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -5833,13 +6387,20 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::B
           this->_internal_gateway());
     }
 
-    // optional int32 port = 3;
+    // optional bytes ip_v6_address = 6;
     if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+          this->_internal_ip_v6_address());
+    }
+
+    // optional int32 port = 3;
+    if (cached_has_bits & 0x00000010u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_port());
     }
 
     // optional int32 frequency = 4;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000020u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_frequency());
     }
 
@@ -5865,7 +6426,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Mer
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_ssid(from._internal_ssid());
     }
@@ -5876,9 +6437,12 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Mer
       _internal_set_gateway(from._internal_gateway());
     }
     if (cached_has_bits & 0x00000008u) {
-      port_ = from.port_;
+      _internal_set_ip_v6_address(from._internal_ip_v6_address());
     }
     if (cached_has_bits & 0x00000010u) {
+      port_ = from.port_;
+    }
+    if (cached_has_bits & 0x00000020u) {
       frequency_ = from.frequency_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -5917,6 +6481,11 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Int
       nullptr,
       &gateway_, lhs_arena,
       &other->gateway_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &ip_v6_address_, lhs_arena,
+      &other->ip_v6_address_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, frequency_)
@@ -7648,6 +8217,13 @@ std::string KeepAliveFrame::GetTypeName() const {
 
 class DisconnectionFrame::_Internal {
  public:
+  using HasBits = decltype(std::declval<DisconnectionFrame>()._has_bits_);
+  static void set_has_request_safe_to_disconnect(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_ack_safe_to_disconnect(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
 };
 
 DisconnectionFrame::DisconnectionFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -7660,12 +8236,20 @@ DisconnectionFrame::DisconnectionFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   // @@protoc_insertion_point(arena_constructor:location.nearby.connections.DisconnectionFrame)
 }
 DisconnectionFrame::DisconnectionFrame(const DisconnectionFrame& from)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite() {
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  ::memcpy(&request_safe_to_disconnect_, &from.request_safe_to_disconnect_,
+    static_cast<size_t>(reinterpret_cast<char*>(&ack_safe_to_disconnect_) -
+    reinterpret_cast<char*>(&request_safe_to_disconnect_)) + sizeof(ack_safe_to_disconnect_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.connections.DisconnectionFrame)
 }
 
 inline void DisconnectionFrame::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&request_safe_to_disconnect_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&ack_safe_to_disconnect_) -
+    reinterpret_cast<char*>(&request_safe_to_disconnect_)) + sizeof(ack_safe_to_disconnect_));
 }
 
 DisconnectionFrame::~DisconnectionFrame() {
@@ -7695,14 +8279,42 @@ void DisconnectionFrame::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  ::memset(&request_safe_to_disconnect_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&ack_safe_to_disconnect_) -
+      reinterpret_cast<char*>(&request_safe_to_disconnect_)) + sizeof(ack_safe_to_disconnect_));
+  _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
 
 const char* DisconnectionFrame::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional bool request_safe_to_disconnect = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_request_safe_to_disconnect(&has_bits);
+          request_safe_to_disconnect_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool ack_safe_to_disconnect = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_ack_safe_to_disconnect(&has_bits);
+          ack_safe_to_disconnect_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
     if ((tag == 0) || ((tag & 7) == 4)) {
       CHK_(ptr);
       ctx->SetLastTag(tag);
@@ -7715,6 +8327,7 @@ const char* DisconnectionFrame::_InternalParse(const char* ptr, ::PROTOBUF_NAMES
     CHK_(ptr != nullptr);
   }  // while
 message_done:
+  _has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -7727,6 +8340,19 @@ uint8_t* DisconnectionFrame::_InternalSerialize(
   // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.DisconnectionFrame)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional bool request_safe_to_disconnect = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(1, this->_internal_request_safe_to_disconnect(), target);
+  }
+
+  // optional bool ack_safe_to_disconnect = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(2, this->_internal_ack_safe_to_disconnect(), target);
+  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
@@ -7744,6 +8370,19 @@ size_t DisconnectionFrame::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional bool request_safe_to_disconnect = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool ack_safe_to_disconnect = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 1;
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -7764,6 +8403,16 @@ void DisconnectionFrame::MergeFrom(const DisconnectionFrame& from) {
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      request_safe_to_disconnect_ = from.request_safe_to_disconnect_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      ack_safe_to_disconnect_ = from.ack_safe_to_disconnect_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
 
@@ -7781,6 +8430,13 @@ bool DisconnectionFrame::IsInitialized() const {
 void DisconnectionFrame::InternalSwap(DisconnectionFrame* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DisconnectionFrame, ack_safe_to_disconnect_)
+      + sizeof(DisconnectionFrame::ack_safe_to_disconnect_)
+      - PROTOBUF_FIELD_OFFSET(DisconnectionFrame, request_safe_to_disconnect_)>(
+          reinterpret_cast<char*>(&request_safe_to_disconnect_),
+          reinterpret_cast<char*>(&other->request_safe_to_disconnect_));
 }
 
 std::string DisconnectionFrame::GetTypeName() const {
@@ -7994,6 +8650,402 @@ void PairedKeyEncryptionFrame::InternalSwap(PairedKeyEncryptionFrame* other) {
 
 std::string PairedKeyEncryptionFrame::GetTypeName() const {
   return "location.nearby.connections.PairedKeyEncryptionFrame";
+}
+
+
+// ===================================================================
+
+class AuthenticationMessageFrame::_Internal {
+ public:
+  using HasBits = decltype(std::declval<AuthenticationMessageFrame>()._has_bits_);
+  static void set_has_auth_message(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+AuthenticationMessageFrame::AuthenticationMessageFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.AuthenticationMessageFrame)
+}
+AuthenticationMessageFrame::AuthenticationMessageFrame(const AuthenticationMessageFrame& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  auth_message_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    auth_message_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_auth_message()) {
+    auth_message_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_auth_message(), 
+      GetArenaForAllocation());
+  }
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.AuthenticationMessageFrame)
+}
+
+inline void AuthenticationMessageFrame::SharedCtor() {
+auth_message_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  auth_message_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+}
+
+AuthenticationMessageFrame::~AuthenticationMessageFrame() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.AuthenticationMessageFrame)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void AuthenticationMessageFrame::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  auth_message_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void AuthenticationMessageFrame::ArenaDtor(void* object) {
+  AuthenticationMessageFrame* _this = reinterpret_cast< AuthenticationMessageFrame* >(object);
+  (void)_this;
+}
+void AuthenticationMessageFrame::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void AuthenticationMessageFrame::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void AuthenticationMessageFrame::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.AuthenticationMessageFrame)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    auth_message_.ClearNonDefaultToEmpty();
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* AuthenticationMessageFrame::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional bytes auth_message = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_auth_message();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* AuthenticationMessageFrame::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.AuthenticationMessageFrame)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional bytes auth_message = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteBytesMaybeAliased(
+        1, this->_internal_auth_message(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.AuthenticationMessageFrame)
+  return target;
+}
+
+size_t AuthenticationMessageFrame::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.AuthenticationMessageFrame)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional bytes auth_message = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+        this->_internal_auth_message());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void AuthenticationMessageFrame::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const AuthenticationMessageFrame*>(
+      &from));
+}
+
+void AuthenticationMessageFrame::MergeFrom(const AuthenticationMessageFrame& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.AuthenticationMessageFrame)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_auth_message()) {
+    _internal_set_auth_message(from._internal_auth_message());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void AuthenticationMessageFrame::CopyFrom(const AuthenticationMessageFrame& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.AuthenticationMessageFrame)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool AuthenticationMessageFrame::IsInitialized() const {
+  return true;
+}
+
+void AuthenticationMessageFrame::InternalSwap(AuthenticationMessageFrame* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &auth_message_, lhs_arena,
+      &other->auth_message_, rhs_arena
+  );
+}
+
+std::string AuthenticationMessageFrame::GetTypeName() const {
+  return "location.nearby.connections.AuthenticationMessageFrame";
+}
+
+
+// ===================================================================
+
+class AuthenticationResultFrame::_Internal {
+ public:
+  using HasBits = decltype(std::declval<AuthenticationResultFrame>()._has_bits_);
+  static void set_has_result(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+AuthenticationResultFrame::AuthenticationResultFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.AuthenticationResultFrame)
+}
+AuthenticationResultFrame::AuthenticationResultFrame(const AuthenticationResultFrame& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  result_ = from.result_;
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.AuthenticationResultFrame)
+}
+
+inline void AuthenticationResultFrame::SharedCtor() {
+result_ = 0;
+}
+
+AuthenticationResultFrame::~AuthenticationResultFrame() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.AuthenticationResultFrame)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void AuthenticationResultFrame::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void AuthenticationResultFrame::ArenaDtor(void* object) {
+  AuthenticationResultFrame* _this = reinterpret_cast< AuthenticationResultFrame* >(object);
+  (void)_this;
+}
+void AuthenticationResultFrame::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void AuthenticationResultFrame::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void AuthenticationResultFrame::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.AuthenticationResultFrame)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  result_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* AuthenticationResultFrame::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional int32 result = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_result(&has_bits);
+          result_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* AuthenticationResultFrame::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.AuthenticationResultFrame)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional int32 result = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_result(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.AuthenticationResultFrame)
+  return target;
+}
+
+size_t AuthenticationResultFrame::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.AuthenticationResultFrame)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional int32 result = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_result());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void AuthenticationResultFrame::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const AuthenticationResultFrame*>(
+      &from));
+}
+
+void AuthenticationResultFrame::MergeFrom(const AuthenticationResultFrame& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.AuthenticationResultFrame)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_result()) {
+    _internal_set_result(from._internal_result());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void AuthenticationResultFrame::CopyFrom(const AuthenticationResultFrame& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.AuthenticationResultFrame)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool AuthenticationResultFrame::IsInitialized() const {
+  return true;
+}
+
+void AuthenticationResultFrame::InternalSwap(AuthenticationResultFrame* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  swap(result_, other->result_);
+}
+
+std::string AuthenticationResultFrame::GetTypeName() const {
+  return "location.nearby.connections.AuthenticationResultFrame";
 }
 
 
@@ -10145,6 +11197,957 @@ std::string OsInfo::GetTypeName() const {
 }
 
 
+// ===================================================================
+
+class ConnectionsDevice::_Internal {
+ public:
+  using HasBits = decltype(std::declval<ConnectionsDevice>()._has_bits_);
+  static void set_has_endpoint_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_endpoint_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_connectivity_info_list(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_endpoint_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+};
+
+ConnectionsDevice::ConnectionsDevice(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.ConnectionsDevice)
+}
+ConnectionsDevice::ConnectionsDevice(const ConnectionsDevice& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  endpoint_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_endpoint_id()) {
+    endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_endpoint_id(), 
+      GetArenaForAllocation());
+  }
+  connectivity_info_list_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_connectivity_info_list()) {
+    connectivity_info_list_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_connectivity_info_list(), 
+      GetArenaForAllocation());
+  }
+  endpoint_info_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    endpoint_info_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_endpoint_info()) {
+    endpoint_info_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_endpoint_info(), 
+      GetArenaForAllocation());
+  }
+  endpoint_type_ = from.endpoint_type_;
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.ConnectionsDevice)
+}
+
+inline void ConnectionsDevice::SharedCtor() {
+endpoint_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+connectivity_info_list_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+endpoint_info_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  endpoint_info_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+endpoint_type_ = 0;
+}
+
+ConnectionsDevice::~ConnectionsDevice() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.ConnectionsDevice)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void ConnectionsDevice::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  endpoint_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  connectivity_info_list_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  endpoint_info_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void ConnectionsDevice::ArenaDtor(void* object) {
+  ConnectionsDevice* _this = reinterpret_cast< ConnectionsDevice* >(object);
+  (void)_this;
+}
+void ConnectionsDevice::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ConnectionsDevice::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void ConnectionsDevice::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.ConnectionsDevice)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    if (cached_has_bits & 0x00000001u) {
+      endpoint_id_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      connectivity_info_list_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000004u) {
+      endpoint_info_.ClearNonDefaultToEmpty();
+    }
+  }
+  endpoint_type_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* ConnectionsDevice::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional string endpoint_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_endpoint_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::connections::EndpointType_IsValid(val))) {
+            _internal_set_endpoint_type(static_cast<::location::nearby::connections::EndpointType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bytes connectivity_info_list = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_connectivity_info_list();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bytes endpoint_info = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          auto str = _internal_mutable_endpoint_info();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ConnectionsDevice::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.ConnectionsDevice)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional string endpoint_id = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_endpoint_id(), target);
+  }
+
+  // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_endpoint_type(), target);
+  }
+
+  // optional bytes connectivity_info_list = 3;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteBytesMaybeAliased(
+        3, this->_internal_connectivity_info_list(), target);
+  }
+
+  // optional bytes endpoint_info = 4;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->WriteBytesMaybeAliased(
+        4, this->_internal_endpoint_info(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.ConnectionsDevice)
+  return target;
+}
+
+size_t ConnectionsDevice::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.ConnectionsDevice)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    // optional string endpoint_id = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_endpoint_id());
+    }
+
+    // optional bytes connectivity_info_list = 3;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+          this->_internal_connectivity_info_list());
+    }
+
+    // optional bytes endpoint_info = 4;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+          this->_internal_endpoint_info());
+    }
+
+    // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_endpoint_type());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void ConnectionsDevice::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ConnectionsDevice*>(
+      &from));
+}
+
+void ConnectionsDevice::MergeFrom(const ConnectionsDevice& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.ConnectionsDevice)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_endpoint_id(from._internal_endpoint_id());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _internal_set_connectivity_info_list(from._internal_connectivity_info_list());
+    }
+    if (cached_has_bits & 0x00000004u) {
+      _internal_set_endpoint_info(from._internal_endpoint_info());
+    }
+    if (cached_has_bits & 0x00000008u) {
+      endpoint_type_ = from.endpoint_type_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void ConnectionsDevice::CopyFrom(const ConnectionsDevice& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.ConnectionsDevice)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ConnectionsDevice::IsInitialized() const {
+  return true;
+}
+
+void ConnectionsDevice::InternalSwap(ConnectionsDevice* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &endpoint_id_, lhs_arena,
+      &other->endpoint_id_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &connectivity_info_list_, lhs_arena,
+      &other->connectivity_info_list_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &endpoint_info_, lhs_arena,
+      &other->endpoint_info_, rhs_arena
+  );
+  swap(endpoint_type_, other->endpoint_type_);
+}
+
+std::string ConnectionsDevice::GetTypeName() const {
+  return "location.nearby.connections.ConnectionsDevice";
+}
+
+
+// ===================================================================
+
+class PresenceDevice::_Internal {
+ public:
+  using HasBits = decltype(std::declval<PresenceDevice>()._has_bits_);
+  static void set_has_endpoint_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_endpoint_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
+  static void set_has_connectivity_info_list(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_device_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
+  static void set_has_device_name(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_device_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 64u;
+  }
+  static void set_has_device_image_url(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+};
+
+PresenceDevice::PresenceDevice(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  discovery_medium_(arena),
+  actions_(arena),
+  identity_type_(arena) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.PresenceDevice)
+}
+PresenceDevice::PresenceDevice(const PresenceDevice& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_),
+      discovery_medium_(from.discovery_medium_),
+      actions_(from.actions_),
+      identity_type_(from.identity_type_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  endpoint_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_endpoint_id()) {
+    endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_endpoint_id(), 
+      GetArenaForAllocation());
+  }
+  connectivity_info_list_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_connectivity_info_list()) {
+    connectivity_info_list_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_connectivity_info_list(), 
+      GetArenaForAllocation());
+  }
+  device_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    device_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_device_name()) {
+    device_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_device_name(), 
+      GetArenaForAllocation());
+  }
+  device_image_url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    device_image_url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_device_image_url()) {
+    device_image_url_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_device_image_url(), 
+      GetArenaForAllocation());
+  }
+  ::memcpy(&device_id_, &from.device_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&device_id_)) + sizeof(device_type_));
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.PresenceDevice)
+}
+
+inline void PresenceDevice::SharedCtor() {
+endpoint_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+connectivity_info_list_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+device_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  device_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+device_image_url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  device_image_url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&device_id_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&device_id_)) + sizeof(device_type_));
+}
+
+PresenceDevice::~PresenceDevice() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.PresenceDevice)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void PresenceDevice::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  endpoint_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  connectivity_info_list_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  device_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  device_image_url_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void PresenceDevice::ArenaDtor(void* object) {
+  PresenceDevice* _this = reinterpret_cast< PresenceDevice* >(object);
+  (void)_this;
+}
+void PresenceDevice::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void PresenceDevice::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void PresenceDevice::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.PresenceDevice)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  discovery_medium_.Clear();
+  actions_.Clear();
+  identity_type_.Clear();
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    if (cached_has_bits & 0x00000001u) {
+      endpoint_id_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      connectivity_info_list_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000004u) {
+      device_name_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000008u) {
+      device_image_url_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (cached_has_bits & 0x00000070u) {
+    ::memset(&device_id_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&device_type_) -
+        reinterpret_cast<char*>(&device_id_)) + sizeof(device_type_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* PresenceDevice::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional string endpoint_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_endpoint_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::connections::EndpointType_IsValid(val))) {
+            _internal_set_endpoint_type(static_cast<::location::nearby::connections::EndpointType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bytes connectivity_info_list = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_connectivity_info_list();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 device_id = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _Internal::set_has_device_id(&has_bits);
+          device_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string device_name = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          auto str = _internal_mutable_device_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.connections.PresenceDevice.DeviceType device_type = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::connections::PresenceDevice_DeviceType_IsValid(val))) {
+            _internal_set_device_type(static_cast<::location::nearby::connections::PresenceDevice_DeviceType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(6, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string device_image_url = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
+          auto str = _internal_mutable_device_image_url();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated .location.nearby.connections.ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedEnumParser<std::string>(_internal_mutable_discovery_medium(), ptr, ctx, ::location::nearby::connections::ConnectionRequestFrame_Medium_IsValid, &_internal_metadata_, 8);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 64) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::connections::ConnectionRequestFrame_Medium_IsValid(val))) {
+            _internal_add_discovery_medium(static_cast<::location::nearby::connections::ConnectionRequestFrame_Medium>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(8, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated int32 actions = 9 [packed = true];
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt32Parser(_internal_mutable_actions(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 72) {
+          _internal_add_actions(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr));
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated int64 identity_type = 10 [packed = true];
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt64Parser(_internal_mutable_identity_type(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 80) {
+          _internal_add_identity_type(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* PresenceDevice::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.PresenceDevice)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional string endpoint_id = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_endpoint_id(), target);
+  }
+
+  // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_endpoint_type(), target);
+  }
+
+  // optional bytes connectivity_info_list = 3;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteBytesMaybeAliased(
+        3, this->_internal_connectivity_info_list(), target);
+  }
+
+  // optional int64 device_id = 4;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(4, this->_internal_device_id(), target);
+  }
+
+  // optional string device_name = 5;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->WriteStringMaybeAliased(
+        5, this->_internal_device_name(), target);
+  }
+
+  // optional .location.nearby.connections.PresenceDevice.DeviceType device_type = 6;
+  if (cached_has_bits & 0x00000040u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      6, this->_internal_device_type(), target);
+  }
+
+  // optional string device_image_url = 7;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->WriteStringMaybeAliased(
+        7, this->_internal_device_image_url(), target);
+  }
+
+  // repeated .location.nearby.connections.ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
+  {
+    int byte_size = _discovery_medium_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteEnumPacked(
+          8, discovery_medium_, byte_size, target);
+    }
+  }
+
+  // repeated int32 actions = 9 [packed = true];
+  {
+    int byte_size = _actions_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteInt32Packed(
+          9, _internal_actions(), byte_size, target);
+    }
+  }
+
+  // repeated int64 identity_type = 10 [packed = true];
+  {
+    int byte_size = _identity_type_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteInt64Packed(
+          10, _internal_identity_type(), byte_size, target);
+    }
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.PresenceDevice)
+  return target;
+}
+
+size_t PresenceDevice::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.PresenceDevice)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .location.nearby.connections.ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
+  {
+    size_t data_size = 0;
+    unsigned int count = static_cast<unsigned int>(this->_internal_discovery_medium_size());for (unsigned int i = 0; i < count; i++) {
+      data_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(
+        this->_internal_discovery_medium(static_cast<int>(i)));
+    }
+    if (data_size > 0) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+            static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
+    _discovery_medium_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
+
+  // repeated int32 actions = 9 [packed = true];
+  {
+    size_t data_size = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      Int32Size(this->actions_);
+    if (data_size > 0) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+            static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
+    _actions_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
+
+  // repeated int64 identity_type = 10 [packed = true];
+  {
+    size_t data_size = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      Int64Size(this->identity_type_);
+    if (data_size > 0) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+            static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
+    _identity_type_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000007fu) {
+    // optional string endpoint_id = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_endpoint_id());
+    }
+
+    // optional bytes connectivity_info_list = 3;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+          this->_internal_connectivity_info_list());
+    }
+
+    // optional string device_name = 5;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_device_name());
+    }
+
+    // optional string device_image_url = 7;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_device_image_url());
+    }
+
+    // optional int64 device_id = 4;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_device_id());
+    }
+
+    // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_endpoint_type());
+    }
+
+    // optional .location.nearby.connections.PresenceDevice.DeviceType device_type = 6;
+    if (cached_has_bits & 0x00000040u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void PresenceDevice::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const PresenceDevice*>(
+      &from));
+}
+
+void PresenceDevice::MergeFrom(const PresenceDevice& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.PresenceDevice)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  discovery_medium_.MergeFrom(from.discovery_medium_);
+  actions_.MergeFrom(from.actions_);
+  identity_type_.MergeFrom(from.identity_type_);
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000007fu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_endpoint_id(from._internal_endpoint_id());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _internal_set_connectivity_info_list(from._internal_connectivity_info_list());
+    }
+    if (cached_has_bits & 0x00000004u) {
+      _internal_set_device_name(from._internal_device_name());
+    }
+    if (cached_has_bits & 0x00000008u) {
+      _internal_set_device_image_url(from._internal_device_image_url());
+    }
+    if (cached_has_bits & 0x00000010u) {
+      device_id_ = from.device_id_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      endpoint_type_ = from.endpoint_type_;
+    }
+    if (cached_has_bits & 0x00000040u) {
+      device_type_ = from.device_type_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void PresenceDevice::CopyFrom(const PresenceDevice& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.PresenceDevice)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool PresenceDevice::IsInitialized() const {
+  return true;
+}
+
+void PresenceDevice::InternalSwap(PresenceDevice* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  discovery_medium_.InternalSwap(&other->discovery_medium_);
+  actions_.InternalSwap(&other->actions_);
+  identity_type_.InternalSwap(&other->identity_type_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &endpoint_id_, lhs_arena,
+      &other->endpoint_id_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &connectivity_info_list_, lhs_arena,
+      &other->connectivity_info_list_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &device_name_, lhs_arena,
+      &other->device_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &device_image_url_, lhs_arena,
+      &other->device_image_url_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(PresenceDevice, device_type_)
+      + sizeof(PresenceDevice::device_type_)
+      - PROTOBUF_FIELD_OFFSET(PresenceDevice, device_id_)>(
+          reinterpret_cast<char*>(&device_id_),
+          reinterpret_cast<char*>(&other->device_id_));
+}
+
+std::string PresenceDevice::GetTypeName() const {
+  return "location.nearby.connections.PresenceDevice";
+}
+
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace connections
 }  // namespace nearby
@@ -10213,6 +12216,12 @@ template<> PROTOBUF_NOINLINE ::location::nearby::connections::DisconnectionFrame
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::PairedKeyEncryptionFrame* Arena::CreateMaybeMessage< ::location::nearby::connections::PairedKeyEncryptionFrame >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::PairedKeyEncryptionFrame >(arena);
 }
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::AuthenticationMessageFrame* Arena::CreateMaybeMessage< ::location::nearby::connections::AuthenticationMessageFrame >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::AuthenticationMessageFrame >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::AuthenticationResultFrame* Arena::CreateMaybeMessage< ::location::nearby::connections::AuthenticationResultFrame >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::AuthenticationResultFrame >(arena);
+}
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::MediumMetadata* Arena::CreateMaybeMessage< ::location::nearby::connections::MediumMetadata >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::MediumMetadata >(arena);
 }
@@ -10239,6 +12248,12 @@ template<> PROTOBUF_NOINLINE ::location::nearby::connections::LocationStandard* 
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::OsInfo* Arena::CreateMaybeMessage< ::location::nearby::connections::OsInfo >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::OsInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::ConnectionsDevice* Arena::CreateMaybeMessage< ::location::nearby::connections::ConnectionsDevice >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::ConnectionsDevice >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::PresenceDevice* Arena::CreateMaybeMessage< ::location::nearby::connections::PresenceDevice >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::PresenceDevice >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 
