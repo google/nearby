@@ -230,13 +230,14 @@ bool Medium_IsValid(int value) {
     case 8:
     case 9:
     case 10:
+    case 11:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Medium_strings[11] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Medium_strings[12] = {};
 
 static const char Medium_names[] =
   "BLE"
@@ -245,6 +246,7 @@ static const char Medium_names[] =
   "MDNS"
   "NFC"
   "UNKNOWN_MEDIUM"
+  "USB"
   "WEB_RTC"
   "WIFI_AWARE"
   "WIFI_DIRECT"
@@ -258,25 +260,27 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry Medium_entries[] = {
   { {Medium_names + 21, 4}, 1 },
   { {Medium_names + 25, 3}, 7 },
   { {Medium_names + 28, 14}, 0 },
-  { {Medium_names + 42, 7}, 9 },
-  { {Medium_names + 49, 10}, 6 },
-  { {Medium_names + 59, 11}, 8 },
-  { {Medium_names + 70, 12}, 3 },
-  { {Medium_names + 82, 8}, 5 },
+  { {Medium_names + 42, 3}, 11 },
+  { {Medium_names + 45, 7}, 9 },
+  { {Medium_names + 52, 10}, 6 },
+  { {Medium_names + 62, 11}, 8 },
+  { {Medium_names + 73, 12}, 3 },
+  { {Medium_names + 85, 8}, 5 },
 };
 
 static const int Medium_entries_by_number[] = {
   5, // 0 -> UNKNOWN_MEDIUM
   3, // 1 -> MDNS
   2, // 2 -> BLUETOOTH
-  9, // 3 -> WIFI_HOTSPOT
+  10, // 3 -> WIFI_HOTSPOT
   0, // 4 -> BLE
-  10, // 5 -> WIFI_LAN
-  7, // 6 -> WIFI_AWARE
+  11, // 5 -> WIFI_LAN
+  8, // 6 -> WIFI_AWARE
   4, // 7 -> NFC
-  8, // 8 -> WIFI_DIRECT
-  6, // 9 -> WEB_RTC
+  9, // 8 -> WIFI_DIRECT
+  7, // 9 -> WEB_RTC
   1, // 10 -> BLE_L2CAP
+  6, // 11 -> USB
 };
 
 const std::string& Medium_Name(
@@ -285,12 +289,12 @@ const std::string& Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           Medium_entries,
           Medium_entries_by_number,
-          11, Medium_strings);
+          12, Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       Medium_entries,
       Medium_entries_by_number,
-      11, value);
+      12, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      Medium_strings[idx].get();
 }
@@ -298,7 +302,7 @@ bool Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      Medium_entries, 11, name, &int_value);
+      Medium_entries, 12, name, &int_value);
   if (success) {
     *value = static_cast<Medium>(int_value);
   }
@@ -844,22 +848,26 @@ bool PayloadStatus_IsValid(int value) {
     case 7:
     case 8:
     case 9:
+    case 10:
+    case 11:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> PayloadStatus_strings[10] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> PayloadStatus_strings[12] = {};
 
 static const char PayloadStatus_names[] =
   "CONNECTION_CLOSED"
   "ENDPOINT_IO_ERROR"
   "ENDPOINT_UNENCRYPTED"
   "LOCAL_CANCELLATION"
+  "LOCAL_CLIENT_DISCONNECTION"
   "LOCAL_ERROR"
   "MOVED_TO_NEW_MEDIUM"
   "REMOTE_CANCELLATION"
+  "REMOTE_CLIENT_DISCONNECTION"
   "REMOTE_ERROR"
   "SUCCESS"
   "UNKNOWN_PAYLOAD_STATUS";
@@ -869,25 +877,29 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry PayloadStatus_entries[
   { {PayloadStatus_names + 17, 17}, 4 },
   { {PayloadStatus_names + 34, 20}, 9 },
   { {PayloadStatus_names + 54, 18}, 7 },
-  { {PayloadStatus_names + 72, 11}, 2 },
-  { {PayloadStatus_names + 83, 19}, 5 },
-  { {PayloadStatus_names + 102, 19}, 8 },
-  { {PayloadStatus_names + 121, 12}, 3 },
-  { {PayloadStatus_names + 133, 7}, 1 },
-  { {PayloadStatus_names + 140, 22}, 0 },
+  { {PayloadStatus_names + 72, 26}, 10 },
+  { {PayloadStatus_names + 98, 11}, 2 },
+  { {PayloadStatus_names + 109, 19}, 5 },
+  { {PayloadStatus_names + 128, 19}, 8 },
+  { {PayloadStatus_names + 147, 27}, 11 },
+  { {PayloadStatus_names + 174, 12}, 3 },
+  { {PayloadStatus_names + 186, 7}, 1 },
+  { {PayloadStatus_names + 193, 22}, 0 },
 };
 
 static const int PayloadStatus_entries_by_number[] = {
-  9, // 0 -> UNKNOWN_PAYLOAD_STATUS
-  8, // 1 -> SUCCESS
-  4, // 2 -> LOCAL_ERROR
-  7, // 3 -> REMOTE_ERROR
+  11, // 0 -> UNKNOWN_PAYLOAD_STATUS
+  10, // 1 -> SUCCESS
+  5, // 2 -> LOCAL_ERROR
+  9, // 3 -> REMOTE_ERROR
   1, // 4 -> ENDPOINT_IO_ERROR
-  5, // 5 -> MOVED_TO_NEW_MEDIUM
+  6, // 5 -> MOVED_TO_NEW_MEDIUM
   0, // 6 -> CONNECTION_CLOSED
   3, // 7 -> LOCAL_CANCELLATION
-  6, // 8 -> REMOTE_CANCELLATION
+  7, // 8 -> REMOTE_CANCELLATION
   2, // 9 -> ENDPOINT_UNENCRYPTED
+  4, // 10 -> LOCAL_CLIENT_DISCONNECTION
+  8, // 11 -> REMOTE_CLIENT_DISCONNECTION
 };
 
 const std::string& PayloadStatus_Name(
@@ -896,12 +908,12 @@ const std::string& PayloadStatus_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           PayloadStatus_entries,
           PayloadStatus_entries_by_number,
-          10, PayloadStatus_strings);
+          12, PayloadStatus_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       PayloadStatus_entries,
       PayloadStatus_entries_by_number,
-      10, value);
+      12, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      PayloadStatus_strings[idx].get();
 }
@@ -909,7 +921,7 @@ bool PayloadStatus_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PayloadStatus* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      PayloadStatus_entries, 10, name, &int_value);
+      PayloadStatus_entries, 12, name, &int_value);
   if (success) {
     *value = static_cast<PayloadStatus>(int_value);
   }
@@ -993,13 +1005,14 @@ bool BandwidthUpgradeResult_IsValid(int value) {
     case 16:
     case 17:
     case 18:
+    case 19:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeResult_strings[17] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeResult_strings[18] = {};
 
 static const char BandwidthUpgradeResult_names[] =
   "ALREADY_ON_MEDIUM_ERROR"
@@ -1008,6 +1021,7 @@ static const char BandwidthUpgradeResult_names[] =
   "CHANNEL_ERROR"
   "MEDIUM_ERROR"
   "PROTOCOL_ERROR"
+  "REMOTE_CONNECTION_ERROR"
   "RESULT_IO_ERROR"
   "RESULT_REMOTE_ERROR"
   "UNFINISHED_ERROR"
@@ -1027,37 +1041,39 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry BandwidthUpgradeResult
   { {BandwidthUpgradeResult_names + 60, 13}, 6 },
   { {BandwidthUpgradeResult_names + 73, 12}, 3 },
   { {BandwidthUpgradeResult_names + 85, 14}, 4 },
-  { {BandwidthUpgradeResult_names + 99, 15}, 5 },
-  { {BandwidthUpgradeResult_names + 114, 19}, 17 },
-  { {BandwidthUpgradeResult_names + 133, 16}, 10 },
-  { {BandwidthUpgradeResult_names + 149, 32}, 0 },
-  { {BandwidthUpgradeResult_names + 181, 20}, 2 },
-  { {BandwidthUpgradeResult_names + 201, 22}, 1 },
-  { {BandwidthUpgradeResult_names + 223, 20}, 16 },
-  { {BandwidthUpgradeResult_names + 243, 23}, 12 },
-  { {BandwidthUpgradeResult_names + 266, 24}, 15 },
-  { {BandwidthUpgradeResult_names + 290, 25}, 14 },
-  { {BandwidthUpgradeResult_names + 315, 21}, 13 },
+  { {BandwidthUpgradeResult_names + 99, 23}, 19 },
+  { {BandwidthUpgradeResult_names + 122, 15}, 5 },
+  { {BandwidthUpgradeResult_names + 137, 19}, 17 },
+  { {BandwidthUpgradeResult_names + 156, 16}, 10 },
+  { {BandwidthUpgradeResult_names + 172, 32}, 0 },
+  { {BandwidthUpgradeResult_names + 204, 20}, 2 },
+  { {BandwidthUpgradeResult_names + 224, 22}, 1 },
+  { {BandwidthUpgradeResult_names + 246, 20}, 16 },
+  { {BandwidthUpgradeResult_names + 266, 23}, 12 },
+  { {BandwidthUpgradeResult_names + 289, 24}, 15 },
+  { {BandwidthUpgradeResult_names + 313, 25}, 14 },
+  { {BandwidthUpgradeResult_names + 338, 21}, 13 },
 };
 
 static const int BandwidthUpgradeResult_entries_by_number[] = {
-  9, // 0 -> UNKNOWN_BANDWIDTH_UPGRADE_RESULT
-  11, // 1 -> UPGRADE_RESULT_SUCCESS
-  10, // 2 -> UPGRADE_RESULT_ERROR
+  10, // 0 -> UNKNOWN_BANDWIDTH_UPGRADE_RESULT
+  12, // 1 -> UPGRADE_RESULT_SUCCESS
+  11, // 2 -> UPGRADE_RESULT_ERROR
   4, // 3 -> MEDIUM_ERROR
   5, // 4 -> PROTOCOL_ERROR
-  6, // 5 -> RESULT_IO_ERROR
+  7, // 5 -> RESULT_IO_ERROR
   3, // 6 -> CHANNEL_ERROR
   0, // 7 -> ALREADY_ON_MEDIUM_ERROR
-  8, // 10 -> UNFINISHED_ERROR
+  9, // 10 -> UNFINISHED_ERROR
   2, // 11 -> BLUETOOTH_MEDIUM_ERROR
-  13, // 12 -> WIFI_AWARE_MEDIUM_ERROR
-  16, // 13 -> WIFI_LAN_MEDIUM_ERROR
-  15, // 14 -> WIFI_HOTSPOT_MEDIUM_ERROR
-  14, // 15 -> WIFI_DIRECT_MEDIUM_ERROR
-  12, // 16 -> WEB_RTC_MEDIUM_ERROR
-  7, // 17 -> RESULT_REMOTE_ERROR
+  14, // 12 -> WIFI_AWARE_MEDIUM_ERROR
+  17, // 13 -> WIFI_LAN_MEDIUM_ERROR
+  16, // 14 -> WIFI_HOTSPOT_MEDIUM_ERROR
+  15, // 15 -> WIFI_DIRECT_MEDIUM_ERROR
+  13, // 16 -> WEB_RTC_MEDIUM_ERROR
+  8, // 17 -> RESULT_REMOTE_ERROR
   1, // 18 -> ATTEMPT_SKIPPED
+  6, // 19 -> REMOTE_CONNECTION_ERROR
 };
 
 const std::string& BandwidthUpgradeResult_Name(
@@ -1066,12 +1082,12 @@ const std::string& BandwidthUpgradeResult_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           BandwidthUpgradeResult_entries,
           BandwidthUpgradeResult_entries_by_number,
-          17, BandwidthUpgradeResult_strings);
+          18, BandwidthUpgradeResult_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       BandwidthUpgradeResult_entries,
       BandwidthUpgradeResult_entries_by_number,
-      17, value);
+      18, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      BandwidthUpgradeResult_strings[idx].get();
 }
@@ -1079,7 +1095,7 @@ bool BandwidthUpgradeResult_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, BandwidthUpgradeResult* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      BandwidthUpgradeResult_entries, 17, name, &int_value);
+      BandwidthUpgradeResult_entries, 18, name, &int_value);
   if (success) {
     *value = static_cast<BandwidthUpgradeResult>(int_value);
   }
@@ -1332,6 +1348,69 @@ bool LogSource_Parse(
       LogSource_entries, 6, name, &int_value);
   if (success) {
     *value = static_cast<LogSource>(int_value);
+  }
+  return success;
+}
+bool PowerLevel_IsValid(int value) {
+  switch (value) {
+    case -1:
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> PowerLevel_strings[5] = {};
+
+static const char PowerLevel_names[] =
+  "BALANCED_POWER"
+  "HIGH_POWER"
+  "LOW_POWER"
+  "ULTRA_LOW_POWER"
+  "UNSPECIFIED";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry PowerLevel_entries[] = {
+  { {PowerLevel_names + 0, 14}, 2 },
+  { {PowerLevel_names + 14, 10}, 3 },
+  { {PowerLevel_names + 24, 9}, 1 },
+  { {PowerLevel_names + 33, 15}, -1 },
+  { {PowerLevel_names + 48, 11}, 0 },
+};
+
+static const int PowerLevel_entries_by_number[] = {
+  3, // -1 -> ULTRA_LOW_POWER
+  4, // 0 -> UNSPECIFIED
+  2, // 1 -> LOW_POWER
+  0, // 2 -> BALANCED_POWER
+  1, // 3 -> HIGH_POWER
+};
+
+const std::string& PowerLevel_Name(
+    PowerLevel value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          PowerLevel_entries,
+          PowerLevel_entries_by_number,
+          5, PowerLevel_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      PowerLevel_entries,
+      PowerLevel_entries_by_number,
+      5, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     PowerLevel_strings[idx].get();
+}
+bool PowerLevel_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PowerLevel* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      PowerLevel_entries, 5, name, &int_value);
+  if (success) {
+    *value = static_cast<PowerLevel>(int_value);
   }
   return success;
 }

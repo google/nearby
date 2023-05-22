@@ -45,7 +45,7 @@ struct TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fforma
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[30]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[34]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -54,6 +54,12 @@ struct TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fforma
 namespace location {
 namespace nearby {
 namespace connections {
+class AuthenticationMessageFrame;
+struct AuthenticationMessageFrameDefaultTypeInternal;
+extern AuthenticationMessageFrameDefaultTypeInternal _AuthenticationMessageFrame_default_instance_;
+class AuthenticationResultFrame;
+struct AuthenticationResultFrameDefaultTypeInternal;
+extern AuthenticationResultFrameDefaultTypeInternal _AuthenticationResultFrame_default_instance_;
 class AvailableChannels;
 struct AvailableChannelsDefaultTypeInternal;
 extern AvailableChannelsDefaultTypeInternal _AvailableChannels_default_instance_;
@@ -93,6 +99,9 @@ extern ConnectionRequestFrameDefaultTypeInternal _ConnectionRequestFrame_default
 class ConnectionResponseFrame;
 struct ConnectionResponseFrameDefaultTypeInternal;
 extern ConnectionResponseFrameDefaultTypeInternal _ConnectionResponseFrame_default_instance_;
+class ConnectionsDevice;
+struct ConnectionsDeviceDefaultTypeInternal;
+extern ConnectionsDeviceDefaultTypeInternal _ConnectionsDevice_default_instance_;
 class DisconnectionFrame;
 struct DisconnectionFrameDefaultTypeInternal;
 extern DisconnectionFrameDefaultTypeInternal _DisconnectionFrame_default_instance_;
@@ -129,6 +138,9 @@ extern PayloadTransferFrame_PayloadChunkDefaultTypeInternal _PayloadTransferFram
 class PayloadTransferFrame_PayloadHeader;
 struct PayloadTransferFrame_PayloadHeaderDefaultTypeInternal;
 extern PayloadTransferFrame_PayloadHeaderDefaultTypeInternal _PayloadTransferFrame_PayloadHeader_default_instance_;
+class PresenceDevice;
+struct PresenceDeviceDefaultTypeInternal;
+extern PresenceDeviceDefaultTypeInternal _PresenceDevice_default_instance_;
 class V1Frame;
 struct V1FrameDefaultTypeInternal;
 extern V1FrameDefaultTypeInternal _V1Frame_default_instance_;
@@ -148,6 +160,8 @@ extern WifiLanUsableChannelsDefaultTypeInternal _WifiLanUsableChannels_default_i
 }  // namespace nearby
 }  // namespace location
 PROTOBUF_NAMESPACE_OPEN
+template<> ::location::nearby::connections::AuthenticationMessageFrame* Arena::CreateMaybeMessage<::location::nearby::connections::AuthenticationMessageFrame>(Arena*);
+template<> ::location::nearby::connections::AuthenticationResultFrame* Arena::CreateMaybeMessage<::location::nearby::connections::AuthenticationResultFrame>(Arena*);
 template<> ::location::nearby::connections::AvailableChannels* Arena::CreateMaybeMessage<::location::nearby::connections::AvailableChannels>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroduction* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroduction>(Arena*);
@@ -161,6 +175,7 @@ template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_Upg
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket>(Arena*);
 template<> ::location::nearby::connections::ConnectionRequestFrame* Arena::CreateMaybeMessage<::location::nearby::connections::ConnectionRequestFrame>(Arena*);
 template<> ::location::nearby::connections::ConnectionResponseFrame* Arena::CreateMaybeMessage<::location::nearby::connections::ConnectionResponseFrame>(Arena*);
+template<> ::location::nearby::connections::ConnectionsDevice* Arena::CreateMaybeMessage<::location::nearby::connections::ConnectionsDevice>(Arena*);
 template<> ::location::nearby::connections::DisconnectionFrame* Arena::CreateMaybeMessage<::location::nearby::connections::DisconnectionFrame>(Arena*);
 template<> ::location::nearby::connections::KeepAliveFrame* Arena::CreateMaybeMessage<::location::nearby::connections::KeepAliveFrame>(Arena*);
 template<> ::location::nearby::connections::LocationHint* Arena::CreateMaybeMessage<::location::nearby::connections::LocationHint>(Arena*);
@@ -173,6 +188,7 @@ template<> ::location::nearby::connections::PayloadTransferFrame* Arena::CreateM
 template<> ::location::nearby::connections::PayloadTransferFrame_ControlMessage* Arena::CreateMaybeMessage<::location::nearby::connections::PayloadTransferFrame_ControlMessage>(Arena*);
 template<> ::location::nearby::connections::PayloadTransferFrame_PayloadChunk* Arena::CreateMaybeMessage<::location::nearby::connections::PayloadTransferFrame_PayloadChunk>(Arena*);
 template<> ::location::nearby::connections::PayloadTransferFrame_PayloadHeader* Arena::CreateMaybeMessage<::location::nearby::connections::PayloadTransferFrame_PayloadHeader>(Arena*);
+template<> ::location::nearby::connections::PresenceDevice* Arena::CreateMaybeMessage<::location::nearby::connections::PresenceDevice>(Arena*);
 template<> ::location::nearby::connections::V1Frame* Arena::CreateMaybeMessage<::location::nearby::connections::V1Frame>(Arena*);
 template<> ::location::nearby::connections::WifiAwareUsableChannels* Arena::CreateMaybeMessage<::location::nearby::connections::WifiAwareUsableChannels>(Arena*);
 template<> ::location::nearby::connections::WifiDirectCliUsableChannels* Arena::CreateMaybeMessage<::location::nearby::connections::WifiDirectCliUsableChannels>(Arena*);
@@ -210,11 +226,13 @@ enum V1Frame_FrameType : int {
   V1Frame_FrameType_BANDWIDTH_UPGRADE_NEGOTIATION = 4,
   V1Frame_FrameType_KEEP_ALIVE = 5,
   V1Frame_FrameType_DISCONNECTION = 6,
-  V1Frame_FrameType_PAIRED_KEY_ENCRYPTION = 7
+  V1Frame_FrameType_PAIRED_KEY_ENCRYPTION = 7,
+  V1Frame_FrameType_AUTHENTICATION_MESSAGE = 8,
+  V1Frame_FrameType_AUTHENTICATION_RESULT = 9
 };
 bool V1Frame_FrameType_IsValid(int value);
 constexpr V1Frame_FrameType V1Frame_FrameType_FrameType_MIN = V1Frame_FrameType_UNKNOWN_FRAME_TYPE;
-constexpr V1Frame_FrameType V1Frame_FrameType_FrameType_MAX = V1Frame_FrameType_PAIRED_KEY_ENCRYPTION;
+constexpr V1Frame_FrameType V1Frame_FrameType_FrameType_MAX = V1Frame_FrameType_AUTHENTICATION_RESULT;
 constexpr int V1Frame_FrameType_FrameType_ARRAYSIZE = V1Frame_FrameType_FrameType_MAX + 1;
 
 const std::string& V1Frame_FrameType_Name(V1Frame_FrameType value);
@@ -318,11 +336,12 @@ bool PayloadTransferFrame_PayloadChunk_Flags_Parse(
 enum PayloadTransferFrame_ControlMessage_EventType : int {
   PayloadTransferFrame_ControlMessage_EventType_UNKNOWN_EVENT_TYPE = 0,
   PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_ERROR = 1,
-  PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_CANCELED = 2
+  PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_CANCELED = 2,
+  PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_RECEIVED_ACK = 3
 };
 bool PayloadTransferFrame_ControlMessage_EventType_IsValid(int value);
 constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage_EventType_EventType_MIN = PayloadTransferFrame_ControlMessage_EventType_UNKNOWN_EVENT_TYPE;
-constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage_EventType_EventType_MAX = PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_CANCELED;
+constexpr PayloadTransferFrame_ControlMessage_EventType PayloadTransferFrame_ControlMessage_EventType_EventType_MAX = PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_RECEIVED_ACK;
 constexpr int PayloadTransferFrame_ControlMessage_EventType_EventType_ARRAYSIZE = PayloadTransferFrame_ControlMessage_EventType_EventType_MAX + 1;
 
 const std::string& PayloadTransferFrame_ControlMessage_EventType_Name(PayloadTransferFrame_ControlMessage_EventType value);
@@ -450,6 +469,50 @@ inline const std::string& OsInfo_OsType_Name(T enum_t_value) {
 }
 bool OsInfo_OsType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OsInfo_OsType* value);
+enum PresenceDevice_DeviceType : int {
+  PresenceDevice_DeviceType_UNKNOWN = 0,
+  PresenceDevice_DeviceType_PHONE = 1,
+  PresenceDevice_DeviceType_TABLET = 2,
+  PresenceDevice_DeviceType_DISPLAY = 3,
+  PresenceDevice_DeviceType_LAPTOP = 4,
+  PresenceDevice_DeviceType_TV = 5,
+  PresenceDevice_DeviceType_WATCH = 6
+};
+bool PresenceDevice_DeviceType_IsValid(int value);
+constexpr PresenceDevice_DeviceType PresenceDevice_DeviceType_DeviceType_MIN = PresenceDevice_DeviceType_UNKNOWN;
+constexpr PresenceDevice_DeviceType PresenceDevice_DeviceType_DeviceType_MAX = PresenceDevice_DeviceType_WATCH;
+constexpr int PresenceDevice_DeviceType_DeviceType_ARRAYSIZE = PresenceDevice_DeviceType_DeviceType_MAX + 1;
+
+const std::string& PresenceDevice_DeviceType_Name(PresenceDevice_DeviceType value);
+template<typename T>
+inline const std::string& PresenceDevice_DeviceType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, PresenceDevice_DeviceType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function PresenceDevice_DeviceType_Name.");
+  return PresenceDevice_DeviceType_Name(static_cast<PresenceDevice_DeviceType>(enum_t_value));
+}
+bool PresenceDevice_DeviceType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PresenceDevice_DeviceType* value);
+enum EndpointType : int {
+  UNKNOWN_ENDPOINT = 0,
+  CONNECTIONS_ENDPOINT = 1,
+  PRESENCE_ENDPOINT = 2
+};
+bool EndpointType_IsValid(int value);
+constexpr EndpointType EndpointType_MIN = UNKNOWN_ENDPOINT;
+constexpr EndpointType EndpointType_MAX = PRESENCE_ENDPOINT;
+constexpr int EndpointType_ARRAYSIZE = EndpointType_MAX + 1;
+
+const std::string& EndpointType_Name(EndpointType value);
+template<typename T>
+inline const std::string& EndpointType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, EndpointType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function EndpointType_Name.");
+  return EndpointType_Name(static_cast<EndpointType>(enum_t_value));
+}
+bool EndpointType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EndpointType* value);
 // ===================================================================
 
 class OfflineFrame final :
@@ -767,6 +830,10 @@ class V1Frame final :
     V1Frame_FrameType_DISCONNECTION;
   static constexpr FrameType PAIRED_KEY_ENCRYPTION =
     V1Frame_FrameType_PAIRED_KEY_ENCRYPTION;
+  static constexpr FrameType AUTHENTICATION_MESSAGE =
+    V1Frame_FrameType_AUTHENTICATION_MESSAGE;
+  static constexpr FrameType AUTHENTICATION_RESULT =
+    V1Frame_FrameType_AUTHENTICATION_RESULT;
   static inline bool FrameType_IsValid(int value) {
     return V1Frame_FrameType_IsValid(value);
   }
@@ -798,6 +865,8 @@ class V1Frame final :
     kKeepAliveFieldNumber = 6,
     kDisconnectionFieldNumber = 7,
     kPairedKeyEncryptionFieldNumber = 8,
+    kAuthenticationMessageFieldNumber = 9,
+    kAuthenticationResultFieldNumber = 10,
     kTypeFieldNumber = 1,
   };
   // optional .location.nearby.connections.ConnectionRequestFrame connection_request = 2;
@@ -926,6 +995,42 @@ class V1Frame final :
       ::location::nearby::connections::PairedKeyEncryptionFrame* paired_key_encryption);
   ::location::nearby::connections::PairedKeyEncryptionFrame* unsafe_arena_release_paired_key_encryption();
 
+  // optional .location.nearby.connections.AuthenticationMessageFrame authentication_message = 9;
+  bool has_authentication_message() const;
+  private:
+  bool _internal_has_authentication_message() const;
+  public:
+  void clear_authentication_message();
+  const ::location::nearby::connections::AuthenticationMessageFrame& authentication_message() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::AuthenticationMessageFrame* release_authentication_message();
+  ::location::nearby::connections::AuthenticationMessageFrame* mutable_authentication_message();
+  void set_allocated_authentication_message(::location::nearby::connections::AuthenticationMessageFrame* authentication_message);
+  private:
+  const ::location::nearby::connections::AuthenticationMessageFrame& _internal_authentication_message() const;
+  ::location::nearby::connections::AuthenticationMessageFrame* _internal_mutable_authentication_message();
+  public:
+  void unsafe_arena_set_allocated_authentication_message(
+      ::location::nearby::connections::AuthenticationMessageFrame* authentication_message);
+  ::location::nearby::connections::AuthenticationMessageFrame* unsafe_arena_release_authentication_message();
+
+  // optional .location.nearby.connections.AuthenticationResultFrame authentication_result = 10;
+  bool has_authentication_result() const;
+  private:
+  bool _internal_has_authentication_result() const;
+  public:
+  void clear_authentication_result();
+  const ::location::nearby::connections::AuthenticationResultFrame& authentication_result() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::AuthenticationResultFrame* release_authentication_result();
+  ::location::nearby::connections::AuthenticationResultFrame* mutable_authentication_result();
+  void set_allocated_authentication_result(::location::nearby::connections::AuthenticationResultFrame* authentication_result);
+  private:
+  const ::location::nearby::connections::AuthenticationResultFrame& _internal_authentication_result() const;
+  ::location::nearby::connections::AuthenticationResultFrame* _internal_mutable_authentication_result();
+  public:
+  void unsafe_arena_set_allocated_authentication_result(
+      ::location::nearby::connections::AuthenticationResultFrame* authentication_result);
+  ::location::nearby::connections::AuthenticationResultFrame* unsafe_arena_release_authentication_result();
+
   // optional .location.nearby.connections.V1Frame.FrameType type = 1;
   bool has_type() const;
   private:
@@ -955,6 +1060,8 @@ class V1Frame final :
   ::location::nearby::connections::KeepAliveFrame* keep_alive_;
   ::location::nearby::connections::DisconnectionFrame* disconnection_;
   ::location::nearby::connections::PairedKeyEncryptionFrame* paired_key_encryption_;
+  ::location::nearby::connections::AuthenticationMessageFrame* authentication_message_;
+  ::location::nearby::connections::AuthenticationResultFrame* authentication_result_;
   int type_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
@@ -1001,6 +1108,12 @@ class ConnectionRequestFrame final :
   static const ConnectionRequestFrame& default_instance() {
     return *internal_default_instance();
   }
+  enum DeviceCase {
+    kConnectionsDevice = 12,
+    kPresenceDevice = 13,
+    DEVICE_NOT_SET = 0,
+  };
+
   static inline const ConnectionRequestFrame* internal_default_instance() {
     return reinterpret_cast<const ConnectionRequestFrame*>(
                &_ConnectionRequestFrame_default_instance_);
@@ -1130,6 +1243,8 @@ class ConnectionRequestFrame final :
     kKeepAliveIntervalMillisFieldNumber = 8,
     kKeepAliveTimeoutMillisFieldNumber = 9,
     kDeviceTypeFieldNumber = 10,
+    kConnectionsDeviceFieldNumber = 12,
+    kPresenceDeviceFieldNumber = 13,
   };
   // repeated .location.nearby.connections.ConnectionRequestFrame.Medium mediums = 5;
   int mediums_size() const;
@@ -1220,18 +1335,18 @@ class ConnectionRequestFrame final :
   std::string* _internal_mutable_endpoint_info();
   public:
 
-  // optional bytes device_info = 11;
-  bool has_device_info() const;
+  // optional bytes device_info = 11 [deprecated = true];
+  PROTOBUF_DEPRECATED bool has_device_info() const;
   private:
   bool _internal_has_device_info() const;
   public:
-  void clear_device_info();
-  const std::string& device_info() const;
+  PROTOBUF_DEPRECATED void clear_device_info();
+  PROTOBUF_DEPRECATED const std::string& device_info() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_device_info(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_device_info();
-  PROTOBUF_NODISCARD std::string* release_device_info();
-  void set_allocated_device_info(std::string* device_info);
+  PROTOBUF_DEPRECATED void set_device_info(ArgT0&& arg0, ArgT... args);
+  PROTOBUF_DEPRECATED std::string* mutable_device_info();
+  PROTOBUF_NODISCARD PROTOBUF_DEPRECATED std::string* release_device_info();
+  PROTOBUF_DEPRECATED void set_allocated_device_info(std::string* device_info);
   private:
   const std::string& _internal_device_info() const;
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_device_info(const std::string& value);
@@ -1295,22 +1410,65 @@ class ConnectionRequestFrame final :
   void _internal_set_keep_alive_timeout_millis(int32_t value);
   public:
 
-  // optional int32 device_type = 10 [default = 0];
-  bool has_device_type() const;
+  // optional int32 device_type = 10 [default = 0, deprecated = true];
+  PROTOBUF_DEPRECATED bool has_device_type() const;
   private:
   bool _internal_has_device_type() const;
   public:
-  void clear_device_type();
-  int32_t device_type() const;
-  void set_device_type(int32_t value);
+  PROTOBUF_DEPRECATED void clear_device_type();
+  PROTOBUF_DEPRECATED int32_t device_type() const;
+  PROTOBUF_DEPRECATED void set_device_type(int32_t value);
   private:
   int32_t _internal_device_type() const;
   void _internal_set_device_type(int32_t value);
   public:
 
+  // .location.nearby.connections.ConnectionsDevice connections_device = 12;
+  bool has_connections_device() const;
+  private:
+  bool _internal_has_connections_device() const;
+  public:
+  void clear_connections_device();
+  const ::location::nearby::connections::ConnectionsDevice& connections_device() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::ConnectionsDevice* release_connections_device();
+  ::location::nearby::connections::ConnectionsDevice* mutable_connections_device();
+  void set_allocated_connections_device(::location::nearby::connections::ConnectionsDevice* connections_device);
+  private:
+  const ::location::nearby::connections::ConnectionsDevice& _internal_connections_device() const;
+  ::location::nearby::connections::ConnectionsDevice* _internal_mutable_connections_device();
+  public:
+  void unsafe_arena_set_allocated_connections_device(
+      ::location::nearby::connections::ConnectionsDevice* connections_device);
+  ::location::nearby::connections::ConnectionsDevice* unsafe_arena_release_connections_device();
+
+  // .location.nearby.connections.PresenceDevice presence_device = 13;
+  bool has_presence_device() const;
+  private:
+  bool _internal_has_presence_device() const;
+  public:
+  void clear_presence_device();
+  const ::location::nearby::connections::PresenceDevice& presence_device() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::PresenceDevice* release_presence_device();
+  ::location::nearby::connections::PresenceDevice* mutable_presence_device();
+  void set_allocated_presence_device(::location::nearby::connections::PresenceDevice* presence_device);
+  private:
+  const ::location::nearby::connections::PresenceDevice& _internal_presence_device() const;
+  ::location::nearby::connections::PresenceDevice* _internal_mutable_presence_device();
+  public:
+  void unsafe_arena_set_allocated_presence_device(
+      ::location::nearby::connections::PresenceDevice* presence_device);
+  ::location::nearby::connections::PresenceDevice* unsafe_arena_release_presence_device();
+
+  void clear_Device();
+  DeviceCase Device_case() const;
   // @@protoc_insertion_point(class_scope:location.nearby.connections.ConnectionRequestFrame)
  private:
   class _Internal;
+  void set_has_connections_device();
+  void set_has_presence_device();
+
+  inline bool has_Device() const;
+  inline void clear_has_Device();
 
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
@@ -1328,6 +1486,14 @@ class ConnectionRequestFrame final :
   int32_t keep_alive_interval_millis_;
   int32_t keep_alive_timeout_millis_;
   int32_t device_type_;
+  union DeviceUnion {
+    constexpr DeviceUnion() : _constinit_{} {}
+      ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+    ::location::nearby::connections::ConnectionsDevice* connections_device_;
+    ::location::nearby::connections::PresenceDevice* presence_device_;
+  } Device_;
+  uint32_t _oneof_case_[1];
+
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -1477,6 +1643,8 @@ class ConnectionResponseFrame final :
     kOsInfoFieldNumber = 4,
     kStatusFieldNumber = 1,
     kResponseFieldNumber = 3,
+    kMultiplexSocketBitmaskFieldNumber = 5,
+    kNearbyConnectionsVersionFieldNumber = 6,
   };
   // optional bytes handshake_data = 2;
   bool has_handshake_data() const;
@@ -1540,6 +1708,32 @@ class ConnectionResponseFrame final :
   void _internal_set_response(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus value);
   public:
 
+  // optional int32 multiplex_socket_bitmask = 5;
+  bool has_multiplex_socket_bitmask() const;
+  private:
+  bool _internal_has_multiplex_socket_bitmask() const;
+  public:
+  void clear_multiplex_socket_bitmask();
+  int32_t multiplex_socket_bitmask() const;
+  void set_multiplex_socket_bitmask(int32_t value);
+  private:
+  int32_t _internal_multiplex_socket_bitmask() const;
+  void _internal_set_multiplex_socket_bitmask(int32_t value);
+  public:
+
+  // optional int32 nearby_connections_version = 6;
+  bool has_nearby_connections_version() const;
+  private:
+  bool _internal_has_nearby_connections_version() const;
+  public:
+  void clear_nearby_connections_version();
+  int32_t nearby_connections_version() const;
+  void set_nearby_connections_version(int32_t value);
+  private:
+  int32_t _internal_nearby_connections_version() const;
+  void _internal_set_nearby_connections_version(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.connections.ConnectionResponseFrame)
  private:
   class _Internal;
@@ -1553,6 +1747,8 @@ class ConnectionResponseFrame final :
   ::location::nearby::connections::OsInfo* os_info_;
   int32_t status_;
   int response_;
+  int32_t multiplex_socket_bitmask_;
+  int32_t nearby_connections_version_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2132,6 +2328,8 @@ class PayloadTransferFrame_ControlMessage final :
     PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_ERROR;
   static constexpr EventType PAYLOAD_CANCELED =
     PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_CANCELED;
+  static constexpr EventType PAYLOAD_RECEIVED_ACK =
+    PayloadTransferFrame_ControlMessage_EventType_PAYLOAD_RECEIVED_ACK;
   static inline bool EventType_IsValid(int value) {
     return PayloadTransferFrame_ControlMessage_EventType_IsValid(value);
   }
@@ -3284,6 +3482,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials fin
     kSsidFieldNumber = 1,
     kPasswordFieldNumber = 2,
     kGatewayFieldNumber = 5,
+    kIpV6AddressFieldNumber = 6,
     kPortFieldNumber = 3,
     kFrequencyFieldNumber = 4,
   };
@@ -3341,6 +3540,24 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials fin
   std::string* _internal_mutable_gateway();
   public:
 
+  // optional bytes ip_v6_address = 6;
+  bool has_ip_v6_address() const;
+  private:
+  bool _internal_has_ip_v6_address() const;
+  public:
+  void clear_ip_v6_address();
+  const std::string& ip_v6_address() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_ip_v6_address(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_ip_v6_address();
+  PROTOBUF_NODISCARD std::string* release_ip_v6_address();
+  void set_allocated_ip_v6_address(std::string* ip_v6_address);
+  private:
+  const std::string& _internal_ip_v6_address() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_ip_v6_address(const std::string& value);
+  std::string* _internal_mutable_ip_v6_address();
+  public:
+
   // optional int32 port = 3;
   bool has_port() const;
   private:
@@ -3380,6 +3597,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials fin
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr password_;
   static const ::PROTOBUF_NAMESPACE_ID::internal::LazyString _i_give_permission_to_break_this_code_default_gateway_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr gateway_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ip_v6_address_;
   int32_t port_;
   int32_t frequency_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
@@ -4678,6 +4896,36 @@ class DisconnectionFrame final :
 
   // accessors -------------------------------------------------------
 
+  enum : int {
+    kRequestSafeToDisconnectFieldNumber = 1,
+    kAckSafeToDisconnectFieldNumber = 2,
+  };
+  // optional bool request_safe_to_disconnect = 1;
+  bool has_request_safe_to_disconnect() const;
+  private:
+  bool _internal_has_request_safe_to_disconnect() const;
+  public:
+  void clear_request_safe_to_disconnect();
+  bool request_safe_to_disconnect() const;
+  void set_request_safe_to_disconnect(bool value);
+  private:
+  bool _internal_request_safe_to_disconnect() const;
+  void _internal_set_request_safe_to_disconnect(bool value);
+  public:
+
+  // optional bool ack_safe_to_disconnect = 2;
+  bool has_ack_safe_to_disconnect() const;
+  private:
+  bool _internal_has_ack_safe_to_disconnect() const;
+  public:
+  void clear_ack_safe_to_disconnect();
+  bool ack_safe_to_disconnect() const;
+  void set_ack_safe_to_disconnect(bool value);
+  private:
+  bool _internal_ack_safe_to_disconnect() const;
+  void _internal_set_ack_safe_to_disconnect(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.connections.DisconnectionFrame)
  private:
   class _Internal;
@@ -4685,7 +4933,10 @@ class DisconnectionFrame final :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  bool request_safe_to_disconnect_;
+  bool ack_safe_to_disconnect_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -4837,6 +5088,295 @@ class PairedKeyEncryptionFrame final :
 };
 // -------------------------------------------------------------------
 
+class AuthenticationMessageFrame final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.AuthenticationMessageFrame) */ {
+ public:
+  inline AuthenticationMessageFrame() : AuthenticationMessageFrame(nullptr) {}
+  ~AuthenticationMessageFrame() override;
+  explicit constexpr AuthenticationMessageFrame(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  AuthenticationMessageFrame(const AuthenticationMessageFrame& from);
+  AuthenticationMessageFrame(AuthenticationMessageFrame&& from) noexcept
+    : AuthenticationMessageFrame() {
+    *this = ::std::move(from);
+  }
+
+  inline AuthenticationMessageFrame& operator=(const AuthenticationMessageFrame& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AuthenticationMessageFrame& operator=(AuthenticationMessageFrame&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const AuthenticationMessageFrame& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const AuthenticationMessageFrame* internal_default_instance() {
+    return reinterpret_cast<const AuthenticationMessageFrame*>(
+               &_AuthenticationMessageFrame_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    21;
+
+  friend void swap(AuthenticationMessageFrame& a, AuthenticationMessageFrame& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(AuthenticationMessageFrame* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AuthenticationMessageFrame* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AuthenticationMessageFrame* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<AuthenticationMessageFrame>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const AuthenticationMessageFrame& from);
+  void MergeFrom(const AuthenticationMessageFrame& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(AuthenticationMessageFrame* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.AuthenticationMessageFrame";
+  }
+  protected:
+  explicit AuthenticationMessageFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kAuthMessageFieldNumber = 1,
+  };
+  // optional bytes auth_message = 1;
+  bool has_auth_message() const;
+  private:
+  bool _internal_has_auth_message() const;
+  public:
+  void clear_auth_message();
+  const std::string& auth_message() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_auth_message(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_auth_message();
+  PROTOBUF_NODISCARD std::string* release_auth_message();
+  void set_allocated_auth_message(std::string* auth_message);
+  private:
+  const std::string& _internal_auth_message() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_auth_message(const std::string& value);
+  std::string* _internal_mutable_auth_message();
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.AuthenticationMessageFrame)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr auth_message_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
+// -------------------------------------------------------------------
+
+class AuthenticationResultFrame final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.AuthenticationResultFrame) */ {
+ public:
+  inline AuthenticationResultFrame() : AuthenticationResultFrame(nullptr) {}
+  ~AuthenticationResultFrame() override;
+  explicit constexpr AuthenticationResultFrame(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  AuthenticationResultFrame(const AuthenticationResultFrame& from);
+  AuthenticationResultFrame(AuthenticationResultFrame&& from) noexcept
+    : AuthenticationResultFrame() {
+    *this = ::std::move(from);
+  }
+
+  inline AuthenticationResultFrame& operator=(const AuthenticationResultFrame& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AuthenticationResultFrame& operator=(AuthenticationResultFrame&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const AuthenticationResultFrame& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const AuthenticationResultFrame* internal_default_instance() {
+    return reinterpret_cast<const AuthenticationResultFrame*>(
+               &_AuthenticationResultFrame_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    22;
+
+  friend void swap(AuthenticationResultFrame& a, AuthenticationResultFrame& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(AuthenticationResultFrame* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AuthenticationResultFrame* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AuthenticationResultFrame* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<AuthenticationResultFrame>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const AuthenticationResultFrame& from);
+  void MergeFrom(const AuthenticationResultFrame& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(AuthenticationResultFrame* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.AuthenticationResultFrame";
+  }
+  protected:
+  explicit AuthenticationResultFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kResultFieldNumber = 1,
+  };
+  // optional int32 result = 1;
+  bool has_result() const;
+  private:
+  bool _internal_has_result() const;
+  public:
+  void clear_result();
+  int32_t result() const;
+  void set_result(int32_t value);
+  private:
+  int32_t _internal_result() const;
+  void _internal_set_result(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.AuthenticationResultFrame)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  int32_t result_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
+// -------------------------------------------------------------------
+
 class MediumMetadata final :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.MediumMetadata) */ {
  public:
@@ -4883,7 +5423,7 @@ class MediumMetadata final :
                &_MediumMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    23;
 
   friend void swap(MediumMetadata& a, MediumMetadata& b) {
     a.Swap(&b);
@@ -5210,7 +5750,7 @@ class AvailableChannels final :
                &_AvailableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    24;
 
   friend void swap(AvailableChannels& a, AvailableChannels& b) {
     a.Swap(&b);
@@ -5361,7 +5901,7 @@ class WifiDirectCliUsableChannels final :
                &_WifiDirectCliUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    25;
 
   friend void swap(WifiDirectCliUsableChannels& a, WifiDirectCliUsableChannels& b) {
     a.Swap(&b);
@@ -5512,7 +6052,7 @@ class WifiLanUsableChannels final :
                &_WifiLanUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    24;
+    26;
 
   friend void swap(WifiLanUsableChannels& a, WifiLanUsableChannels& b) {
     a.Swap(&b);
@@ -5663,7 +6203,7 @@ class WifiAwareUsableChannels final :
                &_WifiAwareUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    25;
+    27;
 
   friend void swap(WifiAwareUsableChannels& a, WifiAwareUsableChannels& b) {
     a.Swap(&b);
@@ -5814,7 +6354,7 @@ class WifiHotspotStaUsableChannels final :
                &_WifiHotspotStaUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    26;
+    28;
 
   friend void swap(WifiHotspotStaUsableChannels& a, WifiHotspotStaUsableChannels& b) {
     a.Swap(&b);
@@ -5965,7 +6505,7 @@ class LocationHint final :
                &_LocationHint_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    27;
+    29;
 
   friend void swap(LocationHint& a, LocationHint& b) {
     a.Swap(&b);
@@ -6127,7 +6667,7 @@ class LocationStandard final :
                &_LocationStandard_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    28;
+    30;
 
   friend void swap(LocationStandard& a, LocationStandard& b) {
     a.Swap(&b);
@@ -6279,7 +6819,7 @@ class OsInfo final :
                &_OsInfo_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    29;
+    31;
 
   friend void swap(OsInfo& a, OsInfo& b) {
     a.Swap(&b);
@@ -6405,6 +6945,566 @@ class OsInfo final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   int type_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ConnectionsDevice final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.ConnectionsDevice) */ {
+ public:
+  inline ConnectionsDevice() : ConnectionsDevice(nullptr) {}
+  ~ConnectionsDevice() override;
+  explicit constexpr ConnectionsDevice(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ConnectionsDevice(const ConnectionsDevice& from);
+  ConnectionsDevice(ConnectionsDevice&& from) noexcept
+    : ConnectionsDevice() {
+    *this = ::std::move(from);
+  }
+
+  inline ConnectionsDevice& operator=(const ConnectionsDevice& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ConnectionsDevice& operator=(ConnectionsDevice&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const ConnectionsDevice& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ConnectionsDevice* internal_default_instance() {
+    return reinterpret_cast<const ConnectionsDevice*>(
+               &_ConnectionsDevice_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    32;
+
+  friend void swap(ConnectionsDevice& a, ConnectionsDevice& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ConnectionsDevice* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ConnectionsDevice* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ConnectionsDevice* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ConnectionsDevice>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const ConnectionsDevice& from);
+  void MergeFrom(const ConnectionsDevice& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(ConnectionsDevice* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.ConnectionsDevice";
+  }
+  protected:
+  explicit ConnectionsDevice(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kEndpointIdFieldNumber = 1,
+    kConnectivityInfoListFieldNumber = 3,
+    kEndpointInfoFieldNumber = 4,
+    kEndpointTypeFieldNumber = 2,
+  };
+  // optional string endpoint_id = 1;
+  bool has_endpoint_id() const;
+  private:
+  bool _internal_has_endpoint_id() const;
+  public:
+  void clear_endpoint_id();
+  const std::string& endpoint_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_endpoint_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_endpoint_id();
+  PROTOBUF_NODISCARD std::string* release_endpoint_id();
+  void set_allocated_endpoint_id(std::string* endpoint_id);
+  private:
+  const std::string& _internal_endpoint_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_endpoint_id(const std::string& value);
+  std::string* _internal_mutable_endpoint_id();
+  public:
+
+  // optional bytes connectivity_info_list = 3;
+  bool has_connectivity_info_list() const;
+  private:
+  bool _internal_has_connectivity_info_list() const;
+  public:
+  void clear_connectivity_info_list();
+  const std::string& connectivity_info_list() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_connectivity_info_list(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_connectivity_info_list();
+  PROTOBUF_NODISCARD std::string* release_connectivity_info_list();
+  void set_allocated_connectivity_info_list(std::string* connectivity_info_list);
+  private:
+  const std::string& _internal_connectivity_info_list() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_connectivity_info_list(const std::string& value);
+  std::string* _internal_mutable_connectivity_info_list();
+  public:
+
+  // optional bytes endpoint_info = 4;
+  bool has_endpoint_info() const;
+  private:
+  bool _internal_has_endpoint_info() const;
+  public:
+  void clear_endpoint_info();
+  const std::string& endpoint_info() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_endpoint_info(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_endpoint_info();
+  PROTOBUF_NODISCARD std::string* release_endpoint_info();
+  void set_allocated_endpoint_info(std::string* endpoint_info);
+  private:
+  const std::string& _internal_endpoint_info() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_endpoint_info(const std::string& value);
+  std::string* _internal_mutable_endpoint_info();
+  public:
+
+  // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+  bool has_endpoint_type() const;
+  private:
+  bool _internal_has_endpoint_type() const;
+  public:
+  void clear_endpoint_type();
+  ::location::nearby::connections::EndpointType endpoint_type() const;
+  void set_endpoint_type(::location::nearby::connections::EndpointType value);
+  private:
+  ::location::nearby::connections::EndpointType _internal_endpoint_type() const;
+  void _internal_set_endpoint_type(::location::nearby::connections::EndpointType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.ConnectionsDevice)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connectivity_info_list_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_info_;
+  int endpoint_type_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PresenceDevice final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.PresenceDevice) */ {
+ public:
+  inline PresenceDevice() : PresenceDevice(nullptr) {}
+  ~PresenceDevice() override;
+  explicit constexpr PresenceDevice(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  PresenceDevice(const PresenceDevice& from);
+  PresenceDevice(PresenceDevice&& from) noexcept
+    : PresenceDevice() {
+    *this = ::std::move(from);
+  }
+
+  inline PresenceDevice& operator=(const PresenceDevice& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PresenceDevice& operator=(PresenceDevice&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const PresenceDevice& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const PresenceDevice* internal_default_instance() {
+    return reinterpret_cast<const PresenceDevice*>(
+               &_PresenceDevice_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    33;
+
+  friend void swap(PresenceDevice& a, PresenceDevice& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(PresenceDevice* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PresenceDevice* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PresenceDevice* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<PresenceDevice>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const PresenceDevice& from);
+  void MergeFrom(const PresenceDevice& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(PresenceDevice* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.PresenceDevice";
+  }
+  protected:
+  explicit PresenceDevice(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  typedef PresenceDevice_DeviceType DeviceType;
+  static constexpr DeviceType UNKNOWN =
+    PresenceDevice_DeviceType_UNKNOWN;
+  static constexpr DeviceType PHONE =
+    PresenceDevice_DeviceType_PHONE;
+  static constexpr DeviceType TABLET =
+    PresenceDevice_DeviceType_TABLET;
+  static constexpr DeviceType DISPLAY =
+    PresenceDevice_DeviceType_DISPLAY;
+  static constexpr DeviceType LAPTOP =
+    PresenceDevice_DeviceType_LAPTOP;
+  static constexpr DeviceType TV =
+    PresenceDevice_DeviceType_TV;
+  static constexpr DeviceType WATCH =
+    PresenceDevice_DeviceType_WATCH;
+  static inline bool DeviceType_IsValid(int value) {
+    return PresenceDevice_DeviceType_IsValid(value);
+  }
+  static constexpr DeviceType DeviceType_MIN =
+    PresenceDevice_DeviceType_DeviceType_MIN;
+  static constexpr DeviceType DeviceType_MAX =
+    PresenceDevice_DeviceType_DeviceType_MAX;
+  static constexpr int DeviceType_ARRAYSIZE =
+    PresenceDevice_DeviceType_DeviceType_ARRAYSIZE;
+  template<typename T>
+  static inline const std::string& DeviceType_Name(T enum_t_value) {
+    static_assert(::std::is_same<T, DeviceType>::value ||
+      ::std::is_integral<T>::value,
+      "Incorrect type passed to function DeviceType_Name.");
+    return PresenceDevice_DeviceType_Name(enum_t_value);
+  }
+  static inline bool DeviceType_Parse(::PROTOBUF_NAMESPACE_ID::ConstStringParam name,
+      DeviceType* value) {
+    return PresenceDevice_DeviceType_Parse(name, value);
+  }
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kDiscoveryMediumFieldNumber = 8,
+    kActionsFieldNumber = 9,
+    kIdentityTypeFieldNumber = 10,
+    kEndpointIdFieldNumber = 1,
+    kConnectivityInfoListFieldNumber = 3,
+    kDeviceNameFieldNumber = 5,
+    kDeviceImageUrlFieldNumber = 7,
+    kDeviceIdFieldNumber = 4,
+    kEndpointTypeFieldNumber = 2,
+    kDeviceTypeFieldNumber = 6,
+  };
+  // repeated .location.nearby.connections.ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
+  int discovery_medium_size() const;
+  private:
+  int _internal_discovery_medium_size() const;
+  public:
+  void clear_discovery_medium();
+  private:
+  ::location::nearby::connections::ConnectionRequestFrame_Medium _internal_discovery_medium(int index) const;
+  void _internal_add_discovery_medium(::location::nearby::connections::ConnectionRequestFrame_Medium value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* _internal_mutable_discovery_medium();
+  public:
+  ::location::nearby::connections::ConnectionRequestFrame_Medium discovery_medium(int index) const;
+  void set_discovery_medium(int index, ::location::nearby::connections::ConnectionRequestFrame_Medium value);
+  void add_discovery_medium(::location::nearby::connections::ConnectionRequestFrame_Medium value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>& discovery_medium() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* mutable_discovery_medium();
+
+  // repeated int32 actions = 9 [packed = true];
+  int actions_size() const;
+  private:
+  int _internal_actions_size() const;
+  public:
+  void clear_actions();
+  private:
+  int32_t _internal_actions(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_actions() const;
+  void _internal_add_actions(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_actions();
+  public:
+  int32_t actions(int index) const;
+  void set_actions(int index, int32_t value);
+  void add_actions(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      actions() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_actions();
+
+  // repeated int64 identity_type = 10 [packed = true];
+  int identity_type_size() const;
+  private:
+  int _internal_identity_type_size() const;
+  public:
+  void clear_identity_type();
+  private:
+  int64_t _internal_identity_type(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+      _internal_identity_type() const;
+  void _internal_add_identity_type(int64_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+      _internal_mutable_identity_type();
+  public:
+  int64_t identity_type(int index) const;
+  void set_identity_type(int index, int64_t value);
+  void add_identity_type(int64_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+      identity_type() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+      mutable_identity_type();
+
+  // optional string endpoint_id = 1;
+  bool has_endpoint_id() const;
+  private:
+  bool _internal_has_endpoint_id() const;
+  public:
+  void clear_endpoint_id();
+  const std::string& endpoint_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_endpoint_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_endpoint_id();
+  PROTOBUF_NODISCARD std::string* release_endpoint_id();
+  void set_allocated_endpoint_id(std::string* endpoint_id);
+  private:
+  const std::string& _internal_endpoint_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_endpoint_id(const std::string& value);
+  std::string* _internal_mutable_endpoint_id();
+  public:
+
+  // optional bytes connectivity_info_list = 3;
+  bool has_connectivity_info_list() const;
+  private:
+  bool _internal_has_connectivity_info_list() const;
+  public:
+  void clear_connectivity_info_list();
+  const std::string& connectivity_info_list() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_connectivity_info_list(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_connectivity_info_list();
+  PROTOBUF_NODISCARD std::string* release_connectivity_info_list();
+  void set_allocated_connectivity_info_list(std::string* connectivity_info_list);
+  private:
+  const std::string& _internal_connectivity_info_list() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_connectivity_info_list(const std::string& value);
+  std::string* _internal_mutable_connectivity_info_list();
+  public:
+
+  // optional string device_name = 5;
+  bool has_device_name() const;
+  private:
+  bool _internal_has_device_name() const;
+  public:
+  void clear_device_name();
+  const std::string& device_name() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_device_name(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_device_name();
+  PROTOBUF_NODISCARD std::string* release_device_name();
+  void set_allocated_device_name(std::string* device_name);
+  private:
+  const std::string& _internal_device_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_device_name(const std::string& value);
+  std::string* _internal_mutable_device_name();
+  public:
+
+  // optional string device_image_url = 7;
+  bool has_device_image_url() const;
+  private:
+  bool _internal_has_device_image_url() const;
+  public:
+  void clear_device_image_url();
+  const std::string& device_image_url() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_device_image_url(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_device_image_url();
+  PROTOBUF_NODISCARD std::string* release_device_image_url();
+  void set_allocated_device_image_url(std::string* device_image_url);
+  private:
+  const std::string& _internal_device_image_url() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_device_image_url(const std::string& value);
+  std::string* _internal_mutable_device_image_url();
+  public:
+
+  // optional int64 device_id = 4;
+  bool has_device_id() const;
+  private:
+  bool _internal_has_device_id() const;
+  public:
+  void clear_device_id();
+  int64_t device_id() const;
+  void set_device_id(int64_t value);
+  private:
+  int64_t _internal_device_id() const;
+  void _internal_set_device_id(int64_t value);
+  public:
+
+  // optional .location.nearby.connections.EndpointType endpoint_type = 2;
+  bool has_endpoint_type() const;
+  private:
+  bool _internal_has_endpoint_type() const;
+  public:
+  void clear_endpoint_type();
+  ::location::nearby::connections::EndpointType endpoint_type() const;
+  void set_endpoint_type(::location::nearby::connections::EndpointType value);
+  private:
+  ::location::nearby::connections::EndpointType _internal_endpoint_type() const;
+  void _internal_set_endpoint_type(::location::nearby::connections::EndpointType value);
+  public:
+
+  // optional .location.nearby.connections.PresenceDevice.DeviceType device_type = 6;
+  bool has_device_type() const;
+  private:
+  bool _internal_has_device_type() const;
+  public:
+  void clear_device_type();
+  ::location::nearby::connections::PresenceDevice_DeviceType device_type() const;
+  void set_device_type(::location::nearby::connections::PresenceDevice_DeviceType value);
+  private:
+  ::location::nearby::connections::PresenceDevice_DeviceType _internal_device_type() const;
+  void _internal_set_device_type(::location::nearby::connections::PresenceDevice_DeviceType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.PresenceDevice)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> discovery_medium_;
+  mutable std::atomic<int> _discovery_medium_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > actions_;
+  mutable std::atomic<int> _actions_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > identity_type_;
+  mutable std::atomic<int> _identity_type_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connectivity_info_list_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_image_url_;
+  int64_t device_id_;
+  int endpoint_type_;
+  int device_type_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // ===================================================================
@@ -6543,7 +7643,7 @@ inline void OfflineFrame::set_allocated_v1(::location::nearby::connections::V1Fr
 
 // optional .location.nearby.connections.V1Frame.FrameType type = 1;
 inline bool V1Frame::_internal_has_type() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
   return value;
 }
 inline bool V1Frame::has_type() const {
@@ -6551,7 +7651,7 @@ inline bool V1Frame::has_type() const {
 }
 inline void V1Frame::clear_type() {
   type_ = 0;
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 inline ::location::nearby::connections::V1Frame_FrameType V1Frame::_internal_type() const {
   return static_cast< ::location::nearby::connections::V1Frame_FrameType >(type_);
@@ -6562,7 +7662,7 @@ inline ::location::nearby::connections::V1Frame_FrameType V1Frame::type() const 
 }
 inline void V1Frame::_internal_set_type(::location::nearby::connections::V1Frame_FrameType value) {
   assert(::location::nearby::connections::V1Frame_FrameType_IsValid(value));
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000200u;
   type_ = value;
 }
 inline void V1Frame::set_type(::location::nearby::connections::V1Frame_FrameType value) {
@@ -7200,6 +8300,186 @@ inline void V1Frame::set_allocated_paired_key_encryption(::location::nearby::con
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.V1Frame.paired_key_encryption)
 }
 
+// optional .location.nearby.connections.AuthenticationMessageFrame authentication_message = 9;
+inline bool V1Frame::_internal_has_authentication_message() const {
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  PROTOBUF_ASSUME(!value || authentication_message_ != nullptr);
+  return value;
+}
+inline bool V1Frame::has_authentication_message() const {
+  return _internal_has_authentication_message();
+}
+inline void V1Frame::clear_authentication_message() {
+  if (authentication_message_ != nullptr) authentication_message_->Clear();
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline const ::location::nearby::connections::AuthenticationMessageFrame& V1Frame::_internal_authentication_message() const {
+  const ::location::nearby::connections::AuthenticationMessageFrame* p = authentication_message_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::AuthenticationMessageFrame&>(
+      ::location::nearby::connections::_AuthenticationMessageFrame_default_instance_);
+}
+inline const ::location::nearby::connections::AuthenticationMessageFrame& V1Frame::authentication_message() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.V1Frame.authentication_message)
+  return _internal_authentication_message();
+}
+inline void V1Frame::unsafe_arena_set_allocated_authentication_message(
+    ::location::nearby::connections::AuthenticationMessageFrame* authentication_message) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(authentication_message_);
+  }
+  authentication_message_ = authentication_message;
+  if (authentication_message) {
+    _has_bits_[0] |= 0x00000080u;
+  } else {
+    _has_bits_[0] &= ~0x00000080u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.V1Frame.authentication_message)
+}
+inline ::location::nearby::connections::AuthenticationMessageFrame* V1Frame::release_authentication_message() {
+  _has_bits_[0] &= ~0x00000080u;
+  ::location::nearby::connections::AuthenticationMessageFrame* temp = authentication_message_;
+  authentication_message_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::AuthenticationMessageFrame* V1Frame::unsafe_arena_release_authentication_message() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.V1Frame.authentication_message)
+  _has_bits_[0] &= ~0x00000080u;
+  ::location::nearby::connections::AuthenticationMessageFrame* temp = authentication_message_;
+  authentication_message_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::AuthenticationMessageFrame* V1Frame::_internal_mutable_authentication_message() {
+  _has_bits_[0] |= 0x00000080u;
+  if (authentication_message_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::AuthenticationMessageFrame>(GetArenaForAllocation());
+    authentication_message_ = p;
+  }
+  return authentication_message_;
+}
+inline ::location::nearby::connections::AuthenticationMessageFrame* V1Frame::mutable_authentication_message() {
+  ::location::nearby::connections::AuthenticationMessageFrame* _msg = _internal_mutable_authentication_message();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.V1Frame.authentication_message)
+  return _msg;
+}
+inline void V1Frame::set_allocated_authentication_message(::location::nearby::connections::AuthenticationMessageFrame* authentication_message) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete authentication_message_;
+  }
+  if (authentication_message) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::AuthenticationMessageFrame>::GetOwningArena(authentication_message);
+    if (message_arena != submessage_arena) {
+      authentication_message = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, authentication_message, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000080u;
+  } else {
+    _has_bits_[0] &= ~0x00000080u;
+  }
+  authentication_message_ = authentication_message;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.V1Frame.authentication_message)
+}
+
+// optional .location.nearby.connections.AuthenticationResultFrame authentication_result = 10;
+inline bool V1Frame::_internal_has_authentication_result() const {
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  PROTOBUF_ASSUME(!value || authentication_result_ != nullptr);
+  return value;
+}
+inline bool V1Frame::has_authentication_result() const {
+  return _internal_has_authentication_result();
+}
+inline void V1Frame::clear_authentication_result() {
+  if (authentication_result_ != nullptr) authentication_result_->Clear();
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline const ::location::nearby::connections::AuthenticationResultFrame& V1Frame::_internal_authentication_result() const {
+  const ::location::nearby::connections::AuthenticationResultFrame* p = authentication_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::AuthenticationResultFrame&>(
+      ::location::nearby::connections::_AuthenticationResultFrame_default_instance_);
+}
+inline const ::location::nearby::connections::AuthenticationResultFrame& V1Frame::authentication_result() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.V1Frame.authentication_result)
+  return _internal_authentication_result();
+}
+inline void V1Frame::unsafe_arena_set_allocated_authentication_result(
+    ::location::nearby::connections::AuthenticationResultFrame* authentication_result) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(authentication_result_);
+  }
+  authentication_result_ = authentication_result;
+  if (authentication_result) {
+    _has_bits_[0] |= 0x00000100u;
+  } else {
+    _has_bits_[0] &= ~0x00000100u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.V1Frame.authentication_result)
+}
+inline ::location::nearby::connections::AuthenticationResultFrame* V1Frame::release_authentication_result() {
+  _has_bits_[0] &= ~0x00000100u;
+  ::location::nearby::connections::AuthenticationResultFrame* temp = authentication_result_;
+  authentication_result_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::AuthenticationResultFrame* V1Frame::unsafe_arena_release_authentication_result() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.V1Frame.authentication_result)
+  _has_bits_[0] &= ~0x00000100u;
+  ::location::nearby::connections::AuthenticationResultFrame* temp = authentication_result_;
+  authentication_result_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::AuthenticationResultFrame* V1Frame::_internal_mutable_authentication_result() {
+  _has_bits_[0] |= 0x00000100u;
+  if (authentication_result_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::AuthenticationResultFrame>(GetArenaForAllocation());
+    authentication_result_ = p;
+  }
+  return authentication_result_;
+}
+inline ::location::nearby::connections::AuthenticationResultFrame* V1Frame::mutable_authentication_result() {
+  ::location::nearby::connections::AuthenticationResultFrame* _msg = _internal_mutable_authentication_result();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.V1Frame.authentication_result)
+  return _msg;
+}
+inline void V1Frame::set_allocated_authentication_result(::location::nearby::connections::AuthenticationResultFrame* authentication_result) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete authentication_result_;
+  }
+  if (authentication_result) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::AuthenticationResultFrame>::GetOwningArena(authentication_result);
+    if (message_arena != submessage_arena) {
+      authentication_result = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, authentication_result, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000100u;
+  } else {
+    _has_bits_[0] &= ~0x00000100u;
+  }
+  authentication_result_ = authentication_result;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.V1Frame.authentication_result)
+}
+
 // -------------------------------------------------------------------
 
 // ConnectionRequestFrame
@@ -7699,7 +8979,7 @@ inline void ConnectionRequestFrame::set_keep_alive_timeout_millis(int32_t value)
   // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionRequestFrame.keep_alive_timeout_millis)
 }
 
-// optional int32 device_type = 10 [default = 0];
+// optional int32 device_type = 10 [default = 0, deprecated = true];
 inline bool ConnectionRequestFrame::_internal_has_device_type() const {
   bool value = (_has_bits_[0] & 0x00000200u) != 0;
   return value;
@@ -7727,7 +9007,7 @@ inline void ConnectionRequestFrame::set_device_type(int32_t value) {
   // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionRequestFrame.device_type)
 }
 
-// optional bytes device_info = 11;
+// optional bytes device_info = 11 [deprecated = true];
 inline bool ConnectionRequestFrame::_internal_has_device_info() const {
   bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
@@ -7796,6 +9076,163 @@ inline void ConnectionRequestFrame::set_allocated_device_info(std::string* devic
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionRequestFrame.device_info)
 }
 
+// .location.nearby.connections.ConnectionsDevice connections_device = 12;
+inline bool ConnectionRequestFrame::_internal_has_connections_device() const {
+  return Device_case() == kConnectionsDevice;
+}
+inline bool ConnectionRequestFrame::has_connections_device() const {
+  return _internal_has_connections_device();
+}
+inline void ConnectionRequestFrame::set_has_connections_device() {
+  _oneof_case_[0] = kConnectionsDevice;
+}
+inline void ConnectionRequestFrame::clear_connections_device() {
+  if (_internal_has_connections_device()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete Device_.connections_device_;
+    }
+    clear_has_Device();
+  }
+}
+inline ::location::nearby::connections::ConnectionsDevice* ConnectionRequestFrame::release_connections_device() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionRequestFrame.connections_device)
+  if (_internal_has_connections_device()) {
+    clear_has_Device();
+      ::location::nearby::connections::ConnectionsDevice* temp = Device_.connections_device_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    Device_.connections_device_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::location::nearby::connections::ConnectionsDevice& ConnectionRequestFrame::_internal_connections_device() const {
+  return _internal_has_connections_device()
+      ? *Device_.connections_device_
+      : reinterpret_cast< ::location::nearby::connections::ConnectionsDevice&>(::location::nearby::connections::_ConnectionsDevice_default_instance_);
+}
+inline const ::location::nearby::connections::ConnectionsDevice& ConnectionRequestFrame::connections_device() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionRequestFrame.connections_device)
+  return _internal_connections_device();
+}
+inline ::location::nearby::connections::ConnectionsDevice* ConnectionRequestFrame::unsafe_arena_release_connections_device() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:location.nearby.connections.ConnectionRequestFrame.connections_device)
+  if (_internal_has_connections_device()) {
+    clear_has_Device();
+    ::location::nearby::connections::ConnectionsDevice* temp = Device_.connections_device_;
+    Device_.connections_device_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void ConnectionRequestFrame::unsafe_arena_set_allocated_connections_device(::location::nearby::connections::ConnectionsDevice* connections_device) {
+  clear_Device();
+  if (connections_device) {
+    set_has_connections_device();
+    Device_.connections_device_ = connections_device;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.ConnectionRequestFrame.connections_device)
+}
+inline ::location::nearby::connections::ConnectionsDevice* ConnectionRequestFrame::_internal_mutable_connections_device() {
+  if (!_internal_has_connections_device()) {
+    clear_Device();
+    set_has_connections_device();
+    Device_.connections_device_ = CreateMaybeMessage< ::location::nearby::connections::ConnectionsDevice >(GetArenaForAllocation());
+  }
+  return Device_.connections_device_;
+}
+inline ::location::nearby::connections::ConnectionsDevice* ConnectionRequestFrame::mutable_connections_device() {
+  ::location::nearby::connections::ConnectionsDevice* _msg = _internal_mutable_connections_device();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionRequestFrame.connections_device)
+  return _msg;
+}
+
+// .location.nearby.connections.PresenceDevice presence_device = 13;
+inline bool ConnectionRequestFrame::_internal_has_presence_device() const {
+  return Device_case() == kPresenceDevice;
+}
+inline bool ConnectionRequestFrame::has_presence_device() const {
+  return _internal_has_presence_device();
+}
+inline void ConnectionRequestFrame::set_has_presence_device() {
+  _oneof_case_[0] = kPresenceDevice;
+}
+inline void ConnectionRequestFrame::clear_presence_device() {
+  if (_internal_has_presence_device()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete Device_.presence_device_;
+    }
+    clear_has_Device();
+  }
+}
+inline ::location::nearby::connections::PresenceDevice* ConnectionRequestFrame::release_presence_device() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionRequestFrame.presence_device)
+  if (_internal_has_presence_device()) {
+    clear_has_Device();
+      ::location::nearby::connections::PresenceDevice* temp = Device_.presence_device_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    Device_.presence_device_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::location::nearby::connections::PresenceDevice& ConnectionRequestFrame::_internal_presence_device() const {
+  return _internal_has_presence_device()
+      ? *Device_.presence_device_
+      : reinterpret_cast< ::location::nearby::connections::PresenceDevice&>(::location::nearby::connections::_PresenceDevice_default_instance_);
+}
+inline const ::location::nearby::connections::PresenceDevice& ConnectionRequestFrame::presence_device() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionRequestFrame.presence_device)
+  return _internal_presence_device();
+}
+inline ::location::nearby::connections::PresenceDevice* ConnectionRequestFrame::unsafe_arena_release_presence_device() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:location.nearby.connections.ConnectionRequestFrame.presence_device)
+  if (_internal_has_presence_device()) {
+    clear_has_Device();
+    ::location::nearby::connections::PresenceDevice* temp = Device_.presence_device_;
+    Device_.presence_device_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void ConnectionRequestFrame::unsafe_arena_set_allocated_presence_device(::location::nearby::connections::PresenceDevice* presence_device) {
+  clear_Device();
+  if (presence_device) {
+    set_has_presence_device();
+    Device_.presence_device_ = presence_device;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.ConnectionRequestFrame.presence_device)
+}
+inline ::location::nearby::connections::PresenceDevice* ConnectionRequestFrame::_internal_mutable_presence_device() {
+  if (!_internal_has_presence_device()) {
+    clear_Device();
+    set_has_presence_device();
+    Device_.presence_device_ = CreateMaybeMessage< ::location::nearby::connections::PresenceDevice >(GetArenaForAllocation());
+  }
+  return Device_.presence_device_;
+}
+inline ::location::nearby::connections::PresenceDevice* ConnectionRequestFrame::mutable_presence_device() {
+  ::location::nearby::connections::PresenceDevice* _msg = _internal_mutable_presence_device();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionRequestFrame.presence_device)
+  return _msg;
+}
+
+inline bool ConnectionRequestFrame::has_Device() const {
+  return Device_case() != DEVICE_NOT_SET;
+}
+inline void ConnectionRequestFrame::clear_has_Device() {
+  _oneof_case_[0] = DEVICE_NOT_SET;
+}
+inline ConnectionRequestFrame::DeviceCase ConnectionRequestFrame::Device_case() const {
+  return ConnectionRequestFrame::DeviceCase(_oneof_case_[0]);
+}
 // -------------------------------------------------------------------
 
 // ConnectionResponseFrame
@@ -8014,6 +9451,62 @@ inline void ConnectionResponseFrame::set_allocated_os_info(::location::nearby::c
   }
   os_info_ = os_info;
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionResponseFrame.os_info)
+}
+
+// optional int32 multiplex_socket_bitmask = 5;
+inline bool ConnectionResponseFrame::_internal_has_multiplex_socket_bitmask() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ConnectionResponseFrame::has_multiplex_socket_bitmask() const {
+  return _internal_has_multiplex_socket_bitmask();
+}
+inline void ConnectionResponseFrame::clear_multiplex_socket_bitmask() {
+  multiplex_socket_bitmask_ = 0;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline int32_t ConnectionResponseFrame::_internal_multiplex_socket_bitmask() const {
+  return multiplex_socket_bitmask_;
+}
+inline int32_t ConnectionResponseFrame::multiplex_socket_bitmask() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionResponseFrame.multiplex_socket_bitmask)
+  return _internal_multiplex_socket_bitmask();
+}
+inline void ConnectionResponseFrame::_internal_set_multiplex_socket_bitmask(int32_t value) {
+  _has_bits_[0] |= 0x00000010u;
+  multiplex_socket_bitmask_ = value;
+}
+inline void ConnectionResponseFrame::set_multiplex_socket_bitmask(int32_t value) {
+  _internal_set_multiplex_socket_bitmask(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionResponseFrame.multiplex_socket_bitmask)
+}
+
+// optional int32 nearby_connections_version = 6;
+inline bool ConnectionResponseFrame::_internal_has_nearby_connections_version() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool ConnectionResponseFrame::has_nearby_connections_version() const {
+  return _internal_has_nearby_connections_version();
+}
+inline void ConnectionResponseFrame::clear_nearby_connections_version() {
+  nearby_connections_version_ = 0;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline int32_t ConnectionResponseFrame::_internal_nearby_connections_version() const {
+  return nearby_connections_version_;
+}
+inline int32_t ConnectionResponseFrame::nearby_connections_version() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionResponseFrame.nearby_connections_version)
+  return _internal_nearby_connections_version();
+}
+inline void ConnectionResponseFrame::_internal_set_nearby_connections_version(int32_t value) {
+  _has_bits_[0] |= 0x00000020u;
+  nearby_connections_version_ = value;
+}
+inline void ConnectionResponseFrame::set_nearby_connections_version(int32_t value) {
+  _internal_set_nearby_connections_version(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionResponseFrame.nearby_connections_version)
 }
 
 // -------------------------------------------------------------------
@@ -9620,7 +11113,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 
 // optional int32 port = 3;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_port() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_port() const {
@@ -9628,7 +11121,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_port() {
   port_ = 0;
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_port() const {
   return port_;
@@ -9638,7 +11131,7 @@ inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCreden
   return _internal_port();
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_port(int32_t value) {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
   port_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_port(int32_t value) {
@@ -9648,7 +11141,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 
 // optional int32 frequency = 4;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_frequency() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_frequency() const {
@@ -9656,7 +11149,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_frequency() {
   frequency_ = 0;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_frequency() const {
   return frequency_;
@@ -9666,7 +11159,7 @@ inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCreden
   return _internal_frequency();
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_frequency(int32_t value) {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   frequency_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_frequency(int32_t value) {
@@ -9732,6 +11225,75 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
   gateway_.SetAllocated(nullptr, gateway,
       GetArenaForAllocation());
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.gateway)
+}
+
+// optional bytes ip_v6_address = 6;
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_ip_v6_address() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_ip_v6_address() const {
+  return _internal_has_ip_v6_address();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_ip_v6_address() {
+  ip_v6_address_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::ip_v6_address() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.ip_v6_address)
+  return _internal_ip_v6_address();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_ip_v6_address(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000008u;
+ ip_v6_address_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.ip_v6_address)
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::mutable_ip_v6_address() {
+  std::string* _s = _internal_mutable_ip_v6_address();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.ip_v6_address)
+  return _s;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_ip_v6_address() const {
+  return ip_v6_address_.Get();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_ip_v6_address(const std::string& value) {
+  _has_bits_[0] |= 0x00000008u;
+  ip_v6_address_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_mutable_ip_v6_address() {
+  _has_bits_[0] |= 0x00000008u;
+  return ip_v6_address_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::release_ip_v6_address() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.ip_v6_address)
+  if (!_internal_has_ip_v6_address()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000008u;
+  auto* p = ip_v6_address_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (ip_v6_address_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    ip_v6_address_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_allocated_ip_v6_address(std::string* ip_v6_address) {
+  if (ip_v6_address != nullptr) {
+    _has_bits_[0] |= 0x00000008u;
+  } else {
+    _has_bits_[0] &= ~0x00000008u;
+  }
+  ip_v6_address_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ip_v6_address,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (ip_v6_address_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    ip_v6_address_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.ip_v6_address)
 }
 
 // -------------------------------------------------------------------
@@ -10970,6 +12532,62 @@ inline void KeepAliveFrame::set_ack(bool value) {
 
 // DisconnectionFrame
 
+// optional bool request_safe_to_disconnect = 1;
+inline bool DisconnectionFrame::_internal_has_request_safe_to_disconnect() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool DisconnectionFrame::has_request_safe_to_disconnect() const {
+  return _internal_has_request_safe_to_disconnect();
+}
+inline void DisconnectionFrame::clear_request_safe_to_disconnect() {
+  request_safe_to_disconnect_ = false;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline bool DisconnectionFrame::_internal_request_safe_to_disconnect() const {
+  return request_safe_to_disconnect_;
+}
+inline bool DisconnectionFrame::request_safe_to_disconnect() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.DisconnectionFrame.request_safe_to_disconnect)
+  return _internal_request_safe_to_disconnect();
+}
+inline void DisconnectionFrame::_internal_set_request_safe_to_disconnect(bool value) {
+  _has_bits_[0] |= 0x00000001u;
+  request_safe_to_disconnect_ = value;
+}
+inline void DisconnectionFrame::set_request_safe_to_disconnect(bool value) {
+  _internal_set_request_safe_to_disconnect(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.DisconnectionFrame.request_safe_to_disconnect)
+}
+
+// optional bool ack_safe_to_disconnect = 2;
+inline bool DisconnectionFrame::_internal_has_ack_safe_to_disconnect() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool DisconnectionFrame::has_ack_safe_to_disconnect() const {
+  return _internal_has_ack_safe_to_disconnect();
+}
+inline void DisconnectionFrame::clear_ack_safe_to_disconnect() {
+  ack_safe_to_disconnect_ = false;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline bool DisconnectionFrame::_internal_ack_safe_to_disconnect() const {
+  return ack_safe_to_disconnect_;
+}
+inline bool DisconnectionFrame::ack_safe_to_disconnect() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.DisconnectionFrame.ack_safe_to_disconnect)
+  return _internal_ack_safe_to_disconnect();
+}
+inline void DisconnectionFrame::_internal_set_ack_safe_to_disconnect(bool value) {
+  _has_bits_[0] |= 0x00000002u;
+  ack_safe_to_disconnect_ = value;
+}
+inline void DisconnectionFrame::set_ack_safe_to_disconnect(bool value) {
+  _internal_set_ack_safe_to_disconnect(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.DisconnectionFrame.ack_safe_to_disconnect)
+}
+
 // -------------------------------------------------------------------
 
 // PairedKeyEncryptionFrame
@@ -11041,6 +12659,111 @@ inline void PairedKeyEncryptionFrame::set_allocated_signed_data(std::string* sig
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.PairedKeyEncryptionFrame.signed_data)
+}
+
+// -------------------------------------------------------------------
+
+// AuthenticationMessageFrame
+
+// optional bytes auth_message = 1;
+inline bool AuthenticationMessageFrame::_internal_has_auth_message() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool AuthenticationMessageFrame::has_auth_message() const {
+  return _internal_has_auth_message();
+}
+inline void AuthenticationMessageFrame::clear_auth_message() {
+  auth_message_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& AuthenticationMessageFrame::auth_message() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.AuthenticationMessageFrame.auth_message)
+  return _internal_auth_message();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void AuthenticationMessageFrame::set_auth_message(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ auth_message_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.AuthenticationMessageFrame.auth_message)
+}
+inline std::string* AuthenticationMessageFrame::mutable_auth_message() {
+  std::string* _s = _internal_mutable_auth_message();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.AuthenticationMessageFrame.auth_message)
+  return _s;
+}
+inline const std::string& AuthenticationMessageFrame::_internal_auth_message() const {
+  return auth_message_.Get();
+}
+inline void AuthenticationMessageFrame::_internal_set_auth_message(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  auth_message_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* AuthenticationMessageFrame::_internal_mutable_auth_message() {
+  _has_bits_[0] |= 0x00000001u;
+  return auth_message_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* AuthenticationMessageFrame::release_auth_message() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.AuthenticationMessageFrame.auth_message)
+  if (!_internal_has_auth_message()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = auth_message_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (auth_message_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    auth_message_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void AuthenticationMessageFrame::set_allocated_auth_message(std::string* auth_message) {
+  if (auth_message != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  auth_message_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), auth_message,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (auth_message_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    auth_message_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.AuthenticationMessageFrame.auth_message)
+}
+
+// -------------------------------------------------------------------
+
+// AuthenticationResultFrame
+
+// optional int32 result = 1;
+inline bool AuthenticationResultFrame::_internal_has_result() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool AuthenticationResultFrame::has_result() const {
+  return _internal_has_result();
+}
+inline void AuthenticationResultFrame::clear_result() {
+  result_ = 0;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline int32_t AuthenticationResultFrame::_internal_result() const {
+  return result_;
+}
+inline int32_t AuthenticationResultFrame::result() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.AuthenticationResultFrame.result)
+  return _internal_result();
+}
+inline void AuthenticationResultFrame::_internal_set_result(int32_t value) {
+  _has_bits_[0] |= 0x00000001u;
+  result_ = value;
+}
+inline void AuthenticationResultFrame::set_result(int32_t value) {
+  _internal_set_result(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.AuthenticationResultFrame.result)
 }
 
 // -------------------------------------------------------------------
@@ -12141,9 +13864,762 @@ inline void OsInfo::set_type(::location::nearby::connections::OsInfo_OsType valu
   // @@protoc_insertion_point(field_set:location.nearby.connections.OsInfo.type)
 }
 
+// -------------------------------------------------------------------
+
+// ConnectionsDevice
+
+// optional string endpoint_id = 1;
+inline bool ConnectionsDevice::_internal_has_endpoint_id() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ConnectionsDevice::has_endpoint_id() const {
+  return _internal_has_endpoint_id();
+}
+inline void ConnectionsDevice::clear_endpoint_id() {
+  endpoint_id_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& ConnectionsDevice::endpoint_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionsDevice.endpoint_id)
+  return _internal_endpoint_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ConnectionsDevice::set_endpoint_id(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionsDevice.endpoint_id)
+}
+inline std::string* ConnectionsDevice::mutable_endpoint_id() {
+  std::string* _s = _internal_mutable_endpoint_id();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionsDevice.endpoint_id)
+  return _s;
+}
+inline const std::string& ConnectionsDevice::_internal_endpoint_id() const {
+  return endpoint_id_.Get();
+}
+inline void ConnectionsDevice::_internal_set_endpoint_id(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* ConnectionsDevice::_internal_mutable_endpoint_id() {
+  _has_bits_[0] |= 0x00000001u;
+  return endpoint_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* ConnectionsDevice::release_endpoint_id() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionsDevice.endpoint_id)
+  if (!_internal_has_endpoint_id()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = endpoint_id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ConnectionsDevice::set_allocated_endpoint_id(std::string* endpoint_id) {
+  if (endpoint_id != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  endpoint_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), endpoint_id,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionsDevice.endpoint_id)
+}
+
+// optional .location.nearby.connections.EndpointType endpoint_type = 2;
+inline bool ConnectionsDevice::_internal_has_endpoint_type() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsDevice::has_endpoint_type() const {
+  return _internal_has_endpoint_type();
+}
+inline void ConnectionsDevice::clear_endpoint_type() {
+  endpoint_type_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::connections::EndpointType ConnectionsDevice::_internal_endpoint_type() const {
+  return static_cast< ::location::nearby::connections::EndpointType >(endpoint_type_);
+}
+inline ::location::nearby::connections::EndpointType ConnectionsDevice::endpoint_type() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionsDevice.endpoint_type)
+  return _internal_endpoint_type();
+}
+inline void ConnectionsDevice::_internal_set_endpoint_type(::location::nearby::connections::EndpointType value) {
+  assert(::location::nearby::connections::EndpointType_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  endpoint_type_ = value;
+}
+inline void ConnectionsDevice::set_endpoint_type(::location::nearby::connections::EndpointType value) {
+  _internal_set_endpoint_type(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionsDevice.endpoint_type)
+}
+
+// optional bytes connectivity_info_list = 3;
+inline bool ConnectionsDevice::_internal_has_connectivity_info_list() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool ConnectionsDevice::has_connectivity_info_list() const {
+  return _internal_has_connectivity_info_list();
+}
+inline void ConnectionsDevice::clear_connectivity_info_list() {
+  connectivity_info_list_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& ConnectionsDevice::connectivity_info_list() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionsDevice.connectivity_info_list)
+  return _internal_connectivity_info_list();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ConnectionsDevice::set_connectivity_info_list(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000002u;
+ connectivity_info_list_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionsDevice.connectivity_info_list)
+}
+inline std::string* ConnectionsDevice::mutable_connectivity_info_list() {
+  std::string* _s = _internal_mutable_connectivity_info_list();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionsDevice.connectivity_info_list)
+  return _s;
+}
+inline const std::string& ConnectionsDevice::_internal_connectivity_info_list() const {
+  return connectivity_info_list_.Get();
+}
+inline void ConnectionsDevice::_internal_set_connectivity_info_list(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  connectivity_info_list_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* ConnectionsDevice::_internal_mutable_connectivity_info_list() {
+  _has_bits_[0] |= 0x00000002u;
+  return connectivity_info_list_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* ConnectionsDevice::release_connectivity_info_list() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionsDevice.connectivity_info_list)
+  if (!_internal_has_connectivity_info_list()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  auto* p = connectivity_info_list_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connectivity_info_list_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ConnectionsDevice::set_allocated_connectivity_info_list(std::string* connectivity_info_list) {
+  if (connectivity_info_list != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  connectivity_info_list_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), connectivity_info_list,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connectivity_info_list_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionsDevice.connectivity_info_list)
+}
+
+// optional bytes endpoint_info = 4;
+inline bool ConnectionsDevice::_internal_has_endpoint_info() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ConnectionsDevice::has_endpoint_info() const {
+  return _internal_has_endpoint_info();
+}
+inline void ConnectionsDevice::clear_endpoint_info() {
+  endpoint_info_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const std::string& ConnectionsDevice::endpoint_info() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionsDevice.endpoint_info)
+  return _internal_endpoint_info();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ConnectionsDevice::set_endpoint_info(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000004u;
+ endpoint_info_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionsDevice.endpoint_info)
+}
+inline std::string* ConnectionsDevice::mutable_endpoint_info() {
+  std::string* _s = _internal_mutable_endpoint_info();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionsDevice.endpoint_info)
+  return _s;
+}
+inline const std::string& ConnectionsDevice::_internal_endpoint_info() const {
+  return endpoint_info_.Get();
+}
+inline void ConnectionsDevice::_internal_set_endpoint_info(const std::string& value) {
+  _has_bits_[0] |= 0x00000004u;
+  endpoint_info_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* ConnectionsDevice::_internal_mutable_endpoint_info() {
+  _has_bits_[0] |= 0x00000004u;
+  return endpoint_info_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* ConnectionsDevice::release_endpoint_info() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionsDevice.endpoint_info)
+  if (!_internal_has_endpoint_info()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000004u;
+  auto* p = endpoint_info_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (endpoint_info_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    endpoint_info_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ConnectionsDevice::set_allocated_endpoint_info(std::string* endpoint_info) {
+  if (endpoint_info != nullptr) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  endpoint_info_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), endpoint_info,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (endpoint_info_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    endpoint_info_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionsDevice.endpoint_info)
+}
+
+// -------------------------------------------------------------------
+
+// PresenceDevice
+
+// optional string endpoint_id = 1;
+inline bool PresenceDevice::_internal_has_endpoint_id() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_endpoint_id() const {
+  return _internal_has_endpoint_id();
+}
+inline void PresenceDevice::clear_endpoint_id() {
+  endpoint_id_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& PresenceDevice::endpoint_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.endpoint_id)
+  return _internal_endpoint_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void PresenceDevice::set_endpoint_id(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.endpoint_id)
+}
+inline std::string* PresenceDevice::mutable_endpoint_id() {
+  std::string* _s = _internal_mutable_endpoint_id();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.PresenceDevice.endpoint_id)
+  return _s;
+}
+inline const std::string& PresenceDevice::_internal_endpoint_id() const {
+  return endpoint_id_.Get();
+}
+inline void PresenceDevice::_internal_set_endpoint_id(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::_internal_mutable_endpoint_id() {
+  _has_bits_[0] |= 0x00000001u;
+  return endpoint_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::release_endpoint_id() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.PresenceDevice.endpoint_id)
+  if (!_internal_has_endpoint_id()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = endpoint_id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void PresenceDevice::set_allocated_endpoint_id(std::string* endpoint_id) {
+  if (endpoint_id != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  endpoint_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), endpoint_id,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.PresenceDevice.endpoint_id)
+}
+
+// optional .location.nearby.connections.EndpointType endpoint_type = 2;
+inline bool PresenceDevice::_internal_has_endpoint_type() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_endpoint_type() const {
+  return _internal_has_endpoint_type();
+}
+inline void PresenceDevice::clear_endpoint_type() {
+  endpoint_type_ = 0;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline ::location::nearby::connections::EndpointType PresenceDevice::_internal_endpoint_type() const {
+  return static_cast< ::location::nearby::connections::EndpointType >(endpoint_type_);
+}
+inline ::location::nearby::connections::EndpointType PresenceDevice::endpoint_type() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.endpoint_type)
+  return _internal_endpoint_type();
+}
+inline void PresenceDevice::_internal_set_endpoint_type(::location::nearby::connections::EndpointType value) {
+  assert(::location::nearby::connections::EndpointType_IsValid(value));
+  _has_bits_[0] |= 0x00000020u;
+  endpoint_type_ = value;
+}
+inline void PresenceDevice::set_endpoint_type(::location::nearby::connections::EndpointType value) {
+  _internal_set_endpoint_type(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.endpoint_type)
+}
+
+// optional bytes connectivity_info_list = 3;
+inline bool PresenceDevice::_internal_has_connectivity_info_list() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_connectivity_info_list() const {
+  return _internal_has_connectivity_info_list();
+}
+inline void PresenceDevice::clear_connectivity_info_list() {
+  connectivity_info_list_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& PresenceDevice::connectivity_info_list() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.connectivity_info_list)
+  return _internal_connectivity_info_list();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void PresenceDevice::set_connectivity_info_list(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000002u;
+ connectivity_info_list_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.connectivity_info_list)
+}
+inline std::string* PresenceDevice::mutable_connectivity_info_list() {
+  std::string* _s = _internal_mutable_connectivity_info_list();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.PresenceDevice.connectivity_info_list)
+  return _s;
+}
+inline const std::string& PresenceDevice::_internal_connectivity_info_list() const {
+  return connectivity_info_list_.Get();
+}
+inline void PresenceDevice::_internal_set_connectivity_info_list(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  connectivity_info_list_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::_internal_mutable_connectivity_info_list() {
+  _has_bits_[0] |= 0x00000002u;
+  return connectivity_info_list_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::release_connectivity_info_list() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.PresenceDevice.connectivity_info_list)
+  if (!_internal_has_connectivity_info_list()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  auto* p = connectivity_info_list_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connectivity_info_list_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void PresenceDevice::set_allocated_connectivity_info_list(std::string* connectivity_info_list) {
+  if (connectivity_info_list != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  connectivity_info_list_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), connectivity_info_list,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connectivity_info_list_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connectivity_info_list_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.PresenceDevice.connectivity_info_list)
+}
+
+// optional int64 device_id = 4;
+inline bool PresenceDevice::_internal_has_device_id() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_device_id() const {
+  return _internal_has_device_id();
+}
+inline void PresenceDevice::clear_device_id() {
+  device_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline int64_t PresenceDevice::_internal_device_id() const {
+  return device_id_;
+}
+inline int64_t PresenceDevice::device_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.device_id)
+  return _internal_device_id();
+}
+inline void PresenceDevice::_internal_set_device_id(int64_t value) {
+  _has_bits_[0] |= 0x00000010u;
+  device_id_ = value;
+}
+inline void PresenceDevice::set_device_id(int64_t value) {
+  _internal_set_device_id(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.device_id)
+}
+
+// optional string device_name = 5;
+inline bool PresenceDevice::_internal_has_device_name() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_device_name() const {
+  return _internal_has_device_name();
+}
+inline void PresenceDevice::clear_device_name() {
+  device_name_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const std::string& PresenceDevice::device_name() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.device_name)
+  return _internal_device_name();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void PresenceDevice::set_device_name(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000004u;
+ device_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.device_name)
+}
+inline std::string* PresenceDevice::mutable_device_name() {
+  std::string* _s = _internal_mutable_device_name();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.PresenceDevice.device_name)
+  return _s;
+}
+inline const std::string& PresenceDevice::_internal_device_name() const {
+  return device_name_.Get();
+}
+inline void PresenceDevice::_internal_set_device_name(const std::string& value) {
+  _has_bits_[0] |= 0x00000004u;
+  device_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::_internal_mutable_device_name() {
+  _has_bits_[0] |= 0x00000004u;
+  return device_name_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::release_device_name() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.PresenceDevice.device_name)
+  if (!_internal_has_device_name()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000004u;
+  auto* p = device_name_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (device_name_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    device_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void PresenceDevice::set_allocated_device_name(std::string* device_name) {
+  if (device_name != nullptr) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  device_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), device_name,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (device_name_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    device_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.PresenceDevice.device_name)
+}
+
+// optional .location.nearby.connections.PresenceDevice.DeviceType device_type = 6;
+inline bool PresenceDevice::_internal_has_device_type() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_device_type() const {
+  return _internal_has_device_type();
+}
+inline void PresenceDevice::clear_device_type() {
+  device_type_ = 0;
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline ::location::nearby::connections::PresenceDevice_DeviceType PresenceDevice::_internal_device_type() const {
+  return static_cast< ::location::nearby::connections::PresenceDevice_DeviceType >(device_type_);
+}
+inline ::location::nearby::connections::PresenceDevice_DeviceType PresenceDevice::device_type() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.device_type)
+  return _internal_device_type();
+}
+inline void PresenceDevice::_internal_set_device_type(::location::nearby::connections::PresenceDevice_DeviceType value) {
+  assert(::location::nearby::connections::PresenceDevice_DeviceType_IsValid(value));
+  _has_bits_[0] |= 0x00000040u;
+  device_type_ = value;
+}
+inline void PresenceDevice::set_device_type(::location::nearby::connections::PresenceDevice_DeviceType value) {
+  _internal_set_device_type(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.device_type)
+}
+
+// optional string device_image_url = 7;
+inline bool PresenceDevice::_internal_has_device_image_url() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool PresenceDevice::has_device_image_url() const {
+  return _internal_has_device_image_url();
+}
+inline void PresenceDevice::clear_device_image_url() {
+  device_image_url_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline const std::string& PresenceDevice::device_image_url() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.device_image_url)
+  return _internal_device_image_url();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void PresenceDevice::set_device_image_url(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000008u;
+ device_image_url_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.device_image_url)
+}
+inline std::string* PresenceDevice::mutable_device_image_url() {
+  std::string* _s = _internal_mutable_device_image_url();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.PresenceDevice.device_image_url)
+  return _s;
+}
+inline const std::string& PresenceDevice::_internal_device_image_url() const {
+  return device_image_url_.Get();
+}
+inline void PresenceDevice::_internal_set_device_image_url(const std::string& value) {
+  _has_bits_[0] |= 0x00000008u;
+  device_image_url_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::_internal_mutable_device_image_url() {
+  _has_bits_[0] |= 0x00000008u;
+  return device_image_url_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* PresenceDevice::release_device_image_url() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.PresenceDevice.device_image_url)
+  if (!_internal_has_device_image_url()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000008u;
+  auto* p = device_image_url_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (device_image_url_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    device_image_url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void PresenceDevice::set_allocated_device_image_url(std::string* device_image_url) {
+  if (device_image_url != nullptr) {
+    _has_bits_[0] |= 0x00000008u;
+  } else {
+    _has_bits_[0] &= ~0x00000008u;
+  }
+  device_image_url_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), device_image_url,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (device_image_url_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    device_image_url_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.PresenceDevice.device_image_url)
+}
+
+// repeated .location.nearby.connections.ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
+inline int PresenceDevice::_internal_discovery_medium_size() const {
+  return discovery_medium_.size();
+}
+inline int PresenceDevice::discovery_medium_size() const {
+  return _internal_discovery_medium_size();
+}
+inline void PresenceDevice::clear_discovery_medium() {
+  discovery_medium_.Clear();
+}
+inline ::location::nearby::connections::ConnectionRequestFrame_Medium PresenceDevice::_internal_discovery_medium(int index) const {
+  return static_cast< ::location::nearby::connections::ConnectionRequestFrame_Medium >(discovery_medium_.Get(index));
+}
+inline ::location::nearby::connections::ConnectionRequestFrame_Medium PresenceDevice::discovery_medium(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.discovery_medium)
+  return _internal_discovery_medium(index);
+}
+inline void PresenceDevice::set_discovery_medium(int index, ::location::nearby::connections::ConnectionRequestFrame_Medium value) {
+  assert(::location::nearby::connections::ConnectionRequestFrame_Medium_IsValid(value));
+  discovery_medium_.Set(index, value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.discovery_medium)
+}
+inline void PresenceDevice::_internal_add_discovery_medium(::location::nearby::connections::ConnectionRequestFrame_Medium value) {
+  assert(::location::nearby::connections::ConnectionRequestFrame_Medium_IsValid(value));
+  discovery_medium_.Add(value);
+}
+inline void PresenceDevice::add_discovery_medium(::location::nearby::connections::ConnectionRequestFrame_Medium value) {
+  _internal_add_discovery_medium(value);
+  // @@protoc_insertion_point(field_add:location.nearby.connections.PresenceDevice.discovery_medium)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>&
+PresenceDevice::discovery_medium() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.PresenceDevice.discovery_medium)
+  return discovery_medium_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+PresenceDevice::_internal_mutable_discovery_medium() {
+  return &discovery_medium_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+PresenceDevice::mutable_discovery_medium() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.PresenceDevice.discovery_medium)
+  return _internal_mutable_discovery_medium();
+}
+
+// repeated int32 actions = 9 [packed = true];
+inline int PresenceDevice::_internal_actions_size() const {
+  return actions_.size();
+}
+inline int PresenceDevice::actions_size() const {
+  return _internal_actions_size();
+}
+inline void PresenceDevice::clear_actions() {
+  actions_.Clear();
+}
+inline int32_t PresenceDevice::_internal_actions(int index) const {
+  return actions_.Get(index);
+}
+inline int32_t PresenceDevice::actions(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.actions)
+  return _internal_actions(index);
+}
+inline void PresenceDevice::set_actions(int index, int32_t value) {
+  actions_.Set(index, value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.actions)
+}
+inline void PresenceDevice::_internal_add_actions(int32_t value) {
+  actions_.Add(value);
+}
+inline void PresenceDevice::add_actions(int32_t value) {
+  _internal_add_actions(value);
+  // @@protoc_insertion_point(field_add:location.nearby.connections.PresenceDevice.actions)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+PresenceDevice::_internal_actions() const {
+  return actions_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+PresenceDevice::actions() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.PresenceDevice.actions)
+  return _internal_actions();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+PresenceDevice::_internal_mutable_actions() {
+  return &actions_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+PresenceDevice::mutable_actions() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.PresenceDevice.actions)
+  return _internal_mutable_actions();
+}
+
+// repeated int64 identity_type = 10 [packed = true];
+inline int PresenceDevice::_internal_identity_type_size() const {
+  return identity_type_.size();
+}
+inline int PresenceDevice::identity_type_size() const {
+  return _internal_identity_type_size();
+}
+inline void PresenceDevice::clear_identity_type() {
+  identity_type_.Clear();
+}
+inline int64_t PresenceDevice::_internal_identity_type(int index) const {
+  return identity_type_.Get(index);
+}
+inline int64_t PresenceDevice::identity_type(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PresenceDevice.identity_type)
+  return _internal_identity_type(index);
+}
+inline void PresenceDevice::set_identity_type(int index, int64_t value) {
+  identity_type_.Set(index, value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PresenceDevice.identity_type)
+}
+inline void PresenceDevice::_internal_add_identity_type(int64_t value) {
+  identity_type_.Add(value);
+}
+inline void PresenceDevice::add_identity_type(int64_t value) {
+  _internal_add_identity_type(value);
+  // @@protoc_insertion_point(field_add:location.nearby.connections.PresenceDevice.identity_type)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+PresenceDevice::_internal_identity_type() const {
+  return identity_type_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+PresenceDevice::identity_type() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.PresenceDevice.identity_type)
+  return _internal_identity_type();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+PresenceDevice::_internal_mutable_identity_type() {
+  return &identity_type_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+PresenceDevice::mutable_identity_type() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.PresenceDevice.identity_type)
+  return _internal_mutable_identity_type();
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -12223,6 +14699,8 @@ template <> struct is_proto_enum< ::location::nearby::connections::BandwidthUpgr
 template <> struct is_proto_enum< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_EventType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::LocationStandard_Format> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::OsInfo_OsType> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::connections::PresenceDevice_DeviceType> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::connections::EndpointType> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 
