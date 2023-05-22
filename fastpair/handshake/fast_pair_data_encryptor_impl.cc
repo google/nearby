@@ -151,10 +151,7 @@ void FastPairDataEncryptorImpl::ParseDecryptResponse(
   FastPairDataParser::ParseDecryptedResponse(
       std::vector<uint8_t>(shared_secret_key_.begin(),
                            shared_secret_key_.end()),
-      encrypted_response_bytes,
-      {
-          .on_decrypted_cb = std::move(callback),
-      });
+      encrypted_response_bytes, std::move(callback));
 }
 
 void FastPairDataEncryptorImpl::ParseDecryptPasskey(
@@ -167,10 +164,7 @@ void FastPairDataEncryptorImpl::ParseDecryptPasskey(
   FastPairDataParser::ParseDecryptedPasskey(
       std::vector<uint8_t>(shared_secret_key_.begin(),
                            shared_secret_key_.end()),
-      encrypted_passkey_bytes,
-      {
-          .on_decrypted_cb = std::move(callback),
-      });
+      encrypted_passkey_bytes, std::move(callback));
 }
 }  // namespace fastpair
 }  // namespace nearby

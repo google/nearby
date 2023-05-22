@@ -14,21 +14,16 @@
 
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 
-#include <stddef.h>
 #include <stdint.h>
 
 #include <algorithm>
 #include <array>
-#include <functional>
 #include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
@@ -55,16 +50,11 @@ TEST(FastPairDataParserTest, GetHexModelIdFromServiceDataUnsucessfully) {
           .Build()
           ->CreateServiceData();
   absl::Notification notification;
-  GetHexModelIdFromServiceDataCallback callback;
-  callback.on_retrieved_cb =
-      [&notification](std::optional<absl::string_view> model_id) {
+  FastPairDataParser::GetHexModelIdFromServiceData(
+      service_data, [&notification](std::optional<absl::string_view> model_id) {
         EXPECT_EQ(model_id, std::nullopt);
         notification.Notify();
-      };
-
-  FastPairDataParser::GetHexModelIdFromServiceData(service_data,
-                                                   std::move(callback));
-
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -75,15 +65,11 @@ TEST(FastPairDataParserTest, GetHexModelIdFromServiceDataSuccessfully) {
           .Build()
           ->CreateServiceData();
   absl::Notification notification;
-  GetHexModelIdFromServiceDataCallback callback;
-  callback.on_retrieved_cb =
-      [&notification](std::optional<absl::string_view> model_id) {
+  FastPairDataParser::GetHexModelIdFromServiceData(
+      service_data, [&notification](std::optional<absl::string_view> model_id) {
         EXPECT_EQ(model_id, kModelId);
         notification.Notify();
-      };
-
-  FastPairDataParser::GetHexModelIdFromServiceData(service_data,
-                                                   std::move(callback));
+      });
 
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
@@ -119,15 +105,12 @@ TEST(FastPairDataParserTest, DecryptResponseUnsuccessfullyWithInvalidAesKey) {
                                        encrypted_bytes_array.end());
 
   absl::Notification notification;
-  ParseDecryptResponseCallback callback;
-  callback.on_decrypted_cb =
+  FastPairDataParser::ParseDecryptedResponse(
+      kAesKeyBytes, encrypted_bytes,
       [&notification](std::optional<DecryptedResponse> response) {
         EXPECT_FALSE(response.has_value());
         notification.Notify();
-      };
-
-  FastPairDataParser::ParseDecryptedResponse(kAesKeyBytes, encrypted_bytes,
-                                             std::move(callback));
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -162,15 +145,12 @@ TEST(FastPairDataParserTest, DecryptResponseUnsuccessfullyWithInvalidResponse) {
                                        encrypted_bytes_array.end() - 1);
 
   absl::Notification notification;
-  ParseDecryptResponseCallback callback;
-  callback.on_decrypted_cb =
+  FastPairDataParser::ParseDecryptedResponse(
+      kAesKeyBytes, encrypted_bytes,
       [&notification](std::optional<DecryptedResponse> response) {
         EXPECT_FALSE(response.has_value());
         notification.Notify();
-      };
-
-  FastPairDataParser::ParseDecryptedResponse(kAesKeyBytes, encrypted_bytes,
-                                             std::move(callback));
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -204,19 +184,17 @@ TEST(FastPairDataParserTest, DecryptResponseSuccessfully) {
                                        encrypted_bytes_array.end());
 
   absl::Notification notification;
-  ParseDecryptResponseCallback callback;
-  callback.on_decrypted_cb = [&notification, &kAddressBytes, &kSalt](
-                                 std::optional<DecryptedResponse> response) {
-    EXPECT_TRUE(response.has_value());
-    EXPECT_EQ(response.value().message_type,
-              FastPairMessageType::kKeyBasedPairingResponse);
-    EXPECT_EQ(response.value().address_bytes, kAddressBytes);
-    EXPECT_EQ(response.value().salt, kSalt);
-    notification.Notify();
-  };
-
-  FastPairDataParser::ParseDecryptedResponse(kAesKeyBytes, encrypted_bytes,
-                                             std::move(callback));
+  FastPairDataParser::ParseDecryptedResponse(
+      kAesKeyBytes, encrypted_bytes,
+      [&notification, &kAddressBytes,
+       &kSalt](std::optional<DecryptedResponse> response) {
+        EXPECT_TRUE(response.has_value());
+        EXPECT_EQ(response.value().message_type,
+                  FastPairMessageType::kKeyBasedPairingResponse);
+        EXPECT_EQ(response.value().address_bytes, kAddressBytes);
+        EXPECT_EQ(response.value().salt, kSalt);
+        notification.Notify();
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -251,15 +229,12 @@ TEST(FastPairDataParserTest, DecryptPasskeyUnsuccessfullyWithInvalidAesKey) {
                                        encrypted_bytes_array.end());
 
   absl::Notification notification;
-  ParseDecryptPasskeyCallback callback;
-  callback.on_decrypted_cb =
+  FastPairDataParser::ParseDecryptedPasskey(
+      kAesKeyBytes, encrypted_bytes,
       [&notification](std::optional<DecryptedPasskey> decrypted_passkey) {
         EXPECT_FALSE(decrypted_passkey.has_value());
         notification.Notify();
-      };
-
-  FastPairDataParser::ParseDecryptedPasskey(kAesKeyBytes, encrypted_bytes,
-                                            std::move(callback));
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -293,15 +268,12 @@ TEST(FastPairDataParserTest, DecryptPasskeyUnsuccessfullyWithInvalidPasskey) {
                                        encrypted_bytes_array.end() - 1);
 
   absl::Notification notification;
-  ParseDecryptPasskeyCallback callback;
-  callback.on_decrypted_cb =
+  FastPairDataParser::ParseDecryptedPasskey(
+      kAesKeyBytes, encrypted_bytes,
       [&notification](std::optional<DecryptedPasskey> decrypted_passkey) {
         EXPECT_FALSE(decrypted_passkey.has_value());
         notification.Notify();
-      };
-
-  FastPairDataParser::ParseDecryptedPasskey(kAesKeyBytes, encrypted_bytes,
-                                            std::move(callback));
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -334,8 +306,8 @@ TEST(FastPairDataParserTest, DecryptSeekerPasskeySuccessfully) {
                                        encrypted_bytes_array.end());
 
   absl::Notification notification;
-  ParseDecryptPasskeyCallback callback;
-  callback.on_decrypted_cb =
+  FastPairDataParser::ParseDecryptedPasskey(
+      kAesKeyBytes, encrypted_bytes,
       [&notification, &kPasskey,
        &kSalt](std::optional<DecryptedPasskey> decrypted_passkey) {
         EXPECT_TRUE(decrypted_passkey.has_value());
@@ -344,10 +316,7 @@ TEST(FastPairDataParserTest, DecryptSeekerPasskeySuccessfully) {
         EXPECT_EQ(decrypted_passkey.value().passkey, kPasskey);
         EXPECT_EQ(decrypted_passkey.value().salt, kSalt);
         notification.Notify();
-      };
-
-  FastPairDataParser::ParseDecryptedPasskey(kAesKeyBytes, encrypted_bytes,
-                                            std::move(callback));
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
@@ -380,8 +349,8 @@ TEST(FastPairDataParserTest, DecryptProviderPasskeySuccessfully) {
                                        encrypted_bytes_array.end());
 
   absl::Notification notification;
-  ParseDecryptPasskeyCallback callback;
-  callback.on_decrypted_cb =
+  FastPairDataParser::ParseDecryptedPasskey(
+      kAesKeyBytes, encrypted_bytes,
       [&notification, &kPasskey,
        &kSalt](std::optional<DecryptedPasskey> decrypted_passkey) {
         EXPECT_TRUE(decrypted_passkey.has_value());
@@ -390,10 +359,7 @@ TEST(FastPairDataParserTest, DecryptProviderPasskeySuccessfully) {
         EXPECT_EQ(decrypted_passkey.value().passkey, kPasskey);
         EXPECT_EQ(decrypted_passkey.value().salt, kSalt);
         notification.Notify();
-      };
-
-  FastPairDataParser::ParseDecryptedPasskey(kAesKeyBytes, encrypted_bytes,
-                                            std::move(callback));
+      });
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
