@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,6 +63,14 @@ TEST(DeviceInfo, DISABLED_GetDownloadPath) {
 
 TEST(DeviceInfo, DISABLED_GetTemporaryPath) {
   EXPECT_TRUE(DeviceInfo().GetTemporaryPath().has_value());
+}
+
+TEST(DeviceInfo, DISABLED_GetLogPath) {
+  EXPECT_TRUE(DeviceInfo().GetLogPath().has_value());
+}
+
+TEST(DeviceInfo, DISABLED_GetCrashDumpPath) {
+  EXPECT_TRUE(DeviceInfo().GetCrashDumpPath().has_value());
 }
 
 TEST(DeviceInfo, DISABLED_IsScreenLocked) {
