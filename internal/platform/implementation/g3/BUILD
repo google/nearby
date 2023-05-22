@@ -140,6 +140,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
+        "//internal/account:__subpackages__",
         "//internal/auth:__subpackages__",
         "//internal/flags:__subpackages__",
         "//internal/network:__subpackages__",

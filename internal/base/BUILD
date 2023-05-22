@@ -12,6 +12,7 @@ cc_library(
     ],
     visibility = [
         "//fastpair:__subpackages__",
+        "//internal/account:__subpackages__",
         "//internal/interop:__pkg__",
         "//internal/platform:__pkg__",
         "//location/nearby/cpp/sharing:__subpackages__",
