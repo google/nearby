@@ -57,6 +57,10 @@ constexpr Uuid kPasskeyCharacteristicUuidV1(0x0000123500001000,
                                             0x800000805F9B34FB);
 constexpr Uuid kPasskeyCharacteristicUuidV2(0xFE2C123583664814,
                                             0x8EB001DE32100BEA);
+constexpr Uuid kAccountKeyCharacteristicUuidV1(0x0000123600001000,
+                                               0x800000805F9B34FB);
+constexpr Uuid kAccountKeyCharacteristicUuidV2(0xFE2C123683664814,
+                                               0x8EB001DE32100BEA);
 
 constexpr absl::Duration kGattOperationTimeout = absl::Seconds(15);
 constexpr int kMaxNumGattConnectionAttempts = 3;
@@ -142,10 +146,12 @@ void FastPairGattServiceClientImpl::DiscoverServiceAndCharacteristics() {
 
   if (gatt_client_->DiscoverServiceAndCharacteristics(
           kFastPairServiceUuid,
-          {kKeyBasedCharacteristicUuidV2, kPasskeyCharacteristicUuidV2}) ||
+          {kKeyBasedCharacteristicUuidV2, kPasskeyCharacteristicUuidV2,
+           kAccountKeyCharacteristicUuidV2}) ||
       gatt_client_->DiscoverServiceAndCharacteristics(
           kFastPairServiceUuid,
-          {kKeyBasedCharacteristicUuidV1, kPasskeyCharacteristicUuidV1})) {
+          {kKeyBasedCharacteristicUuidV1, kPasskeyCharacteristicUuidV1,
+           kAccountKeyCharacteristicUuidV1})) {
     gatt_service_discovery_timer_.Stop();
     NEARBY_LOGS(INFO) << __func__
                       << ": Completed discovery for Fast Pair GATT service and "
@@ -174,6 +180,13 @@ void FastPairGattServiceClientImpl::GetFastPairGattCharacteristics() {
       kPasskeyCharacteristicUuidV1, kPasskeyCharacteristicUuidV2);
   if (!passkey_characteristic_.has_value()) {
     NotifyInitializedError(PairFailure::kPasskeyCharacteristicDiscovery);
+    return;
+  }
+
+  account_key_characteristic_ = GetCharacteristicsByUUIDs(
+      kAccountKeyCharacteristicUuidV1, kAccountKeyCharacteristicUuidV2);
+  if (!account_key_characteristic_.has_value()) {
+    NotifyInitializedError(PairFailure::kAccountKeyCharacteristicDiscovery);
     return;
   }
 
@@ -244,6 +257,14 @@ FastPairGattServiceClientImpl::CreatePasskeyBlock(uint8_t message_type,
   data_to_write[2] = (passkey & 0x0000ff00) >> 8;
   data_to_write[3] = passkey & 0x000000ff;
   return data_to_write;
+}
+
+std::array<uint8_t, kAesBlockByteSize>
+FastPairGattServiceClientImpl::CreateAccountKeyBlock() {
+  std::array<uint8_t, 16> account_key;
+  RAND_bytes(account_key.data(), account_key.size());
+  account_key[0] = 0x04;
+  return account_key;
 }
 
 void FastPairGattServiceClientImpl::WriteRequestAsync(
@@ -423,6 +444,39 @@ void FastPairGattServiceClientImpl::OnCharacteristicValueChanged(
   }
 }
 
+void FastPairGattServiceClientImpl::WriteAccountKey(
+    const FastPairDataEncryptor& fast_pair_data_encryptor,
+    WriteAccountkeyCallback write_accountkey_callback) {
+  DCHECK(is_initialized_);
+  account_key_write_callback_ = std::move(write_accountkey_callback);
+  std::array<uint8_t, kAesBlockByteSize> raw_account_key =
+      CreateAccountKeyBlock();
+  const std::array<uint8_t, kAesBlockByteSize> data_to_write =
+      fast_pair_data_encryptor.EncryptBytes(raw_account_key);
+
+  account_key_write_request_timer_.Start(
+      kGattOperationTimeout / absl::Milliseconds(1), 0,
+      absl::bind_front(
+          &FastPairGattServiceClientImpl::NotifyWriteAccountKeyError, this,
+          PairFailure::kAccountKeyCharacteristicWrite));
+
+  if (gatt_client_->WriteCharacteristic(
+          account_key_characteristic_.value(),
+          std::string(data_to_write.begin(), data_to_write.end()),
+          api::ble_v2::GattClient::WriteType::kWithResponse)) {
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Successfully write the accoutkey characteristic.";
+    account_key_write_request_timer_.Stop();
+    std::move(account_key_write_callback_)(
+        AccountKey(std::string(raw_account_key.begin(), raw_account_key.end())),
+        /*failure=*/std::nullopt);
+    return;
+  }
+  NEARBY_LOGS(INFO) << __func__
+                    << ": Failed to write the passkey characteristic ";
+  NotifyWriteAccountKeyError(PairFailure::kAccountKeyCharacteristicWrite);
+}
+
 void FastPairGattServiceClientImpl::NotifyInitializedError(
     PairFailure failure) {
   NEARBY_LOGS(VERBOSE) << __func__ << failure;
@@ -436,7 +490,7 @@ void FastPairGattServiceClientImpl::NotifyInitializedError(
 
 void FastPairGattServiceClientImpl::NotifyWriteRequestError(
     PairFailure failure) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "NotifyWriteRequestError";
+  NEARBY_LOGS(VERBOSE) << __func__;
   key_based_write_request_timer_.Stop();
   DCHECK(key_based_write_response_callback_);
   std::move(key_based_write_response_callback_)("", failure);
@@ -444,21 +498,31 @@ void FastPairGattServiceClientImpl::NotifyWriteRequestError(
 
 void FastPairGattServiceClientImpl::NotifyWritePasskeyError(
     PairFailure failure) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "NotifyWritePasskeyError";
+  NEARBY_LOGS(VERBOSE) << __func__;
   passkey_write_request_timer_.Stop();
   DCHECK(passkey_write_response_callback_);
   std::move(passkey_write_response_callback_)("", failure);
+}
+
+void FastPairGattServiceClientImpl::NotifyWriteAccountKeyError(
+    PairFailure failure) {
+  NEARBY_LOGS(VERBOSE) << __func__;
+  account_key_write_request_timer_.Stop();
+  DCHECK(account_key_write_callback_);
+  std::move(account_key_write_callback_)(std::nullopt, failure);
 }
 
 void FastPairGattServiceClientImpl::ClearCurrentState() {
   gatt_client_.reset();
   key_based_characteristic_ = std::nullopt;
   passkey_characteristic_ = std::nullopt;
+  account_key_characteristic_ = std::nullopt;
   gatt_service_discovery_timer_.Stop();
   passkey_subscription_timer_.Stop();
   key_based_subscription_timer_.Stop();
   passkey_write_request_timer_.Stop();
   key_based_write_request_timer_.Stop();
+  account_key_write_request_timer_.Stop();
 }
 
 }  // namespace fastpair

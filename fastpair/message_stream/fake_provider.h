@@ -58,6 +58,8 @@ class FakeProvider {
       0xFE2C123483664814, 0x8EB001DE32100BEA};
   static constexpr inline Uuid kPasskeyCharacteristicUuidV2{0xFE2C123583664814,
                                                             0x8EB001DE32100BEA};
+  static constexpr inline Uuid kAccountKeyCharacteristicUuidV2{
+      0xFE2C123683664814, 0x8EB001DE32100BEA};
   static constexpr inline absl::string_view
       kKeyBasedCharacteristicAdvertisementByte = "keyBasedCharacte";
   static constexpr inline absl::string_view
@@ -156,6 +158,12 @@ class FakeProvider {
         properties_);
 
     CHECK(passkey_characteristic_.has_value());
+
+    accountkey_characteristic_ = gatt_server_->CreateCharacteristic(
+        kFastPairServiceUuid, kAccountKeyCharacteristicUuidV2, permissions_,
+        properties_);
+
+    CHECK(accountkey_characteristic_.has_value());
   }
 
   void LoadAntiSpoofingKey(absl::string_view private_key,
@@ -167,6 +175,7 @@ class FakeProvider {
   absl::Status NotifyKeyBasedPairing(ByteArray response);
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
+  std::optional<GattCharacteristic> accountkey_characteristic_;
 
  private:
   std::string GenSec256r1Secret(absl::string_view remote_party_public_key);

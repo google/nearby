@@ -21,47 +21,49 @@ namespace fastpair {
 namespace {
 
 TEST(PairFailureTest, PairFailureValue) {
-  EXPECT_EQ(static_cast<int>(PairFailure::kCreateGattConnection), 0);
-  EXPECT_EQ(static_cast<int>(PairFailure::kGattServiceDiscovery), 1);
-  EXPECT_EQ(static_cast<int>(PairFailure::kGattServiceDiscoveryTimeout), 2);
-  EXPECT_EQ(static_cast<int>(PairFailure::kDataEncryptorRetrieval), 3);
+  EXPECT_EQ(static_cast<int>(PairFailure::kUnknown), 0);
+  EXPECT_EQ(static_cast<int>(PairFailure::kCreateGattConnection), 1);
+  EXPECT_EQ(static_cast<int>(PairFailure::kGattServiceDiscovery), 2);
+  EXPECT_EQ(static_cast<int>(PairFailure::kGattServiceDiscoveryTimeout), 3);
+  EXPECT_EQ(static_cast<int>(PairFailure::kDataEncryptorRetrieval), 4);
   EXPECT_EQ(
       static_cast<int>(PairFailure::kKeyBasedPairingCharacteristicDiscovery),
-      4);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyCharacteristicDiscovery), 5);
+      5);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyCharacteristicDiscovery), 6);
   EXPECT_EQ(static_cast<int>(PairFailure::kAccountKeyCharacteristicDiscovery),
-            6);
+            7);
   EXPECT_EQ(
       static_cast<int>(PairFailure::kKeyBasedPairingCharacteristicSubscription),
-      7);
+      8);
   EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyCharacteristicSubscription),
-            8);
+            9);
   EXPECT_EQ(static_cast<int>(
                 PairFailure::kKeyBasedPairingCharacteristicSubscriptionTimeout),
-            9);
+            10);
   EXPECT_EQ(
       static_cast<int>(PairFailure::kPasskeyCharacteristicSubscriptionTimeout),
-      10);
+      11);
   EXPECT_EQ(static_cast<int>(PairFailure::kKeyBasedPairingCharacteristicWrite),
-            11);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyPairingCharacteristicWrite),
             12);
-  EXPECT_EQ(static_cast<int>(PairFailure::kKeyBasedPairingResponseTimeout), 13);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyResponseTimeout), 14);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyPairingCharacteristicWrite),
+            13);
+  EXPECT_EQ(static_cast<int>(PairFailure::kAccountKeyCharacteristicWrite), 14);
+  EXPECT_EQ(static_cast<int>(PairFailure::kKeyBasedPairingResponseTimeout), 15);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyResponseTimeout), 16);
   EXPECT_EQ(
       static_cast<int>(PairFailure::kKeybasedPairingResponseDecryptFailure),
-      15);
+      17);
   EXPECT_EQ(
-      static_cast<int>(PairFailure::kIncorrectKeyBasedPairingResponseType), 16);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyDecryptFailure), 17);
-  EXPECT_EQ(static_cast<int>(PairFailure::kIncorrectPasskeyResponseType), 18);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyMismatch), 19);
+      static_cast<int>(PairFailure::kIncorrectKeyBasedPairingResponseType), 18);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyDecryptFailure), 19);
+  EXPECT_EQ(static_cast<int>(PairFailure::kIncorrectPasskeyResponseType), 20);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPasskeyMismatch), 21);
   EXPECT_EQ(static_cast<int>(
                 PairFailure::kPairingDeviceLostBetweenGattConnectionAttempts),
-            20);
-  EXPECT_EQ(static_cast<int>(PairFailure::kDeviceLostMidPairing), 21);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPairingAndConnect), 22);
-  EXPECT_EQ(static_cast<int>(PairFailure::kPairingTimeout), 23);
+            22);
+  EXPECT_EQ(static_cast<int>(PairFailure::kDeviceLostMidPairing), 23);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPairingAndConnect), 24);
+  EXPECT_EQ(static_cast<int>(PairFailure::kPairingTimeout), 25);
 }
 }  // namespace
 }  // namespace fastpair

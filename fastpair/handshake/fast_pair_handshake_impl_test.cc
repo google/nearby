@@ -61,12 +61,17 @@ constexpr Uuid kKeyBasedCharacteristicUuidV2(0xFE2C123483664814,
                                              0x8EB001DE32100BEA);
 constexpr Uuid kPasskeyCharacteristicUuidV2(0xFE2C123583664814,
                                             0x8EB001DE32100BEA);
+constexpr Uuid kAccountKeyCharacteristicUuidV2(0xFE2C123683664814,
+                                               0x8EB001DE32100BEA);
 // Length of advertisement byte should be 16
 constexpr absl::string_view kKeyBasedCharacteristicAdvertisementByte =
     "keyBasedCharacte";
 constexpr absl::string_view kPasskeyharacteristicAdvertisementByte =
     "passkeyCharacter";
+constexpr absl::string_view kAccountKeyCharacteristicAdvertisementByte =
+    "accountKeyCharac";
 constexpr absl::Duration kGattOperationTimeout = absl::Seconds(15);
+constexpr absl::Duration kWaitTimeout = absl::Milliseconds(200);
 }  // namespace
 
 class MediumEnvironmentStarter {
@@ -100,19 +105,6 @@ class FastPairHandshakeImplTest : public testing::Test {
       absl::AnyInvocable<void()> trigger_keybase_value_change) {
     gatt_server_ =
         provider_ble_.StartGattServer(/*ServerGattConnectionCallback=*/{
-            .on_characteristic_read_cb =
-                [&](const api::ble_v2::BlePeripheral& remote_device,
-                    const api::ble_v2::GattCharacteristic& characteristic,
-                    int offset,
-                    BleV2Medium::ServerGattConnectionCallback::ReadValueCallback
-                        callback) {
-                  auto it = characteristics_.find(characteristic);
-                  if (it == characteristics_.end()) {
-                    callback(absl::NotFoundError("characteristic not found"));
-                    return;
-                  }
-                  callback(it->second.read_value);
-                },
             .on_characteristic_write_cb =
                 [&, trigger_keybase_value_change =
                         std::move(trigger_keybase_value_change)](
@@ -148,6 +140,12 @@ class FastPairHandshakeImplTest : public testing::Test {
         properties_);
     characteristics_[*passkey_characteristic_].read_value =
         kPasskeyharacteristicAdvertisementByte;
+
+    accountkey_characteristic_ = gatt_server_->CreateCharacteristic(
+        kFastPairServiceUuid, kAccountKeyCharacteristicUuidV2, permissions_,
+        properties_);
+    characteristics_[*accountkey_characteristic_].read_value =
+        kAccountKeyCharacteristicAdvertisementByte;
   }
 
   void SetUpFastPairRepository() {
@@ -204,6 +202,7 @@ class FastPairHandshakeImplTest : public testing::Test {
   std::unique_ptr<GattServer> gatt_server_;
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
+  std::optional<GattCharacteristic> accountkey_characteristic_;
   std::unique_ptr<FakeFastPairRepository> repository_;
   Property properties_ = Property::kWrite | Property::kNotify;
   Permission permissions_ = Permission::kWrite;
