@@ -30,6 +30,33 @@ cc_library(
 )
 
 cc_library(
+    name = "device_repository",
+    srcs = [
+        "fast_pair_device_repository.cc",
+    ],
+    hdrs = [
+        "fast_pair_device_repository.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//fastpair:__subpackages__"],
+    deps = ["//fastpair/common"],
+)
+
+cc_test(
+    name = "device_repository_test",
+    srcs = [
+        "fast_pair_device_repository_test.cc",
+    ],
+    deps = [
+        ":device_repository",
+        "//fastpair/common",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "fake_fast_pair_metadata_repository",
     hdrs = ["fake_fast_pair_metadata_repository.h"],
     copts = [
@@ -38,10 +65,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":repository",
-        "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -60,7 +84,7 @@ cc_test(
         "//fastpair/internal/test:nearby_fastpair_test",
         "//fastpair/proto:fastpair_cc_proto",
         "//internal/network:types",
-        "//internal/platform/implementation/g3",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status:statusor",

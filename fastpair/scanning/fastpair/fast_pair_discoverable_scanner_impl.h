@@ -23,6 +23,7 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/device_metadata.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
@@ -39,7 +40,8 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
    public:
     static std::unique_ptr<FastPairDiscoverableScanner> Create(
         FastPairScanner& scanner, DeviceCallback found_callback,
-        DeviceCallback lost_callback);
+        DeviceCallback lost_callback,
+        FastPairDeviceRepository* device_repository);
 
     static void SetFactoryForTesting(Factory* g_test_factory);
 
@@ -47,7 +49,8 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
     virtual ~Factory();
     virtual std::unique_ptr<FastPairDiscoverableScanner> CreateInstance(
         FastPairScanner& scanner, DeviceCallback found_callback,
-        DeviceCallback lost_callback) = 0;
+        DeviceCallback lost_callback,
+        FastPairDeviceRepository* device_repository) = 0;
 
    private:
     static Factory* g_test_factory_;
@@ -55,7 +58,8 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
 
   FastPairDiscoverableScannerImpl(FastPairScanner& scanner,
                                   DeviceCallback found_callback,
-                                  DeviceCallback lost_callback);
+                                  DeviceCallback lost_callback,
+                                  FastPairDeviceRepository* device_repository);
   FastPairDiscoverableScannerImpl(const FastPairDiscoverableScannerImpl&) =
       delete;
   FastPairDiscoverableScannerImpl& operator=(
@@ -78,8 +82,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
   FastPairScanner& scanner_;
   DeviceCallback found_callback_;
   DeviceCallback lost_callback_;
-  absl::flat_hash_map<std::string, std::unique_ptr<FastPairDevice>>
-      notified_devices_ ABSL_GUARDED_BY(mutex_);
+  FastPairDeviceRepository* device_repository_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, int> model_id_parse_attempts_
       ABSL_GUARDED_BY(mutex_);
   ObserverList<FastPairScanner::Observer> observer_list_;

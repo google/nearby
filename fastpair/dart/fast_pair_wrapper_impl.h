@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "fastpair/dart/fast_pair_wrapper.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker.h"
 
 namespace nearby {
@@ -38,6 +39,7 @@ class FastPairWrapperImpl : public FastPairWrapper {
 
  private:
   std::unique_ptr<ScannerBroker> scanner_broker_;
+  FastPairDeviceRepository devices_;
 
   // True if we are currently scanning for remote devices.
   bool is_scanning_ = false;

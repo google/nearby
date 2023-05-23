@@ -30,9 +30,9 @@ cc_library(
     ],
     deps = [
         "//fastpair/common",
+        "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//internal/platform:logging",
-        "//internal/platform/implementation:types",
     ],
 )
 

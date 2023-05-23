@@ -66,16 +66,18 @@ FastPairDiscoverableScannerImpl::Factory*
     FastPairDiscoverableScannerImpl::Factory::g_test_factory_ = nullptr;
 
 std::unique_ptr<FastPairDiscoverableScanner>
-FastPairDiscoverableScannerImpl::Factory::Create(FastPairScanner& scanner,
-                                                 DeviceCallback found_callback,
-                                                 DeviceCallback lost_callback) {
+FastPairDiscoverableScannerImpl::Factory::Create(
+    FastPairScanner& scanner, DeviceCallback found_callback,
+    DeviceCallback lost_callback, FastPairDeviceRepository* device_repository) {
   if (g_test_factory_) {
     return g_test_factory_->CreateInstance(scanner, std::move(found_callback),
-                                           std::move(lost_callback));
+                                           std::move(lost_callback),
+                                           device_repository);
   }
 
   return std::make_unique<FastPairDiscoverableScannerImpl>(
-      scanner, std::move(found_callback), std::move(lost_callback));
+      scanner, std::move(found_callback), std::move(lost_callback),
+      device_repository);
 }
 
 void FastPairDiscoverableScannerImpl::Factory::SetFactoryForTesting(
@@ -88,10 +90,11 @@ FastPairDiscoverableScannerImpl::Factory::~Factory() = default;
 // FastPairScannerImpl
 FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
     FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback)
+    DeviceCallback lost_callback, FastPairDeviceRepository* device_repository)
     : scanner_(scanner),
       found_callback_(std::move(found_callback)),
-      lost_callback_(std::move(lost_callback)) {
+      lost_callback_(std::move(lost_callback)),
+      device_repository_(device_repository) {
   scanner_.AddObserver(this);
 }
 
@@ -183,10 +186,10 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
     return;
   }
   MutexLock lock(&mutex_);
-  notified_devices_.insert_or_assign(
-      address, std::make_unique<FastPairDevice>(
-                   model_id, address, Protocol::kFastPairInitialPairing));
-  NotifyDeviceFound(*notified_devices_[address]);
+  FastPairDevice* device =
+      device_repository_->AddDevice(std::make_unique<FastPairDevice>(
+          model_id, address, Protocol::kFastPairInitialPairing));
+  NotifyDeviceFound(*device);
 }
 
 void FastPairDiscoverableScannerImpl::NotifyDeviceFound(
@@ -203,12 +206,13 @@ void FastPairDiscoverableScannerImpl::OnDeviceLost(
   MutexLock lock(&mutex_);
   model_id_parse_attempts_.erase(peripheral.GetName());
 
-  auto it = notified_devices_.find(peripheral.GetName());
+  auto opt_device = device_repository_->FindDevice(peripheral.GetName());
 
   // Don't invoke callback if we didn't notify this device.
-  if (it == notified_devices_.end()) return;
-  lost_callback_(*it->second);
-  notified_devices_.erase(it);
+  if (!opt_device.has_value()) return;
+  FastPairDevice* device = opt_device.value();
+  lost_callback_(*device);
+  device_repository_->RemoveDevice(device);
 }
 
 }  // namespace fastpair

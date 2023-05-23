@@ -19,6 +19,7 @@
 
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/internal/mediums/mediums.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "fastpair/scanning/scanner_broker.h"
@@ -30,7 +31,8 @@ namespace fastpair {
 
 class ScannerBrokerImpl : public ScannerBroker {
  public:
-  explicit ScannerBrokerImpl(Mediums& mediums);
+  ScannerBrokerImpl(Mediums& mediums,
+                    FastPairDeviceRepository* device_repository);
   ~ScannerBrokerImpl() override = default;
 
   // ScannerBroker:
@@ -50,6 +52,7 @@ class ScannerBrokerImpl : public ScannerBroker {
   std::unique_ptr<FastPairScanner> scanner_;
   std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_;
   ObserverList<Observer> observers_;
+  FastPairDeviceRepository* device_repository_;
 };
 
 }  // namespace fastpair

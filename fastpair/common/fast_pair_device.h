@@ -45,8 +45,9 @@ class FastPairDevice {
       : model_id_(model_id), ble_address_(ble_address), protocol_(protocol) {}
 
   FastPairDevice(const FastPairDevice&) = delete;
+  FastPairDevice(FastPairDevice&&) = default;
   FastPairDevice& operator=(const FastPairDevice&) = delete;
-  FastPairDevice& operator=(FastPairDevice&&) = delete;
+  FastPairDevice& operator=(FastPairDevice&&) = default;
   ~FastPairDevice() = default;
 
   std::optional<std::string> GetPublicAddress() const {
@@ -86,6 +87,13 @@ class FastPairDevice {
   absl::string_view GetBleAddress() const { return ble_address_; }
 
   Protocol GetProtocol() const { return protocol_; }
+
+  const std::string& GetUniqueId() const {
+    if (public_address_.has_value()) {
+      return *public_address_;
+    }
+    return ble_address_;
+  }
 
  private:
   std::string model_id_;

@@ -25,7 +25,9 @@
 
 namespace nearby {
 namespace fastpair {
-ScannerBrokerImpl::ScannerBrokerImpl(Mediums& mediums) : mediums_(mediums) {
+ScannerBrokerImpl::ScannerBrokerImpl(
+    Mediums& mediums, FastPairDeviceRepository* device_repository)
+    : mediums_(mediums), device_repository_(device_repository) {
   task_runner_ = std::make_unique<TaskRunnerImpl>(1);
 }
 
@@ -55,7 +57,8 @@ void ScannerBrokerImpl::StartFastPairScanning() {
       FastPairDiscoverableScannerImpl::Factory::Create(
           *scanner_,
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceFound, this),
-          absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this));
+          absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this),
+          device_repository_);
   scanner_->StartScanning();
 }
 
