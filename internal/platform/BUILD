@@ -215,6 +215,7 @@ cc_library(
     hdrs = [
         "medium_environment.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",

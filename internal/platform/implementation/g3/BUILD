@@ -36,6 +36,7 @@ cc_library(
         "single_thread_executor.h",
         "timer.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//internal/test:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
@@ -90,6 +91,7 @@ cc_library(
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:private"],
     deps = [
         ":types",
@@ -121,6 +123,7 @@ cc_library(
     srcs = [
         "crypto.cc",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
@@ -137,6 +140,7 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
@@ -174,6 +178,7 @@ cc_library(
     name = "preferences_repository",
     srcs = ["preferences_repository.cc"],
     hdrs = ["preferences_repository.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
