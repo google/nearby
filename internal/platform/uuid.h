@@ -57,6 +57,7 @@ class Uuid final {
   std::uint64_t GetMostSigBits() const { return most_sig_bits_; }
   std::uint64_t GetLeastSigBits() const { return least_sig_bits_; }
 
+  bool operator<(const Uuid &rhs) const;
   // Hashable
   bool operator==(const Uuid &rhs) const;
   bool operator!=(const Uuid &rhs) const;
@@ -69,7 +70,7 @@ class Uuid final {
   bool IsEmpty() const { return most_sig_bits_ == 0 && least_sig_bits_ == 0; }
 
  private:
-  std::string ToCanonicalString(const std::array<char, 16>& data) const;
+  std::string ToCanonicalString(const std::array<char, 16> &data) const;
 
   std::uint64_t most_sig_bits_{0};
   std::uint64_t least_sig_bits_{0};

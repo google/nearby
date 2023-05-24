@@ -100,10 +100,18 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       winrt::Windows::Devices::Bluetooth::Advertisement::
           BluetoothLEAdvertisementReceivedEventArgs args);
 
+  void AdvertisementFoundHandler(
+      winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementWatcher watcher,
+      winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementReceivedEventArgs args);
+
   void WatcherHandler(winrt::Windows::Devices::Bluetooth::Advertisement::
                           BluetoothLEAdvertisementWatcher watcher,
                       winrt::Windows::Devices::Bluetooth::Advertisement::
                           BluetoothLEAdvertisementWatcherStoppedEventArgs args);
+
+  uint64_t GenerateSessionId();
 
   BluetoothAdapter* adapter_;
   Uuid service_uuid_;
@@ -115,6 +123,14 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   absl::Mutex peripheral_map_mutex_;
   absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
       peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
+
+  absl::Mutex map_mutex_;
+  // std::map<std::string, std::unique_ptr<BleV2Peripheral>>
+  absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
+      address_to_peripheral_map_ ABSL_GUARDED_BY(map_mutex_);
+  // std::map<Uuid, std::map<uint64_t, ScanningCallback>>
+  absl::flat_hash_map<Uuid, absl::flat_hash_map<uint64_t, ScanningCallback>>
+      service_uuid_to_session_map_ ABSL_GUARDED_BY(map_mutex_);
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::

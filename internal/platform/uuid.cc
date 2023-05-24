@@ -105,6 +105,12 @@ std::string Uuid::ToCanonicalString(const std::array<char, 16>& data) const {
   return md5_hex.str();
 }
 
+bool Uuid::operator<(const Uuid& rhs) const {
+  return GetMostSigBits() == rhs.GetMostSigBits()
+             ? GetLeastSigBits() < rhs.GetLeastSigBits()
+             : GetMostSigBits() < rhs.GetLeastSigBits();
+}
+
 bool Uuid::operator==(const Uuid& rhs) const {
   return GetMostSigBits() == rhs.GetMostSigBits() &&
          GetLeastSigBits() == rhs.GetLeastSigBits();
