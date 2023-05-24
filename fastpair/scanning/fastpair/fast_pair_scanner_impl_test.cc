@@ -62,6 +62,8 @@ class FastPairScannerObserver : public FastPairScanner::Observer {
 class FastPairScannerImplTest : public testing::Test {
  protected:
   MediumEnvironment& env_{MediumEnvironment::Instance()};
+
+  SingleThreadExecutor executor_;
 };
 
 TEST_F(FastPairScannerImplTest, StartScanning) {
@@ -69,7 +71,7 @@ TEST_F(FastPairScannerImplTest, StartScanning) {
 
   // Create Fast Pair Scanner and add its observer
   Mediums mediums_1;
-  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1);
+  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1, &executor_);
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
   FastPairScannerObserver observer(scanner.get(), &accept_latch, &lost_latch);

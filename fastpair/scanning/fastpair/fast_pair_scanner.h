@@ -31,6 +31,7 @@ class FastPairScanner {
    public:
     virtual ~Observer() = default;
 
+    // The callbacks are called on platform thread.
     virtual void OnDeviceFound(const BlePeripheral& peripheral) = 0;
     virtual void OnDeviceLost(const BlePeripheral& peripheral) = 0;
   };

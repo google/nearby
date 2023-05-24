@@ -24,14 +24,14 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "fastpair/scanning/scanner_broker.h"
 #include "internal/base/observer_list.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
 
 class ScannerBrokerImpl : public ScannerBroker {
  public:
-  ScannerBrokerImpl(Mediums& mediums,
+  ScannerBrokerImpl(Mediums& mediums, SingleThreadExecutor* executor,
                     FastPairDeviceRepository* device_repository);
   ~ScannerBrokerImpl() override = default;
 
@@ -42,15 +42,16 @@ class ScannerBrokerImpl : public ScannerBroker {
   void StopScanning(Protocol protocol) override;
 
  private:
-  void StartFastPairScanning();
-  void StopFastPairScanning();
+  void StartFastPairScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void StopFastPairScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void NotifyDeviceFound(FastPairDevice& device);
   void NotifyDeviceLost(FastPairDevice& device);
 
   Mediums& mediums_;
-  std::unique_ptr<TaskRunner> task_runner_;
-  std::unique_ptr<FastPairScanner> scanner_;
-  std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_;
+  SingleThreadExecutor* executor_;
+  std::unique_ptr<FastPairScanner> scanner_ ABSL_GUARDED_BY(*executor_);
+  std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_
+      ABSL_GUARDED_BY(*executor_);
   ObserverList<Observer> observers_;
   FastPairDeviceRepository* device_repository_;
 };

@@ -33,7 +33,6 @@
 #include "fastpair/server_access/fast_pair_repository.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace fastpair {
@@ -68,15 +67,16 @@ FastPairDiscoverableScannerImpl::Factory*
 std::unique_ptr<FastPairDiscoverableScanner>
 FastPairDiscoverableScannerImpl::Factory::Create(
     FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback, FastPairDeviceRepository* device_repository) {
+    DeviceCallback lost_callback, SingleThreadExecutor* executor,
+    FastPairDeviceRepository* device_repository) {
   if (g_test_factory_) {
     return g_test_factory_->CreateInstance(scanner, std::move(found_callback),
-                                           std::move(lost_callback),
+                                           std::move(lost_callback), executor,
                                            device_repository);
   }
 
   return std::make_unique<FastPairDiscoverableScannerImpl>(
-      scanner, std::move(found_callback), std::move(lost_callback),
+      scanner, std::move(found_callback), std::move(lost_callback), executor,
       device_repository);
 }
 
@@ -90,10 +90,12 @@ FastPairDiscoverableScannerImpl::Factory::~Factory() = default;
 // FastPairScannerImpl
 FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
     FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback, FastPairDeviceRepository* device_repository)
+    DeviceCallback lost_callback, SingleThreadExecutor* executor,
+    FastPairDeviceRepository* device_repository)
     : scanner_(scanner),
       found_callback_(std::move(found_callback)),
       lost_callback_(std::move(lost_callback)),
+      executor_(executor),
       device_repository_(device_repository) {
   scanner_.AddObserver(this);
 }
@@ -107,39 +109,31 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
                          << ": Device doesn't have any Fast Pair Service Data.";
     return;
   }
-  {
-    MutexLock lock(&mutex_);
-    model_id_parse_attempts_[peripheral.GetName()] = 1;
-  }
-  NEARBY_LOGS(INFO) << __func__ << ": Attempting to get model ID";
-  std::vector<uint8_t> service_data;
-  std::move(std::begin(fast_pair_service_data),
-            std::end(fast_pair_service_data), std::back_inserter(service_data));
+  executor_->Execute(
+      "device-found",
+      [this, fast_pair_service_data = std::move(fast_pair_service_data),
+       address = peripheral.GetName()]()
+          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+            NEARBY_LOGS(INFO) << __func__ << ": Attempting to get model ID";
+            std::vector<uint8_t> service_data;
+            std::move(std::begin(fast_pair_service_data),
+                      std::end(fast_pair_service_data),
+                      std::back_inserter(service_data));
 
-  FastPairDataParser::GetHexModelIdFromServiceData(
-      service_data,
-      {[this, peripheral](std::optional<absl::string_view> model_id) {
-        OnModelIdRetrieved(peripheral.GetName(), model_id);
-      }});
+            // TODO(jsobczak): GetHexModelIdFromServiceData() callback is
+            // synchronous. It would be simpler if
+            // GetHexModelIdFromServiceData() used return value rather than a
+            // callback.
+            FastPairDataParser::GetHexModelIdFromServiceData(
+                service_data, {[&](std::optional<absl::string_view> model_id) {
+                  OnModelIdRetrieved(address, model_id);
+                }});
+          });
 }
 
 void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
     const std::string& address,
     const std::optional<absl::string_view> model_id) {
-  {
-    MutexLock lock(&mutex_);
-    auto it = model_id_parse_attempts_.find(address);
-
-    // If there's no entry in the map, the device was lost while parsing.
-    if (it == model_id_parse_attempts_.end()) {
-      NEARBY_LOGS(WARNING)
-          << __func__
-          << ": Returning early because device as lost while parsing.";
-      return;
-    }
-
-    model_id_parse_attempts_.erase(it);
-  }
   if (!model_id.has_value()) {
     NEARBY_LOGS(INFO) << __func__
                       << ": Returning early because no model id was parsed.";
@@ -164,7 +158,7 @@ void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
 }
 
 void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
-    const std::string& address, const std::string model_id,
+    const std::string address, const std::string model_id,
     DeviceMetadata& device_metadata) {
   DCHECK(&device_metadata);
   // Ignore advertisements that aren't for Fast Pair but leverage the service
@@ -185,11 +179,15 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
                             "Ignoring this advertisement";
     return;
   }
-  MutexLock lock(&mutex_);
-  FastPairDevice* device =
-      device_repository_->AddDevice(std::make_unique<FastPairDevice>(
-          model_id, address, Protocol::kFastPairInitialPairing));
-  NotifyDeviceFound(*device);
+  executor_->Execute(
+      "add-device",
+      [this, fast_pair_device = std::make_unique<FastPairDevice>(
+                 model_id, address, Protocol::kFastPairInitialPairing)]()
+          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+            FastPairDevice* device =
+                device_repository_->AddDevice(std::move(fast_pair_device));
+            NotifyDeviceFound(*device);
+          });
 }
 
 void FastPairDiscoverableScannerImpl::NotifyDeviceFound(
@@ -203,16 +201,19 @@ void FastPairDiscoverableScannerImpl::NotifyDeviceFound(
 void FastPairDiscoverableScannerImpl::OnDeviceLost(
     const BlePeripheral& peripheral) {
   NEARBY_LOGS(INFO) << __func__ << ": Running lost callback";
-  MutexLock lock(&mutex_);
-  model_id_parse_attempts_.erase(peripheral.GetName());
+  executor_->Execute("device-lost",
+                     [this, address = peripheral.GetName()]()
+                         ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                           auto opt_device =
+                               device_repository_->FindDevice(address);
 
-  auto opt_device = device_repository_->FindDevice(peripheral.GetName());
-
-  // Don't invoke callback if we didn't notify this device.
-  if (!opt_device.has_value()) return;
-  FastPairDevice* device = opt_device.value();
-  lost_callback_(*device);
-  device_repository_->RemoveDevice(device);
+                           // Don't invoke callback if we didn't notify this
+                           // device.
+                           if (!opt_device.has_value()) return;
+                           FastPairDevice* device = opt_device.value();
+                           lost_callback_(*device);
+                           device_repository_->RemoveDevice(device);
+                         });
 }
 
 }  // namespace fastpair

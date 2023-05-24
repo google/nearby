@@ -21,15 +21,15 @@
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner_impl.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/task_runner_impl.h"
 
 namespace nearby {
 namespace fastpair {
 ScannerBrokerImpl::ScannerBrokerImpl(
-    Mediums& mediums, FastPairDeviceRepository* device_repository)
-    : mediums_(mediums), device_repository_(device_repository) {
-  task_runner_ = std::make_unique<TaskRunnerImpl>(1);
-}
+    Mediums& mediums, SingleThreadExecutor* executor,
+    FastPairDeviceRepository* device_repository)
+    : mediums_(mediums),
+      executor_(executor),
+      device_repository_(device_repository) {}
 
 void ScannerBrokerImpl::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);
@@ -41,24 +41,28 @@ void ScannerBrokerImpl::RemoveObserver(Observer* observer) {
 
 void ScannerBrokerImpl::StartScanning(Protocol protocol) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": protocol=" << protocol;
-  task_runner_->PostTask([this]() { StartFastPairScanning(); });
+  executor_->Execute("start-scan",
+                     [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                       StartFastPairScanning();
+                     });
 }
 
 void ScannerBrokerImpl::StopScanning(Protocol protocol) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": protocol=" << protocol;
-  task_runner_->PostTask([this]() { StopFastPairScanning(); });
+  executor_->Execute("stop-scan", [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                                      *executor_) { StopFastPairScanning(); });
 }
 
 void ScannerBrokerImpl::StartFastPairScanning() {
   DCHECK(!fast_pair_discoverable_scanner_);
   NEARBY_LOGS(VERBOSE) << "Starting Fast Pair Scanning.";
-  scanner_ = std::make_unique<FastPairScannerImpl>(mediums_);
+  scanner_ = std::make_unique<FastPairScannerImpl>(mediums_, executor_);
   fast_pair_discoverable_scanner_ =
       FastPairDiscoverableScannerImpl::Factory::Create(
           *scanner_,
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceFound, this),
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this),
-          device_repository_);
+          executor_, device_repository_);
   scanner_->StartScanning();
 }
 

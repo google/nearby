@@ -23,14 +23,16 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/timer_impl.h"
 
 namespace nearby {
 namespace fastpair {
 
 class FastPairScannerImpl : public FastPairScanner {
  public:
-  explicit FastPairScannerImpl(Mediums& mediums);
+  explicit FastPairScannerImpl(Mediums& mediums,
+                               SingleThreadExecutor* executor);
   FastPairScannerImpl(const FastPairScannerImpl&) = delete;
   FastPairScannerImpl& operator=(const FastPairScannerImpl&) = delete;
   ~FastPairScannerImpl() override = default;
@@ -50,9 +52,14 @@ class FastPairScannerImpl : public FastPairScanner {
   void StartScanning() override;
 
  private:
-  void StopScanning();
+  void StartScanningInternal() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void StopScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void StartTimer(absl::Duration delay, absl::AnyInvocable<void()> callback)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
 
-  std::unique_ptr<TaskRunner> task_runner_;
+  Mediums& mediums_;
+  SingleThreadExecutor* executor_;
+  std::unique_ptr<TimerImpl> timer_ ABSL_GUARDED_BY(*executor_);
 
   // Map of a Bluetooth device address to a set of advertisement data we have
   // seen.
@@ -60,7 +67,6 @@ class FastPairScannerImpl : public FastPairScanner {
       device_address_advertisement_data_map_;
 
   BluetoothAdapter bluetooth_adapter_;
-  Mediums& mediums_;
   ObserverList<FastPairScanner::Observer> observer_;
 };
 

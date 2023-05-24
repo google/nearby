@@ -21,6 +21,7 @@
 #include "fastpair/dart/fast_pair_wrapper.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -38,8 +39,9 @@ class FastPairWrapperImpl : public FastPairWrapper {
   void StartScan() override;
 
  private:
-  std::unique_ptr<ScannerBroker> scanner_broker_;
+  SingleThreadExecutor executor_;
   FastPairDeviceRepository devices_;
+  std::unique_ptr<ScannerBroker> scanner_broker_;
 
   // True if we are currently scanning for remote devices.
   bool is_scanning_ = false;

@@ -30,7 +30,8 @@ FastPairWrapperImpl::~FastPairWrapperImpl() = default;
 
 void FastPairWrapperImpl::StartScan() {
   Mediums mediums;
-  scanner_broker_ = std::make_unique<ScannerBrokerImpl>(mediums, &devices_);
+  scanner_broker_ =
+      std::make_unique<ScannerBrokerImpl>(mediums, &executor_, &devices_);
   if (is_scanning_) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": We're currently scanning. ";
     return;

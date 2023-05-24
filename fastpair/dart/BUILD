@@ -33,6 +33,7 @@ cc_library(
         "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//internal/platform:logging",
+        "//internal/platform:types",
     ],
 )
 

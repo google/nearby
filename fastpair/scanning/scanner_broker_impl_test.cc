@@ -74,6 +74,7 @@ TEST_F(ScannerBrokerImplTest, CanStartScanning) {
   // Setup FakeFastPairRepository
   std::string decoded_key;
   absl::Base64Unescape(kPublicAntiSpoof, &decoded_key);
+  SingleThreadExecutor executor;
   FastPairDeviceRepository devices;
   proto::Device metadata;
   auto repository_ = std::make_unique<FakeFastPairRepository>();
@@ -83,7 +84,7 @@ TEST_F(ScannerBrokerImplTest, CanStartScanning) {
   // Create Fast Pair Scanner and add its observer
   Mediums mediums_1;
   auto scanner_broker =
-      std::make_unique<ScannerBrokerImpl>(mediums_1, &devices);
+      std::make_unique<ScannerBrokerImpl>(mediums_1, &executor, &devices);
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
   ScannerBrokerObserver observer(scanner_broker.get(), &accept_latch,
