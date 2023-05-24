@@ -23,57 +23,60 @@ namespace fastpair {
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused.
 enum class PairFailure {
+  kUnknown = 0,
   // Failed to create a GATT connection to the device.
-  kCreateGattConnection = 0,
+  kCreateGattConnection = 1,
   // Failed to find the expected GATT service.
-  kGattServiceDiscovery = 1,
+  kGattServiceDiscovery = 2,
   // Timed out while starting discovery of GATT service.
-  kGattServiceDiscoveryTimeout = 2,
+  kGattServiceDiscoveryTimeout = 3,
   // Failed to retrieve the data encryptor.
-  kDataEncryptorRetrieval = 3,
+  kDataEncryptorRetrieval = 4,
   // Failed to find the Key-based pairing GATT characteristic.
-  kKeyBasedPairingCharacteristicDiscovery = 4,
+  kKeyBasedPairingCharacteristicDiscovery = 5,
   // Failed to find the Passkey GATT characteristic.
-  kPasskeyCharacteristicDiscovery = 5,
+  kPasskeyCharacteristicDiscovery = 6,
   // Failed to find the Account Key GATT characteristic.
-  kAccountKeyCharacteristicDiscovery = 6,
+  kAccountKeyCharacteristicDiscovery = 7,
   // Failed to subscribe the notification on the Key-based pairing GATT
   // characteristic.
-  kKeyBasedPairingCharacteristicSubscription = 7,
+  kKeyBasedPairingCharacteristicSubscription = 8,
   // Failed to start a notify session on the Passkey GATT characteristic.
-  kPasskeyCharacteristicSubscription = 8,
+  kPasskeyCharacteristicSubscription = 9,
   // Timed out while waiting to start a notify session on the Key-based pairing
   // GATT characteristic.
-  kKeyBasedPairingCharacteristicSubscriptionTimeout = 9,
+  kKeyBasedPairingCharacteristicSubscriptionTimeout = 10,
   // / Timed out while waiting to start a notify session on the Passkey GATT
   // characteristic.
-  kPasskeyCharacteristicSubscriptionTimeout = 10,
+  kPasskeyCharacteristicSubscriptionTimeout = 11,
   // Failed to write to the Key-based pairing GATT characteristic.
-  kKeyBasedPairingCharacteristicWrite = 11,
+  kKeyBasedPairingCharacteristicWrite = 12,
   // Failed to write to the Passkey GATT characteristic.
-  kPasskeyPairingCharacteristicWrite = 12,
+  kPasskeyPairingCharacteristicWrite = 13,
+  // Failed to write to the AccountKey GATT characteristic.
+  kAccountKeyCharacteristicWrite = 14,
   // Timed out while waiting for the Key-based Pairing response.
-  kKeyBasedPairingResponseTimeout = 13,
+  kKeyBasedPairingResponseTimeout = 15,
   // Timed out while waiting for the Passkey response.
-  kPasskeyResponseTimeout = 14,
+  kPasskeyResponseTimeout = 16,
   // Failed to decrypt Key-based response message.
-  kKeybasedPairingResponseDecryptFailure = 15,
+  kKeybasedPairingResponseDecryptFailure = 17,
   // Incorrect Key-based response message type.
-  kIncorrectKeyBasedPairingResponseType = 16,
+  kIncorrectKeyBasedPairingResponseType = 18,
   // Failed to decrypt Passkey response message.
-  kPasskeyDecryptFailure = 17,
+  kPasskeyDecryptFailure = 19,
   // Incorrect Passkey response message type.
-  kIncorrectPasskeyResponseType = 18,
+  kIncorrectPasskeyResponseType = 20,
   // Passkeys did not match.
-  kPasskeyMismatch = 19,
+  kPasskeyMismatch = 21,
   // Potential pairing device lost between GATT connection attempts.
-  kPairingDeviceLostBetweenGattConnectionAttempts = 20,
+  kPairingDeviceLostBetweenGattConnectionAttempts = 22,
   // Potential pairing device lost during pairing.
-  kDeviceLostMidPairing = 21,
+  kDeviceLostMidPairing = 23,
   // Failed to pair and connect with discovered device.
-  kPairingAndConnect = 22,
+  kPairingAndConnect = 24,
   // Potential pairing timeout.
-  kPairingTimeout = 23,
+  kPairingTimeout = 25,
   kMaxValue = kPairingTimeout,
 };
 

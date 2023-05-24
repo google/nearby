@@ -74,6 +74,10 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
       const FastPairDataEncryptor& fast_pair_data_encryptor,
       WriteResponseCallback write_response_callback) override;
 
+  void WriteAccountKey(
+      const FastPairDataEncryptor& fast_pair_data_encryptor,
+      WriteAccountkeyCallback write_accountkey_callback) override;
+
  private:
   // Attempt to create a GATT connection with the device. This method may be
   // called multiple times.
@@ -107,6 +111,10 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   void OnCharacteristicValueChanged(const GattCharacteristic& characteristic,
                                     absl::string_view value);
 
+  // Operations on Account Key Characteristic
+  // Creates an Account key.
+  std::array<uint8_t, kAesBlockByteSize> CreateAccountKeyBlock();
+
   // Invokes the initialized callback with the proper PairFailure and clears
   // local state.
   void NotifyInitializedError(PairFailure failure);
@@ -114,6 +122,7 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   // write error.
   void NotifyWriteRequestError(PairFailure failure);
   void NotifyWritePasskeyError(PairFailure failure);
+  void NotifyWriteAccountKeyError(PairFailure failure);
 
   void ClearCurrentState();
 
@@ -123,6 +132,7 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   TimerImpl passkey_subscription_timer_;
   TimerImpl key_based_write_request_timer_;
   TimerImpl passkey_write_request_timer_;
+  TimerImpl account_key_write_request_timer_;
 
   void OnGattServiceDiscoveryTimeout();
 
@@ -131,10 +141,12 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
       on_gatt_initialized_callback_;
   WriteResponseCallback key_based_write_response_callback_;
   WriteResponseCallback passkey_write_response_callback_;
+  WriteAccountkeyCallback account_key_write_callback_;
 
   // Fast Pair Characteristic
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
+  std::optional<GattCharacteristic> account_key_characteristic_;
 
   bool is_key_based_notification_subscribed_ = false;
   bool is_passkey_notification_subscribed_ = false;

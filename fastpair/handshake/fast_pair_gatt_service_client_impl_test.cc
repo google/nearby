@@ -20,6 +20,8 @@
 #include <optional>
 #include <string>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
@@ -55,6 +57,8 @@ constexpr Uuid kKeyBasedCharacteristicUuidV2(0xFE2C123483664814,
                                              0x8EB001DE32100BEA);
 constexpr Uuid kPasskeyCharacteristicUuidV2(0xFE2C123583664814,
                                             0x8EB001DE32100BEA);
+constexpr Uuid kAccountKeyCharacteristicUuidV2(0xFE2C123683664814,
+                                               0x8EB001DE32100BEA);
 // Length of advertisement byte should be 16
 constexpr absl::string_view kKeyBasedCharacteristicAdvertisementByte =
     "keyBasedCharacte";
@@ -84,13 +88,8 @@ class MediumEnvironmentStarter {
 };
 
 struct CharacteristicData {
-  // Value written to the characteristic by the gatt client
-  Future<std::string> write_value;
   // Write result returned to the gatt client.
-  absl::Status write_result = absl::OkStatus();
-  // Value returned to the gatt client when they try to read the characteristic
-  absl::StatusOr<std::string> read_value =
-      absl::FailedPreconditionError("characteristic not set");
+  absl::Status write_result;
 };
 
 class FastPairGattServiceClientTest : public testing::Test {
@@ -103,19 +102,6 @@ class FastPairGattServiceClientTest : public testing::Test {
   void SetUp() override {
     gatt_server_ =
         provider_ble_.StartGattServer(/*ServerGattConnectionCallback=*/{
-            .on_characteristic_read_cb =
-                [&](const api::ble_v2::BlePeripheral& remote_device,
-                    const api::ble_v2::GattCharacteristic& characteristic,
-                    int offset,
-                    BleV2Medium::ServerGattConnectionCallback::ReadValueCallback
-                        callback) {
-                  auto it = characteristics_.find(characteristic);
-                  if (it == characteristics_.end()) {
-                    callback(absl::NotFoundError("characteristic not found"));
-                    return;
-                  }
-                  callback(it->second.read_value);
-                },
             .on_characteristic_write_cb =
                 [&](const api::ble_v2::BlePeripheral& remote_device,
                     const api::ble_v2::GattCharacteristic& characteristic,
@@ -127,7 +113,6 @@ class FastPairGattServiceClientTest : public testing::Test {
                     callback(absl::NotFoundError("characteristic not found"));
                     return;
                   }
-                  it->second.write_value.Set(std::string(data));
                   callback(it->second.write_result);
                 }});
     provider_address_ = *gatt_server_->GetBlePeripheral().GetAddress();
@@ -136,6 +121,8 @@ class FastPairGattServiceClientTest : public testing::Test {
   void TearDown() override {
     key_based_characteristic_ = std::nullopt;
     passkey_characteristic_ = std::nullopt;
+    accountkey_characteristic_ = std::nullopt;
+    characteristics_.clear();
     initalized_failure_ = std::nullopt;
     write_failure_ = std::nullopt;
     gatt_client_.reset();
@@ -147,30 +134,38 @@ class FastPairGattServiceClientTest : public testing::Test {
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
         properties_);
-    characteristics_[*key_based_characteristic_].read_value =
-        kKeyBasedCharacteristicAdvertisementByte;
+    characteristics_[*key_based_characteristic_].write_result =
+        absl::OkStatus();
 
     passkey_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
         properties_);
-    characteristics_[*passkey_characteristic_].read_value =
-        kPasskeyharacteristicAdvertisementByte;
+    characteristics_[*passkey_characteristic_].write_result = absl::OkStatus();
+
+    accountkey_characteristic_ = gatt_server_->CreateCharacteristic(
+        kFastPairServiceUuid, kAccountKeyCharacteristicUuidV2, permissions_,
+        properties_);
+    characteristics_[*accountkey_characteristic_].write_result =
+        absl::OkStatus();
   }
 
   void InsertCharacteristicsWithWrongServiceId() {
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kWrongServiceId, kKeyBasedCharacteristicUuidV2, permissions_,
         properties_);
-    gatt_server_->UpdateCharacteristic(
-        key_based_characteristic_.value(),
-        ByteArray(std::string(kKeyBasedCharacteristicAdvertisementByte)));
+    characteristics_[*key_based_characteristic_].write_result =
+        absl::OkStatus();
 
     passkey_characteristic_ = gatt_server_->CreateCharacteristic(
         kWrongServiceId, kPasskeyCharacteristicUuidV2, permissions_,
         properties_);
-    gatt_server_->UpdateCharacteristic(
-        passkey_characteristic_.value(),
-        ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
+    characteristics_[*passkey_characteristic_].write_result = absl::OkStatus();
+
+    accountkey_characteristic_ = gatt_server_->CreateCharacteristic(
+        kWrongServiceId, kAccountKeyCharacteristicUuidV2, permissions_,
+        properties_);
+    characteristics_[*accountkey_characteristic_].write_result =
+        absl::OkStatus();
   }
 
   void InitializeFastPairGattServiceClient() {
@@ -189,8 +184,7 @@ class FastPairGattServiceClientTest : public testing::Test {
     return initalized_failure_;
   }
 
-  void WriteTestCallback(absl::string_view response,
-                         std::optional<PairFailure> failure) {
+  void WriteTestCallback(std::optional<PairFailure> failure) {
     write_failure_ = failure;
   }
 
@@ -201,16 +195,27 @@ class FastPairGattServiceClientTest : public testing::Test {
         kMessageType, kFlags, provider_address_, /* Seeker Address*/ "",
         *fast_pair_data_encryptor_,
         [&](absl::string_view response, std::optional<PairFailure> failure) {
-          WriteTestCallback(response, failure);
+          EXPECT_FALSE(response.empty());
+          WriteTestCallback(failure);
         });
   }
 
   void WriteRequestToPasskey() {
     gatt_client_->WritePasskeyAsync(
         kSeekerPasskey, kPasskey, *fast_pair_data_encryptor_,
-        [this](absl::string_view response, std::optional<PairFailure> failure) {
-          WriteTestCallback(response, failure);
+        [&](absl::string_view response, std::optional<PairFailure> failure) {
+          EXPECT_FALSE(response.empty());
+          WriteTestCallback(failure);
         });
+  }
+
+  void WriteRequestToAccountkey() {
+    gatt_client_->WriteAccountKey(*fast_pair_data_encryptor_,
+                                  [&](std::optional<AccountKey> account_key,
+                                      std::optional<PairFailure> failure) {
+                                    EXPECT_TRUE(account_key.has_value());
+                                    WriteTestCallback(failure);
+                                  });
   }
 
   absl::Status TriggerKeyBasedGattChanged() {
@@ -225,6 +230,21 @@ class FastPairGattServiceClientTest : public testing::Test {
         ByteArray(std::string(kPasskeyharacteristicAdvertisementByte)));
   }
 
+  void SetKeyBaseCharacteristicsWriteResultToFailure() {
+    auto it = characteristics_.find(*key_based_characteristic_);
+    it->second.write_result = absl::UnknownError("Failed to write account key");
+  }
+
+  void SetPasskeyCharacteristicsWriteResultToFailure() {
+    auto it = characteristics_.find(*passkey_characteristic_);
+    it->second.write_result = absl::UnknownError("Failed to write account key");
+  }
+
+  void SetAccountkeyCharacteristicsWriteResultToFailure() {
+    auto it = characteristics_.find(*accountkey_characteristic_);
+    it->second.write_result = absl::UnknownError("Failed to write account key");
+  }
+
  protected:
   MediumEnvironmentStarter env_;
   BluetoothAdapter provider_adapter_;
@@ -236,44 +256,112 @@ class FastPairGattServiceClientTest : public testing::Test {
   std::unique_ptr<FakeFastPairDataEncryptor> fast_pair_data_encryptor_;
 
  private:
-  std::optional<GattCharacteristic> key_based_characteristic_;
-  std::optional<GattCharacteristic> passkey_characteristic_;
-  std::optional<PairFailure> initalized_failure_;
-  std::optional<PairFailure> write_failure_;
-  absl::flat_hash_map<GattCharacteristic, CharacteristicData> characteristics_;
+  std::optional<PairFailure> initalized_failure_ = PairFailure::kUnknown;
+  std::optional<PairFailure> write_failure_ = PairFailure::kUnknown;
   Property properties_ = Property::kWrite | Property::kNotify;
   Permission permissions_ = Permission::kWrite;
+  std::optional<GattCharacteristic> key_based_characteristic_;
+  std::optional<GattCharacteristic> passkey_characteristic_;
+  std::optional<GattCharacteristic> accountkey_characteristic_;
+  absl::flat_hash_map<GattCharacteristic, CharacteristicData> characteristics_;
 };
 
 TEST_F(FastPairGattServiceClientTest, SuccessInitializeGattConnection) {
+  EXPECT_EQ(GetInitializedCallbackResult(), PairFailure::kUnknown);
   InsertCorrectGattCharacteristics();
   InitializeFastPairGattServiceClient();
   EXPECT_EQ(GetInitializedCallbackResult(), std::nullopt);
 }
 
 TEST_F(FastPairGattServiceClientTest, FailedDiscoverServiceAndCharacteristics) {
+  EXPECT_EQ(GetInitializedCallbackResult(), PairFailure::kUnknown);
   InsertCharacteristicsWithWrongServiceId();
   InitializeFastPairGattServiceClient();
   EXPECT_EQ(GetInitializedCallbackResult(), PairFailure::kCreateGattConnection);
 }
 
 TEST_F(FastPairGattServiceClientTest, SuccessfulWriteKeyBaseCharacteristics) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
   InsertCorrectGattCharacteristics();
   InitializeFastPairGattServiceClient();
   WriteRequestToKeyBased();
-  EXPECT_EQ(TriggerKeyBasedGattChanged(), absl::OkStatus());
+  EXPECT_OK(TriggerKeyBasedGattChanged());
   EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
 }
 
 TEST_F(FastPairGattServiceClientTest, SuccessfulWritePasskeyCharacteristics) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
   InsertCorrectGattCharacteristics();
   InitializeFastPairGattServiceClient();
   WriteRequestToPasskey();
-  EXPECT_EQ(TriggerPasskeyGattChanged(), absl::OkStatus());
+  EXPECT_OK(TriggerPasskeyGattChanged());
   EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
 }
 
+TEST_F(FastPairGattServiceClientTest,
+       SuccessfulWriteAccountKeyCharacteristics) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
+  InsertCorrectGattCharacteristics();
+  InitializeFastPairGattServiceClient();
+  WriteRequestToAccountkey();
+  EXPECT_EQ(GetWriteCallbackResult(), std::nullopt);
+}
+
+TEST_F(FastPairGattServiceClientTest, FailedToWriteKeyBaseCharacteristics) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
+  InsertCorrectGattCharacteristics();
+  InitializeFastPairGattServiceClient();
+  SetKeyBaseCharacteristicsWriteResultToFailure();
+  CountDownLatch latch(1);
+  gatt_client_->WriteRequestAsync(
+      kMessageType, kFlags, provider_address_, kSeekerAddress,
+      *fast_pair_data_encryptor_,
+      [&](absl::string_view response, std::optional<PairFailure> failure) {
+        WriteTestCallback(failure);
+        latch.CountDown();
+      });
+  latch.Await();
+  EXPECT_EQ(GetWriteCallbackResult(),
+            PairFailure::kKeyBasedPairingCharacteristicWrite);
+}
+
+TEST_F(FastPairGattServiceClientTest, FailedToWritePasskeyCharacteristics) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
+  InsertCorrectGattCharacteristics();
+  InitializeFastPairGattServiceClient();
+  SetPasskeyCharacteristicsWriteResultToFailure();
+  CountDownLatch latch(1);
+  gatt_client_->WritePasskeyAsync(
+      kSeekerPasskey, kPasskey, *fast_pair_data_encryptor_,
+      [&](absl::string_view response, std::optional<PairFailure> failure) {
+        WriteTestCallback(failure);
+        latch.CountDown();
+      });
+  latch.Await();
+  EXPECT_EQ(GetWriteCallbackResult(),
+            PairFailure::kPasskeyPairingCharacteristicWrite);
+}
+
+TEST_F(FastPairGattServiceClientTest, FailedToWriteAccountKey) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
+  InsertCorrectGattCharacteristics();
+  InitializeFastPairGattServiceClient();
+  SetAccountkeyCharacteristicsWriteResultToFailure();
+  CountDownLatch latch(1);
+  gatt_client_->WriteAccountKey(*fast_pair_data_encryptor_,
+                                [&](std::optional<AccountKey> account_key,
+                                    std::optional<PairFailure> failure) {
+                                  EXPECT_FALSE(account_key.has_value());
+                                  WriteTestCallback(failure);
+                                  latch.CountDown();
+                                });
+  latch.Await();
+  EXPECT_EQ(GetWriteCallbackResult(),
+            PairFailure::kAccountKeyCharacteristicWrite);
+}
+
 TEST_F(FastPairGattServiceClientTest, KeyBasedPairingResponseTimeout) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
   InsertCorrectGattCharacteristics();
   InitializeFastPairGattServiceClient();
   CountDownLatch latch(1);
@@ -281,7 +369,7 @@ TEST_F(FastPairGattServiceClientTest, KeyBasedPairingResponseTimeout) {
       kMessageType, kFlags, provider_address_, kSeekerAddress,
       *fast_pair_data_encryptor_,
       [&](absl::string_view response, std::optional<PairFailure> failure) {
-        WriteTestCallback(response, failure);
+        WriteTestCallback(failure);
         latch.CountDown();
       });
   SystemClock::Sleep(kGattOperationTimeout);
@@ -291,18 +379,20 @@ TEST_F(FastPairGattServiceClientTest, KeyBasedPairingResponseTimeout) {
 }
 
 TEST_F(FastPairGattServiceClientTest, PasskeyResponseTimeout) {
+  EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kUnknown);
   InsertCorrectGattCharacteristics();
   InitializeFastPairGattServiceClient();
   CountDownLatch latch(1);
   gatt_client_->WritePasskeyAsync(
       kSeekerPasskey, kPasskey, *fast_pair_data_encryptor_,
       [&](absl::string_view response, std::optional<PairFailure> failure) {
-        WriteTestCallback(response, failure);
+        WriteTestCallback(failure);
         latch.CountDown();
       });
   SystemClock::Sleep(kGattOperationTimeout);
   latch.Await();
   EXPECT_EQ(GetWriteCallbackResult(), PairFailure::kPasskeyResponseTimeout);
 }
+
 }  // namespace fastpair
 }  // namespace nearby
