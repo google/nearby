@@ -52,3 +52,70 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "fast_pair_seeker",
+    hdrs = ["fast_pair_seeker.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//fastpair/common",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+    ],
+)
+
+cc_library(
+    name = "fast_pair_plugin",
+    hdrs = ["fast_pair_plugin.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        ":fast_pair_events",
+        ":fast_pair_seeker",
+    ],
+)
+
+cc_library(
+    name = "fast_pair_events",
+    hdrs = ["fast_pair_events.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+    ],
+)
+
+cc_library(
+    name = "fast_pair_service",
+    srcs = ["fast_pair_service.cc"],
+    hdrs = ["fast_pair_service.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        ":fast_pair_plugin",
+        ":fast_pair_seeker",
+        "//fastpair/internal",
+        "//internal/platform:types",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_service_test",
+    size = "small",
+    srcs = [
+        "fast_pair_service_test.cc",
+    ],
+    deps = [
+        ":fast_pair_plugin",
+        ":fast_pair_service",
+        "//fastpair/internal",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
