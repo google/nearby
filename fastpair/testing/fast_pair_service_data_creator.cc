@@ -20,6 +20,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "absl/strings/escaping.h"
@@ -38,8 +39,8 @@ FastPairServiceDataCreator::Builder::SetHeader(uint8_t byte) {
 }
 
 FastPairServiceDataCreator::Builder&
-FastPairServiceDataCreator::Builder::SetModelId(std::string model_id) {
-  model_id_ = model_id;
+FastPairServiceDataCreator::Builder::SetModelId(absl::string_view model_id) {
+  model_id_ = std::string(model_id);
   return *this;
 }
 
@@ -50,8 +51,8 @@ FastPairServiceDataCreator::Builder::AddExtraFieldHeader(uint8_t header) {
 }
 
 FastPairServiceDataCreator::Builder&
-FastPairServiceDataCreator::Builder::AddExtraField(std::string field) {
-  extra_fields_.push_back(field);
+FastPairServiceDataCreator::Builder::AddExtraField(absl::string_view field) {
+  extra_fields_.push_back(std::string(field));
   return *this;
 }
 

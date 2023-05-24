@@ -25,6 +25,8 @@ namespace fastpair {
 
 class FastPairDecoder {
  public:
+  static int GetVersion(const std::vector<uint8_t>* service_data);
+  static int GetIdLength(const std::vector<uint8_t>* service_data);
   static bool HasModelId(const std::vector<uint8_t>* service_data);
 
   static std::optional<std::string> GetHexModelIdFromServiceData(

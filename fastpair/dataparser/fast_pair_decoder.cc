@@ -27,7 +27,6 @@ namespace nearby {
 namespace fastpair {
 
 namespace {
-
 constexpr int kHeaderIndex = 0;
 constexpr int kHeaderLength = 1;
 constexpr int kHeaderLengthBitmask = 0b00011110;
@@ -36,28 +35,27 @@ constexpr int kHeaderVersionBitmask = 0b11100000;
 constexpr int kHeaderVersionOffset = 5;
 constexpr int kMinModelIdLength = 3;
 constexpr int kMaxModelIdLength = 14;
+}  // namespace
 
-int GetIdLength(const std::vector<uint8_t>* service_data) {
+int FastPairDecoder::GetIdLength(const std::vector<uint8_t>* service_data) {
   return service_data->size() == kMinModelIdLength
              ? kMinModelIdLength
              : ((*service_data)[kHeaderIndex] & kHeaderLengthBitmask) >>
                    kHeaderLengthOffset;
 }
 
-bool IsIdLengthValid(const std::vector<uint8_t>* service_data) {
-  int id_length = GetIdLength(service_data);
-  return kMinModelIdLength <= id_length && id_length <= kMaxModelIdLength &&
-         id_length + kHeaderLength <= static_cast<int>(service_data->size());
-}
-
-int GetVersion(const std::vector<uint8_t>* service_data) {
+int FastPairDecoder::GetVersion(const std::vector<uint8_t>* service_data) {
   return service_data->size() == kMinModelIdLength
              ? 0
              : ((*service_data)[kHeaderIndex] & kHeaderVersionBitmask) >>
                    kHeaderVersionOffset;
 }
 
-}  // namespace
+bool IsIdLengthValid(const std::vector<uint8_t>* service_data) {
+  int id_length = FastPairDecoder::GetIdLength(service_data);
+  return kMinModelIdLength <= id_length && id_length <= kMaxModelIdLength &&
+         id_length + kHeaderLength <= static_cast<int>(service_data->size());
+}
 
 bool FastPairDecoder::HasModelId(const std::vector<uint8_t>* service_data) {
   return service_data != nullptr &&

@@ -43,7 +43,7 @@ class FakeBlePeripheral : public api::BlePeripheral {
     name_ = std::string(name);
     const std::vector<uint8_t> service_data =
         FastPairServiceDataCreator::Builder()
-            .SetModelId(std::string(model_id))
+            .SetModelId(model_id)
             .Build()
             ->CreateServiceData();
     ByteArray advertisement_bytes(

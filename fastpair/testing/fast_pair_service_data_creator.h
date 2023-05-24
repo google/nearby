@@ -19,6 +19,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace nearby {
@@ -36,9 +37,9 @@ class FastPairServiceDataCreator {
     ~Builder();
 
     Builder& SetHeader(uint8_t byte);
-    Builder& SetModelId(std::string model_id);
+    Builder& SetModelId(std::string_view model_id);
     Builder& AddExtraFieldHeader(uint8_t header);
-    Builder& AddExtraField(std::string field);
+    Builder& AddExtraField(std::string_view field);
     std::unique_ptr<FastPairServiceDataCreator> Build();
 
    private:
