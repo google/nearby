@@ -13,6 +13,8 @@ cc_library(
     deps = [
         "//fastpair:fast_pair_events",
         "//fastpair:fast_pair_seeker",
+        "//fastpair/repository:device_repository",
+        "//internal/platform:types",
         "@com_google_absl//absl/status",
     ],
 )

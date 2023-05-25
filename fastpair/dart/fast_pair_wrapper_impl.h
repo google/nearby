@@ -40,7 +40,7 @@ class FastPairWrapperImpl : public FastPairWrapper {
 
  private:
   SingleThreadExecutor executor_;
-  FastPairDeviceRepository devices_;
+  FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<ScannerBroker> scanner_broker_;
 
   // True if we are currently scanning for remote devices.

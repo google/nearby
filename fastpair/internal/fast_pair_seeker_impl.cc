@@ -44,15 +44,14 @@ absl::Status FastPairSeekerImpl::StartFastPairScan() {
   // TODO(jsobczak): Replace with actual implementation
   auto device = std::make_unique<FastPairDevice>(
       "model_id", "11:22:33:44:55:66", Protocol::kFastPairInitialPairing);
-  test_device_ = device.get();
-  callbacks_.on_device_added(std::move(device));
+  test_device_ = devices_->AddDevice(std::move(device));
   callbacks_.on_initial_discovery(*test_device_, {});
   return absl::OkStatus();
 }
 
 absl::Status FastPairSeekerImpl::StopFastPairScan() {
   // TODO(jsobczak): Replace with actual implementation
-  callbacks_.on_device_lost(*test_device_);
+  devices_->RemoveDevice(test_device_);
   return absl::OkStatus();
 }
 

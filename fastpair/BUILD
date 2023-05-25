@@ -95,6 +95,7 @@ cc_library(
         ":fast_pair_plugin",
         ":fast_pair_seeker",
         "//fastpair/internal",
+        "//fastpair/repository:device_repository",
         "//internal/platform:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",

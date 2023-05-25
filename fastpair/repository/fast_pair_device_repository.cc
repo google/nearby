@@ -19,12 +19,16 @@
 #include <optional>
 #include <utility>
 
+#include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
+
 namespace nearby {
 namespace fastpair {
 
 FastPairDevice* FastPairDeviceRepository::AddDevice(
     std::unique_ptr<FastPairDevice> device) {
   const auto& id = device->GetUniqueId();
+  MutexLock lock(&mutex_);
   for (auto& item : devices_) {
     if (item->GetUniqueId() == id) {
       // Overwrite the existing object.
@@ -38,16 +42,19 @@ FastPairDevice* FastPairDeviceRepository::AddDevice(
 }
 
 void FastPairDeviceRepository::RemoveDevice(const FastPairDevice* device) {
-  devices_.erase(
-      std::remove_if(devices_.begin(), devices_.end(),
-                     [&](const std::unique_ptr<FastPairDevice>& item) {
-                       return item.get() == device;
-                     }),
-      devices_.end());
+  std::unique_ptr<FastPairDevice> fast_pair_device = ExtractDevice(device);
+  if (fast_pair_device == nullptr) return;
+  // Tasks running in the background may still be referencing `device`. Defering
+  // the destruction to the background thread should prevent use-after-free
+  // errors.
+  executor_->Execute([fast_pair_device = std::move(fast_pair_device)]() {
+    NEARBY_LOGS(VERBOSE) << "Destroyed FP device: " << fast_pair_device;
+  });
 }
 
 std::optional<FastPairDevice*> FastPairDeviceRepository::FindDevice(
     absl::string_view mac_address) {
+  MutexLock lock(&mutex_);
   auto it = std::find_if(devices_.begin(), devices_.end(),
                          [&](const std::unique_ptr<FastPairDevice>& device) {
                            return device->GetBleAddress() == mac_address ||
@@ -58,6 +65,19 @@ std::optional<FastPairDevice*> FastPairDeviceRepository::FindDevice(
   } else {
     return std::nullopt;
   }
+}
+
+std::unique_ptr<FastPairDevice> FastPairDeviceRepository::ExtractDevice(
+    const FastPairDevice* device) {
+  MutexLock lock(&mutex_);
+  auto it = std::find_if(devices_.begin(), devices_.end(),
+                         [&](const std::unique_ptr<FastPairDevice>& item) {
+                           return item.get() == device;
+                         });
+  if (it == devices_.end()) return nullptr;
+  std::unique_ptr<FastPairDevice> fast_pair_device = std::move(*it);
+  devices_.erase(it);
+  return fast_pair_device;
 }
 
 }  // namespace fastpair

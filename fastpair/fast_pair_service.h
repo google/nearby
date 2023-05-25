@@ -25,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/fast_pair_seeker.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -51,8 +52,6 @@ class FastPairService {
   FastPairSeeker* GetSeeker() const { return seeker_.get(); }
 
  private:
-  void AddDevice(std::unique_ptr<FastPairDevice> device);
-  void RemoveDevice(const FastPairDevice* device);
   void OnInitialDiscoveryEvent(const FastPairDevice& device,
                                InitialDiscoveryEvent event);
   void OnSubsequentDiscoveryEvent(const FastPairDevice& device,
@@ -65,7 +64,7 @@ class FastPairService {
   std::unique_ptr<FastPairSeeker> seeker_;
   absl::flat_hash_map<std::string, std::unique_ptr<FastPairPluginProvider>>
       providers_;
-  std::vector<std::unique_ptr<FastPairDevice>> devices_;
+  FastPairDeviceRepository devices_{&executor_};
 };
 
 }  // namespace fastpair

@@ -39,7 +39,11 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//fastpair:__subpackages__"],
-    deps = ["//fastpair/common"],
+    deps = [
+        "//fastpair/common",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+    ],
 )
 
 cc_test(
@@ -50,6 +54,7 @@ cc_test(
     deps = [
         ":device_repository",
         "//fastpair/common",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

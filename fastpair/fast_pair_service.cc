@@ -33,14 +33,8 @@ constexpr absl::Duration kTimeout = absl::Seconds(3);
 }
 
 FastPairService::FastPairService() {
-  seeker_ =
-      std::make_unique<FastPairSeekerImpl>(FastPairSeekerImpl::ServiceCallbacks{
-          .on_device_added =
-              [this](std::unique_ptr<FastPairDevice> device) {
-                AddDevice(std::move(device));
-              },
-          .on_device_lost =
-              [this](const FastPairDevice& device) { RemoveDevice(&device); },
+  seeker_ = std::make_unique<FastPairSeekerImpl>(
+      FastPairSeekerImpl::ServiceCallbacks{
           .on_initial_discovery =
               [this](const FastPairDevice& device,
                      InitialDiscoveryEvent event) {
@@ -66,7 +60,8 @@ FastPairService::FastPairService() {
           .on_ring_event =
               [this](const FastPairDevice& device, RingEvent event) {
                 OnRingEvent(device, std::move(event));
-              }});
+              }},
+      &executor_, &devices_);
 }
 
 absl::Status FastPairService::RegisterPluginProvider(
@@ -99,25 +94,6 @@ absl::Status FastPairService::UnregisterPluginProvider(absl::string_view name) {
   ExceptionOr<absl::Status> status = result.Get(kTimeout);
   return status.ok() ? status.GetResult()
                      : absl::DeadlineExceededError("Unregister plugin timeout");
-}
-
-void FastPairService::AddDevice(std::unique_ptr<FastPairDevice> device) {
-  NEARBY_LOGS(INFO) << "Add device " << *device;
-  executor_.Execute("add-device", [this, device = std::move(device)]() mutable {
-    devices_.push_back(std::move(device));
-  });
-}
-
-void FastPairService::RemoveDevice(const FastPairDevice* device) {
-  NEARBY_LOGS(INFO) << "Remove device " << *device;
-  executor_.Execute("remove-device", [this, device]() {
-    devices_.erase(
-        std::remove_if(devices_.begin(), devices_.end(),
-                       [&](const std::unique_ptr<FastPairDevice>& item) {
-                         return item.get() == device;
-                       }),
-        devices_.end());
-  });
 }
 
 void FastPairService::OnInitialDiscoveryEvent(const FastPairDevice& device,

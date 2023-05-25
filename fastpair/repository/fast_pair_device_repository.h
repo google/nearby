@@ -20,6 +20,8 @@
 #include <vector>
 
 #include "fastpair/common/fast_pair_device.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -27,6 +29,9 @@ namespace fastpair {
 // Owner of `FastPairDevice` instances.
 class FastPairDeviceRepository {
  public:
+  explicit FastPairDeviceRepository(SingleThreadExecutor* executor)
+      : executor_(executor) {}
+
   // Adds device to the repository and takes over ownership.
   // If a device with the same MAC address is already in the repository, it is
   // replaced.
@@ -42,7 +47,11 @@ class FastPairDeviceRepository {
   std::optional<FastPairDevice*> FindDevice(absl::string_view mac_address);
 
  private:
-  std::vector<std::unique_ptr<FastPairDevice>> devices_;
+  // Removes `device` from `devices_`.
+  std::unique_ptr<FastPairDevice> ExtractDevice(const FastPairDevice* device);
+  Mutex mutex_;
+  SingleThreadExecutor* executor_;
+  std::vector<std::unique_ptr<FastPairDevice>> devices_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace fastpair

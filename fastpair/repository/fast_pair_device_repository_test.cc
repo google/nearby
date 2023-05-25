@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -32,7 +33,8 @@ constexpr absl::string_view kBleAddress = "AA:BB:CC:DD:EE:FF";
 constexpr absl::string_view kBtAddress = "12:34:56:78:90:AB";
 
 TEST(FastPairDeviceRepositoryTest, AddDevice) {
-  FastPairDeviceRepository repo;
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
 
   FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
       kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
@@ -42,7 +44,8 @@ TEST(FastPairDeviceRepositoryTest, AddDevice) {
 }
 
 TEST(FastPairDeviceRepositoryTest, FindDeviceByBleAddress) {
-  FastPairDeviceRepository repo;
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
   repo.AddDevice(std::make_unique<FastPairDevice>(
       kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
 
@@ -55,7 +58,8 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBleAddress) {
 }
 
 TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
-  FastPairDeviceRepository repo;
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
   auto fast_pair_device =
       std::make_unique<FastPairDevice>(Protocol::kFastPairInitialPairing);
   fast_pair_device->SetPublicAddress(kBtAddress);
@@ -70,11 +74,28 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
 }
 
 TEST(FastPairDeviceRepositoryTest, RemoveDevice) {
-  FastPairDeviceRepository repo;
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
   FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
       kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
 
   repo.RemoveDevice(device);
+
+  EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
+}
+
+TEST(FastPairDeviceRepositoryTest, RemovingNonRegisteredDeviceIsSafe) {
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
+  FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
+      kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
+  FastPairDevice other_device(Protocol::kFastPairInitialPairing);
+  repo.RemoveDevice(device);
+
+  // `device` already removed.
+  repo.RemoveDevice(device);
+  // `other_device` was never added.
+  repo.RemoveDevice(&other_device);
 
   EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
 }

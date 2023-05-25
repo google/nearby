@@ -20,6 +20,8 @@
 
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -35,9 +37,6 @@ class FastPairSeekerExt : public FastPairSeeker {
 class FastPairSeekerImpl : public FastPairSeekerExt {
  public:
   struct ServiceCallbacks {
-    absl::AnyInvocable<void(std::unique_ptr<FastPairDevice>)> on_device_added;
-    absl::AnyInvocable<void(const FastPairDevice&)> on_device_lost;
-
     absl::AnyInvocable<void(const FastPairDevice&, InitialDiscoveryEvent)>
         on_initial_discovery;
     absl::AnyInvocable<void(const FastPairDevice&, SubsequentDiscoveryEvent)>
@@ -50,8 +49,11 @@ class FastPairSeekerImpl : public FastPairSeekerExt {
     absl::AnyInvocable<void(const FastPairDevice&, RingEvent)> on_ring_event;
   };
 
-  explicit FastPairSeekerImpl(ServiceCallbacks callbacks)
-      : callbacks_(std::move(callbacks)) {}
+  FastPairSeekerImpl(ServiceCallbacks callbacks, SingleThreadExecutor* executor,
+                     FastPairDeviceRepository* devices)
+      : callbacks_(std::move(callbacks)),
+        executor_(executor),
+        devices_(devices) {}
 
   // From FastPairSeeker.
   absl::Status StartInitialPairing(FastPairDevice& device,
@@ -74,6 +76,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt {
 
  private:
   ServiceCallbacks callbacks_;
+  SingleThreadExecutor* executor_;
+  FastPairDeviceRepository* devices_;
+
   FastPairDevice* test_device_ = nullptr;
 };
 

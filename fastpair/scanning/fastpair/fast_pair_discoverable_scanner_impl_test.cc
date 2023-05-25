@@ -76,7 +76,7 @@ TEST(FastPairDiscoverableScannerImplTest, ValidModelId) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
@@ -103,7 +103,7 @@ TEST(FastPairDiscoverableScannerImplTest, InvalidModelId) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
@@ -130,7 +130,7 @@ TEST(FastPairDiscoverableScannerImplTest, NoServiceData) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
@@ -157,7 +157,7 @@ TEST(FastPairDiscoverableScannerImplTest, UnsupportedDeviceType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::AUTOMOTIVE);
   repository->SetFakeMetadata(kValidModelId, metadata);
@@ -184,7 +184,7 @@ TEST(FastPairDiscoverableScannerImplTest, UnsupportedNotifictionType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::HEADPHONES);
   metadata.set_notification_type(proto::NotificationType::APP_LAUNCH);
@@ -215,7 +215,7 @@ TEST(FastPairDiscoverableScannerImplTest, UnspecifiedNotificationType) {
   // the notification to be safe.
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::DEVICE_TYPE_UNSPECIFIED);
   metadata.set_notification_type(
@@ -246,7 +246,7 @@ TEST(FastPairDiscoverableScannerImplTest, V1NotificationType) {
   // type and a notification type of FAST_PAIR_ONE.
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::DEVICE_TYPE_UNSPECIFIED);
   metadata.set_notification_type(proto::NotificationType::FAST_PAIR_ONE);
@@ -276,7 +276,7 @@ TEST(FastPairDiscoverableScannerImplTest, V2NotificationType) {
   // type of TRUE_WIRELESS_HEADPHONES and a notification type of FAST_PAIR.
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   metadata.set_notification_type(proto::NotificationType::FAST_PAIR);
@@ -304,7 +304,7 @@ TEST(FastPairDiscoverableScannerImplTest, NearbyShareModelId) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
@@ -331,7 +331,7 @@ TEST(FastPairDiscoverableScannerImplTest,
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
   SingleThreadExecutor executor;
-  FastPairDeviceRepository devices;
+  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
