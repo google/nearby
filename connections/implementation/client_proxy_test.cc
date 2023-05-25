@@ -329,6 +329,7 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
   }
 }
 
+// Regression test for b/279962714.
 TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   FeatureFlags::Flags feature_flags = GetParam();
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
@@ -339,8 +340,15 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
+  // `CancellationFlag` pointers are passed to other classes in Nearby
+  // Connections, and by using the pointers directly, we test their
+  // consumption of `CancellationFlag` pointers.
+  CancellationFlag* cancellation_flag =
+      client2_.GetCancellationFlag(advertising_endpoint.id);
+
   EXPECT_FALSE(
       client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  EXPECT_FALSE(cancellation_flag->Cancelled());
 
   client2_.CancelAllEndpoints();
 
@@ -348,10 +356,12 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_FALSE(
         client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+    EXPECT_FALSE(cancellation_flag->Cancelled());
   } else {
     // The Cancelled is always true as the default flag being returned.
     EXPECT_TRUE(
         client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+    EXPECT_TRUE(cancellation_flag->Cancelled());
   }
 }
 
