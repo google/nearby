@@ -21,6 +21,7 @@
 #include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller_impl.h"
+#include "presence/presence_client_impl.h"
 
 namespace nearby {
 namespace presence {
@@ -30,8 +31,8 @@ PresenceService::PresenceService() {
       service_controller_->GetLocalDeviceMetadata());
 }
 
-PresenceClient PresenceService::CreatePresenceClient() {
-  return PresenceClient(lender_.GetBorrowable());
+std::unique_ptr<PresenceClient> PresenceService::CreatePresenceClient() {
+  return PresenceClientImpl::Factory::Create(lender_.GetBorrowable());
 }
 
 absl::StatusOr<ScanSessionId> PresenceService::StartScan(

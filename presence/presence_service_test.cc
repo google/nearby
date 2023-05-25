@@ -14,6 +14,7 @@
 
 #include "presence/presence_service.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -67,22 +68,23 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
       .start_scan_cb = [&](absl::Status status) { scan_result = status; },
   };
   PresenceService presence_service;
-  PresenceClient client = presence_service.CreatePresenceClient();
+  std::unique_ptr<PresenceClient> client =
+      presence_service.CreatePresenceClient();
 
-  absl::StatusOr<ScanSessionId> scan_session = client.StartScan(
+  absl::StatusOr<ScanSessionId> scan_session = client->StartScan(
       {},
       {
           .start_scan_cb = [&](absl::Status status) { scan_result = status; },
       });
   absl::StatusOr<ScanSessionId> scan_session_with_default_params =
-      client.StartScan(ScanRequest(), ScanCallback());
+      client->StartScan(ScanRequest(), ScanCallback());
 
   ASSERT_OK(scan_session);
   ASSERT_OK(scan_session_with_default_params);
   EXPECT_NE(*scan_session, *scan_session_with_default_params);
 
-  client.StopScan(*scan_session);
-  client.StopScan(*scan_session_with_default_params);
+  client->StopScan(*scan_session);
+  client->StopScan(*scan_session_with_default_params);
   env_.Stop();
 }
 

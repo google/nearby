@@ -39,7 +39,7 @@ class PresenceService {
   PresenceService();
   ~PresenceService() { lender_.Release(); }
 
-  PresenceClient CreatePresenceClient();
+  std::unique_ptr<PresenceClient> CreatePresenceClient();
 
   absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
                                           ScanCallback callback);

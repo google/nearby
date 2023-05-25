@@ -18,11 +18,12 @@ package(default_visibility = ["//:__subpackages__"])
 cc_library(
     name = "presence",
     srcs = [
-        "presence_client.cc",
+        "presence_client_impl.cc",
         "presence_service.cc",
     ],
     hdrs = [
         "presence_client.h",
+        "presence_client_impl.h",
         "presence_device_provider.h",
         "presence_service.h",
     ],
@@ -32,6 +33,24 @@ cc_library(
         "//internal/platform:types",
         "//internal/proto:metadata_cc_proto",
         "//presence/implementation:internal",  # build_cleaner: keep
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "test_support",
+    testonly = 1,
+    srcs = [
+        "fake_presence_client.cc",
+    ],
+    hdrs = [
+        "fake_presence_client.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        ":presence",
+        ":types",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
     ],
