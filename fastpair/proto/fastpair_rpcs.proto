@@ -14,10 +14,9 @@
 
 syntax = "proto3";
 
-// Proto defined in this file needs be consistent with proto defined in
-// google3/google/internal/location/nearby/device/v1/rpcs.proto.
-
 package nearby.fastpair.proto;
+
+import "third_party/nearby/fastpair/proto/data.proto";
 
 option optimize_for = LITE_RUNTIME;
 
@@ -281,4 +280,36 @@ message GetObservedDeviceResponse {
   ObservedDeviceStrings strings = 4;
 
   reserved 2;
+}
+
+// Request to read the user's devices.
+message UserReadDevicesRequest {
+  // Optional secondary ID that can be used for lookups.
+  bytes secondary_id = 1;
+}
+
+// Response containing the list of devices for a user.
+message UserReadDevicesResponse {
+  repeated .nearby.fastpair.proto.FastPairInfo fast_pair_info = 1;
+}
+
+// Request to write a new device to a user.
+message UserWriteDeviceRequest {
+  .nearby.fastpair.proto.FastPairInfo fast_pair_info = 1;
+}
+
+// Response to writing a new device to a user.
+message UserWriteDeviceResponse {}
+
+// Request to delete an existing device from a user's account.
+message UserDeleteDeviceRequest {
+  // The account key to be deleted, encoded in base16 (hex).  This should use
+  // all upper-case letters with no padding or prefex (i.e. 0123456789ABCDEF).
+  string hex_account_key = 2;
+}
+
+// Response to deleting a new device from a user's account.
+message UserDeleteDeviceResponse {
+  bool success = 1;
+  repeated string error_messages = 2;
 }
