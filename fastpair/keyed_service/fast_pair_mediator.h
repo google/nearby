@@ -42,6 +42,7 @@ class Mediator final : public ScannerBroker::Observer {
   bool IsFastPairEnabled();
 
   std::unique_ptr<ScannerBroker> scanner_broker_;
+  std::unique_ptr<ScannerBroker::ScanningSession> scanning_session_;
   std::unique_ptr<FastPairRepository> fast_pair_repository_;
 };
 

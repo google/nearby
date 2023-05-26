@@ -40,10 +40,11 @@ void Mediator::OnDeviceLost(FastPairDevice& device) {
 
 void Mediator::StartScanning() {
   if (IsFastPairEnabled()) {
-    scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
+    scanning_session_ =
+        scanner_broker_->StartScanning(Protocol::kFastPairInitialPairing);
     return;
   }
-  scanner_broker_->StopScanning(Protocol::kFastPairInitialPairing);
+  scanning_session_.reset();
 }
 
 bool Mediator::IsFastPairEnabled() {

@@ -15,6 +15,7 @@
 #include "fastpair/scanning/scanner_broker_impl.h"
 
 #include <memory>
+#include <utility>
 
 #include "absl/functional/bind_front.h"
 #include "fastpair/common/fast_pair_device.h"
@@ -24,6 +25,22 @@
 
 namespace nearby {
 namespace fastpair {
+
+namespace {
+
+class ScanningSessionImpl : public ScannerBroker::ScanningSession {
+ public:
+  ScanningSessionImpl(ScannerBrokerImpl* scanner, Protocol protocol)
+      : scanner_(scanner), protocol_(protocol) {}
+  ~ScanningSessionImpl() override { scanner_->StopScanning(protocol_); }
+
+ private:
+  ScannerBrokerImpl* scanner_;
+  Protocol protocol_;
+};
+
+}  // namespace
+
 ScannerBrokerImpl::ScannerBrokerImpl(
     Mediums& mediums, SingleThreadExecutor* executor,
     FastPairDeviceRepository* device_repository)
@@ -39,12 +56,14 @@ void ScannerBrokerImpl::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
 }
 
-void ScannerBrokerImpl::StartScanning(Protocol protocol) {
+std::unique_ptr<ScannerBroker::ScanningSession>
+ScannerBrokerImpl::StartScanning(Protocol protocol) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": protocol=" << protocol;
   executor_->Execute("start-scan",
                      [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                        StartFastPairScanning();
                      });
+  return std::make_unique<ScanningSessionImpl>(this, protocol);
 }
 
 void ScannerBrokerImpl::StopScanning(Protocol protocol) {
@@ -63,14 +82,15 @@ void ScannerBrokerImpl::StartFastPairScanning() {
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceFound, this),
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this),
           executor_, device_repository_);
-  scanner_->StartScanning();
+  scanning_session_ = scanner_->StartScanning();
 }
 
 void ScannerBrokerImpl::StopFastPairScanning() {
-  fast_pair_discoverable_scanner_.reset();
-  scanner_.reset();
-  observers_.Clear();
   NEARBY_LOGS(VERBOSE) << __func__ << "Stopping Fast Pair Scanning.";
+  scanning_session_.reset();
+  observers_.Clear();
+  DestroyOnExecutor(std::move(fast_pair_discoverable_scanner_), executor_);
+  DestroyOnExecutor(std::move(scanner_), executor_);
 }
 
 void ScannerBrokerImpl::NotifyDeviceFound(FastPairDevice& device) {

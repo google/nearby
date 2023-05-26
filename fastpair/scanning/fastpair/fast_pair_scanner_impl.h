@@ -49,11 +49,13 @@ class FastPairScannerImpl : public FastPairScanner {
   // Todo(b/267348348): Support Flags to control feature ramp
   bool IsFastPairLowPowerEnabled() const { return false; }
 
-  void StartScanning() override;
+  std::unique_ptr<ScanningSession> StartScanning() override;
+  void StopScanning();
 
  private:
   void StartScanningInternal() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
-  void StopScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  // Pauses, and then restarts, scanning for a few seconds to safe power.
+  void PauseScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void StartTimer(absl::Duration delay, absl::AnyInvocable<void()> callback)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
 
@@ -65,8 +67,6 @@ class FastPairScannerImpl : public FastPairScanner {
   // seen.
   absl::flat_hash_map<std::string, std::set<std::string>>
       device_address_advertisement_data_map_;
-
-  BluetoothAdapter bluetooth_adapter_;
   ObserverList<FastPairScanner::Observer> observer_;
 };
 

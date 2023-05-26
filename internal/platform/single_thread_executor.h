@@ -34,6 +34,15 @@ class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
   SingleThreadExecutor& operator=(SingleThreadExecutor&&) = default;
 };
 
+// Moves the object to `executor` and destroys it there.
+// This pattern is useful when there are some tasks running on `executor` that
+// hold a reference to `object`. The tasks will complete before `object` is
+// destroyed.
+template <typename T>
+void DestroyOnExecutor(T object, SingleThreadExecutor* executor) {
+  executor->Execute([object = std::move(object)] {});
+}
+
 }  // namespace nearby
 
 #endif  // PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_

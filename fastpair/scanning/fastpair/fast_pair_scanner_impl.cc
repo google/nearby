@@ -30,6 +30,17 @@ namespace {
 constexpr absl::Duration kFastPairLowPowerActiveSeconds = absl::Seconds(2);
 constexpr absl::Duration kFastPairLowPowerInactiveSeconds = absl::Seconds(3);
 constexpr char kFastPairServiceUuid[] = "0000FE2C-0000-1000-8000-00805F9B34FB";
+
+class ScanningSessionImpl : public FastPairScanner::ScanningSession {
+ public:
+  explicit ScanningSessionImpl(FastPairScannerImpl* scanner)
+      : scanner_(scanner) {}
+  ~ScanningSessionImpl() override { scanner_->StopScanning(); }
+
+ private:
+  FastPairScannerImpl* scanner_;
+};
+
 }  // namespace
 
 // FastPairScannerImpl
@@ -45,11 +56,14 @@ void FastPairScannerImpl::RemoveObserver(FastPairScanner::Observer* observer) {
   observer_.RemoveObserver(observer);
 }
 
-void FastPairScannerImpl::StartScanning() {
+std::unique_ptr<FastPairScanner::ScanningSession>
+FastPairScannerImpl::StartScanning() {
   NEARBY_LOGS(VERBOSE) << __func__;
   executor_->Execute("scanning", [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
                                      *executor_) { StartScanningInternal(); });
+  return std::make_unique<ScanningSessionImpl>(this);
 }
+
 void FastPairScannerImpl::StartScanningInternal() {
   if (mediums_.GetBluetoothRadio().Enable() &&
       mediums_.GetBle().IsAvailable() &&
@@ -80,7 +94,7 @@ void FastPairScannerImpl::StartScanningInternal() {
     if (IsFastPairLowPowerEnabled()) {
       StartTimer(kFastPairLowPowerActiveSeconds,
                  [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                   StopScanning();
+                   PauseScanning();
                  });
     }
   } else {
@@ -90,6 +104,14 @@ void FastPairScannerImpl::StartScanningInternal() {
 }
 
 void FastPairScannerImpl::StopScanning() {
+  executor_->Execute("stop-scan",
+                     [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                       timer_.reset();
+                       mediums_.GetBle().StopScanning(kServiceId);
+                     });
+}
+
+void FastPairScannerImpl::PauseScanning() {
   DCHECK(IsFastPairLowPowerEnabled());
   mediums_.GetBle().StopScanning(kServiceId);
   StartTimer(kFastPairLowPowerInactiveSeconds,

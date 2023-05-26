@@ -24,8 +24,8 @@ namespace fastpair {
 
 class MockScannerBroker : public ScannerBroker {
  public:
-  MOCK_METHOD(void, StartScanning, (Protocol), (override));
-  MOCK_METHOD(void, StopScanning, (Protocol), (override));
+  MOCK_METHOD(std::unique_ptr<ScanningSession>, StartScanning, (Protocol),
+              (override));
 
   void AddObserver(Observer* observer) override {
     observers_.AddObserver(observer);

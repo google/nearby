@@ -32,6 +32,7 @@ namespace fastpair {
 namespace {
 
 constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(1000);
+constexpr absl::Duration kShortTimeout = absl::Milliseconds(100);
 constexpr absl::string_view kServiceID{"Fast Pair"};
 constexpr absl::string_view kModelId{"718c17"};
 constexpr absl::string_view kFastPairServiceUuid{
@@ -85,7 +86,7 @@ TEST_F(FastPairScannerImplTest, StartScanning) {
       service_id, advertisement_bytes, fast_pair_service_uuid);
 
   // Fast Pair scanner startScanning
-  scanner->StartScanning();
+  auto scan_session = scanner->StartScanning();
   // Notify device found
   EXPECT_TRUE(accept_latch.Await(kTaskWaitTimeout).result());
 
@@ -93,9 +94,35 @@ TEST_F(FastPairScannerImplTest, StartScanning) {
   mediums_2.GetBle().GetMedium().StopAdvertising(service_id);
   // Notify device lost
   EXPECT_TRUE(lost_latch.Await(kTaskWaitTimeout).result());
-
+  scan_session.reset();
   env_.Stop();
 }
+
+TEST_F(FastPairScannerImplTest, StopScanning) {
+  env_.Start();
+  // Create Fast Pair Scanner and add its observer
+  Mediums mediums_1;
+  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1, &executor_);
+  CountDownLatch accept_latch(1);
+  CountDownLatch lost_latch(1);
+  FastPairScannerObserver observer(scanner.get(), &accept_latch, &lost_latch);
+  // Create Advertiser and startAdvertising
+  Mediums mediums_2;
+  std::string service_id(kServiceID);
+  ByteArray advertisement_bytes{absl::HexStringToBytes(kModelId)};
+  std::string fast_pair_service_uuid(kFastPairServiceUuid);
+  mediums_2.GetBle().GetMedium().StartAdvertising(
+      service_id, advertisement_bytes, fast_pair_service_uuid);
+
+  auto scan_session = scanner->StartScanning();
+  scan_session.reset();
+
+  mediums_2.GetBle().GetMedium().StopAdvertising(service_id);
+  // Device lost event should not be delivered when scan session has terminated.
+  EXPECT_FALSE(lost_latch.Await(kShortTimeout).result());
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

@@ -38,8 +38,8 @@ class ScannerBrokerImpl : public ScannerBroker {
   // ScannerBroker:
   void AddObserver(Observer* observer) override;
   void RemoveObserver(Observer* observer) override;
-  void StartScanning(Protocol protocol) override;
-  void StopScanning(Protocol protocol) override;
+  std::unique_ptr<ScanningSession> StartScanning(Protocol protocol) override;
+  void StopScanning(Protocol protocol);
 
  private:
   void StartFastPairScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
@@ -54,6 +54,7 @@ class ScannerBrokerImpl : public ScannerBroker {
       ABSL_GUARDED_BY(*executor_);
   ObserverList<Observer> observers_;
   FastPairDeviceRepository* device_repository_;
+  std::unique_ptr<FastPairScanner::ScanningSession> scanning_session_;
 };
 
 }  // namespace fastpair

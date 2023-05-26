@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_SCANNING_FASTPAIR_FAKE_FAST_PAIR_SCANNER_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_SCANNING_FASTPAIR_FAKE_FAST_PAIR_SCANNER_H_
 
+#include <memory>
+
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
 
@@ -32,7 +34,9 @@ class FakeFastPairScanner final : public FastPairScanner {
   void RemoveObserver(Observer* observer) override;
   void NotifyDeviceFound(const BlePeripheral& peripheral);
   void NotifyDeviceLost(const BlePeripheral& peripheral);
-  void StartScanning() override {};
+  std::unique_ptr<ScanningSession> StartScanning() override {
+    return std::make_unique<ScanningSession>();
+  };
 
  private:
   ObserverList<FastPairScanner::Observer> observer_;

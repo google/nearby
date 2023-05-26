@@ -99,7 +99,8 @@ TEST_F(ScannerBrokerImplTest, CanStartScanning) {
       service_id, advertisement_bytes, fast_pair_service_uuid);
 
   // Fast Pair scanner startScanning
-  scanner_broker->StartScanning(Protocol::kFastPairInitialPairing);
+  auto scanning_session =
+      scanner_broker->StartScanning(Protocol::kFastPairInitialPairing);
 
   // Notify device found
   EXPECT_TRUE(accept_latch.Await(kTaskWaitTimeout).result());
@@ -109,6 +110,7 @@ TEST_F(ScannerBrokerImplTest, CanStartScanning) {
 
   // Notify device lost
   EXPECT_TRUE(lost_latch.Await(kTaskWaitTimeout).result());
+  scanning_session.reset();
   env_.Stop();
 }
 }  // namespace
