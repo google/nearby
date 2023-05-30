@@ -1086,9 +1086,16 @@ void BasePcpHandler::OnEndpointFound(
     // Check if there was a info change. If there was, report the previous
     // endpoint as lost.
     if (discovered_endpoint->endpoint_info != endpoint->endpoint_info) {
-      OnEndpointLost(client, *discovered_endpoint);
-      discovered_endpoint = endpoint;  // Replace endpoint.
-      OnEndpointFound(client, std::move(endpoint));
+      owned_endpoint = discovered_endpoint.get();
+      client->OnEndpointLost(owned_endpoint->service_id,
+                             owned_endpoint->endpoint_id);
+      discovered_endpoints_.erase(item);
+      owned_endpoint =
+          discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
+              ->second.get();
+      client->OnEndpointFound(
+          owned_endpoint->service_id, owned_endpoint->endpoint_id,
+          owned_endpoint->endpoint_info, owned_endpoint->medium);
       return;
     } else {
       owned_endpoint = endpoint.get();
