@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// https://source.corp.google.com/piper///depot/google3/third_party/nearby/fastpair/message_stream/message.h
+// Specification: https://developers.google.com/nearby/fast-pair/specifications/extensions/messagestream
+// This file should be in sync with fastpair/message_stream/message.h.
+
 
 #[derive(Debug)]
 pub enum BluetoothCode {
