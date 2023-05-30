@@ -36,6 +36,7 @@ namespace fastpair {
 class FastPairService {
  public:
   FastPairService();
+  ~FastPairService();
 
   // Registers a plugin provider. `name` must be a unique.
   // Returns an error if a provider with the same `name` is already registered.

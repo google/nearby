@@ -211,5 +211,19 @@ absl::Status FakeProvider::NotifyKeyBasedPairing(ByteArray response) {
                                                    false, response);
 }
 
+void FakeProvider::StartDiscoverableAdvertisement(absl::string_view model_id) {
+  advertising_ = true;
+  ble_v1_.StartAdvertising(std::string(kServiceID),
+                           ByteArray(absl::HexStringToBytes(model_id)),
+                           std::string(kFastPairServiceUuid));
+}
+
+void FakeProvider::StopAdvertising() {
+  if (advertising_) {
+    advertising_ = false;
+    ble_v1_.StopAdvertising(std::string(kServiceID));
+  }
+}
+
 }  // namespace fastpair
 }  // namespace nearby

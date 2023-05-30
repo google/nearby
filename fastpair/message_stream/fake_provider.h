@@ -31,6 +31,7 @@
 #include "fastpair/common/constant.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/message_stream/message.h"
+#include "internal/platform/ble.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/bluetooth_utils.h"
@@ -60,6 +61,8 @@ class FakeProvider {
                                                             0x8EB001DE32100BEA};
   static constexpr inline Uuid kAccountKeyCharacteristicUuidV2{
       0xFE2C123683664814, 0x8EB001DE32100BEA};
+  static constexpr inline absl::string_view kServiceID = "Fast Pair";
+
   static constexpr inline absl::string_view
       kKeyBasedCharacteristicAdvertisementByte = "keyBasedCharacte";
   static constexpr inline absl::string_view
@@ -70,7 +73,10 @@ class FakeProvider {
       absl::AnyInvocable<std::string(absl::string_view)>;
   ~FakeProvider() { Shutdown(); }
 
-  void Shutdown() { provider_thread_.Shutdown(); }
+  void Shutdown() {
+    StopAdvertising();
+    provider_thread_.Shutdown();
+  }
 
   void DiscoverProvider(BluetoothClassicMedium& seeker_medium) {
     CountDownLatch found_latch(1);
@@ -173,6 +179,9 @@ class FakeProvider {
   std::string Encrypt(absl::string_view data);
 
   absl::Status NotifyKeyBasedPairing(ByteArray response);
+
+  void StartDiscoverableAdvertisement(absl::string_view model_id);
+  void StopAdvertising();
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
   std::optional<GattCharacteristic> accountkey_characteristic_;
@@ -185,6 +194,8 @@ class FakeProvider {
   BluetoothServerSocket provider_server_socket_;
   BluetoothSocket provider_socket_;
   BleV2Medium ble_{provider_adapter_};
+  BleMedium ble_v1_{provider_adapter_};
+  bool advertising_ = false;
   std::unique_ptr<GattServer> gatt_server_;
   Property properties_ = Property::kWrite | Property::kNotify;
   Permission permissions_ = Permission::kWrite;

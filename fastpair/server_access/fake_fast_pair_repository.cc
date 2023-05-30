@@ -44,5 +44,16 @@ void FakeFastPairRepository::GetDeviceMetadata(
   });
 }
 
+std::unique_ptr<FakeFastPairRepository> FakeFastPairRepository::Create(
+    absl::string_view model_id, absl::string_view public_anti_spoof_key) {
+  std::string decoded_key;
+  absl::Base64Unescape(public_anti_spoof_key, &decoded_key);
+  proto::Device metadata;
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  metadata.mutable_anti_spoofing_key_pair()->set_public_key(decoded_key);
+  repository->SetFakeMetadata(model_id, metadata);
+  return repository;
+}
+
 }  // namespace fastpair
 }  // namespace nearby

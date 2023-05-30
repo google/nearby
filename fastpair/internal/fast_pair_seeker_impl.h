@@ -20,7 +20,9 @@
 
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
+#include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
+#include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -34,7 +36,8 @@ class FastPairSeekerExt : public FastPairSeeker {
   virtual absl::Status StopFastPairScan() = 0;
 };
 
-class FastPairSeekerImpl : public FastPairSeekerExt {
+class FastPairSeekerImpl : public FastPairSeekerExt,
+                           ScannerBrokerImpl::Observer {
  public:
   struct ServiceCallbacks {
     absl::AnyInvocable<void(const FastPairDevice&, InitialDiscoveryEvent)>
@@ -68,9 +71,13 @@ class FastPairSeekerImpl : public FastPairSeekerExt {
                                        const RetroactivePairingParam& param,
                                        PairingCallback callback) override;
 
-  // From FastPairSeekerExt
+  // From FastPairSeekerExt.
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
+
+  // From ScannerBrokerImpl::Observer.
+  void OnDeviceFound(FastPairDevice& device) override;
+  void OnDeviceLost(FastPairDevice& device) override;
 
   // Internal methods, not exported to plugins.
 
@@ -78,6 +85,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt {
   ServiceCallbacks callbacks_;
   SingleThreadExecutor* executor_;
   FastPairDeviceRepository* devices_;
+  Mediums mediums_;
+  std::unique_ptr<ScannerBrokerImpl> scanner_;
+  std::unique_ptr<ScannerBrokerImpl::ScanningSession> scanning_session_;
 
   FastPairDevice* test_device_ = nullptr;
 };

@@ -33,6 +33,9 @@ class FakeFastPairRepository : public FastPairRepository {
   FakeFastPairRepository& operator=(const FakeFastPairRepository&) = delete;
   ~FakeFastPairRepository() override = default;
 
+  static std::unique_ptr<FakeFastPairRepository> Create(
+      absl::string_view model_id, absl::string_view public_anti_spoof_key);
+
   void SetFakeMetadata(absl::string_view hex_model_id, proto::Device metadata);
   void ClearFakeMetadata(absl::string_view hex_model_id);
   // FastPairRepository::

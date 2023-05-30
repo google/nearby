@@ -15,27 +15,29 @@
 #include "fastpair/fast_pair_service.h"
 
 #include <memory>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "fastpair/fast_pair_plugin.h"
+#include "fastpair/fake_fast_pair_plugin.h"
+#include "fastpair/fast_pair_events.h"
 #include "fastpair/internal/fast_pair_seeker_impl.h"
+#include "fastpair/message_stream/fake_provider.h"
+#include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace fastpair {
 
 namespace {
-using ::testing::status::StatusIs;
+constexpr absl::string_view kModelId{"718c17"};
+constexpr absl::string_view kPublicAntiSpoof =
+    "Wuyr48lD3txnUhGiMF1IfzlTwRxxe+wMB1HLzP+"
+    "0wVcljfT3XPoiy1fntlneziyLD5knDVAJSE+RM/zlPRP/Jg==";
 
-class FakeFastPairPluginProvider : public FastPairPluginProvider {
- public:
-  std::unique_ptr<FastPairPlugin> GetPlugin(
-      FastPairSeeker* seeker, const FastPairDevice* device) override {
-    return std::make_unique<FastPairPlugin>();
-  }
-};
+using ::testing::status::StatusIs;
 
 TEST(FastPairService, RegisterUnregister) {
   constexpr absl::string_view kPluginName = "my plugin";
@@ -68,18 +70,32 @@ TEST(FastPairService, UnregisterTwiceFails) {
               StatusIs(absl::StatusCode::kNotFound));
 }
 
-TEST(FastPairService, FakeInitialPairing) {
+TEST(FastPairService, InitialDiscoveryEvent) {
+  MediumEnvironment::Instance().Start();
   constexpr absl::string_view kPluginName = "my plugin";
+  auto repository = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
+  FakeProvider provider;
   FastPairService service;
-  EXPECT_OK(service.RegisterPluginProvider(
-      kPluginName, std::make_unique<FakeFastPairPluginProvider>()));
+  CountDownLatch latch(1);
+  auto plugin_provider = std::make_unique<FakeFastPairPluginProvider>();
+  plugin_provider->on_initial_discovery_event_ =
+      [&](const FastPairDevice* device, const InitialDiscoveryEvent& event) {
+        NEARBY_LOGS(INFO) << "Initial discovery: " << device;
+        EXPECT_EQ(device->GetModelId(), kModelId);
+        latch.CountDown();
+      };
+  EXPECT_OK(
+      service.RegisterPluginProvider(kPluginName, std::move(plugin_provider)));
   FastPairSeekerExt* seeker =
       static_cast<FastPairSeekerExt*>(service.GetSeeker());
 
   EXPECT_OK(seeker->StartFastPairScan());
-  EXPECT_OK(seeker->StopFastPairScan());
+  provider.StartDiscoverableAdvertisement(kModelId);
+  latch.Await();
 
+  EXPECT_OK(seeker->StopFastPairScan());
   EXPECT_OK(service.UnregisterPluginProvider(kPluginName));
+  MediumEnvironment::Instance().Stop();
 }
 
 }  // namespace

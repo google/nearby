@@ -18,6 +18,9 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "fastpair/fast_pair_events.h"
+#include "fastpair/scanning/scanner_broker_impl.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -41,18 +44,35 @@ absl::Status FastPairSeekerImpl::StartRetroactivePairing(
 }
 
 absl::Status FastPairSeekerImpl::StartFastPairScan() {
-  // TODO(jsobczak): Replace with actual implementation
-  auto device = std::make_unique<FastPairDevice>(
-      "model_id", "11:22:33:44:55:66", Protocol::kFastPairInitialPairing);
-  test_device_ = devices_->AddDevice(std::move(device));
-  callbacks_.on_initial_discovery(*test_device_, {});
+  if (scanning_session_ != nullptr) {
+    return absl::AlreadyExistsError("already scanning");
+  }
+  scanner_ = std::make_unique<ScannerBrokerImpl>(mediums_, executor_, devices_);
+  scanner_->AddObserver(this);
+  scanning_session_ =
+      scanner_->StartScanning(Protocol::kFastPairInitialPairing);
   return absl::OkStatus();
 }
 
 absl::Status FastPairSeekerImpl::StopFastPairScan() {
-  // TODO(jsobczak): Replace with actual implementation
-  devices_->RemoveDevice(test_device_);
+  if (scanning_session_ == nullptr) {
+    return absl::NotFoundError("scanner is not running");
+  }
+  scanning_session_.reset();
+  scanner_->RemoveObserver(this);
+  DestroyOnExecutor(std::move(scanner_), executor_);
   return absl::OkStatus();
+}
+
+// ScannerBroker::Observer::OnDeviceFound
+void FastPairSeekerImpl::OnDeviceFound(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << "Device found: " << device;
+  callbacks_.on_initial_discovery(device, InitialDiscoveryEvent{});
+}
+
+// ScannerBroker::Observer::OnDeviceLost
+void FastPairSeekerImpl::OnDeviceLost(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << "Device lost: " << device;
 }
 
 }  // namespace fastpair

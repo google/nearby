@@ -37,6 +37,8 @@ class ScannerBroker {
     virtual void OnDeviceFound(FastPairDevice& device) = 0;
     virtual void OnDeviceLost(FastPairDevice& device) = 0;
   };
+
+  // Represents scanning session. Must be destroyed before ScannerBroker.
   class ScanningSession {
    public:
     virtual ~ScanningSession() = default;

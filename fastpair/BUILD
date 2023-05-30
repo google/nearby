@@ -111,12 +111,34 @@ cc_test(
         "fast_pair_service_test.cc",
     ],
     deps = [
-        ":fast_pair_plugin",
+        ":fast_pair_events",
         ":fast_pair_service",
+        ":test_support",
         "//fastpair/internal",
+        "//fastpair/message_stream:fake_provider",
+        "//fastpair/server_access:test_support",
         "//internal/platform:logging",
+        "//internal/platform:test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "test_support",
+    testonly = True,
+    srcs = ["fake_fast_pair_plugin.cc"],
+    hdrs = [
+        "fake_fast_pair_plugin.h",
+    ],
+    visibility = [
+        "//fastpair:__subpackages__",
+    ],
+    deps = [
+        ":fast_pair_events",
+        ":fast_pair_plugin",
+        ":fast_pair_seeker",
+        "//fastpair/common",
     ],
 )

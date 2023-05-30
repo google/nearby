@@ -64,6 +64,8 @@ FastPairService::FastPairService() {
       &executor_, &devices_);
 }
 
+FastPairService::~FastPairService() { executor_.Shutdown(); }
+
 absl::Status FastPairService::RegisterPluginProvider(
     absl::string_view name, std::unique_ptr<FastPairPluginProvider> provider) {
   Future<absl::Status> result;
