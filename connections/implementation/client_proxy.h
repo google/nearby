@@ -258,7 +258,13 @@ class ClientProxy final {
     bool IsEmpty() const { return service_id.empty(); }
   };
 
+  // `RemoveAllEndpoints` is expected to only be called during destruction of
+  // ClientProxy via `ClientProxy::Reset`, which makes destroying
+  // CancellationFlags safe here since we are destroying ClientProxy. Do not
+  // use CancellationFlags after `RemoveAllEndpoints` is called, since all
+  // flags now are referencing garbage memory.
   void RemoveAllEndpoints();
+
   void OnSessionComplete();
   bool ConnectionStatusesContains(const std::string& endpoint_id,
                                   Connection::Status status_to_match) const;
