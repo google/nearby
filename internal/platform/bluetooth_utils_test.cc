@@ -82,6 +82,10 @@ TEST(BluetoothUtilsTest, InvalidStringReturnsEmptyByteArray) {
   std::string bad_bt_mac_address_4 = "BLUETOOTHCHIP";
   bytes_result = BluetoothUtils::FromString(bad_bt_mac_address_4);
   EXPECT_TRUE(bytes_result.Empty());
+
+  std::string bad_bt_mac_address_5 = "G1:F2:F3:F4:F5:F6";
+  bytes_result = BluetoothUtils::FromString(bad_bt_mac_address_5);
+  EXPECT_TRUE(bytes_result.Empty());
 }
 
 TEST(BluetoothUtilsTest, FromNumber) {
