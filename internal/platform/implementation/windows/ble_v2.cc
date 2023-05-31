@@ -209,6 +209,11 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     service_uuid_ = service_uuid;
     tx_power_level_ = tx_power_level;
     scan_callback_ = std::move(callback);
+    {
+      absl::MutexLock lock(&peripheral_map_mutex_);
+      peripheral_map_.clear();
+      mac_address_to_peripheral_id_map_.clear();
+    }
 
     watcher_ = BluetoothLEAdvertisementWatcher();
     watcher_token_ = watcher_.Stopped({this, &BleV2Medium::WatcherHandler});
@@ -922,13 +927,19 @@ void BleV2Medium::AdvertisementReceivedHandler(
       BleV2Peripheral* peripheral_ptr = nullptr;
       {
         absl::MutexLock lock(&peripheral_map_mutex_);
-        if (!peripheral_map_.contains(mac_address_string)) {
-          peripheral_map_[mac_address_string] = std::move(peripheral);
+        if (mac_address_to_peripheral_id_map_.contains(mac_address_string)) {
+          peripheral_map_[mac_address_to_peripheral_id_map_[mac_address_string]]
+              ->SetAddress(
+                  uint64_to_mac_address_string(args.BluetoothAddress()));
         } else {
-          peripheral_map_[mac_address_string]->SetAddress(
-              uint64_to_mac_address_string(args.BluetoothAddress()));
+          mac_address_to_peripheral_id_map_[mac_address_string] =
+              peripheral->GetUniqueId();
+          peripheral_map_[peripheral->GetUniqueId()] = std::move(peripheral);
         }
-        peripheral_ptr = peripheral_map_[mac_address_string].get();
+        peripheral_ptr =
+            peripheral_map_
+                [mac_address_to_peripheral_id_map_[mac_address_string]]
+                    .get();
       }
 
       NEARBY_LOGS(VERBOSE) << "New BLE peripheral: " << peripheral_ptr
@@ -1051,27 +1062,24 @@ void BleV2Medium::AdvertisementFoundHandler(
 
 bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
                                       GetRemotePeripheralCallback callback) {
-  for (auto& item : peripherals_) {
+  absl::MutexLock lock(&peripheral_map_mutex_);
+  for (auto& item : peripheral_map_) {
     if (item.second->GetAddress() == mac_address) {
+      NEARBY_LOGS(WARNING) << __func__ << ": No matched peripheral device.";
       callback(*(item.second));
       return true;
     }
   }
-  auto peripheral = std::make_unique<BleV2Peripheral>();
-  peripheral->SetAddress(mac_address);
-  if (peripheral->GetUniqueId() == 0) {
-    return false;
-  }
-  BleV2Peripheral* ptr = peripheral.get();
-  peripherals_[peripheral->GetUniqueId()] = std::move(peripheral);
-  callback(*ptr);
-  return true;
+
+  return false;
 }
 
 bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                                       GetRemotePeripheralCallback callback) {
-  auto it = peripherals_.find(id);
-  if (it == peripherals_.end()) {
+  absl::MutexLock lock(&peripheral_map_mutex_);
+  auto it = peripheral_map_.find(id);
+  if (it == peripheral_map_.end()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": No matched peripheral device.";
     return false;
   }
   callback(*(it->second));

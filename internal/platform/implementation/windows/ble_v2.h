@@ -118,12 +118,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   api::ble_v2::TxPowerLevel tx_power_level_;
   ScanCallback scan_callback_;
 
-  // Map to protect the pointer for BlePeripheral because
-  // DiscoveredPeripheralCallback only keeps the pointer to the object
-  absl::Mutex peripheral_map_mutex_;
-  absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
-      peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
-
   absl::Mutex map_mutex_;
   // std::map<std::string, std::unique_ptr<BleV2Peripheral>>
   absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
@@ -148,9 +142,14 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   BleGattServer* ble_gatt_server_ = nullptr;
 
+  // Map to protect the pointer for BlePeripheral because
+  // DiscoveredPeripheralCallback only keeps the pointer to the object
+  absl::Mutex peripheral_map_mutex_;
   absl::flat_hash_map<BleV2Peripheral::UniqueId,
                       std::unique_ptr<BleV2Peripheral>>
-      peripherals_;
+      peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
+  absl::flat_hash_map<std::string, BleV2Peripheral::UniqueId>
+      mac_address_to_peripheral_id_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
 };
 
 }  // namespace windows
