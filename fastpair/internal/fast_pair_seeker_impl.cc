@@ -26,19 +26,19 @@ namespace nearby {
 namespace fastpair {
 
 absl::Status FastPairSeekerImpl::StartInitialPairing(
-    FastPairDevice& device, const InitialPairingParam& params,
+    const FastPairDevice& device, const InitialPairingParam& params,
     PairingCallback callback) {
   return absl::UnimplementedError("StartInitialPairing");
 }
 
 absl::Status FastPairSeekerImpl::StartSubsequentPairing(
-    FastPairDevice& device, const SubsequentPairingParam& params,
+    const FastPairDevice& device, const SubsequentPairingParam& params,
     PairingCallback callback) {
   return absl::UnimplementedError("StartSubsequentPairing");
 }
 
 absl::Status FastPairSeekerImpl::StartRetroactivePairing(
-    FastPairDevice& device, const RetroactivePairingParam& param,
+    const FastPairDevice& device, const RetroactivePairingParam& param,
     PairingCallback callback) {
   return absl::UnimplementedError("StartRetroactivePairing");
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/fake_fast_pair_plugin.h"
+#include "fastpair/plugins/fake_fast_pair_plugin.h"
 
 namespace nearby {
 namespace fastpair {

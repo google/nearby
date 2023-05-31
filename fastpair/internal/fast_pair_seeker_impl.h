@@ -59,15 +59,15 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
         devices_(devices) {}
 
   // From FastPairSeeker.
-  absl::Status StartInitialPairing(FastPairDevice& device,
+  absl::Status StartInitialPairing(const FastPairDevice& device,
                                    const InitialPairingParam& params,
                                    PairingCallback callback) override;
 
-  absl::Status StartSubsequentPairing(FastPairDevice& device,
+  absl::Status StartSubsequentPairing(const FastPairDevice& device,
                                       const SubsequentPairingParam& params,
                                       PairingCallback callback) override;
 
-  absl::Status StartRetroactivePairing(FastPairDevice& device,
+  absl::Status StartRetroactivePairing(const FastPairDevice& device,
                                        const RetroactivePairingParam& param,
                                        PairingCallback callback) override;
 

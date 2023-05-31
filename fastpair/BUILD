@@ -113,9 +113,9 @@ cc_test(
     deps = [
         ":fast_pair_events",
         ":fast_pair_service",
-        ":test_support",
         "//fastpair/internal",
         "//fastpair/message_stream:fake_provider",
+        "//fastpair/plugins:fake_fast_pair_plugin",
         "//fastpair/server_access:test_support",
         "//internal/platform:logging",
         "//internal/platform:test_util",
@@ -128,17 +128,15 @@ cc_test(
 cc_library(
     name = "test_support",
     testonly = True,
-    srcs = ["fake_fast_pair_plugin.cc"],
     hdrs = [
-        "fake_fast_pair_plugin.h",
+        "mock_fast_pair_seeker.h",
     ],
     visibility = [
         "//fastpair:__subpackages__",
     ],
     deps = [
-        ":fast_pair_events",
-        ":fast_pair_plugin",
         ":fast_pair_seeker",
-        "//fastpair/common",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_for_library_testonly",
     ],
 )

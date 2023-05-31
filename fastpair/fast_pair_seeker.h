@@ -48,7 +48,7 @@ class FastPairSeeker {
   //
   // Returns an error if pairing flow could not be started. Otherwise, the
   // pairing result will be returned via the `callback`.
-  virtual absl::Status StartInitialPairing(FastPairDevice& device,
+  virtual absl::Status StartInitialPairing(const FastPairDevice& device,
                                            const InitialPairingParam& params,
                                            PairingCallback callback) = 0;
 
@@ -60,7 +60,7 @@ class FastPairSeeker {
   // Returns an error if pairing flow could not be started. Otherwise, the
   // pairing result will be returned via the `callback`.
   virtual absl::Status StartSubsequentPairing(
-      FastPairDevice& device, const SubsequentPairingParam& params,
+      const FastPairDevice& device, const SubsequentPairingParam& params,
       PairingCallback callback) = 0;
 
   // Starts asynchronous retroactive pairing flow. This pairing flow is used
@@ -71,7 +71,7 @@ class FastPairSeeker {
   // Returns an error if pairing flow could not be started. Otherwise, the
   // pairing result will be returned via the `callback`.
   virtual absl::Status StartRetroactivePairing(
-      FastPairDevice& device, const RetroactivePairingParam& param,
+      const FastPairDevice& device, const RetroactivePairingParam& param,
       PairingCallback callback) = 0;
 };
 }  // namespace fastpair
