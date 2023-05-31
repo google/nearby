@@ -247,20 +247,14 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
     BleV2Peripheral peripheral, TxPowerLevel tx_power_level,
     ClientGattConnectionCallback callback) {
-  {
-    MutexLock lock(&mutex_);
-    client_gatt_connection_callback_ = std::move(callback);
-  }
-
   std::unique_ptr<api::ble_v2::GattClient> api_gatt_client;
   peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
     api_gatt_client = impl_->ConnectToGattServer(
         device, tx_power_level,
         {
             .disconnected_cb =
-                [this]() {
-                  MutexLock lock(&mutex_);
-                  client_gatt_connection_callback_.disconnected_cb();
+                [callback = std::move(callback)]() mutable {
+                  callback.disconnected_cb();
                 },
         });
   });

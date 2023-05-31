@@ -571,6 +571,32 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
   env_.Stop();
 }
 
+TEST_F(BleV2MediumTest, GattClientNotifiedWhenServerDisconnects) {
+  env_.Start();
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
+  std::unique_ptr<GattServer> gatt_server =
+      ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
+  ASSERT_NE(gatt_server, nullptr);
+  CountDownLatch disconnected_latch(1);
+  // Start GattClient
+  BleV2Peripheral ble_peripheral =
+      ble_b.GetRemotePeripheral(*gatt_server->GetBlePeripheral().GetAddress());
+  std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
+      BleV2Peripheral(ble_peripheral), kTxPowerLevel,
+      /*ClientGattConnectionCallback=*/{.disconnected_cb = [&]() {
+        disconnected_latch.CountDown();
+      }});
+  ASSERT_NE(gatt_client, nullptr);
+
+  gatt_server->Stop();
+
+  disconnected_latch.Await();
+  env_.Stop();
+}
+
 TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
   env_.Start();
   BluetoothAdapter adapter_a;

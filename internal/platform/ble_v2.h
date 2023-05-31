@@ -455,8 +455,6 @@ class BleV2Medium final {
   BluetoothAdapter& adapter_;
   ServerGattConnectionCallback server_gatt_connection_callback_
       ABSL_GUARDED_BY(mutex_);
-  ClientGattConnectionCallback client_gatt_connection_callback_
-      ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<api::ble_v2::BlePeripheral*> peripherals_
       ABSL_GUARDED_BY(mutex_);
   ScanCallback scan_callback_ ABSL_GUARDED_BY(mutex_);

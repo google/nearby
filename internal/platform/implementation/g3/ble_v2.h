@@ -228,6 +228,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                            GetRemotePeripheralCallback callback) override;
 
  private:
+  class GattClient;
   // A concrete implementation for GattServer.
   class GattServer : public api::ble_v2::GattServer {
    public:
@@ -277,6 +278,13 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     bool HasCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic);
 
+    void Connect(GattClient* client) { connected_clients_.push_back(client); }
+    void Disconnect(GattClient* client) {
+      connected_clients_.erase(std::remove(connected_clients_.begin(),
+                                           connected_clients_.end(), client),
+                               connected_clients_.end());
+    }
+
    private:
     using SubscriberKey =
         std::pair<const BleV2Peripheral*, api::ble_v2::GattCharacteristic>;
@@ -289,7 +297,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                         absl::StatusOr<ByteArray>>
         characteristics_;
     absl::flat_hash_map<SubscriberKey, SubscriberCallback> subscribers_;
-
+    std::vector<GattClient*> connected_clients_;
     Lender<api::ble_v2::GattServer*> lender_{this};
   };
 
@@ -298,10 +306,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
    public:
     GattClient(api::ble_v2::BlePeripheral& peripheral,
                Borrowable<api::ble_v2::GattServer*> gatt_server,
-               api::ble_v2::ClientGattConnectionCallback callback)
-        : peripheral_(static_cast<BleV2Peripheral&>(peripheral)),
-          gatt_server_(gatt_server),
-          callback_(std::move(callback)) {}
+               api::ble_v2::ClientGattConnectionCallback callback);
+    ~GattClient() override;
     bool DiscoverServiceAndCharacteristics(
         const Uuid& service_uuid,
         const std::vector<Uuid>& characteristic_uuids) override;
@@ -323,6 +329,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
             on_characteristic_changed_cb) override;
 
     void Disconnect() override;
+
+    void OnServerDisconnected();
 
    private:
     absl::Mutex mutex_;

@@ -432,6 +432,7 @@ BleV2Medium::GattServer::GattServer(
 }
 
 BleV2Medium::GattServer::~GattServer() {
+  Stop();
   lender_.Release();
   MediumEnvironment::Instance().UnregisterGattServer(medium_);
 }
@@ -573,6 +574,33 @@ bool BleV2Medium::GattServer::HasCharacteristic(
 void BleV2Medium::GattServer::Stop() {
   NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
   characteristics_.clear();
+  for (auto& client : connected_clients_) {
+    client->OnServerDisconnected();
+  }
+}
+
+BleV2Medium::GattClient::GattClient(
+    api::ble_v2::BlePeripheral& peripheral,
+    Borrowable<api::ble_v2::GattServer*> gatt_server,
+    api::ble_v2::ClientGattConnectionCallback callback)
+    : peripheral_(static_cast<BleV2Peripheral&>(peripheral)),
+      gatt_server_(gatt_server),
+      callback_(std::move(callback)) {
+  Borrowed<api::ble_v2::GattServer*> borrowed = gatt_server_.Borrow();
+  if (borrowed) {
+    BleV2Medium::GattServer* gatt_server =
+        static_cast<BleV2Medium::GattServer*>(*borrowed);
+    gatt_server->Connect(this);
+  }
+}
+
+BleV2Medium::GattClient::~GattClient() {
+  Borrowed<api::ble_v2::GattServer*> borrowed = gatt_server_.Borrow();
+  if (borrowed) {
+    BleV2Medium::GattServer* gatt_server =
+        static_cast<BleV2Medium::GattServer*>(*borrowed);
+    gatt_server->Disconnect(this);
+  }
 }
 
 bool BleV2Medium::GattClient::DiscoverServiceAndCharacteristics(
@@ -718,6 +746,23 @@ void BleV2Medium::GattClient::Disconnect() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "G3 Ble GattClient Disconnect";
   is_connection_alive_ = false;
+  Borrowed<api::ble_v2::GattServer*> borrowed = gatt_server_.Borrow();
+  if (borrowed) {
+    BleV2Medium::GattServer* gatt_server =
+        static_cast<BleV2Medium::GattServer*>(*borrowed);
+    gatt_server->Disconnect(this);
+  }
+}
+
+void BleV2Medium::GattClient::OnServerDisconnected() {
+  {
+    absl::MutexLock lock(&mutex_);
+    NEARBY_LOGS(INFO) << "G3 Ble GattServer disconnected";
+    is_connection_alive_ = false;
+  }
+  if (callback_.disconnected_cb != nullptr) {
+    callback_.disconnected_cb();
+  }
 }
 
 std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
