@@ -15,6 +15,7 @@
 #ifndef PLATFORM_IMPL_G3_BLE_V2_H_
 #define PLATFORM_IMPL_G3_BLE_V2_H_
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -253,7 +254,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         const ByteArray& new_value) override;
 
     void Stop() override;
-
+    bool IsStopped() { return stopped_; }
     bool DiscoverBleV2MediumGattCharacteristics(
         const Uuid& service_uuid,
         const std::vector<Uuid>& characteristic_uuids);
@@ -298,6 +299,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         characteristics_;
     absl::flat_hash_map<SubscriberKey, SubscriberCallback> subscribers_;
     std::vector<GattClient*> connected_clients_;
+    std::atomic_bool stopped_ = false;
     Lender<api::ble_v2::GattServer*> lender_{this};
   };
 
@@ -344,6 +346,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     api::ble_v2::ClientGattConnectionCallback callback_;
   };
 
+  bool IsStopped(Borrowable<api::ble_v2::GattServer*>* server);
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
   BleV2Peripheral peripheral_{adapter_};
