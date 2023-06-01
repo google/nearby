@@ -361,12 +361,21 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
   return std::make_unique<GattServer>(*this, std::move(callback));
 }
 
+bool BleV2Medium::IsStopped(Borrowable<api::ble_v2::GattServer*>* server) {
+  auto borrowed = server->Borrow();
+  if (!borrowed) {
+    return true;
+  }
+  BleV2Medium::GattServer* gatt_server = static_cast<GattServer*>(*borrowed);
+  return gatt_server->IsStopped();
+}
+
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   Borrowable<api::ble_v2::GattServer*>* server =
       MediumEnvironment::Instance().GetGattServer(peripheral);
-  if (server == nullptr) {
+  if (server == nullptr || IsStopped(server)) {
     NEARBY_LOGS(WARNING) << "No GATT server found for "
                          << peripheral.GetAddress();
     return nullptr;
@@ -573,6 +582,7 @@ bool BleV2Medium::GattServer::HasCharacteristic(
 
 void BleV2Medium::GattServer::Stop() {
   NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
+  stopped_ = true;
   characteristics_.clear();
   for (auto& client : connected_clients_) {
     client->OnServerDisconnected();
