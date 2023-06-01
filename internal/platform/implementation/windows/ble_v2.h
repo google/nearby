@@ -74,6 +74,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   bool GetRemotePeripheral(const std::string& mac_address,
                            GetRemotePeripheralCallback callback) override;
 
+  bool CreateRemotePeripheralFromMacAddress(
+      const std::string& mac_address,
+      GetRemotePeripheralCallback callback) override;
+
   bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                            GetRemotePeripheralCallback callback) override;
 

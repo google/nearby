@@ -1086,6 +1086,18 @@ bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
   return true;
 }
 
+bool BleV2Medium::CreateRemotePeripheralFromMacAddress(
+    const std::string& mac_address, GetRemotePeripheralCallback callback) {
+  absl::MutexLock lock(&peripheral_map_mutex_);
+  auto peripheral = std::make_unique<BleV2Peripheral>();
+  peripheral->SetAddress(mac_address);
+  BleV2Peripheral* ptr = peripheral.get();
+  mac_address_to_peripheral_id_map_[mac_address] = peripheral->GetUniqueId();
+  peripheral_map_[peripheral->GetUniqueId()] = std::move(peripheral);
+  callback(*ptr);
+  return true;
+}
+
 uint64_t BleV2Medium::GenerateSessionId() {
   absl::MutexLock lock(&map_mutex_);
   for (int i = 0; i < kGenerateSessionIdRetryLimit; i++) {

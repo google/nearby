@@ -513,6 +513,9 @@ class BleMedium {
   virtual bool GetRemotePeripheral(const std::string& mac_address,
                                    GetRemotePeripheralCallback callback) = 0;
 
+  virtual bool CreateRemotePeripheralFromMacAddress(
+      const std::string& mac_address, GetRemotePeripheralCallback callback) = 0;
+
   // Calls `callback` and returns true if `id` refers to a known BLE peripheral.
   // Otherwise, does not call the callback and returns false.
   virtual bool GetRemotePeripheral(BlePeripheral::UniqueId id,

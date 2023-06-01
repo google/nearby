@@ -49,7 +49,14 @@ std::unique_ptr<GattClient> BleV2::ConnectToGattServer(
   }
 
   BleV2Peripheral v2_peripheral =
-      medium_.GetRemotePeripheral(std::string(ble_address));
+      medium_.CreateRemotePeripheralFromMacAddress(std::string(ble_address));
+
+  if (!v2_peripheral.IsValid()) {
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << "Can't connect to GattServer because BleV2 "
+                            "Peripheral was NOT found.";
+    return nullptr;
+  }
   return medium_.ConnectToGattServer(v2_peripheral,
                                      api::ble_v2::TxPowerLevel::kUnknown, {});
 }

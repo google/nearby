@@ -292,6 +292,16 @@ BleV2Peripheral BleV2Medium::GetRemotePeripheral(
   return peripheral;
 }
 
+BleV2Peripheral BleV2Medium::CreateRemotePeripheralFromMacAddress(
+    const std::string& mac_address) {
+  BleV2Peripheral peripheral;
+  impl_->CreateRemotePeripheralFromMacAddress(
+      mac_address, [&](api::ble_v2::BlePeripheral& device) {
+        peripheral = BleV2Peripheral(*this, device);
+      });
+  return peripheral;
+}
+
 absl::optional<std::string> BleV2Peripheral::GetAddress() const {
   absl::optional<std::string> address;
   GetImpl([&](api::ble_v2::BlePeripheral& device) {
