@@ -434,10 +434,10 @@ TEST_F(ClientProxyTest, DumpString) {
       "Nearby Connections State\n"
       "  Client ID: %d\n"
       "  Local Endpoint ID: %s\n"
-      "  High Visibility Mode: 0\n"
-      "  Is Advertising: 0\n"
+      "  High Visibility Mode: false\n"
+      "  Is Advertising: false\n"
+      "  Is Discovering: false\n"
       "  Advertising Service ID: \n"
-      "  Is Discovering: 0\n"
       "  Discovery Service ID: \n"
       "  Connections: \n"
       "  Discovered endpoint IDs: \n",

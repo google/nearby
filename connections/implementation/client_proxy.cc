@@ -16,6 +16,7 @@
 
 #include <cstdlib>
 #include <functional>
+#include <ios>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -866,15 +867,14 @@ std::string ClientProxy::Dump() {
   sstream << "Nearby Connections State" << std::endl;
   sstream << "  Client ID: " << GetClientId() << std::endl;
   sstream << "  Local Endpoint ID: " << GetLocalEndpointId() << std::endl;
+  sstream << std::boolalpha;
   sstream << "  High Visibility Mode: " << high_vis_mode_ << std::endl;
   sstream << "  Is Advertising: " << IsAdvertising() << std::endl;
+  sstream << "  Is Discovering: " << IsDiscovering() << std::endl;
+  sstream << std::noboolalpha;
   sstream << "  Advertising Service ID: " << GetAdvertisingServiceId()
           << std::endl;
-  // TODO(deling): AdvertisingOptions
-  sstream << "  Is Discovering: " << IsDiscovering() << std::endl;
   sstream << "  Discovery Service ID: " << GetDiscoveryServiceId() << std::endl;
-  // TODO(deling): DiscoveryOptions
-
   sstream << "  Connections: " << std::endl;
   for (auto it = connections_.begin(); it != connections_.end(); ++it) {
     // TODO(deling): write Connection.ToString()
