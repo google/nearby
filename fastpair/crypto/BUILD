@@ -3,6 +3,7 @@ cc_library(
     srcs = [
         "fast_pair_decryption.cc",
         "fast_pair_encryption.cc",
+        "fast_pair_message_type.cc",
     ],
     hdrs = [
         "decrypted_passkey.h",
@@ -93,6 +94,21 @@ cc_test(
     size = "small",
     srcs = [
         "fast_pair_decryption_test.cc",
+    ],
+    shard_count = 1,
+    deps = [
+        ":crypto",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_message_type_test",
+    size = "small",
+    srcs = [
+        "fast_pair_message_type_test.cc",
     ],
     shard_count = 1,
     deps = [

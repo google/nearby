@@ -12,32 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_MESSAGE_TYPE_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_MESSAGE_TYPE_H_
+#include "fastpair/crypto/fast_pair_message_type.h"
 
 #include <ostream>
 
 namespace nearby {
 namespace fastpair {
 
-// Type values for Fast Pair messages.
-enum class FastPairMessageType {
-  // Unknown message type.
-  kUnknown = 0,
-  // Key-based Pairing Request.
-  kKeyBasedPairingRequest = 1,
-  // Key-based Pairing Response.
-  kKeyBasedPairingResponse = 2,
-  // Seeker's passkey.
-  kSeekersPasskey = 3,
-  // Provider's passkey.
-  kProvidersPasskey = 4,
-};
-
 std::ostream& operator<<(std::ostream& stream,
-                         FastPairMessageType message_type);
+                         FastPairMessageType message_type) {
+  switch (message_type) {
+    case FastPairMessageType::kKeyBasedPairingRequest:
+      stream << "[Key-Based Pairing Request]";
+      break;
+    case FastPairMessageType::kKeyBasedPairingResponse:
+      stream << "[Key-Based Pairing Response]";
+      break;
+    case FastPairMessageType::kSeekersPasskey:
+      stream << "[Seeker's Passkey]";
+      break;
+    case FastPairMessageType::kProvidersPasskey:
+      stream << "[Providers' Passkey]";
+      break;
+    default:
+      stream << "[Unknown]";
+  }
+
+  return stream;
+}
 
 }  // namespace fastpair
 }  // namespace nearby
-
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_MESSAGE_TYPE_H_

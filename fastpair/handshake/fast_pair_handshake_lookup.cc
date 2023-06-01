@@ -15,18 +15,22 @@
 #include "fastpair/handshake/fast_pair_handshake_lookup.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "fastpair/handshake/fast_pair_handshake_impl.h"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace fastpair {
 
 FastPairHandshakeLookup* FastPairHandshakeLookup::instance_ = nullptr;
 absl::Mutex FastPairHandshakeLookup::mutex_(absl::kConstInit);
+namespace {
+absl::optional<FastPairHandshakeLookup::CreateFunction> g_test_create_function =
+    std::nullopt;
+}
 
 // static
 FastPairHandshakeLookup* FastPairHandshakeLookup::GetInstance() {
@@ -35,6 +39,12 @@ FastPairHandshakeLookup* FastPairHandshakeLookup::GetInstance() {
     instance_ = new FastPairHandshakeLookup();
   }
   return instance_;
+}
+
+// static Create function override which can be set by tests.
+void FastPairHandshakeLookup::SetCreateFunctionForTesting(
+    CreateFunction create_function) {
+  g_test_create_function = std::move(create_function);
 }
 
 FastPairHandshake* FastPairHandshakeLookup::Get(FastPairDevice* device) {
@@ -80,8 +90,11 @@ FastPairHandshake* FastPairHandshakeLookup::Create(
     FastPairDevice& device, Mediums& mediums, OnCompleteCallback on_complete) {
   absl::MutexLock lock(&mutex_);
   auto it = fast_pair_handshakes_.emplace(
-      &device, std::make_unique<FastPairHandshakeImpl>(device, mediums,
-                                                       std::move(on_complete)));
+      &device, g_test_create_function.has_value()
+                   ? g_test_create_function.value()(device, mediums,
+                                                    std::move(on_complete))
+                   : std::make_unique<FastPairHandshakeImpl>(
+                         device, mediums, std::move(on_complete)));
   DCHECK(it.second);
   return it.first->second.get();
 }

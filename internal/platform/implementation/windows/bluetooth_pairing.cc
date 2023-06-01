@@ -143,7 +143,7 @@ bool BluetoothPairing::FinishPairing(
 
 bool BluetoothPairing::CancelPairing() {
   NEARBY_LOGS(VERBOSE) << __func__
-                       << "Start to cancel ongoing pairing process.";
+                       << " Start to cancel ongoing pairing process.";
   try {
     if (!pairing_deferral_) {
       NEARBY_LOGS(VERBOSE) << __func__ << "No ongoing pairing process.";
@@ -156,7 +156,7 @@ bool BluetoothPairing::CancelPairing() {
     // |was_cancelled_| is set so that OnPair(), which is called when the
     // deferral is completed, will know that cancellation was the actual result.
     was_cancelled_ = true;
-    pairing_deferral_.Complete();
+    pairing_deferral_.Close();
     NEARBY_LOGS(VERBOSE) << __func__ << "Canceled ongoing pairing process.";
     return true;
   } catch (std::exception exception) {
@@ -202,7 +202,7 @@ bool BluetoothPairing::Unpair() {
 bool BluetoothPairing::IsPaired() {
   try {
     bool is_paired = bluetooth_device_.DeviceInformation().Pairing().IsPaired();
-    NEARBY_LOGS(INFO) << __func__ << (is_paired ? "True" : "False");
+    NEARBY_LOGS(INFO) << __func__ << (is_paired ? " True" : " False");
     return is_paired;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get IsPaired.  exception: "
