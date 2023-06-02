@@ -466,6 +466,7 @@ let package = Package(
         "internal/crypto/aead_unittest.cc",
         "internal/crypto/ec_private_key_unittest.cc",
         "internal/crypto/ec_signature_creator_unittest.cc",
+        "internal/crypto/ed25519_unittest.cc",
         "internal/crypto/encryptor_unittest.cc",
         "internal/crypto/hmac_unittest.cc",
         "internal/crypto/random_unittest.cc",
