@@ -692,7 +692,7 @@ bool BleV2::StopAdvertisementGattServerLocked() {
                          "it's not running.";
     return false;
   }
-
+  gatt_server_->Stop();
   gatt_server_.reset();
   return true;
 }

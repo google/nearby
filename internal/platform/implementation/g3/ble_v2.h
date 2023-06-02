@@ -332,7 +332,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
     void Disconnect() override;
 
-    void OnServerDisconnected();
+    void OnServerDisconnected() ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
     absl::Mutex mutex_;
