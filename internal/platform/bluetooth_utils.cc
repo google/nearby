@@ -78,7 +78,7 @@ std::string BluetoothUtils::FromNumber(std::uint64_t address) {
                          b(5), b(6), b(7));
 }
 
-std::uint64_t BluetoothUtils::ToNumber(std::string address) {
+std::uint64_t BluetoothUtils::ToNumber(absl::string_view address) {
   ByteArray binary = FromString(address);
   if (binary.size() != kBluetoothMacAddressLength) {
     return 0;

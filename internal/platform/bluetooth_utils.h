@@ -40,7 +40,7 @@ class BluetoothUtils {
 
   // Converts a MAC address from canonical format to binary
   // Example: "F1:F2:F3:F4:F5:F6" ->0xF1F2F3F4F5F6
-  static std::uint64_t ToNumber(std::string address);
+  static std::uint64_t ToNumber(absl::string_view address);
 
   // Checks if a Bluetooth MAC address is zero for every byte.
   static bool IsBluetoothMacAddressUnset(
