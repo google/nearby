@@ -272,6 +272,8 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
 
       if (adapter_->IsExtendedAdvertisingSupported()) {
         watcher_.AllowExtendedAdvertisements(true);
+      } else {
+        watcher_.AllowExtendedAdvertisements(false);
       }
 
       // Active mode indicates that scan request packets will be sent to query
@@ -954,8 +956,6 @@ void BleV2Medium::AdvertisementReceivedHandler(
         ble_advertisement_data.is_extended_advertisement = false;
       } else {
         ble_advertisement_data.is_extended_advertisement = true;
-        // test purpose
-        return;
       }
 
       ble_advertisement_data.service_data[service_uuid_] = advertisement_data;
