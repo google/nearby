@@ -5,6 +5,7 @@ cc_library(
     srcs = [
         "account_key_filter.cc",
         "battery_notification.cc",
+        "fast_pair_context_impl.cc",
         "fast_pair_device.cc",
         "fast_pair_http_result.cc",
         "pair_failure.cc",
@@ -15,6 +16,8 @@ cc_library(
         "account_key_filter.h",
         "battery_notification.h",
         "constant.h",
+        "fast_pair_context.h",
+        "fast_pair_context_impl.h",
         "fast_pair_device.h",
         "fast_pair_http_result.h",
         "non_discoverable_advertisement.h",
@@ -25,8 +28,13 @@ cc_library(
         "//fastpair:__subpackages__",
     ],
     deps = [
+        "//fastpair/internal/api:platform",
+        "//internal/auth:oauth_lib",
+        "//internal/auth:types",
         "//internal/crypto",
         "//internal/platform:logging",
+        "//internal/platform:types",
+        "//internal/preferences",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -90,6 +98,21 @@ cc_test(
     deps = [
         ":common",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_context_test",
+    size = "small",
+    srcs = [
+        "fast_pair_context_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":common",
+        "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
