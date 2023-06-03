@@ -354,7 +354,8 @@ void ServiceControllerRouter::DisconnectFromEndpoint(
 
 Status ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
     ClientProxy* client, absl::string_view service_id,
-    v3::ConnectionListener listener, v3::ConnectionListeningOptions& options) {
+    v3::ConnectionListener listener,
+    const v3::ConnectionListeningOptions& options) {
   return GetServiceController()->StartListeningForIncomingConnections(
       client, service_id, std::move(listener), options);
 }

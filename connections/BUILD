@@ -98,7 +98,7 @@ cc_test(
         ":core",
         ":core_types",
         "//connections/implementation:internal_test",
-        "//internal/interop:device",
+        "//connections/v3:v3_types",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",

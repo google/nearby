@@ -118,7 +118,8 @@ class ServiceControllerRouter {
   ////////////////////////////// V3 ////////////////////////////////////////////
   virtual Status StartListeningForIncomingConnectionsV3(
       ClientProxy* client, absl::string_view service_id,
-      v3::ConnectionListener listener, v3::ConnectionListeningOptions& options);
+      v3::ConnectionListener listener,
+      const v3::ConnectionListeningOptions& options);
 
   virtual void StopListeningForIncomingConnectionsV3(ClientProxy* client);
 

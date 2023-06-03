@@ -83,6 +83,17 @@ std::string ClientProxy::GetLocalEndpointId() {
   return local_endpoint_id_;
 }
 
+const NearbyDevice* ClientProxy::GetLocalDevice() {
+  if (device_provider_ == nullptr) {
+    // TODO(b/285602283): Plug in actual endpoint info once available.
+    auto provider =
+        v3::ConnectionsDeviceProvider(GetLocalEndpointId(), "V3 endpoint", {});
+    RegisterDeviceProvider(
+        std::make_unique<v3::ConnectionsDeviceProvider>(provider));
+  }
+  return device_provider_->GetLocalDevice();
+}
+
 std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {

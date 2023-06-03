@@ -70,6 +70,11 @@ class ClientProxy final {
   }
 
   std::string GetConnectionToken(const std::string& endpoint_id);
+  const NearbyDevice* GetLocalDevice();
+  // Test-only.
+  NearbyDeviceProvider* GetLocalDeviceProvider() {
+    return device_provider_.get();
+  }
 
   // Clears all the runtime state of this client.
   void Reset();

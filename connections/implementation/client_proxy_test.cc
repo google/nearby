@@ -31,6 +31,7 @@
 #include "connections/strategy.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
+#include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
@@ -57,6 +58,11 @@ class FakeEventLogger : public ::nearby::analytics::EventLogger {
   explicit FakeEventLogger() = default;
 
   void Log(const ::google::protobuf::MessageLite& message) override {}
+};
+
+class MockDeviceProvider : public nearby::NearbyDeviceProvider {
+ public:
+  MOCK_METHOD((const NearbyDevice*), GetLocalDevice, (), (override));
 };
 
 class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
@@ -957,6 +963,22 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
   ASSERT_TRUE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
   EXPECT_EQ(client1_.GetRemoteOsInfo(advertising_endpoint.id).value().type(),
             OsInfo::ANDROID);
+}
+
+TEST_F(ClientProxyTest, GetLocalDeviceWorksWithoutDeviceProvider) {
+  auto device = client1_.GetLocalDevice();
+  EXPECT_NE(device, nullptr);
+  EXPECT_EQ(device->GetEndpointId().length(), 4);
+  EXPECT_NE(client1_.GetLocalDeviceProvider(), nullptr);
+}
+
+TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
+  client1_.RegisterDeviceProvider(std::make_unique<MockDeviceProvider>());
+  ASSERT_NE(client1_.GetLocalDeviceProvider(), nullptr);
+  EXPECT_CALL(
+      *(down_cast<MockDeviceProvider*>(client1_.GetLocalDeviceProvider())),
+      GetLocalDevice);
+  client1_.GetLocalDevice();
 }
 
 }  // namespace

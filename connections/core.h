@@ -264,6 +264,7 @@ class Core {
   // advertising_options - The options for advertising.
   // local_device        - The local device for use when advertising when a
   //                       `DeviceProvider` has not been registered.
+  // listener            - The set of callbacks for connection events.
   // callback - to access the status of the operation when available.
   //   Possible status codes include:
   //     Status::STATUS_OK if advertising started successfully.
@@ -273,6 +274,7 @@ class Core {
   void StartAdvertisingV3(absl::string_view service_id,
                           const AdvertisingOptions& advertising_options,
                           const NearbyDevice& local_device,
+                          v3::ConnectionListener listener,
                           ResultCallback callback);
 
   // Starts advertising an endpoint for a local app.
@@ -294,6 +296,7 @@ class Core {
   //         connected to remote endpoints; call StopAllEndpoints first.
   void StartAdvertisingV3(absl::string_view service_id,
                           const AdvertisingOptions& advertising_options,
+                          v3::ConnectionListener listener,
                           ResultCallback callback);
 
   // Stops advertising a local endpoint. Should be called after calling
@@ -332,8 +335,9 @@ class Core {
 
   // Starts listening for incoming connections.
   //
-  // listener_cb - The connection listener to broadcast any updates.
   // options - The options for listening for a connection.
+  // service_id - The service ID to listen for.
+  // listener_cb - The connection listener to broadcast any updates.
   // result_cb - to access the status of the operation when available.
   //   Possible status codes include:
   //     Status::STATUS_OK if listening started successfully.
@@ -341,13 +345,14 @@ class Core {
   //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
   //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently connected
   //         to remote endpoints; call StopAllEndpoints first.
-  void StartListeningForIncomingConnections(
+  void StartListeningForIncomingConnectionsV3(
       const v3::ConnectionListeningOptions& options,
-      v3::ConnectionListener listener_cb, ResultCallback result_cb);
+      absl::string_view service_id, v3::ConnectionListener listener_cb,
+      ResultCallback result_cb);
 
   // Stops listening for incoming connections. Should be called after
   // calling StartListeningForIncomingConnections.
-  void StopListeningForIncomingConnections();
+  void StopListeningForIncomingConnectionsV3();
 
   // Sends a request to connect to a remote endpoint.
   //
@@ -370,7 +375,7 @@ class Core {
   //     Status::STATUS_ERROR if we failed to connect for any other reason.
   void RequestConnectionV3(const NearbyDevice& local_device,
                            const NearbyDevice& remote_device,
-                           const ConnectionOptions& connection_options,
+                           ConnectionOptions connection_options,
                            v3::ConnectionListener connection_cb,
                            ResultCallback result_cb);
 
@@ -391,7 +396,7 @@ class Core {
   //         issue with Bluetooth/WiFi.
   //     Status::STATUS_ERROR if we failed to connect for any other reason.
   void RequestConnectionV3(const NearbyDevice& remote_device,
-                           const ConnectionOptions& connection_options,
+                           ConnectionOptions connection_options,
                            v3::ConnectionListener connection_cb,
                            ResultCallback result_cb);
 
@@ -445,7 +450,7 @@ class Core {
   //         still occur during transmission (and at different times for
   //         different endpoints), and will be delivered via
   //         PayloadCallback#onPayloadTransferUpdate.
-  void SendPayloadV3(const NearbyDevice& remote_device, const Payload& payload,
+  void SendPayloadV3(const NearbyDevice& remote_device, Payload payload,
                      ResultCallback result_cb);
 
   // Cancels a Payload currently in-flight to or from remote endpoint(s).
@@ -495,7 +500,8 @@ class Core {
   //
   // advertising_options - The new advertising options a client wishes to use.
   // result_cb - to access the status of the operation when available.
-  void UpdateAdvertisingOptionsV3(const AdvertisingOptions& advertising_options,
+  void UpdateAdvertisingOptionsV3(absl::string_view service_id,
+                                  AdvertisingOptions advertising_options,
                                   ResultCallback result_cb);
 
   // Updates DiscoveryOptions. It compares the old DiscoveryOptions and the new
@@ -503,7 +509,8 @@ class Core {
   //
   // discovery_options - The new discovery options a client wishes to use.
   // result_cb - to access the status of the operation when available.
-  void UpdateDiscoveryOptionsV3(const DiscoveryOptions& discovery_options,
+  void UpdateDiscoveryOptionsV3(absl::string_view service_id,
+                                DiscoveryOptions discovery_options,
                                 ResultCallback result_cb);
 
   // Registers a DeviceProvider to provide functionality for Nearby Connections

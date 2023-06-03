@@ -225,6 +225,7 @@ cc_test(
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
         "//internal/flags:nearby_flags",
+        "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
