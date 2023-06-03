@@ -134,7 +134,8 @@ message ConnectionResponseFrame {
   // means bt supports multiplex while 0x00 means not. Refer to ClientProxy.java
   // for the bit usages.
   optional int32 multiplex_socket_bitmask = 5;
-  optional int32 nearby_connections_version = 6;
+  optional int32 nearby_connections_version = 6 [deprecated = true];
+  optional int32 safe_to_disconnect_version = 7;
 }
 
 message PayloadTransferFrame {
