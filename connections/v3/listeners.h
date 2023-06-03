@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_V3_LISTENERS_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_V3_LISTENERS_H_
 
+#include <functional>
+
 #include "absl/functional/any_invocable.h"
 #include "connections/listeners.h"
 #include "connections/v3/bandwidth_info.h"
@@ -53,11 +55,13 @@ struct ConnectionListener {
   // ConnectionsStatusCodes#SUCCESS}, both sides have accepted the
   // connection and may now send {@link Payload}s to each other.
   // Otherwise, the connection was rejected.
+  // We use std::function here as both rejection and acceptance callbacks call
+  // this function now.
 
   // remote_device - The identifier for the remote endpoint.
   // resolution    - The resolution of the connection (accepted or rejected).
-  absl::AnyInvocable<void(const NearbyDevice& remote_device,
-                          ConnectionResult resolution)>
+  std::function<void(const NearbyDevice& remote_device,
+                     ConnectionResult resolution)>
       result_cb = [](const NearbyDevice&, ConnectionResult) {};
 
   // Called when a remote endpoint is disconnected or has become unreachable.
@@ -111,7 +115,8 @@ struct PayloadListener {
   // remote_device - The identifier for the remote endpoint that sent the
   //               payload.
   // payload     - The Payload object received.
-  absl::AnyInvocable<void(const NearbyDevice& remote_device, Payload payload)>
+  absl::AnyInvocable<void(const NearbyDevice& remote_device, Payload payload)
+                         const>
       payload_received_cb = [](const NearbyDevice&, Payload) {};
 
   // Called with progress information about an active Payload transfer, either

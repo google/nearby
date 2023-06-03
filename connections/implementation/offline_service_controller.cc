@@ -144,6 +144,19 @@ void OfflineServiceController::DisconnectFromEndpoint(
   endpoint_manager_.UnregisterEndpoint(client, endpoint_id);
 }
 
+Status OfflineServiceController::UpdateAdvertisingOptions(
+    ClientProxy* client, absl::string_view service_id,
+    const AdvertisingOptions& advertising_options) {
+  // TODO(b/284048592): Implement.
+  return {Status::kError};
+}
+
+Status OfflineServiceController::UpdateDiscoveryOptions(
+    ClientProxy* client, absl::string_view service_id,
+    const DiscoveryOptions& discovery_options) {
+  // TODO(b/284048592): Implement.
+  return {Status::kError};
+}
 void OfflineServiceController::SetCustomSavePath(ClientProxy* client,
                                                  const std::string& path) {
   if (stop_) return;

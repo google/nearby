@@ -176,6 +176,7 @@ cc_library(
     deps = [
         ":internal",
         "//connections:core_types",
+        "//connections/v3:v3_types",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",

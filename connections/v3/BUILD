@@ -7,6 +7,7 @@ cc_library(
         "connections_device.h",
         "connections_device_provider.h",
         "listeners.h",
+        "params.h",
     ],
     visibility = [
         "//connections:__subpackages__",

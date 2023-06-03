@@ -96,6 +96,49 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
               (ClientProxy * client, absl::string_view path,
                const ResultCallback& callback),
               (override));
+
+  MOCK_METHOD(void, RequestConnectionV3,
+              (ClientProxy * client, const NearbyDevice&,
+               v3::ConnectionRequestInfo, const ConnectionOptions&,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, AcceptConnectionV3,
+              (ClientProxy * client, const NearbyDevice&, v3::PayloadListener,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, RejectConnectionV3,
+              (ClientProxy * client, const NearbyDevice&,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, InitiateBandwidthUpgradeV3,
+              (ClientProxy * client, const NearbyDevice&,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, SendPayloadV3,
+              (ClientProxy * client, const NearbyDevice&, Payload,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, DisconnectFromDeviceV3,
+              (ClientProxy * client, const NearbyDevice&,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, UpdateAdvertisingOptionsV3,
+              (ClientProxy * client, absl::string_view service_id,
+               const AdvertisingOptions& advertising_options,
+               const ResultCallback& callback),
+              (override));
+
+  MOCK_METHOD(void, UpdateDiscoveryOptionsV3,
+              (ClientProxy * client, absl::string_view service_id,
+               const DiscoveryOptions& discovery_options,
+               const ResultCallback& callback),
+              (override));
 };
 
 }  // namespace connections

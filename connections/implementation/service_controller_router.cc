@@ -25,8 +25,12 @@
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "connections/payload.h"
+#include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_result.h"
+#include "connections/v3/connections_device.h"
 #include "internal/platform/logging.h"
 
+// TODO(b/285657711): Add tests for uncovered logic, even if trivial.
 namespace nearby {
 namespace connections {
 namespace {
@@ -53,6 +57,28 @@ bool ClientHasConnectionToAtLeastOneEndpoint(
   return false;
 }
 }  // namespace
+
+v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
+  switch (medium) {
+    case location::nearby::proto::connections::USB:
+    case location::nearby::proto::connections::UNKNOWN_MEDIUM:
+      return v3::Quality::kUnknown;
+    case location::nearby::proto::connections::BLE:
+    case location::nearby::proto::connections::NFC:
+      return v3::Quality::kLow;
+    case location::nearby::proto::connections::BLUETOOTH:
+    case location::nearby::proto::connections::BLE_L2CAP:
+      return v3::Quality::kMedium;
+    case location::nearby::proto::connections::WIFI_HOTSPOT:
+    case location::nearby::proto::connections::WIFI_LAN:
+    case location::nearby::proto::connections::WIFI_AWARE:
+    case location::nearby::proto::connections::WIFI_DIRECT:
+    case location::nearby::proto::connections::WEB_RTC:
+      return v3::Quality::kHigh;
+    default:
+      return v3::Quality::kUnknown;
+  }
+}
 
 ServiceControllerRouter::ServiceControllerRouter() {
   NEARBY_LOGS(INFO) << "ServiceControllerRouter going up.";
@@ -323,6 +349,283 @@ void ServiceControllerRouter::DisconnectFromEndpoint(
 
         GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
         callback.result_cb({Status::kSuccess});
+      });
+}
+
+Status ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
+    ClientProxy* client, absl::string_view service_id,
+    v3::ConnectionListener listener, v3::ConnectionListeningOptions& options) {
+  return GetServiceController()->StartListeningForIncomingConnections(
+      client, service_id, std::move(listener), options);
+}
+
+void ServiceControllerRouter::StopListeningForIncomingConnectionsV3(
+    ClientProxy* client) {
+  GetServiceController()->StopListeningForIncomingConnections(client);
+}
+
+void ServiceControllerRouter::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    v3::ConnectionRequestInfo info, const ConnectionOptions& connection_options,
+    const ResultCallback& callback) {
+  // Cancellations can be fired from clients anytime, need to add the
+  // CancellationListener as soon as possible.
+  client->AddCancellationFlag(remote_device.GetEndpointId());
+
+  RouteToServiceController(
+      "scr-request-connection",
+      [this, client, endpoint_id = remote_device.GetEndpointId(),
+       v3_info = std::move(info), connection_options, callback]() mutable {
+        if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
+            client->IsConnectedToEndpoint(endpoint_id)) {
+          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          return;
+        }
+
+        std::string endpoint_info;
+        if (v3_info.local_device.GetType() ==
+            NearbyDevice::Type::kConnectionsDevice) {
+          endpoint_info =
+              dynamic_cast<v3::ConnectionsDevice&>(v3_info.local_device)
+                  .GetEndpointInfo();
+        }
+
+        ConnectionListener listener = {
+            .initiated_cb =
+                [&v3_info](
+                    const std::string& endpoint_id,
+                    const ConnectionResponseInfo& response_info) mutable {
+                  v3::InitialConnectionInfo new_info = {
+                      .authentication_digits =
+                          response_info.authentication_token,
+                      .raw_authentication_token =
+                          response_info.raw_authentication_token.string_data(),
+                      .is_incoming_connection =
+                          response_info.is_incoming_connection,
+                  };
+                  v3::ConnectionsDevice device(
+                      endpoint_id,
+                      response_info.remote_endpoint_info.AsStringView(), {});
+                  v3_info.listener.initiated_cb(device, new_info);
+                },
+            .accepted_cb =
+                [result_cb = v3_info.listener.result_cb](
+                    const std::string& endpoint_id) {
+                  v3::ConnectionResult result = {
+                      .status = {Status::kSuccess},
+                  };
+                  result_cb(v3::ConnectionsDevice(endpoint_id, "", {}), result);
+                },
+            .rejected_cb =
+                [result_cb = v3_info.listener.result_cb](
+                    const std::string& endpoint_id, Status status) {
+                  v3::ConnectionResult result = {
+                      .status = status,
+                  };
+                  result_cb(v3::ConnectionsDevice(endpoint_id, "", {}), result);
+                },
+            .disconnected_cb =
+                [&v3_info](const std::string& endpoint_id) mutable {
+                  auto device = v3::ConnectionsDevice(endpoint_id, "", {});
+                  v3_info.listener.disconnected_cb(device);
+                },
+            .bandwidth_changed_cb =
+                [this, &v3_info](const std::string& endpoint_id,
+                                 Medium medium) mutable {
+                  v3::BandwidthInfo bandwidth_info = {
+                      .quality = GetMediumQuality(medium),
+                      .medium = medium,
+                  };
+                  v3_info.listener.bandwidth_changed_cb(
+                      v3::ConnectionsDevice(endpoint_id, "", {}),
+                      bandwidth_info);
+                },
+        };
+        ConnectionRequestInfo old_info = {
+            .endpoint_info = ByteArray(endpoint_info),
+            .listener = std::move(listener),
+        };
+        Status status = GetServiceController()->RequestConnection(
+            client, endpoint_id, std::move(old_info), connection_options);
+        if (!status.Ok()) {
+          NEARBY_LOGS(WARNING) << "Unable to request connection to endpoint "
+                               << endpoint_id << ": " << status.ToString();
+          client->CancelEndpoint(endpoint_id);
+        }
+        callback.result_cb(status);
+      });
+}
+
+void ServiceControllerRouter::AcceptConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    v3::PayloadListener listener, const ResultCallback& callback) {
+  RouteToServiceController(
+      "scr-accept-connection",
+      [this, client, endpoint_id = remote_device.GetEndpointId(),
+       v3_listener = std::move(listener), callback]() mutable {
+        if (client->IsConnectedToEndpoint(endpoint_id)) {
+          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          return;
+        }
+
+        if (client->HasLocalEndpointResponded(endpoint_id)) {
+          NEARBY_LOGS(WARNING)
+              << "Client " << client->GetClientId()
+              << " invoked acceptConnectionRequest() after having already "
+                 "accepted/rejected the connection to endpoint(id="
+              << endpoint_id << ")";
+          callback.result_cb({Status::kOutOfOrderApiCall});
+          return;
+        }
+
+        PayloadListener old_listener = {
+            .payload_cb =
+                [v3_received = std::move(v3_listener.payload_received_cb)](
+                    absl::string_view endpoint_id, Payload payload) {
+                  v3_received(v3::ConnectionsDevice(endpoint_id, "", {}),
+                              std::move(payload));
+                },
+            .payload_progress_cb =
+                [v3_cb = std::move(v3_listener.payload_progress_cb)](
+                    absl::string_view endpoint_id,
+                    const PayloadProgressInfo& info) mutable {
+                  v3_cb(v3::ConnectionsDevice(endpoint_id, "", {}), info);
+                }};
+
+        callback.result_cb(GetServiceController()->AcceptConnection(
+            client, endpoint_id, std::move(old_listener)));
+      });
+}
+
+void ServiceControllerRouter::RejectConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ResultCallback& callback) {
+  client->CancelEndpoint(remote_device.GetEndpointId());
+
+  RouteToServiceController(
+      "scr-reject-connection",
+      [this, client, endpoint_id = remote_device.GetEndpointId(), callback]() {
+        if (client->IsConnectedToEndpoint(endpoint_id)) {
+          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          return;
+        }
+
+        if (client->HasLocalEndpointResponded(endpoint_id)) {
+          NEARBY_LOGS(WARNING)
+              << "Client " << client->GetClientId()
+              << " invoked rejectConnectionRequest() after having already "
+                 "accepted/rejected the connection to endpoint(id="
+              << endpoint_id << ")";
+          callback.result_cb({Status::kOutOfOrderApiCall});
+          return;
+        }
+
+        callback.result_cb(
+            GetServiceController()->RejectConnection(client, endpoint_id));
+      });
+}
+
+void ServiceControllerRouter::InitiateBandwidthUpgradeV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ResultCallback& callback) {
+  RouteToServiceController(
+      "scr-init-bwu",
+      [this, client, endpoint_id = remote_device.GetEndpointId(), callback]() {
+        if (!client->IsConnectedToEndpoint(endpoint_id)) {
+          callback.result_cb({Status::kOutOfOrderApiCall});
+          return;
+        }
+
+        GetServiceController()->InitiateBandwidthUpgrade(client, endpoint_id);
+
+        // Operation is triggered; the caller can listen to
+        // ConnectionListener::OnBandwidthChanged() to determine its success.
+        callback.result_cb({Status::kSuccess});
+      });
+}
+
+void ServiceControllerRouter::SendPayloadV3(
+    ClientProxy* client, const NearbyDevice& recipient_device, Payload payload,
+    const ResultCallback& callback) {
+  // Payload is a move-only type.
+  // We have to capture it by value inside the lambda, and pass it over to
+  // the executor as an std::function<void()> instance.
+  // Lambda must be copyable, in order ot satisfy std::function<> requirements.
+  // To make it so, we need Payload wrapped by a copyable wrapper.
+  // std::shared_ptr<> is used, because it is copyable.
+  auto shared_payload = std::make_shared<Payload>(std::move(payload));
+
+  RouteToServiceController(
+      "scr-send-payload",
+      [this, client, shared_payload,
+       endpoint_id = recipient_device.GetEndpointId(), callback]() {
+        if (!client->IsConnectedToEndpoint(endpoint_id)) {
+          callback.result_cb({Status::kEndpointUnknown});
+          return;
+        }
+
+        GetServiceController()->SendPayload(
+            client, std::vector<std::string>{endpoint_id},
+            std::move(*shared_payload));
+
+        // At this point, we've queued up the send Payload request with the
+        // ServiceController; any further failures (e.g. one of the endpoints is
+        // unknown, goes away, or otherwise fails) will be returned to the
+        // client as a PayloadTransferUpdate.
+        callback.result_cb({Status::kSuccess});
+      });
+}
+
+void ServiceControllerRouter::CancelPayloadV3(
+    ClientProxy* client, const NearbyDevice& recipient_device,
+    uint64_t payload_id, const ResultCallback& callback) {
+  RouteToServiceController(
+      "scr-cancel-payload", [this, client, payload_id, callback]() {
+        callback.result_cb(
+            GetServiceController()->CancelPayload(client, payload_id));
+      });
+}
+
+void ServiceControllerRouter::DisconnectFromDeviceV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ResultCallback& callback) {
+  // Client can emit the cancellation at anytime, we need to execute the request
+  // without further posting it.
+  client->CancelEndpoint(remote_device.GetEndpointId());
+
+  RouteToServiceController(
+      "scr-disconnect-endpoint",
+      [this, client, endpoint_id = remote_device.GetEndpointId(), callback]() {
+        if (!client->IsConnectedToEndpoint(endpoint_id) &&
+            !client->HasPendingConnectionToEndpoint(endpoint_id)) {
+          callback.result_cb({Status::kOutOfOrderApiCall});
+          return;
+        }
+
+        GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
+        callback.result_cb({Status::kSuccess});
+      });
+}
+
+void ServiceControllerRouter::UpdateAdvertisingOptionsV3(
+    ClientProxy* client, absl::string_view service_id,
+    const AdvertisingOptions& options, const ResultCallback& callback) {
+  RouteToServiceController(
+      "scr-update-advertising-options",
+      [this, client, options, callback, service_id]() {
+        callback.result_cb(GetServiceController()->UpdateAdvertisingOptions(
+            client, service_id, options));
+      });
+}
+
+void ServiceControllerRouter::UpdateDiscoveryOptionsV3(
+    ClientProxy* client, absl::string_view service_id,
+    const DiscoveryOptions& options, const ResultCallback& callback) {
+  RouteToServiceController(
+      "scr-update-discovery-options",
+      [this, client, options, callback, service_id]() {
+        callback.result_cb(GetServiceController()->UpdateDiscoveryOptions(
+            client, service_id, options));
       });
 }
 

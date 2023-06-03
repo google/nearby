@@ -25,6 +25,10 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/params.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
+#include "connections/v3/params.h"
+#include "internal/interop/device.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -59,11 +63,13 @@ class ServiceControllerRouter {
   ServiceControllerRouter(ServiceControllerRouter&&) = delete;
   ServiceControllerRouter& operator=(ServiceControllerRouter&&) = delete;
 
+  virtual v3::Quality GetMediumQuality(Medium medium);
   virtual void StartAdvertising(ClientProxy* client,
                                 absl::string_view service_id,
                                 const AdvertisingOptions& advertising_options,
                                 const ConnectionRequestInfo& info,
                                 const ResultCallback& callback);
+
   virtual void StopAdvertising(ClientProxy* client,
                                const ResultCallback& callback);
 
@@ -71,6 +77,7 @@ class ServiceControllerRouter {
                               const DiscoveryOptions& discovery_options,
                               const DiscoveryListener& listener,
                               const ResultCallback& callback);
+
   virtual void StopDiscovery(ClientProxy* client,
                              const ResultCallback& callback);
 
@@ -83,10 +90,12 @@ class ServiceControllerRouter {
                                  const ConnectionRequestInfo& info,
                                  const ConnectionOptions& connection_options,
                                  const ResultCallback& callback);
+
   virtual void AcceptConnection(ClientProxy* client,
                                 absl::string_view endpoint_id,
                                 PayloadListener listener,
                                 const ResultCallback& callback);
+
   virtual void RejectConnection(ClientProxy* client,
                                 absl::string_view endpoint_id,
                                 const ResultCallback& callback);
@@ -98,12 +107,64 @@ class ServiceControllerRouter {
   virtual void SendPayload(ClientProxy* client,
                            absl::Span<const std::string> endpoint_ids,
                            Payload payload, const ResultCallback& callback);
+
   virtual void CancelPayload(ClientProxy* client, std::uint64_t payload_id,
                              const ResultCallback& callback);
 
   virtual void DisconnectFromEndpoint(ClientProxy* client,
                                       absl::string_view endpoint_id,
                                       const ResultCallback& callback);
+
+  ////////////////////////////// V3 ////////////////////////////////////////////
+  virtual Status StartListeningForIncomingConnectionsV3(
+      ClientProxy* client, absl::string_view service_id,
+      v3::ConnectionListener listener, v3::ConnectionListeningOptions& options);
+
+  virtual void StopListeningForIncomingConnectionsV3(ClientProxy* client);
+
+  virtual void RequestConnectionV3(ClientProxy* client,
+                                   const NearbyDevice& remote_device,
+                                   v3::ConnectionRequestInfo info,
+                                   const ConnectionOptions& connection_options,
+                                   const ResultCallback& callback);
+
+  virtual void AcceptConnectionV3(ClientProxy* client,
+                                  const NearbyDevice& remote_device,
+                                  v3::PayloadListener listener,
+                                  const ResultCallback& callback);
+
+  virtual void RejectConnectionV3(ClientProxy* client,
+                                  const NearbyDevice& remote_device,
+                                  const ResultCallback& callback);
+
+  virtual void InitiateBandwidthUpgradeV3(ClientProxy* client,
+                                          const NearbyDevice& remote_device,
+                                          const ResultCallback& callback);
+
+  virtual void SendPayloadV3(ClientProxy* client,
+                             const NearbyDevice& recipient_device,
+                             Payload payload, const ResultCallback& callback);
+
+  virtual void CancelPayloadV3(ClientProxy* client,
+                               const NearbyDevice& recipient_device,
+                               std::uint64_t payload_id,
+                               const ResultCallback& callback);
+
+  virtual void DisconnectFromDeviceV3(ClientProxy* client,
+                                      const NearbyDevice& remote_device,
+                                      const ResultCallback& callback);
+
+  virtual void UpdateAdvertisingOptionsV3(
+      ClientProxy* client, absl::string_view service_id,
+      const AdvertisingOptions& advertising_options,
+      const ResultCallback& callback);
+
+  virtual void UpdateDiscoveryOptionsV3(
+      ClientProxy* client, absl::string_view service_id,
+      const DiscoveryOptions& discovery_options,
+      const ResultCallback& callback);
+  /////////////////////////////// END V3 ///////////////////////////////////////
+
   virtual void StopAllEndpoints(ClientProxy* client,
                                 const ResultCallback& callback);
 
