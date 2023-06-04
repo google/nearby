@@ -45,7 +45,7 @@ class ScanningSessionImpl : public FastPairScanner::ScanningSession {
 
 // FastPairScannerImpl
 FastPairScannerImpl::FastPairScannerImpl(Mediums& mediums,
-                                         SingleThreadExecutor* executor)
+                                         MultiThreadExecutor* executor)
     : mediums_(mediums), executor_(executor) {}
 
 void FastPairScannerImpl::AddObserver(FastPairScanner::Observer* observer) {

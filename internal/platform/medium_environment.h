@@ -41,9 +41,9 @@
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
@@ -476,7 +476,7 @@ class MediumEnvironment {
   std::atomic_bool enabled_ = false;
   std::atomic_int job_count_ = 0;
   std::atomic_bool enable_notifications_ = false;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   EnvironmentConfig config_;
 
   // The following data members are accessed in the context of a private

@@ -23,8 +23,8 @@
 #include "absl/base/thread_annotations.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace network {
@@ -57,7 +57,7 @@ class NearbyHttpClient : public HttpClient {
       const HttpRequest& request);
 
   Mutex mutex_;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   std::vector<std::future<void>> http_threads_ ABSL_GUARDED_BY(mutex_);
 };
 

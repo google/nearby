@@ -66,7 +66,7 @@ class Retroactive {
   Future<absl::Status> pairing_result_;
   Future<std::shared_ptr<FastPairDataEncryptor>> data_encryptor_;
   Future<FastPairController::GattClientRef> gatt_client_;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
 };
 
 }  // namespace fastpair

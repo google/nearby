@@ -23,7 +23,7 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/timer_impl.h"
 
 namespace nearby {
@@ -31,8 +31,7 @@ namespace fastpair {
 
 class FastPairScannerImpl : public FastPairScanner {
  public:
-  explicit FastPairScannerImpl(Mediums& mediums,
-                               SingleThreadExecutor* executor);
+  explicit FastPairScannerImpl(Mediums& mediums, MultiThreadExecutor* executor);
   FastPairScannerImpl(const FastPairScannerImpl&) = delete;
   FastPairScannerImpl& operator=(const FastPairScannerImpl&) = delete;
   ~FastPairScannerImpl() override = default;
@@ -60,7 +59,7 @@ class FastPairScannerImpl : public FastPairScanner {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
 
   Mediums& mediums_;
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   std::unique_ptr<TimerImpl> timer_ ABSL_GUARDED_BY(*executor_);
 
   // Map of a Bluetooth device address to a set of advertisement data we have

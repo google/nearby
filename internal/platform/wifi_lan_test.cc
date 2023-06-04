@@ -101,8 +101,8 @@ TEST_P(WifiLanMediumTest, CanConnectToService) {
   EXPECT_FALSE(socket_b.IsValid());
   {
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute([&wifi_lan_a, &socket_a,
                              discovered_service_info = discovered_service_info,
                              service_type, &server_socket, &flag]() {
@@ -173,8 +173,8 @@ TEST_P(WifiLanMediumTest, CanCancelConnect) {
   EXPECT_FALSE(socket_b.IsValid());
   {
     CancellationFlag flag(true);
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute([&wifi_lan_a, &socket_a,
                              discovered_service_info = discovered_service_info,
                              service_type, &server_socket, &flag]() {

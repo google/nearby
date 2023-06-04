@@ -38,7 +38,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/uuid.h"
 #include <openssl/base.h>
 #include <openssl/evp.h>
@@ -202,7 +202,7 @@ class FakeProvider {
   std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)> anti_spoofing_key_{
       nullptr, EVP_PKEY_free};
   std::string account_key_;
-  SingleThreadExecutor provider_thread_;
+  MultiThreadExecutor provider_thread_{1};
 };
 
 }  // namespace fastpair

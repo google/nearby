@@ -22,7 +22,7 @@
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -33,7 +33,7 @@ constexpr absl::string_view kBleAddress = "AA:BB:CC:DD:EE:FF";
 constexpr absl::string_view kBtAddress = "12:34:56:78:90:AB";
 
 TEST(FastPairDeviceRepositoryTest, AddDevice) {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   FastPairDeviceRepository repo(&executor);
 
   FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
@@ -44,7 +44,7 @@ TEST(FastPairDeviceRepositoryTest, AddDevice) {
 }
 
 TEST(FastPairDeviceRepositoryTest, FindDeviceByBleAddress) {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   FastPairDeviceRepository repo(&executor);
   repo.AddDevice(std::make_unique<FastPairDevice>(
       kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
@@ -58,7 +58,7 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBleAddress) {
 }
 
 TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   FastPairDeviceRepository repo(&executor);
   auto fast_pair_device =
       std::make_unique<FastPairDevice>(Protocol::kFastPairInitialPairing);
@@ -74,7 +74,7 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
 }
 
 TEST(FastPairDeviceRepositoryTest, RemoveDevice) {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   FastPairDeviceRepository repo(&executor);
   FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
       kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
@@ -85,7 +85,7 @@ TEST(FastPairDeviceRepositoryTest, RemoveDevice) {
 }
 
 TEST(FastPairDeviceRepositoryTest, RemovingNonRegisteredDeviceIsSafe) {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   FastPairDeviceRepository repo(&executor);
   FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
       kModelId, kBleAddress, Protocol::kFastPairInitialPairing));

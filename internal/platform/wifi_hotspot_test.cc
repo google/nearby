@@ -138,8 +138,8 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
 
   {
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&wifi_hotspot_b, &socket_b, &server_socket, &flag]() {
           socket_b = wifi_hotspot_b->ConnectToService(kIp, kPort, &flag);
@@ -204,8 +204,8 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
 
   {
     CancellationFlag flag(true);
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&wifi_hotspot_b, &socket_b, &server_socket, &flag]() {
           socket_b = wifi_hotspot_b->ConnectToService(kIp, kPort, &flag);

@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/test/fake_single_thread_executor.h"
+#include "internal/test/fake_multi_thread_executor.h"
 
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "internal/platform/multi_thread_executor.h"
+
 namespace nearby {
 
-FakeSingleThreadExecutor::FakeSingleThreadExecutor() = default;
+FakeMultiThreadExecutor::FakeMultiThreadExecutor(int max_parallelism)
+    : MultiThreadExecutor(max_parallelism) {}
 
-FakeSingleThreadExecutor::~FakeSingleThreadExecutor() { DoShutdown(); }
+FakeMultiThreadExecutor::~FakeMultiThreadExecutor() { DoShutdown(); }
 
-void FakeSingleThreadExecutor::Execute(const std::string& name,
-                                       Runnable&& runnable) {
+void FakeMultiThreadExecutor::Execute(const std::string& name,
+                                      Runnable&& runnable) {
   runnables_.push_back(std::make_pair(name, std::move(runnable)));
 
   if (!run_executables_immediately_) return;
@@ -33,8 +36,8 @@ void FakeSingleThreadExecutor::Execute(const std::string& name,
   RunAllExecutables();
 }
 
-void FakeSingleThreadExecutor::RunAllExecutables() {
-  // Because `SingleThreadExecutor` ensures sequencing, run all pending
+void FakeMultiThreadExecutor::RunAllExecutables() {
+  // Because `MultiThreadExecutor` ensures sequencing, run all pending
   // executables in order they were added to the vector.
   for (auto& runnable_pair : runnables_) {
     runnable_pair.second();
@@ -43,6 +46,6 @@ void FakeSingleThreadExecutor::RunAllExecutables() {
   runnables_.clear();
 }
 
-void FakeSingleThreadExecutor::DoShutdown() { RunAllExecutables(); }
+void FakeMultiThreadExecutor::DoShutdown() { RunAllExecutables(); }
 
 }  // namespace nearby

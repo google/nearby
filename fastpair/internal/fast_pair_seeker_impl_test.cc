@@ -50,7 +50,7 @@ class FastPairSeekerImplTest : public testing::Test {
   void TearDown() override { executor_.Shutdown(); }
 
   MediumEnvironmentStarter env_;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<FakeFastPairRepository> repository_;
   std::unique_ptr<FastPairSeekerImpl> fast_pair_seeker_;

@@ -22,7 +22,7 @@
 #include "absl/strings/string_view.h"
 #include "fastpair/repository/device_metadata.h"
 #include "fastpair/server_access/fast_pair_repository.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -44,7 +44,7 @@ class FakeFastPairRepository : public FastPairRepository {
 
  private:
   absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>> data_;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
 };
 }  // namespace fastpair
 }  // namespace nearby

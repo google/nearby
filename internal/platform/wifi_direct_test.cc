@@ -121,8 +121,8 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
 
   {
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&wifi_direct_b, &socket_b, &server_socket, &flag]() {
           socket_b = wifi_direct_b.ConnectToService(kIp, kPort, &flag);
@@ -194,8 +194,8 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanCancelConnect) {
 
   {
     CancellationFlag flag(true);
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&wifi_direct_b, &socket_b, &server_socket, &flag]() {
           socket_b = wifi_direct_b.ConnectToService(kIp, kPort, &flag);

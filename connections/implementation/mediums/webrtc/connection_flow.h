@@ -25,7 +25,6 @@
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/peer_connection_interface.h"

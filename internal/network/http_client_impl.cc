@@ -28,7 +28,6 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace network {

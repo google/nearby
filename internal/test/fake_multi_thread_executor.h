@@ -12,25 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_FAKE_SINGLE_THREAD_EXECUTOR_H_
-#define PLATFORM_PUBLIC_FAKE_SINGLE_THREAD_EXECUTOR_H_
+#ifndef PLATFORM_PUBLIC_FAKE_MULTI_THREAD_EXECUTOR_H_
+#define PLATFORM_PUBLIC_FAKE_MULTI_THREAD_EXECUTOR_H_
 
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 
-class ABSL_LOCKABLE FakeSingleThreadExecutor final
-    : public SingleThreadExecutor {
+class ABSL_LOCKABLE FakeMultiThreadExecutor final : public MultiThreadExecutor {
  public:
-  FakeSingleThreadExecutor();
-  ~FakeSingleThreadExecutor() override;
-  FakeSingleThreadExecutor(FakeSingleThreadExecutor&&) = default;
-  FakeSingleThreadExecutor& operator=(FakeSingleThreadExecutor&&) = default;
+  FakeMultiThreadExecutor(int max_parallelism);
+  ~FakeMultiThreadExecutor() override;
+  FakeMultiThreadExecutor(FakeMultiThreadExecutor&&) = default;
+  FakeMultiThreadExecutor& operator=(FakeMultiThreadExecutor&&) = default;
 
   void Execute(const std::string& name, Runnable&& runnable) override;
 
@@ -49,4 +48,4 @@ class ABSL_LOCKABLE FakeSingleThreadExecutor final
 
 }  // namespace nearby
 
-#endif  // PLATFORM_PUBLIC_FAKE_SINGLE_THREAD_EXECUTOR_H_
+#endif  // PLATFORM_PUBLIC_FAKE_MULTI_THREAD_EXECUTOR_H_

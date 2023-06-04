@@ -23,7 +23,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
@@ -39,13 +39,13 @@ namespace presence {
 
 class BroadcastManager {
  public:
-  using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
+  using MultiThreadExecutor = ::nearby::MultiThreadExecutor;
   using AdvertisingSession =
       ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
   using Runnable = ::nearby::Runnable;
   using LocalCredential = internal::LocalCredential;
   BroadcastManager(Mediums& mediums, CredentialManager& credential_manager,
-                   SingleThreadExecutor& executor) {
+                   MultiThreadExecutor& executor) {
     mediums_ = &mediums, credential_manager_ = &credential_manager,
     executor_ = &executor;
   }
@@ -57,7 +57,7 @@ class BroadcastManager {
  private:
   Mediums* mediums_;
   CredentialManager* credential_manager_;
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   class BroadcastSessionState {
    public:
     explicit BroadcastSessionState(BroadcastCallback broadcast_callback,

@@ -27,7 +27,7 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/timer_impl.h"
 
 namespace nearby {
@@ -38,7 +38,7 @@ class FastPairPairerImpl : public FastPairPairer {
   class Factory {
    public:
     static std::unique_ptr<FastPairPairer> Create(
-        FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
+        FastPairDevice& device, Mediums& medium, MultiThreadExecutor* executor,
         OnPairedCallback on_paired_cb,
         OnPairingFailedCallback on_pair_failed_cb,
         OnAccountKeyFailureCallback on_account_failure_cb,
@@ -50,7 +50,7 @@ class FastPairPairerImpl : public FastPairPairer {
     virtual ~Factory() = default;
 
     virtual std::unique_ptr<FastPairPairer> CreateInstance(
-        FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
+        FastPairDevice& device, Mediums& medium, MultiThreadExecutor* executor,
         OnPairedCallback on_paired_cb,
         OnPairingFailedCallback on_pair_failed_cb,
         OnAccountKeyFailureCallback on_account_failure_cb,
@@ -61,7 +61,7 @@ class FastPairPairerImpl : public FastPairPairer {
   };
 
   FastPairPairerImpl(FastPairDevice& device, Mediums& medium,
-                     SingleThreadExecutor* executor,
+                     MultiThreadExecutor* executor,
                      OnPairedCallback on_paired_cb,
                      OnPairingFailedCallback on_pair_failed_cb,
                      OnAccountKeyFailureCallback on_account_failure_cb,
@@ -102,7 +102,7 @@ class FastPairPairerImpl : public FastPairPairer {
   std::unique_ptr<BluetoothPairing> bluetooth_pairing_;
   FastPairDevice& device_;
   Mediums& mediums_;
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   OnPairedCallback on_paired_cb_ ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   OnPairingFailedCallback on_pair_failed_cb_
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);

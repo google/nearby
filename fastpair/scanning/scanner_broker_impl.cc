@@ -42,7 +42,7 @@ class ScanningSessionImpl : public ScannerBroker::ScanningSession {
 }  // namespace
 
 ScannerBrokerImpl::ScannerBrokerImpl(
-    Mediums& mediums, SingleThreadExecutor* executor,
+    Mediums& mediums, MultiThreadExecutor* executor,
     FastPairDeviceRepository* device_repository)
     : mediums_(mediums),
       executor_(executor),

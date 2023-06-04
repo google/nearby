@@ -27,7 +27,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace {
@@ -113,8 +113,8 @@ TEST_P(BluetoothClassicMediumTest, CanConnectToService) {
   EXPECT_FALSE(socket_b.IsValid());
   {
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute([this, &socket_a, discovered_device, &service_uuid,
                              &server_socket, &flag]() {
       socket_a =
@@ -162,8 +162,8 @@ TEST_P(BluetoothClassicMediumTest, CanCancelConnect) {
   EXPECT_FALSE(socket_b.IsValid());
   {
     CancellationFlag flag(true);
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute([this, &socket_a, discovered_device, &service_uuid,
                              &server_socket, &flag]() {
       socket_a =
@@ -215,8 +215,8 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
   {
     ByteArray data("data");
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute([&, this]() {
       BluetoothSocket socket_a =
           bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
@@ -262,8 +262,8 @@ TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsError) {
   {
     ByteArray data("data");
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute([&, this]() {
       BluetoothSocket socket_a =
           bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);

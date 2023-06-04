@@ -28,8 +28,8 @@
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -99,7 +99,7 @@ class Medium {
   BluetoothSocket socket_ ABSL_GUARDED_BY(mutex_);
   Mutex mutex_;
   CancellationFlag cancellation_flag_;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
 };
 
 }  // namespace fastpair

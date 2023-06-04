@@ -26,7 +26,7 @@
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -61,7 +61,7 @@ class FastPairService {
   void OnScreenEvent(const FastPairDevice& device, ScreenEvent event);
   void OnBatteryEvent(const FastPairDevice& device, BatteryEvent event);
   void OnRingEvent(const FastPairDevice& device, RingEvent event);
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   std::unique_ptr<FastPairSeeker> seeker_;
   absl::flat_hash_map<std::string, std::unique_ptr<FastPairPluginProvider>>
       providers_;

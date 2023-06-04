@@ -25,7 +25,7 @@ namespace nearby {
 // unbounded queue.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newFixedThreadPool-int-
-class ABSL_LOCKABLE MultiThreadExecutor final : public SubmittableExecutor {
+class ABSL_LOCKABLE MultiThreadExecutor : public SubmittableExecutor {
  public:
   using Platform = api::ImplementationPlatform;
   explicit MultiThreadExecutor(int max_parallelism)
@@ -35,6 +35,15 @@ class ABSL_LOCKABLE MultiThreadExecutor final : public SubmittableExecutor {
   MultiThreadExecutor& operator=(MultiThreadExecutor&&) = default;
   ~MultiThreadExecutor() override = default;
 };
+
+// Moves the object to `executor` and destroys it there.
+// This pattern is useful when there are some tasks running on `executor` that
+// hold a reference to `object`. The tasks will complete before `object` is
+// destroyed.
+template <typename T>
+void DestroyOnExecutor(T object, MultiThreadExecutor* executor) {
+  executor->Execute([object = std::move(object)] {});
+}
 
 }  // namespace nearby
 

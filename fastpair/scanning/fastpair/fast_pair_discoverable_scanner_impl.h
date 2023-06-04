@@ -27,7 +27,7 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -39,7 +39,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
    public:
     static std::unique_ptr<FastPairDiscoverableScanner> Create(
         FastPairScanner& scanner, DeviceCallback found_callback,
-        DeviceCallback lost_callback, SingleThreadExecutor* executor,
+        DeviceCallback lost_callback, MultiThreadExecutor* executor,
         FastPairDeviceRepository* device_repository);
 
     static void SetFactoryForTesting(Factory* g_test_factory);
@@ -48,7 +48,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
     virtual ~Factory();
     virtual std::unique_ptr<FastPairDiscoverableScanner> CreateInstance(
         FastPairScanner& scanner, DeviceCallback found_callback,
-        DeviceCallback lost_callback, SingleThreadExecutor* executor,
+        DeviceCallback lost_callback, MultiThreadExecutor* executor,
         FastPairDeviceRepository* device_repository) = 0;
 
    private:
@@ -58,7 +58,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
   FastPairDiscoverableScannerImpl(FastPairScanner& scanner,
                                   DeviceCallback found_callback,
                                   DeviceCallback lost_callback,
-                                  SingleThreadExecutor* executor,
+                                  MultiThreadExecutor* executor,
                                   FastPairDeviceRepository* device_repository);
   FastPairDiscoverableScannerImpl(const FastPairDiscoverableScannerImpl&) =
       delete;
@@ -81,7 +81,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
   FastPairScanner& scanner_;
   DeviceCallback found_callback_ ABSL_GUARDED_BY(*executor_);
   DeviceCallback lost_callback_ ABSL_GUARDED_BY(*executor_);
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   FastPairDeviceRepository* device_repository_ ABSL_GUARDED_BY(*executor_);
   ObserverList<FastPairScanner::Observer> observer_list_;
 };

@@ -23,7 +23,7 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -52,7 +52,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
     absl::AnyInvocable<void(const FastPairDevice&, RingEvent)> on_ring_event;
   };
 
-  FastPairSeekerImpl(ServiceCallbacks callbacks, SingleThreadExecutor* executor,
+  FastPairSeekerImpl(ServiceCallbacks callbacks, MultiThreadExecutor* executor,
                      FastPairDeviceRepository* devices)
       : callbacks_(std::move(callbacks)),
         executor_(executor),
@@ -83,7 +83,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
 
  private:
   ServiceCallbacks callbacks_;
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   FastPairDeviceRepository* devices_;
   Mediums mediums_;
   std::unique_ptr<ScannerBrokerImpl> scanner_;

@@ -20,8 +20,8 @@
 #include <vector>
 
 #include "fastpair/common/fast_pair_device.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -29,7 +29,7 @@ namespace fastpair {
 // Owner of `FastPairDevice` instances.
 class FastPairDeviceRepository {
  public:
-  explicit FastPairDeviceRepository(SingleThreadExecutor* executor)
+  explicit FastPairDeviceRepository(MultiThreadExecutor* executor)
       : executor_(executor) {}
 
   // Adds device to the repository and takes over ownership.
@@ -50,7 +50,7 @@ class FastPairDeviceRepository {
   // Removes `device` from `devices_`.
   std::unique_ptr<FastPairDevice> ExtractDevice(const FastPairDevice* device);
   Mutex mutex_;
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   std::vector<std::unique_ptr<FastPairDevice>> devices_ ABSL_GUARDED_BY(mutex_);
 };
 

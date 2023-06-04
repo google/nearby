@@ -29,8 +29,8 @@
 #include "connections/implementation/internal_payload_factory.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -623,7 +623,7 @@ PayloadProgressInfo::Status PayloadManager::PayloadStatusToTransferUpdateStatus(
   }
 }
 
-SingleThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
+MultiThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
     PayloadType payload_type) {
   switch (payload_type) {
     case PayloadType::kBytes:

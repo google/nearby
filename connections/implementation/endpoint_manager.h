@@ -35,8 +35,8 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -156,7 +156,7 @@ class EndpointManager {
  protected:
   // For unit tests only to control executing tasks on the executor.
   EndpointManager(EndpointChannelManager* manager,
-                  std::unique_ptr<SingleThreadExecutor> serial_executor);
+                  std::unique_ptr<MultiThreadExecutor> serial_executor);
 
  private:
   class EndpointState {
@@ -192,7 +192,7 @@ class EndpointManager {
    private:
     const std::string endpoint_id_;
     EndpointChannelManager* channel_manager_;
-    SingleThreadExecutor reader_thread_;
+    MultiThreadExecutor reader_thread_{1};
 
     // Use a condition variable so we can wait on the thread but still be able
     // to wake it up before shutting down. We don't want to just sleep and risk
@@ -201,7 +201,7 @@ class EndpointManager {
     // std::move operations.
     mutable std::unique_ptr<Mutex> keep_alive_waiter_mutex_;
     std::unique_ptr<ConditionVariable> keep_alive_waiter_;
-    SingleThreadExecutor keep_alive_thread_;
+    MultiThreadExecutor keep_alive_thread_{1};
   };
 
   // RAII accessor for FrameProcessor
@@ -305,7 +305,7 @@ class EndpointManager {
   mutable RecursiveMutex mutex_;
   bool is_shutdown_ ABSL_GUARDED_BY(mutex_) = false;
 
-  std::unique_ptr<SingleThreadExecutor> serial_executor_;
+  std::unique_ptr<MultiThreadExecutor> serial_executor_;
 };
 
 // Operator overloads when comparing FrameProcessor*.

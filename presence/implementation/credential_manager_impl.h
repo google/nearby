@@ -28,8 +28,8 @@
 #include "absl/time/time.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/credential_callbacks.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/implementation/credential_manager.h"
@@ -42,14 +42,14 @@ class CredentialManagerImpl : public CredentialManager {
   using IdentityType = ::nearby::internal::IdentityType;
   using Metadata = ::nearby::internal::Metadata;
 
-  explicit CredentialManagerImpl(SingleThreadExecutor* executor)
+  explicit CredentialManagerImpl(MultiThreadExecutor* executor)
       : executor_(ABSL_DIE_IF_NULL(executor)) {
     credential_storage_ptr_ = std::make_unique<nearby::CredentialStorageImpl>();
   }
 
   // Test purpose only.
   CredentialManagerImpl(
-      SingleThreadExecutor* executor,
+      MultiThreadExecutor* executor,
       std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr)
       : executor_(ABSL_DIE_IF_NULL(executor)),
         credential_storage_ptr_(std::move(credential_storage_ptr)) {}
@@ -203,7 +203,7 @@ class CredentialManagerImpl : public CredentialManager {
 
   absl::flat_hash_map<SubscriberKey, std::vector<Subscriber>> subscribers_
       ABSL_GUARDED_BY(*executor_);
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr_;
   Metadata metadata_;
 };

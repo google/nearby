@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "absl/time/time.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/scheduled_executor.h"
-#include "internal/platform/single_thread_executor.h"
 
 // Snippets of invalid code that should trigger an error during thread
 // safety analysis at compile time.
@@ -24,7 +24,7 @@ namespace nearby {
 
 #ifdef TEST_EXECUTE_MISSING_METHOD_ANNOTATION
 struct ThreadCheckTestClass {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor{1};
   int value ABSL_GUARDED_BY(executor) = 0;
 
   void incValue() { value++; }
@@ -42,7 +42,7 @@ void TestExecute_MissingMethodAnnotation() {
 
 #ifdef TEST_SUBMIT_MISSING_METHOD_ANNOTATION
 struct ThreadCheckTestClass {
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor{1};
   int value ABSL_GUARDED_BY(executor) = 0;
 
   int getValue() { return value; }

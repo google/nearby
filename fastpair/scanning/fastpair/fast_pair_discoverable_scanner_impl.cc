@@ -67,7 +67,7 @@ FastPairDiscoverableScannerImpl::Factory*
 std::unique_ptr<FastPairDiscoverableScanner>
 FastPairDiscoverableScannerImpl::Factory::Create(
     FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback, SingleThreadExecutor* executor,
+    DeviceCallback lost_callback, MultiThreadExecutor* executor,
     FastPairDeviceRepository* device_repository) {
   if (g_test_factory_) {
     return g_test_factory_->CreateInstance(scanner, std::move(found_callback),
@@ -90,7 +90,7 @@ FastPairDiscoverableScannerImpl::Factory::~Factory() = default;
 // FastPairScannerImpl
 FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
     FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback, SingleThreadExecutor* executor,
+    DeviceCallback lost_callback, MultiThreadExecutor* executor,
     FastPairDeviceRepository* device_repository)
     : scanner_(scanner),
       found_callback_(std::move(found_callback)),

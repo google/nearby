@@ -22,8 +22,8 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/scheduled_executor.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -73,8 +73,8 @@ class EncryptionRunner {
 
  private:
   ScheduledExecutor alarm_executor_;
-  SingleThreadExecutor server_executor_;
-  SingleThreadExecutor client_executor_;
+  MultiThreadExecutor server_executor_{1};
+  MultiThreadExecutor client_executor_{1};
 };
 
 }  // namespace connections

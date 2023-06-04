@@ -21,7 +21,7 @@
 #include "fastpair/dart/fast_pair_wrapper.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -39,7 +39,7 @@ class FastPairWrapperImpl : public FastPairWrapper {
   void StartScan() override;
 
  private:
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<ScannerBroker> scanner_broker_;
 

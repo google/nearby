@@ -20,7 +20,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/direct_executor.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 
@@ -102,7 +102,7 @@ TEST(FutureTest, SetsExceptionOnTimeout) {
 
 TEST(FutureTest, GetBlocksWhenNotReady) {
   Future<int> future;
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   absl::Time start = absl::Now();
   executor.Execute([&future]() {
     absl::SleepFor(absl::Milliseconds(500));
@@ -119,7 +119,7 @@ TEST(FutureTest, CallsListenerOnSet) {
   Future<int> future;
   int call_count = 0;
   {
-    SingleThreadExecutor executor;
+    MultiThreadExecutor executor(1);
     future.AddListener(
         [&](ExceptionOr<int> result) {
           ASSERT_TRUE(result.ok());
@@ -141,7 +141,7 @@ TEST(FutureTest, CallsAllListenersOnSet) {
   int call_count_listener_1 = 0;
   int call_count_listener_2 = 0;
   {
-    SingleThreadExecutor executor;
+    MultiThreadExecutor executor(1);
     future.AddListener(
         [&](ExceptionOr<int> result) {
           ASSERT_TRUE(result.ok());
@@ -171,7 +171,7 @@ TEST(FutureTest, AddListenerWhenAlreadySetCallsCallback) {
   int call_count = 0;
   future.Set(kValue);
   {
-    SingleThreadExecutor executor;
+    MultiThreadExecutor executor(1);
     future.AddListener(
         [&](ExceptionOr<int> result) {
           ASSERT_TRUE(result.ok());
@@ -190,7 +190,7 @@ TEST(FutureTest, CallsListenerOnSetException) {
   Future<int> future;
   int call_count = 0;
   {
-    SingleThreadExecutor executor;
+    MultiThreadExecutor executor(1);
     future.AddListener(
         [&](ExceptionOr<int> result) {
           ASSERT_FALSE(result.ok());
@@ -212,7 +212,7 @@ TEST(FutureTest, AddListenerWhenAlreadySetExceptionCallsCallback) {
   int call_count = 0;
   future.SetException(kException);
   {
-    SingleThreadExecutor executor;
+    MultiThreadExecutor executor(1);
 
     future.AddListener(
         [&](ExceptionOr<int> result) {

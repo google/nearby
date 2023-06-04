@@ -37,7 +37,7 @@ namespace presence {
 
 class ServiceControllerImpl : public ServiceController {
  public:
-  using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
+  using MultiThreadExecutor = ::nearby::MultiThreadExecutor;
 
   ~ServiceControllerImpl() override { executor_.Shutdown(); }
 
@@ -66,13 +66,13 @@ class ServiceControllerImpl : public ServiceController {
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
-  SingleThreadExecutor& GetBackgroundExecutor() { return executor_; }
+  MultiThreadExecutor& GetBackgroundExecutor() { return executor_; }
 
   // Gives tests access to mediums.
   Mediums& GetMediums() { return mediums_; }
 
  private:
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   void NotifyStartCallbackStatus(BroadcastSessionId id, absl::Status status);
   void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
     executor_.Execute(std::string(name), std::move(runnable));

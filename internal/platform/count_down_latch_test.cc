@@ -15,7 +15,7 @@
 #include "internal/platform/count_down_latch.h"
 
 #include "gtest/gtest.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace {
@@ -24,7 +24,7 @@ TEST(CountDownLatch, ConstructorDestructorWorks) { CountDownLatch latch(1); }
 
 TEST(CountDownLatch, LatchAwaitCanWait) {
   CountDownLatch latch(1);
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   std::atomic_bool done = false;
   executor.Execute([&done, &latch]() {
     done = true;
@@ -36,7 +36,7 @@ TEST(CountDownLatch, LatchAwaitCanWait) {
 
 TEST(CountDownLatch, LatchExtraCountDownIgnored) {
   CountDownLatch latch(1);
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   std::atomic_bool done = false;
   executor.Execute([&done, &latch]() {
     done = true;
@@ -50,7 +50,7 @@ TEST(CountDownLatch, LatchExtraCountDownIgnored) {
 
 TEST(CountDownLatch, LatchAwaitWithTimeoutCanExpire) {
   CountDownLatch latch(1);
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   auto response = latch.Await(absl::Milliseconds(100));
   EXPECT_TRUE(response.ok());
   EXPECT_FALSE(response.result());

@@ -104,8 +104,8 @@ TEST_P(BleV2MediumTest, CanConnectToService) {
   EXPECT_FALSE(socket_b.IsValid());
   {
     CancellationFlag flag;
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&ble_a, &socket_a, &service_id,
          discovered_peripheral = std::move(discovered_peripheral),
@@ -172,8 +172,8 @@ TEST_P(BleV2MediumTest, CanCancelConnect) {
   EXPECT_FALSE(socket_b.IsValid());
   {
     CancellationFlag flag(true);
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor server_executor(1);
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&ble_a, &socket_a, &service_id,
          discovered_peripheral = std::move(discovered_peripheral),

@@ -30,7 +30,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager_impl.h"
@@ -44,7 +44,7 @@ namespace {
 using AdvertisingSession = ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 using AdvertisingCallback =
     ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
-using ::nearby::SingleThreadExecutor;
+using ::nearby::MultiThreadExecutor;
 
 using CountDownLatch = ::nearby::CountDownLatch;
 // using ::testing::UnorderedElementsAre;
@@ -114,7 +114,7 @@ class ScanManagerTest : public testing::Test {
   std::vector<DataElement> MakeDefaultExtendedProperties() {
     return {DataElement(ActionBit::kPresenceManagerAction)};
   }
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   CredentialManagerImpl credential_manager_{&executor_};
   nearby::MediumEnvironment& env_ = {nearby::MediumEnvironment::Instance()};
   CountDownLatch start_latch_{1};

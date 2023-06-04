@@ -29,8 +29,8 @@
 #include "connections/v3/listeners.h"
 #include "connections/v3/params.h"
 #include "internal/interop/device.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -183,7 +183,7 @@ class ServiceControllerRouter {
   void FinishClientSession(ClientProxy* client);
 
   std::unique_ptr<ServiceController> service_controller_;
-  SingleThreadExecutor serializer_;
+  MultiThreadExecutor serializer_{1};
 };
 
 }  // namespace connections

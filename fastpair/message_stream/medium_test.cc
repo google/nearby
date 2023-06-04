@@ -37,7 +37,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {

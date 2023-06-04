@@ -35,7 +35,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/pipe.h"
-#include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {

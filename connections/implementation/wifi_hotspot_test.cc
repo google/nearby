@@ -76,7 +76,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
       std::make_unique<WifiHotspotBwuHandler>(mediums_1, notifications_1);
 
   // client_1 works as Hotspot SoftAP
-  SingleThreadExecutor server_executor;
+  MultiThreadExecutor server_executor(1);
   server_executor.Execute(
       [&handler_1, &client_1, &upgrade_frame, &start_latch]() {
         ByteArray upgrade_path_available_frame =
@@ -90,7 +90,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
       });
 
   // client_2 works as Hotspot STA which will connect to client_1
-  SingleThreadExecutor client_executor;
+  MultiThreadExecutor client_executor(1);
   // Wait till client_1 started as hotspot and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   std::unique_ptr<BwuHandler> handler_2 =

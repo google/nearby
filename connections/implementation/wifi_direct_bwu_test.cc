@@ -80,7 +80,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   auto handler_1 =
       std::make_unique<WifiDirectBwuHandler>(mediums_1, notifications_1);
 
-  SingleThreadExecutor server_executor;
+  MultiThreadExecutor server_executor(1);
   server_executor.Execute(
       [&handler_1, &wifi_direct_go, &upgrade_frame, &start_latch]() {
         ByteArray upgrade_path_available_frame =
@@ -93,7 +93,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
         start_latch.CountDown();
       });
 
-  SingleThreadExecutor client_executor;
+  MultiThreadExecutor client_executor(1);
   // Wait till wifi_direct_go started and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   EXPECT_FALSE(mediums_2.GetWifiDirect().IsConnectedToGO());

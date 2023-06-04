@@ -31,8 +31,8 @@
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
@@ -340,7 +340,7 @@ class AnalyticsRecorder {
   // that outlives the one constructed.
   ::nearby::analytics::EventLogger *event_logger_;
 
-  SingleThreadExecutor serial_executor_;
+  MultiThreadExecutor serial_executor_{1};
   // Protects all sub-protos reading and writing in ConnectionLog.
   Mutex mutex_;
 

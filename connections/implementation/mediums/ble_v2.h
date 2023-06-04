@@ -38,7 +38,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/scheduled_executor.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -193,7 +192,7 @@ class BleV2 final {
 
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 
-  SingleThreadExecutor serial_executor_;
+  MultiThreadExecutor serial_executor_{1};
   ScheduledExecutor alarm_executor_;
 
   mutable Mutex mutex_;

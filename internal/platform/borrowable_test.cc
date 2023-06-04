@@ -21,7 +21,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 
@@ -80,7 +79,7 @@ TEST(Borrowable, ReleaseWaitsForBorrowToEnd) {
   CountDownLatch latch(1);
   Lender<Data *> lender(data);
   Borrowable<Data *> borrowable = lender.GetBorrowable();
-  SingleThreadExecutor executor;
+  MultiThreadExecutor executor(1);
   Borrowed<Data *> borrowed = borrowable.Borrow();
   ASSERT_TRUE(borrowed);
 

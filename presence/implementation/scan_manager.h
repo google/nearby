@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
@@ -37,7 +37,7 @@ namespace presence {
 // Helping service controller to manage scan requests and callbacks.
 class ScanManager {
  public:
-  using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
+  using MultiThreadExecutor = ::nearby::MultiThreadExecutor;
   using Mutex = ::nearby::Mutex;
   using MutexLock = ::nearby::MutexLock;
   using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
@@ -47,7 +47,7 @@ class ScanManager {
   using IdentityType = ::nearby::internal::IdentityType;
 
   ScanManager(Mediums& mediums, CredentialManager& credential_manager,
-              SingleThreadExecutor& executor) {
+              MultiThreadExecutor& executor) {
     mediums_ = &mediums, credential_manager_ = &credential_manager;
     executor_ = &executor;
   }
@@ -83,7 +83,7 @@ class ScanManager {
   CredentialManager* credential_manager_;
   absl::flat_hash_map<ScanSessionId, ScanSessionState> scan_sessions_
       ABSL_GUARDED_BY(*executor_);
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
 };
 
 }  // namespace presence

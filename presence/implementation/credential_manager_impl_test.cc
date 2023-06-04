@@ -94,7 +94,7 @@ class CredentialManagerImplTest : public ::testing::Test {
 
   class MockCredentialManager : public CredentialManagerImpl {
    public:
-    explicit MockCredentialManager(SingleThreadExecutor* executor)
+    explicit MockCredentialManager(MultiThreadExecutor* executor)
         : CredentialManagerImpl(executor) {}
     MOCK_METHOD(std::string, EncryptMetadata,
                 (absl::string_view metadata_encryption_key,
@@ -132,7 +132,7 @@ class CredentialManagerImplTest : public ::testing::Test {
   }
 
  protected:
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   CredentialManagerImpl credential_manager_{&executor_};
   MockCredentialManager mock_credential_manager_{&executor_};
 };

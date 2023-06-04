@@ -46,7 +46,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 #include <openssl/rand.h>
 
 namespace nearby {
@@ -327,7 +327,7 @@ class FastPairPairerImplTest : public testing::Test {
   BluetoothDevice* remote_device_ = nullptr;
   std::unique_ptr<FastPairPairer> fast_pair_pairer_;
 
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
 
  private:
   MediumEnvironment& env_{MediumEnvironment::Instance()};

@@ -287,11 +287,11 @@ bool operator<(const EndpointManager::FrameProcessor& lhs,
 }
 
 EndpointManager::EndpointManager(EndpointChannelManager* manager)
-    : EndpointManager(manager, std::make_unique<SingleThreadExecutor>()) {}
+    : EndpointManager(manager, std::make_unique<MultiThreadExecutor>(1)) {}
 
 EndpointManager::EndpointManager(
     EndpointChannelManager* manager,
-    std::unique_ptr<SingleThreadExecutor> serial_executor)
+    std::unique_ptr<MultiThreadExecutor> serial_executor)
     : channel_manager_(manager), serial_executor_(std::move(serial_executor)) {}
 
 EndpointManager::~EndpointManager() {
@@ -548,7 +548,7 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
     // "bring-down-endpoints" and because the executor is a single thread
     // executor, tasks are guaranteed to execute sequentially
     // (see
-    // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--)
+    // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newMultiThreadExecutor--)
     // and this means that the "discard-endpoints" will be executed before
     // "bring-down-endpoints", blocking the destruction of `is_shutdown_`
     // and therefore `is_shutdown_` is not garbage memory.
@@ -717,7 +717,7 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
 
 EndpointManager::EndpointState::~EndpointState() {
   // We must unregister the endpoint first to signal the runnables that they
-  // should exit their loops. SingleThreadExecutor destructors will wait for the
+  // should exit their loops. MultiThreadExecutor destructors will wait for the
   // workers to finish. |channel_manager_| is null after moved from this object
   // (in move constructor) which prevents unregistering the channel prematurely.
   if (channel_manager_) {

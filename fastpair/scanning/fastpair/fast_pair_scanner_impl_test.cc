@@ -64,7 +64,7 @@ class FastPairScannerImplTest : public testing::Test {
  protected:
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
 };
 
 TEST_F(FastPairScannerImplTest, StartScanning) {

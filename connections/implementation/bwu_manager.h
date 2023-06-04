@@ -214,7 +214,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   EndpointManager* endpoint_manager_;
   EndpointChannelManager* channel_manager_;
   ScheduledExecutor alarm_executor_;
-  SingleThreadExecutor serial_executor_;
+  MultiThreadExecutor serial_executor_{1};
   // Stores each upgraded endpoint's previous EndpointChannel (that was
   // displaced in favor of a new EndpointChannel) temporarily, until it can
   // safely be shut down for good in processLastWriteToPriorChannelEvent().

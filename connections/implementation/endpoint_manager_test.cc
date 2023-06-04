@@ -34,7 +34,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
-#include "internal/test/fake_single_thread_executor.h"
+#include "internal/test/fake_multi_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -115,7 +115,7 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 class TestEndpointManager : public EndpointManager {
  public:
   TestEndpointManager(EndpointChannelManager* manager,
-                      std::unique_ptr<SingleThreadExecutor> serial_executor)
+                      std::unique_ptr<MultiThreadExecutor> serial_executor)
       : EndpointManager(manager, std::move(serial_executor)) {}
 };
 
@@ -317,19 +317,19 @@ TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
 // means any pending tasks on the EndpointManager than use ClientProxy will
 // be using garbage memory, and cause crashes. This test enforces the fix.
 TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
-  // This test uses a `FakeSingleThreadExecutor` in order to control when
+  // This test uses a `FakeMultiThreadExecutor` in order to control when
   // tasks are executed in order to simulate the scenario where
   // `DiscardEndpoint` is posted to the executor before the EndpointManager
   // is destructed, and executed during it's destruction.
-  std::unique_ptr<SingleThreadExecutor> serial_executor =
-      std::make_unique<FakeSingleThreadExecutor>();
-  FakeSingleThreadExecutor* fake_serial_executor =
-      static_cast<FakeSingleThreadExecutor*>(serial_executor.get());
+  std::unique_ptr<MultiThreadExecutor> serial_executor =
+      std::make_unique<FakeMultiThreadExecutor>(1);
+  FakeMultiThreadExecutor* fake_serial_executor =
+      static_cast<FakeMultiThreadExecutor*>(serial_executor.get());
   std::unique_ptr<EndpointManager> endpoint_manager =
       std::make_unique<TestEndpointManager>(&ecm_, std::move(serial_executor));
 
   // DiscardEndpoint posts a task to the executor to run "discard-endpoint",
-  // however the `FakeSingleThreadExecutor` will not run this task
+  // however the `FakeMultiThreadExecutor` will not run this task
   // immediately.
   fake_serial_executor->SetRunExecutablesImmediately(
       /*run_executables_immediately=*/false);
@@ -339,7 +339,7 @@ TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
   client_.reset();
 
   // Simulate ServiceController destruction of EndpointManager by destroying
-  // `endpoint_manager`, and set the `FakeSingleThreadExecutor` to run
+  // `endpoint_manager`, and set the `FakeMultiThreadExecutor` to run
   // executables on calls `Execute`. When `endpoint_manager` is destructed, it
   // will block on calls to `Execute` to run all pending executables, notably
   // "discard-endpoint" from above. However, "discard-endpoint" will have a

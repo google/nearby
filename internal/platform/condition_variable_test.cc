@@ -19,8 +19,8 @@
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/system_clock.h"
 
 namespace nearby {
@@ -38,7 +38,7 @@ TEST(ConditionVariableTest, CanWakeupWaiter) {
   bool waiting = false;
   NEARBY_LOG(INFO, "At start; done=%d", done);
   {
-    SingleThreadExecutor executor;
+    MultiThreadExecutor executor(1);
     executor.Execute([&cond, &mutex, &done, &waiting]() {
       MutexLock lock(&mutex);
       NEARBY_LOG(INFO, "Before cond.Wait(); done=%d", done);

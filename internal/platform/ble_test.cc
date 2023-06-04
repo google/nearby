@@ -99,7 +99,7 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
   BleSocket socket_a;
   EXPECT_FALSE(socket_a.IsValid());
   {
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&ble_a, &socket_a, discovered_peripheral, &service_id, &flag]() {
           socket_a = ble_a.Connect(*discovered_peripheral, service_id, &flag);
@@ -161,7 +161,7 @@ TEST_P(BleMediumTest, CanCancelConnect) {
   BleSocket socket_a;
   EXPECT_FALSE(socket_a.IsValid());
   {
-    SingleThreadExecutor client_executor;
+    MultiThreadExecutor client_executor(1);
     client_executor.Execute(
         [&ble_a, &socket_a, discovered_peripheral, &service_id, &flag]() {
           socket_a = ble_a.Connect(*discovered_peripheral, service_id, &flag);

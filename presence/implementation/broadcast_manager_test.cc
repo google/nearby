@@ -98,7 +98,7 @@ class BroadcastManagerTest : public testing::TestWithParam<FeatureFlags> {
         start_broadcast_status_.Set(status);
       }};
   Mediums mediums_;
-  SingleThreadExecutor executor_;
+  MultiThreadExecutor executor_{1};
   CredentialManagerImpl credential_manager_{&executor_};
   BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
 };

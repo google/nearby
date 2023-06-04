@@ -28,7 +28,7 @@
 #include "fastpair/handshake/fast_pair_handshake_lookup.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -42,7 +42,7 @@ FastPairPairerImpl::Factory* FastPairPairerImpl::Factory::g_test_factory_ =
 
 // static
 std::unique_ptr<FastPairPairer> FastPairPairerImpl::Factory::Create(
-    FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
+    FastPairDevice& device, Mediums& medium, MultiThreadExecutor* executor,
     OnPairedCallback on_paired_cb, OnPairingFailedCallback on_pair_failed_cb,
     OnAccountKeyFailureCallback on_account_failure_cb,
     OnPairingCompletedCallback on_pairing_completed_cb) {
@@ -65,7 +65,7 @@ void FastPairPairerImpl::Factory::SetFactoryForTesting(
 }
 
 FastPairPairerImpl::FastPairPairerImpl(
-    FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
+    FastPairDevice& device, Mediums& medium, MultiThreadExecutor* executor,
     OnPairedCallback on_paired_cb, OnPairingFailedCallback on_pair_failed_cb,
     OnAccountKeyFailureCallback on_account_failure_cb,
     OnPairingCompletedCallback on_pairing_completed_cb)

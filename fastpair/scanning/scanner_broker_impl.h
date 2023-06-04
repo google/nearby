@@ -24,14 +24,14 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "fastpair/scanning/scanner_broker.h"
 #include "internal/base/observer_list.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
 
 class ScannerBrokerImpl : public ScannerBroker {
  public:
-  ScannerBrokerImpl(Mediums& mediums, SingleThreadExecutor* executor,
+  ScannerBrokerImpl(Mediums& mediums, MultiThreadExecutor* executor,
                     FastPairDeviceRepository* device_repository);
   ~ScannerBrokerImpl() override = default;
 
@@ -48,7 +48,7 @@ class ScannerBrokerImpl : public ScannerBroker {
   void NotifyDeviceLost(FastPairDevice& device);
 
   Mediums& mediums_;
-  SingleThreadExecutor* executor_;
+  MultiThreadExecutor* executor_;
   std::unique_ptr<FastPairScanner> scanner_ ABSL_GUARDED_BY(*executor_);
   std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_
       ABSL_GUARDED_BY(*executor_);

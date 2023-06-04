@@ -23,10 +23,10 @@
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/socket.h"
 #include "webrtc/api/data_channel_interface.h"
 
@@ -113,7 +113,7 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 
   // This should be destroyed first to ensure any remaining tasks flushed on
   // shutdown get run while the other members are still alive.
-  SingleThreadExecutor single_thread_executor_;
+  MultiThreadExecutor single_thread_executor_{1};
 };
 
 }  // namespace mediums

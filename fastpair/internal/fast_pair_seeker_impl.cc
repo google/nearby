@@ -20,7 +20,6 @@
 #include "absl/status/status.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {

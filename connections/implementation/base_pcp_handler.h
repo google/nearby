@@ -40,9 +40,9 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/scheduled_executor.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -303,7 +303,7 @@ class BasePcpHandler : public PcpHandler,
       const string& service_id, const string& endpoint_id,
       const ByteArray& endpoint_info);
 
-  SingleThreadExecutor* GetPcpHandlerThread()
+  MultiThreadExecutor* GetPcpHandlerThread()
       ABSL_LOCK_RETURNED(serial_executor_) {
     return &serial_executor_;
   }
@@ -505,7 +505,7 @@ class BasePcpHandler : public PcpHandler,
                       std::ostringstream& result) const;
 
   ScheduledExecutor alarm_executor_;
-  SingleThreadExecutor serial_executor_;
+  MultiThreadExecutor serial_executor_{1};
 
   // A map of endpoint id -> PendingConnectionInfo. Entries in this map imply
   // that there is an active connection to the endpoint and we're waiting for

@@ -19,7 +19,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/condition_variable.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/multi_thread_executor.h"
 
 namespace nearby {
 namespace {
@@ -39,8 +39,8 @@ class MutexTest : public testing::Test {
   }
 
  protected:
-  SingleThreadExecutor executor_;
   const absl::Duration kTimeToWait = absl::Milliseconds(500);
+  MultiThreadExecutor executor_{1};
   std::atomic_int step_ = 0;
   absl::Mutex step_mutex_;
   absl::CondVar step_cond_;

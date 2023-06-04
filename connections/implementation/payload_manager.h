@@ -290,7 +290,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       const PayloadProgressInfo& payload_transfer_update)
       RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD();
 
-  SingleThreadExecutor* GetOutgoingPayloadExecutor(PayloadType payload_type);
+  MultiThreadExecutor* GetOutgoingPayloadExecutor(PayloadType payload_type);
 
   void RunOnStatusUpdateThread(const std::string& name,
                                std::function<void()> runnable);
@@ -323,10 +323,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   std::unique_ptr<CountDownLatch> shutdown_barrier_;
   int send_payload_count_ = 0;
   PendingPayloads pending_payloads_ ABSL_GUARDED_BY(mutex_);
-  SingleThreadExecutor bytes_payload_executor_;
-  SingleThreadExecutor file_payload_executor_;
-  SingleThreadExecutor stream_payload_executor_;
-  SingleThreadExecutor payload_status_update_executor_;
+  MultiThreadExecutor bytes_payload_executor_{1};
+  MultiThreadExecutor file_payload_executor_{1};
+  MultiThreadExecutor stream_payload_executor_{1};
+  MultiThreadExecutor payload_status_update_executor_{1};
 
   EndpointManager* endpoint_manager_;
 };
