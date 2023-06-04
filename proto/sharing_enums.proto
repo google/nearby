@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 60
+// Next id: 61
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -222,6 +222,9 @@ enum EventType {
 
   // QR code link shown
   QR_CODE_LINK_SHOWN = 59;
+
+  // Sender failed to parse endpoint id.
+  PARSING_FAILED_ENDPOINT_ID = 60;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -425,6 +428,13 @@ enum ScanType {
   FOREGROUND_RETRY_SCAN = 2;
   DIRECT_SHARE_SCAN = 3;
   BACKGROUND_SCAN = 4;
+}
+
+// The type of parsing endpoint id failed type.
+enum ParsingFailedType {
+  FAILED_UNKNOWN_TYPE = 0;
+  FAILED_PARSE_ADVERTISEMENT = 1;
+  FAILED_COVERT_SHARE_TARGET = 2;
 }
 
 // The Nearby Sharing advertising mode.
