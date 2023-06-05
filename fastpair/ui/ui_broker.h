@@ -43,6 +43,8 @@ class UIBroker {
   virtual void ShowDiscovery(
       FastPairDevice& device,
       FastPairNotificationController& notification_controller) = 0;
+  // TODO(b/278768167): Extending notification for re-discovered devic
+  virtual void ExtendNotification() = 0;
 };
 
 }  // namespace fastpair
