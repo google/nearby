@@ -32,9 +32,9 @@
   _centralPeerMock = OCMStrictClassMock([CBCentral class]);
   NSUUID *identifier = [NSUUID UUID];
   OCMStub([_centralPeerMock identifier]).andReturn(identifier);
-  _socketOwner = [OCMStrictProtocolMock(@protocol(GNSSocketOwner)) noRetainObjectArgs];
+  _socketOwner = OCMStrictProtocolMock(@protocol(GNSSocketOwner));
   _socket = [[GNSSocket alloc] initWithOwner:_socketOwner centralPeer:_centralPeerMock];
-  _socketDelegate = [OCMStrictProtocolMock(@protocol(GNSSocketDelegate)) noRetainObjectArgs];
+  _socketDelegate = OCMStrictProtocolMock(@protocol(GNSSocketDelegate));
   _socket.delegate = _socketDelegate;
   XCTAssertFalse(_socket.connected);
 }

@@ -87,14 +87,14 @@ static void FireTimer(void) {
 - (void)setUp {
   _peripheralUUID = [NSUUID UUID];
   _serviceUUID = [CBUUID UUIDWithNSUUID:[NSUUID UUID]];
-  _centralManagerMock = [OCMStrictClassMock([GNSCentralManager class]) noRetainObjectArgs];
+  _centralManagerMock = OCMStrictClassMock([GNSCentralManager class]);
   OCMStub([_centralManagerMock socketServiceUUID]).andReturn(_serviceUUID);
   _cbCentralManagerState = CBCentralManagerStatePoweredOn;
   OCMStub([_centralManagerMock cbCentralManagerState])
       .andDo(^(NSInvocation *invocation) {
         [invocation setReturnValue:&_cbCentralManagerState];
       });
-  _peripheralMock = [OCMStrictClassMock([CBPeripheral class]) noRetainObjectArgs];
+  _peripheralMock = OCMStrictClassMock([CBPeripheral class]);
   OCMStub([_peripheralMock identifier]).andReturn(_peripheralUUID);
   _peripheralState = CBPeripheralStateDisconnected;
   OCMStub([_peripheralMock state])
