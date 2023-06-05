@@ -16,12 +16,25 @@
 #include "nearby.h"
 #include "nearby_platform_battery.h"
 
+#ifdef NEARBY_SPOT_BATTERY_LEVEL_INDICATION
+#include "nearby_spot.h"
+#endif /* NEARBY_SPOT_BATTERY_LEVEL_INDICATION */
+
 constexpr nearby_platform_BatteryInfo kDefaultBatteryInfo = {
-    .is_charging = true,
-    .right_bud_battery_level = 80,
-    .left_bud_battery_level = 85,
-    .charging_case_battery_level = 90,
-    .remaining_time_minutes = 100};
+#if NEARBY_BATTERY_LEVELS_SIZE == 1
+                                                             {NEARBY_PLATFORM_SET_BATTERY_LEVEL(85, true)}
+#elif NEARBY_BATTERY_LEVELS_SIZE == 2
+                                                             {NEARBY_PLATFORM_SET_BATTERY_LEVEL(85, true), \
+                                                              NEARBY_PLATFORM_SET_BATTERY_LEVEL(80, true)}
+#elif NEARBY_BATTERY_LEVELS_SIZE == 3
+                                                             {NEARBY_PLATFORM_SET_BATTERY_LEVEL(85, true), \
+                                                              NEARBY_PLATFORM_SET_BATTERY_LEVEL(80, true), \
+                                                              NEARBY_PLATFORM_SET_BATTERY_LEVEL(90, true)}
+#endif /* NEARBY_BATTERY_LEVELS_SIZE */
+#if NEARBY_BATTERY_REMAINING_TIME
+                                                             ,100
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+                                                             };
 static nearby_platform_BatteryInfo test_battery_info = kDefaultBatteryInfo;
 static nearby_platform_status get_battery_info_result = kNearbyStatusOK;
 
@@ -33,24 +46,58 @@ nearby_platform_status nearby_platform_GetBatteryInfo(
 }
 
 void nearby_test_fakes_SetIsCharging(bool charging) {
-  test_battery_info.is_charging = charging;
+  uint8_t level = 0;
+  uint8_t charging_bit = NEARBY_PLATFORM_BATTERY_INFO_NOT_CHARGING;
+  // If charging is true set the charging bit to 1
+  if (charging) {
+    charging_bit = NEARBY_PLATFORM_BATTERY_INFO_CHARGING;
+  }
+
+  level = NEARBY_PLATFORM_GET_BATTERY_LEVEL(test_battery_info.battery_level[kNearbyLeftBudBatteryLevel]);
+  test_battery_info.battery_level[kNearbyLeftBudBatteryLevel] = charging_bit | level;
+
+#if NEARBY_BATTERY_LEVELS_SIZE >= 2
+  level = NEARBY_PLATFORM_GET_BATTERY_LEVEL(test_battery_info.battery_level[kNearbyRightBudBatteryLevel]);
+  test_battery_info.battery_level[kNearbyRightBudBatteryLevel] = charging_bit | level;
+#endif
+
+#if NEARBY_BATTERY_LEVELS_SIZE >= 3
+  level = NEARBY_PLATFORM_GET_BATTERY_LEVEL(test_battery_info.battery_level[kNearbyChargingCaseBatteryLevel]);
+  test_battery_info.battery_level[kNearbyChargingCaseBatteryLevel] = charging_bit | level;
+#endif
 }
 
-void nearby_test_fakes_SetRightBudBatteryLevel(unsigned battery_level) {
-  test_battery_info.right_bud_battery_level = battery_level;
+#if NEARBY_BATTERY_LEVELS_SIZE >= 2
+void nearby_test_fakes_SetRightBudBatteryLevel(unsigned battery_level, bool charging) {
+  test_battery_info.battery_level[kNearbyRightBudBatteryLevel] =
+    NEARBY_PLATFORM_SET_BATTERY_LEVEL(battery_level, charging);
+}
+#endif
+
+void nearby_test_fakes_SetLeftBudBatteryLevel(unsigned battery_level, bool charging) {
+  test_battery_info.battery_level[kNearbyLeftBudBatteryLevel] =
+    NEARBY_PLATFORM_SET_BATTERY_LEVEL(battery_level, charging);
 }
 
-void nearby_test_fakes_SetLeftBudBatteryLevel(unsigned battery_level) {
-  test_battery_info.left_bud_battery_level = battery_level;
+#if NEARBY_BATTERY_LEVELS_SIZE >= 3
+void nearby_test_fakes_SetChargingCaseBatteryLevel(unsigned battery_level, bool charging) {
+  test_battery_info.battery_level[kNearbyChargingCaseBatteryLevel] =
+    NEARBY_PLATFORM_SET_BATTERY_LEVEL(battery_level, charging);
 }
+#endif
 
-void nearby_test_fakes_SetChargingCaseBatteryLevel(unsigned battery_level) {
-  test_battery_info.charging_case_battery_level = battery_level;
+#ifdef NEARBY_SPOT_BATTERY_LEVEL_INDICATION
+void nearby_test_fakes_SetMainBatteryLevel(unsigned battery_level) {
+  test_battery_info.battery_level[0] =
+    NEARBY_PLATFORM_SET_BATTERY_LEVEL(battery_level, false);
 }
+#endif /* NEARBY_SPOT_BATTERY_LEVEL_INDICATION */
 
+#if NEARBY_BATTERY_REMAINING_TIME
 void nearby_test_fakes_BatteryTime(uint16_t battery_time) {
   test_battery_info.remaining_time_minutes = battery_time;
 }
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
 
 void nearby_test_fakes_SetGetBatteryInfoResult(nearby_platform_status status) {
   get_battery_info_result = status;

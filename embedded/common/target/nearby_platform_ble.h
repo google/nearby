@@ -15,6 +15,9 @@
 #ifndef NEARBY_PLATFORM_BLE_H
 #define NEARBY_PLATFORM_BLE_H
 
+// clang-format off
+#include "nearby_config.h"
+// clang-format on
 #include "nearby.h"
 
 #ifdef __cplusplus
@@ -28,6 +31,7 @@ typedef enum {
   kAccountKey,        // FE2C1236-8366-4814-8EB0-01DE32100BEA (write)
   kFirmwareRevision,  // 0x2A26
   kAdditionalData,    // FE2C1237-8366-4814-8EB0-01DE32100BEA
+  kBeaconActions,     // FE2C1238-8366-4814-8EB0-01DE32100BEA
   // Message Stream PSM characteristic is required to establish an L2CAP
   // communication channel between Seeker and Provider. Platforms that don't
   // support L2CAP channel may choose not to implement this characteristic.
@@ -38,7 +42,8 @@ typedef enum {
 typedef enum {
   kDisabled,
   kNoLargerThan100ms,
-  kNoLargerThan250ms
+  kNoLargerThan250ms,
+  kNoLargerThan2Seconds,
 } nearby_fp_AvertisementInterval;
 
 typedef struct {
@@ -85,6 +90,15 @@ nearby_platform_status nearby_platform_GattNotify(
     uint64_t peer_address, nearby_fp_Characteristic characteristic,
     const uint8_t* message, size_t length);
 
+// Sends a notification to all subscribed GATT clients.
+//
+// characteristic - Characteristic UUID
+// message        - Message buffer to transmit.
+// length         - Length of message in buffer.
+nearby_platform_status nearby_platform_GattNotifyAll(
+    nearby_fp_Characteristic characteristic, const uint8_t* message,
+    size_t length);
+
 // Sets the Fast Pair advertisement payload and starts advertising at a given
 // interval.
 //
@@ -94,6 +108,20 @@ nearby_platform_status nearby_platform_GattNotify(
 nearby_platform_status nearby_platform_SetAdvertisement(
     const uint8_t* payload, size_t length,
     nearby_fp_AvertisementInterval interval);
+
+#if NEARBY_FP_ENABLE_SPOT
+// Sets the spot advertisement payload and starts advertising. When `payload` is
+// null, the advertising should stop.
+// The spot advertisement should be advertised once every 2 seconds, interleaved
+// with Fast Pair advertisements if necessary. Ideally, the advertisement should
+// continue even when the device is turned off. How else would the user find it?
+//
+// payload  - Advertising data.
+// length   - Length of data.
+// address  - the BLE address that the advertisements should be sent from.
+nearby_platform_status nearby_platform_SetSpotAdvertisement(
+    uint64_t address, const uint8_t* payload, size_t length);
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
 // Initializes BLE
 //

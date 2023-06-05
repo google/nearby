@@ -29,7 +29,9 @@
 #include "nearby_fp_library.h"
 #include "nearby_platform_audio.h"
 #include "nearby_platform_ble.h"
+#include "nearby_platform_bt.h"
 #include "nearby_platform_persistence.h"
+#include "nearby_spot.h"
 #include "nearby_utils.h"
 
 #pragma GCC diagnostic push
@@ -476,7 +478,7 @@ TEST(NearbyFpClient, AdvertisementNondiscoverable_oneKey_twoByteSalt) {
   ASSERT_THAT(std::vector<uint8_t>(buffer, buffer + kBufferSize),
               ElementsAreArray(kExpectedResult));
 }
-#endif
+#endif /* (NEARBY_FP_SALT_SIZE == 2) */
 
 TEST(NearbyFpClient, AdvertisementNondiscoverable_twoKeys) {
   uint8_t salt = 0xC7;
@@ -667,7 +669,9 @@ TEST(NearbyFpClient,
   ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
               ElementsAreArray(kExpectedResult, kBufferSize));
 }
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 TEST(
     NearbyFpClient,
     SetAdvertisementWithBatteryNotification_AdvertisementNoPairingUIWithBatteryUI) {
@@ -698,11 +702,30 @@ TEST(
   ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
               ElementsAreArray(kExpectedResult, kBufferSize));
 }
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 TEST(
     NearbyFpClient,
     SetAdvertisementWithBatteryNotification_Charging_AdvertisementContainsBatteryInfo) {
   uint8_t salt = 0xC7;
+  uint8_t account_key1[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+                            0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+  uint8_t account_key2[] = {0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+                            0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88};
+  uint8_t account_key3[] = {0x03, 0x13, 0x23, 0x33, 0x43, 0x53, 0x63, 0x73,
+                            0x83, 0x93, 0xA3, 0xB3, 0xC3, 0xD3, 0xE3, 0xF3};
+  uint8_t account_key4[] = {0x04, 0x14, 0x24, 0x34, 0x44, 0x54, 0x64, 0x74,
+                            0x84, 0x94, 0xA4, 0xB4, 0xC4, 0xD4, 0xE4, 0xF4};
+  uint8_t account_key5[] = {0x05, 0x15, 0x25, 0x35, 0x45, 0x55, 0x65, 0x75,
+                            0x85, 0x95, 0xA5, 0xB5, 0xC5, 0xD5, 0xE5, 0xF5};
+  std::vector<AccountKeyPair> account_keys{
+      AccountKeyPair(kRemoteDevice, account_key1),
+      AccountKeyPair(kRemoteDevice, account_key2),
+      AccountKeyPair(kRemoteDevice, account_key3),
+      AccountKeyPair(kRemoteDevice, account_key4),
+      AccountKeyPair(kRemoteDevice, account_key5),
+  };
   const uint8_t kExpectedResult1[] = {0x14, 0x16, 0x2c, 0xfe, 0x00, 0x90,
                                       0x30, 0xa6, 0x17, 0x10, 0x0c, 0x6c,
                                       0xa9, 0xea, 0xf7, 0x11, salt, 0x33,
@@ -717,7 +740,7 @@ TEST(
                                                      : sizeof(kExpectedResult2);
   nearby_fp_client_Init(NULL);
   nearby_test_fakes_SetAntiSpoofingKey(kBobPrivateKey, kBobPublicKey);
-  Set5AccountKeys();
+  nearby_test_fakes_SetAccountKeys(account_keys);
   nearby_test_fakes_SetRandomNumber(salt);
   nearby_fp_LoadAccountKeys();
   nearby_test_fakes_SetIsCharging(true);
@@ -731,11 +754,30 @@ TEST(
   ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
               ElementsAreArray(kExpectedResult, kBufferSize));
 }
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 TEST(
     NearbyFpClient,
     SetAdvertisementWithBatteryNotification_NotCharging_AdvertisementContainsBatteryInfo) {
   uint8_t salt = 0xC7;
+  uint8_t account_key1[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+                            0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+  uint8_t account_key2[] = {0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+                            0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88};
+  uint8_t account_key3[] = {0x03, 0x13, 0x23, 0x33, 0x43, 0x53, 0x63, 0x73,
+                            0x83, 0x93, 0xA3, 0xB3, 0xC3, 0xD3, 0xE3, 0xF3};
+  uint8_t account_key4[] = {0x04, 0x14, 0x24, 0x34, 0x44, 0x54, 0x64, 0x74,
+                            0x84, 0x94, 0xA4, 0xB4, 0xC4, 0xD4, 0xE4, 0xF4};
+  uint8_t account_key5[] = {0x05, 0x15, 0x25, 0x35, 0x45, 0x55, 0x65, 0x75,
+                            0x85, 0x95, 0xA5, 0xB5, 0xC5, 0xD5, 0xE5, 0xF5};
+  std::vector<AccountKeyPair> account_keys{
+      AccountKeyPair(kRemoteDevice, account_key1),
+      AccountKeyPair(kRemoteDevice, account_key2),
+      AccountKeyPair(kRemoteDevice, account_key3),
+      AccountKeyPair(kRemoteDevice, account_key4),
+      AccountKeyPair(kRemoteDevice, account_key5),
+  };
   const uint8_t kExpectedResult1[] = {0x14, 0x16, 0x2c, 0xfe, 0x00, 0x90,
                                       0x46, 0x84, 0x1e, 0x84, 0x2e, 0x27,
                                       0x05, 0x92, 0xcc, 0x11, salt, 0x33,
@@ -750,7 +792,7 @@ TEST(
                                                      : sizeof(kExpectedResult2);
   nearby_fp_client_Init(NULL);
   nearby_test_fakes_SetAntiSpoofingKey(kBobPrivateKey, kBobPublicKey);
-  Set5AccountKeys();
+  nearby_test_fakes_SetAccountKeys(account_keys);
   nearby_test_fakes_SetRandomNumber(salt);
   nearby_fp_LoadAccountKeys();
   nearby_test_fakes_SetIsCharging(false);
@@ -764,7 +806,9 @@ TEST(
   ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
               ElementsAreArray(kExpectedResult, kBufferSize));
 }
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 TEST(
     NearbyFpClient,
     SetAdvertisementWithBatteryNotification_GetBatteryInfoFails_AdvertismentIsValid) {
@@ -795,7 +839,9 @@ TEST(
   ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
               ElementsAreArray(kExpectedResult, kBufferSize));
 }
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 #if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient,
      RfcommConnected_HasBatteryInfo_SendsModelIdBleAddressAndBatteryInfo) {
@@ -805,18 +851,26 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
       // Battery level
-      3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+      3, 3, 0, 3, 0xd5, 0xd0, 0xda
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time
-      3, 4, 0, 1, 100};
+      ,3, 4, 0, 1, 100
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+      // Firmware Revision
+      ,3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
+      };
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
-  nearby_test_fakes_SetIsCharging(true);
 
   nearby_test_fakes_SetGetBatteryInfoResult(kNearbyStatusOK);
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
@@ -828,7 +882,11 @@ TEST(NearbyFpClient,
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, EnableSilenceMode_RfcommConnected) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr uint8_t kExpectedRfcommOutput[] = {
@@ -836,18 +894,26 @@ TEST(NearbyFpClient, EnableSilenceMode_RfcommConnected) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
       // Battery level
       3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time
       3, 4, 0, 1, 100,
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Enable silence mode
       1, 1, 0, 0};
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
 
@@ -857,7 +923,11 @@ TEST(NearbyFpClient, EnableSilenceMode_RfcommConnected) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, DisableSilenceMode_RfcommConnected) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr uint8_t kExpectedRfcommOutput[] = {
@@ -865,18 +935,26 @@ TEST(NearbyFpClient, DisableSilenceMode_RfcommConnected) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
       // Battery level
       3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time
       3, 4, 0, 1, 100,
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Disable silence mode
       1, 2, 0, 0};
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
 
@@ -886,7 +964,11 @@ TEST(NearbyFpClient, DisableSilenceMode_RfcommConnected) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, BatteryLevelLongForm_RfcommConnected) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr uint8_t kExpectedRfcommOutput[] = {
@@ -894,18 +976,26 @@ TEST(NearbyFpClient, BatteryLevelLongForm_RfcommConnected) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
       // Battery level
       3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time (256)
       3, 4, 0, 2, 1, 0,
+#endif
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Disable silence mode
       1, 2, 0, 0};
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(0x100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
 
@@ -940,18 +1030,26 @@ TEST(NearbyFpClient, SignalLogBufferFull_RfcommConnected) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
       // Battery level
       3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time
       3, 4, 0, 1, 100,
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Signal log buffer full
       2, 1, 0, 0};
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
 
@@ -961,7 +1059,11 @@ TEST(NearbyFpClient, SignalLogBufferFull_RfcommConnected) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient,
      ReceiveActiveComponentsRequest_SendsActiveComponentResponse) {
   constexpr uint64_t kPeerAddress = 0x123456;
@@ -978,18 +1080,26 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
       // Battery level
       3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time
       3, 4, 0, 1, 100,
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Active component response
       3, 6, 0, 1, 0x00};
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
 
@@ -1095,6 +1205,42 @@ TEST(NearbyFpClient, ReceiveRingRequest) {
             MESSAGE_CODE_RING_LEFT | MESSAGE_CODE_RING_RIGHT);
   ASSERT_EQ(nearby_test_fakes_GetRingTimeout(), kRingTimeDeciseconds);
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+
+#if NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, EddystoneCapabilitySync) {
+  constexpr uint8_t kPeerMessage[4] = {0x06, 0x01, 0x00, 0x00};
+  constexpr uint64_t kPeerAddress = 0x123456;
+  const nearby_event_MessageStreamReceived kExpectedMessage = {
+      .peer_address = kPeerAddress,
+      .message_group = kPeerMessage[0],
+      .message_code = kPeerMessage[1],
+      .length = kPeerMessage[2] * 256 + kPeerMessage[3],
+      .data = NULL};
+  constexpr uint8_t kExpectedRfcommOutput[] = {0x06, 0x03, 0x00, 0x07,
+                                               // provisioning state
+                                               0x00,
+                                               // ble address
+                                               0x6B, 0xAB, 0xAB, 0xAB, 0xAB,
+                                               0xAB};
+
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+  message_stream_events.clear();
+
+  nearby_test_fakes_MessageStreamConnected(kPeerAddress);
+
+  nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
+  nearby_test_fakes_MessageStreamReceived(kPeerAddress, kPeerMessage, 4);
+
+  ASSERT_EQ(MessageStreamReceivedEvent(&kExpectedMessage),
+            *message_stream_events[1]);
+
+  ASSERT_THAT(kExpectedRfcommOutput,
+              ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT*/
 #endif /* NEARBY_FP_MESSAGE_STREAM */
 
 TEST(NearbyFpClient, Pairing_ProviderInitiated) {
@@ -1796,6 +1942,7 @@ TEST(NearbyFpClient, HkdfExpandSha256NoInfo) {
   ASSERT_THAT(okm, ElementsAreArray(kExpectedOkm));
 }
 
+#if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 TEST(NearbyFpClient, HmacSha256) {
   const uint8_t kData[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0xEE,
                            0x4A, 0x24, 0x83, 0x73, 0x80, 0x52, 0xE4, 0x4E, 0x9B,
@@ -1814,7 +1961,9 @@ TEST(NearbyFpClient, HmacSha256) {
 
   ASSERT_THAT(result, ElementsAreArray(kExpectedResult));
 }
+#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
 
+#if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 TEST(NearbyFpClient, AesCtr) {
   uint8_t message[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0xEE,
                        0x4A, 0x24, 0x83, 0x73, 0x80, 0x52, 0xE4, 0x4E, 0x9B,
@@ -1831,6 +1980,7 @@ TEST(NearbyFpClient, AesCtr) {
 
   ASSERT_THAT(message, ElementsAreArray(kExpectedResult));
 }
+#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
 
 #if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 TEST(NearbyFpClient, DecodeAdditionalData) {
@@ -1852,7 +2002,9 @@ TEST(NearbyFpClient, DecodeAdditionalData) {
 
   ASSERT_THAT(message, ElementsAreArray(kExpectedResult));
 }
+#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
 
+#if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 TEST(NearbyFpClient, EncodeAdditionalData) {
   uint8_t message[] = {0,    0,    0,    0,    0,    0,    0,    0,    0,
                        0,    0,    0,    0,    0,    0,    0,    0x53, 0x6F,
@@ -1874,7 +2026,9 @@ TEST(NearbyFpClient, EncodeAdditionalData) {
 
   ASSERT_THAT(message, ElementsAreArray(kExpectedResult));
 }
+#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
 
+#if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 TEST(NearbyFpClient, PairAndGetPersonalizedName) {
   uint8_t name[] = {0x53, 0x6F, 0x6D, 0x65, 0x6F, 0x6E, 0x65, 0x27, 0x73,
                     0x20, 0x47, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x20, 0x48,
@@ -1896,7 +2050,9 @@ TEST(NearbyFpClient, PairAndGetPersonalizedName) {
                   additional_data.end()),
               ElementsAreArray(name));
 }
+#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
 
+#if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 TEST(NearbyFpClient, PairAndSetPersonalizedName) {
   uint8_t name[] = {0,    0,    0,    0,    0,    0,    0,    0,    0,
                     0,    0,    0,    0,    0,    0,    0,    0x53, 0x6F,
@@ -1952,8 +2108,14 @@ TEST(NearbyFpClient, RfcommConnected_NoBatteryInfo_SendsModelIdAndBleAddress) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
-      3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt};
+      3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0'
+      };
+
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
@@ -1968,8 +2130,10 @@ TEST(NearbyFpClient, RfcommConnected_NoBatteryInfo_SendsModelIdAndBleAddress) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
 #if NEARBY_FP_RETROACTIVE_PAIRING
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, RetroactivePair) {
   nearby_fp_client_Init(NULL);
   constexpr uint64_t kPeerAddress = 0xB0B1B2B3B4B5;
@@ -2029,7 +2193,11 @@ TEST(NearbyFpClient, RetroactivePair) {
                                  kSeekerAccountKey + sizeof(kExpectedAesKey)),
             keys.GetKey(0));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_RETROACTIVE_PAIRING */
 
+#if NEARBY_FP_RETROACTIVE_PAIRING
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, RetroactivePairAfterInitialPair) {
   constexpr uint64_t kPeerAddress = 0xB0B1B2B3B4B5;
   uint8_t salt = 0xAB;
@@ -2171,7 +2339,11 @@ TEST(NearbyFpClient, RetroactivePairAfterInitialPair) {
                                  kSeekerAccountKey + sizeof(kExpectedAesKey)),
             keys.GetKey(0));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_RETROACTIVE_PAIRING */
 
+#if NEARBY_FP_RETROACTIVE_PAIRING
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, RetroactivePairTwice) {
   nearby_fp_client_Init(NULL);
   constexpr uint64_t kPeerAddress = 0xB0B1B2B3B4B5;
@@ -2271,7 +2443,11 @@ TEST(NearbyFpClient, RetroactivePairTwice) {
                                  kSeekerAccountKey + sizeof(kExpectedAesKey)),
             keys.GetKey(0));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_RETROACTIVE_PAIRING */
 
+#if NEARBY_FP_RETROACTIVE_PAIRING
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, RetroactivePairWrongBtAddress) {
   nearby_fp_client_Init(NULL);
   constexpr uint64_t kPeerAddress = 0xB0B1B2B3B4B5;
@@ -2326,8 +2502,10 @@ TEST(NearbyFpClient, RetroactivePairWrongBtAddress) {
   auto keys = nearby_test_fakes_GetAccountKeys();
   ASSERT_EQ(0, keys.size());
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 #endif /* NEARBY_FP_RETROACTIVE_PAIRING */
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, RfcommConnected_ClientDisconnects_EmitsDisconnectEvent) {
   constexpr uint64_t kPeerAddress = 0x123456;
   nearby_fp_client_Init(&kClientCallbacks);
@@ -2344,7 +2522,9 @@ TEST(NearbyFpClient, RfcommConnected_ClientDisconnects_EmitsDisconnectEvent) {
   ASSERT_EQ(MessageStreamDisconnectedEvent(kPeerAddress),
             *message_stream_events[1]);
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, RfcommConnected_PeerSendsMessage_PassMessageToClientApp) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr uint8_t kPeerMessage[] = {101, 102, 0, 4, 81, 82, 83, 84};
@@ -2370,7 +2550,9 @@ TEST(NearbyFpClient, RfcommConnected_PeerSendsMessage_PassMessageToClientApp) {
   ASSERT_EQ(MessageStreamReceivedEvent(&kExpectedMessage),
             *message_stream_events[1]);
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient,
      RfcommConnected_ConnectAndDisconnect_CanHandleManySessions) {
   constexpr uint64_t kPeerAddress = 0x123456;
@@ -2401,7 +2583,9 @@ TEST(NearbyFpClient,
   ASSERT_EQ(MessageStreamReceivedEvent(&kExpectedMessage),
             *message_stream_events[events - 1]);
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
+#if NEARBY_FP_MESSAGE_STREAM
 #if NEARBY_MAX_RFCOMM_CONNECTIONS > 1
 TEST(NearbyFpClient, RfcommConnected_TwoInterleavedConnections_ParsesMessages) {
   constexpr uint64_t kPeerAddress1 = 0x123456;
@@ -2454,7 +2638,9 @@ TEST(NearbyFpClient, RfcommConnected_TwoInterleavedConnections_ParsesMessages) {
             *message_stream_events[3]);
 }
 #endif /* NEARBY_MAX_RFCOMM_CONNECTIONS > 1 */
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, SendMessageStreamMessage) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr nearby_message_stream_Message kMessage{
@@ -2470,7 +2656,9 @@ TEST(NearbyFpClient, SendMessageStreamMessage) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, SendAck) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr nearby_event_MessageStreamReceived kMessage{
@@ -2487,7 +2675,9 @@ TEST(NearbyFpClient, SendAck) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, SendNack) {
   constexpr uint64_t kPeerAddress = 0x123456;
   constexpr uint8_t kFailReason = 30;
@@ -2506,7 +2696,6 @@ TEST(NearbyFpClient, SendNack) {
       kExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
-
 #endif /* NEARBY_FP_MESSAGE_STREAM */
 
 TEST(NearbyFpClient, TimerTriggered_RotatesBleAddress) {
@@ -2603,6 +2792,242 @@ TEST(NearbyFpClient, ChangeAdvertisementFlags_DoesntRotateBleAddress) {
 
   ASSERT_EQ(firstAddress, nearby_platform_GetBleAddress());
 }
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, Init_DeviceNotPaired_NoSpotAdvertisement) {
+  nearby_fp_client_Init(&kClientCallbacks);
+
+  ASSERT_TRUE(nearby_test_fakes_GetSpotAdvertisement().empty());
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, Init_DevicePaired_HasOwnerKey) {
+  uint8_t result[sizeof(kSeekerAccountKey)];
+  size_t length = sizeof(result);
+  nearby_fp_client_Init(&kClientCallbacks);
+
+  Pair(0x40);
+
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_platform_LoadValue(kStoredKeyOwnerKey, result, &length));
+  ASSERT_THAT(result,
+              ElementsAreArray(kSeekerAccountKey,
+                               kSeekerAccountKey + sizeof(kSeekerAccountKey)));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, ReadBeaconAction) {
+  uint8_t result[9];
+  size_t length = sizeof(result);
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattRead(kBeaconActions, result, &length));
+
+  ASSERT_EQ(sizeof(result), length);
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, WriteBeaconAction) {
+  // This request is invalid. That's OK. We are testing only if the request was
+  // passed through to SPOT handler
+  uint8_t request[9] = {0};
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+
+  ASSERT_EQ(0x80, nearby_test_fakes_GattWrite(kBeaconActions, request,
+                                              sizeof(request)));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient,
+     SetSpotAdvertisement_DevicePairedHasEik_SetsSpotAdvertisement) {
+  // computed with kSeekerKey and 8 * [0xAB] nonce
+  constexpr uint8_t kSetEikRequest[] = {
+      0x02, 40,   0x27, 0x45, 0xdb, 0x83, 0x04, 0xc1, 0x1d, 0xc0, 0x3a,
+      0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc, 0x99, 0x86, 0x11, 0x7c, 0xa8,
+      0x62, 0xd8, 0x92, 0x04, 0x3a, 0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc,
+      0x99, 0x86, 0x11, 0x7c, 0xa8, 0x62, 0xd8, 0x92, 0x04};
+  constexpr uint8_t kSpotAdvertisement[] = {
+      0x02, 0x01, 0x06, 0x18, 0x16, 0xaa, 0xfe, 0x40, 0xd8, 0xa0,
+      0x1e, 0x3a, 0xb9, 0x73, 0x4a, 0x1c, 0x22, 0xea, 0x1e, 0xac,
+      0x5c, 0x48, 0xfc, 0x7c, 0x6e, 0xf9, 0xd6, 0x3f};
+  uint8_t BeaconAction[9];
+  size_t length = sizeof(BeaconAction);
+  nearby_fp_client_Init(&kClientCallbacks);
+  nearby_test_fakes_SetGetBatteryInfoResult(kNearbyStatusUnimplemented);
+
+  Pair(0x40);
+
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattRead(kBeaconActions, BeaconAction, &length));
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattWrite(kBeaconActions, kSetEikRequest,
+                                        sizeof(kSetEikRequest)));
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_SPOT));
+
+  ASSERT_THAT(kSpotAdvertisement,
+              ElementsAreArray(nearby_test_fakes_GetSpotAdvertisement()));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, ClearSpotAdvertisement) {
+  // computed with kSeekerKey and 8 * [0xAB] nonce
+  constexpr uint8_t kSetEikRequest[] = {
+      0x02, 40,   0x27, 0x45, 0xdb, 0x83, 0x04, 0xc1, 0x1d, 0xc0, 0x3a,
+      0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc, 0x99, 0x86, 0x11, 0x7c, 0xa8,
+      0x62, 0xd8, 0x92, 0x04, 0x3a, 0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc,
+      0x99, 0x86, 0x11, 0x7c, 0xa8, 0x62, 0xd8, 0x92, 0x04};
+  uint8_t BeaconAction[9];
+  size_t length = sizeof(BeaconAction);
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+  nearby_test_fakes_GattRead(kBeaconActions, BeaconAction, &length);
+  nearby_test_fakes_GattWrite(kBeaconActions, kSetEikRequest,
+                              sizeof(kSetEikRequest));
+  nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_SPOT);
+  ASSERT_NE(0, nearby_test_fakes_GetSpotAdvertisement().size());
+
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_NONE));
+
+  ASSERT_EQ(0, nearby_test_fakes_GetSpotAdvertisement().size());
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, SetSpotAdvertisementFailsWhenNotProvisioned) {
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+
+  ASSERT_NE(kNearbyStatusOK,
+            nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_SPOT));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient,
+     SetSpotAndFastAdvertisementWhenNotProvisionedStartsFastPairOnly) {
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+
+  ASSERT_EQ(kNearbyStatusOK, nearby_fp_client_SetAdvertisement(
+                                 NEARBY_FP_ADVERTISEMENT_SPOT |
+                                 NEARBY_FP_ADVERTISEMENT_DISCOVERABLE));
+
+  ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
+              ElementsAreArray(kDiscoverableAdvertisement));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+TEST(NearbyFpClient, SetSpotAndFastAdvertisementThenProvisionAdvertisesBoth) {
+  // computed with kSeekerKey and 8 * [0xAB] nonce
+  constexpr uint8_t kSetEikRequest[] = {
+      0x02, 40,   0x27, 0x45, 0xdb, 0x83, 0x04, 0xc1, 0x1d, 0xc0, 0x3a,
+      0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc, 0x99, 0x86, 0x11, 0x7c, 0xa8,
+      0x62, 0xd8, 0x92, 0x04, 0x3a, 0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc,
+      0x99, 0x86, 0x11, 0x7c, 0xa8, 0x62, 0xd8, 0x92, 0x04};
+  constexpr uint8_t kSpotAdvertisement[] = {
+      0x02, 0x01, 0x06, 0x18, 0x16, 0xaa, 0xfe, 0x40, 0xd8, 0xa0,
+      0x1e, 0x3a, 0xb9, 0x73, 0x4a, 0x1c, 0x22, 0xea, 0x1e, 0xac,
+      0x5c, 0x48, 0xfc, 0x7c, 0x6e, 0xf9, 0xd6, 0x3f};
+  uint8_t BeaconAction[9];
+  size_t length = sizeof(BeaconAction);
+  nearby_fp_client_Init(&kClientCallbacks);
+  nearby_test_fakes_SetGetBatteryInfoResult(kNearbyStatusUnimplemented);
+  Pair(0x40);
+  ASSERT_EQ(kNearbyStatusOK, nearby_fp_client_SetAdvertisement(
+                                 NEARBY_FP_ADVERTISEMENT_SPOT |
+                                 NEARBY_FP_ADVERTISEMENT_DISCOVERABLE));
+
+  // Provision SPOT
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattRead(kBeaconActions, BeaconAction, &length));
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattWrite(kBeaconActions, kSetEikRequest,
+                                        sizeof(kSetEikRequest)));
+
+  ASSERT_THAT(kSpotAdvertisement,
+              ElementsAreArray(nearby_test_fakes_GetSpotAdvertisement()));
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+#if NEARBY_FP_ENABLE_SPOT
+#if NEARBY_FP_MESSAGE_STREAM
+TEST(
+    NearbyFpClient,
+    RfcommConnected_SendsModelIdBleAddressAndBatteryInfoWithCurrentEddystoneId) {
+  constexpr uint64_t kPeerAddress = 0x123456;
+  constexpr uint8_t kExpectedRfcommOutput[] = {
+      // Model Id
+      3, 1, 0, 3, 0x10, 0x11, 0x12,
+      // Ble Address
+      3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
+      // Session nonce
+      3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+      // Battery level
+      3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
+      // Battery remaining time
+      3, 4, 0, 1, 100,
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION*/
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
+      // Current EID
+      3, 0x0b, 0x00, 0x18, 0x00, 0x00, 0xc3, 0x50, 0xd8, 0xa0, 0x1e, 0x3a, 0xb9,
+      0x73, 0x4a, 0x1c, 0x22, 0xea, 0x1e, 0xac, 0x5c, 0x48, 0xfc, 0x7c, 0x6e,
+      0xf9, 0xd6, 0x3f};
+  // computed with kSeekerKey and 8 * [0xAB] nonce
+  constexpr uint8_t kSetEikRequest[] = {
+      0x02, 40,   0x27, 0x45, 0xdb, 0x83, 0x04, 0xc1, 0x1d, 0xc0, 0x3a,
+      0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc, 0x99, 0x86, 0x11, 0x7c, 0xa8,
+      0x62, 0xd8, 0x92, 0x04, 0x3a, 0x7c, 0x70, 0x23, 0x9a, 0x52, 0xdc,
+      0x99, 0x86, 0x11, 0x7c, 0xa8, 0x62, 0xd8, 0x92, 0x04};
+  uint8_t BeaconAction[9];
+  size_t length = sizeof(BeaconAction);
+  nearby_test_fakes_SetGetBatteryInfoResult(kNearbyStatusUnimplemented);
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+  ASSERT_EQ(kNearbyStatusOK, nearby_fp_client_SetAdvertisement(
+                                 NEARBY_FP_ADVERTISEMENT_SPOT |
+                                 NEARBY_FP_ADVERTISEMENT_DISCOVERABLE));
+
+  // Provision SPOT
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattRead(kBeaconActions, BeaconAction, &length));
+  ASSERT_EQ(kNearbyStatusOK,
+            nearby_test_fakes_GattWrite(kBeaconActions, kSetEikRequest,
+                                        sizeof(kSetEikRequest)));
+  message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
+  nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+  nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
+  nearby_test_fakes_SetIsCharging(true);
+
+  nearby_test_fakes_SetGetBatteryInfoResult(kNearbyStatusOK);
+  nearby_test_fakes_MessageStreamConnected(kPeerAddress);
+
+  ASSERT_EQ(1, message_stream_events.size());
+  ASSERT_EQ(MessageStreamConnectedEvent(kPeerAddress),
+            *message_stream_events[0]);
+  ASSERT_THAT(kExpectedRfcommOutput,
+              ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
+}
+#endif /* NEARBY_FP_MESSAGE_STREAM */
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
 TEST(NearbyFpClient, GenerateSassAdvertisement) {
   constexpr size_t kBufferSize = 4;
@@ -2729,7 +3154,66 @@ TEST(NearbyFpClient, EncryptRrf) {
   ASSERT_THAT(buffer, ElementsAreArray(kExpectedResult));
 }
 
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT
+TEST(NearbyFpClient, PairingDisconnectAndReAdvertise) {
+  nearby_fp_client_Init(NULL);
+  nearby_test_fakes_SetAntiSpoofingKey(kBobPrivateKey, kBobPublicKey);
+  nearby_test_fakes_SetRandomNumber(kSalt);
+  nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_DISCOVERABLE);
+
+  uint8_t request[16];
+  request[0] = 0x00;  // key-based pairing request
+  request[1] = 0x40;
+  // Provider's public address
+  request[2] = 0xA0;
+  request[3] = 0xA1;
+  request[4] = 0xA2;
+  request[5] = 0xA3;
+  request[6] = 0xA4;
+  request[7] = 0xA5;
+  // Seeker's address
+  request[8] = 0xB0;
+  request[9] = 0xB1;
+  request[10] = 0xB2;
+  request[11] = 0xB3;
+  request[12] = 0xB4;
+  request[13] = 0xB5;
+  // salt
+  request[14] = 0xCD;
+  request[15] = 0xEF;
+  uint8_t encrypted[16 + 64];
+  nearby_test_fakes_Aes128Encrypt(request, encrypted, kExpectedAesKey);
+  memcpy(encrypted + 16, kAlicePublicKey, 64);
+  // Seeker responds
+  ASSERT_EQ(kNearbyStatusOK, nearby_fp_fakes_ReceiveKeyBasedPairingRequest(
+                                 encrypted, sizeof(encrypted)));
+  // BT negotatiates passkey 123456 (0x01E240)
+  uint8_t raw_passkey_block[16] = {0x02, 0x01, 0xE2, 0x40};
+  uint8_t encrypted_passkey_block[16];
+  nearby_test_fakes_Aes128Encrypt(raw_passkey_block, encrypted_passkey_block,
+                                  kExpectedAesKey);
+
+  // Before the Pairing flow is finished,
+  // call nearby_fp_client_SetAdvertisement(), with NONE, and DISCOVERABLE
+  constexpr uint64_t kPeerAddress = 0xb0b1b2b3b4b5;
+  nearby_test_fakes_MessageStreamConnected(kPeerAddress);
+  nearby_test_fakes_MessageStreamDisconnected(kPeerAddress);
+
+  ASSERT_EQ(kNearbyStatusOK, nearby_fp_client_SetAdvertisement(
+                                  NEARBY_FP_ADVERTISEMENT_NONE));
+  ASSERT_EQ(kNearbyStatusOK, nearby_fp_client_SetAdvertisement(
+                                  NEARBY_FP_ADVERTISEMENT_DISCOVERABLE));
+
+  // If NEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT is enabled, the Discoverable
+  // advertisement should be read from nearby_test_fakes_GetAdvertisement()
+  ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
+              ElementsAreArray(kDiscoverableAdvertisement));
+}
+#endif /* NEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT */
+#endif /* NEARBY_FP_MESSAGE_STREAM*/
+
+#if NEARBY_FP_ENABLE_SASS
 TEST(NearbyFpClient,
      SassConnected_ReceiveGetCapability_SendsCapabilityResponse) {
   constexpr uint64_t kPeerAddress = 0x123456;
@@ -2746,18 +3230,28 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
       // Battery level
       3, 3, 0, 3, 0xd5, 0xd0, 0xda,
+#if NEARBY_BATTERY_REMAINING_TIME
       // Battery remaining time
       3, 4, 0, 1, 100,
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
+#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION*/
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Capability response
       7, 0x11, 0, 4, 1, 1, 208, 0};
   nearby_fp_client_Init(&kClientCallbacks);
   Pair(0x40);
   message_stream_events.clear();
+#if NEARBY_BATTERY_REMAINING_TIME
   nearby_test_fakes_BatteryTime(100);
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_test_fakes_MessageStreamConnected(kPeerAddress);
 
@@ -2793,8 +3287,12 @@ TEST(NearbyFpClient, SassConnected_IndicateValidInUseKey_SendsAck) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // ACK
       0xFF, 1, 0, 2, 0x07, 0x41};
 
@@ -2835,8 +3333,12 @@ TEST(NearbyFpClient, SassConnected_IndicateInvalidInUseKey_SendsNack) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // NACK
       0xFF, 2, 0, 3, 0, 0x07, 0x41};
 
@@ -2876,8 +3378,12 @@ TEST(NearbyFpClient, SassConnected_SetMultipointState) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -2923,8 +3429,12 @@ TEST(NearbyFpClient, SassConnected_SetSwitchingPreference) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -2969,8 +3479,12 @@ TEST(
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Switching preference response
       7, 0x22, 0, 2, 0, 0};
 
@@ -3012,8 +3526,12 @@ TEST(NearbyFpClient, SassConnected_SwitchActiveAudioSourceToThisPeer) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3059,8 +3577,12 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3074,8 +3596,6 @@ TEST(NearbyFpClient,
   nearby_test_fakes_MessageStreamReceived(kPeerAddress, kInUseMessage,
                                           sizeof(kInUseMessage));
   nearby_test_fakes_MessageStreamConnected(kPeerWithSameKey);
-  nearby_test_fakes_MessageStreamReceived(kPeerWithSameKey, kInUseMessage,
-                                          sizeof(kInUseMessage));
 
   nearby_test_fakes_MessageStreamReceived(kPeerAddress, kPeerMessage,
                                           sizeof(kPeerMessage));
@@ -3104,8 +3624,12 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3145,8 +3669,12 @@ TEST(NearbyFpClient, SassConnected_SwitchActiveAudioSourceToUnknownSource) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3191,8 +3719,12 @@ TEST(NearbyFpClient, SassConnected_SwitchBackToDisconnectedDevice) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3237,8 +3769,12 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // Connection status response
@@ -3284,8 +3820,12 @@ TEST(
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // Connection status response
@@ -3333,8 +3873,12 @@ TEST(NearbyFpClient, SassConnected_NotifySassInitiatedConnection) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3383,8 +3927,12 @@ TEST(NearbyFpClient, SassConnected_SendCustomData) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Connection state
       7, 0x34, 0, 12, 1, 0xaf, 0x75, 0x14, kSalt, kSalt, kSalt, kSalt, kSalt,
       kSalt, kSalt, kSalt,
@@ -3403,8 +3951,12 @@ TEST(NearbyFpClient, SassConnected_SendCustomData) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Connection state
       7, 0x34, 0, 12, 0, 0xaf, 0x75, 0x14, kSalt, kSalt, kSalt, kSalt, kSalt,
       kSalt, kSalt, kSalt,
@@ -3462,8 +4014,12 @@ TEST(NearbyFpClient, SassConnected_SetDropConnectionTarget) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3565,6 +4121,7 @@ TEST(NearbyFpClient, CreateSassAdvertiment_NoSeeker_UsesLastUsedKey) {
               ElementsAreArray(expected_results[NEARBY_FP_SALT_SIZE]));
 }
 
+#if NEARBY_FP_MESSAGE_STREAM
 TEST(NearbyFpClient, CreateSassAdvertiment_SeekerDisconnects_UsesLastUsedKey) {
   constexpr uint64_t kPeerAddress = 0x123456;
   std::map<int, std::vector<uint8_t>> expected_results = {
@@ -3590,6 +4147,7 @@ TEST(NearbyFpClient, CreateSassAdvertiment_SeekerDisconnects_UsesLastUsedKey) {
   ASSERT_THAT(nearby_test_fakes_GetAdvertisement(),
               ElementsAreArray(expected_results[NEARBY_FP_SALT_SIZE]));
 }
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
 TEST(NearbyFpClient, MultipointSwitch_WithName_SendsNotificationToAllSeekers) {
   constexpr uint8_t kReason = 2;
@@ -3601,8 +4159,12 @@ TEST(NearbyFpClient, MultipointSwitch_WithName_SendsNotificationToAllSeekers) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // Notify multipoint switch event
@@ -3612,8 +4174,12 @@ TEST(NearbyFpClient, MultipointSwitch_WithName_SendsNotificationToAllSeekers) {
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3650,8 +4216,12 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // Notify multipoint switch event
@@ -3661,8 +4231,12 @@ TEST(NearbyFpClient,
       3, 1, 0, 3, 0x10, 0x11, 0x12,
       // Ble Address
       3, 2, 0, 6, 0x6b, 0xab, 0xab, 0xab, 0xab, 0xab,
+#if NEARBY_FP_ENABLE_SASS
       // Session nonce
       3, 10, 0, 8, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt, kSalt,
+#endif /* NEARBY_FP_ENABLE_SASS */
+      // Firmware Revision
+      3, 9, 0, 6, '1', '.', '0', '.', '0', '\0',
       // Indicate in-use key ACK
       0xFF, 1, 0, 2, 0x07, 0x41,
       // ACK
@@ -3688,6 +4262,81 @@ TEST(NearbyFpClient,
       kSecondPeerExpectedRfcommOutput,
       ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kSecondPeerAddress)));
 }
+
+
+TEST(NearbyFpClient, SassConnected_SendCustomDataPerSeeker) {
+  constexpr uint64_t kPeerAddress = 0x123456;
+  constexpr uint64_t kSecondPeerAddress = 0x89ABCD;
+  constexpr uint64_t kNonSeekerPeerAddress = 0x765432;
+  constexpr uint8_t kCustomData = 0xAB;
+  constexpr uint8_t kCustomData2 = 0xAA;
+  constexpr uint8_t kPeerMessage[] = {
+      0x07, 0x42, 0,    17,   kCustomData,  0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5,
+      0xC6, 0xC7, 0x30, 0x75, 0x28,         0xdd, 0x98, 0x27, 0x07, 0x95};
+  constexpr uint8_t kPeerMessage2[] = {
+      0x07, 0x42, 0,    17,   kCustomData2, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5,
+      0xC6, 0xC7, 0x7a, 0x5d, 0xd0,         0x30, 0xa5, 0x40, 0x21, 0xd8};
+  // Advertisement with custom data == 0
+  constexpr uint8_t kDefaultAdvertisement[] = {
+      0x11, 0x16, 0x2c, 0xfe, 0x10, 0x42, 0x1, 0x11, 0x90, 0x60,
+      0x21, 0xab, 0xab, 0x46, 0xdf, 0xa3, 0x4b, 0xed, 0x2, 0xa, 0x21
+  };
+  // Advertisement with custom data == kCustomData
+  constexpr uint8_t kExpectedAdvertisement[] = {
+      0x11, 0x16, 0x2c, 0xfe, 0x10, 0x42, 0x16, 0x3, 0x88, 0x2,
+      0x21, 0xab, 0xab, 0x46, 0xdf, 0xa3, 0xe0, 0xed, 0x2, 0xa, 0x21,
+  };
+  // Advertisement with custom data == kCustomData2
+  constexpr uint8_t kExpectedSeeker2Advertisement[] = {
+      0x11, 0x16, 0x2c, 0xfe, 0x10, 0x42, 0x44, 0x80, 0x18, 0x84,
+      0x21, 0xab, 0xab, 0x46, 0xdf, 0xa3, 0xe1, 0xed, 0x2, 0xa, 0x21,
+  };
+  // Advertisement using non Seeker
+  constexpr uint8_t kExpectedNonSeekerAdvertisement[] = {
+      0x11, 0x16, 0x2c, 0xfe, 0x10, 0x42, 0x1, 0x11, 0x90, 0x60,
+      0x21, 0xab, 0xab, 0x46, 0xdf, 0xa3, 0x4b, 0xed, 0x2, 0xa, 0x21,
+  };
+
+  nearby_fp_client_Init(&kClientCallbacks);
+  Pair(0x40);
+  nearby_test_fakes_SetActiveAudioSource(kPeerAddress);
+   nearby_test_fakes_SetGetBatteryInfoResult(kNearbyStatusUnsupported);
+  nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE |
+                                    NEARBY_FP_ADVERTISEMENT_SASS);
+  message_stream_events.clear();
+  nearby_test_fakes_MessageStreamConnected(kPeerAddress);
+  nearby_test_fakes_MessageStreamReceived(kPeerAddress, kInUseMessage,
+                                          sizeof(kInUseMessage));
+  nearby_test_fakes_MessageStreamConnected(kSecondPeerAddress);
+  nearby_test_fakes_MessageStreamReceived(kSecondPeerAddress, kInUseMessage,
+                                          sizeof(kInUseMessage));
+
+  ASSERT_THAT(kDefaultAdvertisement, ElementsAreArray(nearby_test_fakes_GetAdvertisement()));
+
+  nearby_test_fakes_MessageStreamReceived(kPeerAddress, kPeerMessage,
+                                          sizeof(kPeerMessage));
+  ASSERT_THAT(kExpectedAdvertisement, ElementsAreArray(nearby_test_fakes_GetAdvertisement()));
+
+  // Second Seeker changes the custom data
+  nearby_test_fakes_MessageStreamReceived(kSecondPeerAddress, kPeerMessage2,
+                                          sizeof(kPeerMessage));
+  // Verify that the custom data in the advertisement does not change when a Seeker,
+  // who isn't the active audio source, changes their custom data.
+  ASSERT_THAT(kExpectedAdvertisement, ElementsAreArray(nearby_test_fakes_GetAdvertisement()));
+
+  // Change active audio source to Seeker 2
+  nearby_test_fakes_SetActiveAudioSource(kSecondPeerAddress);
+
+  // Verify that when Seeker-2 is the active source, the advertisement
+  ASSERT_THAT(kExpectedSeeker2Advertisement, ElementsAreArray(nearby_test_fakes_GetAdvertisement()));
+
+  // Change active audio source to Non seeker
+  nearby_test_fakes_SetActiveAudioSource(kNonSeekerPeerAddress);
+
+  ASSERT_THAT(kExpectedNonSeekerAdvertisement, ElementsAreArray(nearby_test_fakes_GetAdvertisement()));
+}
+
+
 #endif /* NEARBY_FP_ENABLE_SASS */
 
 #pragma GCC diagnostic pop

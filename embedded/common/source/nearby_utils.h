@@ -26,9 +26,10 @@ uint8_t nearby_utils_GetByte(uint64_t source, int byteNumber);
 void nearby_utils_CopyBigEndian(uint8_t* dest, uint64_t source, int bytes);
 void nearby_utils_CopyLittleEndian(uint8_t* dest, uint64_t source, int bytes);
 
-uint32_t nearby_utils_GetBigEndian24(uint8_t* buffer);
-uint32_t nearby_utils_GetBigEndian32(uint8_t* buffer);
-uint64_t nearby_utils_GetBigEndian48(uint8_t* buffer);
+uint16_t nearby_utils_GetBigEndian16(const uint8_t* buffer);
+uint32_t nearby_utils_GetBigEndian24(const uint8_t* buffer);
+uint32_t nearby_utils_GetBigEndian32(const uint8_t* buffer);
+uint64_t nearby_utils_GetBigEndian48(const uint8_t* buffer);
 
 // Converts the data to a hex string for debugging. Returns a pointer to a
 // static buffer. Don't call it twice in the same log message!

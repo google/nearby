@@ -126,6 +126,7 @@ uint64_t nearby_platform_GetActiveAudioSource() { return active_peer_address; }
 
 void nearby_test_fakes_SetActiveAudioSource(uint64_t peer_address) {
     active_peer_address = peer_address;
+    callbacks->on_state_change();
 }
 
 // Initializes Audio module

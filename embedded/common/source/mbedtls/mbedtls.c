@@ -119,3 +119,23 @@ exit:
   mbedtls_aes_free(&ctx);
   return status;
 }
+
+/**
+ * Encrypts a data block with AES256 in ECB mode. The `input` and `output`
+ * parameters may be the same array.
+ */
+nearby_platform_status nearby_platform_Aes256Encrypt(
+    const uint8_t input[AES_MESSAGE_SIZE_BYTES],
+    uint8_t output[AES_MESSAGE_SIZE_BYTES],
+    const uint8_t key[AES256_KEY_SIZE]) {
+  nearby_platform_status status = kNearbyStatusError;
+  mbedtls_aes_context ctx;
+  mbedtls_aes_init(&ctx);
+  if (mbedtls_aes_setkey_enc(&ctx, key, 256) != 0) goto exit;
+  if (mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, input, output) != 0)
+    goto exit;
+  status = kNearbyStatusOK;
+exit:
+  mbedtls_aes_free(&ctx);
+  return status;
+}

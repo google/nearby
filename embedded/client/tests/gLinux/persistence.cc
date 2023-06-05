@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "fakes.h"
+#include "nearby.h"
 #include "nearby_platform_persistence.h"
 
 static std::map<nearby_fp_StoredKey, std::vector<uint8_t>> storage;
@@ -43,6 +44,16 @@ nearby_platform_status nearby_platform_SaveValue(nearby_fp_StoredKey key,
                                                  const uint8_t* input,
                                                  size_t length) {
   storage[key].assign(input, input + length);
+  return kNearbyStatusOK;
+}
+
+nearby_platform_status nearby_platform_ClearValue(nearby_fp_StoredKey key) {
+  storage.erase(key);
+  return kNearbyStatusOK;
+}
+
+nearby_platform_status nearby_platform_ClearAllValue() {
+  storage.clear();
   return kNearbyStatusOK;
 }
 
