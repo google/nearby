@@ -37,3 +37,6 @@
 	path = third_party/json/json
 	url = https://github.com/nlohmann/json
 	branch = master
+[submodule "third_party/micro-ecc"]
+	path = third_party/micro-ecc
+	url = https://github.com/kmackay/micro-ecc
