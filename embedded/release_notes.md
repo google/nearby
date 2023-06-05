@@ -1,6 +1,6 @@
 ### Nearby SDK for embedded systems release notes
 
-## v2.2.0-embedded
+## v2.0.0-embedded
 Support GFPS 3.2 specification per [specification](https://developers.google.com/nearby/fast-pair/specifications/introduction).
 
 New features:
