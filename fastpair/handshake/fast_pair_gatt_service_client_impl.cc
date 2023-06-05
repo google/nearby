@@ -473,7 +473,7 @@ void FastPairGattServiceClientImpl::WriteAccountKey(
     return;
   }
   NEARBY_LOGS(INFO) << __func__
-                    << ": Failed to write the passkey characteristic ";
+                    << ": Failed to write the accoutkey characteristic ";
   NotifyWriteAccountKeyError(PairFailure::kAccountKeyCharacteristicWrite);
 }
 

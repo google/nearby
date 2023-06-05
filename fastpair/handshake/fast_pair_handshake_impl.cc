@@ -129,7 +129,7 @@ void FastPairHandshakeImpl::OnParseDecryptedResponse(
   device.SetPublicAddress(
       device::CanonicalizeBluetoothAddress(response->address_bytes));
   completed_successfully_ = true;
-  std::move(on_complete_callback_)(device, absl::nullopt);
+  std::move(on_complete_callback_)(device, std::nullopt);
 }
 
 }  // namespace fastpair

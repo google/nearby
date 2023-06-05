@@ -314,9 +314,10 @@ void FastPairPairerImpl::NotifyPaired() {
 }
 
 void FastPairPairerImpl::NotifyPairingFailed(PairFailure failure) {
-  NEARBY_LOGS(WARNING) << __func__ << failure;
+  NEARBY_LOGS(WARNING) << __func__ << ": " << failure;
   // Stop initiate pairing timer as piaring is terminate this time.
   initiate_pairing_timer_.Stop();
+  if (!on_pair_failed_cb_) return;
   executor_->Execute("NotifyPairingFailed",
                      [&, on_pair_failed_cb = std::move(on_pair_failed_cb_),
                       failure = std::move(failure)]() mutable {
