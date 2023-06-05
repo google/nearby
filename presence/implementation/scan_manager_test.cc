@@ -299,15 +299,22 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
 TEST_F(ScanManagerTest, NoDeviceFoundAfterStopScan) {
   Mediums mediums;
   ScanManager manager(mediums, credential_manager_, executor_);
+  CountDownLatch start_scan_latch{1};
   nearby::BluetoothAdapter server_adapter;
   Ble ble2(server_adapter);
   std::atomic_bool stopped = false;
   ScanSessionId scan_session = manager.StartScan(
       MakeDefaultScanRequest(),
-      ScanCallback{.start_scan_cb = [](absl::Status status) {},
+      ScanCallback{.start_scan_cb =
+                       [&start_scan_latch](absl::Status status) {
+                         if (status.ok()) {
+                           start_scan_latch.CountDown();
+                         }
+                       },
                    .on_discovered_cb =
                        [&](PresenceDevice pd) { EXPECT_FALSE(stopped); }});
 
+  start_scan_latch.Await();
   manager.StopScan(scan_session);
   stopped = true;
   std::unique_ptr<AdvertisingSession> advertising_session =
