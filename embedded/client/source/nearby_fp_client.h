@@ -60,11 +60,23 @@ typedef struct {
 // NEARBY_FP_ADVERTISEMENT_INCLUDE_BATTERY_INFO
 #define NEARBY_FP_ADVERTISEMENT_BATTERY_UI_INDICATOR 0x10
 #endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
 // Include SASS advertisement. This flag can be
 // combined with NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE
 #define NEARBY_FP_ADVERTISEMENT_SASS 0x20
 #endif /* NEARBY_FP_ENABLE_SASS */
+
+#if NEARBY_FP_ENABLE_SPOT
+// Include Eddystone-E2EE-EID (SPOT) advertisement, which helps the user locate
+// their misplaced device. This flag can be combined with
+// NEARBY_FP_ADVERTISEMENT_DISCOVERABLE,
+// NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE, or it can be used alone (wuthout FP
+// adertisement). It is recommended to enable SPOT at all times, even when
+// device is turned off. A notable exception is when buds are placed in the
+// charging case - the buds can have the SPOT off and only the charing case can
+// advertise its location.
+#define NEARBY_FP_ADVERTISEMENT_SPOT 0x80
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
 // Sets Fast Pair advertisement type
 nearby_platform_status nearby_fp_client_SetAdvertisement(int mode);

@@ -31,7 +31,7 @@ extern "C" {
 
 #define BT_ADDRESS_LENGTH 6
 #define DISCOVERABLE_ADV_SIZE_BYTES 10
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
 // Sufficent for 5 account keys, battery notification and SASS info
 #define NON_DISCOVERABLE_ADV_SIZE_BYTES 32
 #else
@@ -101,6 +101,8 @@ size_t nearby_fp_AppendTxPower(uint8_t* advertisement, size_t length,
 nearby_platform_status nearby_fp_LoadAccountKeys();
 // Saves account keys to NV storage.
 nearby_platform_status nearby_fp_SaveAccountKeys();
+// Clears account keys from NV storage
+nearby_platform_status nearby_fp_ClearAccountKeys();
 
 // Gets Specific key by number to buffer
 //

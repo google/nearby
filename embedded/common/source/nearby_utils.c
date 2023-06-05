@@ -32,16 +32,20 @@ void nearby_utils_CopyLittleEndian(uint8_t* dest, uint64_t source, int bytes) {
   }
 }
 
-uint32_t nearby_utils_GetBigEndian24(uint8_t* buffer) {
+uint16_t nearby_utils_GetBigEndian16(const uint8_t* buffer) {
+  return (256 * buffer[0]) + buffer[1];
+}
+
+uint32_t nearby_utils_GetBigEndian24(const uint8_t* buffer) {
   return (256 * 256 * buffer[0]) + (256 * buffer[1]) + buffer[2];
 }
 
-uint32_t nearby_utils_GetBigEndian32(uint8_t* buffer) {
+uint32_t nearby_utils_GetBigEndian32(const uint8_t* buffer) {
   return (256 * 256 * 256 * buffer[0]) + (256 * 256 * buffer[1]) +
          (256 * buffer[2]) + buffer[3];
 }
 
-uint64_t nearby_utils_GetBigEndian48(uint8_t* b) {
+uint64_t nearby_utils_GetBigEndian48(const uint8_t* b) {
   return (((uint64_t)b[0]) << 40) | (((uint64_t)b[1]) << 32) |
          (((uint64_t)b[2]) << 24) | (((uint64_t)b[3]) << 16) |
          (((uint64_t)b[4]) << 8) | (uint64_t)b[5];

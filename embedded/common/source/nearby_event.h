@@ -114,6 +114,16 @@ typedef struct {
 
 // Direction: Provider -> Seeker
 // Handled by: Nearby Fast Pair library
+#define MESSAGE_CODE_FIRMWARE_REVISION 9
+
+#if NEARBY_FP_ENABLE_SPOT
+// Direction: Provider -> Seeker
+// Handled by: Client app
+#define MESSAGE_CODE_CURRENT_EDDYSTONE_IDENTIFIER 0x0B
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+// Direction: Provider -> Seeker
+// Handled by: Nearby Fast Pair library
 #define MESSAGE_CODE_SESSION_NONCE 0x0A
 
 // Message group Device Action Event
@@ -125,6 +135,26 @@ typedef struct {
 
 #define MESSAGE_CODE_RING_LEFT 0
 #define MESSAGE_CODE_RING_RIGHT 1
+
+// Message group Device capability sync event
+#define MESSAGE_GROUP_DEVICE_CAPABILITY_SYNC_EVENT 6
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+#define MESSAGE_CODE_REQUEST_CAPABILITY_UPDATE 1
+
+// Direction: Provider -> Seeker
+// Handled by: Nearby Fast Pair library
+#define MESSAGE_CODE_DYNAMIC_BUFFER_SIZE 2
+
+#if NEARBY_FP_ENABLE_SPOT
+// Direction: Provider -> Seeker
+// Handled by: Nearby Fast Pair library
+#define MESSAGE_CODE_EDDYSTONE_TRACKING 3
+
+#define MESSAGE_CODE_EDDYSTONE_UNPROVISIONED 0
+#define MESSAGE_CODE_EDDYSTONE_PROVISIONED 1
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
 // Payload for |kNearbyEventMessageStreamReceived| event. See
 // https://developers.google.com/nearby/fast-pair/spec#MessageStream

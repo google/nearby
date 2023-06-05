@@ -23,7 +23,9 @@ extern "C" {
 
 typedef enum {
   kStoredKeyAccountKeyList,
-  kStoredKeyPersonalizedName
+  kStoredKeyPersonalizedName,
+  kStoredKeyOwnerKey,
+  kStoredKeyEphemeralKey
 } nearby_fp_StoredKey;
 
 // Loads stored key
@@ -44,6 +46,12 @@ nearby_platform_status nearby_platform_LoadValue(nearby_fp_StoredKey key,
 nearby_platform_status nearby_platform_SaveValue(nearby_fp_StoredKey key,
                                                  const uint8_t* input,
                                                  size_t length);
+
+// Clears the `key`, if it exists, from persistent storage.
+nearby_platform_status nearby_platform_ClearValue(nearby_fp_StoredKey key);
+
+// Clears all keys from persistent storage.
+nearby_platform_status nearby_platform_ClearAllValue();
 
 // Initializes persistence module
 nearby_platform_status nearby_platform_PersistenceInit();

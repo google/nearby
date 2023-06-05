@@ -5,15 +5,16 @@
 .SUFFIXES:
 .SECONDARY:
 
-GTEST_DIR   = ../third_party/gtest/googletest/
-GMOCK_DIR   = ../third_party/gtest/googlemock/
-MBEDTLS_DIR = ../third_party/mbedtls/
-
+GTEST_DIR    = ../third_party/gtest/googletest/
+GMOCK_DIR    = ../third_party/gtest/googlemock/
+MBEDTLS_DIR  = ../third_party/mbedtls/
+MICROECC_DIR = ../third_party/micro-ecc/
 
 ARCH        ?= host
 OUT_DIR_NAME ?= $(ARCH)
 OUT_DIR     = out/$(OUT_DIR_NAME)
 DIST_DIR    = dist/$(OUT_DIR_NAME)
+MICROECC_OUT_DIR = $(OUT_DIR)/third_party/micro-ecc
 
 CFLAGS := -Wall
 COMMON_INCLUDE_DIRS :=
@@ -90,6 +91,10 @@ ifdef NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 CFLAGS += -DNEARBY_FP_ENABLE_BATTERY_NOTIFICATION=$(NEARBY_FP_ENABLE_BATTERY_NOTIFICATION)
 endif
 
+ifdef NEARBY_BATTERY_REMAINING_TIME
+CFLAGS += -DNEARBY_BATTERY_REMAINING_TIME=$(NEARBY_BATTERY_REMAINING_TIME)
+endif
+
 ifdef NEARBY_FP_ENABLE_ADDITIONAL_DATA
 CFLAGS += -DNEARBY_FP_ENABLE_ADDITIONAL_DATA=$(NEARBY_FP_ENABLE_ADDITIONAL_DATA)
 endif
@@ -113,6 +118,23 @@ endif
 ifdef NEARBY_FP_PREFER_LE_TRANSPORT
 CFLAGS += -DNEARBY_FP_PREFER_LE_TRANSPORT=$(NEARBY_FP_PREFER_LE_TRANSPORT)
 endif
+
+ifdef NEARBY_FP_ENABLE_SASS
+CFLAGS += -DNEARBY_FP_ENABLE_SASS=$(NEARBY_FP_ENABLE_SASS)
+endif
+
+ifdef NEARBY_SPOT_FACTORY_RESET_DEVICE_ON_CLEARING_EIK
+CFLAGS += -DNEARBY_SPOT_FACTORY_RESET_DEVICE_ON_CLEARING_EIK=$(NEARBY_SPOT_FACTORY_RESET_DEVICE_ON_CLEARING_EIK)
+endif
+
+ifdef NEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT
+CFLAGS += -DNEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT=$(NEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT)
+endif
+
+ifdef NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES
+CFLAGS += -DNEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES=$(NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES)
+endif
+
 COMMON_INCLUDE_DIRS += \
     -I. \
     -I$(ARCH_COMMON_DIR) \
@@ -121,6 +143,10 @@ COMMON_INCLUDE_DIRS += \
     -I$(COMMON_DIR)
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
 COMMON_INCLUDE_DIRS += -I$(MBEDTLS_DIR)/include
+endif
+
+ifeq ($(NEARBY_PLATFORM_USE_MICROECC),1)
+COMMON_INCLUDE_DIRS += -I$(MICROECC_DIR)
 endif
 
 CLIENT_INCLUDES += \
@@ -133,6 +159,8 @@ COMMON_C_FILES += \
 CLIENT_SRCS += \
     $(wildcard $(CLIENT_DIR)/*.c)
 
+MICROECC_TARGET_SRCS := $(wildcard common/source/micro-ecc/*.c)
+
 CFLAGS += $(COMMON_INCLUDE_DIRS)
 
 CROSS_COMPILE ?= arm-none-eabi-
@@ -142,6 +170,8 @@ ALL_C_FILES = $(COMMON_C_FILES)
 COMMON_OBJS = $(patsubst %.c,$(OUT_DIR)/%.o,$(ALL_C_FILES))
 CLIENT_OBJS = $(patsubst %.c,$(OUT_DIR)/%.o,$(CLIENT_SRCS))
 NEARBY_LIB_OBJS = $(COMMON_OBJS) $(CLIENT_OBJS)
+
+MICROECC_TARGET_OBJS := $(patsubst %.c,$(OUT_DIR)/%.o,$(MICROECC_TARGET_SRCS))
 
 NEARBY_HEADERS += $(patsubst common/target/%.h,$(DIST_DIR)/%.h,$(wildcard common/target/*.h))
 NEARBY_HEADERS += $(patsubst common/target/$(ARCH_COMMON_NAME)/%.h,$(DIST_DIR)/%.h,$(wildcard common/target/$(ARCH_COMMON_NAME)/*.h))
@@ -196,6 +226,23 @@ $(CLIENT_OBJS) : $(OUT_DIR)/%.o : %.c
 
 $(COMMON_OBJS) : $(OUT_DIR)/%.o: %.c
 	$(call compile_c,$(CFLAGS))
+
+# nearby provider micro-ecc code
+ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
+# micro-ecc interface files
+$(MICROECC_TARGET_OBJS) : $(OUT_DIR)/%.o: %.c
+	$(call compile_c,$(TEST_INCLUDES) -I. -std=c99 -c $(CFLAGS))
+endif
+
+# micro-ecc code
+# note micro-ecc does not tolerate address-sanitizer
+ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
+$(MICROECC_OUT_DIR)/libmicro-ecc.a: $(MICROECC_DIR)/uECC.c
+	@echo "Compiling libmicro-ecc.a"
+	@mkdir -p $(MICROECC_OUT_DIR)
+	$(CC) $(CFLAGS) -fno-sanitize=address -c -o $(MICROECC_OUT_DIR)/uECC.o $(MICROECC_DIR)/uECC.c
+	$(AR) rcs $(MICROECC_OUT_DIR)/libmicro-ecc.a $(MICROECC_OUT_DIR)/uECC.o
+endif
 
 ALL_OBJS += $(NEARBY_LIB_OBJS) $(CLIENT_OBJS)
 

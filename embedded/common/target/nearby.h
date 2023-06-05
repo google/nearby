@@ -35,7 +35,7 @@ extern "C" {
 
 typedef struct {
   uint8_t account_key[ACCOUNT_KEY_SIZE_BYTES];
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   uint64_t peer_address;
 #endif /* NEARBY_FP_ENABLE_SASS */
 } nearby_platform_AccountKeyInfo;

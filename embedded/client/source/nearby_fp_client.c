@@ -33,6 +33,10 @@
 #include "nearby_platform_os.h"
 #include "nearby_platform_persistence.h"
 #include "nearby_platform_se.h"
+#if NEARBY_FP_ENABLE_SPOT
+#include "nearby_spot.h"
+#endif /* NEARBY_FP_ENABLE_SPOT */
+#include "nearby_advert.h"
 #include "nearby_trace.h"
 #include "nearby_utils.h"
 
@@ -73,9 +77,6 @@
 
 #define INVALID_PEER_ADDRESS 0
 
-// One byte per left, right and charging case
-#define BATTERY_LEVELS_SIZE 3
-
 // Size of battery remaining time (16 bits)
 #define BATTERY_TIME_SIZE 2
 
@@ -101,6 +102,9 @@
 #define SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_TARGET_THIS_DEVICE 1
 #define SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_TARGET_ANOTHER_DEVICE 2
 
+// Default sass custom data value
+#define DEFAULT_CUSTOM_DATA 0
+
 enum PairingState {
   kPairingStateIdle,
   kPairingStateWaitingForPairingRequest,
@@ -123,9 +127,8 @@ static void* address_rotation_task = NULL;
 #if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 static uint8_t additional_data_id;
 #endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
 static const uint16_t kSassVersion = 0x101;
-static uint8_t sass_custom_data = 0;
 #endif /* NEARBY_FP_ENABLE_SASS */
 
 #define RETURN_IF_ERROR(X)                        \
@@ -154,6 +157,9 @@ typedef struct {
   uint8_t capabilities;
   uint8_t platform_type;
   uint8_t platform_build;
+#if NEARBY_FP_ENABLE_SASS
+  uint8_t sass_custom_data;
+#endif /* NEARBY_FP_ENABLE_SASS */
 } rfcomm_input;
 
 static void InitRfcommInput(uint64_t peer_address, rfcomm_input* input) {
@@ -172,7 +178,7 @@ static void InitRfcommInput(uint64_t peer_address, rfcomm_input* input) {
 }
 
 static rfcomm_input rfcomm_inputs[NEARBY_MAX_RFCOMM_CONNECTIONS];
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
 static void UpdateAndNotifySass(const rfcomm_input* seeker);
 #endif /* NEARBY_FP_ENABLE_SASS */
 
@@ -274,7 +280,24 @@ static bool ShowPairingIndicator() {
   return advertisement_mode & NEARBY_FP_ADVERTISEMENT_PAIRING_UI_INDICATOR;
 }
 
-#ifdef NEARBY_FP_ENABLE_SASS
+static void SetPairingState(enum PairingState state) {
+  // NEARBY_TRACE(VERBOSE, "%s pairing_state %u->%u \n", __func__,
+  // pairing_state, state);
+  pairing_state = state;
+}
+
+static void ResetPairingState(uint64_t peer_address) {
+  NEARBY_TRACE(VERBOSE,
+               "%s peer_address=0x%lx "
+               "peer_public_address=0x%lx gatt_peer_address=0x%lx\n",
+               __func__, peer_address, peer_public_address, gatt_peer_address);
+  if (peer_public_address == peer_address ||
+      gatt_peer_address == peer_address) {
+    SetPairingState(kPairingStateIdle);
+  }
+}
+
+#if NEARBY_FP_ENABLE_SASS
 
 static bool IsSassSeeker(const rfcomm_input* input) {
   return input->state.peer_address != INVALID_PEER_ADDRESS &&
@@ -301,13 +324,24 @@ static uint8_t* FindInUseKey() {
   return NULL;
 }
 
-static uint8_t GetCustomData() { return sass_custom_data; }
-static void SetCustomData(uint8_t data) { sass_custom_data = data; }
+static uint8_t GetCustomData() {
+  // If the audio source is not an FP Seeker, return 0.
+  uint64_t peer_address = nearby_platform_GetActiveAudioSource();
+  if (peer_address != INVALID_PEER_ADDRESS) {
+    for (int i = 0; i < NEARBY_MAX_RFCOMM_CONNECTIONS; i++) {
+      rfcomm_input* input = &rfcomm_inputs[i];
+      if (input->state.peer_address == peer_address) {
+        return input->sass_custom_data;
+      }
+    }
+  }
+  return DEFAULT_CUSTOM_DATA;
+}
 
 #endif /* NEARBY_FP_ENABLE_SASS */
 
 static bool IncludeSass() {
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   return advertisement_mode & NEARBY_FP_ADVERTISEMENT_SASS;
 #else
   return false;
@@ -315,7 +349,7 @@ static bool IncludeSass() {
 }
 
 static uint8_t* SelectInUseKey() {
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   return IncludeSass() ? FindInUseKey() : NULL;
 #else
   return NULL;
@@ -342,11 +376,11 @@ static bool IncludeBatteryInfo() {
 static nearby_platform_BatteryInfo* PrepareBatteryInfo(
     nearby_platform_BatteryInfo* battery_info) {
   nearby_platform_status status;
-
-  battery_info->is_charging = false;
-  battery_info->right_bud_battery_level = battery_info->left_bud_battery_level =
-      battery_info->charging_case_battery_level = INVALID_BATTERY_LEVEL;
+  for (int i = 0; i < NEARBY_BATTERY_LEVELS_SIZE; i++)
+    battery_info->battery_level[i] = INVALID_BATTERY_LEVEL;
+#if NEARBY_BATTERY_REMAINING_TIME
   battery_info->remaining_time_minutes = 0;
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
   status = nearby_platform_GetBatteryInfo(battery_info);
   if (status != kNearbyStatusOK) {
     NEARBY_TRACE(ERROR, "GetBatteryInfo() failed with error %d", status);
@@ -357,7 +391,7 @@ static nearby_platform_BatteryInfo* PrepareBatteryInfo(
 
 #if NEARBY_FP_MESSAGE_STREAM
 static nearby_platform_status SendBatteryInfoMessage(uint64_t peer_address) {
-  uint8_t levels[BATTERY_LEVELS_SIZE];
+  uint8_t levels[NEARBY_BATTERY_LEVELS_SIZE];
   nearby_message_stream_Message message = {
       .message_group = MESSAGE_GROUP_DEVICE_INFORMATION_EVENT,
       .message_code = MESSAGE_CODE_BATTERY_UPDATED,
@@ -370,6 +404,7 @@ static nearby_platform_status SendBatteryInfoMessage(uint64_t peer_address) {
   return nearby_message_stream_Send(peer_address, &message);
 }
 
+#if NEARBY_BATTERY_REMAINING_TIME
 static nearby_platform_status SendBatteryTimeMessage(uint64_t peer_address) {
   uint8_t time[BATTERY_TIME_SIZE];
   nearby_message_stream_Message message = {
@@ -389,8 +424,29 @@ static nearby_platform_status SendBatteryTimeMessage(uint64_t peer_address) {
   }
   return nearby_message_stream_Send(peer_address, &message);
 }
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
 #endif /* NEARBY_FP_MESSAGE_STREAM */
 #endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
+
+#if NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_ENABLE_SPOT
+static nearby_platform_status SendCurrentEddystoneIdMessage(
+    uint64_t peer_address) {
+  uint8_t current_time_eid[EPHEMERAL_ID_SIZE + sizeof(uint32_t)];
+  nearby_message_stream_Message message = {
+      .message_group = MESSAGE_GROUP_DEVICE_INFORMATION_EVENT,
+      .message_code = MESSAGE_CODE_CURRENT_EDDYSTONE_IDENTIFIER,
+      .length = sizeof(current_time_eid),
+      .data = current_time_eid};
+  nearby_utils_CopyBigEndian(
+      &message.data[0], nearby_platform_GetPersistentTime(), sizeof(uint32_t));
+  if (nearby_spot_GetEid(&message.data[sizeof(uint32_t)]) == kNearbyStatusOK)
+    return nearby_message_stream_Send(peer_address, &message);
+  else
+    return kNearbyStatusError;
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 
 static void AccountKeyRejected() {
   if (++pairing_failure_count == MAX_PAIRING_FAILURE_COUNT) {
@@ -417,7 +473,7 @@ static void DiscardPendingAccountKey() {
 
 static void RotateBleAddress() {
   address_rotation_timestamp = nearby_platform_GetCurrentTimeMs();
-  nearby_platform_SetAdvertisement(NULL, 0, kDisabled);
+  nearby_SetFpAdvertisement(NULL, 0, kDisabled);
 #ifdef NEARBY_FP_HAVE_BLE_ADDRESS_ROTATION
   uint64_t address = nearby_platform_RotateBleAddress();
   NEARBY_TRACE(INFO, "Rotated BLE address to: %s",
@@ -435,7 +491,7 @@ static void RotateBleAddress() {
   nearby_platform_SetBleAddress(address);
 #if NEARBY_FP_MESSAGE_STREAM
   SendBleAddressUpdatedToAll();
-#endif
+#endif /* NEARBY_FP_MESSAGE_STREAM */
 #endif /* NEARBY_FP_HAVE_BLE_ADDRESS_ROTATION */
 }
 
@@ -525,7 +581,7 @@ static nearby_platform_status OnAdditionalDataWrite(uint64_t peer_address,
     status = SaveAdditionalData(request + ADDITIONAL_DATA_HEADER_SIZE,
                                 length - ADDITIONAL_DATA_HEADER_SIZE);
   }
-  pairing_state = kPairingStateIdle;
+  SetPairingState(kPairingStateIdle);
   return status;
 }
 #endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
@@ -578,9 +634,9 @@ static nearby_platform_status HandleKeyBasedPairingRequest(
     NEARBY_TRACE(INFO, "Send pairing request to %s",
                  nearby_utils_MacToString(peer_public_address));
     nearby_platform_SendPairingRequest(peer_public_address);
-    pairing_state = kPairingStateWaitingForPasskey;
+    SetPairingState(kPairingStateWaitingForPasskey);
   } else {
-    pairing_state = kPairingStateWaitingForPairingRequest;
+    SetPairingState(kPairingStateWaitingForPairingRequest);
     timeout_start_ms = nearby_platform_GetCurrentTimeMs();
   }
   return kNearbyStatusOK;
@@ -597,7 +653,7 @@ static nearby_platform_status HandleActionRequest(
   }
 #if NEARBY_FP_ENABLE_ADDITIONAL_DATA
   if (flags & ACTION_REQUEST_WILL_WRITE_DATA_CHARACTERISTIC_MASK) {
-    pairing_state = kPairingStateWaitingForAdditionalData;
+    SetPairingState(kPairingStateWaitingForAdditionalData);
     additional_data_id = request[10];
   }
   return kNearbyStatusOK;
@@ -661,7 +717,7 @@ static nearby_platform_status OnWriteKeyBasedPairing(uint64_t peer_address,
       return kNearbyStatusOK;
     }
     memcpy(account_key_info.account_key, key, ACCOUNT_KEY_SIZE_BYTES);
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
     account_key_info.peer_address = peer_address;
 #endif /* NEARBY_FP_ENABLE_SASS */
   } else if (length == ENCRYPTED_REQUEST_LENGTH) {
@@ -682,7 +738,7 @@ static nearby_platform_status OnWriteKeyBasedPairing(uint64_t peer_address,
                          decrypted_request + REQUEST_BT_ADDRESS_OFFSET)) {
         NEARBY_TRACE(VERBOSE, "Matched key number: %d", i);
         nearby_fp_CopyAccountKey(&account_key_info, i);
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
         // The existing account key could be for a different peer, so let's
         // add it again with the current peer address
         account_key_info.peer_address = peer_address;
@@ -800,7 +856,7 @@ static nearby_platform_status OnPasskeyWrite(uint64_t peer_address,
                  raw_passkey_block[0]);
     return kNearbyStatusError;
   }
-  pairing_state = kPairingStateWaitingForPairingResult;
+  SetPairingState(kPairingStateWaitingForPairingResult);
   NotifyProviderPasskey(peer_address);
   seeker_passkey = nearby_utils_GetBigEndian24(raw_passkey_block + 1);
   nearby_platform_SetRemotePasskey(seeker_passkey);
@@ -821,7 +877,7 @@ static nearby_platform_status SetNonDiscoverableAdvertisement() {
   length = nearby_fp_CreateNondiscoverableAdvertisement(
       advertisement, sizeof(advertisement), ShowPairingIndicator());
 #endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   if (IncludeSass() && (nearby_fp_GetAccountKeyCount() > 0)) {
     uint8_t device_bitmap[MAX_DEVICE_BITMAP_SIZE];
     size_t device_bitmap_length = sizeof(device_bitmap);
@@ -848,14 +904,25 @@ static nearby_platform_status SetNonDiscoverableAdvertisement() {
   length += nearby_fp_AppendTxPower(advertisement + length,
                                     sizeof(advertisement) - length,
                                     nearby_platform_GetTxLevel());
-  return nearby_platform_SetAdvertisement(advertisement, length,
-                                          kNoLargerThan250ms);
+  return nearby_SetFpAdvertisement(advertisement, length, kNoLargerThan250ms);
 }
 
 // Steps executed after successful pairing with a seeker and receiving the
 // account key.
 static void RunPostPairingSteps(
     uint64_t peer_address, const nearby_platform_AccountKeyInfo* account_key) {
+#if NEARBY_FP_ENABLE_SPOT
+  if (nearby_fp_GetAccountKeyCount() == 0) {
+    // This is the first account key. Lets' use it for SPOT advertisements
+    nearby_platform_status status =
+        nearby_spot_SetBeaconAccountKey(account_key->account_key);
+    if (status != kNearbyStatusOK) {
+      NEARBY_TRACE(WARNING, "Failed to save owner account key: reason %d",
+                   status);
+    }
+  }
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
   nearby_fp_AddAccountKey(account_key);
   nearby_fp_SaveAccountKeys();
   DiscardPendingAccountKey();
@@ -876,14 +943,14 @@ static void RunPostPairingSteps(
   }
 #endif /* NEARBY_FP_RETROACTIVE_PAIRING */
 
-  pairing_state = kPairingStateIdle;
+  SetPairingState(kPairingStateIdle);
 #if NEARBY_FP_ENABLE_ADDITIONAL_DATA
-  pairing_state = kPairingStateWaitingForAdditionalData;
+  SetPairingState(kPairingStateWaitingForAdditionalData);
   additional_data_id = PERSONALIZED_NAME_DATA_ID;
-#endif
+#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
   if (advertisement_mode & NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE) {
     NEARBY_TRACE(INFO, "Account key added, update advertisement");
-    nearby_platform_SetAdvertisement(NULL, 0, kDisabled);
+    nearby_SetFpAdvertisement(NULL, 0, kDisabled);
     SetNonDiscoverableAdvertisement();
   }
 }
@@ -954,7 +1021,7 @@ static nearby_platform_status OnAccountKeyWrite(uint64_t peer_address,
                  decrypted_request[0]);
     return kNearbyStatusError;
   }
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   key_info.peer_address = peer_address;
 #endif /* NEARBY_FP_ENABLE_SASS */
   if (wait_until_paired) {
@@ -979,6 +1046,12 @@ static nearby_platform_status OnGattWrite(
       return OnPasskeyWrite(peer_address, request, length);
     case kAccountKey:
       return OnAccountKeyWrite(peer_address, request, length);
+    case kBeaconActions:
+#if NEARBY_FP_ENABLE_SPOT
+      return nearby_spot_WriteBeaconAction(peer_address, request, length);
+#else
+      break;
+#endif /* NEARBY_FP_ENABLE_SPOT */
     case kAdditionalData:
 #if NEARBY_FP_ENABLE_ADDITIONAL_DATA
       return OnAdditionalDataWrite(peer_address, request, length);
@@ -1028,6 +1101,12 @@ static nearby_platform_status OnGattRead(
   switch (characteristic) {
     case kModelId:
       return nearby_fp_GattReadModelId(output, length);
+    case kBeaconActions:
+#if NEARBY_FP_ENABLE_SPOT
+      return nearby_spot_ReadBeaconAction(peer_address, output, length);
+#else
+      break;
+#endif /* NEARBY_FP_ENABLE_SPOT */
     case kMessageStreamPsm:
       return OnMesssageStreamPsmRead(output, length);
     case kKeyBasedPairing:
@@ -1045,9 +1124,9 @@ static void OnPairingRequest(uint64_t peer_address) {
                nearby_utils_MacToString(peer_address));
   if (pairing_state == kPairingStateWaitingForPairingRequest) {
     if (ShouldTimeout(WAIT_FOR_PAIRING_REQUEST_TIME_MS)) {
-      pairing_state = kPairingStateIdle;
+      SetPairingState(kPairingStateIdle);
     } else {
-      pairing_state = kPairingStateWaitingForPasskey;
+      SetPairingState(kPairingStateWaitingForPasskey);
       peer_public_address = peer_address;
       timeout_start_ms = nearby_platform_GetCurrentTimeMs();
     }
@@ -1063,7 +1142,7 @@ static void OnPaired(uint64_t peer_address) {
   }
   peer_public_address = peer_address;
   if (pairing_state == kPairingStateWaitingForPairingResult) {
-    pairing_state = kPairingStateWaitingForAccountKeyWrite;
+    SetPairingState(kPairingStateWaitingForAccountKeyWrite);
     timeout_start_ms = nearby_platform_GetCurrentTimeMs();
   }
 #if NEARBY_FP_RETROACTIVE_PAIRING
@@ -1078,6 +1157,8 @@ static void OnPairingFailed(uint64_t peer_address) {
                nearby_utils_MacToString(peer_address));
   DiscardAccountKey();
   DiscardPendingAccountKey();
+
+  ResetPairingState(peer_address);
 }
 
 #if NEARBY_FP_MESSAGE_STREAM
@@ -1206,15 +1287,17 @@ static void OnMessageStreamConnected(uint64_t peer_address) {
     return;
   }
 
+#if NEARBY_FP_ENABLE_SASS
   // Send session nonce
   message.message_code = MESSAGE_CODE_SESSION_NONCE;
   message.length = SESSION_NONCE_SIZE;
-  message.data = input->session_nonce;
+  memcpy(message.data, input->session_nonce, SESSION_NONCE_SIZE);
   status = nearby_message_stream_Send(peer_address, &message);
   if (kNearbyStatusOK != status) {
     NEARBY_TRACE(ERROR, "Failed to send session nonce, status: %d", status);
     return;
   }
+#endif /* NEARBY_FP_ENABLE_SASS */
 
 #if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
   status = SendBatteryInfoMessage(peer_address);
@@ -1224,6 +1307,7 @@ static void OnMessageStreamConnected(uint64_t peer_address) {
                  status, nearby_utils_MacToString(peer_address));
     return;
   }
+#if NEARBY_BATTERY_REMAINING_TIME
   status = SendBatteryTimeMessage(peer_address);
   if (kNearbyStatusOK != status) {
     NEARBY_TRACE(ERROR,
@@ -1231,7 +1315,42 @@ static void OnMessageStreamConnected(uint64_t peer_address) {
                  status, nearby_utils_MacToString(peer_address));
     return;
   }
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
 #endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
+
+  memset(message.data, 0, MAX_MESSAGE_STREAM_PAYLOAD_SIZE);
+  const char* fw_str = nearby_platform_GetFirmwareRevision();
+  length = strlen(fw_str);
+  // Limiting the string to max payload size and keeping one byte at end for
+  // null character
+  if (length >= MAX_MESSAGE_STREAM_PAYLOAD_SIZE)
+    length = MAX_MESSAGE_STREAM_PAYLOAD_SIZE - 1;
+  strncpy((char*)message.data, fw_str, length);
+  buffer[length] = '\0';
+  message.length = length + 1;
+  message.message_group = MESSAGE_GROUP_DEVICE_INFORMATION_EVENT;
+  message.message_code = MESSAGE_CODE_FIRMWARE_REVISION;
+
+  status = nearby_message_stream_Send(peer_address, &message);
+  if (kNearbyStatusOK != status) {
+    NEARBY_TRACE(
+        ERROR,
+        "Failed to send firmware revision string, status: %d Peer address: %s",
+        status, nearby_utils_MacToString(peer_address));
+    return;
+  }
+
+#if NEARBY_FP_ENABLE_SPOT
+  if (nearby_spot_IsProvisioned()) {
+    status = SendCurrentEddystoneIdMessage(peer_address);
+    if (kNearbyStatusOK != status) {
+      NEARBY_TRACE(ERROR,
+                   "Failed to send current EID, status: %d Peer address: %s",
+                   status, nearby_utils_MacToString(peer_address));
+      return;
+    }
+  }
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
   if (client_callbacks != NULL && client_callbacks->on_event != NULL) {
     nearby_event_MessageStreamConnected payload = {.peer_address =
@@ -1254,7 +1373,7 @@ static void OnMessageStreamDisconnected(uint64_t peer_address) {
                  nearby_utils_MacToString(peer_address));
     return;
   }
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   bool update_advert = IncludeSass() && IsSassSeeker(input);
 #endif /* NEARBY_FP_ENABLE_SASS */
   input->state.peer_address = INVALID_PEER_ADDRESS;
@@ -1270,11 +1389,15 @@ static void OnMessageStreamDisconnected(uint64_t peer_address) {
 #if NEARBY_FP_RETROACTIVE_PAIRING
   RemoveRetroactivePairingPeer(peer_address);
 #endif /*NEARBY_FP_RETROACTIVE_PAIRING */
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   if (update_advert) {
     UpdateAndNotifySass(NULL);
   }
 #endif /* NEARBY_FP_ENABLE_SASS */
+
+#if NEARBY_FP_RESET_PAIRING_STATE_ON_DISCONNECT
+  ResetPairingState(peer_address);
+#endif
 }
 
 static void OnMessageStreamReceived(uint64_t peer_address,
@@ -1316,7 +1439,7 @@ static nearby_platform_status SendResponse(
   }
 }
 
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
 static uint8_t GetActiveDeviceFlag(uint64_t peer_address) {
   uint64_t active_address = nearby_platform_GetActiveAudioSource();
   if (IsDeviceSass(active_address) == false && active_address != 0x0) {
@@ -1469,44 +1592,53 @@ static void PrepareNotifySwitchingPreferenceResponse(
   message->data[1] = 0;
 }
 
+// Finds the index of the account key used to generate the Message
+// Authentication Code. Returns -1 if none of the account keys matches.
+static int FindAccountKeyMatchingMac(
+    const nearby_message_stream_Message* message, const rfcomm_input* input) {
+  int offset = 0;
+  while (true) {
+    offset = nearby_fp_GetNextUniqueAccountKeyIndex(offset);
+    if (offset == -1) {
+      return offset;
+    } else if (kNearbyStatusOK ==
+               nearby_fp_VerifyMessageAuthenticationCode(
+                   message->data, message->length,
+                   nearby_fp_GetAccountKey(offset)->account_key,
+                   input->session_nonce)) {
+      return offset;
+    }
+    offset++;
+  }
+}
+
 // Verifies MAC and sends a NACK if verification failed.
 static nearby_platform_status VerifyMac(
     uint64_t peer_address, const nearby_message_stream_Message* message,
     rfcomm_input* input) {
-  nearby_platform_status status = nearby_fp_VerifyMessageAuthenticationCode(
-      message->data, message->length, input->in_use_account_key,
-      input->session_nonce);
-  if (kNearbyStatusOK != status) {
-    NEARBY_TRACE(WARNING, "Invalid MAC on message %d", message->message_code);
-    nearby_message_stream_SendNack(peer_address, message,
-                                   FAIL_REASON_INVALID_MAC);
+  if (FindAccountKeyMatchingMac(message, input) >= 0) {
+    return kNearbyStatusOK;
   }
-  return status;
+  NEARBY_TRACE(WARNING, "Invalid MAC on message %d", message->message_code);
+  nearby_message_stream_SendNack(peer_address, message,
+                                 FAIL_REASON_INVALID_MAC);
+  return kNearbyStatusInvalidInput;
 }
 
 // Finds the account key which was used to encode |message| and marks it at
 // the in-use key for this session
 static nearby_platform_status IndicateInUseKey(
     const nearby_message_stream_Message* message, rfcomm_input* input) {
-  int offset = 0;
-  while (true) {
-    offset = nearby_fp_GetNextUniqueAccountKeyIndex(offset);
-    if (offset == -1) {
-      return kNearbyStatusInvalidInput;
-    } else if (kNearbyStatusOK ==
-               nearby_fp_VerifyMessageAuthenticationCode(
-                   message->data, message->length,
-                   nearby_fp_GetAccountKey(offset)->account_key,
-                   input->session_nonce)) {
-      memcpy(input->in_use_account_key,
-             nearby_fp_GetAccountKey(offset)->account_key,
-             ACCOUNT_KEY_SIZE_BYTES);
-      nearby_fp_MarkAccountKeyAsActive(offset);
-      UpdateAndNotifySass(NULL);
-      return kNearbyStatusOK;
-    }
-    offset++;
+  int offset = FindAccountKeyMatchingMac(message, input);
+  if (offset >= 0) {
+    memcpy(input->in_use_account_key,
+           nearby_fp_GetAccountKey(offset)->account_key,
+           ACCOUNT_KEY_SIZE_BYTES);
+    nearby_fp_MarkAccountKeyAsActive(offset);
+    UpdateAndNotifySass(NULL);
+    return kNearbyStatusOK;
   }
+  return kNearbyStatusInvalidInput;
 }
 
 // Selects a next, preferred audio source. The request to change the audio
@@ -1607,8 +1739,8 @@ static nearby_platform_status HandleSassMessage(
       RETURN_IF_ERROR(VerifyMac(peer_address, message, input));
       uint8_t data = message->data[0];
       NEARBY_TRACE(INFO, "Send custom data: 0x%x", data);
-      if (GetCustomData() != data) {
-        SetCustomData(data);
+      if (data != input->sass_custom_data) {
+        input->sass_custom_data = data;
         UpdateAndNotifySass(input);
       }
       return SendResponse(peer_address, message, kNearbyStatusOK);
@@ -1635,6 +1767,22 @@ static void PrepareActiveComponentResponse(
   message->data[0] = nearby_platform_GetEarbudLeftStatus() << 1 |
                      nearby_platform_GetEarbudRightStatus();
 }
+
+#if NEARBY_FP_ENABLE_SPOT
+static void PrepareSpotCapabilityResponse(
+    nearby_message_stream_Message* message) {
+  NEARBY_ASSERT(message->length >= (BT_ADDRESS_LENGTH + sizeof(uint8_t)));
+  message->message_code = MESSAGE_CODE_EDDYSTONE_TRACKING;
+  // Addtional length is 1 byte for provisiong state + BT address length
+  message->length = (BT_ADDRESS_LENGTH + sizeof(uint8_t));
+  message->data[0] = nearby_spot_IsProvisioned()
+                         ? MESSAGE_CODE_EDDYSTONE_PROVISIONED
+                         : MESSAGE_CODE_EDDYSTONE_UNPROVISIONED;
+  nearby_utils_CopyBigEndian(&message->data[sizeof(uint8_t)],
+                             nearby_platform_GetBleAddress(),
+                             BT_ADDRESS_LENGTH);
+}
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
 static nearby_platform_status HandleGeneralMessage(
     uint64_t peer_address, nearby_message_stream_Message* message) {
@@ -1687,7 +1835,23 @@ static nearby_platform_status HandleGeneralMessage(
           if (message->length > 1) timeout = message->data[1];
           NEARBY_TRACE(INFO, "Set ring device: 0x%x %d", command, timeout);
           return SendResponse(peer_address, message,
-                              nearby_platform_Ring(command, timeout * 10));
+                              nearby_platform_Ring(command, (timeout * 10),
+                                                   kRingingVolumeDefault));
+        }
+      }
+      break;
+    }
+    case MESSAGE_GROUP_DEVICE_CAPABILITY_SYNC_EVENT: {
+      reply.message_group = MESSAGE_GROUP_DEVICE_CAPABILITY_SYNC_EVENT;
+      switch (message->message_code) {
+        case MESSAGE_CODE_REQUEST_CAPABILITY_UPDATE: {
+#if NEARBY_FP_ENABLE_SPOT
+          NEARBY_TRACE(INFO,
+                       "message stream received "
+                       "MESSAGE_CODE_REQUEST_CAPABILITY_UPDATE");
+          PrepareSpotCapabilityResponse(&reply);
+          return nearby_message_stream_Send(peer_address, &reply);
+#endif /* NEARBY_FP_ENABLE_SPOT */
         }
       }
       break;
@@ -1707,7 +1871,7 @@ static void OnMessageReceived(uint64_t peer_address,
     return;
   }
 
-#ifdef NEARBY_FP_ENABLE_SASS
+#if NEARBY_FP_ENABLE_SASS
   if (message->message_group == MESSAGE_GROUP_SASS) {
     nearby_platform_status status = HandleSassMessage(peer_address, message);
     if (kNearbyStatusOK != status) {
@@ -1766,7 +1930,7 @@ static void OnBatteryChanged(void) {
 
   if (IncludeBatteryInfo() &&
       (advertisement_mode & NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE)) {
-    status = nearby_platform_SetAdvertisement(NULL, 0, kDisabled);
+    status = nearby_SetFpAdvertisement(NULL, 0, kDisabled);
     if (status != kNearbyStatusOK) {
       NEARBY_TRACE(ERROR, "Failed to update battery change, status: %d",
                    status);
@@ -1793,6 +1957,7 @@ static void OnBatteryChanged(void) {
                      status,
                      nearby_utils_MacToString(input->state.peer_address));
       }
+#if NEARBY_BATTERY_REMAINING_TIME
       status = SendBatteryTimeMessage(input->state.peer_address);
       if (status != kNearbyStatusOK) {
         NEARBY_TRACE(ERROR,
@@ -1801,6 +1966,7 @@ static void OnBatteryChanged(void) {
                      status,
                      nearby_utils_MacToString(input->state.peer_address));
       }
+#endif /* NEARBY_BATTERY_REMAINING_TIME */
     }
   }
 #endif /* NEARBY_FP_MESSAGE_STREAM */
@@ -1831,7 +1997,7 @@ static nearby_platform_BatteryInterface kBatteryInterface = {
 
 static nearby_platform_status EnterDisabledMode() {
   nearby_platform_SetDefaultCapabilities();
-  return nearby_platform_SetAdvertisement(NULL, 0, kDisabled);
+  return nearby_SetFpAdvertisement(NULL, 0, kDisabled);
 }
 
 static nearby_platform_status EnterDiscoverableMode() {
@@ -1848,8 +2014,7 @@ static nearby_platform_status EnterDiscoverableMode() {
   length += nearby_fp_AppendTxPower(advertisement + length,
                                     sizeof(advertisement) - length,
                                     nearby_platform_GetTxLevel());
-  return nearby_platform_SetAdvertisement(advertisement, length,
-                                          kNoLargerThan100ms);
+  return nearby_SetFpAdvertisement(advertisement, length, kNoLargerThan100ms);
 }
 
 static nearby_platform_status EnterNonDiscoverableMode() {
@@ -1875,13 +2040,13 @@ static bool ShouldRotateBleAddress(int mode) {
 
 static uint32_t GetRotationDelayMs() {
   uint32_t delay_ms = ADDRESS_ROTATION_PERIOD_MS;
-  // Rotation should happen every 1024 seconds on average. It is required that
-  // the precise point at which the beacon starts advertising the new
-  // identifier is randomized within the window. This logic should give us
-  // +/-200 seconds variability.
-  for (int i = 0; i < 5; i++) {
-    delay_ms += (50 << i) * (int8_t)nearby_platform_Rand();
-  }
+  // Rotation should happen every 1024 seconds on average.
+  // The suggested approach to randomize the rotation time,
+  // is to set it to the next anticipated rotation time(if not randomization was
+  // applied) plus a positive randomized time factor.It is recommended that the
+  // time factor will be in the range of 1 - 204 seconds.
+
+  delay_ms += ((1 + (nearby_platform_Rand() % 204)) * 1000);
   return delay_ms;
 }
 
@@ -1902,7 +2067,21 @@ static void ScheduleAddressRotation() {
 }
 
 static nearby_platform_status UpdateAdvertisements() {
-  if (advertisement_mode == NEARBY_FP_ADVERTISEMENT_NONE) {
+#if NEARBY_FP_ENABLE_SPOT
+  nearby_platform_status status = nearby_spot_SetAdvertisement(
+      advertisement_mode & NEARBY_FP_ADVERTISEMENT_SPOT);
+  if (kNearbyStatusOK != status) {
+    NEARBY_TRACE(WARNING, "SPOT adertisement error: %d", status);
+    if (!(advertisement_mode & ~NEARBY_FP_ADVERTISEMENT_SPOT)) {
+      // Fail if the client asked for SPOT advertisement only
+      return status;
+    }
+  }
+#endif /* NEARBY_FP_ENABLE_SPOT */
+
+  if ((advertisement_mode & (NEARBY_FP_ADVERTISEMENT_DISCOVERABLE |
+                             NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE)) ==
+      NEARBY_FP_ADVERTISEMENT_NONE) {
     return EnterDisabledMode();
   }
   if (advertisement_mode & NEARBY_FP_ADVERTISEMENT_DISCOVERABLE) {
@@ -1914,12 +2093,49 @@ static nearby_platform_status UpdateAdvertisements() {
   return kNearbyStatusUnsupported;
 }
 
+static void MaybeRotateSpotAddress() {
+#if NEARBY_FP_ENABLE_SPOT
+#if NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES
+  // If UnwantedTracking protection is On, rotate SPOT address, if 24 hrs
+  // have passed since last rotation,
+  if (nearby_spot_GetUnwantedTrackingProtectionModeState()) {
+    unsigned int cur_ms = nearby_platform_GetCurrentTimeMs();
+    if ((cur_ms - nearby_spot_GetAddressRotationTimestamp()) >=
+        ADDRESS_ROTATION_PERIOD_UNWANTED_TRACKING_PROTECTION_MS) {
+      nearby_spot_GenerateRandomizedAddress();
+    }
+  }
+#endif /* NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES */
+#endif /* NEARBY_FP_ENABLE_SPOT */
+}
+
+static bool IsAddressRotationBlocked() {
+// If NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES=1, return false, as the BLE address
+// rotation should not be blocked
+#if NEARBY_FP_ENABLE_SPOT
+#if NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES == 0
+  /* Once Unwanted Tracking Protection mode was activated, the beacon should
+  reduce MAC address (RPA) rotation frequency to once per 24h. The advertised
+  Ephemeral ID should keep rotating as usual.*/
+  if (nearby_spot_GetUnwantedTrackingProtectionModeState() &&
+      ((nearby_platform_GetCurrentTimeMs() - address_rotation_timestamp) <
+       ADDRESS_ROTATION_PERIOD_UNWANTED_TRACKING_PROTECTION_MS)) {
+    return true;
+  }
+#endif /* NEARBY_SUPPORT_MULTIPLE_BLE_ADDRESSES */
+#endif /* NEARBY_FP_ENABLE_SPOT */
+  return false;
+}
+
 static void MaybeRotateBleAddress() {
   ScheduleAddressRotation();
   if (IsInPairingMode()) {
     return;
   }
-  RotateBleAddress();
+  if (!IsAddressRotationBlocked()) RotateBleAddress();
+
+  MaybeRotateSpotAddress();
+
   UpdateAdvertisements();
 }
 
@@ -1927,7 +2143,11 @@ static bool NeedsPeriodicAddressRotation() {
   // FP spec says we should rotate BLE adress every ~15 minutes when
   // advertising
   return (advertisement_mode & (NEARBY_FP_ADVERTISEMENT_DISCOVERABLE |
-                                NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE)) != 0;
+                                NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE
+#if NEARBY_FP_ENABLE_SPOT
+                                | NEARBY_FP_ADVERTISEMENT_SPOT
+#endif /* NEARBY_FP_ENABLE_SPOT */
+                                )) != 0;
 }
 
 nearby_platform_status nearby_fp_client_SetAdvertisement(int mode) {
@@ -1938,6 +2158,7 @@ nearby_platform_status nearby_fp_client_SetAdvertisement(int mode) {
     CancelAddressRotationTimer();
     RotateBleAddress();
   }
+  MaybeRotateSpotAddress();
   advertisement_mode = mode;
   if (NeedsPeriodicAddressRotation() && address_rotation_task == NULL) {
     ScheduleAddressRotation();
@@ -1966,12 +2187,26 @@ nearby_platform_status nearby_fp_client_GetSeekerInfo(
 }
 #endif /* NEARBY_FP_MESSAGE_STREAM */
 
+static void OnRingStateChange() {
+#if NEARBY_FP_ENABLE_SPOT
+  NEARBY_TRACE(VERBOSE, "OnRingStateChange");
+  nearby_platform_status status = nearby_spot_OnRingStateChange();
+  if (kNearbyStatusOK != status) {
+    NEARBY_TRACE(WARNING, "OnRingStateChange failed with %d", status);
+  }
+#endif /* NEARBY_FP_ENABLE_SPOT */
+}
+
+static const nearby_platform_OsInterface kOsInterface = {
+    .on_ring_state_change = OnRingStateChange,
+};
+
 nearby_platform_status nearby_fp_client_Init(
     const nearby_fp_client_Callbacks* callbacks) {
   nearby_platform_status status;
 
   client_callbacks = callbacks;
-  pairing_state = kPairingStateIdle;
+  SetPairingState(kPairingStateIdle);
   pairing_failure_count = 0;
 #if NEARBY_FP_MESSAGE_STREAM
   memset(rfcomm_inputs, 0, sizeof(rfcomm_inputs));
@@ -1981,7 +2216,7 @@ nearby_platform_status nearby_fp_client_Init(
   peer_public_address = 0;
   DiscardPendingAccountKey();
 
-  status = nearby_platform_OsInit();
+  status = nearby_platform_OsInit(&kOsInterface);
   if (status != kNearbyStatusOK) return status;
 
   status = nearby_platform_SecureElementInit();
@@ -2004,13 +2239,19 @@ nearby_platform_status nearby_fp_client_Init(
   status = nearby_fp_LoadAccountKeys();
   if (status != kNearbyStatusOK) return status;
 
-#ifdef NEARBY_FP_ENABLE_SASS
-  SetCustomData(0);
+#if NEARBY_FP_ENABLE_SASS
   status = nearby_platform_AudioInit(&kAudioInterface);
   if (status != kNearbyStatusOK) return status;
 #endif /* NEARBY_FP_ENABLE_SASS */
 
   RotateBleAddress();
+
+  // SPOT init needs to be after RotateBleAddress, in order for SPOT address
+  // to be the same as the Ble address in the initial state
+#if NEARBY_FP_ENABLE_SPOT
+  status = nearby_spot_Init();
+  if (status != kNearbyStatusOK) return status;
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
   return status;
 }

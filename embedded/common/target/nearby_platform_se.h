@@ -23,6 +23,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#define AES256_KEY_SIZE 32
+
 // Generates a random number.
 uint8_t nearby_platform_Rand();
 
@@ -69,6 +71,27 @@ nearby_platform_status nearby_platform_Aes128Decrypt(
 // secret                  - 256 bit shared secret.
 nearby_platform_status nearby_platform_GenSec256r1Secret(
     const uint8_t remote_party_public_key[64], uint8_t secret[32]);
+
+#if NEARBY_FP_ENABLE_SPOT
+// Encrypts a data block with AES256 in ECB mode. The `input` and `output`
+// parameters may be the same array.
+nearby_platform_status nearby_platform_Aes256Encrypt(
+    const uint8_t input[16], uint8_t output[16],
+    const uint8_t key[AES256_KEY_SIZE]);
+
+// Calculates the SECP160R1 public key from private key with hashed flag
+//
+// private_key - non-normalized private key
+// output - The 'x' coordinate of the public key
+// hashed_flag_lsb - least significant byte of SHA256(r) which is used as
+// output
+//
+// The `private_key` must be normalized to elliptic curve's finite field:
+// 'p = private_key mod n', where 'n' is SECP160R1's order.
+nearby_platform_status nearby_platform_GetSecp160r1PublicKey(
+    const uint8_t private_key[32], uint8_t output[20],
+    uint8_t* hashed_flag_lsb);
+#endif /* NEARBY_FP_ENABLE_SPOT */
 
 // Returns anti-spoofing 128 bit private key.
 // Only used if the implementation also uses the
