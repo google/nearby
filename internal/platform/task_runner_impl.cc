@@ -19,12 +19,17 @@
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/timer_impl.h"
 
 namespace nearby {
 
 TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
-  executor_ = std::make_unique<::nearby::MultiThreadExecutor>(runner_count);
+  if (runner_count == 1) {
+    executor_ = std::make_unique<::nearby::SingleThreadExecutor>();
+  } else {
+    executor_ = std::make_unique<::nearby::MultiThreadExecutor>(runner_count);
+  }
 }
 
 TaskRunnerImpl::~TaskRunnerImpl() = default;

@@ -50,7 +50,7 @@ class TaskRunnerImpl : public TaskRunner {
   uint64_t GenerateId();
 
   mutable absl::Mutex mutex_;
-  std::unique_ptr<::nearby::MultiThreadExecutor> executor_;
+  std::unique_ptr<::nearby::SubmittableExecutor> executor_;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map_
       ABSL_GUARDED_BY(mutex_);
 };
