@@ -29,7 +29,7 @@ namespace windows {
 class ConditionVariable : public api::ConditionVariable {
  public:
   explicit ConditionVariable(api::Mutex* mutex)
-      : mutex_(&(static_cast<windows::Mutex*>(mutex))->mutex_) {}
+      : mutex_(&(static_cast<windows::Mutex*>(mutex))->GetMutex()) {}
   ~ConditionVariable() override = default;
 
   Exception Wait() override {

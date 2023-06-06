@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 
+#include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
@@ -152,12 +153,12 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
       api::BluetoothDevice& remote_device) override;
 
   void AddObserver(Observer* observer) override {
-    // TODO(b/269521993): Implement.
+    observers_.AddObserver(observer);
   }
 
   // Removes an observer. It's OK to remove an unregistered observer.
   void RemoveObserver(Observer* observer) override {
-    // TODO(b/269521993): Implement.
+    observers_.RemoveObserver(observer);
   }
 
  private:
@@ -218,6 +219,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::unique_ptr<BluetoothServerSocket> server_socket_ = nullptr;
   BluetoothServerSocket* raw_server_socket_ = nullptr;
   bool is_radio_discoverable_ = false;
+  ObserverList<Observer> observers_;
 };
 
 }  // namespace windows

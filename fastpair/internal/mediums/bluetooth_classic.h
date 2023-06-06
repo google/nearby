@@ -32,6 +32,17 @@ class BluetoothClassic {
   // Returns true, if BT communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void AddObserver(BluetoothClassicMedium::Observer* observer);
+  void RemoveObserver(BluetoothClassicMedium::Observer* observer);
+
+  // Enables BT discovery mode to observer any discoverable device in range.
+  // Returns true, if discovery mode was enabled, false otherwise.
+  bool StartDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Disables BT discovery mode.
+  // Returns true, if discovery mode was previously enabled, false otherwise.
+  bool StopDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Returns a new BluetoothPairing instance to handle the pairing process
   // with the remote device.
   std::unique_ptr<BluetoothPairing> CreatePairing(
@@ -43,11 +54,15 @@ class BluetoothClassic {
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // Returns true if device is currently in discovery mode.
+  bool IsDiscovering() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   mutable Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_){
       radio_.GetBluetoothAdapter()};
   BluetoothClassicMedium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
+  bool is_scanning ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace fastpair

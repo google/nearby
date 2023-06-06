@@ -119,9 +119,9 @@ cc_test(
         ":mediums",
         "//internal/platform:comm",
         "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

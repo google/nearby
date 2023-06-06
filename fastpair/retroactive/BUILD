@@ -18,9 +18,12 @@ cc_library(
     name = "retroactive",
     srcs = [
         "retroactive.cc",
+        "retroactive_pairing_detector_impl.cc",
     ],
     hdrs = [
         "retroactive.h",
+        "retroactive_pairing_detector.h",
+        "retroactive_pairing_detector_impl.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
@@ -30,10 +33,14 @@ cc_library(
     deps = [
         "//fastpair:fast_pair_controller",
         "//fastpair/common",
+        "//fastpair/internal/mediums",
         "//fastpair/message_stream",
+        "//fastpair/pairing",
+        "//internal/base",
         "//internal/platform:comm",
         "//internal/platform:types",
         "//third_party/magic_enum",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],

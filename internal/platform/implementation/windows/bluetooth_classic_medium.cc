@@ -20,6 +20,7 @@
 #include <codecvt>
 #include <fstream>
 #include <functional>
+#include <ios>
 #include <locale>
 #include <map>
 #include <memory>
@@ -560,11 +561,6 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
     return winrt::fire_and_forget();
   }
 
-  // Represents a Bluetooth device.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-20348
-  std::unique_ptr<winrt::Windows::Devices::Bluetooth::BluetoothDevice>
-      windowsBluetoothDevice;
-
   // Create an iterator for the internal list
   std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
       it = discovered_devices_by_id_.find(deviceInfo.Id());
@@ -587,11 +583,14 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 
   discovered_devices_by_id_[deviceInfo.Id()] = std::move(bluetoothDeviceP);
 
+  NEARBY_LOGS(INFO) << __func__ << ": Notifying bluetooth device added";
   if (discovery_callback_.device_discovered_cb != nullptr) {
     discovery_callback_.device_discovered_cb(
         *discovered_devices_by_id_[deviceInfo.Id()]);
   }
-
+  for (auto& observer : observers_.GetObservers()) {
+    observer->DeviceAdded(*discovered_devices_by_id_[deviceInfo.Id()]);
+  }
   return winrt::fire_and_forget();
 }
 
@@ -619,6 +618,7 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     return winrt::fire_and_forget();
   }
 
+  // https://learn.microsoft.com/en-us/windows/uwp/devices-sensors/device-information-properties#associationendpoint-properties
   if (properties.HasKey(L"System.ItemNameDisplay")) {
     // we need to really change the name of the bluetooth device
     std::string new_device_name = InspectableReader::ReadString(
@@ -627,17 +627,29 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     if (it->second->GetName() == new_device_name) {
       NEARBY_LOGS(INFO)
           << "Device name is same as old name, ignore the update.";
-      return {};
+    } else {
+      it->second->SetName(new_device_name);
+
+      NEARBY_LOGS(INFO)
+          << "Updated device name:"
+          << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName();
+
+      discovery_callback_.device_name_changed_cb(
+          *discovered_devices_by_id_[deviceInfoUpdate.Id()]);
     }
+  }
 
-    it->second->SetName(new_device_name);
-
-    NEARBY_LOGS(INFO)
-        << "Updated device name:"
-        << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName();
-
-    discovery_callback_.device_name_changed_cb(
-        *discovered_devices_by_id_[deviceInfoUpdate.Id()]);
+  // Indicates if the device is currently paired.
+  if (properties.HasKey(L"System.Devices.Aep.IsPaired")) {
+    bool new_paired_status = InspectableReader::ReadBoolean(
+        properties.Lookup(L"System.Devices.Aep.IsPaired"));
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Notifying device paired changed: " << std::boolalpha
+                      << new_paired_status;
+    for (auto& observer : observers_.GetObservers()) {
+      observer->DevicePairedChanged(
+          *discovered_devices_by_id_[deviceInfoUpdate.Id()], new_paired_status);
+    }
   }
 
   return winrt::fire_and_forget();
@@ -662,9 +674,14 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     return winrt::fire_and_forget();
   }
 
+  NEARBY_LOGS(INFO) << __func__ << ": Notifying bluetooth device removed";
   if (discovery_callback_.device_lost_cb != nullptr) {
     discovery_callback_.device_lost_cb(
         *discovered_devices_by_id_[deviceInfo.Id()]);
+  }
+
+  for (auto& observer : observers_.GetObservers()) {
+    observer->DeviceRemoved(*discovered_devices_by_id_[deviceInfo.Id()]);
   }
 
   discovered_devices_by_id_.erase(deviceInfo.Id());
