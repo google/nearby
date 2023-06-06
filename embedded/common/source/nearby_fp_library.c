@@ -48,9 +48,13 @@ typedef struct {
 #define ACCOUNT_KEY_LIST_SIZE_BYTES sizeof(AccountKeyList)
 #define SHOW_PAIRING_INDICATION_BYTE 0
 #define DONT_SHOW_PAIRING_INDICATION_BYTE 2
-#define SHOW_BATTERY_INDICATION_BYTE ((NEARBY_BATTERY_LEVELS_SIZE << 4) | 0x3)
-#define DONT_SHOW_BATTERY_INDICATION_BYTE \
-  ((NEARBY_BATTERY_LEVELS_SIZE << 4) | 0x4)
+#define SHOW_BATTERY_INDICATION_BYTE 0x33
+#define DONT_SHOW_BATTERY_INDICATION_BYTE 0x34
+#define BATTERY_INFO_CHARGING (1 << 7)
+#define BATTERY_INFO_NOT_CHARGING 0
+// In the battery values, the highest bit indicates charging, the lower 7 are
+// the battery level
+#define BATTERY_LEVEL_MASK 0x7F
 #define SALT_FIELD_LENGTH_AND_TYPE_BYTE ((NEARBY_FP_SALT_SIZE << 4) | 1)
 #define BATTERY_INFO_SIZE_BYTES 4
 // Response for seekers that don't support BLE-only devices.
@@ -190,7 +194,7 @@ static bool AccountKeyInfoEquals(const nearby_platform_AccountKeyInfo* a,
                                  const nearby_platform_AccountKeyInfo* b) {
   return a == b ||
          (
-#if NEARBY_FP_ENABLE_SASS
+#ifdef NEARBY_FP_ENABLE_SASS
              a->peer_address == b->peer_address &&
 #endif /* NEARBY_FP_ENABLE_SASS */
              !memcmp(a->account_key, b->account_key, ACCOUNT_KEY_SIZE_BYTES));
@@ -248,11 +252,15 @@ size_t nearby_fp_CreateDiscoverableAdvertisement(uint8_t* output,
 #if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 void SerializeBatteryInfo(uint8_t* output,
                           const nearby_platform_BatteryInfo* battery_info) {
-  int i;
-  for (i = 0; i < NEARBY_BATTERY_LEVELS_SIZE; i++)
-    output[i] = battery_info->battery_level[i];
+  uint8_t charging = battery_info->is_charging ? BATTERY_INFO_CHARGING
+                                               : BATTERY_INFO_NOT_CHARGING;
+  output[0] =
+      charging | (battery_info->left_bud_battery_level & BATTERY_LEVEL_MASK);
+  output[1] =
+      charging | (battery_info->right_bud_battery_level & BATTERY_LEVEL_MASK);
+  output[2] = charging |
+              (battery_info->charging_case_battery_level & BATTERY_LEVEL_MASK);
 }
-
 static void AddBatteryInfo(uint8_t* output, size_t length,
                            bool show_ui_indicator,
                            const nearby_platform_BatteryInfo* battery_info) {
@@ -461,12 +469,6 @@ nearby_platform_status nearby_fp_SaveAccountKeys() {
   return nearby_platform_SaveValue(kStoredKeyAccountKeyList,
                                    (uint8_t*)&account_key_list,
                                    GetAccountKeyListUsedSize());
-}
-
-nearby_platform_status nearby_fp_ClearAccountKeys() {
-  size_t length = sizeof(account_key_list);
-  memset(&account_key_list, 0, length);
-  return nearby_platform_ClearAllValue();
 }
 
 nearby_platform_status nearby_fp_GattReadModelId(uint8_t* output,
