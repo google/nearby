@@ -25,13 +25,11 @@
 
 constexpr uint64_t kDefaultBleAddress = 0xbabababa;
 static uint64_t ble_address = kDefaultBleAddress;
-static uint64_t spot_address = kDefaultBleAddress;
 static uint64_t peer_address = 0x345678ab;
 static const nearby_platform_BleInterface* ble_interface;
 static std::map<nearby_fp_Characteristic, std::vector<uint8_t>> notifications;
 static std::vector<uint8_t> advertisement;
 static nearby_fp_AvertisementInterval interval;
-static std::vector<uint8_t> spot_advertisement;
 constexpr int32_t kDefaultPsm = -1;
 static int32_t psm = kDefaultPsm;
 
@@ -75,14 +73,6 @@ nearby_platform_status nearby_platform_GattNotify(
   return kNearbyStatusOK;
 }
 
-nearby_platform_status nearby_platform_GattNotifyAll(
-    nearby_fp_Characteristic characteristic, const uint8_t* message,
-    size_t length) {
-  notifications.emplace(characteristic,
-                        std::vector<uint8_t>(message, message + length));
-  return kNearbyStatusOK;
-}
-
 nearby_platform_status nearby_platform_SetAdvertisement(
     const uint8_t* payload, size_t length,
     nearby_fp_AvertisementInterval interval) {
@@ -95,17 +85,6 @@ nearby_platform_status nearby_platform_SetAdvertisement(
   return kNearbyStatusOK;
 }
 
-nearby_platform_status nearby_platform_SetSpotAdvertisement(uint64_t address,
-    const uint8_t* payload, size_t length) {
-  if (payload == NULL || length == 0) {
-    spot_advertisement.clear();
-  } else {
-    spot_advertisement.assign(payload, payload + length);
-  }
-  spot_address = address;
-  return kNearbyStatusOK;
-}
-
 int32_t nearby_platform_GetMessageStreamPsm() { return psm; }
 
 // Initializes BLE
@@ -114,11 +93,9 @@ nearby_platform_status nearby_platform_BleInit(
   ble_interface = callbacks;
   notifications.clear();
   advertisement.clear();
-  spot_advertisement.clear();
   interval = kDisabled;
   ble_address = kDefaultBleAddress;
   psm = kDefaultPsm;
-  spot_address = kDefaultBleAddress;
   return kNearbyStatusOK;
 }
 
@@ -126,31 +103,6 @@ void nearby_test_fakes_SetPsm(int32_t value) { psm = value; }
 
 std::vector<uint8_t>& nearby_test_fakes_GetAdvertisement() {
   return advertisement;
-}
-
-std::vector<uint8_t>& nearby_test_fakes_GetSpotAdvertisement() {
-#ifdef NEARBY_FP_HAVE_MULTIPLE_ADVERTISEMENTS
-  return spot_advertisement;
-#else
-  return nearby_test_fakes_GetAdvertisement();
-#endif /* NEARBY_FP_HAVE_MULTIPLE_ADVERTISEMENTS */
-}
-
-uint64_t nearby_test_fakes_GetSpotAddress() {
-  return spot_address;
-}
-
-nearby_platform_status nearby_test_fakes_GattRead(
-    nearby_fp_Characteristic characteristic, uint8_t* output, size_t* length) {
-  return ble_interface->on_gatt_read(peer_address, characteristic, output,
-                                     length);
-}
-
-nearby_platform_status nearby_test_fakes_GattWrite(
-    nearby_fp_Characteristic characteristic, const uint8_t* request,
-    size_t length) {
-  return ble_interface->on_gatt_write(peer_address, characteristic, request,
-                                      length);
 }
 
 nearby_platform_status nearby_test_fakes_GattReadModelId(uint8_t* output,

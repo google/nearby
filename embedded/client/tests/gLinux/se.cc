@@ -26,11 +26,7 @@
 #include <string>
 
 #include "fakes.h"
-#include "nearby.h"
 #include "nearby_platform_se.h"
-#include "nearby_trace.h"
-
-#pragma GCC diagnostic ignored "-Wunused-function"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -199,27 +195,6 @@ nearby_platform_status nearby_platform_GenSec256r1Secret(
   return kNearbyStatusOK;
 }
 #endif /* NEARBY_PLATFORM_HAS_SE */
-
-#ifndef NEARBY_PLATFORM_USE_MBEDTLS
-nearby_platform_status nearby_platform_Aes256Encrypt(const uint8_t input[16],
-                                                     uint8_t output[16],
-                                                     const uint8_t key[32]) {
-  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-  int input_length = 16;
-  int output_length = 16;
-  uint8_t buffer[16];
-
-  EVP_EncryptInit(ctx, EVP_aes_256_ecb(), key, NULL);
-
-  if (1 !=
-      EVP_EncryptUpdate(ctx, buffer, &output_length, input, input_length)) {
-    return kNearbyStatusError;
-  }
-  memcpy(output, buffer, 16);
-  EVP_CIPHER_CTX_free(ctx);
-  return kNearbyStatusOK;
-}
-#endif
 
 void nearby_test_fakes_SetRandomNumber(unsigned int value) {
   random_value = value;

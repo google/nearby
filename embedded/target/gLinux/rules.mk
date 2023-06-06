@@ -9,7 +9,6 @@ TEST_SRCS := $(filter-out $(TEST_SRCS_EXCLUDE), $(TEST_SRCS))
 TEST_OBJS += $(patsubst %.cc,$(OUT_DIR)/%.o,$(TEST_SRCS))
 GLINUX_TARGET_SRCS := $(wildcard client/tests/glinux/*.cc)
 MBEDTLS_TARGET_SRCS := $(wildcard common/source/mbedtls/*.c)
-
 GTEST_SRCS = $(GTEST_DIR)/src/gtest-all.cc $(GMOCK_DIR)/src/gmock-all.cc
 EMPTY_TARGET_SRCS := $(wildcard client/tests/empty_target/*.c)
 
@@ -27,9 +26,6 @@ ALL_TEST_OBJS += $(EMPTY_TARGET_OBJS)
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
 ALL_TEST_OBJS += $(MBEDTLS_TARGET_OBJS)
 endif
-ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
-ALL_TEST_OBJS += $(MICROECC_TARGET_OBJS)
-endif
 
 # The glinux target layer
 $(GLINUX_TARGET_OBJS) : $(OUT_DIR)/%.o: %.cc
@@ -38,7 +34,6 @@ $(GLINUX_TARGET_OBJS) : $(OUT_DIR)/%.o: %.cc
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
 # Mbed TLS interface files
 $(MBEDTLS_TARGET_OBJS) : $(OUT_DIR)/%.o: %.c
-	@echo "mbedtls"
 	$(call compile_c,$(TEST_INCLUDES) -I. -std=c99 -c $(CFLAGS))
 endif
 
@@ -65,16 +60,11 @@ TARGET_OBJS ?= $(GLINUX_TARGET_OBJS)
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
 TARGET_OBJS += $(MBEDTLS_TARGET_OBJS)
 endif
-ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
-TARGET_OBJS += $(MICROECC_TARGET_OBJS)
-endif
 
 TARGET_OS_SRCS := $(wildcard client/tests/gLinux/*.cc)
 TARGET_MBEDTLS_SRCS += $(wildcard common/source/mbedtls/*.c)
-TARGET_MICROECC_SRCS += $(wildcard common/source/micro-ecc/*.c)
 TARGET_OS_OBJS ?= $(patsubst %.cc,$(OUT_DIR)/%.o,$(TARGET_OS_SRCS))
 TARGET_MBEDTLS_OBJS ?= $(patsubst %.c,$(OUT_DIR)/%.o,$(TARGET_MBEDTLS_SRCS))
-TARGET_MICROECC_OBJS ?= $(patsubst %.c,$(OUT_DIR)/%.o,$(TARGET_MICROECC_SRCS))
 $(TARGET_OS_OBJS) : $(OUT_DIR)/%.o: %.cc
 	$(call compile_c,$(TEST_INCLUDES) -I. -std=c++14 $(CFLAGS))
 $(TARGET_MBED_OBJS) : $(OUT_DIR)/%.o: %.c
@@ -84,9 +74,6 @@ ALL_TEST_OBJS += $(TEST_OBJS)
 ALL_TEST_OBJS += $(TARGET_OS_OBJS)
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
 ALL_TEST_OBJS += $(TARGET_MBEDTLS_OBJS)
-endif
-ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
-ALL_TEST_OBJS += $(TARGET_MICROECC_OBJS)
 endif
 
 ALL_OBJS += $(ALL_TEST_OBJS)
@@ -98,20 +85,11 @@ EMPTY_TARGET_TEST = $(OUT_DIR)/client/tests/empty_target_test
 $(EMPTY_TARGET_TEST) : TARGET_OBJS = $(EMPTY_TARGET_OBJS)
 $(EMPTY_TARGET_TEST) : $(EMPTY_TARGET_OBJS)
 TEST_BINARIES = $(patsubst %.cc,$(OUT_DIR)/%,$(TEST_SRCS))
-
-TEST_DEPS = $(NAME) $(GTEST_OBJS) $(GLINUX_TARGET_OBJS)
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
-TEST_DEPS += $(MBEDTLS_TARGET_OBJS)
 $(TEST_BINARIES) : $(NAME) $(GTEST_OBJS) $(GLINUX_TARGET_OBJS) $(MBEDTLS_TARGET_OBJS)
 else
 $(TEST_BINARIES) : $(NAME) $(GTEST_OBJS) $(GLINUX_TARGET_OBJS)
 endif
-ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
-TEST_DEPS += $(MICROECC_TARGET_OBJS)
-endif
-
-$(TEST_BINARIES) : $(TEST_DEPS)
-
 $(TEST_BINARIES) : $(TARGET_OS_OBJS)
 
 LIBS ?= -L $(OUT_DIR) -lnearby -lcrypto -lssl -lpthread -lstdc++
@@ -124,13 +102,7 @@ $(TEST_BINARIES) : $(MBEDTLS_LIBS)
 LIBS += -L $(MBEDTLS_DIR)/library -lmbedtls -lmbedcrypto
 endif
 
-ifeq ($(NEARBY_PLATFORM_USE_MICROECC), 1)
-LIBS += -L $(MICROECC_OUT_DIR) -lmicro-ecc
-$(TEST_BINARIES) : $(MICROECC_OUT_DIR)/libmicro-ecc.a
-endif
-
 $(TEST_BINARIES) : % : %.o
-	@echo "Compiling test binaries"
 	mkdir -p $(dir $@)
 	$(CC) -o $@ $< \
 		$(CFLAGS) \

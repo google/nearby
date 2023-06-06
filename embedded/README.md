@@ -1,7 +1,7 @@
 # Nearby embedded SDK library
 
 This repository contains Nearby SDK library for embedded systems. Nearby SDK
-implements the Fast Pair protocol along with SPOT and its future versions per
+implements the Fast Pair protocol and its future versions per
 https://developers.google.com/nearby/fast-pair/spec
 
 
@@ -41,9 +41,3 @@ implementations, with the config.mk flag `NEARBY_PLATFORM_USE_MBEDTLS`.
 2. *gen_secret* located in `common/source/mbedtls/gen_secret.c` implements `nearby_platform_GenSec256r1Secret()`.
 
 *gen_secret* generates a shared secret based on a given private key on platforms that don't support hardware SE. *gen_secret* module is enabled `NEARBY_PLATFORM_USE_MBEDTLS` is set and `NEARBY_PLATFORM_HAS_SE` is *not* set. When `NEARBY_PLATFORM_HAS_SE` is set, the platform needs to provide their own `nearby_platform_GenSec256r1Secret()` routine.
-
-3. *micro-ecc* located in `common/source/micro-ecc/micro-ecc.c` implements `nearby_platform_GetSecp160r1PublicKey()`.
-
-Nearby SDK can be configured to use the [micro ecc](https://github.com/kmackay/micro-ecc), commonly available for 8-bit,32-bit, and 64-bit processors, with the config.mk flag `NEARBY_PLATFORM_USE_MICROECC`.
-
-`nearby_platform_GetSecp160r1PublicKey()` generates public key based on a given private key for SECP 160r1 curve and hash field which is required for Eddystone frame.

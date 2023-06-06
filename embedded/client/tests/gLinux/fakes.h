@@ -21,21 +21,11 @@
 
 #include "nearby.h"
 #include "nearby_platform_ble.h"
-#include "nearby_platform_os.h"
-#include "nearby_platform_battery.h"
-
 
 void nearby_test_fakes_SetRandomNumber(unsigned int value);
 void nearby_test_fakes_SetRandomNumberSequence(std::vector<uint8_t>& value);
 
 std::vector<uint8_t> nearby_test_fakes_GetRawAccountKeys();
-
-nearby_platform_status nearby_test_fakes_GattRead(
-    nearby_fp_Characteristic characteristic, uint8_t* output, size_t* length);
-
-nearby_platform_status nearby_test_fakes_GattWrite(
-    nearby_fp_Characteristic characteristic, const uint8_t* request,
-    size_t length);
 
 nearby_platform_status nearby_test_fakes_GattReadModelId(uint8_t* output,
                                                          size_t* length);
@@ -62,8 +52,6 @@ nearby_platform_status nearby_test_fakes_Aes128Encrypt(
     const uint8_t key[AES_MESSAGE_SIZE_BYTES]);
 
 std::vector<uint8_t>& nearby_test_fakes_GetAdvertisement();
-std::vector<uint8_t>& nearby_test_fakes_GetSpotAdvertisement();
-uint64_t nearby_test_fakes_GetSpotAddress();
 
 std::map<nearby_fp_Characteristic, std::vector<uint8_t>>&
 nearby_test_fakes_GetGattNotifications();
@@ -110,7 +98,7 @@ class AccountKeyList {
 
     for (size_t i = 0; i < list->num_keys; i++) {
       uint64_t address = 0;
-#if NEARBY_FP_ENABLE_SASS
+#ifdef NEARBY_FP_ENABLE_SASS
       address = list->key[i].peer_address;
 #endif /* NEARBY_FP_ENABLE_SASS */
       key_pairs_.emplace_back(
@@ -132,7 +120,7 @@ class AccountKeyList {
     RawAccountKeyList account_keys;
     account_keys.num_keys = size();
     for (size_t i = 0; i < size(); i++) {
-#if NEARBY_FP_ENABLE_SASS
+#ifdef NEARBY_FP_ENABLE_SASS
       account_keys.key[i].peer_address = key_pairs_[i].address_;
 #endif /* NEARBY_FP_ENABLE_SASS */
       for (size_t j = 0; j < key_pairs_[i].account_key_.size(); j++) {
@@ -147,9 +135,6 @@ class AccountKeyList {
   std::vector<AccountKeyPair> key_pairs_;
 };
 
-void nearby_test_fakes_SetRingingInfo(const nearby_platform_RingingInfo* info);
-void nearby_test_fakes_NotifyRingStateChanged();
-
 void nearby_test_fakes_SetAccountKeys(const uint8_t* input, size_t length);
 void nearby_test_fakes_SetAccountKeys(
     std::vector<AccountKeyPair>& account_key_pairs);
@@ -159,23 +144,13 @@ AccountKeyList nearby_test_fakes_GetAccountKeys();
 
 void nearby_test_fakes_SetIsCharging(bool charging);
 
-#if NEARBY_BATTERY_LEVELS_SIZE >= 2
-void nearby_test_fakes_SetRightBudBatteryLevel(unsigned battery_level, bool charging);
-#endif
+void nearby_test_fakes_SetRightBudBatteryLevel(unsigned battery_level);
 
-void nearby_test_fakes_SetLeftBudBatteryLevel(unsigned battery_level, bool charging);
+void nearby_test_fakes_SetLeftBudBatteryLevel(unsigned battery_level);
 
-#if NEARBY_BATTERY_LEVELS_SIZE >= 3
-void nearby_test_fakes_SetChargingCaseBatteryLevel(unsigned battery_level, bool charging);
-#endif
+void nearby_test_fakes_SetChargingCaseBatteryLevel(unsigned battery_level);
 
-#ifdef NEARBY_SPOT_BATTERY_LEVEL_INDICATION
-void nearby_test_fakes_SetMainBatteryLevel(unsigned battery_level);
-#endif /* NEARBY_SPOT_BATTERY_LEVEL_INDICATION */
-
-#if NEARBY_BATTERY_REMAINING_TIME
 void nearby_test_fakes_BatteryTime(uint16_t battery_time);
-#endif /* NEARBY_BATTERY_REMAINING_TIME */
 
 void nearby_test_fakes_SetGetBatteryInfoResult(nearby_platform_status status);
 
@@ -196,10 +171,6 @@ void nearby_test_fakes_SetCurrentTimeMs(uint32_t ms);
 
 void nearby_test_fakes_SetInPairingMode(bool in_pairing_mode);
 
-#if NEARBY_FP_ENABLE_SPOT
-void nearby_test_fakes_SetHasUserContentForReadingEik(bool has_user_consent);
-#endif /* NEARBY_FP_ENABLE_SPOT */
-
 uint8_t nearby_test_fakes_GetRingCommand(void);
 
 uint16_t nearby_test_fakes_GetRingTimeout(void);
@@ -216,7 +187,7 @@ void nearby_test_fakes_SassMultipointSwitch(uint8_t reason,
                                             uint64_t peer_address,
                                             const char* name);
 
-#if NEARBY_FP_ENABLE_SASS
+#ifdef NEARBY_FP_ENABLE_SASS
 void nearby_test_fakes_SetActiveAudioSource(uint64_t peer_address);
 #endif /* NEARBY_FP_ENABLE_SASS */
 
