@@ -14,12 +14,15 @@
 
 #include "internal/crypto/ed25519.h"
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "internal/crypto/random.h"
+#include <openssl/base.h>
 #include <openssl/evp.h>
 
 namespace crypto {
@@ -27,6 +30,13 @@ namespace crypto {
 constexpr size_t kEd25519SignatureSize = 64;
 constexpr size_t kEd25519PrivateKeySize = 32;
 constexpr size_t kEd25519PublicKeySize = 32;
+constexpr size_t kEd25519KeySeedSize = 32;
+
+// Keypair
+Ed25519KeyPair::~Ed25519KeyPair() {
+  memset(private_key.data(), 0, private_key.size());
+  memset(public_key.data(), 0, public_key.size());
+}
 
 // Signer
 absl::StatusOr<Ed25519Signer> Ed25519Signer::Create(std::string private_key) {
@@ -45,6 +55,51 @@ absl::StatusOr<Ed25519Signer> Ed25519Signer::Create(std::string private_key) {
     return absl::InternalError("EVP_PKEY_new_raw_private_key failed");
   }
   return Ed25519Signer(std::move(priv_key));
+}
+
+absl::StatusOr<Ed25519KeyPair> Ed25519Signer::CreateNewKeyPair(
+    absl::string_view key_seed) {
+  if (key_seed.length() != kEd25519KeySeedSize) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Only acceptable key seed length is %d", kEd25519KeySeedSize));
+  }
+  CryptoKeyUniquePtr priv_key(EVP_PKEY_new_raw_private_key(
+      EVP_PKEY_ED25519, /*unused=*/nullptr,
+      reinterpret_cast<const uint8_t *>(key_seed.data()), kEd25519KeySeedSize));
+  if (priv_key == nullptr) {
+    return absl::InternalError("EVP_PKEY_new_raw_private_key failed");
+  }
+  Ed25519KeyPair key_pair;
+  key_pair.private_key.resize(kEd25519PrivateKeySize);
+  key_pair.public_key.resize(kEd25519PublicKeySize);
+  uint8_t *priv_key_ptr = reinterpret_cast<uint8_t *>(&key_pair.private_key[0]);
+  uint8_t *pub_key_ptr = reinterpret_cast<uint8_t *>(&key_pair.public_key[0]);
+  size_t len = kEd25519PrivateKeySize;
+  if (EVP_PKEY_get_raw_private_key(priv_key.get(), priv_key_ptr, &len) != 1) {
+    return absl::InternalError("EVP_PKEY_get_raw_private_key failed");
+  }
+  if (len != kEd25519PrivateKeySize) {
+    return absl::InternalError(
+        absl::StrCat("Invalid private key size; expected ",
+                     kEd25519PrivateKeySize, " got ", len));
+  }
+  len = kEd25519PublicKeySize;
+  if (EVP_PKEY_get_raw_public_key(priv_key.get(), pub_key_ptr, &len) != 1) {
+    return absl::InternalError("EVP_PKEY_get_raw_public_key failed");
+  }
+  if (len != kEd25519PublicKeySize) {
+    return absl::InternalError(
+        absl::StrCat("Invalid public key size; expected ",
+                     kEd25519PublicKeySize, " got ", len));
+  }
+  return key_pair;
+}
+
+absl::StatusOr<Ed25519KeyPair> Ed25519Signer::CreateNewKeyPair() {
+  uint8_t key_seed[kEd25519KeySeedSize] = {0};
+  RandBytes(key_seed, kEd25519KeySeedSize);
+  return CreateNewKeyPair(
+      std::string(reinterpret_cast<char *>(key_seed), kEd25519KeySeedSize));
 }
 
 Ed25519Signer::Ed25519Signer(CryptoKeyUniquePtr private_key) {
