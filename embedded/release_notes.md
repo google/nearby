@@ -1,16 +1,4 @@
-### Nearby SDK for embedded systems release notes
-
-## v2.0.0-embedded
-Support GFPS 3.2 specification per [specification](https://developers.google.com/nearby/fast-pair/specifications/introduction).
-
-New features:
-* Find My Device Network added
-* Added micro-ecc component
-
-Other changes:
-* Merged all feature to main.
-* Fixed all the build issues.
-* Guarded the features with Macros.
+### Nearby SDK for embedded systems release note
 
 ## v1.1.0-embedded RC1
 Initial release supporting GFPS 3.2 per [specification](https://developers.google.com/nearby/fast-pair/specifications/introduction).
