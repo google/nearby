@@ -33,5 +33,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
-    - name: Build
+    - name: Build Connections
       run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections:core --spawn_strategy=standalone
+    - name: Build Presence
+      run: CC=clang CXX=clang++ bazel build --check_visibility=false //presence --spawn_strategy=standalone --//presence/implementation:enable_rust_ldt=False

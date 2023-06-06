@@ -15,16 +15,14 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
-#include <cstdint>
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/types/optional.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
@@ -210,7 +208,7 @@ class BleV2 final {
   absl::flat_hash_set<std::string> scanned_service_ids_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<CancelableAlarm> lost_alarm_;
   mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
-      ABSL_GUARDED_BY(mutex_);
+      ABSL_GUARDED_BY(mutex_){medium_.IsExtendedAdvertisementsAvailable()};
 
   // A thread pool dedicated to running all the accept loops from
   // StartAcceptingConnections().

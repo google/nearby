@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 61
+// Next id: 62
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -225,6 +225,9 @@ enum EventType {
 
   // Sender failed to parse endpoint id.
   PARSING_FAILED_ENDPOINT_ID = 60;
+
+  // The device is discovered by fast initialization
+  FAST_INIT_DISCOVER_DEVICE = 61;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -588,4 +591,26 @@ enum PreferencesActionStatus {
   PREFERENCES_ACTION_STATUS_UNKNOWN = 0;
   PREFERENCES_ACTION_STATUS_SUCCESS = 1;
   PREFERENCES_ACTION_STATUS_FAIL = 2;
+}
+
+/** The distance of the found nearby fast init advertisement. */
+enum FastInitState {
+  FAST_INIT_UNKNOWN_STATE = 0;
+  // A device was found in close proximity.
+  // distance < fast_init_distance_close_centimeters(50 cm)
+  FAST_INIT_CLOSE_STATE = 1;
+  // A device was found in far proximity.
+  // distance < fast_init_distance_close_centimeters(10 m)
+  FAST_INIT_FAR_STATE = 2;
+  // No devices have been found nearby. The default state.
+  FAST_INIT_LOST_STATE = 3;
+}
+
+/** The type of FastInit advertisement. */
+enum FastInitType {
+  FAST_INIT_UNKNOWN_TYPE = 0;
+  // Show HUN to notify the user.
+  FAST_INIT_NOTIFY_TYPE = 1;
+  // Not notify the user.
+  FAST_INIT_SILENT_TYPE = 2;
 }

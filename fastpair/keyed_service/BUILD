@@ -28,11 +28,13 @@ cc_library(
     ],
     deps = [
         "//fastpair/common",
+        "//fastpair/internal/mediums",
+        "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//fastpair/server_access",
+        "//fastpair/ui:fast_pair_ui",
         "//internal/platform:logging",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/strings",
+        "//internal/platform:types",
     ],
 )
 
@@ -45,10 +47,15 @@ cc_test(
     shard_count = 16,
     deps = [
         ":keyed_service",
-        "//fastpair/scanning:mocks",
-        "//fastpair/server_access:mocks",
+        "//fastpair/server_access:test_support",
+        "//fastpair/testing",
+        "//fastpair/ui:fast_pair_ui",
+        "//fastpair/ui:mock_fast_pair_ui",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_ED25519_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_ED25519_H_
 
+#include <cstring>
 #include <optional>
 #include <string>
 
@@ -41,9 +42,18 @@ using CryptoKeyUniquePtr = std::unique_ptr<EVP_PKEY, Ed25519KeyFree>;
 using CryptoMdCtxUniquePtr = std::unique_ptr<EVP_MD_CTX, Ed25519MdCtxFree>;
 #endif
 
+struct Ed25519KeyPair {
+  ~Ed25519KeyPair();
+  std::string private_key;
+  std::string public_key;
+};
+
 class CRYPTO_EXPORT Ed25519Signer {
  public:
   static absl::StatusOr<Ed25519Signer> Create(std::string private_key);
+  static absl::StatusOr<Ed25519KeyPair> CreateNewKeyPair(
+      absl::string_view key_seed);
+  static absl::StatusOr<Ed25519KeyPair> CreateNewKeyPair();
   std::optional<std::string> Sign(absl::string_view data);
 
  private:
