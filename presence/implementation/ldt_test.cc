@@ -87,9 +87,9 @@ TEST(Ldt, DecryptAndroidData) {
   SharedCredential shared_credential;
   ASSERT_TRUE(shared_credential.ParseFromString(
       absl::HexStringToBytes(kSharedCredentialBase16)));
-  absl::StatusOr<LdtEncryptor> encryptor =
-      LdtEncryptor::Create(shared_credential.key_seed(),
-                           shared_credential.metadata_encryption_key_tag());
+  absl::StatusOr<LdtEncryptor> encryptor = LdtEncryptor::Create(
+      shared_credential.key_seed(),
+      shared_credential.metadata_encryption_key_unsigned_adv_tag());
   ASSERT_OK(encryptor);
 
   absl::StatusOr<std::string> decrypted =
