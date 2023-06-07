@@ -18,9 +18,11 @@ cc_library(
     name = "keyed_service",
     srcs = [
         "fast_pair_mediator.cc",
+        "fast_pair_mediator_factory.cc",
     ],
     hdrs = [
         "fast_pair_mediator.h",
+        "fast_pair_mediator_factory.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
@@ -43,6 +45,7 @@ cc_test(
     name = "fast_pair_mediator_test",
     size = "small",
     srcs = [
+        "fast_pair_mediator_factory_test.cc",
         "fast_pair_mediator_test.cc",
     ],
     shard_count = 16,
