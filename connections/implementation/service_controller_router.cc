@@ -387,7 +387,7 @@ void ServiceControllerRouter::RequestConnectionV3(
         if (v3_info.local_device.GetType() ==
             NearbyDevice::Type::kConnectionsDevice) {
           endpoint_info =
-              dynamic_cast<v3::ConnectionsDevice&>(v3_info.local_device)
+              reinterpret_cast<v3::ConnectionsDevice&>(v3_info.local_device)
                   .GetEndpointInfo();
         }
 
