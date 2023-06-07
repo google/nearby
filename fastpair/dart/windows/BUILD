@@ -32,8 +32,7 @@ lexan.cc_windows_dll(
     ],
     tags = ["windows-dll"],
     visibility = [
-        "//fastpair:__subpackages__",
-        "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
     ],
     deps = [
         "//fastpair/dart:fastpair_wrapper",
@@ -63,8 +62,7 @@ lexan.cc_windows_dll(
     ],
     tags = ["windows-dll"],
     visibility = [
-        "//fastpair:__subpackages__",
-        "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
     ],
     deps = [
         "//fastpair/dart:fastpair_wrapper",
