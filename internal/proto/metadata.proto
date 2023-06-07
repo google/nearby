@@ -22,6 +22,21 @@ option java_package = "com.google.nearby.presence";
 option java_outer_classname = "MetadataProto";
 option optimize_for = LITE_RUNTIME;
 
+// The metadata of a device. Contains confidential data not to be broadcasted
+// directly in OTA.
+// NEXT_ID=4
+message DeviceIdentityMetaData {
+  // The type of the device.
+  DeviceType device_type = 1;
+
+  // The name of the local device to be returned through credentials.
+  string device_name = 2;
+
+  // The ChromeOS team requires the BT mac address for debugging purposes
+  // temporarily. This should be removed by the end of this year.
+  bytes bluetooth_mac_address = 3;
+}
+
 // The metadata of a device.
 // Contains confidential data not to be broadcasted directly in OTA.
 message Metadata {
