@@ -41,6 +41,7 @@
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
 #include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.Storage.Streams.h"
 
 namespace nearby {
@@ -69,6 +70,7 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattValueChangedEventArgs;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattWriteOption;
+using ::winrt::Windows::Foundation::TimeSpan;
 using ::winrt::Windows::Foundation::Collections::IVectorView;
 using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataReader;
@@ -76,6 +78,8 @@ using ::winrt::Windows::Storage::Streams::IBuffer;
 using Property = api::ble_v2::GattCharacteristic::Property;
 using Permission = api::ble_v2::GattCharacteristic::Permission;
 using WriteType = api::ble_v2::GattClient::WriteType;
+
+constexpr int kGattTimeoutInSeconds = 5;
 
 std::string GattCommunicationStatusToString(GattCommunicationStatus status) {
   switch (status) {
@@ -121,8 +125,26 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
     }
 
     // Gets the GATT services on the BLE device.
-    gatt_devices_services_result_ =
-        ble_device_.GetGattServicesAsync(BluetoothCacheMode::Uncached).get();
+    auto get_gatt_services_async =
+        ble_device_.GetGattServicesAsync(BluetoothCacheMode::Cached);
+
+    switch (get_gatt_services_async.wait_for(
+        TimeSpan(std::chrono::seconds(kGattTimeoutInSeconds)))) {
+      case winrt::Windows::Foundation::AsyncStatus::Completed:
+        gatt_devices_services_result_ = get_gatt_services_async.GetResults();
+        break;
+      case winrt::Windows::Foundation::AsyncStatus::Started:
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Failed to get GATT services due to timeout.";
+        get_gatt_services_async.Cancel();
+        return false;
+      default:
+        NEARBY_LOGS(ERROR)
+            << __func__
+            << ": Failed to get GATT services due to unknown reasons.";
+        return false;
+    }
+
     if (gatt_devices_services_result_.Status() !=
         GattCommunicationStatus::Success) {
       NEARBY_LOGS(ERROR) << __func__
@@ -475,9 +497,9 @@ bool BleGattClient::SetCharacteristicSubscription(
         return false;
       }
     } else if (native_characteristic_map_[characteristic].notification_token) {
-        gatt_characteristic->ValueChanged(std::exchange(
-            native_characteristic_map_[characteristic].notification_token, {}));
-      }
+      gatt_characteristic->ValueChanged(std::exchange(
+          native_characteristic_map_[characteristic].notification_token, {}));
+    }
     NEARBY_LOGS(ERROR) << __func__
                        << ": Successfully set Characteristic Subscription.";
     return true;

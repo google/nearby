@@ -29,9 +29,15 @@
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "winrt/Windows.Foundation.h"
 
 namespace nearby {
 namespace windows {
+namespace {
+constexpr int kBluetoothTimeoutInSeconds = 10;
+
+using ::winrt::Windows::Foundation::TimeSpan;
+}  // namespace
 
 BluetoothDevice::~BluetoothDevice() {}
 
@@ -70,35 +76,30 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
     NEARBY_LOGS(INFO) << __func__ << ": Get RF services for service id:"
                       << winrt::to_string(serviceId.AsString());
 
-    // Check cache first
-    RfcommDeviceServicesResult rfcomm_device_services =
-        windows_bluetooth_device_
-            .GetRfcommServicesForIdAsync(serviceId, BluetoothCacheMode::Cached)
-            .get();
-    if (rfcomm_device_services != nullptr &&
-        rfcomm_device_services.Services().Size() > 0) {
-      NEARBY_LOGS(INFO) << __func__ << ": Get "
-                        << rfcomm_device_services.Services().Size()
-                        << " services from cache.";
-      // found the matched service.
-      for (auto rfcomm_device_service : rfcomm_device_services.Services()) {
-        if (rfcomm_device_service.Device() != nullptr &&
-            winrt::to_string(rfcomm_device_service.Device().DeviceId()) ==
-                id_) {
-          NEARBY_LOGS(INFO) << __func__ << ": Found service from cache.";
-          return rfcomm_device_service;
-        }
-      }
+    RfcommDeviceServicesResult rfcomm_device_services = nullptr;
+    // Try to get service from un cached mode.
+    auto rfcomm_device_services_async =
+        windows_bluetooth_device_.GetRfcommServicesForIdAsync(
+            serviceId, BluetoothCacheMode::Uncached);
+
+    switch (rfcomm_device_services_async.wait_for(
+        TimeSpan(std::chrono::seconds(kBluetoothTimeoutInSeconds)))) {
+      case winrt::Windows::Foundation::AsyncStatus::Completed:
+        rfcomm_device_services = rfcomm_device_services_async.GetResults();
+        break;
+      case winrt::Windows::Foundation::AsyncStatus::Started:
+        NEARBY_LOGS(ERROR)
+            << __func__
+            << ": Failed to get RfcommDeviceService due to timeout.";
+        rfcomm_device_services_async.Cancel();
+        return nullptr;
+      default:
+        NEARBY_LOGS(ERROR)
+            << __func__
+            << ": Failed to get RfcommDeviceService due to unknown reasons.";
+        return nullptr;
     }
 
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Try to found service with no-cache mode.";
-
-    // Try to get service from un cached mode.
-    rfcomm_device_services = windows_bluetooth_device_
-                                 .GetRfcommServicesForIdAsync(
-                                     serviceId, BluetoothCacheMode::Uncached)
-                                 .get();
     if (rfcomm_device_services != nullptr &&
         rfcomm_device_services.Services().Size() > 0) {
       NEARBY_LOGS(INFO) << __func__ << ": Get "
