@@ -8,6 +8,7 @@ cc_library(
         "fast_pair_device.cc",
         "fast_pair_http_result.cc",
         "fast_pair_prefs.cc",
+        "fast_pair_switches.cc",
         "pair_failure.cc",
         "protocol.cc",
     ],
@@ -19,6 +20,7 @@ cc_library(
         "fast_pair_device.h",
         "fast_pair_http_result.h",
         "fast_pair_prefs.h",
+        "fast_pair_switches.h",
         "non_discoverable_advertisement.h",
         "pair_failure.h",
         "protocol.h",
@@ -104,6 +106,21 @@ cc_test(
     size = "small",
     srcs = [
         "fast_pair_prefs_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":common",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_switches_test",
+    size = "small",
+    srcs = [
+        "fast_pair_switches_test.cc",
     ],
     shard_count = 16,
     deps = [
