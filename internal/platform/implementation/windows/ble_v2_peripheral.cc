@@ -17,12 +17,19 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 constexpr int kMacAddressLength = 17;
+}
+
+BleV2Peripheral::BleV2Peripheral(absl::string_view address) {
+  if (SetAddress(address)) {
+    unique_id_ = static_cast<UniqueId>(BluetoothUtils::ToNumber(address));
+  }
 }
 
 bool BleV2Peripheral::SetAddress(absl::string_view address) {
