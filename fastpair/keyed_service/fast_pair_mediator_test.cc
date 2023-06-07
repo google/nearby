@@ -42,7 +42,6 @@ namespace {
 
 constexpr absl::string_view kModelId = "718c17";
 constexpr absl::string_view kServiceID = "Fast Pair";
-constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(1000);
 constexpr absl::string_view kFastPairServiceUuid =
     "0000FE2C-0000-1000-8000-00805F9B34FB";
 constexpr absl::string_view kPublicAntiSpoof =
@@ -252,7 +251,7 @@ TEST_F(MediatorTest, OnDiscoveryActionClicked) {
       service_id, advertisement_bytes, fast_pair_service_uuid);
 
   mediator_->StartScanning();
-  done.WaitForNotificationWithTimeout(kTaskWaitTimeout);
+  done.WaitForNotification();
 
   FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
   mock_ui_broker_->NotifyDiscoveryAction(device,

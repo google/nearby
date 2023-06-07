@@ -29,6 +29,7 @@ cc_library(
     deps = [
         "//fastpair/common",
         "//fastpair/internal/mediums",
+        "//fastpair/pairing",
         "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//fastpair/server_access",

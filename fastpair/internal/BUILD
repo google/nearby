@@ -14,6 +14,7 @@ cc_library(
         "//fastpair:fast_pair_events",
         "//fastpair:fast_pair_seeker",
         "//fastpair/internal/mediums",
+        "//fastpair/pairing",
         "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//internal/platform:types",

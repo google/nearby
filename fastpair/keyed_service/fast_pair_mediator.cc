@@ -15,10 +15,12 @@
 #include "fastpair/keyed_service/fast_pair_mediator.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "fastpair/common/protocol.h"
 #include "fastpair/internal/mediums/mediums.h"
+#include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "fastpair/server_access/fast_pair_repository_impl.h"
@@ -44,8 +46,11 @@ Mediator::Mediator(
   devices_ = std::make_unique<FastPairDeviceRepository>(executor_.get());
   scanner_broker_ = std::make_unique<ScannerBrokerImpl>(
       *mediums_, executor_.get(), devices_.get());
+  pairer_broker_ =
+      std::make_unique<PairerBrokerImpl>(*mediums_, executor_.get());
   scanner_broker_->AddObserver(this);
   ui_broker_->AddObserver(this);
+  pairer_broker_->AddObserver(this);
 }
 
 void Mediator::OnDeviceFound(FastPairDevice& device) {
@@ -73,14 +78,14 @@ void Mediator::OnDeviceLost(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device;
 }
 
-void Mediator::OnDiscoveryAction(const FastPairDevice& device,
+void Mediator::OnDiscoveryAction(FastPairDevice& device,
                                  DiscoveryAction action) {
   switch (action) {
     case DiscoveryAction::kPairToDevice:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kPairToDevice";
       // TODO(285451051): Adding show pairing for higher than v1 version in ui
       // broker
-      // TODO(282022590): Adding pairer broker to pair device
+      pairer_broker_->PairDevice(device);
       break;
     case DiscoveryAction::kDismissedByOs:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kDismissedByOs";
@@ -102,6 +107,34 @@ void Mediator::OnDiscoveryAction(const FastPairDevice& device,
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kUnknow";
       break;
   }
+}
+
+void Mediator::OnDevicePaired(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device;
+}
+
+void Mediator::OnAccountKeyWrite(FastPairDevice& device,
+                                 std::optional<PairFailure> error) {
+  if (error.has_value()) {
+    NEARBY_LOGS(INFO) << __func__ << ": Device=" << device
+                      << ",Error=" << error.value();
+    return;
+  }
+
+  NEARBY_LOGS(INFO) << __func__ << ": Device=" << device;
+  if (device.GetProtocol() == Protocol::kFastPairRetroactivePairing) {
+    // TODO: UI ShowAssociateAccount
+  }
+}
+
+void Mediator::OnPairingComplete(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device;
+}
+
+void Mediator::OnPairFailure(FastPairDevice& device, PairFailure failure) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device
+                    << " with PairFailure: " << failure;
+  // TODO: UI showPairingFailed
 }
 
 void Mediator::StartScanning() {

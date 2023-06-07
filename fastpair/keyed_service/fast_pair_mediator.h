@@ -16,9 +16,12 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_KEYED_SERVICE_FAST_PAIR_MEDIATOR_H_
 
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/internal/mediums/mediums.h"
+#include "fastpair/pairing/pairer_broker.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker.h"
 #include "fastpair/server_access/fast_pair_repository.h"
@@ -31,7 +34,8 @@ namespace fastpair {
 
 // Implements the Mediator design pattern for the components in the Fast Pair
 class Mediator final : public ScannerBroker::Observer,
-                       public UIBroker::Observer {
+                       public UIBroker::Observer,
+                       public PairerBroker::Observer {
  public:
   Mediator(
       std::unique_ptr<Mediums> mediums, std::unique_ptr<UIBroker> ui_broker,
@@ -63,8 +67,15 @@ class Mediator final : public ScannerBroker::Observer,
   void StartScanning();
 
   // UIBroker::Observer
-  void OnDiscoveryAction(const FastPairDevice& device,
+  void OnDiscoveryAction(FastPairDevice& device,
                          DiscoveryAction action) override;
+
+  // PairBroker:Observer
+  void OnDevicePaired(FastPairDevice& device) override;
+  void OnAccountKeyWrite(FastPairDevice& device,
+                         std::optional<PairFailure> error) override;
+  void OnPairingComplete(FastPairDevice& device) override;
+  void OnPairFailure(FastPairDevice& device, PairFailure failure) override;
 
  private:
   bool IsFastPairEnabled();
@@ -79,6 +90,7 @@ class Mediator final : public ScannerBroker::Observer,
   std::unique_ptr<ScannerBroker> scanner_broker_;
   std::unique_ptr<ScannerBroker::ScanningSession> scanning_session_;
   std::unique_ptr<UIBroker> ui_broker_;
+  std::unique_ptr<PairerBroker> pairer_broker_;
   std::unique_ptr<FastPairNotificationController> notification_controller_;
   std::unique_ptr<FastPairRepository> fast_pair_repository_;
   std::unique_ptr<SingleThreadExecutor> executor_;

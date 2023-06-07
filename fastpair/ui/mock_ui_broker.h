@@ -37,8 +37,7 @@ class MockUIBroker : public UIBroker {
     observers_.RemoveObserver(observer);
   }
 
-  void NotifyDiscoveryAction(const FastPairDevice& device,
-                             DiscoveryAction action) {
+  void NotifyDiscoveryAction(FastPairDevice& device, DiscoveryAction action) {
     for (auto& observer : observers_.GetObservers())
       observer->OnDiscoveryAction(device, action);
   }

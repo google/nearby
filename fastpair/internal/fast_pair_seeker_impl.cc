@@ -15,15 +15,25 @@
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/status/status.h"
 #include "fastpair/fast_pair_events.h"
+#include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
+
+FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
+                                       SingleThreadExecutor* executor,
+                                       FastPairDeviceRepository* devices)
+    : callbacks_(std::move(callbacks)), executor_(executor), devices_(devices) {
+  pairer_broker_ = std::make_unique<PairerBrokerImpl>(mediums_, executor_);
+  pairer_broker_->AddObserver(this);
+}
 
 absl::Status FastPairSeekerImpl::StartInitialPairing(
     const FastPairDevice& device, const InitialPairingParam& params,
@@ -73,6 +83,38 @@ void FastPairSeekerImpl::OnDeviceFound(FastPairDevice& device) {
 // ScannerBroker::Observer::OnDeviceLost
 void FastPairSeekerImpl::OnDeviceLost(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << "Device lost: " << device;
+}
+
+// PairerBroker:Observer::OnDevicePaired
+void FastPairSeekerImpl::OnDevicePaired(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device;
+}
+
+// PairerBroker:Observer::OnAccountKeyWrite
+void FastPairSeekerImpl::OnAccountKeyWrite(FastPairDevice& device,
+                                           std::optional<PairFailure> error) {
+  if (error.has_value()) {
+    NEARBY_LOGS(INFO) << __func__ << ": Device=" << device
+                      << ",Error=" << error.value();
+    return;
+  }
+
+  NEARBY_LOGS(INFO) << __func__ << ": Device=" << device;
+  if (device.GetProtocol() == Protocol::kFastPairRetroactivePairing) {
+    // TODO: UI ShowAssociateAccount
+  }
+}
+
+// PairerBroker:Observer::OnPairingComplete
+void FastPairSeekerImpl::OnPairingComplete(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device;
+}
+
+// PairerBroker:Observer::OnPairFailure
+void FastPairSeekerImpl::OnPairFailure(FastPairDevice& device,
+                                       PairFailure failure) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device
+                    << " with PairFailure: " << failure;
 }
 
 }  // namespace fastpair
