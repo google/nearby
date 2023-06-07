@@ -20,8 +20,18 @@ namespace nearby {
 namespace windows {
 namespace {
 
+TEST(BleV2Peripheral, Constructor) {
+  constexpr absl::string_view kAddress = "F1:F2:F3:F4:F5:F6";
+  BleV2Peripheral ble_peripheral(kAddress);
+
+  EXPECT_TRUE(ble_peripheral);
+  EXPECT_TRUE(ble_peripheral.Ok());
+  EXPECT_NE(ble_peripheral.GetUniqueId(), 0);
+  EXPECT_EQ(ble_peripheral.GetAddress(), kAddress);
+}
+
 TEST(BleV2Peripheral, SetMacAddress) {
-  BleV2Peripheral ble_peripheral;
+  BleV2Peripheral ble_peripheral("F1:F2:F3:F4:F5:F6");
   EXPECT_TRUE(ble_peripheral.SetAddress("00:B0:D0:63:C2:26"));
   EXPECT_FALSE(ble_peripheral.SetAddress("00:B0:D0:6T:C2:26"));
   EXPECT_FALSE(ble_peripheral.SetAddress("00:B0:D0:63:C2:2"));
@@ -30,9 +40,31 @@ TEST(BleV2Peripheral, SetMacAddress) {
 }
 
 TEST(BleV2Peripheral, SetAndGetMacAddress) {
-  BleV2Peripheral ble_peripheral;
-  EXPECT_TRUE(ble_peripheral.SetAddress("00:B0:D0:63:C2:26"));
-  EXPECT_EQ(ble_peripheral.GetAddress(), "00:B0:D0:63:C2:26");
+  constexpr absl::string_view kChangedAddress = "00:B0:D0:63:C2:26";
+  BleV2Peripheral ble_peripheral("F1:F2:F3:F4:F5:F6");
+
+  EXPECT_TRUE(ble_peripheral.SetAddress(kChangedAddress));
+  EXPECT_EQ(ble_peripheral.GetAddress(), kChangedAddress);
+}
+
+TEST(BleV2Peripheral, SetAddressDoesNotChangeUniqueId) {
+  constexpr absl::string_view kChangedAddress = "00:B0:D0:63:C2:26";
+  BleV2Peripheral ble_peripheral("F1:F2:F3:F4:F5:F6");
+  BleV2Peripheral::UniqueId unique_id = ble_peripheral.GetUniqueId();
+
+  EXPECT_NE(unique_id, 0);
+  EXPECT_TRUE(ble_peripheral.SetAddress(kChangedAddress));
+  EXPECT_EQ(ble_peripheral.GetAddress(), kChangedAddress);
+  EXPECT_EQ(ble_peripheral.GetUniqueId(), unique_id);
+}
+
+TEST(BleV2Peripheral, ConstructFromBadAddress) {
+  BleV2Peripheral ble_peripheral("G1:F2:F3:F4:F5:F6");
+
+  EXPECT_FALSE(ble_peripheral);
+  EXPECT_FALSE(ble_peripheral.Ok());
+  EXPECT_EQ(ble_peripheral.GetUniqueId(), 0);
+  EXPECT_EQ(ble_peripheral.GetAddress(), "");
 }
 
 }  // namespace

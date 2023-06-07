@@ -104,11 +104,9 @@ std::string ConvertGattStatusToString(
 
 BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
                              api::ble_v2::ServerGattConnectionCallback callback)
-    : adapter_(dynamic_cast<BluetoothAdapter*>(adapter)) {
-  DCHECK_NE(adapter_, nullptr);
-  peripheral_.SetAddress(adapter_->GetMacAddress());
-  gatt_connection_callback_ = std::move(callback);
-}
+    : adapter_(dynamic_cast<BluetoothAdapter*>(adapter)),
+      peripheral_(adapter_->GetMacAddress()),
+      gatt_connection_callback_(std::move(callback)) {}
 
 absl::optional<api::ble_v2::GattCharacteristic>
 BleGattServer::CreateCharacteristic(

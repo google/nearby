@@ -19,7 +19,6 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace windows {
@@ -28,23 +27,25 @@ namespace windows {
 // about a particular BLE device to connect to its GATT server.
 class BleV2Peripheral : public api::ble_v2::BlePeripheral {
  public:
-  BleV2Peripheral() { unique_id_ = Prng().NextInt64(); }
+  using UniqueId = api::ble_v2::BlePeripheral::UniqueId;
+  explicit BleV2Peripheral(absl::string_view address);
   ~BleV2Peripheral() override = default;
 
   // Returns the MAC address of the peripheral. The format is in
   // "00:B0:D0:63:C2:26".
   std::string GetAddress() const override { return address_; }
 
-  api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override {
-    return unique_id_;
-  }
+  UniqueId GetUniqueId() const override { return unique_id_; }
   // Sets the MAC address of the peripheral. The address format must be in
   // pattern of "00:B0:D0:63:C2:26".
   bool SetAddress(absl::string_view address);
 
+  bool Ok() const { return unique_id_ != 0; }
+  explicit operator bool() const { return Ok(); }
+
  private:
   std::string address_;
-  api::ble_v2::BlePeripheral::UniqueId unique_id_;
+  UniqueId unique_id_ = 0;
 };
 
 }  // namespace windows
