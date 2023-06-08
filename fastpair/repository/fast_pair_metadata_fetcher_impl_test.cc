@@ -88,9 +88,9 @@ class FastPairMetadataFetcherImplTest : public ::testing::Test {
     result_ = std::make_unique<std::string>(result);
   }
 
-  void OnError(FastPairHttpError network_error) {
+  void OnError(network::HttpError network_error) {
     EXPECT_FALSE(result_ || network_error_);
-    network_error_ = std::make_unique<FastPairHttpError>(network_error);
+    network_error_ = std::make_unique<network::HttpError>(network_error);
   }
   void StartGetUnauthRequestWithRequestAsQueryParameters(
       const FastPairMetadataFetcher::QueryParameters&
@@ -100,7 +100,7 @@ class FastPairMetadataFetcherImplTest : public ::testing::Test {
     flow_.StartGetUnauthRequest(
         url.value(), request_as_query_parameters, http_client_.get(),
         [&](absl::string_view response) { OnResult(response); },
-        [&](FastPairHttpError error) { OnError(error); });
+        [&](network::HttpError error) { OnError(error); });
 
     CheckFastPairRepositoryGetUnauthRequest(request_as_query_parameters);
   }
@@ -150,7 +150,7 @@ class FastPairMetadataFetcherImplTest : public ::testing::Test {
     EXPECT_TRUE(result_ || network_error_);
   }
   std::unique_ptr<std::string> result_;
-  std::unique_ptr<FastPairHttpError> network_error_;
+  std::unique_ptr<network::HttpError> network_error_;
 
  private:
   std::unique_ptr<FastPairFakeHttpClient> http_client_;
@@ -168,7 +168,7 @@ TEST_F(FastPairMetadataFetcherImplTest, GetUnauthRequestFailure) {
   StartGetUnauthRequest();
   CompleteGetUnauthRequest(0xff00);
   EXPECT_FALSE(result_);
-  EXPECT_EQ(*network_error_, FastPairHttpError::kHttpErrorOffline);
+  EXPECT_EQ(*network_error_, network::HttpError::kHttpErrorOffline);
 }
 
 TEST_F(FastPairMetadataFetcherImplTest, GetUnauthRequestStatus500) {
@@ -176,7 +176,7 @@ TEST_F(FastPairMetadataFetcherImplTest, GetUnauthRequestStatus500) {
   CompleteGetUnauthRequest(0, network::HttpStatusCode::kHttpInternalServerError,
                            "Fast Pair Meltdown.");
   EXPECT_FALSE(result_);
-  EXPECT_EQ(*network_error_, FastPairHttpError::kHttpErrorInternal);
+  EXPECT_EQ(*network_error_, network::HttpError::kHttpErrorInternal);
 }
 
 }  // namespace

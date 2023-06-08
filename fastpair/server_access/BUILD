@@ -90,11 +90,11 @@ cc_test(
     ],
     deps = [
         ":server_access",
-        "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/repository",
         "//fastpair/repository:fake_fast_pair_metadata_repository",
-        "//internal/platform/implementation/g3",
+        "//internal/network:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",

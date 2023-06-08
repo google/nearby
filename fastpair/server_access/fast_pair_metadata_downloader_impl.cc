@@ -99,11 +99,11 @@ void FastPairMetadataDownloaderImpl::CallAccessServer(
             << response.strings().initial_notification_description();
         OnAccessServerSuccess(response);
       },
-      [&](FastPairHttpError error) { OnAccessServerFailure(error); });
+      [&](network::HttpError error) { OnAccessServerFailure(error); });
 }
 
 void FastPairMetadataDownloaderImpl::OnAccessServerFailure(
-    FastPairHttpError error) {
+    network::HttpError error) {
   NEARBY_LOGS(ERROR) << __func__
                      << ": Server accessing RPC call failed with error "
                      << error;
