@@ -85,9 +85,8 @@ std::string ClientProxy::GetLocalEndpointId() {
 
 const NearbyDevice* ClientProxy::GetLocalDevice() {
   if (device_provider_ == nullptr) {
-    // TODO(b/285602283): Plug in actual endpoint info once available.
-    auto provider =
-        v3::ConnectionsDeviceProvider(GetLocalEndpointId(), "V3 endpoint", {});
+    auto provider = v3::ConnectionsDeviceProvider(GetLocalEndpointId(),
+                                                  local_endpoint_info_, {});
     RegisterDeviceProvider(
         std::make_unique<v3::ConnectionsDeviceProvider>(provider));
   }
