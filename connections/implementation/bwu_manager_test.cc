@@ -190,7 +190,7 @@ TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
                                  std::move(channel3));
   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId3),
                                       Medium::WIFI_DIRECT);
-  EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId3)));
+  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId3)));
 
   auto channel4 = std::make_unique<FakeEndpointChannel>(
       Medium::WEB_RTC, std::string(kServiceIdA));
