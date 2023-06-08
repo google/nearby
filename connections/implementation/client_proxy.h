@@ -37,6 +37,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
+#include "internal/platform/implementation/account_provider.h"
 #include "internal/platform/mutex.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
 // efficient: implementation is using open-addressing hash tables.
@@ -223,6 +224,17 @@ class ClientProxy final {
     device_provider_ = std::move(provider);
   }
 
+  void RegisterAccountProvider(std::unique_ptr<AccountProvider> provider) {
+    account_provider_ = std::move(provider);
+  }
+
+  AccountProvider* GetAccountProvider() {
+    if (account_provider_ == nullptr) {
+      return nullptr;
+    }
+    return account_provider_.get();
+  }
+
  private:
   struct Connection {
     // Status: may be either:
@@ -366,6 +378,7 @@ class ClientProxy final {
   // Local device OS information.
   location::nearby::connections::OsInfo local_os_info_;
   std::unique_ptr<NearbyDeviceProvider> device_provider_;
+  std::unique_ptr<AccountProvider> account_provider_;
 };
 
 }  // namespace connections

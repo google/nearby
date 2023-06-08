@@ -36,6 +36,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",

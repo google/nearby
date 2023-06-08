@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/account_provider.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace nearby {
@@ -63,7 +64,8 @@ class WebRtcMedium {
   // Returns a signaling messenger for sending WebRTC signaling messages.
   virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
-      const location::nearby::connections::LocationHint& location_hint) = 0;
+      const location::nearby::connections::LocationHint& location_hint,
+      AccountProvider* account_provider) = 0;
 };
 
 }  // namespace api

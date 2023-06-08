@@ -107,6 +107,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/proto:credential_cc_proto",
         # TODO: Support WebRTC

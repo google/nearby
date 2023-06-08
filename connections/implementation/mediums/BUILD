@@ -58,6 +58,7 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
+        "//internal/platform/implementation:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
         "@com_google_absl//absl/container:btree",

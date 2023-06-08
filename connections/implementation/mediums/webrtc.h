@@ -30,6 +30,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/future.h"
+#include "internal/platform/implementation/account_provider.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
@@ -72,7 +73,8 @@ class WebRtc {
   bool StartAcceptingConnections(
       const std::string& service_id, const WebrtcPeerId& self_peer_id,
       const location::nearby::connections::LocationHint& location_hint,
-      AcceptedConnectionCallback callback) ABSL_LOCKS_EXCLUDED(mutex_);
+      AcceptedConnectionCallback callback, AccountProvider* account_provider)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Try to stop (accepting) the specific connection with provided service id.
   // Runs on @MainThread
@@ -85,7 +87,8 @@ class WebRtc {
   WebRtcSocketWrapper Connect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
-      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag, AccountProvider* account_provider)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   static constexpr int kConnectAttemptsLimit = 3;
@@ -140,7 +143,8 @@ class WebRtc {
   WebRtcSocketWrapper AttemptToConnect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
-      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag, AccountProvider* account_provider)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns if the device is accepting connection with specific service id.
   // Runs on @MainThread.

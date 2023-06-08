@@ -428,6 +428,7 @@ cc_library(
         "//internal/base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
         # TODO: Support WebRTC
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",

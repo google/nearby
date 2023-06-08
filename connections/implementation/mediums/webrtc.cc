@@ -82,7 +82,8 @@ bool WebRtc::IsAcceptingConnectionsLocked(const std::string& service_id) {
 bool WebRtc::StartAcceptingConnections(const std::string& service_id,
                                        const WebrtcPeerId& self_peer_id,
                                        const LocationHint& location_hint,
-                                       AcceptedConnectionCallback callback) {
+                                       AcceptedConnectionCallback callback,
+                                       AccountProvider* account_provider) {
   MutexLock lock(&mutex_);
   if (!IsAvailable()) {
     NEARBY_LOG(WARNING,
@@ -106,8 +107,8 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   info.accepted_connection_callback = callback;
 
   // Create a new SignalingMessenger so that we can communicate w/ Tachyon.
-  info.signaling_messenger =
-      medium_.GetSignalingMessenger(self_peer_id.GetId(), location_hint);
+  info.signaling_messenger = medium_.GetSignalingMessenger(
+      self_peer_id.GetId(), location_hint, account_provider);
   if (!info.signaling_messenger->IsValid()) {
     return false;
   }
@@ -197,11 +198,13 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
 WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
                                     const WebrtcPeerId& remote_peer_id,
                                     const LocationHint& location_hint,
-                                    CancellationFlag* cancellation_flag) {
+                                    CancellationFlag* cancellation_flag,
+                                    AccountProvider* account_provider) {
   for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
        attempts_count++) {
-    auto wrapper_result = AttemptToConnect(service_id, remote_peer_id,
-                                           location_hint, cancellation_flag);
+    auto wrapper_result =
+        AttemptToConnect(service_id, remote_peer_id, location_hint,
+                         cancellation_flag, account_provider);
     if (wrapper_result.IsValid()) {
       return wrapper_result;
     }
@@ -211,7 +214,8 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
 
 WebRtcSocketWrapper WebRtc::AttemptToConnect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
-    const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
+    const LocationHint& location_hint, CancellationFlag* cancellation_flag,
+    AccountProvider* account_provider) {
   ConnectionRequestInfo info = ConnectionRequestInfo();
   info.self_peer_id = WebrtcPeerId::FromRandom();
   Future<WebRtcSocketWrapper> socket_future = info.socket_future;
@@ -244,8 +248,8 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
     }
 
     // Create a new SignalingMessenger so that we can communicate over Tachyon.
-    info.signaling_messenger =
-        medium_.GetSignalingMessenger(info.self_peer_id.GetId(), location_hint);
+    info.signaling_messenger = medium_.GetSignalingMessenger(
+        info.self_peer_id.GetId(), location_hint, account_provider);
     if (!info.signaling_messenger->IsValid()) {
       NEARBY_LOG(
           INFO,

@@ -64,9 +64,9 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
              "location hint %s",
              peer_id.GetId().c_str(), location_hint.DebugString().c_str());
 
-  mediums::WebRtcSocketWrapper socket =
-      webrtc_.Connect(service_id, peer_id, location_hint,
-                      client->GetCancellationFlag(endpoint_id));
+  mediums::WebRtcSocketWrapper socket = webrtc_.Connect(
+      service_id, peer_id, location_hint,
+      client->GetCancellationFlag(endpoint_id), client->GetAccountProvider());
   if (!socket.IsValid()) {
     NEARBY_LOG(ERROR,
                "WebRtcBwuHandler failed to connect to remote peer (%s) on "
@@ -118,7 +118,8 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
                 .accepted_cb = absl::bind_front(
                     &WebrtcBwuHandler::OnIncomingWebrtcConnection, this,
                     client),
-            })) {
+            },
+            client->GetAccountProvider())) {
       NEARBY_LOG(ERROR,
                  "WebRtcBwuHandler couldn't initiate the WEB_RTC upgrade for "
                  "endpoint %s because it failed to start listening for "

@@ -16,6 +16,7 @@ licenses(["notice"])
 cc_library(
     name = "types",
     hdrs = [
+        "account_provider.h",
         "atomic_boolean.h",
         "atomic_reference.h",
         "bluetooth_adapter.h",
@@ -39,7 +40,7 @@ cc_library(
         "timer.h",
     ],
     visibility = [
-        "//connections/implementation/analytics:__subpackages__",
+        "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal/crypto:__pkg__",
         "//internal/platform:__pkg__",
@@ -56,6 +57,8 @@ cc_library(
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
@@ -89,6 +92,7 @@ cc_library(
         "//presence/implementation:__subpackages__",
     ],
     deps = [
+        ":types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -98,7 +102,6 @@ cc_library(
         # TODO: Support WebRTC
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

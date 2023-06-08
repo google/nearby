@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include "internal/platform/implementation/account_provider.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
@@ -83,9 +84,10 @@ class WebRtcMedium final {
   // Returns a signaling messenger for sending WebRTC signaling messages.
   std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
-      const location::nearby::connections::LocationHint& location_hint) {
+      const location::nearby::connections::LocationHint& location_hint,
+      AccountProvider* account_provider) {
     return std::make_unique<WebRtcSignalingMessenger>(
-        impl_->GetSignalingMessenger(self_id, location_hint));
+        impl_->GetSignalingMessenger(self_id, location_hint, account_provider));
   }
 
   bool IsValid() const { return impl_ != nullptr; }

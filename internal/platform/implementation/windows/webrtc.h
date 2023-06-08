@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "internal/platform/implementation/account_provider.h"
 #include "internal/platform/implementation/webrtc.h"
 
 namespace nearby {
@@ -65,8 +66,8 @@ class WebRtcMedium : public api::WebRtcMedium {
   // TODO(b/261663238): replace with real implementation.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
-      const location::nearby::connections::LocationHint& location_hint)
-      override;
+      const location::nearby::connections::LocationHint& location_hint,
+      AccountProvider* account_provider) override;
 };
 
 }  // namespace windows

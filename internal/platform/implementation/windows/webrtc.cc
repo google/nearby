@@ -103,7 +103,8 @@ void WebRtcMedium::CreatePeerConnection(
 std::unique_ptr<api::WebRtcSignalingMessenger>
 WebRtcMedium::GetSignalingMessenger(
     absl::string_view self_id,
-    const location::nearby::connections::LocationHint& location_hint) {
+    const location::nearby::connections::LocationHint& location_hint,
+    AccountProvider* account_provider) {
   return std::make_unique<WebRtcSignalingMessenger>(std::string(self_id),
                                                     location_hint);
 }

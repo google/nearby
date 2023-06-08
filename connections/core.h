@@ -33,6 +33,7 @@
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
+#include "internal/platform/implementation/account_provider.h"
 
 namespace nearby {
 namespace connections {
@@ -517,6 +518,13 @@ class Core {
   // to interact with the DeviceProvider for retrieving the local device.
   void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider) {
     client_.RegisterDeviceProvider(std::move(provider));
+  }
+
+  // Registers an AccountProvider to provide account access tokens for Nearby
+  // Connections to communicate with certain APIs.
+  void RegisterAccountProvider(
+      std::unique_ptr<AccountProvider> account_provider) {
+    client_.RegisterAccountProvider(std::move(account_provider));
   }
 
  private:
