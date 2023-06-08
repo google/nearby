@@ -14,6 +14,7 @@
 
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -29,6 +30,7 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
+#include "connections/power_level.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/types.h"
@@ -485,6 +487,10 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
             BleEndpointState(advertisement.GetEndpointId(),
                              advertisement.GetEndpointInfo()));
 
+        StopEndpointLostByMediumAlarm(
+            advertisement.GetEndpointId(),
+            location::nearby::proto::connections::Medium::BLE);
+
         // Report the discovered endpoint to the client.
         NEARBY_LOGS(INFO) << "Found BleAdvertisement "
                           << absl::BytesToHexString(advertisement_bytes.data())
@@ -493,15 +499,15 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
                           << ", and endpoint_info="
                           << absl::BytesToHexString(
                                  advertisement.GetEndpointInfo().data())
-                          << ").",
-            OnEndpointFound(
-                client, std::make_shared<BleEndpoint>(BleEndpoint{
-                            {advertisement.GetEndpointId(),
-                             advertisement.GetEndpointInfo(), service_id,
-                             location::nearby::proto::connections::Medium::BLE,
-                             advertisement.GetWebRtcState()},
-                            peripheral,
-                        }));
+                          << ").";
+        OnEndpointFound(
+            client,
+            std::make_shared<BleEndpoint>(BleEndpoint{
+                {advertisement.GetEndpointId(), advertisement.GetEndpointInfo(),
+                 service_id, location::nearby::proto::connections::Medium::BLE,
+                 advertisement.GetWebRtcState()},
+                peripheral,
+            }));
 
         // Make sure we can connect to this device via Classic Bluetooth.
         std::string remote_bluetooth_mac_address =
@@ -522,6 +528,9 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
           return;
         }
 
+        StopEndpointLostByMediumAlarm(
+            advertisement.GetEndpointId(),
+            location::nearby::proto::connections::Medium::BLUETOOTH);
         OnEndpointFound(
             client,
             std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
@@ -665,6 +674,9 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
                           << absl::BytesToHexString(
                                  advertisement.GetEndpointInfo().data())
                           << ").";
+        StopEndpointLostByMediumAlarm(
+            advertisement.GetEndpointId(),
+            location::nearby::proto::connections::Medium::BLE);
         OnEndpointFound(
             client,
             std::make_shared<BleV2Endpoint>(BleV2Endpoint{
@@ -695,6 +707,9 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
 
         ble_endpoint_state.bt = true;
         found_endpoints_in_ble_discover_cb_[peripheral_id] = ble_endpoint_state;
+        StopEndpointLostByMediumAlarm(
+            advertisement.GetEndpointId(),
+            location::nearby::proto::connections::Medium::BLUETOOTH);
         OnEndpointFound(
             client,
             std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
@@ -849,6 +864,9 @@ void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
                           << absl::BytesToHexString(
                                  wifi_lan_service_info.GetEndpointInfo().data())
                           << ").";
+        StopEndpointLostByMediumAlarm(
+            wifi_lan_service_info.GetEndpointId(),
+            location::nearby::proto::connections::Medium::WIFI_LAN);
         OnEndpointFound(
             client,
             std::make_shared<WifiLanEndpoint>(WifiLanEndpoint{
@@ -1154,8 +1172,8 @@ P2pClusterPcpHandler::StartBluetoothAdvertising(
                             socket.GetRemoteDevice().GetName();
                         auto channel =
                             std::make_unique<BluetoothEndpointChannel>(
-                                service_id, /*channel_name=*/remote_device_name,
-                                socket);
+                                service_id,
+                                /*channel_name=*/remote_device_name, socket);
                         ByteArray remote_device_info{remote_device_name};
 
                         OnIncomingConnection(
@@ -1182,7 +1200,8 @@ P2pClusterPcpHandler::StartBluetoothAdvertising(
         << service_id;
   }
 
-  // Generate a BluetoothDeviceName with which to become Bluetooth discoverable.
+  // Generate a BluetoothDeviceName with which to become Bluetooth
+  // discoverable.
   // TODO(b/169550050): Implement UWBAddress.
   std::string device_name(BluetoothDeviceName(
       kBluetoothDeviceNameVersion, GetPcp(), local_endpoint_id, service_id_hash,
@@ -1658,8 +1677,8 @@ P2pClusterPcpHandler::StartBleV2Advertising(
 
     advertisement_bytes = ByteArray(BleAdvertisement(
         kBleAdvertisementVersion, GetPcp(), service_id_hash, local_endpoint_id,
-        local_endpoint_info, bluetooth_mac_address, /*uwb_address=*/ByteArray{},
-        web_rtc_state));
+        local_endpoint_info, bluetooth_mac_address,
+        /*uwb_address=*/ByteArray{}, web_rtc_state));
   }
   if (advertisement_bytes.Empty()) {
     NEARBY_LOGS(WARNING) << "In StartBleAdvertising("

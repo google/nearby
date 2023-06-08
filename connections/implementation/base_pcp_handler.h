@@ -34,6 +34,7 @@
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "connections/status.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
@@ -299,6 +300,15 @@ class BasePcpHandler : public PcpHandler,
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
       const location::nearby::proto::connections::Medium medium);
 
+  // Start alarms for endpoints lost by their mediums. Used when updating
+  // discovery options.
+  void StartEndpointLostByMediumAlarms(
+      ClientProxy* client, location::nearby::proto::connections::Medium medium);
+
+  void StopEndpointLostByMediumAlarm(
+      absl::string_view endpoint_id,
+      location::nearby::proto::connections::Medium medium);
+
   mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
       const string& service_id, const string& endpoint_id,
       const ByteArray& endpoint_info);
@@ -306,6 +316,12 @@ class BasePcpHandler : public PcpHandler,
   SingleThreadExecutor* GetPcpHandlerThread()
       ABSL_LOCK_RETURNED(serial_executor_) {
     return &serial_executor_;
+  }
+
+  // Test only.
+  absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>&
+  GetEndpointLostByMediumAlarms() {
+    return endpoint_lost_by_medium_alarms_;
   }
 
   Mediums* mediums_;
@@ -528,6 +544,11 @@ class BasePcpHandler : public PcpHandler,
   // The active ClientProxy's connection lifecycle listener. Non-null while
   // advertising.
   ConnectionListener advertising_listener_;
+
+  // Mapping from endpoint_id -> CancelableAlarm for triggering endpoint loss
+  // while discovery options are updated.
+  absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>
+      endpoint_lost_by_medium_alarms_;
 
   Pcp pcp_;
   Strategy strategy_{PcpToStrategy(pcp_)};

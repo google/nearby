@@ -981,6 +981,11 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
   client1_.GetLocalDevice();
 }
 
+TEST_F(ClientProxyTest, TestGetSetLocalEndpointInfo) {
+  client1_.UpdateLocalEndpointInfo("endpoint_info");
+  EXPECT_EQ(client1_.GetLocalEndpointInfo(), "endpoint_info");
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

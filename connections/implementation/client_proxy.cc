@@ -163,6 +163,7 @@ void ClientProxy::StoppedAdvertising() {
   if (IsAdvertising()) {
     advertising_info_.Clear();
     analytics_recorder_->OnStopAdvertising();
+    local_endpoint_info_.clear();
   }
   // advertising_options_ is purposefully not cleared here.
   OnSessionComplete();

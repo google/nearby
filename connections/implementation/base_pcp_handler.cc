@@ -24,6 +24,7 @@
 #include "securegcm/ukey2_handshake.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -35,10 +36,15 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
+#include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
+
+namespace {
+constexpr int kEndpointCancelAlarmTimeout = 10;
+}  // namespace
 
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
@@ -124,6 +130,7 @@ Status BasePcpHandler::StartAdvertising(
         client->StartedAdvertising(service_id, GetStrategy(), info.listener,
                                    absl::MakeSpan(result.mediums),
                                    compatible_advertising_options);
+        client->UpdateLocalEndpointInfo(info.endpoint_info.string_data());
         response.Set({Status::kSuccess});
       });
   return WaitForResult(absl::StrCat("StartAdvertising(", service_id, ")"),
@@ -781,6 +788,48 @@ BasePcpHandler::GetDiscoveredEndpoints(
   return result;
 }
 
+namespace {
+std::string GetEndpointLostByMediumAlarmKey(absl::string_view endpoint_id,
+                                            Medium medium) {
+  return absl::StrCat(location::nearby::proto::connections::Medium_Name(medium),
+                      "_", endpoint_id);
+}
+}  // namespace
+
+void BasePcpHandler::StartEndpointLostByMediumAlarms(
+    ClientProxy* client, location::nearby::proto::connections::Medium medium) {
+  auto discovered_endpoints_medium = GetDiscoveredEndpoints(medium);
+  for (const auto discovered_endpoint : discovered_endpoints_medium) {
+    std::string key = GetEndpointLostByMediumAlarmKey(
+        discovered_endpoint->endpoint_id, medium);
+    StopEndpointLostByMediumAlarm(discovered_endpoint->endpoint_id, medium);
+    endpoint_lost_by_medium_alarms_.emplace(
+        key, std::make_unique<CancelableAlarm>(
+                 absl::StrCat("EndpointLostByMediumAlarm_", key),
+                 [this, discovered_endpoint, key, client]() {
+                   RunOnPcpHandlerThread(
+                       "endpoint-lost-by-medium-alarm",
+                       [this, client, discovered_endpoint,
+                        key]() RUN_ON_PCP_HANDLER_THREAD() {
+                         if (endpoint_lost_by_medium_alarms_.erase(key) != 0) {
+                           OnEndpointLost(client, *discovered_endpoint);
+                         }
+                       });
+                 },
+                 absl::Seconds(kEndpointCancelAlarmTimeout), &alarm_executor_));
+  }
+}
+
+void BasePcpHandler::StopEndpointLostByMediumAlarm(
+    absl::string_view endpoint_id,
+    location::nearby::proto::connections::Medium medium) {
+  std::string key = GetEndpointLostByMediumAlarmKey(endpoint_id, medium);
+  if (endpoint_lost_by_medium_alarms_.contains(key)) {
+    endpoint_lost_by_medium_alarms_[key]->Cancel();
+    endpoint_lost_by_medium_alarms_.erase(key);
+  }
+}
+
 mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
     const std::string& service_id, const std::string& endpoint_id,
     const ByteArray& endpoint_info) {
@@ -1093,6 +1142,8 @@ void BasePcpHandler::OnEndpointFound(
       owned_endpoint =
           discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
               ->second.get();
+      StopEndpointLostByMediumAlarm(owned_endpoint->endpoint_id,
+                                    owned_endpoint->medium);
       client->OnEndpointFound(
           owned_endpoint->service_id, owned_endpoint->endpoint_id,
           owned_endpoint->endpoint_info, owned_endpoint->medium);

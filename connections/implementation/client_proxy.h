@@ -64,6 +64,7 @@ class ClientProxy final {
   std::int64_t GetClientId() const;
 
   std::string GetLocalEndpointId();
+  std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
 
   analytics::AnalyticsRecorder& GetAnalyticsRecorder() const {
     return *analytics_recorder_;
@@ -101,6 +102,11 @@ class ClientProxy final {
   bool IsDiscoveringServiceId(const std::string& service_id) const;
   bool IsDiscovering() const;
   std::string GetDiscoveryServiceId() const;
+
+  void UpdateLocalEndpointInfo(absl::string_view endpoint_info) {
+    MutexLock lock(&mutex_);
+    local_endpoint_info_ = std::string(endpoint_info);
+  }
 
   // Proxies to the client's DiscoveryListener::OnEndpointFound() callback.
   void OnEndpointFound(const std::string& service_id,
@@ -295,6 +301,7 @@ class ClientProxy final {
   mutable RecursiveMutex mutex_;
   std::int64_t client_id_;
   std::string local_endpoint_id_;
+  std::string local_endpoint_info_;
   // If currently is advertising in high visibility mode is true: high power and
   // Bluetooth Classic enabled. When high_visibility_mode_ is true, the endpoint
   // id is stable for 30s. When high_visibility_mode_ is false, the endpoint id
