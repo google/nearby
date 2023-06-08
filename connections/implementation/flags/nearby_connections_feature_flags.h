@@ -36,6 +36,10 @@ constexpr auto kEnableBleV2 =
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
 
+// Enable/Disable GATT query during scanning.
+constexpr auto kEnableGattQueryInThread =
+    flags::Flag<bool>(kConfigPackage, "45415261", false);
+
 // LINT.ThenChange(
 //   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.h,
 //   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.cc,
