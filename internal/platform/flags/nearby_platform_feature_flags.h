@@ -37,7 +37,11 @@ constexpr auto kEnablePlatformThreadToNetwork =
 
 // Disable/Enable GATT feature in BLE V2.
 constexpr auto kEnableBleV2Gatt =
-    flags::Flag<bool>(kConfigPackage, "45415180", true);
+    flags::Flag<bool>(kConfigPackage, "45415180", false);
+
+// Disable/Enable GATT feature in BLE V2.
+constexpr auto kEnableBleV2GattOnNonExtendedDevice =
+    flags::Flag<bool>(kConfigPackage, "45415267", false);
 
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby

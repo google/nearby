@@ -374,10 +374,18 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           platform::config_package_nearby::nearby_platform_feature::
               kEnableBleV2Gatt)) {
-    NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
-    return nullptr;
-  }
+    if (adapter_->IsExtendedAdvertisingSupported()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+      return nullptr;
+    }
 
+    if (!NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableBleV2GattOnNonExtendedDevice)) {
+      NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+      return nullptr;
+    }
+  }
   auto gatt_server =
       std::make_unique<BleGattServer>(adapter_, std::move(callback));
 
@@ -396,8 +404,17 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           platform::config_package_nearby::nearby_platform_feature::
               kEnableBleV2Gatt)) {
-    NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
-    return nullptr;
+    if (adapter_->IsExtendedAdvertisingSupported()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+      return nullptr;
+    }
+
+    if (!NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableBleV2GattOnNonExtendedDevice)) {
+      NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+      return nullptr;
+    }
   }
 
   try {

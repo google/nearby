@@ -114,8 +114,20 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           platform::config_package_nearby::nearby_platform_feature::
               kEnableBleV2Gatt)) {
-    NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
-    return false;
+    auto windows_bluetooth_adapter_ = ::winrt::Windows::Devices::Bluetooth::
+                                          BluetoothAdapter::GetDefaultAsync()
+                                              .get();
+    if (windows_bluetooth_adapter_.IsExtendedAdvertisingSupported()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+      return false;
+    }
+
+    if (!NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableBleV2GattOnNonExtendedDevice)) {
+      NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+      return false;
+    }
   }
 
   std::string flat_characteristics =
