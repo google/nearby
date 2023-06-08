@@ -29,10 +29,12 @@
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/ble_gatt_client.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
@@ -369,6 +371,13 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
   NEARBY_LOGS(INFO) << __func__ << ": Start GATT server.";
 
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableBleV2Gatt)) {
+    NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+    return nullptr;
+  }
+
   auto gatt_server =
       std::make_unique<BleGattServer>(adapter_, std::move(callback));
 
@@ -383,6 +392,14 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
   NEARBY_LOGS(INFO) << "ConnectToGattServer is called, address: "
                     << peripheral.GetAddress()
                     << ", power:" << TxPowerLevelToName(tx_power_level);
+
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableBleV2Gatt)) {
+    NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+    return nullptr;
+  }
+
   try {
     BluetoothLEDevice ble_device =
         BluetoothLEDevice::FromBluetoothAddressAsync(

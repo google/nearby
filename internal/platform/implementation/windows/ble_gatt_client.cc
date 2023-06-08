@@ -33,7 +33,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
@@ -109,6 +111,13 @@ BleGattClient::~BleGattClient() {
 
 bool BleGattClient::DiscoverServiceAndCharacteristics(
     const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableBleV2Gatt)) {
+    NEARBY_LOGS(WARNING) << __func__ << ": GATT is disabled.";
+    return false;
+  }
+
   std::string flat_characteristics =
       absl::StrJoin(characteristic_uuids, ",", [](std::string* out, Uuid uuid) {
         absl::StrAppend(out, std::string(uuid));
