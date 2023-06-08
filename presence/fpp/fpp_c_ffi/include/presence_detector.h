@@ -106,7 +106,7 @@ struct ProximityEstimate {
   /// Measurement confidence of the estimate
   MeasurementConfidence distance_confidence;
   /// The time the proximity estimate was obtained
-  u128 elapsed_real_time_millis;
+  uint64_t elapsed_real_time_millis;
   /// Proximity state zone of the nearby device
   ProximityState proximity_state;
   /// Medium through which the proximity estimate was computed
@@ -140,8 +140,6 @@ int32_t get_proximity_estimate(PresenceDetectorHandle presence_detector_handle,
 
 /// De-allocates memory for a presence detector object
 int presence_detector_free(PresenceDetectorHandle presence_detector_handle);
-
-}  // extern "C"
 
 #ifdef __cplusplus
 }  // extern "C"
