@@ -56,7 +56,7 @@ class FastPairMetadataRepositoryImpl : public FastPairMetadataRepository {
                         absl::string_view result_response);
 
   // Called when the fetcher fails at any step.
-  void OnFetcherFailed(FastPairHttpError error);
+  void OnFetcherFailed(network::HttpError error);
 
   bool has_call_started_;
   std::unique_ptr<FastPairMetadataFetcher> fetcher_;

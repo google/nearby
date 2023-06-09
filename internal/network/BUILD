@@ -5,6 +5,7 @@ cc_library(
     srcs = [
         "http_request.cc",
         "http_response.cc",
+        "http_result.cc",
         "http_status_code.cc",
         "url.cc",
         "utils.cc",
@@ -15,6 +16,7 @@ cc_library(
         "http_client_factory.h",
         "http_request.h",
         "http_response.h",
+        "http_result.h",
         "http_status_code.h",
         "url.h",
         "utils.h",

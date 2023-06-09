@@ -20,10 +20,10 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader.h"
+#include "internal/network/http_result.h"
 
 namespace nearby {
 namespace fastpair {
@@ -63,7 +63,7 @@ class FastPairMetadataDownloaderImpl : public FastPairMetadataDownloader {
   void OnRun() override;
   void CallAccessServer(absl::string_view model_id);
   void OnAccessServerSuccess(const proto::GetObservedDeviceResponse& response);
-  void OnAccessServerFailure(FastPairHttpError error);
+  void OnAccessServerFailure(network::HttpError error);
 
   std::unique_ptr<FastPairMetadataRepository> repository_;
   FastPairMetadataRepositoryFactory* repository_factory_ = nullptr;

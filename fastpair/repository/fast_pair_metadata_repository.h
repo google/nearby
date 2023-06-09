@@ -19,7 +19,7 @@
 #include <memory>
 
 #include "absl/strings/string_view.h"
-#include "fastpair/common/fast_pair_http_result.h"
+#include "internal/network/http_result.h"
 
 namespace nearby {
 namespace fastpair {
@@ -33,7 +33,7 @@ class GetObservedDeviceResponse;
 
 class FastPairMetadataRepository {
  public:
-  using ErrorCallback = std::function<void(FastPairHttpError)>;
+  using ErrorCallback = std::function<void(network::HttpError)>;
   using ObservedDeviceCallback =
       std::function<void(const proto::GetObservedDeviceResponse&)>;
   FastPairMetadataRepository() = default;

@@ -22,8 +22,8 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/common/fast_pair_http_result.h"
 #include "internal/network/http_client.h"
+#include "internal/network/http_result.h"
 #include "internal/network/url.h"
 
 namespace nearby {
@@ -32,7 +32,7 @@ namespace fastpair {
 class FastPairMetadataFetcher {
  public:
   using ResultCallback = std::function<void(absl::string_view result_response)>;
-  using ErrorCallback = std::function<void(FastPairHttpError error)>;
+  using ErrorCallback = std::function<void(network::HttpError error)>;
   using QueryParameters = std::vector<std::pair<std::string, std::string>>;
 
   FastPairMetadataFetcher() = default;

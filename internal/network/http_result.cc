@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/common/fast_pair_http_result.h"
+#include "internal/network/http_result.h"
 
 #include <ostream>
 #include <string>
@@ -20,39 +20,39 @@
 #include "absl/status/status.h"
 
 namespace nearby {
-namespace fastpair {
+namespace network {
 
-FastPairHttpError FastPairHttpErrorForHttpResponseCode(absl::Status status) {
+HttpError HttpErrorForHttpResponseCode(absl::Status status) {
   switch (status.code()) {
     case absl::StatusCode::kOk:
-      return FastPairHttpError::kSuccess;
+      return HttpError::kSuccess;
     case absl::StatusCode::kInvalidArgument:
-      return FastPairHttpError::kHttpErrorInvalidArgument;
+      return HttpError::kHttpErrorInvalidArgument;
     case absl::StatusCode::kUnauthenticated:
-      return FastPairHttpError::kHttpErrorUnauthenticated;
+      return HttpError::kHttpErrorUnauthenticated;
     case absl::StatusCode::kPermissionDenied:
-      return FastPairHttpError::kHttpErrorPermissionDenied;
+      return HttpError::kHttpErrorPermissionDenied;
     case absl::StatusCode::kDeadlineExceeded:
-      return FastPairHttpError::kHttpErrorDeadlineExceeded;
+      return HttpError::kHttpErrorDeadlineExceeded;
     case absl::StatusCode::kUnavailable:
-      return FastPairHttpError::kHttpErrorUnavailable;
+      return HttpError::kHttpErrorUnavailable;
     case absl::StatusCode::kUnknown:
-      return FastPairHttpError::kHttpErrorUnknown;
+      return HttpError::kHttpErrorUnknown;
     case absl::StatusCode::kInternal:
-      return FastPairHttpError::kHttpErrorInternal;
+      return HttpError::kHttpErrorInternal;
     case absl::StatusCode::kCancelled:
     case absl::StatusCode::kUnimplemented:
     case absl::StatusCode::kOutOfRange:
     case absl::StatusCode::kAborted:
     case absl::StatusCode::kNotFound:
-      return FastPairHttpError::kHttpErrorOtherFailure;
+      return HttpError::kHttpErrorOtherFailure;
     default:
       break;
   }
-  return FastPairHttpError::kHttpErrorUnknown;
+  return HttpError::kUnknown;
 }
 
-FastPairHttpStatus::FastPairHttpStatus(const absl::Status& absl_status)
+HttpStatus::HttpStatus(const absl::Status& absl_status)
     : absl_status_(absl_status) {
   if (absl_status_.ok()) {
     status_ = Status::kSuccess;
@@ -65,16 +65,13 @@ FastPairHttpStatus::FastPairHttpStatus(const absl::Status& absl_status)
   }
 }
 
-FastPairHttpStatus::FastPairHttpStatus(const FastPairHttpStatus& status) =
-    default;
+HttpStatus::HttpStatus(const HttpStatus& status) = default;
 
-FastPairHttpStatus::~FastPairHttpStatus() = default;
+HttpStatus::~HttpStatus() = default;
 
-bool FastPairHttpStatus::IsSuccess() const {
-  return status_ == Status::kSuccess;
-}
+bool HttpStatus::IsSuccess() const { return status_ == Status::kSuccess; }
 
-std::string FastPairHttpStatus::ToString() const {
+std::string HttpStatus::ToString() const {
   std::string status;
   switch (status_) {
     case Status::kSuccess:
@@ -91,45 +88,45 @@ std::string FastPairHttpStatus::ToString() const {
   return "status=" + status;
 }
 
-std::ostream& operator<<(std::ostream& stream, const FastPairHttpError& error) {
+std::ostream& operator<<(std::ostream& stream, const HttpError& error) {
   switch (error) {
-    case FastPairHttpError::kSuccess:
+    case HttpError::kSuccess:
       stream << "[Success]";
       break;
-    case FastPairHttpError::kTimeout:
+    case HttpError::kTimeout:
       stream << "[Timeout]";
       break;
-    case FastPairHttpError::kUnknown:
+    case HttpError::kUnknown:
       stream << "[Unknown]";
       break;
-    case FastPairHttpError::kAuthenticationError:
+    case HttpError::kAuthenticationError:
       stream << "[Authentication]";
       break;
-    case FastPairHttpError::kHttpErrorUnknown:
+    case HttpError::kHttpErrorUnknown:
       stream << "[HTTP Error: Unknown]";
       break;
-    case FastPairHttpError::kHttpErrorDeadlineExceeded:
+    case HttpError::kHttpErrorDeadlineExceeded:
       stream << "[HTTP Error: Deadline exceeded]";
       break;
-    case FastPairHttpError::kHttpErrorPermissionDenied:
+    case HttpError::kHttpErrorPermissionDenied:
       stream << "[HTTP Error: Permission denied]";
       break;
-    case FastPairHttpError::kHttpErrorUnavailable:
+    case HttpError::kHttpErrorUnavailable:
       stream << "[HTTP Error: Unavailable]";
       break;
-    case FastPairHttpError::kHttpErrorUnauthenticated:
+    case HttpError::kHttpErrorUnauthenticated:
       stream << "[HTTP Error: Unauthenticated]";
       break;
-    case FastPairHttpError::kHttpErrorInvalidArgument:
+    case HttpError::kHttpErrorInvalidArgument:
       stream << "[HTTP Error: Invalid argument]";
       break;
-    case FastPairHttpError::kHttpErrorOffline:
+    case HttpError::kHttpErrorOffline:
       stream << "[HTTP Error: offline]";
       break;
-    case FastPairHttpError::kHttpErrorInternal:
+    case HttpError::kHttpErrorInternal:
       stream << "[HTTP Error: Internal server error]";
       break;
-    case FastPairHttpError::kHttpErrorOtherFailure:
+    case HttpError::kHttpErrorOtherFailure:
       stream << "[HTTP Error: Other failure]";
       break;
   }
@@ -137,11 +134,10 @@ std::ostream& operator<<(std::ostream& stream, const FastPairHttpError& error) {
   return stream;
 }
 
-std::ostream& operator<<(std::ostream& stream,
-                         const FastPairHttpStatus& status) {
+std::ostream& operator<<(std::ostream& stream, const HttpStatus& status) {
   stream << status.ToString();
   return stream;
 }
 
-}  // namespace fastpair
+}  // namespace network
 }  // namespace nearby

@@ -26,11 +26,11 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/internal/test/fast_pair_fake_http_client.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
+#include "internal/network/http_result.h"
 #include "internal/network/url.h"
 
 namespace nearby {
@@ -134,7 +134,7 @@ TEST_F(FastPairMetadataRepositoryImplTest, GetObservedDeviceSuccess) {
       [&result](const proto::GetObservedDeviceResponse& response) {
         result = response;
       },
-      [&](FastPairHttpError error) {});
+      [&](network::HttpError error) {});
 
   EXPECT_EQ(request_url(), GetUrl(std::to_string(request.device_id())));
   EXPECT_EQ(std::vector<std::string>{"MODE_RELEASE"},

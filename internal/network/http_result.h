@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_COMMON_FAST_PAIR_HTTP_RESULT_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_COMMON_FAST_PAIR_HTTP_RESULT_H_
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_RESULT_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_RESULT_H_
 
 #include <ostream>
 #include <string>
@@ -21,9 +21,9 @@
 #include "absl/status/status.h"
 
 namespace nearby {
-namespace fastpair {
+namespace network {
 
-enum class FastPairHttpError {
+enum class HttpError {
   kSuccess,
   kTimeout,
   kUnknown,
@@ -39,11 +39,11 @@ enum class FastPairHttpError {
   kHttpErrorOtherFailure
 };
 
-class FastPairHttpStatus {
+class HttpStatus {
  public:
-  explicit FastPairHttpStatus(const absl::Status& absl_status);
-  FastPairHttpStatus(const FastPairHttpStatus& status);
-  ~FastPairHttpStatus();
+  explicit HttpStatus(const absl::Status& absl_status);
+  HttpStatus(const HttpStatus& status);
+  ~HttpStatus();
 
   bool IsSuccess() const;
   std::string ToString() const;
@@ -53,13 +53,12 @@ class FastPairHttpStatus {
   absl::Status absl_status_;
 };
 
-FastPairHttpError FastPairHttpErrorForHttpResponseCode(absl::Status status);
+HttpError HttpErrorForHttpResponseCode(absl::Status status);
 
-std::ostream& operator<<(std::ostream& stream, const FastPairHttpError& error);
-std::ostream& operator<<(std::ostream& stream,
-                         const FastPairHttpStatus& status);
+std::ostream& operator<<(std::ostream& stream, const HttpError& error);
+std::ostream& operator<<(std::ostream& stream, const HttpStatus& status);
 
-}  // namespace fastpair
+}  // namespace network
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_COMMON_FAST_PAIR_HTTP_RESULT_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_RESULT_H_

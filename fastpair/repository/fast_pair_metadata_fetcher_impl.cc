@@ -18,7 +18,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "fastpair/common/fast_pair_http_result.h"
+#include "internal/network/http_result.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
 
@@ -68,14 +68,14 @@ void FastPairMetadataFetcherImpl::ProcessApiCallSuccess(
 }
 
 void FastPairMetadataFetcherImpl::ProcessApiCallFailure(absl::Status status) {
-  std::optional<FastPairHttpError> error;
+  std::optional<network::HttpError> error;
   std::string error_message;
-  error = FastPairHttpErrorForHttpResponseCode(status);
+  error = network::HttpErrorForHttpResponseCode(status);
 
   NEARBY_LOGS(ERROR) << "Fetcher failed: "
-                     << FastPairHttpStatus(status).ToString();
+                     << network::HttpStatus(status).ToString();
   if (status.code() == absl::StatusCode::kFailedPrecondition) {
-    error = FastPairHttpError::kHttpErrorOffline;
+    error = network::HttpError::kHttpErrorOffline;
   }
 
   error_callback_(*error);

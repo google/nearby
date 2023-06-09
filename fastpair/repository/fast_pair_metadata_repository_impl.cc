@@ -22,13 +22,13 @@
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher_impl.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_client_factory.h"
+#include "internal/network/http_result.h"
 #include "internal/network/url.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
@@ -78,7 +78,7 @@ void FastPairMetadataRepositoryImpl::GetObservedDevice(
       [=](const proto::GetObservedDeviceResponse& response) {
         callback(response);
       };
-  ErrorCallback new_error_callback = [=](FastPairHttpError error) {
+  ErrorCallback new_error_callback = [=](network::HttpError error) {
     error_callback(error);
   };
 
@@ -101,20 +101,20 @@ void FastPairMetadataRepositoryImpl::MakeUnauthFetcher(
               std::move(response_callback)](absl::string_view result_response) {
         OnFetcherSuccess(response_callback, result_response);
       },
-      [&](FastPairHttpError error) { OnFetcherFailed(error); });
+      [&](network::HttpError error) { OnFetcherFailed(error); });
 }
 
 void FastPairMetadataRepositoryImpl::OnFetcherSuccess(
     ObservedDeviceCallback callback, absl::string_view result_response) {
   proto::GetObservedDeviceResponse response;
   if (!response.ParseFromString(result_response)) {
-    OnFetcherFailed(FastPairHttpError::kHttpErrorOtherFailure);
+    OnFetcherFailed(network::HttpError::kHttpErrorOtherFailure);
     return;
   }
   callback(response);
 }
 
-void FastPairMetadataRepositoryImpl::OnFetcherFailed(FastPairHttpError error) {
+void FastPairMetadataRepositoryImpl::OnFetcherFailed(network::HttpError error) {
   NEARBY_LOGS(ERROR)
       << "Fast pair server accessing RPC call failed with error. " << error;
   error_callback_(error);
