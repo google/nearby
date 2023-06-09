@@ -68,6 +68,12 @@ class MockServiceController : public ServiceController {
                const ConnectionOptions& connection_options),
               (override));
 
+  MOCK_METHOD(Status, RequestConnectionV3,
+              (ClientProxy * client, const NearbyDevice& remote_device,
+               const ConnectionRequestInfo& info,
+               const ConnectionOptions& connection_options),
+              (override));
+
   MOCK_METHOD(Status, AcceptConnection,
               (ClientProxy * client, const std::string& endpoint_id,
                PayloadListener listener),

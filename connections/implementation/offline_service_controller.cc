@@ -87,6 +87,18 @@ Status OfflineServiceController::RequestConnection(
                                         connection_options);
 }
 
+Status OfflineServiceController::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  if (stop_) return {Status::kOutOfOrderApiCall};
+  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+                    << " requested a connection to endpoint_id="
+                    << remote_device.GetEndpointId();
+  return pcp_manager_.RequestConnectionV3(client, remote_device, info,
+                                          connection_options);
+}
+
 Status OfflineServiceController::AcceptConnection(
     ClientProxy* client, const std::string& endpoint_id,
     PayloadListener listener) {

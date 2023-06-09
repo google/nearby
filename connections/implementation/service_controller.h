@@ -90,6 +90,11 @@ class ServiceController {
       ClientProxy* client, const std::string& endpoint_id,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) = 0;
+
+  virtual Status RequestConnectionV3(
+      ClientProxy* client, const NearbyDevice& remote_device,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) = 0;
   virtual Status AcceptConnection(ClientProxy* client,
                                   const std::string& endpoint_id,
                                   PayloadListener listener) = 0;

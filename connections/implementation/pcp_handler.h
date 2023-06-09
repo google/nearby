@@ -100,6 +100,11 @@ class PcpHandler {
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) = 0;
 
+  virtual Status RequestConnectionV3(
+      ClientProxy* client, const NearbyDevice& remote_device,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) = 0;
+
   // Either party may call this to accept connection on their part.
   // Until both parties call it, connection will not reach a data phase.
   // Update state in ClientProxy.

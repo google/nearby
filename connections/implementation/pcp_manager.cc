@@ -107,6 +107,18 @@ Status PcpManager::RequestConnection(
                                      connection_options);
 }
 
+Status PcpManager::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  if (!current_) {
+    return {Status::kOutOfOrderApiCall};
+  }
+
+  return current_->RequestConnectionV3(client, remote_device, info,
+                                       connection_options);
+}
+
 Status PcpManager::AcceptConnection(ClientProxy* client,
                                     const string& endpoint_id,
                                     PayloadListener payload_listener) {
