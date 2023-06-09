@@ -8,6 +8,9 @@ proto_library(
         "data.proto",
         "fastpair_rpcs.proto",
     ],
+    visibility = [
+        "//fastpair:__subpackages__",
+    ],
 )
 
 cc_proto_library(

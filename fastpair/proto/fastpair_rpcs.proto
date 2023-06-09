@@ -18,8 +18,6 @@ package nearby.fastpair.proto;
 
 import "third_party/nearby/fastpair/proto/data.proto";
 
-option optimize_for = LITE_RUNTIME;
-
 // Represents the type of device that is being registered.
 enum DeviceType {
   // Unspecified device type.
