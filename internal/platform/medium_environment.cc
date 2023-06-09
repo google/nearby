@@ -1153,6 +1153,7 @@ void MediumEnvironment::UnregisterGattServer(api::ble_v2::BleMedium& medium) {
     }
     auto& context = it->second;
     context.gatt_server = nullptr;
+    context.ble_peripheral = nullptr;
   });
 }
 
@@ -1165,7 +1166,7 @@ Borrowable<api::ble_v2::GattServer*>* MediumEnvironment::GetGattServer(
       const BleV2MediumContext& remote_context = medium_info.second;
       const api::ble_v2::BlePeripheral* ble_peripheral =
           remote_context.ble_peripheral;
-      if (ble_peripheral != nullptr &&
+      if (remote_context.gatt_server != nullptr && ble_peripheral != nullptr &&
           (ble_peripheral->GetAddress() == peripheral.GetAddress())) {
         if (remote_context.gatt_server == nullptr) {
           break;
