@@ -12,13 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use windows::Devices::Bluetooth::BluetoothLEDevice;
+use windows::Devices::Bluetooth::{
+    // Enum describing the type of address (public, random, unspecified).
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothaddresstype?view=winrt-22621
+    BluetoothAddressType,
+
+    // Struct for interacting with and pairing to a discovered BLE device.
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothledevice?view=winrt-22621
+    BluetoothLEDevice,
+};
 
 pub struct BleDevice {
     inner: BluetoothLEDevice,
 }
 
 impl BleDevice {
+    pub async fn from_addr(addr: u64, kind: BluetoothAddressType) -> Result<Self, anyhow::Error> {
+        let inner =
+            BluetoothLEDevice::FromBluetoothAddressWithBluetoothAddressTypeAsync(addr, kind)?
+                .await?;
+
+        Ok(BleDevice { inner })
+    }
+
     pub fn name(&self) -> Result<String, anyhow::Error> {
         Ok(self.inner.Name()?.to_string_lossy())
     }

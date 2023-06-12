@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use futures::stream::{Stream, StreamExt};
+
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
         mod windows_ble;
@@ -29,6 +31,11 @@ impl BleAdapter {
     pub async fn default() -> Result<Self, anyhow::Error> {
         let inner = imp::BleAdapter::default().await?;
         Ok(BleAdapter { inner })
+    }
+
+    pub fn scanner(&self) -> Result<impl Stream<Item = BleDevice>, anyhow::Error> {
+        // Map from platform-specific BleDevice to module-level BleDevice API.
+        Ok(self.inner.scanner()?.map(|inner| BleDevice { inner }))
     }
 }
 

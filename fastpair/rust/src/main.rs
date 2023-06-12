@@ -15,11 +15,18 @@
 mod bluetooth;
 
 use futures::executor;
+use futures::stream::StreamExt;
 
 fn main() -> Result<(), anyhow::Error> {
     let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
-        Ok(())
+        let adapter = bluetooth::BleAdapter::default().await?;
+        let mut scanner = adapter.scanner()?;
+
+        while let Some(device) = scanner.next().await {
+            println!("found {}", device.name()?)
+        }
+
+        unreachable!("Done scanning");
     };
 
     executor::block_on(run)
