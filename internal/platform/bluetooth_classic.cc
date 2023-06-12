@@ -73,6 +73,11 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
           [this](api::BluetoothDevice& device) {
             MutexLock lock(&mutex_);
             auto item = devices_.extract(&device);
+            if (!item) {
+              NEARBY_LOGS(WARNING)
+                  << "Removing unknown device: " << device.GetMacAddress();
+              return;
+            }
             auto& context = *item.mapped();
             NEARBY_LOG(INFO, "Removing device=%p, impl=%p", &context.device,
                        &device);
