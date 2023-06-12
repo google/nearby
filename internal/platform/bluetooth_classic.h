@@ -69,7 +69,7 @@ class BluetoothSocket final {
   // Socket created by a default public constructor is not valid, because
   // it is missing platform implementation.
   // The only way to obtain a valid socket is through connection, such as
-  // an object returned by either BluetoothClassicMedium::ConnectTotService or
+  // an object returned by either BluetoothClassicMedium::ConnectToService or
   // BluetoothServerSocket::Accept().
   // These methods may also return an invalid socket if connection failed for
   // any reason.
@@ -160,8 +160,7 @@ class BluetoothPairing final {
 
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
-class BluetoothClassicMedium final
-    : public api::BluetoothClassicMedium::Observer {
+class BluetoothClassicMedium : public api::BluetoothClassicMedium::Observer {
  public:
   using Platform = api::ImplementationPlatform;
   struct DiscoveryCallback {
@@ -252,9 +251,9 @@ class BluetoothClassicMedium final
   //
   // Returns a new BluetoothSocket. On Success, BluetoothSocket::IsValid()
   // returns true.
-  BluetoothSocket ConnectToService(BluetoothDevice& remote_device,
-                                   const std::string& service_uuid,
-                                   CancellationFlag* cancellation_flag);
+  virtual BluetoothSocket ConnectToService(BluetoothDevice& remote_device,
+                                           const std::string& service_uuid,
+                                           CancellationFlag* cancellation_flag);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //
