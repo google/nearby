@@ -50,6 +50,8 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
 
   ~FastPairHandshakeLookupTest() override { delete device_; }
 
+  void TearDown() override { executor_.Shutdown(); }
+
   void CreateFastPairHandshkeInstanceForDevice(FastPairDevice& device) {
     CountDownLatch latch(1);
     Mediums mediums;
@@ -59,12 +61,14 @@ class FastPairHandshakeLookupTest : public ::testing::Test {
           EXPECT_EQ(&device, &cb_device);
           EXPECT_TRUE(failure.has_value());
           latch.CountDown();
-        }));
+        },
+        &executor_));
     latch.Await();
   }
 
  protected:
   MediumEnvironmentStarter env_;
+  SingleThreadExecutor executor_;
   BluetoothAdapter adapter_;
   BleV2Medium ble_{adapter_};
   std::string provider_address_;

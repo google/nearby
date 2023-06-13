@@ -71,7 +71,8 @@ class FastPairHandshakeLookup {
   // already exists.
   // Returns the existing instance if there is one.
   FastPairHandshake* Create(FastPairDevice& device, Mediums& mediums,
-                            OnCompleteCallback on_complete);
+                            OnCompleteCallback on_complete,
+                            SingleThreadExecutor* executor);
 
  protected:
   // Constructor/destructor of singleton object should not be public

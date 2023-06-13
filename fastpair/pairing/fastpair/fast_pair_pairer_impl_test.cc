@@ -110,6 +110,8 @@ class FastPairPairerImplTest : public testing::Test {
   void TearDown() override {
     env_.Sync(false);
     executor_.Shutdown();
+    fast_pair_pairer_.reset();
+    FastPairHandshakeLookup::GetInstance()->Clear();
     mediums_.reset();
     device_.reset();
     repository_.reset();
@@ -160,7 +162,8 @@ class FastPairPairerImplTest : public testing::Test {
           EXPECT_EQ(device_.get(), &cb_device);
           EXPECT_EQ(failure, std::nullopt);
           latch.CountDown();
-        }));
+        },
+        &executor_));
     latch.Await();
     EXPECT_TRUE(FastPairHandshakeLookup::GetInstance()->Get(device_.get()));
     EXPECT_TRUE(handshake_->completed_successfully());
@@ -179,7 +182,8 @@ class FastPairPairerImplTest : public testing::Test {
             std::optional<PairFailure> failure) {
           callback(callback_device, failure);
           latch.CountDown();
-        });
+        },
+        &executor_);
     handshake_ = handshake.get();
     latch.Await();
     return handshake;

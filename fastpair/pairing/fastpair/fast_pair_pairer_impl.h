@@ -111,6 +111,7 @@ class FastPairPairerImpl : public FastPairPairer {
   OnPairingCompletedCallback on_pairing_completed_cb_
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   TimerImpl initiate_pairing_timer_;
+  std::unique_ptr<SingleThreadExecutor> pairing_job_;
 };
 
 }  // namespace fastpair

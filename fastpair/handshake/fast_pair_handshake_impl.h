@@ -30,7 +30,8 @@ namespace fastpair {
 class FastPairHandshakeImpl : public FastPairHandshake {
  public:
   explicit FastPairHandshakeImpl(FastPairDevice& device, Mediums& mediums,
-                                 OnCompleteCallback on_complete);
+                                 OnCompleteCallback on_complete,
+                                 SingleThreadExecutor* executor);
   FastPairHandshakeImpl(const FastPairHandshakeImpl&) = delete;
   FastPairHandshakeImpl& operator=(const FastPairHandshakeImpl&) = delete;
 

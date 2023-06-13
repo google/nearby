@@ -87,14 +87,15 @@ void FastPairHandshakeLookup::Clear() {
 }
 
 FastPairHandshake* FastPairHandshakeLookup::Create(
-    FastPairDevice& device, Mediums& mediums, OnCompleteCallback on_complete) {
+    FastPairDevice& device, Mediums& mediums, OnCompleteCallback on_complete,
+    SingleThreadExecutor* executor) {
   absl::MutexLock lock(&mutex_);
   auto it = fast_pair_handshakes_.emplace(
       &device, g_test_create_function.has_value()
                    ? g_test_create_function.value()(device, mediums,
                                                     std::move(on_complete))
                    : std::make_unique<FastPairHandshakeImpl>(
-                         device, mediums, std::move(on_complete)));
+                         device, mediums, std::move(on_complete), executor));
   DCHECK(it.second);
   return it.first->second.get();
 }

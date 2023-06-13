@@ -36,6 +36,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -84,6 +85,7 @@ struct CharacteristicData {
 class FastPairHandshakeImplTest : public testing::Test {
  public:
   void TearDown() override {
+    executor_.Shutdown();
     repository_.reset();
     key_based_characteristic_ = std::nullopt;
     passkey_characteristic_ = std::nullopt;
@@ -181,10 +183,13 @@ class FastPairHandshakeImplTest : public testing::Test {
 
  protected:
   MediumEnvironmentStarter env_;
+  SingleThreadExecutor executor_;
   std::unique_ptr<FastPairHandshake> handshake_;
   BluetoothAdapter provider_adapter_;
   BleV2Medium provider_ble_{provider_adapter_};
   std::string provider_address_;
+  Mediums mediums_;
+  std::unique_ptr<FastPairDevice> fast_pair_device_;
 
  private:
   absl::flat_hash_map<GattCharacteristic, CharacteristicData> characteristics_;
@@ -205,18 +210,18 @@ TEST_F(FastPairHandshakeImplTest, Success) {
   });
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
-  FastPairDevice device(kMetadataId, provider_address_,
-                        Protocol::kFastPairInitialPairing);
+  fast_pair_device_ = std::make_unique<FastPairDevice>(
+      kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
-  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device, mediums,
+      *fast_pair_device_, mediums_,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
-        EXPECT_EQ(&device, &callback_device);
-        EXPECT_EQ(device.GetPublicAddress(), kPublicAddress);
+        EXPECT_EQ(fast_pair_device_.get(), &callback_device);
+        EXPECT_EQ(fast_pair_device_->GetPublicAddress(), kPublicAddress);
         EXPECT_FALSE(failure.has_value());
         latch.CountDown();
-      });
+      },
+      &executor_);
   latch.Await();
   EXPECT_TRUE(notified);
   EXPECT_TRUE(handshake_->completed_successfully());
@@ -229,17 +234,17 @@ TEST_F(FastPairHandshakeImplTest, GattError) {
     EXPECT_OK(TriggerKeyBasedGattChanged());
   });
   SetUpFastPairRepository();
-  FastPairDevice device(kMetadataId, provider_address_,
-                        Protocol::kFastPairInitialPairing);
+  fast_pair_device_ = std::make_unique<FastPairDevice>(
+      kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
-  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device, mediums,
+      *fast_pair_device_, mediums_,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
-        EXPECT_EQ(&device, &callback_device);
+        EXPECT_EQ(fast_pair_device_.get(), &callback_device);
         EXPECT_EQ(failure.value(), PairFailure::kCreateGattConnection);
         latch.CountDown();
-      });
+      },
+      &executor_);
   latch.Await();
   EXPECT_FALSE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
@@ -253,17 +258,17 @@ TEST_F(FastPairHandshakeImplTest, DataEncryptorCreateError) {
   });
   FailedFastPairRepository();
   InsertCorrectGattCharacteristics();
-  FastPairDevice device(kMetadataId, provider_address_,
-                        Protocol::kFastPairInitialPairing);
+  fast_pair_device_ = std::make_unique<FastPairDevice>(
+      kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
-  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device, mediums,
+      *fast_pair_device_, mediums_,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
-        EXPECT_EQ(&device, &callback_device);
+        EXPECT_EQ(fast_pair_device_.get(), &callback_device);
         EXPECT_EQ(failure.value(), PairFailure::kDataEncryptorRetrieval);
         latch.CountDown();
-      });
+      },
+      &executor_);
   latch.Await();
   EXPECT_FALSE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
@@ -273,18 +278,18 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseError) {
   StartGattServer([]() {});
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
-  FastPairDevice device(kMetadataId, provider_address_,
-                        Protocol::kFastPairInitialPairing);
+  fast_pair_device_ = std::make_unique<FastPairDevice>(
+      kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
-  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device, mediums,
+      *fast_pair_device_, mediums_,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
-        EXPECT_EQ(&device, &callback_device);
+        EXPECT_EQ(fast_pair_device_.get(), &callback_device);
         EXPECT_EQ(failure.value(),
                   PairFailure::kKeyBasedPairingResponseTimeout);
         latch.CountDown();
-      });
+      },
+      &executor_);
   latch.Await();
   EXPECT_FALSE(handshake_->completed_successfully());
 }
@@ -297,18 +302,18 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseWrongSize) {
   });
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
-  FastPairDevice device(kMetadataId, provider_address_,
-                        Protocol::kFastPairInitialPairing);
+  fast_pair_device_ = std::make_unique<FastPairDevice>(
+      kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
-  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device, mediums,
+      *fast_pair_device_, mediums_,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
-        EXPECT_EQ(&device, &callback_device);
+        EXPECT_EQ(fast_pair_device_.get(), &callback_device);
         EXPECT_EQ(failure.value(),
                   PairFailure::kKeybasedPairingResponseDecryptFailure);
         latch.CountDown();
-      });
+      },
+      &executor_);
   latch.Await();
   EXPECT_TRUE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());
@@ -322,18 +327,18 @@ TEST_F(FastPairHandshakeImplTest, ParseResponseError) {
   });
   SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
-  FastPairDevice device(kMetadataId, provider_address_,
-                        Protocol::kFastPairInitialPairing);
+  fast_pair_device_ = std::make_unique<FastPairDevice>(
+      kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
   CountDownLatch latch(1);
-  Mediums mediums;
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
-      device, mediums,
+      *fast_pair_device_, mediums_,
       [&](FastPairDevice& callback_device, std::optional<PairFailure> failure) {
-        EXPECT_EQ(&device, &callback_device);
+        EXPECT_EQ(fast_pair_device_.get(), &callback_device);
         EXPECT_EQ(failure.value(),
                   PairFailure::kKeybasedPairingResponseDecryptFailure);
         latch.CountDown();
-      });
+      },
+      &executor_);
   latch.Await();
   EXPECT_TRUE(notified);
   EXPECT_FALSE(handshake_->completed_successfully());

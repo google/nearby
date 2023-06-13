@@ -123,7 +123,8 @@ void PairerBrokerImpl::CreateHandshake(FastPairDevice& device) {
                                ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                                  OnHandshakeComplete(cb_device, failure);
                                });
-      });
+      },
+      executor_);
 }
 
 void PairerBrokerImpl::OnHandshakeComplete(FastPairDevice& device,

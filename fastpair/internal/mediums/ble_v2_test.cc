@@ -31,14 +31,14 @@ TEST(BleV2Test, IsAvailable) {
 TEST(BleV2Test, CanConnectToGattServer) {
   BluetoothRadio radio;
   BleV2 bleV2(radio);
-  EXPECT_TRUE(bleV2.ConnectToGattServer("bleaddress"));
+  EXPECT_TRUE(bleV2.ConnectToGattServer("bleaddress", {}, nullptr));
 }
 
 TEST(BleV2Test, CannotConnectToGattServer) {
   BluetoothRadio radio;
   BleV2 bleV2(radio);
   EXPECT_TRUE(radio.Disable());
-  EXPECT_FALSE(bleV2.ConnectToGattServer("bleaddress"));
+  EXPECT_FALSE(bleV2.ConnectToGattServer("bleaddress", {}, nullptr));
 }
 
 }  // namespace

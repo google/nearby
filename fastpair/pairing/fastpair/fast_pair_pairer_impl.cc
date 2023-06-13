@@ -104,7 +104,8 @@ void FastPairPairerImpl::StartPairing() {
                          "pairing with device.";
                   NotifyPairingFailed(PairFailure::kPairingTimeout);
                 });
-            InitiatePairing();
+            pairing_job_ = std::make_unique<SingleThreadExecutor>();
+            pairing_job_->Execute("pair", [this]() { InitiatePairing(); });
             break;
           case Protocol::kFastPairRetroactivePairing:
             // Because the devices are already paired, we will directly write an

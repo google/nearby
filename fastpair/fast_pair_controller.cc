@@ -26,13 +26,17 @@
 #include "fastpair/message_stream/message_stream.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
 
 FastPairController::FastPairController(Mediums* mediums,
-                                       const BluetoothDevice& device)
-    : mediums_(mediums), device_(Protocol::kFastPairRetroactivePairing) {
+                                       const BluetoothDevice& device,
+                                       SingleThreadExecutor* executor)
+    : mediums_(mediums),
+      device_(Protocol::kFastPairRetroactivePairing),
+      executor_(executor) {
   device_.SetPublicAddress(device.GetMacAddress());
 }
 
@@ -104,8 +108,8 @@ FastPairController::GetGattClientRef() {
   Future<FastPairController::GattClientRef> result;
   if (gatt_client_ == nullptr) {
     gatt_client_ref_count_ = 0;
-    gatt_client_ =
-        FastPairGattServiceClientImpl::Factory::Create(device_, *mediums_);
+    gatt_client_ = FastPairGattServiceClientImpl::Factory::Create(
+        device_, *mediums_, executor_);
     gatt_client_->InitializeGattConnection(
         [](std::optional<PairFailure> result) {
           if (result.has_value()) {

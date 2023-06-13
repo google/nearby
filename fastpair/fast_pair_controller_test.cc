@@ -22,6 +22,7 @@
 #include "absl/strings/escaping.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -47,6 +48,7 @@ class FastPairControllerTest : public testing::Test {
   }
 
   void TearDown() override {
+    executor_.Shutdown();
     provider_.Shutdown();
     MediumEnvironment::Instance().Stop();
   }
@@ -54,17 +56,18 @@ class FastPairControllerTest : public testing::Test {
   // The medium environment must be initialized (started) before adding
   // adapters.
   MediumEnvironmentStarter env_;
+  SingleThreadExecutor executor_;
   Mediums mediums_;
   FakeProvider provider_;
   BluetoothDevice remote_device_;
 };
 
 TEST_F(FastPairControllerTest, Constructor) {
-  FastPairController controller(&mediums_, remote_device_);
+  FastPairController controller(&mediums_, remote_device_, &executor_);
 }
 
 TEST_F(FastPairControllerTest, OpenMessageStream) {
-  FastPairController controller(&mediums_, remote_device_);
+  FastPairController controller(&mediums_, remote_device_, &executor_);
 
   EXPECT_OK(controller.OpenMessageStream());
 }

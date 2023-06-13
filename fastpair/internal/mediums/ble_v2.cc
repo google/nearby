@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "internal/platform/mutex_lock.h"
 
@@ -33,8 +34,9 @@ bool BleV2::IsAvailableLocked() const {
   return medium_.IsValid() && adapter_.IsValid() && adapter_.IsEnabled();
 }
 
-std::unique_ptr<GattClient> BleV2::ConnectToGattServer(
-    absl::string_view ble_address) {
+std::unique_ptr<RobustGattClient> BleV2::ConnectToGattServer(
+    absl::string_view ble_address, RobustGattClient::ConnectionParams params,
+    RobustGattClient::ConnectionStatusCallback connection_status_callback) {
   MutexLock lock(&mutex_);
   if (!radio_.IsEnabled()) {
     NEARBY_LOGS(INFO)
@@ -50,8 +52,9 @@ std::unique_ptr<GattClient> BleV2::ConnectToGattServer(
 
   BleV2Peripheral v2_peripheral =
       medium_.GetRemotePeripheral(std::string(ble_address));
-  return medium_.ConnectToGattServer(v2_peripheral,
-                                     api::ble_v2::TxPowerLevel::kUnknown, {});
+  return std::make_unique<RobustGattClient>(
+      medium_, v2_peripheral, std::move(params),
+      std::move(connection_status_callback));
 }
 }  // namespace fastpair
 }  // namespace nearby

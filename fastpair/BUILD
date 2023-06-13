@@ -46,6 +46,7 @@ cc_test(
         ":fast_pair_controller",
         "//fastpair/message_stream:fake_provider",
         "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",

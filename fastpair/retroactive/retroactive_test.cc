@@ -61,6 +61,7 @@ class RetroactiveTest : public testing::Test {
   }
 
   void TearDown() override {
+    executor_.Shutdown();
     provider_.DisableProviderRfcomm();
     provider_.Shutdown();
     MediumEnvironment::Instance().Stop();
@@ -76,6 +77,7 @@ class RetroactiveTest : public testing::Test {
   // The medium environment must be initialized (started) before adding
   // adapters.
   MediumEnvironmentStarter env_;
+  SingleThreadExecutor executor_;
   Mediums mediums_;
   FakeProvider provider_;
   BluetoothDevice remote_device_;
@@ -84,13 +86,13 @@ class RetroactiveTest : public testing::Test {
 };
 
 TEST_F(RetroactiveTest, Constructor) {
-  FastPairController controller(&mediums_, remote_device_);
+  FastPairController controller(&mediums_, remote_device_, &executor_);
   Retroactive retro(&controller);
 }
 
 TEST_F(RetroactiveTest, Pair) {
   SetUpFastPairRepository(kModelId, absl::HexStringToBytes(kBobPublicKey));
-  FastPairController controller(&mediums_, remote_device_);
+  FastPairController controller(&mediums_, remote_device_, &executor_);
   provider_.EnableProviderRfcomm();
   provider_.LoadAntiSpoofingKey(absl::HexStringToBytes(kBobPrivateKey),
                                 absl::HexStringToBytes(kBobPublicKey));
