@@ -14,6 +14,7 @@
 
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 
+#include <ios>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -117,5 +118,31 @@ void FastPairSeekerImpl::OnPairFailure(FastPairDevice& device,
                     << " with PairFailure: " << failure;
 }
 
+void FastPairSeekerImpl::SetIsScreenLocked(bool locked) {
+  executor_->Execute(
+      "on_lock_state_changed",
+      [this, locked]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+        NEARBY_LOGS(INFO) << __func__ << ": Screen lock state changed. ( "
+                          << std::boolalpha << locked << ")";
+        is_screen_locked_ = locked;
+        InvalidateScanningState();
+      });
+}
+
+void FastPairSeekerImpl::InvalidateScanningState() {
+  // Stop scanning when screen is off.
+  if (is_screen_locked_) {
+    absl::Status status = StopFastPairScan();
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": Stopping scanning because the screen is locked.";
+    return;
+  }
+
+  // TODO(b/275452353): Check if bluetooth and fast pair is enabled
+
+  // Screen is on, Bluetooth is enabled, and Fast Pair is enabled, start
+  // scanning.
+  absl::Status status = StartFastPairScan();
+}
 }  // namespace fastpair
 }  // namespace nearby

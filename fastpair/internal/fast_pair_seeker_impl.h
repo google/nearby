@@ -75,6 +75,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
 
+  // Handle the state changes of screen lock.
+  void SetIsScreenLocked(bool is_locked);
+
   // Internal methods, not exported to plugins.
  private:
   // From ScannerBrokerImpl::Observer.
@@ -88,6 +91,8 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   void OnPairingComplete(FastPairDevice& device) override;
   void OnPairFailure(FastPairDevice& device, PairFailure failure) override;
 
+  void InvalidateScanningState() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+
   ServiceCallbacks callbacks_;
   SingleThreadExecutor* executor_;
   FastPairDeviceRepository* devices_;
@@ -95,8 +100,8 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   std::unique_ptr<ScannerBrokerImpl> scanner_;
   std::unique_ptr<ScannerBrokerImpl::ScanningSession> scanning_session_;
   std::unique_ptr<PairerBroker> pairer_broker_;
-
   FastPairDevice* test_device_ = nullptr;
+  bool is_screen_locked_ = false;
 };
 
 }  // namespace fastpair

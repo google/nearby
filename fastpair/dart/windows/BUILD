@@ -56,15 +56,16 @@ lexan.cc_windows_dll(
         "fast_pair_service_adapter_dart.h",
     ],
     copts = [
+        "-Wc++17-compat",
         "-Ithird_party",
     ],
     defines = [
         "LOG_SEVERITY_VERBOSE",
+        "DART_SHARED_LIB=1",
         "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows-dll"],
     visibility = [
-        "//fastpair:__subpackages__",
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [

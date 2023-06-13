@@ -24,7 +24,6 @@ cc_library(
         "fast_pair_mediator.h",
         "fast_pair_mediator_factory.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//fastpair:__subpackages__",
     ],
@@ -33,11 +32,14 @@ cc_library(
         "//fastpair/internal/mediums",
         "//fastpair/pairing",
         "//fastpair/repository:device_repository",
+        "//fastpair/retroactive",
         "//fastpair/scanning:scanner",
         "//fastpair/server_access",
         "//fastpair/ui:fast_pair_ui",
+        "//internal/flags:nearby_flags",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform/flags:platform_flags",
     ],
 )
 

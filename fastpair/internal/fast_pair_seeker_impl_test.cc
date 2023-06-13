@@ -14,24 +14,32 @@
 
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 
+#include <unistd.h>
+
 #include <memory>
-#include <utility>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/time/clock.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace fastpair {
 
 namespace {
+constexpr absl::string_view kServiceID{"Fast Pair"};
+constexpr absl::string_view kFastPairServiceUuid{
+    "0000FE2C-0000-1000-8000-00805F9B34FB"};
 constexpr absl::string_view kModelId{"718c17"};
 constexpr absl::string_view kPublicAntiSpoof =
     "Wuyr48lD3txnUhGiMF1IfzlTwRxxe+wMB1HLzP+"
     "0wVcljfT3XPoiy1fntlneziyLD5knDVAJSE+RM/zlPRP/Jg==";
+constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(100);
 
 using ::testing::status::StatusIs;
 
@@ -100,6 +108,32 @@ TEST_F(FastPairSeekerImplTest, StopFastPairScanTwiceFails) {
   EXPECT_OK(fast_pair_seeker_->StopFastPairScan());
   EXPECT_THAT(fast_pair_seeker_->StopFastPairScan(),
               StatusIs(absl::StatusCode::kNotFound));
+}
+
+TEST_F(FastPairSeekerImplTest, ScreenLocksDuringAdvertising) {
+  CountDownLatch latch(1);
+  fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
+      FastPairSeekerImpl::ServiceCallbacks{
+          .on_initial_discovery =
+              [&](const FastPairDevice& device, InitialDiscoveryEvent event) {
+                latch.CountDown();
+              }},
+      &executor_, &devices_);
+
+  EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
+  EXPECT_THAT(fast_pair_seeker_->StartFastPairScan(),
+              StatusIs(absl::StatusCode::kAlreadyExists));
+
+  fast_pair_seeker_->SetIsScreenLocked(true);
+  // Create Advertiser and startAdvertising
+  Mediums mediums_2;
+  std::string service_id(kServiceID);
+  ByteArray advertisement_bytes{absl::HexStringToBytes(kModelId)};
+  std::string fast_pair_service_uuid(kFastPairServiceUuid);
+  mediums_2.GetBle().GetMedium().StartAdvertising(
+      service_id, advertisement_bytes, fast_pair_service_uuid);
+
+  EXPECT_FALSE(latch.Await(kTaskWaitTimeout).result());
 }
 
 }  // namespace

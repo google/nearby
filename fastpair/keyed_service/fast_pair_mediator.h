@@ -65,6 +65,7 @@ class Mediator final : public ScannerBroker::Observer,
   void OnDeviceLost(FastPairDevice& device) override;
 
   void StartScanning();
+  void StopScanning();
 
   // UIBroker::Observer
   void OnDiscoveryAction(FastPairDevice& device,
@@ -77,9 +78,12 @@ class Mediator final : public ScannerBroker::Observer,
   void OnPairingComplete(FastPairDevice& device) override;
   void OnPairFailure(FastPairDevice& device, PairFailure failure) override;
 
+  // Handle the state changes of screen lock.
+  void SetIsScreenLocked(bool is_locked);
+
  private:
   bool IsFastPairEnabled();
-
+  void InvalidateScanningState() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   bool IsDeviceCurrentlyShowingNotification(const FastPairDevice& device);
 
   // |device_currently_showing_notification_| can be null if there is no
@@ -95,6 +99,7 @@ class Mediator final : public ScannerBroker::Observer,
   std::unique_ptr<FastPairRepository> fast_pair_repository_;
   std::unique_ptr<SingleThreadExecutor> executor_;
   std::unique_ptr<FastPairDeviceRepository> devices_;
+  bool is_screen_locked_ = false;
 };
 
 }  // namespace fastpair

@@ -82,6 +82,14 @@ void __stdcall DiscoveryClicked(Mediator *pMediator, DiscoveryAction action) {
       ->OnDiscoveryClicked(action);
 }
 
+void __stdcall SetIsScreenLocked(bool is_locked) {
+  if (pMediator_ == nullptr) {
+    NEARBY_LOGS(INFO) << "The pMediator is a null pointer.";
+    return;
+  }
+  NEARBY_LOGS(INFO) << "SetIsScreenLocked :" << is_locked;
+  pMediator_->SetIsScreenLocked(is_locked);
+}
 }  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby

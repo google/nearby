@@ -33,8 +33,10 @@ cc_test(
         "//fastpair/message_stream:fake_provider",
         "//fastpair/server_access:test_support",
         "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

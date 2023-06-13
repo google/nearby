@@ -30,7 +30,7 @@ namespace windows {
 // Initiates a default Mediator instance. Return the instance handle to client.
 DLL_EXPORT void *__stdcall InitMediator();
 
-// Starts scaning service
+// Starts scanning service
 DLL_EXPORT void __stdcall StartScan(Mediator *pMediator);
 
 // Adds a notification controller observer to the service.
@@ -43,6 +43,9 @@ DLL_EXPORT void __stdcall RemoveNotificationControllerObserver(
 
 // Triggers discovery click action
 DLL_EXPORT void DiscoveryClicked(Mediator *pMediator, DiscoveryAction action);
+
+// Sends screen locked event.
+DLL_EXPORT void __stdcall SetIsScreenLocked(bool is_locked);
 
 }  // namespace windows
 }  // namespace fastpair
