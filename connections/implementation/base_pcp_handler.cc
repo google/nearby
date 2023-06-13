@@ -581,6 +581,11 @@ Status BasePcpHandler::RequestConnection(
           if (!MediumSupportedByClientOptions(connect_endpoint->medium,
                                               connection_options))
             continue;
+          NEARBY_LOGS(INFO)
+              << "Try to connect with endpoint(id=" << endpoint_id
+              << ") by Medium: "
+              << location::nearby::proto::connections::Medium_Name(
+                     connect_endpoint->medium);
           connect_impl_result = ConnectImpl(client, connect_endpoint);
           if (connect_impl_result.status.Ok()) {
             channel = std::move(connect_impl_result.endpoint_channel);
@@ -1159,18 +1164,18 @@ void BasePcpHandler::OnEndpointFound(
         discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
             ->second.get();
   }
+  NEARBY_LOGS(INFO) << "Adding new medium for endpoint: endpoint_id="
+                    << endpoint_id << "; medium="
+                    << location::nearby::proto::connections::Medium_Name(
+                           owned_endpoint->medium);
 
   // Range is empty: this is the first endpoint we discovered so far.
   // Report this endpoint_id to client.
   if (is_range_empty) {
-    NEARBY_LOGS(INFO) << "Adding new endpoint: endpoint_id=" << endpoint_id;
     // And, as it's the first time, report it to the client.
     client->OnEndpointFound(
         owned_endpoint->service_id, owned_endpoint->endpoint_id,
         owned_endpoint->endpoint_info, owned_endpoint->medium);
-  } else {
-    NEARBY_LOGS(INFO) << "Adding new medium for endpoint: endpoint_id="
-                      << endpoint_id << "; medium=" << owned_endpoint->medium;
   }
 }
 

@@ -36,6 +36,7 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
+#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
@@ -436,6 +437,90 @@ class BasePcpHandlerTest
     NEARBY_LOG(INFO, "Stopping Encryption Runner");
   }
 
+  void RequestConnectionWifiLanFail(
+      const std::string& endpoint_id,
+      std::unique_ptr<MockEndpointChannel> channel_a,
+      MockEndpointChannel* channel_b, ClientProxy* client,
+      MockPcpHandler* pcp_handler,
+      std::atomic_int* flag = nullptr,
+      Status expected_result = {Status::kSuccess}) {
+    ConnectionRequestInfo info{
+        .endpoint_info = ByteArray{"ABCD"},
+        .listener = connection_listener_,
+    };
+    ConnectionOptions connection_options{
+        .remote_bluetooth_mac_address =
+            ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
+        .keep_alive_interval_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+        .keep_alive_timeout_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
+    };
+    EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+    EXPECT_CALL(*pcp_handler, CanSendOutgoingConnection)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*pcp_handler, GetStrategy)
+        .WillRepeatedly(Return(Strategy::kP2pCluster));
+    if (expected_result == Status{Status::kSuccess}) {
+      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+    }
+    // Simulate successful discovery.
+    auto encryption_runner = std::make_unique<EncryptionRunner>();
+    auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
+
+    EXPECT_CALL(*pcp_handler, ConnectImpl)
+        .WillRepeatedly(Invoke([&channel_a](
+                             ClientProxy* client,
+                             MockPcpHandler::DiscoveredEndpoint* endpoint) {
+          if (endpoint->medium ==
+              location::nearby::proto::connections::WIFI_LAN) {
+            NEARBY_LOGS(INFO) << "Connect with Medium WIFI_LAN failed.";
+            return MockPcpHandler::ConnectImplResult{
+                .medium = endpoint->medium,
+                .status = {Status::kError},
+                .endpoint_channel = nullptr,
+            };
+          } else {
+            NEARBY_LOGS(INFO)
+                << "Connect with Medium: "
+                << location::nearby::proto::connections::Medium_Name(
+                       endpoint->medium);
+            return MockPcpHandler::ConnectImplResult{
+                .medium = endpoint->medium,
+                .status = {Status::kSuccess},
+                .endpoint_channel = std::move(channel_a),
+            };
+          }
+        }));
+
+    for (const auto& discovered_medium : allowed_mediums) {
+      pcp_handler->OnEndpointFound(
+          client,
+          std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+              {
+                  endpoint_id,
+                  info.endpoint_info,
+                  "service",
+                  discovered_medium,
+                  WebRtcState::kUndefined,
+              },
+              MockContext{flag},
+          }));
+    }
+    auto other_client = std::make_unique<ClientProxy>();
+
+    // Run peer crypto in advance, if channel_b is provided.
+    // Otherwise stay in not-encrypted state.
+    if (channel_b != nullptr) {
+      encryption_runner->StartServer(other_client.get(), endpoint_id, channel_b,
+                                     {});
+    }
+    EXPECT_EQ(pcp_handler->RequestConnection(client, endpoint_id, info,
+                                             connection_options),
+              expected_result);
+    NEARBY_LOG(INFO, "Stopping Encryption Runner");
+  }
+
   Pipe pipe_a_;
   Pipe pipe_b_;
   MockConnectionListener mock_connection_listener_;
@@ -529,6 +614,56 @@ TEST_P(BasePcpHandlerTest, StopDiscoveryChangesState) {
   pcp_handler.StopDiscovery(&client);
   EXPECT_FALSE(client.IsDiscovering());
   bwu.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, WifiMediumFailFallBackToBT) {
+  env_.Start();
+  std::string service_id{"service"};
+  std::string endpoint_id{"ABCD"};
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+      .wifi_lan = true,
+  };
+  DiscoveryOptions discovery_options{
+      {
+          Strategy::kP2pCluster,
+          allowed,
+      },
+      false,  // auto_upgrade_bandwidth;
+      false,  // enforce_topology_constraints;
+  };
+  EXPECT_CALL(pcp_handler, StartDiscoveryImpl(&client, service_id, _))
+      .WillOnce(Return(MockPcpHandler::StartOperationResult{
+          .status = {Status::kSuccess},
+          .mediums = allowed.GetMediums(true),
+      }));
+
+  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
+                                       discovery_listener_),
+            Status{Status::kSuccess});
+  EXPECT_TRUE(client.IsDiscovering());
+
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto& channel_a = channel_pair.first;
+  auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnectionWifiLanFail(endpoint_id, std::move(channel_a),
+                               channel_b.get(), &client, &pcp_handler);
+  NEARBY_LOG(INFO, "RequestConnection complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
   env_.Stop();
 }
 
