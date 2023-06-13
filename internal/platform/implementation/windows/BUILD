@@ -196,6 +196,7 @@ cc_library(
         ":comm",
         ":crypto",  # build_cleaner: keep
         ":types",
+        "//internal/account",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",

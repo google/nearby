@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "internal/account/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
 
 namespace nearby {
@@ -44,6 +45,7 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  private:
   std::string self_id_;
   location::nearby::connections::LocationHint location_hint_;
+  AccountManager* account_manager_;
 };
 
 class WebRtcMedium : public api::WebRtcMedium {

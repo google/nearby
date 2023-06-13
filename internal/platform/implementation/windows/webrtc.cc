@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 
+#include "internal/account/account_manager_impl.h"
 #include "internal/platform/logging.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 
@@ -29,7 +30,9 @@ namespace windows {
 WebRtcSignalingMessenger::WebRtcSignalingMessenger(
     absl::string_view self_id,
     const location::nearby::connections::LocationHint& location_hint)
-    : self_id_(self_id), location_hint_(location_hint) {}
+    : self_id_(self_id),
+      location_hint_(location_hint),
+      account_manager_(nearby::AccountManagerImpl::Factory::instance()) {}
 // TODO(b/261663238): replace with real implementation.
 bool WebRtcSignalingMessenger::SendMessage(absl::string_view peer_id,
                                            const ByteArray& message) {
