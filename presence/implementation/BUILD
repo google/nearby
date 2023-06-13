@@ -55,6 +55,7 @@ cc_library(
         "advertisement_factory.cc",
         "base_broadcast_request.cc",
         "broadcast_manager.cc",
+        "connection_authenticator.cc",
         "credential_manager_impl.cc",
         "ldt.cc",
         "scan_manager.cc",
@@ -66,6 +67,7 @@ cc_library(
         "advertisement_factory.h",
         "base_broadcast_request.h",
         "broadcast_manager.h",
+        "connection_authenticator.h",
         "credential_manager.h",
         "credential_manager_impl.h",
         "ldt.h",
@@ -94,6 +96,7 @@ cc_library(
         "//internal/proto:metadata_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
+        "//presence/proto:presence_frame_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -265,6 +268,28 @@ cc_test(
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
+cc_test(
+    name = "connection_authenticator_test",
+    size = "small",
+    srcs = ["connection_authenticator_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/crypto",
+        "//internal/proto:credential_cc_proto",
+        "//internal/proto:local_credential_cc_proto",
+        "//presence/proto:presence_frame_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@platforms//os:windows": [
