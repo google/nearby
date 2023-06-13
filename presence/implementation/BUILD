@@ -111,7 +111,7 @@ cc_library(
         "@com_google_absl//absl/types:variant",
     ] + select({
         ":norust_or_windows_or_android": [":ldt_stub"],
-        "//conditions:default": ["//third_party/nearby_rust/presence/ldt_np_adv_ffi"],
+        "//conditions:default": ["//third_party/beto_core/nearby/presence/ldt_np_adv_ffi"],
     }),
 )
 
