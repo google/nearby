@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/escaping.h"
@@ -1301,6 +1302,32 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
   };
 }
 
+void P2pClusterPcpHandler::BleConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_info,
+    BleSocket socket, const std::string& service_id) {
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(WARNING) << "Invalid socket in accept callback("
+                         << absl::BytesToHexString(local_endpoint_info)
+                         << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-ble-on-incoming-connection",
+      [this, client, service_id,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        std::string remote_peripheral_name =
+            socket.GetRemotePeripheral().GetName();
+        auto channel = std::make_unique<BleEndpointChannel>(
+            service_id,
+            /*channel_name=*/remote_peripheral_name, socket);
+        ByteArray remote_peripheral_info =
+            socket.GetRemotePeripheral().GetAdvertisementBytes(service_id);
+
+        OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
+                             location::nearby::proto::connections::Medium::BLE);
+      });
+}
+
 location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartBleAdvertising(
     ClientProxy* client, const std::string& service_id,
@@ -1321,35 +1348,10 @@ P2pClusterPcpHandler::StartBleAdvertising(
   if (!ble_medium_.IsAcceptingConnections(service_id)) {
     if (!bluetooth_radio_.Enable() ||
         !ble_medium_.StartAcceptingConnections(
-            service_id, {.accepted_cb = [this, client, local_endpoint_info](
-                                            BleSocket socket,
-                                            const std::string& service_id) {
-              if (!socket.IsValid()) {
-                NEARBY_LOGS(WARNING)
-                    << "Invalid socket in accept callback("
-                    << absl::BytesToHexString(local_endpoint_info.data())
-                    << "), client=" << client->GetClientId();
-                return;
-              }
-              RunOnPcpHandlerThread(
-                  "p2p-ble-on-incoming-connection",
-                  [this, client, local_endpoint_info, service_id,
-                   socket = std::move(socket)]()
-                      RUN_ON_PCP_HANDLER_THREAD() mutable {
-                        std::string remote_peripheral_name =
-                            socket.GetRemotePeripheral().GetName();
-                        auto channel = std::make_unique<BleEndpointChannel>(
-                            service_id,
-                            /*channel_name=*/remote_peripheral_name, socket);
-                        ByteArray remote_peripheral_info =
-                            socket.GetRemotePeripheral().GetAdvertisementBytes(
-                                service_id);
-
-                        OnIncomingConnection(
-                            client, remote_peripheral_info, std::move(channel),
-                            location::nearby::proto::connections::Medium::BLE);
-                      });
-            }})) {
+            service_id,
+            {.accepted_cb = absl::bind_front(
+                 &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
+                 client, local_endpoint_info.AsStringView())})) {
       NEARBY_LOGS(WARNING)
           << "In StartBleAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())

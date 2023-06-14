@@ -167,6 +167,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                       bool fast_advertisement);
   void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
                                 const std::string& service_id);
+  void BleConnectionAcceptedHandler(ClientProxy* client,
+                                    absl::string_view local_endpoint_info,
+                                    BleSocket socket,
+                                    const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
