@@ -26,7 +26,9 @@
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/throughput_recorder.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload_factory.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -872,6 +874,12 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnablePayloadManagerToSkipChunkUpdate)) {
+    MutexLock lock(&chunk_update_mutex_);
+    ++outgoing_chunk_update_count_;
+  }
   RunOnStatusUpdateThread(
       "outgoing-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
@@ -879,6 +887,27 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
        payload_chunk_body_size]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         // Make sure we're still tracking this payload and its associated
         // endpoint.
+        bool is_last_chunk =
+            (payload_chunk_flags &
+             PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
+
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnablePayloadManagerToSkipChunkUpdate)) {
+          MutexLock lock(&chunk_update_mutex_);
+          --outgoing_chunk_update_count_;
+          if (outgoing_chunk_update_count_ > 0 && payload_header.has_type() &&
+              payload_header.type() ==
+                  PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
+                      FILE) {
+            if (!is_last_chunk && payload_chunk_offset != 0) {
+              NEARBY_LOGS(INFO) << "Skip the outgoing chunk update with offset="
+                                << payload_chunk_offset;
+              return;
+            }
+          }
+        }
+
         PendingPayload* pending_payload = GetPayload(payload_header.id());
         if (!pending_payload || !pending_payload->GetEndpoint(endpoint_id)) {
           NEARBY_LOGS(INFO)
@@ -888,9 +917,6 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
           return;
         }
 
-        bool is_last_chunk =
-            (payload_chunk_flags &
-             PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
         PayloadProgressInfo update{
             payload_header.id(),
             is_last_chunk ? PayloadProgressInfo::Status::kSuccess
@@ -944,20 +970,44 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnablePayloadManagerToSkipChunkUpdate)) {
+    MutexLock lock(&chunk_update_mutex_);
+    ++incoming_chunk_update_count_;
+  }
   RunOnStatusUpdateThread(
       "incoming-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
        payload_chunk_offset,
        payload_chunk_body_size]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         // Make sure we're still tracking this payload.
+        bool is_last_chunk =
+            (payload_chunk_flags &
+             PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
+
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnablePayloadManagerToSkipChunkUpdate)) {
+          MutexLock lock(&chunk_update_mutex_);
+          --incoming_chunk_update_count_;
+          if (incoming_chunk_update_count_ > 0 && payload_header.has_type() &&
+              payload_header.type() ==
+                  PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
+                      FILE) {
+            if (!is_last_chunk && payload_chunk_offset != 0) {
+              NEARBY_LOGS(INFO) << "Skip the incoming chunk update with offset="
+                                << payload_chunk_offset;
+              return;
+            }
+          }
+        }
+
         PendingPayload* pending_payload = GetPayload(payload_header.id());
         if (!pending_payload) {
           return;
         }
 
-        bool is_last_chunk =
-            (payload_chunk_flags &
-             PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
         PayloadProgressInfo update{
             payload_header.id(),
             is_last_chunk ? PayloadProgressInfo::Status::kSuccess
