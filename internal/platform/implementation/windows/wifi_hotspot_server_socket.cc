@@ -123,6 +123,10 @@ Exception WifiHotspotServerSocket::Close() {
     absl::MutexLock lock(&mutex_);
     NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
 
+    if (closed_) {
+      return {Exception::kSuccess};
+    }
+
     if (NearbyFlags::GetInstance().GetBoolFlag(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableHotspotWin32Socket)) {
@@ -152,10 +156,6 @@ Exception WifiHotspotServerSocket::Close() {
 
         pending_sockets_ = {};
       }
-    }
-
-    if (closed_) {
-      return {Exception::kSuccess};
     }
 
     closed_ = true;

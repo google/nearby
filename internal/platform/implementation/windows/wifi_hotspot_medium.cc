@@ -192,15 +192,16 @@ WifiHotspotMedium::ListenForService(int port) {
   auto server_socket = std::make_unique<WifiHotspotServerSocket>(port);
   server_socket_ptr_ = server_socket.get();
 
-  server_socket->SetCloseNotifier([this]() {
-    absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << "Server socket was closed.";
-    medium_status_ &= (~kMediumStatusAccepting);
-    server_socket_ptr_ = nullptr;
-  });
-
   if (server_socket->listen()) {
     medium_status_ |= kMediumStatusAccepting;
+
+    // Setup close notifier after listen started.
+    server_socket->SetCloseNotifier([this]() {
+      absl::MutexLock lock(&mutex_);
+      NEARBY_LOGS(INFO) << "Server socket was closed.";
+      medium_status_ &= (~kMediumStatusAccepting);
+      server_socket_ptr_ = nullptr;
+    });
     NEARBY_LOGS(INFO) << "Started to listen serive on port "
                       << server_socket_ptr_->GetPort();
     return server_socket;
