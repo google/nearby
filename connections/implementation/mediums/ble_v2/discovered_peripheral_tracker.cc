@@ -57,7 +57,9 @@ DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
           config_package_nearby::nearby_connections_feature::
               kEnableGattQueryInThread)) {
     MutexLock lock(&mutex_);
-    executor_->Shutdown();
+    if (executor_ != nullptr) {
+      executor_->Shutdown();
+    }
   }
 }
 
@@ -516,9 +518,13 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
             config_package_nearby::nearby_connections_feature::
                 kEnableGattQueryInThread)) {
       NEARBY_LOGS(VERBOSE) << ": Handle GATT advertisement "
-                        << absl::BytesToHexString(
-                               ByteArray(advertisement_header).data())
-                        << " in thread";
+                           << absl::BytesToHexString(
+                                  ByteArray(advertisement_header).data())
+                           << " in thread";
+      if (executor_ == nullptr) {
+        // The situation happens when flag value changed
+        executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
+      }
       executor_->Execute([this, peripheral, advertisement_header,
                           advertisement_fetcher =
                               std::move(advertisement_fetcher)]() {
