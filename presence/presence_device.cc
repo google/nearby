@@ -17,20 +17,27 @@
 #include <string>
 #include <vector>
 
-#include "internal/platform/implementation/crypto.h"
 #include "internal/interop/device.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/prng.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
 namespace presence {
 
 namespace {
+constexpr char kEndpointIdChars[] = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
+
 std::string GenerateRandomEndpointId() {
   std::string result(kEndpointIdLength, 0);
-  crypto::RandBytes(const_cast<std::string::value_type*>(result.data()),
-                    result.size());
+  nearby::Prng prng;
+  for (int i = 0; i < kEndpointIdLength; i++) {
+    result[i] = kEndpointIdChars[prng.NextUint32() % sizeof(kEndpointIdChars)];
+  }
   return result;
 }
 }  // namespace
