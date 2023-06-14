@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package nearby.internal.tachyon_proto;
+package google.internal.communications.instantmessaging.v1;
 
 option optimize_for = LITE_RUNTIME;
 

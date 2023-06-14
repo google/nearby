@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package nearby.internal.tachyon_proto;
+package google.internal.communications.instantmessaging.v1;
 
 import "internal/proto/ice.proto";
 import "internal/proto/tachyon_common.proto";
@@ -52,4 +52,8 @@ message ReceiveMessagesResponse {
     InboxMessage inbox_message = 2;
     FastPathReady fast_path_ready = 7;
   }
+}
+
+message SendMessageExpressResponse {
+  ResponseHeader header = 1;
 }

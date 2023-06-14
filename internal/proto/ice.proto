@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package nearby.internal.tachyon_proto;
+package google.internal.communications.instantmessaging.v1;
 
 import "internal/proto/duration.proto";
 
