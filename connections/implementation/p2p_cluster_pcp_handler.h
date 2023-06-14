@@ -143,6 +143,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void BluetoothDeviceLostHandler(ClientProxy* client,
                                   const std::string& service_id,
                                   BluetoothDevice& device);
+  void BluetoothConnectionAcceptedHandler(ClientProxy* client,
+                                          absl::string_view local_endpoint_info,
+                                          const std::string& service_id,
+                                          BluetoothSocket socket);
   location::nearby::proto::connections::Medium StartBluetoothAdvertising(
       ClientProxy* client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,

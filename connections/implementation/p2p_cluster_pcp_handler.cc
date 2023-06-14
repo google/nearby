@@ -1139,6 +1139,31 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
   };
 }
 
+void P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_info,
+    const std::string& service_id, BluetoothSocket socket) {
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(WARNING) << "Invalid socket in accept callback("
+                         << absl::BytesToHexString(local_endpoint_info)
+                         << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-bt-on-incoming-connection",
+      [this, client, service_id, socket = std::move(socket)]()
+          RUN_ON_PCP_HANDLER_THREAD() mutable {
+            std::string remote_device_name = socket.GetRemoteDevice().GetName();
+            auto channel = std::make_unique<BluetoothEndpointChannel>(
+                service_id,
+                /*channel_name=*/remote_device_name, socket);
+            ByteArray remote_device_info{remote_device_name};
+
+            OnIncomingConnection(
+                client, remote_device_info, std::move(channel),
+                location::nearby::proto::connections::Medium::BLUETOOTH);
+          });
+}
+
 location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartBluetoothAdvertising(
     ClientProxy* client, const std::string& service_id,
@@ -1153,35 +1178,10 @@ P2pClusterPcpHandler::StartBluetoothAdvertising(
   if (!bluetooth_medium_.IsAcceptingConnections(service_id)) {
     if (!bluetooth_radio_.Enable() ||
         !bluetooth_medium_.StartAcceptingConnections(
-            service_id, {.accepted_cb = [this, client, local_endpoint_info](
-                                            const std::string& service_id,
-                                            BluetoothSocket socket) {
-              if (!socket.IsValid()) {
-                NEARBY_LOGS(WARNING)
-                    << "Invalid socket in accept callback("
-                    << absl::BytesToHexString(local_endpoint_info.data())
-                    << "), client=" << client->GetClientId();
-                return;
-              }
-              RunOnPcpHandlerThread(
-                  "p2p-bt-on-incoming-connection",
-                  [this, client, local_endpoint_info, service_id,
-                   socket = std::move(socket)]()
-                      RUN_ON_PCP_HANDLER_THREAD() mutable {
-                        std::string remote_device_name =
-                            socket.GetRemoteDevice().GetName();
-                        auto channel =
-                            std::make_unique<BluetoothEndpointChannel>(
-                                service_id,
-                                /*channel_name=*/remote_device_name, socket);
-                        ByteArray remote_device_info{remote_device_name};
-
-                        OnIncomingConnection(
-                            client, remote_device_info, std::move(channel),
-                            location::nearby::proto::connections::Medium::
-                                BLUETOOTH);
-                      });
-            }})) {
+            service_id,
+            {.accepted_cb = absl::bind_front(
+                 &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
+                 this, client, local_endpoint_info.AsStringView())})) {
       NEARBY_LOGS(WARNING)
           << "In StartBluetoothAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())
@@ -1373,36 +1373,10 @@ P2pClusterPcpHandler::StartBleAdvertising(
         !bluetooth_medium_.IsAcceptingConnections(service_id)) {
       if (!bluetooth_radio_.Enable() ||
           !bluetooth_medium_.StartAcceptingConnections(
-              service_id, {.accepted_cb = [this, client, local_endpoint_info](
-                                              const std::string& service_id,
-                                              BluetoothSocket socket) {
-                if (!socket.IsValid()) {
-                  NEARBY_LOGS(WARNING)
-                      << "In BT StartAcceptingConnections.accepted_cb("
-                      << absl::BytesToHexString(local_endpoint_info.data())
-                      << "), client=" << client->GetClientId()
-                      << ": Invalid socket in accept callback.";
-                  return;
-                }
-                RunOnPcpHandlerThread(
-                    "p2p-bt-on-incoming-connection",
-                    [this, client, local_endpoint_info, service_id,
-                     socket = std::move(socket)]()
-                        RUN_ON_PCP_HANDLER_THREAD() mutable {
-                          std::string remote_device_name =
-                              socket.GetRemoteDevice().GetName();
-                          auto channel =
-                              std::make_unique<BluetoothEndpointChannel>(
-                                  service_id,
-                                  /*channel_name=*/remote_device_name, socket);
-                          ByteArray remote_device_info{remote_device_name};
-
-                          OnIncomingConnection(
-                              client, remote_device_info, std::move(channel),
-                              location::nearby::proto::connections::Medium::
-                                  BLUETOOTH);
-                        });
-              }})) {
+              service_id,
+              {.accepted_cb = absl::bind_front(
+                   &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
+                   this, client, local_endpoint_info.AsStringView())})) {
         NEARBY_LOGS(WARNING)
             << "In BT StartBleAdvertising("
             << absl::BytesToHexString(local_endpoint_info.data())
