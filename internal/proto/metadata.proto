@@ -24,7 +24,7 @@ option optimize_for = LITE_RUNTIME;
 
 // The metadata of a device. Contains confidential data not to be broadcasted
 // directly in OTA.
-// NEXT_ID=4
+// NEXT_ID=5
 message DeviceIdentityMetaData {
   // The type of the device.
   DeviceType device_type = 1;
@@ -35,6 +35,9 @@ message DeviceIdentityMetaData {
   // The ChromeOS team requires the BT mac address for debugging purposes
   // temporarily. This should be removed by the end of this year.
   bytes bluetooth_mac_address = 3;
+
+  // The instance type (user profile) related to the metadata.
+  InstanceType instance_type = 4;
 }
 
 // The metadata of a device.
