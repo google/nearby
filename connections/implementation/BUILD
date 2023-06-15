@@ -120,6 +120,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
+        "//internal/platform:connection_info",
         "//internal/platform:error_code_recorder",
         "//internal/platform:logging",
         "//internal/platform:types",

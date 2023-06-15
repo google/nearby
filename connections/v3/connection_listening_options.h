@@ -35,7 +35,7 @@ struct ConnectionListeningOptions {
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints = true;
   std::vector<location::nearby::proto::connections::Medium> upgrade_mediums;
-  std::vector<::location::nearby::proto::connections::Medium> listening_mediums;
+  std::vector<location::nearby::proto::connections::Medium> listening_mediums;
   nearby::NearbyDevice::Type listening_endpoint_type =
       NearbyDevice::Type::kConnectionsDevice;
 };

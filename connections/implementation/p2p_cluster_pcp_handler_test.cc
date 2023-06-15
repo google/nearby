@@ -24,6 +24,7 @@
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
@@ -309,6 +310,59 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
 
   bwu_a.Shutdown();
   bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, CanStartListeningForIncomingConnections) {
+  env_.Start();
+  std::string endpoint_name_a{"endpoint_name"};
+  Mediums mediums_a;
+  BluetoothRadio& radio_a = mediums_a.GetBluetoothRadio();
+  radio_a.GetBluetoothAdapter().SetName("BT Device A");
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  v3::ConnectionListeningOptions v3_options{
+      .strategy = Strategy::kP2pCluster,
+      .enable_ble_listening = true,
+      .enable_bluetooth_listening = true,
+      .enable_wlan_listening = true,
+  };
+  // make sure mediums are not accepting before calling handler.
+  ASSERT_FALSE(
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
+  if (std::get<1>(GetParam())) {
+    ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
+  } else {
+    ASSERT_FALSE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
+  }
+  // call handler.
+  auto result = handler_a.StartListeningForIncomingConnections(
+      &client_a_, service_id_, v3_options, {});
+  // now check to make sure we are in fact accepting connections.
+  EXPECT_TRUE(
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  EXPECT_TRUE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
+  if (std::get<1>(GetParam())) {
+    EXPECT_TRUE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
+  } else {
+    EXPECT_TRUE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
+  }
+  EXPECT_EQ(result.second.size(), 3);
+  ASSERT_TRUE(client_a_.IsListeningForIncomingConnections());
+  EXPECT_EQ(client_a_.GetListeningForIncomingConnectionsServiceId(),
+            service_id_);
+  EXPECT_EQ(client_a_.GetListeningOptions().enable_ble_listening,
+            v3_options.enable_ble_listening);
+  EXPECT_EQ(client_a_.GetListeningOptions().enable_bluetooth_listening,
+            v3_options.enable_bluetooth_listening);
+  EXPECT_EQ(client_a_.GetListeningOptions().enable_wlan_listening,
+            v3_options.enable_wlan_listening);
+  EXPECT_EQ(client_a_.GetListeningOptions().strategy, v3_options.strategy);
   env_.Stop();
 }
 

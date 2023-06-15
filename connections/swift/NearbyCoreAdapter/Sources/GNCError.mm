@@ -41,6 +41,8 @@ NSError *NSErrorFromCppStatus(Status status) {
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorAlreadyAdvertising userInfo:nil];
     case Status::kAlreadyDiscovering:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorAlreadyDiscovering userInfo:nil];
+    case Status::kAlreadyListening:
+      return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorAlreadyListening userInfo:nil];
     case Status::kEndpointIoError:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorEndpointIoError userInfo:nil];
     case Status::kEndpointUnknown:

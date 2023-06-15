@@ -31,6 +31,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
+#include "connections/v3/connection_listening_options.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
@@ -153,6 +154,11 @@ class MockPcpHandler : public BasePcpHandler {
                const DiscoveryOptions& discovery_options),
               (override));
   MOCK_METHOD(Status, StopDiscoveryImpl, (ClientProxy * client), (override));
+  MOCK_METHOD(StartOperationResult, StartListeningForIncomingConnectionsImpl,
+              (ClientProxy * client_proxy, absl::string_view service_id,
+               absl::string_view local_endpoint_id,
+               v3::ConnectionListeningOptions options),
+              (override));
   MOCK_METHOD(Status, InjectEndpointImpl,
               (ClientProxy * client, const std::string& service_id,
                const OutOfBandConnectionMetadata& metadata),
@@ -219,6 +225,12 @@ class MockPcpHandler : public BasePcpHandler {
   std::vector<location::nearby::proto::connections::Medium>
   GetMediumsFromSelector(BooleanMediumSelector allowed) {
     return allowed.GetMediums(true);
+  }
+
+  std::vector<ConnectionInfoVariant> GetConnectionInfoFromResult(
+      absl::string_view service_id,
+      BasePcpHandler::StartOperationResult result) {
+    return BasePcpHandler::GetConnectionInfoFromResult(service_id, result);
   }
 };
 
@@ -1179,6 +1191,71 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
       });
   EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
   env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, TestGetConnectionInfosFromMediums) {
+  env_.Start();
+  std::string service_id{"service"};
+  Mediums mediums;
+  EndpointChannelManager endpoint_channel_manager;
+  EndpointManager endpoint_manager(&endpoint_channel_manager);
+  BwuManager bwu_manager(mediums, endpoint_manager, endpoint_channel_manager,
+                         {}, {});
+  MockPcpHandler pcp_handler(&mediums, &endpoint_manager,
+                             &endpoint_channel_manager, &bwu_manager);
+  BooleanMediumSelector selector = GetParam();
+  // Flip on a medium we should not get info for.
+  selector.web_rtc = true;
+  std::vector<ConnectionInfoVariant> infos =
+      pcp_handler.GetConnectionInfoFromResult(
+          service_id, {.mediums = selector.GetMediums(true)});
+  // Make sure we don't count webrtc.
+  EXPECT_EQ(infos.size(), selector.Count(true) - 1);
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, TestCanStartListeningForIncomingConnections) {
+  env_.Start();
+  ClientProxy client;
+  Mediums mediums;
+  EndpointChannelManager endpoint_channel_manager;
+  EndpointManager endpoint_manager(&endpoint_channel_manager);
+  BwuManager bwu_manager(mediums, endpoint_manager, endpoint_channel_manager,
+                         {}, {});
+  MockPcpHandler pcp_handler(&mediums, &endpoint_manager,
+                             &endpoint_channel_manager, &bwu_manager);
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .Times(1)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  v3::ConnectionListeningOptions options = {.strategy = Strategy::kP2pCluster,
+                                            .enable_ble_listening = true,
+                                            .enable_bluetooth_listening = true,
+                                            .enable_wlan_listening = true};
+  pcp_handler.StartListeningForIncomingConnections(&client, "service_id",
+                                                   options, {});
+  EXPECT_TRUE(client.IsListeningForIncomingConnections());
+}
+
+TEST_F(BasePcpHandlerTest, TestStartListeningForIncomingConnectionsBadStatus) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .Times(1)
+      .WillOnce(Return(MockPcpHandler::StartOperationResult{
+          .status = {Status::kAlreadyListening}}));
+  v3::ConnectionListeningOptions options = {.strategy = Strategy::kP2pCluster,
+                                            .enable_ble_listening = true,
+                                            .enable_bluetooth_listening = true,
+                                            .enable_wlan_listening = true};
+  pcp_handler.StartListeningForIncomingConnections(&client, "service_id",
+                                                   options, {});
+  EXPECT_FALSE(client.IsListeningForIncomingConnections());
 }
 
 }  // namespace

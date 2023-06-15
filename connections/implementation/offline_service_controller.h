@@ -55,13 +55,11 @@ class OfflineServiceController : public ServiceController {
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
 
-  Status StartListeningForIncomingConnections(
+  std::pair<Status, std::vector<ConnectionInfoVariant>>
+  StartListeningForIncomingConnections(
       ClientProxy* client, absl::string_view service_id,
       v3::ConnectionListener listener,
-      const v3::ConnectionListeningOptions& options) override {
-    // TODO(b/283823898): Implement.
-    return Status{.value = Status::kError};
-  }
+      const v3::ConnectionListeningOptions& options) override;
 
   void StopListeningForIncomingConnections(ClientProxy* client) override {
     // TODO(b/283823898): Implement.
