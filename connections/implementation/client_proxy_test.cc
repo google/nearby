@@ -965,6 +965,43 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
             OsInfo::ANDROID);
 }
 
+// Test ClientProxy::AddCancellationFlag, where if a flag is already in the map,
+// uncancel it. This addresses the case when users use NS to share/receive a
+// file, then cancel in the middle because the wrong file was selected, and then
+// re-do right after. Without the ability to uncancel a flag in
+// `AddCancelationFlag`, the second share/receive process will
+// be seen as cancelled with cancellation flags enabled. However this tests that
+// it will uncancel the flag which is added in RequestConnection and
+// OnConnectionInitiated in the NS flow, and allow another attempt with the
+// same endpoint.
+TEST_F(ClientProxyTest, UncancelCancellationFlags) {
+  // Enable cancellation flags.
+  MediumEnvironment::Instance().SetFeatureFlags(kTestCases[0]);
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  // Add a cancellation flag to the client proxy.
+  client1_.AddCancellationFlag(advertising_endpoint.id);
+  auto flag = client1_.GetCancellationFlag(advertising_endpoint.id);
+  EXPECT_FALSE(flag->Cancelled());
+  EXPECT_FALSE(
+      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+
+  // Cancel the flag.
+  flag->Cancel();
+  EXPECT_TRUE(flag->Cancelled());
+  EXPECT_TRUE(
+      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+
+  // On subsequent calls to add a new cancellation flag, expect an the flag to
+  // be uncancelled.
+  client1_.AddCancellationFlag(advertising_endpoint.id);
+  flag = client1_.GetCancellationFlag(advertising_endpoint.id);
+  EXPECT_FALSE(flag->Cancelled());
+  EXPECT_FALSE(
+      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+}
+
 TEST_F(ClientProxyTest, GetLocalDeviceWorksWithoutDeviceProvider) {
   auto device = client1_.GetLocalDevice();
   EXPECT_NE(device, nullptr);

@@ -634,6 +634,15 @@ void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
 
   auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
+    // A new flag may be added to the map with the same endpoint, even if a
+    // flag already in the map has already been cancelled, when an endpoint
+    // is being reused (for example, the case when users use NS to share/receive
+    // a file, then cancel in the middle because the wrong file was selected
+    // and  then re-do right after). The flag needs to be uncancelled in order
+    // to support a new attempt with the same endpoint.
+    if (item->second->Cancelled()) {
+      item->second->Uncancel();
+    }
     return;
   }
   cancellation_flags_.emplace(endpoint_id,
