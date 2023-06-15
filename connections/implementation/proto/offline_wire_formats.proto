@@ -45,6 +45,7 @@ message V1Frame {
     PAIRED_KEY_ENCRYPTION = 7;
     AUTHENTICATION_MESSAGE = 8;
     AUTHENTICATION_RESULT = 9;
+    AUTO_RESUME = 10;
   }
   optional FrameType type = 1;
 
@@ -58,6 +59,7 @@ message V1Frame {
   optional PairedKeyEncryptionFrame paired_key_encryption = 8;
   optional AuthenticationMessageFrame authentication_message = 9;
   optional AuthenticationResultFrame authentication_result = 10;
+  optional AutoResumeFrame auto_resume = 11;
 }
 
 message ConnectionRequestFrame {
@@ -168,6 +170,7 @@ message PayloadTransferFrame {
     optional int32 flags = 1;
     optional int64 offset = 2;
     optional bytes body = 3;
+    optional int32 index = 4;
   }
 
   // Accompanies CONTROL packets.
@@ -340,6 +343,18 @@ message AuthenticationResultFrame {
   // The authentication result. Non null if this frame is used to exchange
   // authentication result.
   optional int32 result = 1;
+}
+
+message AutoResumeFrame {
+  enum EventType {
+    UNKNOWN_AUTO_RESUME_EVENT_TYPE = 0;
+    PAYLOAD_RESUME_TRANSFER_START = 1;
+    PAYLOAD_RESUME_TRANSFER_ACK = 2;
+  }
+
+  optional EventType event_type = 1;
+  optional int64 pending_payload_id = 2;
+  optional int32 next_payload_chunk_index = 3;
 }
 
 message MediumMetadata {
