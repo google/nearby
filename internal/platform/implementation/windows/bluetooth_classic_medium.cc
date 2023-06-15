@@ -179,39 +179,48 @@ bool BluetoothClassicMedium::StopDiscovery() {
 }
 
 void BluetoothClassicMedium::InitializeDeviceWatcher() {
-  // create watcher
-  const winrt::param::iterable<winrt::hstring> RequestedProperties =
-      winrt::single_threaded_vector<winrt::hstring>(
-          {winrt::to_hstring("System.Devices.Aep.IsPresent"),
-           winrt::to_hstring("System.Devices.Aep.DeviceAddress")});
+  try {
+    // create watcher
+    const winrt::param::iterable<winrt::hstring> RequestedProperties =
+        winrt::single_threaded_vector<winrt::hstring>(
+            {winrt::to_hstring("System.Devices.Aep.IsPresent"),
+             winrt::to_hstring("System.Devices.Aep.DeviceAddress")});
 
-  device_watcher_ = DeviceInformation::CreateWatcher(
-      BLUETOOTH_SELECTOR,                           // aqsFilter
-      RequestedProperties,                          // additionalProperties
-      DeviceInformationKind::AssociationEndpoint);  // kind
+    device_watcher_ = DeviceInformation::CreateWatcher(
+        BLUETOOTH_SELECTOR,                           // aqsFilter
+        RequestedProperties,                          // additionalProperties
+        DeviceInformationKind::AssociationEndpoint);  // kind
 
-  //  An app must subscribe to all of the added, removed, and updated events to
-  //  be notified when there are device additions, removals or updates. If an
-  //  app handles only the added event, it will not receive an update if a
-  //  device is added to the system after the initial device enumeration
-  //  completes. register event handlers before starting the watcher
+    //  An app must subscribe to all of the added, removed, and updated events
+    //  to be notified when there are device additions, removals or updates. If
+    //  an app handles only the added event, it will not receive an update if a
+    //  device is added to the system after the initial device enumeration
+    //  completes. register event handlers before starting the watcher
 
-  //  Event that is raised when a device is added to the collection enumerated
-  //  by the DeviceWatcher.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.added?view=winrt-20348
-  device_watcher_.Added({this, &BluetoothClassicMedium::DeviceWatcher_Added});
+    //  Event that is raised when a device is added to the collection enumerated
+    //  by the DeviceWatcher.
+    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.added?view=winrt-20348
+    device_watcher_.Added({this, &BluetoothClassicMedium::DeviceWatcher_Added});
 
-  // Event that is raised when a device is updated in the collection of
-  // enumerated devices.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.updated?view=winrt-20348
-  device_watcher_.Updated(
-      {this, &BluetoothClassicMedium::DeviceWatcher_Updated});
+    // Event that is raised when a device is updated in the collection of
+    // enumerated devices.
+    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.updated?view=winrt-20348
+    device_watcher_.Updated(
+        {this, &BluetoothClassicMedium::DeviceWatcher_Updated});
 
-  // Event that is raised when a device is removed from the collection of
-  // enumerated devices.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.removed?view=winrt-20348
-  device_watcher_.Removed(
-      {this, &BluetoothClassicMedium::DeviceWatcher_Removed});
+    // Event that is raised when a device is removed from the collection of
+    // enumerated devices.
+    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.removed?view=winrt-20348
+    device_watcher_.Removed(
+        {this, &BluetoothClassicMedium::DeviceWatcher_Removed});
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": InitializeDeviceWatcher exception: "
+                       << exception.what();
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": InitializeDeviceWatcher exception: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+  }
 }
 
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
@@ -312,9 +321,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
       return nullptr;
     }
     nearby::CancellationFlagListener cancellation_flag_listener(
-        cancellation_flag, [&rfcomm_socket]() {
-          rfcomm_socket->Close();
-        });
+        cancellation_flag, [&rfcomm_socket]() { rfcomm_socket->Close(); });
 
     bool success =
         rfcomm_socket->Connect(requested_service.ConnectionHostName(),
@@ -488,6 +495,13 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
 
 bool BluetoothClassicMedium::StartScanning() {
   if (!IsWatcherStarted()) {
+    if (device_watcher_ == nullptr) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ": Failed to start scanning due to no available watcher.";
+      return false;
+    }
+
     discovered_devices_by_id_.clear();
 
     // The Start method can only be called when the DeviceWatcher is in the
