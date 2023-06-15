@@ -197,6 +197,12 @@ void ClientProxy::StartedListeningForIncomingConnections(
   analytics_recorder_->OnStartedIncomingConnectionListening(strategy);
 }
 
+void ClientProxy::StoppedListeningForIncomingConnections() {
+  MutexLock lock(&mutex_);
+  listening_info_.Clear();
+  analytics_recorder_->OnStoppedIncomingConnectionListening();
+}
+
 bool ClientProxy::IsListeningForIncomingConnections() const {
   MutexLock lock(&mutex_);
   return !listening_info_.IsEmpty();

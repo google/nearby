@@ -383,7 +383,13 @@ void ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
 
 void ServiceControllerRouter::StopListeningForIncomingConnectionsV3(
     ClientProxy* client) {
-  GetServiceController()->StopListeningForIncomingConnections(client);
+  RouteToServiceController(
+      "scr-stop-listening-for-incoming-connections", [this, client]() {
+        if (!client->IsListeningForIncomingConnections()) {
+          return;
+        }
+        GetServiceController()->StopListeningForIncomingConnections(client);
+      });
 }
 
 void ServiceControllerRouter::RequestConnectionV3(

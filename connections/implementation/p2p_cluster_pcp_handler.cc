@@ -33,6 +33,7 @@
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
 #include "connections/medium_selector.h"
 #include "connections/power_level.h"
+#include "connections/status.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
@@ -1219,6 +1220,46 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
   }
   return BasePcpHandler::StartOperationResult{
       .status = {Status::kSuccess}, .mediums = std::move(started_mediums)};
+}
+
+void P2pClusterPcpHandler::StopListeningForIncomingConnectionsImpl(
+    ClientProxy* client) {
+  if (wifi_lan_medium_.IsAcceptingConnections(
+          client->GetListeningForIncomingConnectionsServiceId())) {
+    if (!wifi_lan_medium_.StopAcceptingConnections(
+            client->GetListeningForIncomingConnectionsServiceId())) {
+      NEARBY_LOGS(WARNING)
+          << "Unable to stop wifi lan from accepting connections.";
+    }
+  }
+  if (bluetooth_medium_.IsAcceptingConnections(
+          client->GetListeningForIncomingConnectionsServiceId())) {
+    if (!bluetooth_medium_.StopAcceptingConnections(
+            client->GetListeningForIncomingConnectionsServiceId())) {
+      NEARBY_LOGS(WARNING)
+          << "Unable to stop bluetooth medium from accepting connections.";
+    }
+  }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
+    if (ble_v2_medium_.IsAcceptingConnections(
+            client->GetListeningForIncomingConnectionsServiceId())) {
+      if (!ble_v2_medium_.StopAcceptingConnections(
+              client->GetListeningForIncomingConnectionsServiceId())) {
+        NEARBY_LOGS(WARNING)
+            << "Unable to stop ble_v2 medium from accepting connections.";
+      }
+    }
+  } else {
+    if (ble_medium_.IsAcceptingConnections(
+            client->GetListeningForIncomingConnectionsServiceId())) {
+      if (!ble_medium_.StopAcceptingConnections(
+              client->GetListeningForIncomingConnectionsServiceId())) {
+        NEARBY_LOGS(WARNING)
+            << "Unable to stop ble medium from accepting connections.";
+      }
+    }
+  }
 }
 
 void P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler(

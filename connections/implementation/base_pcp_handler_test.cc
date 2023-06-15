@@ -31,6 +31,8 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -159,6 +161,8 @@ class MockPcpHandler : public BasePcpHandler {
                absl::string_view local_endpoint_id,
                v3::ConnectionListeningOptions options),
               (override));
+  MOCK_METHOD(void, StopListeningForIncomingConnectionsImpl,
+              (ClientProxy * client_proxy), (override));
   MOCK_METHOD(Status, InjectEndpointImpl,
               (ClientProxy * client, const std::string& service_id,
                const OutOfBandConnectionMetadata& metadata),
@@ -1255,6 +1259,58 @@ TEST_F(BasePcpHandlerTest, TestStartListeningForIncomingConnectionsBadStatus) {
                                             .enable_wlan_listening = true};
   pcp_handler.StartListeningForIncomingConnections(&client, "service_id",
                                                    options, {});
+  EXPECT_FALSE(client.IsListeningForIncomingConnections());
+}
+
+TEST_F(BasePcpHandlerTest, TestCanStopListeningForIncomingConnections) {
+  env_.Start();
+  std::string service_id{"service"};
+  std::string endpoint_id{"ABCD"};
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .Times(1)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  EXPECT_CALL(pcp_handler, StopListeningForIncomingConnectionsImpl).Times(1);
+  v3::ConnectionListeningOptions options = {.strategy = Strategy::kP2pCluster,
+                                            .enable_ble_listening = true,
+                                            .enable_bluetooth_listening = true,
+                                            .enable_wlan_listening = true};
+  pcp_handler.StartListeningForIncomingConnections(&client, service_id, options,
+                                                   {});
+  pcp_handler.StopListeningForIncomingConnections(&client);
+  EXPECT_FALSE(client.IsListeningForIncomingConnections());
+}
+
+TEST_F(BasePcpHandlerTest,
+       TestWifiLanStopListeningForIncomingConnectionsSuccessWhenStopped) {
+  env_.Start();
+  std::string service_id{"service"};
+  std::string endpoint_id{"ABCD"};
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .Times(1)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  EXPECT_CALL(pcp_handler, StopListeningForIncomingConnectionsImpl).Times(1);
+  v3::ConnectionListeningOptions options = {.strategy = Strategy::kP2pCluster,
+                                            .enable_ble_listening = true,
+                                            .enable_bluetooth_listening = true,
+                                            .enable_wlan_listening = true};
+  pcp_handler.StartListeningForIncomingConnections(&client, service_id, options,
+                                                   {});
+  m.GetWifiLan().StopAcceptingConnections(service_id);
+  pcp_handler.StopListeningForIncomingConnections(&client);
   EXPECT_FALSE(client.IsListeningForIncomingConnections());
 }
 

@@ -25,6 +25,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/count_down_latch.h"

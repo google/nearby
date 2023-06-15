@@ -101,6 +101,12 @@ PcpManager::StartListeningForIncomingConnections(
       client, service_id, options, std::move(listener))};
 }
 
+void PcpManager::StopListeningForIncomingConnections(ClientProxy* client) {
+  if (current_) {
+    current_->StopListeningForIncomingConnections(client);
+  }
+}
+
 void PcpManager::InjectEndpoint(ClientProxy* client,
                                 const std::string& service_id,
                                 const OutOfBandConnectionMetadata& metadata) {

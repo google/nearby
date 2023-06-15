@@ -85,6 +85,8 @@ class BasePcpHandler : public PcpHandler,
       v3::ConnectionListeningOptions options,
       v3::ConnectionListener connection_listener) override;
 
+  void StopListeningForIncomingConnections(ClientProxy* client) override;
+
   // Starts advertising. Once successfully started, changes ClientProxy's state.
   // Notifies ConnectionListener (info.listener) in case of any event.
   // See
@@ -286,6 +288,9 @@ class BasePcpHandler : public PcpHandler,
       ClientProxy* client_proxy, absl::string_view service_id,
       absl::string_view local_endpoint_id,
       v3::ConnectionListeningOptions options) RUN_ON_PCP_HANDLER_THREAD() = 0;
+
+  virtual void StopListeningForIncomingConnectionsImpl(ClientProxy* client)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual Status InjectEndpointImpl(ClientProxy* client,
                                     const std::string& service_id,

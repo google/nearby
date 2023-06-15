@@ -94,6 +94,8 @@ class PcpHandler {
       v3::ConnectionListeningOptions options,
       v3::ConnectionListener connection_listener) = 0;
 
+  virtual void StopListeningForIncomingConnections(ClientProxy* client) = 0;
+
   // If Discovery is active with is_out_of_band_connection == true, invoke the
   // callback with the provided endpoint info.
   virtual void InjectEndpoint(ClientProxy* client,

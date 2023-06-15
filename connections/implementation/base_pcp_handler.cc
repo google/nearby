@@ -33,6 +33,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
+#include "connections/status.h"
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
@@ -42,6 +43,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 #include "proto/connections_enums.pb.h"
@@ -143,6 +145,17 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
     }
   }
   return connection_infos;
+}
+
+void BasePcpHandler::StopListeningForIncomingConnections(ClientProxy* client) {
+  CountDownLatch latch(1);
+  RunOnPcpHandlerThread("stop-listening-for-incoming-conn",
+                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+                          StopListeningForIncomingConnectionsImpl(client);
+                          client->StoppedListeningForIncomingConnections();
+                          latch.CountDown();
+                        });
+  WaitForLatch("StopListeningForIncomingConnections", &latch);
 }
 
 Status BasePcpHandler::StartAdvertising(
