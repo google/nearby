@@ -1513,6 +1513,28 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
   };
 }
 
+void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_info,
+    BleV2Socket socket, const std::string& service_id) {
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(WARNING) << "Invalid socket in accept callback("
+                         << absl::BytesToHexString(local_endpoint_info)
+                         << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-ble-on-incoming-connection",
+      [this, client, service_id,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        ByteArray remote_peripheral_info = socket.GetRemotePeripheral().GetId();
+        auto channel = std::make_unique<BleV2EndpointChannel>(
+            service_id, std::string(remote_peripheral_info), socket);
+
+        OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
+                             location::nearby::proto::connections::Medium::BLE);
+      });
+}
+
 location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartBleV2Advertising(
     ClientProxy* client, const std::string& service_id,
@@ -1524,36 +1546,13 @@ P2pClusterPcpHandler::StartBleV2Advertising(
   // Bluetooth Classic.
   NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
                     << service_id << " : start";
-  // TODO(edwinwu): Move the lambda to a named function.
   if (!ble_v2_medium_.IsAcceptingConnections(service_id)) {
     if (!bluetooth_radio_.Enable() ||
         !ble_v2_medium_.StartAcceptingConnections(
-            service_id, {.accepted_cb = [this, client, local_endpoint_info](
-                                            BleV2Socket socket,
-                                            const std::string& service_id) {
-              if (!socket.IsValid()) {
-                NEARBY_LOGS(WARNING)
-                    << "Invalid socket in accept callback("
-                    << absl::BytesToHexString(local_endpoint_info.data())
-                    << "), client=" << client->GetClientId();
-                return;
-              }
-              RunOnPcpHandlerThread(
-                  "p2p-ble-on-incoming-connection",
-                  [this, client, local_endpoint_info, service_id,
-                   socket = std::move(socket)]()
-                      RUN_ON_PCP_HANDLER_THREAD() mutable {
-                        ByteArray remote_peripheral_info =
-                            socket.GetRemotePeripheral().GetId();
-                        auto channel = std::make_unique<BleV2EndpointChannel>(
-                            service_id, std::string(remote_peripheral_info),
-                            socket);
-
-                        OnIncomingConnection(
-                            client, remote_peripheral_info, std::move(channel),
-                            location::nearby::proto::connections::Medium::BLE);
-                      });
-            }})) {
+            service_id,
+            {.accepted_cb = absl::bind_front(
+                 &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
+                 client, local_endpoint_info.AsStringView())})) {
       NEARBY_LOGS(WARNING)
           << "In StartBleAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())
@@ -1744,6 +1743,31 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
   };
 }
 
+void P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_id,
+    absl::string_view local_endpoint_info, const std::string& service_id,
+    WifiLanSocket socket) {
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(WARNING) << "Invalid socket in accept callback("
+                         << absl::BytesToHexString(local_endpoint_info)
+                         << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-wifi-on-incoming-connection",
+      [this, client, local_endpoint_id, service_id,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        std::string remote_service_name = std::string(local_endpoint_id);
+        auto channel = std::make_unique<WifiLanEndpointChannel>(
+            service_id, /*channel_name=*/remote_service_name, socket);
+        ByteArray remote_service_name_byte{remote_service_name};
+
+        OnIncomingConnection(
+            client, remote_service_name_byte, std::move(channel),
+            location::nearby::proto::connections::Medium::WIFI_LAN);
+      });
+}
+
 location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartWifiLanAdvertising(
     ClientProxy* client, const std::string& service_id,
@@ -1756,33 +1780,10 @@ P2pClusterPcpHandler::StartWifiLanAdvertising(
   if (!wifi_lan_medium_.IsAcceptingConnections(service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             service_id,
-            {.accepted_cb = [this, client, local_endpoint_info,
-                             local_endpoint_id](const std::string& service_id,
-                                                WifiLanSocket socket) {
-              if (!socket.IsValid()) {
-                NEARBY_LOGS(WARNING)
-                    << "Invalid socket in accept callback("
-                    << absl::BytesToHexString(local_endpoint_info.data())
-                    << "), client=" << client->GetClientId();
-                return;
-              }
-              RunOnPcpHandlerThread(
-                  "p2p-wifi-on-incoming-connection",
-                  [this, client, local_endpoint_id, local_endpoint_info,
-                   service_id,
-                   socket = std::move(
-                       socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-                    std::string remote_service_name = local_endpoint_id;
-                    auto channel = std::make_unique<WifiLanEndpointChannel>(
-                        service_id, /*channel_name=*/remote_service_name,
-                        socket);
-                    ByteArray remote_service_name_byte{remote_service_name};
-
-                    OnIncomingConnection(
-                        client, remote_service_name_byte, std::move(channel),
-                        location::nearby::proto::connections::Medium::WIFI_LAN);
-                  });
-            }})) {
+            {.accepted_cb = absl::bind_front(
+                 &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
+                 client, local_endpoint_id,
+                 local_endpoint_info.AsStringView())})) {
       NEARBY_LOGS(WARNING)
           << "In StartWifiLanAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())

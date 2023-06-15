@@ -196,6 +196,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   const std::string& service_id,
                                   const ByteArray& advertisement_bytes,
                                   bool fast_advertisement);
+  void BleV2ConnectionAcceptedHandler(ClientProxy* client,
+                                      absl::string_view local_endpoint_info,
+                                      BleV2Socket socket,
+                                      const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleV2Advertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
@@ -217,6 +221,11 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void WifiLanServiceLostHandler(ClientProxy* client,
                                  NsdServiceInfo service_info,
                                  const std::string& service_id);
+  void WifiLanConnectionAcceptedHandler(ClientProxy* client,
+                                        absl::string_view local_endpoint_id,
+                                        absl::string_view local_endpoint_info,
+                                        const std::string& service_id,
+                                        WifiLanSocket socket);
   location::nearby::proto::connections::Medium StartWifiLanAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
