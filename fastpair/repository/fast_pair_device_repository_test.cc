@@ -17,9 +17,9 @@
 #include <memory>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
 #include "internal/platform/single_thread_executor.h"
@@ -31,6 +31,7 @@ namespace {
 constexpr absl::string_view kModelId = "123456";
 constexpr absl::string_view kBleAddress = "AA:BB:CC:DD:EE:FF";
 constexpr absl::string_view kBtAddress = "12:34:56:78:90:AB";
+constexpr absl::string_view kAccountKey = "04b85786180add47fb81a04a8ce6b0de";
 
 TEST(FastPairDeviceRepositoryTest, AddDevice) {
   SingleThreadExecutor executor;
@@ -73,6 +74,24 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
   FastPairDevice* device = opt_device.value();
   ASSERT_NE(device, nullptr);
   EXPECT_EQ(device->GetPublicAddress(), kBtAddress);
+  executor.Shutdown();
+}
+
+TEST(FastPairDeviceRepositoryTest, FindDeviceByAccountKey) {
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
+  auto fast_pair_device =
+      std::make_unique<FastPairDevice>(Protocol::kFastPairInitialPairing);
+  fast_pair_device->SetPublicAddress(kBtAddress);
+  fast_pair_device->SetAccountKey(AccountKey(kAccountKey));
+  repo.AddDevice(std::move(fast_pair_device));
+
+  auto opt_device = repo.FindDevice(AccountKey(kAccountKey));
+
+  ASSERT_TRUE(opt_device.has_value());
+  FastPairDevice* device = opt_device.value();
+  ASSERT_NE(device, nullptr);
+  EXPECT_EQ(device->GetAccountKey().GetAsBytes(), kAccountKey);
   executor.Shutdown();
 }
 
