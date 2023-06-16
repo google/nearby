@@ -30,7 +30,7 @@ constexpr std::uint64_t kMacAddressMask = 0x0000FFFFFFFFFFFF;
 
 BlePeripheral::BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
 
-std::string BlePeripheral::GetName() const { return adapter_.GetName(); }
+std::string BlePeripheral::GetName() const { return adapter_.GetMacAddress(); }
 
 ByteArray BlePeripheral::GetAdvertisementBytes(
     const std::string& service_id) const {
