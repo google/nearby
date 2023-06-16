@@ -5,7 +5,10 @@ licenses(["notice"])
 proto_library(
     name = "fastpair_proto",
     srcs = [
+        "cache.proto",
         "data.proto",
+        "enum.proto",
+        "fast_pair_string.proto",
         "fastpair_rpcs.proto",
     ],
     visibility = [

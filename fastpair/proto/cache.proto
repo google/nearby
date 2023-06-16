@@ -1,0 +1,93 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package nearby.fastpair.proto;
+
+import "third_party/nearby/fastpair/proto/enum.proto";
+
+option java_multiple_files = true;
+
+// The buffer size range of a Fast Pair devices support dynamic buffer size.
+message BufferSizeRange {
+  // The max buffer size in ms.
+  optional int32 max_size = 1;
+
+  // The min buffer size in ms.
+  optional int32 min_size = 2;
+
+  // The default buffer size in ms.
+  optional int32 default_size = 3;
+
+  // The codec of this buffer size range.
+  optional int32 codec = 4;
+}
+
+// A locally cached Fast Pair device associating an account key with the
+// bluetooth address of the device.
+message StoredFastPairItem {
+  // The device's public mac address.
+  string mac_address = 1;
+
+  // The account key written to the device.
+  bytes account_key = 2;
+
+  // When user need to update provider name, enable this value to trigger
+  // writing new name to provider.
+  optional bool need_to_update_provider_name = 3;
+
+  // The retry times to update name into provider.
+  optional int32 update_name_retries = 4;
+
+  // Latest firmware version from the server.
+  optional string latest_firmware_version = 5;
+
+  // The firmware version that is on the device.
+  optional string device_firmware_version = 6;
+
+  // The timestamp from the last time we fetched the firmware version from the
+  // device.
+  optional int64 last_check_firmware_timestamp_millis = 7;
+
+  // The timestamp from the last time we fetched the firmware version from
+  // server.
+  optional int64 last_server_query_timestamp_millis = 8;
+
+  // Only allows one bloom filter check process to create gatt connection and
+  // try to read the firmware version value.
+  optional bool can_read_firmware = 9;
+
+  // Device's model id.
+  string model_id = 10;
+
+  // Features that this Fast Pair device supports.
+  repeated FastPairFeature features = 11;
+
+  // When true, the latest uploaded event to FMA is connected. We use
+  // it as the previous ACL state when getting the BluetoothAdapter STATE_OFF to
+  // determine if need to upload the disconnect event to FMA.
+  optional bool fma_state_is_connected = 13;
+
+  // Device's buffer size range.
+  repeated BufferSizeRange buffer_size_ranges = 18;
+
+  // The additional account key if this device could be associated with multiple
+  // accounts. Notes that for this device, the account_key field is the basic
+  // one which will not be associated with the accounts.
+  repeated bytes additional_account_keys = 19;
+
+  // Deprecated fields.
+  reserved 14, 15, 16, 17;
+}
