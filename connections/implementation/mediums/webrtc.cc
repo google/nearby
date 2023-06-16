@@ -56,6 +56,7 @@ WebRtc::WebRtc(std::unique_ptr<WebRtcMedium> medium)
 WebRtc::~WebRtc() {
   // This ensures that all pending callbacks are run before we reset the medium
   // and we are not accepting new runnables.
+  scheduled_thread_executor_.Shutdown();
   single_thread_executor_.Shutdown();
 
   // Stop accepting all connections
@@ -132,7 +133,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
           "restart_receiving_messages_webrtc",
           std::bind(&WebRtc::ProcessRestartTachyonReceiveMessages, this,
                     service_id),
-          kRestartReceiveMessagesDuration, &single_thread_executor_);
+          kRestartReceiveMessagesDuration, &scheduled_thread_executor_);
 
   // Now that we're set up to receive messages, we'll save our state and return
   // a successful result.
@@ -439,6 +440,7 @@ void WebRtc::OnSignalingComplete(const std::string& service_id, bool success) {
 
 void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
                                         const ByteArray& message) {
+  NEARBY_LOG(INFO, "OK fine I'll process the WebRTC message");
   MutexLock lock(&mutex_);
 
   // Attempt to parse the incoming message as a WebRtcSignalingFrame.
@@ -460,11 +462,13 @@ void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
     // This is from a peer we have an outgoing connection request with, so we'll
     // only process the Answer path.
     if (frame.has_offer()) {
+      NEARBY_LOG(INFO, "WebRTC: Has offer, proceeding");
       ReceiveOffer(remote_peer_id,
                    SessionDescriptionWrapper(
                        webrtc_frames::DecodeOffer(frame).release()));
       SendAnswer(remote_peer_id);
     } else if (frame.has_ice_candidates()) {
+      NEARBY_LOG(INFO, "WebRTC: ICE dndidates 1");
       ReceiveIceCandidates(remote_peer_id,
                            webrtc_frames::DecodeIceCandidates(frame));
     } else {
@@ -474,12 +478,15 @@ void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
     // We don't have an outgoing connection request with this peer, but we are
     // accepting incoming requests so we'll only process the Offer path.
     if (frame.has_ready_for_signaling_poke()) {
+      NEARBY_LOG(INFO, "WebRTC: Send offer");
       SendOffer(service_id, remote_peer_id);
     } else if (frame.has_answer()) {
+      NEARBY_LOG(INFO, "WebRTC: Receive answer");
       ReceiveAnswer(remote_peer_id,
                     SessionDescriptionWrapper(
                         webrtc_frames::DecodeAnswer(frame).release()));
     } else if (frame.has_ice_candidates()) {
+      NEARBY_LOG(INFO, "WebRTC: ICE candidates");
       ReceiveIceCandidates(remote_peer_id,
                            webrtc_frames::DecodeIceCandidates(frame));
     } else {
@@ -766,7 +773,9 @@ void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {
 }
 
 void WebRtc::OffloadFromThread(const std::string& name, Runnable runnable) {
+  NEARBY_LOG(VERBOSE, "WebRTC: Offloading %s", name.c_str());
   single_thread_executor_.Execute(name, std::move(runnable));
+  NEARBY_LOG(VERBOSE, "WebRTC: Offloaded %s", name.c_str());
 }
 
 }  // namespace mediums
