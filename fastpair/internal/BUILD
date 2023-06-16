@@ -19,6 +19,7 @@ cc_library(
         "//fastpair/scanning:scanner",
         "//internal/platform:types",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -30,6 +31,7 @@ cc_test(
     ],
     deps = [
         ":internal",
+        "//fastpair/message_stream:fake_gatt_callbacks",
         "//fastpair/message_stream:fake_provider",
         "//fastpair/server_access:test_support",
         "//internal/platform:test_util",

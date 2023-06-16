@@ -55,7 +55,7 @@ class RetroactiveTest : public testing::Test {
 
     provider_.DiscoverProvider(seeker_medium);
     remote_device_ = seeker_medium.GetRemoteDevice(provider_.GetMacAddress());
-    provider_.StartGattServer(gatt_callbacks_.GetGattCallback());
+    provider_.StartGattServer(&gatt_callbacks_);
     provider_.InsertCorrectGattCharacteristics();
     ASSERT_TRUE(remote_device_.IsValid());
   }

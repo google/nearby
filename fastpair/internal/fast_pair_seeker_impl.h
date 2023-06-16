@@ -22,7 +22,7 @@
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/internal/mediums/mediums.h"
-#include "fastpair/pairing/pairer_broker.h"
+#include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/single_thread_executor.h"
@@ -58,6 +58,8 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   FastPairSeekerImpl(ServiceCallbacks callbacks, SingleThreadExecutor* executor,
                      FastPairDeviceRepository* devices);
 
+  ~FastPairSeekerImpl() override;
+
   // From FastPairSeeker.
   absl::Status StartInitialPairing(const FastPairDevice& device,
                                    const InitialPairingParam& params,
@@ -92,6 +94,8 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   void OnPairFailure(FastPairDevice& device, PairFailure failure) override;
 
   void InvalidateScanningState() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  bool IsDeviceUnderPairing(const FastPairDevice& device);
+  void FinishPairing(absl::Status result);
 
   ServiceCallbacks callbacks_;
   SingleThreadExecutor* executor_;
@@ -99,7 +103,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   Mediums mediums_;
   std::unique_ptr<ScannerBrokerImpl> scanner_;
   std::unique_ptr<ScannerBrokerImpl::ScanningSession> scanning_session_;
-  std::unique_ptr<PairerBroker> pairer_broker_;
+  std::unique_ptr<PairerBrokerImpl> pairer_broker_;
+  std::unique_ptr<PairingCallback> pairing_callback_;
+  FastPairDevice* device_under_pairing_ = nullptr;
   FastPairDevice* test_device_ = nullptr;
   bool is_screen_locked_ = false;
 };

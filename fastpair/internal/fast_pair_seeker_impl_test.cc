@@ -23,6 +23,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "internal/platform/count_down_latch.h"
@@ -36,9 +38,13 @@ constexpr absl::string_view kServiceID{"Fast Pair"};
 constexpr absl::string_view kFastPairServiceUuid{
     "0000FE2C-0000-1000-8000-00805F9B34FB"};
 constexpr absl::string_view kModelId{"718c17"};
-constexpr absl::string_view kPublicAntiSpoof =
-    "Wuyr48lD3txnUhGiMF1IfzlTwRxxe+wMB1HLzP+"
-    "0wVcljfT3XPoiy1fntlneziyLD5knDVAJSE+RM/zlPRP/Jg==";
+constexpr absl::string_view kBobPrivateKey =
+    "02B437B0EDD6BBD429064A4E529FCBF1C48D0D624924D592274B7ED81193D763";
+constexpr absl::string_view kBobPublicKey =
+    "F7D496A62ECA416351540AA343BC690A6109F551500666B83B1251FB84FA2860795EBD63D3"
+    "B8836F44A9A3E28BB34017E015F5979305D849FDF8DE10123B61D2";
+constexpr absl::string_view kPasskey = "123456";
+
 constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(100);
 
 using ::testing::status::StatusIs;
@@ -52,7 +58,8 @@ class MediumEnvironmentStarter {
 class FastPairSeekerImplTest : public testing::Test {
  protected:
   void SetUp() override {
-    repository_ = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
+    repository_ = FakeFastPairRepository::Create(
+        kModelId, absl::HexStringToBytes(kBobPublicKey));
   }
 
   void TearDown() override { executor_.Shutdown(); }
@@ -62,6 +69,7 @@ class FastPairSeekerImplTest : public testing::Test {
   FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<FakeFastPairRepository> repository_;
   std::unique_ptr<FastPairSeekerImpl> fast_pair_seeker_;
+  FakeGattCallbacks fake_gatt_callbacks_;
 };
 
 TEST_F(FastPairSeekerImplTest, StartAndStopFastPairScan) {
@@ -134,6 +142,46 @@ TEST_F(FastPairSeekerImplTest, ScreenLocksDuringAdvertising) {
       service_id, advertisement_bytes, fast_pair_service_uuid);
 
   EXPECT_FALSE(latch.Await(kTaskWaitTimeout).result());
+}
+
+TEST_F(FastPairSeekerImplTest, InitialPairing) {
+  NEARBY_LOG_SET_SEVERITY(VERBOSE);
+  FakeProvider provider;
+  CountDownLatch discover_latch(1);
+  CountDownLatch pair_latch(1);
+  fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
+      FastPairSeekerImpl::ServiceCallbacks{
+          .on_initial_discovery =
+              [&](const FastPairDevice& device, InitialDiscoveryEvent event) {
+                EXPECT_EQ(device.GetModelId(), kModelId);
+                EXPECT_OK(fast_pair_seeker_->StartInitialPairing(
+                    device, {},
+                    {.on_pairing_result = [&](const FastPairDevice& device,
+                                              absl::Status status) {
+                      EXPECT_EQ(device.GetBleAddress(),
+                                provider.GetMacAddress());
+                      EXPECT_OK(status);
+                      pair_latch.CountDown();
+                    }}));
+                discover_latch.CountDown();
+              }},
+      &executor_, &devices_);
+
+  EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
+  provider.PrepareForInitialPairing(
+      {
+          .private_key = absl::HexStringToBytes(kBobPrivateKey),
+          .public_key = absl::HexStringToBytes(kBobPublicKey),
+          .model_id = std::string(kModelId),
+          .pass_key = std::string(kPasskey),
+      },
+      &fake_gatt_callbacks_);
+
+  discover_latch.Await();
+  pair_latch.Await();
+  auto fp_device = devices_.FindDevice(provider.GetMacAddress());
+  ASSERT_TRUE(fp_device.has_value());
+  EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
 }
 
 }  // namespace

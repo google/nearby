@@ -18,7 +18,9 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/numbers.h"
 #include "fastpair/common/constant.h"
+#include "internal/platform/medium_environment.h"
 #include <openssl/base.h>
 #include <openssl/bn.h>
 #include <openssl/ec_key.h>
@@ -27,6 +29,10 @@ namespace nearby {
 namespace fastpair {
 
 namespace {
+
+constexpr uint8_t kKeyBasedPairingResponseCode = 1;
+constexpr uint8_t kSeekerPasskeyResponseCode = 2;
+constexpr uint8_t kProviderPasskeyResponseCode = 3;
 
 static EC_POINT *load_public_key(absl::string_view public_key) {
   CHECK_EQ(public_key.size(), kPublicKeyByteSize);
@@ -129,22 +135,22 @@ void FakeProvider::LoadAntiSpoofingKey(absl::string_view private_key,
 }
 
 std::string FakeProvider::DecryptKbpRequest(absl::string_view request) {
-  NEARBY_LOGS(INFO) << "Encrypted KBP request "
-                    << absl::BytesToHexString(request);
+  NEARBY_LOGS(VERBOSE) << "Encrypted KBP request "
+                       << absl::BytesToHexString(request);
   CHECK_EQ(request.size(), kEncryptedDataByteSize + kPublicKeyByteSize);
   absl::string_view encrypted = request.substr(0, kEncryptedDataByteSize);
   absl::string_view remote_public_key =
       request.substr(kEncryptedDataByteSize, kPublicKeyByteSize);
   std::string shared_secret = CreateSharedSecret(remote_public_key);
   std::string decrypted = Aes128Decrypt(encrypted, shared_secret);
-  NEARBY_LOGS(INFO) << "Decrypted KBP request "
-                    << absl::BytesToHexString(decrypted);
-  account_key_ = shared_secret;
+  NEARBY_LOGS(VERBOSE) << "Decrypted KBP request "
+                       << absl::BytesToHexString(decrypted);
+  shared_secret_ = shared_secret;
   return decrypted;
 }
 
 std::string FakeProvider::Encrypt(absl::string_view data) {
-  return Aes128Encrypt(data, account_key_);
+  return Aes128Encrypt(data, shared_secret_);
 }
 
 std::string FakeProvider::GenSec256r1Secret(
@@ -199,9 +205,9 @@ std::string FakeProvider::CreateSharedSecret(
       Crypto::Sha256(secret).AsStringView().substr(0, kAccountKeySize));
 }
 
-void FakeProvider::StartGattServer(
-    BleV2Medium::ServerGattConnectionCallback callback) {
-  gatt_server_ = ble_.StartGattServer(std::move(callback));
+void FakeProvider::StartGattServer(FakeGattCallbacks *fake_gatt_callbacks) {
+  fake_gatt_callbacks_ = fake_gatt_callbacks;
+  gatt_server_ = ble_.StartGattServer(fake_gatt_callbacks_->GetGattCallback());
 }
 
 absl::Status FakeProvider::NotifyKeyBasedPairing(ByteArray response) {
@@ -211,8 +217,16 @@ absl::Status FakeProvider::NotifyKeyBasedPairing(ByteArray response) {
                                                    false, response);
 }
 
+absl::Status FakeProvider::NotifyPasskey(ByteArray response) {
+  CHECK_NE(gatt_server_, nullptr);
+  CHECK(passkey_characteristic_.has_value());
+  return gatt_server_->NotifyCharacteristicChanged(*passkey_characteristic_,
+                                                   false, response);
+}
+
 void FakeProvider::StartDiscoverableAdvertisement(absl::string_view model_id) {
   advertising_ = true;
+  model_id_ = model_id;
   ble_v1_.StartAdvertising(std::string(kServiceID),
                            ByteArray(absl::HexStringToBytes(model_id)),
                            std::string(kFastPairServiceUuid));
@@ -223,6 +237,102 @@ void FakeProvider::StopAdvertising() {
     advertising_ = false;
     ble_v1_.StopAdvertising(std::string(kServiceID));
   }
+}
+
+void FakeProvider::SetKeyBasedPairingCallback() {
+  CHECK_NE(fake_gatt_callbacks_, nullptr);
+  CHECK(key_based_characteristic_.has_value());
+  fake_gatt_callbacks_->characteristics_[*key_based_characteristic_]
+      .write_callback = [this](absl::string_view request) {
+    NEARBY_LOGS(VERBOSE) << "Encrypted request: "
+                         << absl::BytesToHexString(request);
+    std::string decrypted_request = DecryptKbpRequest(request);
+    NEARBY_LOGS(VERBOSE) << "KBP decrypted request "
+                         << absl::BytesToHexString(decrypted_request);
+    fake_gatt_callbacks_->characteristics_[*key_based_characteristic_]
+        .write_value.Set(std::string(decrypted_request));
+    std::string response;
+    response.push_back(kKeyBasedPairingResponseCode);
+    response.append(GetMacAddressAsBytes());
+    response.resize(kEncryptedDataByteSize, 0);
+    absl::Status status = NotifyKeyBasedPairing(ByteArray(Encrypt(response)));
+    NEARBY_LOGS(VERBOSE) << "KBP notify result: " << status;
+    return absl::OkStatus();
+  };
+}
+
+void FakeProvider::SetPasskeyCallback() {
+  CHECK_NE(fake_gatt_callbacks_, nullptr);
+  CHECK(passkey_characteristic_.has_value());
+  fake_gatt_callbacks_->characteristics_[*passkey_characteristic_]
+      .write_callback = [this](absl::string_view request) {
+    NEARBY_LOGS(VERBOSE) << "Passkey Encrypted request: "
+                         << absl::BytesToHexString(request);
+    std::string decrypted = Aes128Decrypt(request, shared_secret_);
+    NEARBY_LOGS(VERBOSE) << "Passkey decrypted request "
+                         << absl::BytesToHexString(decrypted);
+    fake_gatt_callbacks_->characteristics_[*passkey_characteristic_]
+        .write_value.Set(std::string(decrypted));
+    if (decrypted[0] != kSeekerPasskeyResponseCode) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("Invalid passkey response code: 0x%x", decrypted[0]));
+    }
+
+    std::string response;
+    response.push_back(kProviderPasskeyResponseCode);
+    response.push_back(pass_key_ >> 16);
+    response.push_back(pass_key_ >> 8);
+    response.push_back(pass_key_);
+    response.resize(kEncryptedDataByteSize, 0);
+    absl::Status status = NotifyPasskey(ByteArray(Encrypt(response)));
+    NEARBY_LOGS(VERBOSE) << "Passkey notify result: " << status;
+    return absl::OkStatus();
+  };
+}
+
+void FakeProvider::SetAccountkeyCallback() {
+  CHECK_NE(fake_gatt_callbacks_, nullptr);
+  CHECK(accountkey_characteristic_.has_value());
+  fake_gatt_callbacks_->characteristics_[*accountkey_characteristic_]
+      .write_callback = [this](absl::string_view request) {
+    NEARBY_LOGS(VERBOSE) << "Account key encrypted request: "
+                         << absl::BytesToHexString(request);
+    std::string decrypted = Aes128Decrypt(request, shared_secret_);
+    NEARBY_LOGS(VERBOSE) << "Account key decrypted request "
+                         << absl::BytesToHexString(decrypted);
+    fake_gatt_callbacks_->characteristics_[*accountkey_characteristic_]
+        .write_value.Set(std::string(decrypted));
+
+    account_key_ = AccountKey(decrypted);
+    return absl::OkStatus();
+  };
+}
+
+void FakeProvider::ConfigurePairingContext(absl::string_view pass_key) {
+  api::PairingParams pairing_params;
+  pairing_params.pairing_type =
+      api::PairingParams::PairingType::kConfirmPasskey;
+  pairing_params.passkey = pass_key;
+  auto device = MediumEnvironment::Instance().FindBluetoothDevice(
+      provider_medium_.GetMacAddress());
+  CHECK_NE(device, nullptr);
+  MediumEnvironment::Instance().ConfigBluetoothPairingContext(device,
+                                                              pairing_params);
+  CHECK(absl::SimpleAtoi(pass_key, &pass_key_));
+}
+
+void FakeProvider::PrepareForInitialPairing(
+    PairingConfig config, FakeGattCallbacks *fake_gatt_callbacks) {
+  LoadAntiSpoofingKey(config.private_key, config.public_key);
+  StartGattServer(fake_gatt_callbacks);
+  InsertCorrectGattCharacteristics();
+  SetKeyBasedPairingCallback();
+  SetPasskeyCallback();
+  SetAccountkeyCallback();
+  provider_adapter_.SetScanMode(
+      BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  ConfigurePairingContext(config.pass_key);
+  StartDiscoverableAdvertisement(config.model_id);
 }
 
 }  // namespace fastpair
