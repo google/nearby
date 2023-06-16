@@ -180,6 +180,7 @@ class EndpointManager {
           keep_alive_waiter_mutex_{
               std::exchange(other.keep_alive_waiter_mutex_, nullptr)},
           keep_alive_waiter_{std::exchange(other.keep_alive_waiter_, nullptr)},
+          stop_keep_alive_waiter_(std::move(other.stop_keep_alive_waiter_)),
           keep_alive_thread_{std::move(other.keep_alive_thread_)} {}
     EndpointState& operator=(const EndpointState&) = delete;
     EndpointState&& operator=(EndpointState&&) = delete;
@@ -187,7 +188,7 @@ class EndpointManager {
 
     void StartEndpointReader(Runnable&& runnable);
     void StartEndpointKeepAliveManager(
-        std::function<void(Mutex*, ConditionVariable*)> runnable);
+        std::function<void(Mutex*, ConditionVariable*, bool*)> runnable);
 
    private:
     const std::string endpoint_id_;
@@ -201,6 +202,8 @@ class EndpointManager {
     // std::move operations.
     mutable std::unique_ptr<Mutex> keep_alive_waiter_mutex_;
     std::unique_ptr<ConditionVariable> keep_alive_waiter_;
+    bool stop_keep_alive_waiter_ ABSL_GUARDED_BY(keep_alive_waiter_mutex_) =
+        false;
     SingleThreadExecutor keep_alive_thread_;
   };
 
@@ -231,7 +234,8 @@ class EndpointManager {
                                     absl::Duration keep_alive_interval,
                                     absl::Duration keep_alive_timeout,
                                     Mutex* keep_alive_waiter_mutex,
-                                    ConditionVariable* keep_alive_waiter);
+                                    ConditionVariable* keep_alive_waiter,
+                                    bool* stop_keep_alive_waiter);
 
   // Waits for a given endpoint EndpointChannelLoopRunnable() workers to
   // terminate.

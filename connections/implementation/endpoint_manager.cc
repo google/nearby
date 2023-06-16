@@ -229,7 +229,7 @@ ExceptionOr<bool> EndpointManager::HandleData(
 ExceptionOr<bool> EndpointManager::HandleKeepAlive(
     EndpointChannel* endpoint_channel, absl::Duration keep_alive_interval,
     absl::Duration keep_alive_timeout, Mutex* keep_alive_waiter_mutex,
-    ConditionVariable* keep_alive_waiter) {
+    ConditionVariable* keep_alive_waiter, bool* stop_keep_alive_waiter) {
   // Check if it has been too long since we received a frame from our endpoint.
   absl::Time last_read_time = endpoint_channel->GetLastReadTimestamp();
   absl::Duration duration_until_timeout =
@@ -263,9 +263,11 @@ ExceptionOr<bool> EndpointManager::HandleKeepAlive(
       std::min(duration_until_timeout, duration_until_write_keep_alive);
   {
     MutexLock lock(keep_alive_waiter_mutex);
-    Exception wait_exception = keep_alive_waiter->Wait(wait_for);
-    if (!wait_exception.Ok()) {
-      return ExceptionOr<bool>(wait_exception);
+    if (!(*stop_keep_alive_waiter) && (wait_for > absl::ZeroDuration())) {
+      Exception wait_exception = keep_alive_waiter->Wait(wait_for);
+      if (!wait_exception.Ok()) {
+        return ExceptionOr<bool>(wait_exception);
+      }
     }
   }
 
@@ -466,15 +468,17 @@ void EndpointManager::RegisterEndpoint(
     endpoint_state.StartEndpointKeepAliveManager(
         [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout](
             Mutex* keep_alive_waiter_mutex,
-            ConditionVariable* keep_alive_waiter) {
+            ConditionVariable* keep_alive_waiter,
+            bool* stop_keep_alive_waiter) {
           EndpointChannelLoopRunnable(
               "KeepAliveManager", client, endpoint_id,
               [this, keep_alive_interval, keep_alive_timeout,
-               keep_alive_waiter_mutex,
-               keep_alive_waiter](EndpointChannel* channel) {
+               keep_alive_waiter_mutex, keep_alive_waiter,
+               stop_keep_alive_waiter](EndpointChannel* channel) {
                 return HandleKeepAlive(
                     channel, keep_alive_interval, keep_alive_timeout,
-                    keep_alive_waiter_mutex, keep_alive_waiter);
+                    keep_alive_waiter_mutex, keep_alive_waiter,
+                    stop_keep_alive_waiter);
               });
         });
     NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id
@@ -728,6 +732,7 @@ EndpointManager::EndpointState::~EndpointState() {
   // Make sure the KeepAlive thread isn't blocking shutdown.
   if (keep_alive_waiter_mutex_ && keep_alive_waiter_) {
     MutexLock lock(keep_alive_waiter_mutex_.get());
+    stop_keep_alive_waiter_ = true;
     keep_alive_waiter_->Notify();
   }
 }
@@ -737,12 +742,14 @@ void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
 }
 
 void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
-    std::function<void(Mutex*, ConditionVariable*)> runnable) {
+    std::function<void(Mutex*, ConditionVariable*, bool*)> runnable) {
   keep_alive_thread_.Execute(
       "keep-alive",
       [runnable, keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),
-       keep_alive_waiter = keep_alive_waiter_.get()]() {
-        runnable(keep_alive_waiter_mutex, keep_alive_waiter);
+       keep_alive_waiter = keep_alive_waiter_.get(),
+       stop_keep_alive_waiter = &stop_keep_alive_waiter_]() {
+        runnable(keep_alive_waiter_mutex, keep_alive_waiter,
+                 stop_keep_alive_waiter);
       });
 }
 
