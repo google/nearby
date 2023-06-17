@@ -459,6 +459,7 @@ let package = Package(
         "connections/implementation/base_endpoint_channel_test.cc",
         "connections/v3/connections_device_test.cc",
         "connections/v3/connections_device_provider_test.cc",
+        "connections/implementation/connections_authentication_transport_test.cc",
         "connections/core_test.cc",
         "connections/status_test.cc",
         "connections/payload_test.cc",
