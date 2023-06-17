@@ -294,25 +294,18 @@ void ServiceControllerRouter::InitiateBandwidthUpgrade(
 void ServiceControllerRouter::SendPayload(
     ClientProxy* client, absl::Span<const std::string> endpoint_ids,
     Payload payload, const ResultCallback& callback) {
-  // Payload is a move-only type.
-  // We have to capture it by value inside the lambda, and pass it over to
-  // the executor as an std::function<void()> instance.
-  // Lambda must be copyable, in order ot satisfy std::function<> requirements.
-  // To make it so, we need Payload wrapped by a copyable wrapper.
-  // std::shared_ptr<> is used, because it is copyable.
-  auto shared_payload = std::make_shared<Payload>(std::move(payload));
   const std::vector<std::string> endpoints =
       std::vector<std::string>(endpoint_ids.begin(), endpoint_ids.end());
 
-  RouteToServiceController("scr-send-payload", [this, client, shared_payload,
-                                                endpoints, callback]() {
+  RouteToServiceController("scr-send-payload", [this, client,
+                                                payload = std::move(payload),
+                                                endpoints, callback]() mutable {
     if (!ClientHasConnectionToAtLeastOneEndpoint(client, endpoints)) {
       callback.result_cb({Status::kEndpointUnknown});
       return;
     }
 
-    GetServiceController()->SendPayload(client, endpoints,
-                                        std::move(*shared_payload));
+    GetServiceController()->SendPayload(client, endpoints, std::move(payload));
 
     // At this point, we've queued up the send Payload request with the
     // ServiceController; any further failures (e.g. one of the endpoints is
@@ -575,26 +568,17 @@ void ServiceControllerRouter::InitiateBandwidthUpgradeV3(
 void ServiceControllerRouter::SendPayloadV3(
     ClientProxy* client, const NearbyDevice& recipient_device, Payload payload,
     const ResultCallback& callback) {
-  // Payload is a move-only type.
-  // We have to capture it by value inside the lambda, and pass it over to
-  // the executor as an std::function<void()> instance.
-  // Lambda must be copyable, in order ot satisfy std::function<> requirements.
-  // To make it so, we need Payload wrapped by a copyable wrapper.
-  // std::shared_ptr<> is used, because it is copyable.
-  auto shared_payload = std::make_shared<Payload>(std::move(payload));
-
   RouteToServiceController(
       "scr-send-payload",
-      [this, client, shared_payload,
-       endpoint_id = recipient_device.GetEndpointId(), callback]() {
+      [this, client, payload = std::move(payload),
+       endpoint_id = recipient_device.GetEndpointId(), callback]() mutable {
         if (!client->IsConnectedToEndpoint(endpoint_id)) {
           callback.result_cb({Status::kEndpointUnknown});
           return;
         }
 
         GetServiceController()->SendPayload(
-            client, std::vector<std::string>{endpoint_id},
-            std::move(*shared_payload));
+            client, std::vector<std::string>{endpoint_id}, std::move(payload));
 
         // At this point, we've queued up the send Payload request with the
         // ServiceController; any further failures (e.g. one of the endpoints is
