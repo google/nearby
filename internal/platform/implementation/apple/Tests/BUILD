@@ -13,7 +13,7 @@
 # limitations under the License.
 
 load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
-load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS", "IOS_MINIMUM_TEST_RUNNER")
+load("//third_party/nearby:minimum_os.bzl", "IOS_LATEST_TEST_RUNNER", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
@@ -49,7 +49,7 @@ objc_library(
 ios_unit_test(
     name = "PlatformTests",
     minimum_os_version = IOS_MINIMUM_OS,
-    runner = IOS_MINIMUM_TEST_RUNNER,
+    runner = IOS_LATEST_TEST_RUNNER,
     deps = [
         ":PlatformTestslib",
     ],
