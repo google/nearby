@@ -24,7 +24,6 @@ typedef NS_CLOSED_ENUM(NSInteger, GNCStatus) {
   GNCStatusAlreadyHaveActiveStrategy,
   GNCStatusAlreadyAdvertising,
   GNCStatusAlreadyDiscovering,
-  GNCStatusAlreadyListening,
   GNCStatusEndpointIoError,
   GNCStatusEndpointUnknown,
   GNCStatusConnectionRejected,

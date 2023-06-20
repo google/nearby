@@ -98,7 +98,6 @@ class ClientProxy final {
       absl::string_view service_id, Strategy strategy,
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options);
-  void StoppedListeningForIncomingConnections();
   bool IsListeningForIncomingConnections() const;
   std::string GetListeningForIncomingConnectionsServiceId() const;
 

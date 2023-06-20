@@ -67,8 +67,6 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
       return GNCStatusAlreadyAdvertising;
     case Status::kAlreadyDiscovering:
       return GNCStatusAlreadyDiscovering;
-    case Status::kAlreadyListening:
-      return GNCStatusAlreadyListening;
     case Status::kEndpointIoError:
       return GNCStatusEndpointIoError;
     case Status::kEndpointUnknown:

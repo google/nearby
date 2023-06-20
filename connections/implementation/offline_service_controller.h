@@ -61,7 +61,9 @@ class OfflineServiceController : public ServiceController {
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options) override;
 
-  void StopListeningForIncomingConnections(ClientProxy* client) override;
+  void StopListeningForIncomingConnections(ClientProxy* client) override {
+    // TODO(b/283823898): Implement.
+  }
 
   Status RequestConnection(
       ClientProxy* client, const std::string& endpoint_id,

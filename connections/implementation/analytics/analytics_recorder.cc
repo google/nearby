@@ -224,14 +224,6 @@ void AnalyticsRecorder::OnStartedIncomingConnectionListening(
   }
 }
 
-void AnalyticsRecorder::OnStoppedIncomingConnectionListening() {
-  MutexLock lock(&mutex_);
-  if (!CanRecordAnalyticsLocked("OnStoppedIncomingConnectionListening")) {
-    return;
-  }
-  RecordAdvertisingPhaseDurationLocked();
-}
-
 void AnalyticsRecorder::OnEndpointFound(Medium medium) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnEndpointFound")) {

@@ -70,7 +70,6 @@ std::vector<StatusToStringData> GetTestData() {
        "kAlreadyHaveActiveStrategy"},
       {Status{.value = Status::kAlreadyAdvertising}, "kAlreadyAdvertising"},
       {Status{.value = Status::kAlreadyDiscovering}, "kAlreadyDiscovering"},
-      {Status{.value = Status::kAlreadyListening}, "kAlreadyListening"},
       {Status{.value = Status::kEndpointIoError}, "kEndpointIoError"},
       {Status{.value = Status::kEndpointUnknown}, "kEndpointUnknown"},
       {Status{.value = Status::kConnectionRejected}, "kConnectionRejected"},

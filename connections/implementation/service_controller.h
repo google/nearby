@@ -17,7 +17,6 @@
 
 #include <cstdint>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "connections/advertising_options.h"
@@ -80,8 +79,7 @@ class ServiceController {
                               const std::string& service_id,
                               const OutOfBandConnectionMetadata& metadata) = 0;
 
-  virtual std::pair<Status, std::vector<ConnectionInfoVariant>>
-  StartListeningForIncomingConnections(
+  virtual Status StartListeningForIncomingConnections(
       ClientProxy* client, absl::string_view service_id,
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options) = 0;

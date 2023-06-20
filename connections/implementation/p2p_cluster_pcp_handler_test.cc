@@ -366,58 +366,6 @@ TEST_P(P2pClusterPcpHandlerTest, CanStartListeningForIncomingConnections) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanStopListeningForIncomingConnections) {
-  env_.Start();
-  std::string endpoint_name_a{"endpoint_name"};
-  Mediums mediums_a;
-  BluetoothRadio& radio_a = mediums_a.GetBluetoothRadio();
-  radio_a.GetBluetoothAdapter().SetName("BT Device A");
-  EndpointChannelManager ecm_a;
-  EndpointManager em_a(&ecm_a);
-  BwuManager bwu_a(mediums_a, em_a, ecm_a, {},
-                   {.allow_upgrade_to = {.bluetooth = true}});
-  InjectedBluetoothDeviceStore ibds_a;
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
-  v3::ConnectionListeningOptions v3_options{
-      .strategy = Strategy::kP2pCluster,
-      .enable_ble_listening = true,
-      .enable_bluetooth_listening = true,
-      .enable_wlan_listening = true,
-  };
-  // make sure mediums are not accepting before calling handler.
-  ASSERT_FALSE(
-      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
-  ASSERT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    ASSERT_FALSE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
-  // call handler.
-  auto result = handler_a.StartListeningForIncomingConnections(
-      &client_a_, service_id_, v3_options, {});
-  // now check to make sure we are in fact accepting connections.
-  ASSERT_TRUE(
-      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
-  ASSERT_TRUE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    ASSERT_TRUE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    ASSERT_TRUE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
-  // stop.
-  handler_a.StopListeningForIncomingConnections(&client_a_);
-  EXPECT_FALSE(
-      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
-  EXPECT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    EXPECT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    EXPECT_FALSE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
-  env_.Stop();
-}
-
 INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTest,
                          ::testing::Combine(::testing::ValuesIn(kTestCases),
                                             ::testing::Bool()));

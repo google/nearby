@@ -78,11 +78,6 @@ OfflineServiceController::StartListeningForIncomingConnections(
       client, service_id, std::move(listener), options);
 }
 
-void OfflineServiceController::StopListeningForIncomingConnections(
-    ClientProxy* client) {
-  pcp_manager_.StopListeningForIncomingConnections(client);
-}
-
 void OfflineServiceController::InjectEndpoint(
     ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {

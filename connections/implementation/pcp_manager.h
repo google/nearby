@@ -63,8 +63,6 @@ class PcpManager {
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options);
 
-  void StopListeningForIncomingConnections(ClientProxy* client);
-
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata);
 

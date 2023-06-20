@@ -174,15 +174,5 @@ void SimulationUser::RejectConnection(CountDownLatch* latch) {
   EXPECT_TRUE(mgr_.RejectConnection(&client_, discovered_.endpoint_id).Ok());
 }
 
-void SimulationUser::StartListeningForIncomingConnections(
-    CountDownLatch* latch, absl::string_view service_id,
-    const v3::ConnectionListeningOptions& options, Status expected_status) {
-  auto result = mgr_.StartListeningForIncomingConnections(
-      &client_, service_id, /*listener=*/{}, options);
-  latch->CountDown();
-  NEARBY_LOGS(INFO) << "status: " << result.first.ToString();
-  EXPECT_EQ(expected_status, result.first);
-}
-
 }  // namespace connections
 }  // namespace nearby
