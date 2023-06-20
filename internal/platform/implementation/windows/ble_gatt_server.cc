@@ -210,6 +210,8 @@ void BleGattServer::Stop() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 }
 
@@ -344,6 +346,8 @@ bool BleGattServer::InitializeGattServer() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 
   // Clean up.
@@ -396,6 +400,8 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 
   is_advertising_ = false;
@@ -434,6 +440,8 @@ bool BleGattServer::StopAdvertisement() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 
   return false;
@@ -484,6 +492,8 @@ bool BleGattServer::StopAdvertisement() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 
   deferral.Complete();
@@ -582,6 +592,8 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 }
 
@@ -633,6 +645,8 @@ void BleGattServer::NotifyValueChanged(
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
 }
 

@@ -223,6 +223,9 @@ bool BleMedium::StartAdvertising(
                        << ": " << winrt::to_string(ex.message());
 
     return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    return false;
   }
 }
 
@@ -260,6 +263,9 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
                        << ": Exception to stop BLE advertising: " << ex.code()
                        << ": " << winrt::to_string(ex.message());
 
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
     return false;
   }
 }
@@ -322,6 +328,9 @@ bool BleMedium::StartScanning(
                        << ": " << winrt::to_string(ex.message());
 
     return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    return false;
   }
 }
 
@@ -361,6 +370,9 @@ bool BleMedium::StopScanning(const std::string& service_id) {
                        << ": Exception to stop BLE scanning: " << ex.code()
                        << ": " << winrt::to_string(ex.message());
 
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
     return false;
   }
 }

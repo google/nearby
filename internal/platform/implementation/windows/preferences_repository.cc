@@ -100,6 +100,9 @@ bool PreferencesRepository::SavePreferences(json preferences) {
   } catch (const std::exception& e) {
     NEARBY_LOGS(ERROR) << "Failed to save preferences file: " << e.what();
     return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    return false;
   }
 
   return true;
@@ -129,6 +132,9 @@ std::optional<json> PreferencesRepository::AttemptLoad() {
     return preferences;
   } catch (const std::exception& e) {
     NEARBY_LOGS(ERROR) << "Exception while loading preferences: " << e.what();
+    return std::nullopt;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
     return std::nullopt;
   }
 }
