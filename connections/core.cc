@@ -341,10 +341,9 @@ void Core::StopDiscoveryV3(ResultCallback result_cb) {
 
 void Core::StartListeningForIncomingConnectionsV3(
     const v3::ConnectionListeningOptions& options, absl::string_view service_id,
-    v3::ConnectionListener listener_cb, v3::ListeningResultListener result_cb) {
-  router_->StartListeningForIncomingConnectionsV3(
-      &client_, service_id, std::move(listener_cb), options,
-      std::move(result_cb));
+    v3::ConnectionListener listener_cb, ResultCallback result_cb) {
+  result_cb.result_cb(router_->StartListeningForIncomingConnectionsV3(
+      &client_, service_id, std::move(listener_cb), options));
 }
 
 void Core::StopListeningForIncomingConnectionsV3() {

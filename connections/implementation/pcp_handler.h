@@ -15,7 +15,6 @@
 #ifndef CORE_INTERNAL_PCP_HANDLER_H_
 #define CORE_INTERNAL_PCP_HANDLER_H_
 
-#include <utility>
 #include <vector>
 
 #include "connections/implementation/client_proxy.h"
@@ -87,12 +86,6 @@ class PcpHandler {
   // If Discovery is active, stop it, and change CLientProxy state,
   // otherwise do nothing.
   virtual void StopDiscovery(ClientProxy* client) = 0;
-
-  virtual std::pair<Status, std::vector<ConnectionInfoVariant>>
-  StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
-      v3::ConnectionListeningOptions options,
-      v3::ConnectionListener connection_listener) = 0;
 
   virtual void StopListeningForIncomingConnections(ClientProxy* client) = 0;
 

@@ -57,12 +57,6 @@ class PcpManager {
                         DiscoveryListener listener);
   void StopDiscovery(ClientProxy* client);
 
-  std::pair<Status, std::vector<ConnectionInfoVariant>>
-  StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
-      v3::ConnectionListener listener,
-      const v3::ConnectionListeningOptions& options);
-
   void StopListeningForIncomingConnections(ClientProxy* client);
 
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,

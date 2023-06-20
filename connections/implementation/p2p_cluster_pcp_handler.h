@@ -93,12 +93,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       BasePcpHandler::DiscoveredEndpoint* endpoint) override;
 
   // @PCPHandlerThread
-  BasePcpHandler::StartOperationResult StartListeningForIncomingConnectionsImpl(
-      ClientProxy* client_proxy, absl::string_view service_id,
-      absl::string_view local_endpoint_id,
-      v3::ConnectionListeningOptions options) override;
-
-  // @PCPHandlerThread
   void StopListeningForIncomingConnectionsImpl(ClientProxy* client) override;
 
  private:
