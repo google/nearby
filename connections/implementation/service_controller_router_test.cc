@@ -30,10 +30,8 @@
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "connections/v3/bandwidth_info.h"
-#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
-#include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
@@ -423,34 +421,6 @@ class ServiceControllerRouterTest : public testing::Test {
     }
     client->OnDisconnected(kRemoteDevice.GetEndpointId(), false);
     EXPECT_FALSE(client->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
-  }
-
-  void StartListeningForIncomingConnectionsV3(
-      ClientProxy* client, absl::string_view service_id,
-      v3::ConnectionListener listener,
-      const v3::ConnectionListeningOptions& options,
-      v3::ListeningResultListener result_listener, bool expecting_call = true) {
-    if (expecting_call) {
-      EXPECT_CALL(*mock_, StartListeningForIncomingConnections)
-          .Times(1)
-          .WillOnce([](ClientProxy* client, absl::string_view service_id,
-                       v3::ConnectionListener,
-                       const v3::ConnectionListeningOptions& options) {
-            client->StartedListeningForIncomingConnections(
-                service_id, options.strategy, {}, options);
-            return std::pair<Status, std::vector<ConnectionInfoVariant>>{
-                Status{Status::kSuccess}, {}};
-          });
-    }
-    {
-      MutexLock lock(&mutex_);
-      complete_ = false;
-      router_.StartListeningForIncomingConnectionsV3(
-          client, service_id, std::move(listener), options,
-          std::move(result_listener));
-      while (!complete_) cond_.Wait();
-      EXPECT_TRUE(client->IsListeningForIncomingConnections());
-    }
   }
 
  protected:
@@ -873,46 +843,6 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
   // It is either after a call to SendPayload, or after receiving
   // PayloadProgress callback. Let's assume we have it, and proceed.
   CancelPayloadV3(&client_, kRemoteDevice, kPayloadId, kCallback);
-}
-
-TEST_F(ServiceControllerRouterTest,
-       StartListeningForIncomingConnectionsCalledV3) {
-  StartListeningForIncomingConnectionsV3(
-      &client_, kServiceId, {}, {},
-      [this](std::pair<Status, v3::ListeningResult> result) {
-        EXPECT_TRUE(result.first.Ok());
-        {
-          MutexLock lock(&mutex_);
-          complete_ = true;
-        }
-        cond_.Notify();
-      });
-}
-
-TEST_F(ServiceControllerRouterTest,
-       StartListeningForIncomingConnectionsCalledV3TwiceFails) {
-  StartListeningForIncomingConnectionsV3(
-      &client_, kServiceId, {}, {},
-      [this](std::pair<Status, v3::ListeningResult> result) {
-        EXPECT_TRUE(result.first.Ok());
-        {
-          MutexLock lock(&mutex_);
-          complete_ = true;
-        }
-        cond_.Notify();
-      });
-
-  StartListeningForIncomingConnectionsV3(
-      &client_, kServiceId, {}, {},
-      [this](std::pair<Status, v3::ListeningResult> result) {
-        EXPECT_EQ(result.first.value, Status::kAlreadyListening);
-        {
-          MutexLock lock(&mutex_);
-          complete_ = true;
-        }
-        cond_.Notify();
-      },
-      /*expecting_call=*/false);
 }
 
 }  // namespace

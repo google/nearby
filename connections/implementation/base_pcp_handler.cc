@@ -33,20 +33,11 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
-#include "connections/status.h"
-#include "connections/v3/connections_device.h"
-#include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
-#include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/cancelable_alarm.h"
-#include "internal/platform/connection_info.h"
-#include "internal/platform/count_down_latch.h"
-#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/wifi_lan_connection_info.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -95,67 +86,6 @@ void BasePcpHandler::DisconnectFromEndpointManager() {
   // Unregister ourselves from EPM message dispatcher.
   endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
                                               this);
-}
-
-std::pair<Status, std::vector<ConnectionInfoVariant>>
-BasePcpHandler::StartListeningForIncomingConnections(
-    ClientProxy* client, absl::string_view service_id,
-    v3::ConnectionListeningOptions options,
-    v3::ConnectionListener connection_listener) {
-  Future<std::pair<Status, std::vector<ConnectionInfoVariant>>> response;
-  RunOnPcpHandlerThread(
-      "start-listening-for-incoming-conn",
-      [this, client, service_id, options, &response,
-       connection_listener = std::move(
-           connection_listener)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        StartOperationResult result = StartListeningForIncomingConnectionsImpl(
-            client, service_id, client->GetLocalEndpointId(), options);
-        if (!result.status.Ok()) {
-          response.Set({result.status, {}});
-          return;
-        }
-        client->StartedListeningForIncomingConnections(
-            service_id, GetStrategy(), std::move(connection_listener), options);
-        response.Set(
-            {result.status, GetConnectionInfoFromResult(service_id, result)});
-      });
-  return response.Get().GetResult();
-}
-
-std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
-    absl::string_view service_id, StartOperationResult result) {
-  std::vector<ConnectionInfoVariant> connection_infos;
-  for (const auto& medium : result.mediums) {
-    if (medium == location::nearby::proto::connections::BLUETOOTH) {
-      BluetoothConnectionInfo info(
-          mediums_->GetBluetoothClassic().GetMacAddress(), "", {});
-      connection_infos.push_back(info);
-    } else if (medium == location::nearby::proto::connections::BLE) {
-      // TODO(b/284311319): Add relevant information.
-      BleConnectionInfo info("", "", "", {});
-      connection_infos.push_back(info);
-    } else if (medium == location::nearby::proto::connections::WIFI_LAN) {
-      std::pair<std::string, int> ip_port_pair =
-          mediums_->GetWifiLan().GetCredentials(std::string(service_id));
-      WifiLanConnectionInfo info(
-          ip_port_pair.first,
-          absl::StrCat(absl::Hex(ip_port_pair.second, absl::kZeroPad16)), "",
-          {});
-      connection_infos.push_back(info);
-    }
-  }
-  return connection_infos;
-}
-
-void BasePcpHandler::StopListeningForIncomingConnections(ClientProxy* client) {
-  CountDownLatch latch(1);
-  RunOnPcpHandlerThread("stop-listening-for-incoming-conn",
-                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-                          StopListeningForIncomingConnectionsImpl(client);
-                          client->StoppedListeningForIncomingConnections();
-                          latch.CountDown();
-                        });
-  WaitForLatch("StopListeningForIncomingConnections", &latch);
 }
 
 Status BasePcpHandler::StartAdvertising(
@@ -1332,13 +1262,12 @@ Exception BasePcpHandler::OnIncomingConnection(
   //  Fixes an NPE in ClientProxy.OnConnectionAccepted. The crash happened when
   //  the client stopped advertising and we nulled out state, followed by an
   //  incoming connection where we attempted to check that state.
-  if (!client->IsAdvertising() &&
-      !client->IsListeningForIncomingConnections()) {
+  if (!client->IsAdvertising()) {
     NEARBY_LOGS(WARNING) << "Ignoring incoming connection on medium "
                          << location::nearby::proto::connections::Medium_Name(
                                 channel->GetMedium())
                          << " because client=" << client->GetClientId()
-                         << " is no longer waiting for incoming connections.";
+                         << " is no longer advertising.";
     return {Exception::kIo};
   }
 
@@ -1456,8 +1385,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   pendingConnectionInfo.nonce = connection_request.nonce();
   pendingConnectionInfo.is_incoming = true;
   pendingConnectionInfo.start_time = start_time;
-  pendingConnectionInfo.listener =
-      client->GetAdvertisingOrIncomingConnectionListener();
+  pendingConnectionInfo.listener = advertising_listener_;
   pendingConnectionInfo.connection_options = connection_options;
   pendingConnectionInfo.supported_mediums =
       parser::ConnectionRequestMediumsToMediums(connection_request);

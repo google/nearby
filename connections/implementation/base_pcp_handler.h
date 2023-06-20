@@ -36,11 +36,9 @@
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/status.h"
-#include "connections/v3/listeners.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
-#include "internal/platform/connection_info.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
 #include "internal/platform/prng.h"
@@ -78,14 +76,6 @@ class BasePcpHandler : public PcpHandler,
   ~BasePcpHandler() override;
   BasePcpHandler(BasePcpHandler&&) = delete;
   BasePcpHandler& operator=(BasePcpHandler&&) = delete;
-
-  std::pair<Status, std::vector<ConnectionInfoVariant>>
-  StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
-      v3::ConnectionListeningOptions options,
-      v3::ConnectionListener connection_listener) override;
-
-  void StopListeningForIncomingConnections(ClientProxy* client) override;
 
   // Starts advertising. Once successfully started, changes ClientProxy's state.
   // Notifies ConnectionListener (info.listener) in case of any event.
@@ -284,14 +274,6 @@ class BasePcpHandler : public PcpHandler,
   virtual Status StopDiscoveryImpl(ClientProxy* client)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual StartOperationResult StartListeningForIncomingConnectionsImpl(
-      ClientProxy* client_proxy, absl::string_view service_id,
-      absl::string_view local_endpoint_id,
-      v3::ConnectionListeningOptions options) RUN_ON_PCP_HANDLER_THREAD() = 0;
-
-  virtual void StopListeningForIncomingConnectionsImpl(ClientProxy* client)
-      RUN_ON_PCP_HANDLER_THREAD() = 0;
-
   virtual Status InjectEndpointImpl(ClientProxy* client,
                                     const std::string& service_id,
                                     const OutOfBandConnectionMetadata& metadata)
@@ -326,10 +308,6 @@ class BasePcpHandler : public PcpHandler,
   void StopEndpointLostByMediumAlarm(
       absl::string_view endpoint_id,
       location::nearby::proto::connections::Medium medium);
-
-  // Returns a vector of ConnectionInfos generated from a StartOperationResult.
-  std::vector<ConnectionInfoVariant> GetConnectionInfoFromResult(
-      absl::string_view service_id, StartOperationResult result);
 
   mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
       const string& service_id, const string& endpoint_id,

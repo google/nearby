@@ -33,7 +33,6 @@ struct Status {
     kAlreadyHaveActiveStrategy,
     kAlreadyAdvertising,
     kAlreadyDiscovering,
-    kAlreadyListening,
     kEndpointIoError,
     kEndpointUnknown,
     kConnectionRejected,

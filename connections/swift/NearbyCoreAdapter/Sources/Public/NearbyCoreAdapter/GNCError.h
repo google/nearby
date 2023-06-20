@@ -28,7 +28,6 @@ typedef NS_ERROR_ENUM(GNCErrorDomain, GNCErrorCode){
     GNCErrorAlreadyHaveActiveStrategy,
     GNCErrorAlreadyAdvertising,
     GNCErrorAlreadyDiscovering,
-    GNCErrorAlreadyListening,
     GNCErrorEndpointIoError,
     GNCErrorEndpointUnknown,
     GNCErrorConnectionRejected,

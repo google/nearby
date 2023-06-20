@@ -212,26 +212,6 @@ void AnalyticsRecorder::OnStopDiscovery() {
   RecordDiscoveryPhaseDurationLocked();
 }
 
-void AnalyticsRecorder::OnStartedIncomingConnectionListening(
-    connections::Strategy strategy) {
-  MutexLock lock(&mutex_);
-  if (!CanRecordAnalyticsLocked("OnStartedIncomingConnectionListening")) {
-    return;
-  }
-  UpdateStrategySessionLocked(strategy, ADVERTISER);
-  if (started_advertising_phase_time_ == absl::Now()) {
-    started_advertising_phase_time_ = SystemClock::ElapsedRealtime();
-  }
-}
-
-void AnalyticsRecorder::OnStoppedIncomingConnectionListening() {
-  MutexLock lock(&mutex_);
-  if (!CanRecordAnalyticsLocked("OnStoppedIncomingConnectionListening")) {
-    return;
-  }
-  RecordAdvertisingPhaseDurationLocked();
-}
-
 void AnalyticsRecorder::OnEndpointFound(Medium medium) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnEndpointFound")) {

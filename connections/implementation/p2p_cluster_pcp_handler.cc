@@ -31,11 +31,8 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
-#include "connections/medium_selector.h"
 #include "connections/power_level.h"
-#include "connections/status.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/types.h"
 #include "proto/connections_enums.pb.h"
@@ -1141,125 +1138,6 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
   return BasePcpHandler::ConnectImplResult{
       .status = {Status::kError},
   };
-}
-
-BasePcpHandler::StartOperationResult
-P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
-    ClientProxy* client_proxy, absl::string_view service_id,
-    absl::string_view local_endpoint_id,
-    v3::ConnectionListeningOptions options) {
-  std::vector<Medium> started_mediums;
-  if (options.enable_bluetooth_listening &&
-      !bluetooth_medium_.IsAcceptingConnections(std::string(service_id))) {
-    if (!bluetooth_medium_.StartAcceptingConnections(
-            std::string(service_id),
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
-                 this, client_proxy, local_endpoint_id)})) {
-      NEARBY_LOGS(WARNING)
-          << "Failed to start listening for incoming connections on Bluetooth";
-    } else {
-      started_mediums.push_back(
-          location::nearby::proto::connections::BLUETOOTH);
-    }
-  }
-  // ble
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    // ble_v2
-    if (options.enable_ble_listening &&
-        !ble_v2_medium_.IsAcceptingConnections(std::string(service_id))) {
-      if (!ble_v2_medium_.StartAcceptingConnections(
-              std::string(service_id),
-              {.accepted_cb = absl::bind_front(
-                   &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
-                   client_proxy, local_endpoint_id)})) {
-        NEARBY_LOGS(WARNING)
-            << "Failed to start listening for incoming connections on ble_v2";
-      } else {
-        started_mediums.push_back(location::nearby::proto::connections::BLE);
-      }
-    }
-  } else {
-    // ble v1
-    if (options.enable_ble_listening &&
-        !ble_medium_.IsAcceptingConnections(std::string(service_id))) {
-      if (!ble_medium_.StartAcceptingConnections(
-              std::string(service_id),
-              {.accepted_cb = absl::bind_front(
-                   &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
-                   client_proxy, local_endpoint_id)})) {
-        NEARBY_LOGS(WARNING)
-            << "Failed to start listening for incoming connections on ble";
-      } else {
-        started_mediums.push_back(location::nearby::proto::connections::BLE);
-      }
-    }
-  }
-  if (options.enable_wlan_listening &&
-      !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
-    if (!wifi_lan_medium_.StartAcceptingConnections(
-            std::string(service_id),
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
-                 client_proxy, local_endpoint_id, "")})) {
-      NEARBY_LOGS(WARNING)
-          << "Failed to start listening for incoming connections on wifi_lan";
-    } else {
-      started_mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
-    }
-  }
-  if (started_mediums.empty()) {
-    NEARBY_LOGS(WARNING) << absl::StrFormat(
-        "Failed StartListeningForIncomingConnectionsImpl() for client %d for "
-        "service_id %s",
-        client_proxy->GetClientId(), service_id);
-    return StartOperationResult{
-        .status = {Status::kError},
-    };
-  }
-  return BasePcpHandler::StartOperationResult{
-      .status = {Status::kSuccess}, .mediums = std::move(started_mediums)};
-}
-
-void P2pClusterPcpHandler::StopListeningForIncomingConnectionsImpl(
-    ClientProxy* client) {
-  if (wifi_lan_medium_.IsAcceptingConnections(
-          client->GetListeningForIncomingConnectionsServiceId())) {
-    if (!wifi_lan_medium_.StopAcceptingConnections(
-            client->GetListeningForIncomingConnectionsServiceId())) {
-      NEARBY_LOGS(WARNING)
-          << "Unable to stop wifi lan from accepting connections.";
-    }
-  }
-  if (bluetooth_medium_.IsAcceptingConnections(
-          client->GetListeningForIncomingConnectionsServiceId())) {
-    if (!bluetooth_medium_.StopAcceptingConnections(
-            client->GetListeningForIncomingConnectionsServiceId())) {
-      NEARBY_LOGS(WARNING)
-          << "Unable to stop bluetooth medium from accepting connections.";
-    }
-  }
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    if (ble_v2_medium_.IsAcceptingConnections(
-            client->GetListeningForIncomingConnectionsServiceId())) {
-      if (!ble_v2_medium_.StopAcceptingConnections(
-              client->GetListeningForIncomingConnectionsServiceId())) {
-        NEARBY_LOGS(WARNING)
-            << "Unable to stop ble_v2 medium from accepting connections.";
-      }
-    }
-  } else {
-    if (ble_medium_.IsAcceptingConnections(
-            client->GetListeningForIncomingConnectionsServiceId())) {
-      if (!ble_medium_.StopAcceptingConnections(
-              client->GetListeningForIncomingConnectionsServiceId())) {
-        NEARBY_LOGS(WARNING)
-            << "Unable to stop ble medium from accepting connections.";
-      }
-    }
-  }
 }
 
 void P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler(

@@ -69,20 +69,6 @@ void OfflineServiceController::StopDiscovery(ClientProxy* client) {
   pcp_manager_.StopDiscovery(client);
 }
 
-std::pair<Status, std::vector<ConnectionInfoVariant>>
-OfflineServiceController::StartListeningForIncomingConnections(
-    ClientProxy* client, absl::string_view service_id,
-    v3::ConnectionListener listener,
-    const v3::ConnectionListeningOptions& options) {
-  return pcp_manager_.StartListeningForIncomingConnections(
-      client, service_id, std::move(listener), options);
-}
-
-void OfflineServiceController::StopListeningForIncomingConnections(
-    ClientProxy* client) {
-  pcp_manager_.StopListeningForIncomingConnections(client);
-}
-
 void OfflineServiceController::InjectEndpoint(
     ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {

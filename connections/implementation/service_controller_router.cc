@@ -28,7 +28,6 @@
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
-#include "connections/v3/listening_result.h"
 #include "internal/platform/logging.h"
 
 // TODO(b/285657711): Add tests for uncovered logic, even if trivial.
@@ -346,43 +345,17 @@ void ServiceControllerRouter::DisconnectFromEndpoint(
       });
 }
 
-void ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
+Status ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
     ClientProxy* client, absl::string_view service_id,
     v3::ConnectionListener listener,
-    const v3::ConnectionListeningOptions& options,
-    v3::ListeningResultListener callback) {
-  RouteToServiceController(
-      "scr-start-listening-for-incoming-connections",
-      [this, client, callback = std::move(callback), service_id,
-       listener = std::move(listener), options]() mutable {
-        if (client->IsListeningForIncomingConnections()) {
-          callback({{Status::kAlreadyListening},
-                    {
-                        .endpoint_id = client->GetLocalEndpointId(),
-                        .connection_info = {},
-                    }});
-          return;
-        }
-        auto pair =
-            GetServiceController()->StartListeningForIncomingConnections(
-                client, service_id, std::move(listener), options);
-        v3::ListeningResult result = {
-            .endpoint_id = client->GetLocalEndpointId(),
-            .connection_info = pair.second,
-        };
-        callback(std::make_pair(pair.first, result));
-      });
+    const v3::ConnectionListeningOptions& options) {
+  return GetServiceController()->StartListeningForIncomingConnections(
+      client, service_id, std::move(listener), options);
 }
 
 void ServiceControllerRouter::StopListeningForIncomingConnectionsV3(
     ClientProxy* client) {
-  RouteToServiceController(
-      "scr-stop-listening-for-incoming-connections", [this, client]() {
-        if (!client->IsListeningForIncomingConnections()) {
-          return;
-        }
-        GetServiceController()->StopListeningForIncomingConnections(client);
-      });
+  GetServiceController()->StopListeningForIncomingConnections(client);
 }
 
 void ServiceControllerRouter::RequestConnectionV3(

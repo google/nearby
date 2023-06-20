@@ -29,12 +29,10 @@
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/strategy.h"
-#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
@@ -1023,44 +1021,6 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
 TEST_F(ClientProxyTest, TestGetSetLocalEndpointInfo) {
   client1_.UpdateLocalEndpointInfo("endpoint_info");
   EXPECT_EQ(client1_.GetLocalEndpointInfo(), "endpoint_info");
-}
-
-TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
-  CountDownLatch result_latch(2);
-  CountDownLatch bwu_latch(1);
-  CountDownLatch disconnect_latch(1);
-  CountDownLatch init_latch(1);
-  client1_.StartedListeningForIncomingConnections(
-      service_id_, Strategy::kP2pCluster,
-      {
-          .initiated_cb =
-              [&init_latch](const NearbyDevice&,
-                            const v3::InitialConnectionInfo&) {
-                init_latch.CountDown();
-              },
-          .result_cb = [&result_latch](
-                           const NearbyDevice&,
-                           v3::ConnectionResult) { result_latch.CountDown(); },
-          .disconnected_cb =
-              [&disconnect_latch](const NearbyDevice&) {
-                disconnect_latch.CountDown();
-              },
-          .bandwidth_changed_cb =
-              [&bwu_latch](const NearbyDevice&, v3::BandwidthInfo) {
-                bwu_latch.CountDown();
-              },
-      },
-      {});
-  auto listener = client1_.GetAdvertisingOrIncomingConnectionListener();
-  listener.accepted_cb("endpoint-id");
-  listener.initiated_cb("endpoint-id", {.is_incoming_connection = false});
-  listener.disconnected_cb("endpoint-id");
-  listener.rejected_cb("endpoint-id", {Status::Value::kConnectionRejected});
-  listener.bandwidth_changed_cb("endpoint-id", Medium::WIFI_LAN);
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(init_latch.Await().Ok());
-  EXPECT_TRUE(bwu_latch.Await().Ok());
-  EXPECT_TRUE(disconnect_latch.Await().Ok());
 }
 
 }  // namespace
