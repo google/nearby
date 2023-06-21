@@ -79,10 +79,16 @@ PresenceDeviceProvider* FakePresenceService::GetLocalDeviceProvider() {
   return nullptr;
 }
 
-// Not implemented.
 void FakePresenceService::GetLocalPublicCredentials(
     const CredentialSelector& credential_selector,
-    GetPublicCredentialsResultCallback callback) {}
+    GetPublicCredentialsResultCallback callback) {
+  if (get_public_credentials_status_.ok()) {
+    std::move(callback.credentials_fetched_cb)(shared_credentials_);
+    return;
+  }
+
+  std::move(callback.credentials_fetched_cb)(get_public_credentials_status_);
+}
 
 void FakePresenceService::UpdateRemotePublicCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,

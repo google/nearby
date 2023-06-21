@@ -89,12 +89,20 @@ class FakePresenceService : public PresenceService {
     update_remote_public_credentials_status_ = status;
   }
 
+  void SetLocalPublicCredentialsResult(
+      absl::Status status,
+      std::vector<nearby::internal::SharedCredential> shared_credentials) {
+    get_public_credentials_status_ = status;
+    shared_credentials_ = shared_credentials;
+  }
+
  private:
   FakePresenceClient* most_recent_fake_presence_client_ = nullptr;
   std::vector<nearby::internal::SharedCredential> shared_credentials_;
   std::vector<nearby::internal::SharedCredential> remote_shared_credentials_;
   absl::Status gen_credentials_status_;
   absl::Status update_remote_public_credentials_status_;
+  absl::Status get_public_credentials_status_;
   ::nearby::internal::Metadata metadata_;
   ::nearby::Lender<PresenceService*> lender_{this};
 };
