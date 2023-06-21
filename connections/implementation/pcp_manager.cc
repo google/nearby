@@ -14,6 +14,8 @@
 
 #include "connections/implementation/pcp_manager.h"
 
+#include <vector>
+
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 #include "connections/implementation/p2p_point_to_point_pcp_handler.h"
 #include "connections/implementation/p2p_star_pcp_handler.h"
@@ -84,6 +86,24 @@ Status PcpManager::StartDiscovery(ClientProxy* client, const string& service_id,
 void PcpManager::StopDiscovery(ClientProxy* client) {
   if (current_) {
     current_->StopDiscovery(client);
+  }
+}
+
+std::pair<Status, std::vector<ConnectionInfoVariant>>
+PcpManager::StartListeningForIncomingConnections(
+    ClientProxy* client, absl::string_view service_id,
+    v3::ConnectionListener listener,
+    const v3::ConnectionListeningOptions& options) {
+  if (!SetCurrentPcpHandler(options.strategy)) {
+    return {{Status::kError}, {}};
+  }
+  return {current_->StartListeningForIncomingConnections(
+      client, service_id, options, std::move(listener))};
+}
+
+void PcpManager::StopListeningForIncomingConnections(ClientProxy* client) {
+  if (current_) {
+    current_->StopListeningForIncomingConnections(client);
   }
 }
 

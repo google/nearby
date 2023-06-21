@@ -41,6 +41,8 @@ NSError *NSErrorFromCppStatus(Status status) {
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorAlreadyAdvertising userInfo:nil];
     case Status::kAlreadyDiscovering:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorAlreadyDiscovering userInfo:nil];
+    case Status::kAlreadyListening:
+      return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorAlreadyListening userInfo:nil];
     case Status::kEndpointIoError:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorEndpointIoError userInfo:nil];
     case Status::kEndpointUnknown:
@@ -63,6 +65,8 @@ NSError *NSErrorFromCppStatus(Status status) {
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorWifiLanError userInfo:nil];
     case Status::kPayloadUnknown:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorPayloadUnknown userInfo:nil];
+    case Status::kNextValue:
+      return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorUnknown userInfo:nil];
   }
 }
 

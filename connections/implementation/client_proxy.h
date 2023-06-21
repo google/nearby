@@ -30,6 +30,8 @@
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
@@ -90,6 +92,17 @@ class ClientProxy final {
   void StoppedAdvertising();
   bool IsAdvertising() const;
   std::string GetAdvertisingServiceId() const;
+
+  // Marks this client as listening for incoming connections.
+  void StartedListeningForIncomingConnections(
+      absl::string_view service_id, Strategy strategy,
+      v3::ConnectionListener listener,
+      const v3::ConnectionListeningOptions& options);
+  void StoppedListeningForIncomingConnections();
+  bool IsListeningForIncomingConnections() const;
+  std::string GetListeningForIncomingConnectionsServiceId() const;
+
+  ConnectionListener GetAdvertisingOrIncomingConnectionListener();
 
   // Marks this client as discovering with the given callback.
   void StartedDiscovery(
@@ -200,6 +213,7 @@ class ClientProxy final {
   void CancelAllEndpoints();
   AdvertisingOptions GetAdvertisingOptions() const;
   DiscoveryOptions GetDiscoveryOptions() const;
+  v3::ConnectionListeningOptions GetListeningOptions() const;
 
   // The endpoint id will be stable for 30 seconds after high visibility mode
   // (high power and Bluetooth Classic) advertisement stops.
@@ -269,6 +283,13 @@ class ClientProxy final {
     bool IsEmpty() const { return service_id.empty(); }
   };
 
+  struct ListeningInfo {
+    std::string service_id;
+    v3::ConnectionListener listener;
+    void Clear() { service_id.clear(); }
+    bool IsEmpty() const { return service_id.empty(); }
+  };
+
   // `RemoveAllEndpoints` is expected to only be called during destruction of
   // ClientProxy via `ClientProxy::Reset`, which makes destroying
   // CancellationFlags safe here since we are destroying ClientProxy. Do not
@@ -327,6 +348,9 @@ class ClientProxy final {
   // If not empty, we are currently discovering for the given service_id.
   DiscoveryInfo discovery_info_;
 
+  // If not empty, we are currently listening for the given service_id.
+  ListeningInfo listening_info_;
+
   // The active ClientProxy's advertising constraints. Empty()
   // returns true if the client hasn't started advertising false otherwise.
   // Note: this is not cleared when the client stops advertising because it
@@ -339,6 +363,9 @@ class ClientProxy final {
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
   DiscoveryOptions discovery_options_;
+
+  // The active ClientProxy's listening constraints.
+  v3::ConnectionListeningOptions listening_options_;
 
   // Maps endpoint_id to endpoint connection state.
   absl::flat_hash_map<std::string, ConnectionPair> connections_;

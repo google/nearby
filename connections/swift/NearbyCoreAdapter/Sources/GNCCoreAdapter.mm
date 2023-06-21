@@ -67,6 +67,8 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
       return GNCStatusAlreadyAdvertising;
     case Status::kAlreadyDiscovering:
       return GNCStatusAlreadyDiscovering;
+    case Status::kAlreadyListening:
+      return GNCStatusAlreadyListening;
     case Status::kEndpointIoError:
       return GNCStatusEndpointIoError;
     case Status::kEndpointUnknown:
@@ -85,6 +87,8 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
       return GNCStatusWifiLanError;
     case Status::kPayloadUnknown:
       return GNCStatusPayloadUnknown;
+    case Status::kNextValue:
+      return GNCStatusUnknown;
   }
 }
 

@@ -28,6 +28,8 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
+#include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_recorder.h"
@@ -180,6 +182,87 @@ bool ClientProxy::IsAdvertising() const {
 std::string ClientProxy::GetAdvertisingServiceId() const {
   MutexLock lock(&mutex_);
   return advertising_info_.service_id;
+}
+
+void ClientProxy::StartedListeningForIncomingConnections(
+    absl::string_view service_id, Strategy strategy,
+    v3::ConnectionListener listener,
+    const v3::ConnectionListeningOptions& options) {
+  MutexLock lock(&mutex_);
+  listening_options_ = options;
+  listening_info_ = ListeningInfo{
+      .service_id = std::string(service_id),
+      .listener = std::move(listener),
+  };
+  analytics_recorder_->OnStartedIncomingConnectionListening(strategy);
+}
+
+void ClientProxy::StoppedListeningForIncomingConnections() {
+  MutexLock lock(&mutex_);
+  listening_info_.Clear();
+  analytics_recorder_->OnStoppedIncomingConnectionListening();
+}
+
+bool ClientProxy::IsListeningForIncomingConnections() const {
+  MutexLock lock(&mutex_);
+  return !listening_info_.IsEmpty();
+}
+
+std::string ClientProxy::GetListeningForIncomingConnectionsServiceId() const {
+  MutexLock lock(&mutex_);
+  if (IsListeningForIncomingConnections()) {
+    return listening_info_.service_id;
+  }
+  return "";
+}
+
+ConnectionListener ClientProxy::GetAdvertisingOrIncomingConnectionListener() {
+  if (IsListeningForIncomingConnections()) {
+    ConnectionListener listener = {
+        .initiated_cb =
+            [this](const std::string& endpoint_id,
+                   const ConnectionResponseInfo& info) {
+              auto remote_device = v3::ConnectionsDevice(
+                  endpoint_id, info.remote_endpoint_info.AsStringView(), {});
+              this->listening_info_.listener.initiated_cb(
+                  remote_device,
+                  v3::InitialConnectionInfo{
+                      .authentication_digits = info.authentication_token,
+                      .raw_authentication_token =
+                          info.raw_authentication_token.string_data(),
+                      .is_incoming_connection = info.is_incoming_connection,
+                  });
+            },
+        .accepted_cb =
+            [this](const std::string& endpoint_id) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.result_cb(
+                  remote_device,
+                  v3::ConnectionResult{.status = Status{
+                                           .value = Status::kSuccess,
+                                       }});
+            },
+        .rejected_cb =
+            [this](const std::string& endpoint_id, Status status) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.result_cb(
+                  remote_device, v3::ConnectionResult{.status = status});
+            },
+        .disconnected_cb =
+            [this](const std::string& endpoint_id) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.disconnected_cb(remote_device);
+            },
+        .bandwidth_changed_cb =
+            [this](const std::string& endpoint_id, Medium medium) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.bandwidth_changed_cb(
+                  remote_device, v3::BandwidthInfo{.medium = medium});
+            },
+    };
+    return listener;
+  }
+  return advertising_info_.listener;
 }
 
 void ClientProxy::StartedDiscovery(
@@ -795,6 +878,10 @@ AdvertisingOptions ClientProxy::GetAdvertisingOptions() const {
 
 DiscoveryOptions ClientProxy::GetDiscoveryOptions() const {
   return discovery_options_;
+}
+
+v3::ConnectionListeningOptions ClientProxy::GetListeningOptions() const {
+  return listening_options_;
 }
 
 void ClientProxy::EnterHighVisibilityMode() {

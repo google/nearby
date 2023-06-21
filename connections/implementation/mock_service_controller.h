@@ -15,6 +15,9 @@
 #ifndef CORE_INTERNAL_MOCK_SERVICE_CONTROLLER_H_
 #define CORE_INTERNAL_MOCK_SERVICE_CONTROLLER_H_
 
+#include <utility>
+#include <vector>
+
 #include "gmock/gmock.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/v3/connection_listening_options.h"
@@ -53,7 +56,8 @@ class MockServiceController : public ServiceController {
                const OutOfBandConnectionMetadata& metadata),
               (override));
 
-  MOCK_METHOD(Status, StartListeningForIncomingConnections,
+  MOCK_METHOD((std::pair<Status, std::vector<ConnectionInfoVariant>>),
+              StartListeningForIncomingConnections,
               (ClientProxy * client, absl::string_view service_id,
                v3::ConnectionListener listener,
                const v3::ConnectionListeningOptions& options),

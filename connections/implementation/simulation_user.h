@@ -110,6 +110,12 @@ class SimulationUser {
   // callback.
   void RejectConnection(CountDownLatch* latch);
 
+  // Calls PcpManager::StartListeningForIncomingConnections.
+  // If latch is provided, latch->CountDown() will be called on call completion.
+  void StartListeningForIncomingConnections(
+      CountDownLatch* latch, absl::string_view service_id,
+      const v3::ConnectionListeningOptions& options, Status expected_status);
+
   // Unlike acceptance, rejection does not have to be mutual, in order to work.
   // This method will allow to synchronize on the remote rejection, without
   // performing a local rejection.
