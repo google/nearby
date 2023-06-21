@@ -48,6 +48,7 @@ message SocketControlFrame {
 message IntroductionFrame {
   optional bytes service_id_hash = 1;
   optional SocketVersion socket_version = 2;
+  optional string service_id_hash_salt = 3;
 }
 
 message DisconnectionFrame {
