@@ -516,8 +516,17 @@ class Core {
 
   // Registers a DeviceProvider to provide functionality for Nearby Connections
   // to interact with the DeviceProvider for retrieving the local device.
-  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider) {
-    client_.RegisterDeviceProvider(std::move(provider));
+  void RegisterDeviceProvider(NearbyDeviceProvider* provider) {
+    client_.RegisterDeviceProvider(provider);
+  }
+
+  // Like RegisterDeviceProvider(NearbyDeviceProvider*) above, but for
+  // a Connections device provider, so Connections can manage the lifetime of
+  // this device provider. If an external provider is registered, this provider
+  // will be ignored.
+  void RegisterConnectionsDeviceProvider(
+      std::unique_ptr<v3::ConnectionsDeviceProvider> provider) {
+    client_.RegisterConnectionsDeviceProvider(std::move(provider));
   }
 
  private:

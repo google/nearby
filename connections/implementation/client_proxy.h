@@ -31,6 +31,7 @@
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connections_device_provider.h"
 #include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
@@ -74,9 +75,11 @@ class ClientProxy final {
 
   std::string GetConnectionToken(const std::string& endpoint_id);
   const NearbyDevice* GetLocalDevice();
-  // Test-only.
   NearbyDeviceProvider* GetLocalDeviceProvider() {
-    return device_provider_.get();
+    if (external_device_provider_ != nullptr) {
+      return external_device_provider_;
+    }
+    return connections_device_provider_.get();
   }
 
   // Clears all the runtime state of this client.
@@ -233,8 +236,13 @@ class ClientProxy final {
       absl::string_view endpoint_id,
       const location::nearby::connections::OsInfo& remote_os_info);
 
-  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider) {
-    device_provider_ = std::move(provider);
+  void RegisterDeviceProvider(NearbyDeviceProvider* provider) {
+    external_device_provider_ = provider;
+  }
+
+  void RegisterConnectionsDeviceProvider(
+      std::unique_ptr<v3::ConnectionsDeviceProvider> provider) {
+    connections_device_provider_ = std::move(provider);
   }
 
  private:
@@ -392,7 +400,11 @@ class ClientProxy final {
   std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
   // Local device OS information.
   location::nearby::connections::OsInfo local_os_info_;
-  std::unique_ptr<NearbyDeviceProvider> device_provider_;
+  // For device providers not owned by Nearby connections (e.g. Nearby
+  // Presence's DeviceProvider.)
+  NearbyDeviceProvider* external_device_provider_ = nullptr;
+  // For Nearby Connections' own device provider.
+  std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
 };
 
 }  // namespace connections

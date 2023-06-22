@@ -153,7 +153,8 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
   CountDownLatch initiated_latch(1);
   AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
-  core.RegisterDeviceProvider(std::make_unique<FakeNearbyDeviceProvider>());
+  FakeNearbyDeviceProvider device_provider;
+  core.RegisterDeviceProvider(&device_provider);
   core.StartAdvertisingV3(
       "service", advertising_options,
       {

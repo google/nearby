@@ -459,10 +459,10 @@ TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUniqueWithDeviceProvider) {
-  client1_.RegisterDeviceProvider(
+  client1_.RegisterConnectionsDeviceProvider(
       std::make_unique<v3::ConnectionsDeviceProvider>(
           v3::ConnectionsDeviceProvider("", {})));
-  client2_.RegisterDeviceProvider(
+  client2_.RegisterConnectionsDeviceProvider(
       std::make_unique<v3::ConnectionsDeviceProvider>(
           v3::ConnectionsDeviceProvider("", {})));
   EXPECT_NE(client1_.GetLocalEndpointId(), client2_.GetLocalEndpointId());
@@ -1012,7 +1012,8 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithoutDeviceProvider) {
 }
 
 TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
-  client1_.RegisterDeviceProvider(std::make_unique<MockDeviceProvider>());
+  MockDeviceProvider provider;
+  client1_.RegisterDeviceProvider(&provider);
   ASSERT_NE(client1_.GetLocalDeviceProvider(), nullptr);
   EXPECT_CALL(
       *(down_cast<MockDeviceProvider*>(client1_.GetLocalDeviceProvider())),
