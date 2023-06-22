@@ -23,3 +23,22 @@ cc_proto_library(
     ],
     deps = [":fastpair_proto"],
 )
+
+cc_library(
+    name = "util",
+    srcs = [
+        "proto_to_json.cc",
+    ],
+    hdrs = [
+        "proto_to_json.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":fastpair_cc_proto",
+        "//fastpair/common",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
+        "@nlohmann_json//:json",
+    ],
+)

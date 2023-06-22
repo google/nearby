@@ -17,12 +17,14 @@ licenses(["notice"])
 cc_library(
     name = "server_access",
     srcs = [
+        "fast_pair_http_notifier.cc",
         "fast_pair_metadata_downloader.cc",
         "fast_pair_metadata_downloader_impl.cc",
         "fast_pair_repository.cc",
         "fast_pair_repository_impl.cc",
     ],
     hdrs = [
+        "fast_pair_http_notifier.h",
         "fast_pair_metadata_downloader.h",
         "fast_pair_metadata_downloader_impl.h",
         "fast_pair_repository.h",
@@ -34,12 +36,15 @@ cc_library(
     deps = [
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
+        "//fastpair/proto:util",
         "//fastpair/repository",
+        "//internal/base",
         "//internal/network:nearby_http_client",
         "//internal/network:types",
         "//internal/platform:logging",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
+        "@nlohmann_json//:json",
     ],
 )
 
@@ -97,6 +102,23 @@ cc_test(
         "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_http_notifier_test",
+    srcs = [
+        "fast_pair_http_notifier_test.cc",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    deps = [
+        ":server_access",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )
