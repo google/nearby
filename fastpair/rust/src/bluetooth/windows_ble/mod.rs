@@ -12,15 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod bluetooth;
+mod adapter;
+mod device;
 
-use futures::executor;
-
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
-        Ok(())
-    };
-
-    executor::block_on(run)
-}
+pub use adapter::*;
+pub use device::*;

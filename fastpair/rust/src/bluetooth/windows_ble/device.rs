@@ -12,15 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod bluetooth;
+use windows::Devices::Bluetooth::BluetoothLEDevice;
 
-use futures::executor;
+pub struct BleDevice {
+    inner: BluetoothLEDevice,
+}
 
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
-        Ok(())
-    };
+impl BleDevice {
+    pub fn name(&self) -> Result<String, anyhow::Error> {
+        Ok(self.inner.Name()?.to_string_lossy())
+    }
+}
 
-    executor::block_on(run)
+mod tests {
+    use super::*;
+
+    // TODO b/288592509 unit tests
 }
