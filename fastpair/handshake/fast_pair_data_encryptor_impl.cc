@@ -29,6 +29,7 @@
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/crypto/decrypted_passkey.h"
 #include "fastpair/crypto/decrypted_response.h"
@@ -36,7 +37,6 @@
 #include "fastpair/crypto/fast_pair_key_pair.h"
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
-#include "fastpair/repository/device_metadata.h"
 #include "fastpair/server_access/fast_pair_repository.h"
 #include "internal/platform/logging.h"
 
@@ -88,27 +88,12 @@ void FastPairDataEncryptorImpl::Factory::CreateAsyncWithKeyExchange(
     const FastPairDevice& device,
     absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
         on_get_instance_callback) {
-  // We first have to get the metadata in order to get the public key to use
-  // to generate the new secret key pair.
-  NEARBY_LOGS(INFO) << __func__ << ": Attempting to get device metadata.";
-  FastPairRepository::Get()->GetDeviceMetadata(
-      device.GetModelId(),
-      [on_get_instance_callback = std::move(on_get_instance_callback)](
-          DeviceMetadata& metadata) mutable {
-        FastPairDataEncryptorImpl::Factory::DeviceMetadataRetrieved(
-            std::move(on_get_instance_callback), metadata);
-      });
-}
-
-void FastPairDataEncryptorImpl::Factory::DeviceMetadataRetrieved(
-    absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
-        on_get_instance_callback,
-    DeviceMetadata& device_metadata) {
-  NEARBY_LOGS(INFO) << __func__;
-  DCHECK(&device_metadata);
+  NEARBY_LOGS(VERBOSE) << __func__;
+  auto& metadata = device.GetMetadata();
+  DCHECK(metadata);
   std::optional<KeyPair> key_pair =
       FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
-          device_metadata.GetDetails().anti_spoofing_key_pair().public_key());
+          metadata->GetDetails().anti_spoofing_key_pair().public_key());
   if (!key_pair.has_value()) {
     NEARBY_LOGS(INFO) << "Fail to generate key pair";
     std::move(on_get_instance_callback)(nullptr);

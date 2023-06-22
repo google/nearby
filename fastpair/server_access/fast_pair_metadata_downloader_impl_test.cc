@@ -22,9 +22,9 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/repository/device_metadata.h"
 #include "fastpair/repository/fake_fast_pair_metadata_repository.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader.h"
 

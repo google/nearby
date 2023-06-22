@@ -25,15 +25,12 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
+#include "fastpair/common/device_metadata.h"
+#include "fastpair/common/fast_pair_version.h"
 #include "fastpair/common/protocol.h"
 
 namespace nearby {
 namespace fastpair {
-
-enum class DeviceFastPairVersion {
-  kV1,
-  kHigherThanV1,
-};
 
 // Thin class which is used by the higher level components of the Fast Pair
 // system to represent a device.
@@ -64,10 +61,11 @@ class FastPairDevice {
     display_name_ = std::string(display_name);
   }
 
-  std::optional<DeviceFastPairVersion> GetVersion() { return version_; }
-
-  void SetVersion(std::optional<DeviceFastPairVersion> version) {
-    version_ = version;
+  std::optional<DeviceFastPairVersion> GetVersion() const {
+    if (metadata_) {
+      return metadata_->GetFastPairVersion();
+    }
+    return std::nullopt;
   }
 
   const AccountKey& GetAccountKey() const { return account_key_; }
@@ -87,6 +85,10 @@ class FastPairDevice {
   absl::string_view GetBleAddress() const { return ble_address_; }
 
   Protocol GetProtocol() const { return protocol_; }
+
+  void SetMetadata(const DeviceMetadata& metadata) { metadata_ = metadata; }
+
+  const std::optional<DeviceMetadata>& GetMetadata() const { return metadata_; }
 
   const std::string& GetUniqueId() const {
     if (public_address_.has_value()) {
@@ -122,6 +124,8 @@ class FastPairDevice {
   // for eligible devices (V2 or higher) and used for detecting subsequent
   // pairing scenarios.
   AccountKey account_key_;
+
+  std::optional<DeviceMetadata> metadata_;
 };
 
 std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device);

@@ -18,7 +18,9 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/constant.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 
 namespace nearby {
@@ -48,7 +50,9 @@ std::unique_ptr<FakeFastPairRepository> FakeFastPairRepository::Create(
     absl::string_view model_id, absl::string_view public_anti_spoof_key) {
   proto::Device metadata;
   auto repository = std::make_unique<FakeFastPairRepository>();
-  if (public_anti_spoof_key.length() == kPublicKeyByteSize) {
+  if (public_anti_spoof_key.empty()) {
+    // Missing ASK is fine for V1 devices.
+  } else if (public_anti_spoof_key.length() == kPublicKeyByteSize) {
     metadata.mutable_anti_spoofing_key_pair()->set_public_key(
         public_anti_spoof_key);
   } else {

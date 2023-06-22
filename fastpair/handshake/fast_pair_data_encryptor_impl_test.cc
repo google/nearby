@@ -26,11 +26,11 @@
 #include "absl/strings/escaping.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/crypto/fast_pair_encryption.h"
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "internal/platform/count_down_latch.h"
 
 namespace nearby {
@@ -57,27 +57,15 @@ class FastPairDataEncryptorImplTest : public testing::Test {
  public:
   void TearDown() override { data_encryptor_.reset(); }
 
-  void FailedSetUpRepositoryWithNoDeviceMetadata() {
-    CountDownLatch latch(1);
-    repository_ = std::make_unique<FakeFastPairRepository>();
-    FastPairDevice device(kValidModelId, kTestAddress,
-                          Protocol::kFastPairInitialPairing);
-    FastPairDataEncryptorImpl::Factory::CreateAsync(
-        device, absl::bind_front(
-                    &FastPairDataEncryptorImplTest::OnDataEncryptorCreateAsync,
-                    this, latch));
-    EXPECT_FALSE(latch.Await(kWaitTimeout).GetResult());
-  }
-
-  void FailedSetUpRepositoryWithNoPublicKey() {
-    repository_ = std::make_unique<FakeFastPairRepository>();
-    proto::Device metadata;
+  void FailedSetUpDeviceWithNoPublicKey() {
+    proto::GetObservedDeviceResponse response;
     std::string decoded_key;
     absl::Base64Unescape(kInvalidPublicAntiSpoof, &decoded_key);
-    metadata.mutable_anti_spoofing_key_pair()->set_public_key(decoded_key);
-    repository_->SetFakeMetadata(kValidModelId, metadata);
+    response.mutable_device()->mutable_anti_spoofing_key_pair()->set_public_key(
+        decoded_key);
     FastPairDevice device(kValidModelId, kTestAddress,
                           Protocol::kFastPairInitialPairing);
+    device.SetMetadata(DeviceMetadata(response));
     CountDownLatch latch(1);
     FastPairDataEncryptorImpl::Factory::CreateAsync(
         device, absl::bind_front(
@@ -87,14 +75,14 @@ class FastPairDataEncryptorImplTest : public testing::Test {
   }
 
   void SuccessCreateFastPairDataEncryptorWithKeyExchange() {
-    repository_ = std::make_unique<FakeFastPairRepository>();
-    proto::Device metadata;
+    proto::GetObservedDeviceResponse response;
     std::string decoded_key;
     absl::Base64Unescape(kPublicAntiSpoof, &decoded_key);
-    metadata.mutable_anti_spoofing_key_pair()->set_public_key(decoded_key);
-    repository_->SetFakeMetadata(kValidModelId, metadata);
+    response.mutable_device()->mutable_anti_spoofing_key_pair()->set_public_key(
+        decoded_key);
     FastPairDevice device(kValidModelId, kTestAddress,
                           Protocol::kFastPairInitialPairing);
+    device.SetMetadata(DeviceMetadata(response));
     CountDownLatch latch(1);
     FastPairDataEncryptorImpl::Factory::CreateAsync(
         device, absl::bind_front(
@@ -218,17 +206,10 @@ class FastPairDataEncryptorImplTest : public testing::Test {
 
  private:
   std::unique_ptr<FastPairDevice> device_;
-  std::unique_ptr<FakeFastPairRepository> repository_;
 };
 
-TEST_F(FastPairDataEncryptorImplTest, FailedSetUpNoMetadata) {
-  EXPECT_FALSE(data_encryptor_);
-  FailedSetUpRepositoryWithNoDeviceMetadata();
-  EXPECT_FALSE(data_encryptor_);
-}
-
 TEST_F(FastPairDataEncryptorImplTest, NoKeyPair) {
-  FailedSetUpRepositoryWithNoPublicKey();
+  FailedSetUpDeviceWithNoPublicKey();
   EXPECT_FALSE(data_encryptor_);
 }
 

@@ -17,7 +17,7 @@
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/ui/actions.h"
 #include "internal/platform/logging.h"
 

@@ -28,10 +28,12 @@
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client_impl.h"
+#include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
@@ -139,22 +141,22 @@ class FastPairHandshakeImplTest : public testing::Test {
         absl::OkStatus();
   }
 
-  void SetUpFastPairRepository() {
-    repository_ = std::make_unique<FakeFastPairRepository>();
-    proto::Device metadata;
+  void SetUpValidAntiSpoofingKey(FastPairDevice* device) {
+    proto::GetObservedDeviceResponse response;
     std::string decoded_key;
     absl::Base64Unescape(kPublicAntiSpoof, &decoded_key);
-    metadata.mutable_anti_spoofing_key_pair()->set_public_key(decoded_key);
-    repository_->SetFakeMetadata(kMetadataId, metadata);
+    response.mutable_device()->mutable_anti_spoofing_key_pair()->set_public_key(
+        decoded_key);
+    device->SetMetadata(DeviceMetadata(response));
   }
 
-  void FailedFastPairRepository() {
-    repository_ = std::make_unique<FakeFastPairRepository>();
-    proto::Device metadata;
+  void SetUpInvalidAntiSpoofingKey(FastPairDevice* device) {
+    proto::GetObservedDeviceResponse response;
     std::string decoded_key;
     absl::Base64Unescape(kInvalidPublicAntiSpoof, &decoded_key);
-    metadata.mutable_anti_spoofing_key_pair()->set_public_key(decoded_key);
-    repository_->SetFakeMetadata(kMetadataId, metadata);
+    response.mutable_device()->mutable_anti_spoofing_key_pair()->set_public_key(
+        decoded_key);
+    device->SetMetadata(DeviceMetadata(response));
   }
 
   absl::Status TriggerKeyBasedGattChanged() {
@@ -208,10 +210,10 @@ TEST_F(FastPairHandshakeImplTest, Success) {
     notified = true;
     EXPECT_OK(TriggerKeyBasedGattChanged());
   });
-  SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   fast_pair_device_ = std::make_unique<FastPairDevice>(
       kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
+  SetUpValidAntiSpoofingKey(fast_pair_device_.get());
   CountDownLatch latch(1);
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
       *fast_pair_device_, mediums_,
@@ -233,9 +235,9 @@ TEST_F(FastPairHandshakeImplTest, GattError) {
     notified = true;
     EXPECT_OK(TriggerKeyBasedGattChanged());
   });
-  SetUpFastPairRepository();
   fast_pair_device_ = std::make_unique<FastPairDevice>(
       kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
+  SetUpValidAntiSpoofingKey(fast_pair_device_.get());
   CountDownLatch latch(1);
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
       *fast_pair_device_, mediums_,
@@ -256,10 +258,10 @@ TEST_F(FastPairHandshakeImplTest, DataEncryptorCreateError) {
     notified = true;
     EXPECT_OK(TriggerKeyBasedGattChanged());
   });
-  FailedFastPairRepository();
   InsertCorrectGattCharacteristics();
   fast_pair_device_ = std::make_unique<FastPairDevice>(
       kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
+  SetUpInvalidAntiSpoofingKey(fast_pair_device_.get());
   CountDownLatch latch(1);
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
       *fast_pair_device_, mediums_,
@@ -276,10 +278,10 @@ TEST_F(FastPairHandshakeImplTest, DataEncryptorCreateError) {
 
 TEST_F(FastPairHandshakeImplTest, WriteResponseError) {
   StartGattServer([]() {});
-  SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   fast_pair_device_ = std::make_unique<FastPairDevice>(
       kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
+  SetUpValidAntiSpoofingKey(fast_pair_device_.get());
   CountDownLatch latch(1);
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
       *fast_pair_device_, mediums_,
@@ -300,10 +302,10 @@ TEST_F(FastPairHandshakeImplTest, WriteResponseWrongSize) {
     notified = true;
     EXPECT_OK(TriggerKeyBasedGattChangedWithWrongSizeResponse());
   });
-  SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   fast_pair_device_ = std::make_unique<FastPairDevice>(
       kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
+  SetUpValidAntiSpoofingKey(fast_pair_device_.get());
   CountDownLatch latch(1);
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
       *fast_pair_device_, mediums_,
@@ -325,10 +327,10 @@ TEST_F(FastPairHandshakeImplTest, ParseResponseError) {
     notified = true;
     EXPECT_OK(TriggerKeyBasedGattChangedWithWrongResponse());
   });
-  SetUpFastPairRepository();
   InsertCorrectGattCharacteristics();
   fast_pair_device_ = std::make_unique<FastPairDevice>(
       kMetadataId, provider_address_, Protocol::kFastPairInitialPairing);
+  SetUpValidAntiSpoofingKey(fast_pair_device_.get());
   CountDownLatch latch(1);
   handshake_ = std::make_unique<FastPairHandshakeImpl>(
       *fast_pair_device_, mediums_,

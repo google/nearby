@@ -24,6 +24,7 @@
 #include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fast_pair_data_encryptor_impl.h"
 #include "fastpair/message_stream/message_stream.h"
+#include "fastpair/server_access/fast_pair_repository.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/single_thread_executor.h"
@@ -91,16 +92,28 @@ FastPairController::GetDataEncryptor() {
   if (!encryptor_) {
     encryptor_ =
         std::make_unique<Future<std::shared_ptr<FastPairDataEncryptor>>>();
-    FastPairDataEncryptorImpl::Factory::CreateAsync(
-        device_, [borrowable = lender_.GetBorrowable()](
-                     std::unique_ptr<FastPairDataEncryptor> encryptor) mutable {
-          auto borrowed = borrowable.Borrow();
-          if (borrowed) {
-            (*borrowed)->SetDataEncryptor(std::move(encryptor));
-          }
-        });
+    if (device_.GetMetadata()) {
+      CreateDataEncryptor();
+    } else {
+      FastPairRepository::Get()->GetDeviceMetadata(
+          device_.GetModelId(), [this](DeviceMetadata& metadata) {
+            device_.SetMetadata(metadata);
+            CreateDataEncryptor();
+          });
+    }
   }
   return *encryptor_;
+}
+
+void FastPairController::CreateDataEncryptor() {
+  FastPairDataEncryptorImpl::Factory::CreateAsync(
+      device_, [borrowable = lender_.GetBorrowable()](
+                   std::unique_ptr<FastPairDataEncryptor> encryptor) mutable {
+        auto borrowed = borrowable.Borrow();
+        if (borrowed) {
+          (*borrowed)->SetDataEncryptor(std::move(encryptor));
+        }
+      });
 }
 
 Future<FastPairController::GattClientRef>

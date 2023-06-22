@@ -35,7 +35,9 @@
 #include "fastpair//handshake/fast_pair_handshake_lookup.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/common/fast_pair_version.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fast_pair_data_encryptor_impl.h"
 #include "fastpair/handshake/fast_pair_handshake_impl.h"
@@ -133,13 +135,18 @@ class FastPairPairerImplTest : public testing::Test {
   void CreateMockDevice(DeviceFastPairVersion version, Protocol protocol) {
     device_ = std::make_unique<FastPairDevice>(
         kMetadataId, remote_device_->GetMacAddress(), protocol);
-    device_->SetVersion(version);
     if (version == DeviceFastPairVersion::kV1) {
       device_->SetPublicAddress(remote_device_->GetMacAddress());
     }
     if (protocol == Protocol::kFastPairSubsequentPairing) {
       device_->SetAccountKey(AccountKey(account_key_));
     }
+    CountDownLatch latch(1);
+    repository_->GetDeviceMetadata(kMetadataId, [&](DeviceMetadata& metadata) {
+      device_->SetMetadata(std::move(metadata));
+      latch.CountDown();
+    });
+    latch.Await();
   }
 
   void ConfigurePairingContext() {
@@ -190,8 +197,11 @@ class FastPairPairerImplTest : public testing::Test {
   }
 
   // Sets up provider's metadata information.
-  void SetUpFastPairRepository() {
-    repository_ = FakeFastPairRepository::Create(kMetadataId, kPublicAntiSpoof);
+  void SetUpFastPairRepository(DeviceFastPairVersion version) {
+    repository_ = FakeFastPairRepository::Create(
+        kMetadataId, version == DeviceFastPairVersion::kHigherThanV1
+                         ? kPublicAntiSpoof
+                         : "");
   }
 
   // Sets upprovider's gatt_server.
@@ -352,12 +362,12 @@ class FastPairPairerImplTest : public testing::Test {
 TEST_F(FastPairPairerImplTest,
        SuccessInitialPairingWithDeviceVersionHigherThanV1) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
 
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -403,11 +413,11 @@ TEST_F(FastPairPairerImplTest,
 
 TEST_F(FastPairPairerImplTest, SuccessInitialPairingWithDeviceV1) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kV1);
+  CreateMockDevice(DeviceFastPairVersion::kV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -451,11 +461,11 @@ TEST_F(FastPairPairerImplTest, SuccessInitialPairingWithDeviceV1) {
 
 TEST_F(FastPairPairerImplTest, SuccessSubsequentPairingWithDevice) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairSubsequentPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairSubsequentPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -498,11 +508,11 @@ TEST_F(FastPairPairerImplTest, SuccessSubsequentPairingWithDevice) {
 
 TEST_F(FastPairPairerImplTest, SuccessRetroactivePairingWithDevice) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairRetroactivePairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairRetroactivePairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -546,11 +556,11 @@ TEST_F(FastPairPairerImplTest, SuccessRetroactivePairingWithDevice) {
 }
 
 TEST_F(FastPairPairerImplTest, FailedToUnPair) {
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -595,11 +605,11 @@ TEST_F(FastPairPairerImplTest, FailedToUnPair) {
 
 TEST_F(FastPairPairerImplTest, FailedToPairingWithAuthTimeout) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -645,11 +655,11 @@ TEST_F(FastPairPairerImplTest, FailedToPairingWithAuthTimeout) {
 
 TEST_F(FastPairPairerImplTest, NoPasskeyResponse) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -692,11 +702,11 @@ TEST_F(FastPairPairerImplTest, NoPasskeyResponse) {
 
 TEST_F(FastPairPairerImplTest, PasskeyMismatch) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -742,11 +752,11 @@ TEST_F(FastPairPairerImplTest, PasskeyMismatch) {
 
 TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyResponse) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -792,11 +802,11 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyResponse) {
 
 TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyMessageType) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -843,11 +853,11 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyMessageType) {
 TEST_F(FastPairPairerImplTest,
        SuccessPairingWithDeviceButFailedToWriteAccountkey) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -893,11 +903,11 @@ TEST_F(FastPairPairerImplTest,
 
 TEST_F(FastPairPairerImplTest, TestCancelPairing) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;

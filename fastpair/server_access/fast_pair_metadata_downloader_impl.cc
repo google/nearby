@@ -23,7 +23,7 @@
 
 #include "absl/strings/numbers.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader.h"
 #include "internal/platform/logging.h"

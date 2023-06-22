@@ -28,6 +28,7 @@ cc_library(
         "//fastpair/common",
         "//fastpair/handshake",
         "//fastpair/message_stream",
+        "//fastpair/server_access",
         "//internal/base",
         "//internal/platform:comm",
         "//internal/platform:types",

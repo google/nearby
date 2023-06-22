@@ -23,7 +23,9 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "fastpair/common/account_key.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/protocol.h"
+#include "fastpair/proto/fastpair_rpcs.proto.h"
 
 namespace nearby {
 namespace fastpair {
@@ -74,6 +76,34 @@ TEST(FastPairDevice, GetAndPublicAddress) {
   std::string new_test_GetPublicAddress = "new_test_GetPublicAddress ";
   device.SetPublicAddress(new_test_GetPublicAddress);
   EXPECT_EQ(device.GetPublicAddress().value(), new_test_GetPublicAddress);
+}
+
+TEST(FastPairDevice, GetVersionUnset) {
+  FastPairDevice device("model_id", "ble_address",
+                        Protocol::kFastPairInitialPairing);
+
+  EXPECT_FALSE(device.GetVersion());
+}
+
+TEST(FastPairDevice, GetVersionV1) {
+  FastPairDevice device("model_id", "ble_address",
+                        Protocol::kFastPairInitialPairing);
+  proto::GetObservedDeviceResponse response;
+  device.SetMetadata(DeviceMetadata(response));
+
+  EXPECT_EQ(device.GetVersion(), DeviceFastPairVersion::kV1);
+}
+
+TEST(FastPairDevice, GetVersionHigherThanV1) {
+  FastPairDevice device("model_id", "ble_address",
+                        Protocol::kFastPairInitialPairing);
+  proto::GetObservedDeviceResponse response;
+  std::string anti_spoofing_key(kPublicKeyByteSize, 0);
+  response.mutable_device()->mutable_anti_spoofing_key_pair()->set_public_key(
+      anti_spoofing_key);
+  device.SetMetadata(DeviceMetadata(response));
+
+  EXPECT_EQ(device.GetVersion(), DeviceFastPairVersion::kHigherThanV1);
 }
 
 }  // namespace

@@ -181,7 +181,7 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
   }
   auto fast_pair_device = std::make_unique<FastPairDevice>(
       model_id, address, Protocol::kFastPairInitialPairing);
-  fast_pair_device->SetVersion(device_metadata.GetFastPairVersion());
+  fast_pair_device->SetMetadata(device_metadata);
 
   executor_->Execute(
       "add-device",

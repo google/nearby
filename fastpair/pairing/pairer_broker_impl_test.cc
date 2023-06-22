@@ -179,13 +179,18 @@ class PairerBrokerImplTest : public testing::Test {
   void CreateMockDevice(DeviceFastPairVersion version, Protocol protocol) {
     device_ = std::make_unique<FastPairDevice>(
         kMetadataId, remote_device_->GetMacAddress(), protocol);
-    device_->SetVersion(version);
     if (version == DeviceFastPairVersion::kV1) {
       device_->SetPublicAddress(remote_device_->GetMacAddress());
     }
     if (protocol == Protocol::kFastPairSubsequentPairing) {
       device_->SetAccountKey(AccountKey(account_key_));
     }
+    CountDownLatch latch(1);
+    repository_->GetDeviceMetadata(kMetadataId, [&](DeviceMetadata& metadata) {
+      device_->SetMetadata(std::move(metadata));
+      latch.CountDown();
+    });
+    latch.Await();
   }
 
   void ConfigurePairingContext() {
@@ -236,8 +241,11 @@ class PairerBrokerImplTest : public testing::Test {
   }
 
   // Sets up provider's metadata information.
-  void SetUpFastPairRepository() {
-    repository_ = FakeFastPairRepository::Create(kMetadataId, kPublicAntiSpoof);
+  void SetUpFastPairRepository(DeviceFastPairVersion version) {
+    repository_ = FakeFastPairRepository::Create(
+        kMetadataId, version == DeviceFastPairVersion::kHigherThanV1
+                         ? kPublicAntiSpoof
+                         : "");
   }
 
   // Sets upprovider's gatt_server.
@@ -411,11 +419,11 @@ class PairerBrokerImplTest : public testing::Test {
 
 TEST_F(PairerBrokerImplTest, SuccessInitialPairingWithDeviceV1) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kV1,
-                   Protocol::kFastPairInitialPairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kV1);
+  CreateMockDevice(DeviceFastPairVersion::kV1,
+                   Protocol::kFastPairInitialPairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -455,9 +463,9 @@ TEST_F(PairerBrokerImplTest, SuccessInitialPairingWithDevice) {
   CountDownLatch pairing_completed_latch(1);
   CountDownLatch pairing_failure_latch(1);
   ConfigurePairingContext();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    Protocol::kFastPairInitialPairing);
-  SetUpFastPairRepository();
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -498,9 +506,9 @@ TEST_F(PairerBrokerImplTest, SuccessSubsequentPairingWithDevice) {
   CountDownLatch pairing_completed_latch(1);
   CountDownLatch pairing_failure_latch(1);
   ConfigurePairingContext();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    Protocol::kFastPairSubsequentPairing);
-  SetUpFastPairRepository();
   pairer_broker_ = std::make_unique<PairerBrokerImpl>(*mediums_, &executor_);
   PairerBrokerObserver pairer_broker_observer(
       pairer_broker_.get(), &device_paired_latch, &account_key_writed_latch,
@@ -535,11 +543,11 @@ TEST_F(PairerBrokerImplTest, SuccessSubsequentPairingWithDevice) {
 
 TEST_F(PairerBrokerImplTest, SuccessRetroactivePairingWithDevice) {
   ConfigurePairingContext();
-  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
-                   Protocol::kFastPairRetroactivePairing);
   bool triggered_keybase_value_change = false;
   bool triggered_passkey_value_change = false;
-  SetUpFastPairRepository();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairRetroactivePairing);
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -579,9 +587,9 @@ TEST_F(PairerBrokerImplTest, FaileToCreateHandshakeRetryThreeTimes) {
   CountDownLatch pairing_completed_latch(1);
   CountDownLatch pairing_failure_latch(1);
   ConfigurePairingContext();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    Protocol::kFastPairSubsequentPairing);
-  SetUpFastPairRepository();
   pairer_broker_ = std::make_unique<PairerBrokerImpl>(*mediums_, &executor_);
   PairerBrokerObserver pairer_broker_observer(
       pairer_broker_.get(), &device_paired_latch, &account_key_writed_latch,
@@ -614,9 +622,9 @@ TEST_F(PairerBrokerImplTest, FaileToWriteAccountkey) {
   CountDownLatch pairing_completed_latch(1);
   CountDownLatch pairing_failure_latch(1);
   ConfigurePairingContext();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    Protocol::kFastPairInitialPairing);
-  SetUpFastPairRepository();
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;
@@ -657,9 +665,9 @@ TEST_F(PairerBrokerImplTest, FailToPairRetryThreeTimes) {
   CountDownLatch pairing_completed_latch(1);
   CountDownLatch pairing_failure_latch(1);
   ConfigurePairingContext();
+  SetUpFastPairRepository(DeviceFastPairVersion::kHigherThanV1);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    Protocol::kFastPairInitialPairing);
-  SetUpFastPairRepository();
   SetupProviderGattServer(
       [&]() {
         triggered_keybase_value_change = true;

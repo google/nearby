@@ -175,6 +175,7 @@ class FastPairController : public MessageStream::Observer {
     CHECK(gatt_client_ != nullptr);
     return gatt_client_.get();
   }
+  void CreateDataEncryptor();
   Mediums* mediums_;
   FastPairDevice device_;
   SingleThreadExecutor* executor_;

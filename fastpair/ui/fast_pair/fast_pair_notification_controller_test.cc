@@ -22,7 +22,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
 
