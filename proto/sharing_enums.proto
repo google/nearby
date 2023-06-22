@@ -628,9 +628,6 @@ enum DesktopNotification {
   DESKTOP_NOTIFICATION_RECEIVED = 4;
   DESKTOP_NOTIFICATION_ERROR = 5;
 }
-// LINT.ThenChange(
-//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
-// )
 
 enum TransferUIEvent {
   TRANSFER_UI_EVENT_UNKNOWN = 0;
@@ -640,4 +637,14 @@ enum TransferUIEvent {
   TRANSFER_UI_EVENT_RECEIVE_PROGRESS = 2;
   TRANSFER_UI_EVENT_RECEIVE_RECEIVED = 3;
   TRANSFER_UI_EVENT_RECEIVE_ERROR = 4;
+
+  // Send attachments.
+  TRANSFER_UI_EVENT_SEND_START = 5;
+  TRANSFER_UI_EVENT_SEND_SELECT_A_DEVICE = 6;
+  TRANSFER_UI_EVENT_SEND_PROGRESS = 7;
+  TRANSFER_UI_EVENT_SEND_SENT = 8;
+  TRANSFER_UI_EVENT_SEND_ERROR = 9;
 }
+// LINT.ThenChange(
+//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
+// )
