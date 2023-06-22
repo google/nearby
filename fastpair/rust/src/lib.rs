@@ -12,23 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::{executor, StreamExt};
-
-mod bluetooth;
-
-use bluetooth::common::{Adapter, Device};
-
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let adapter = bluetooth::BleAdapter::default().await?;
-        let mut scanner = adapter.scan_devices()?;
-
-        while let Some(device) = scanner.next().await {
-            println!("found {}", device.name()?)
-        }
-
-        unreachable!("Done scanning");
-    };
-
-    executor::block_on(run)
-}
+/// Library file, exports modules for use in integration tests and external crates.
+pub mod bluetooth;

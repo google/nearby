@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+use fastpair::*;
 
 mod tests {
-    
+    use super::*;
 
     // TODO b/288592509 write integration tests
 }

@@ -12,7 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use windows::Devices::Bluetooth::BluetoothLEDevice;
+use async_trait::async_trait;
+use windows::Devices::Bluetooth::{
+    // Enum describing the type of address (public, random, unspecified).
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothaddresstype?view=winrt-22621
+    BluetoothAddressType,
+
+    // Struct for interacting with and pairing to a discovered BLE device.
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothledevice?view=winrt-22621
+    BluetoothLEDevice,
+};
 
 use crate::bluetooth::common::Device;
 
@@ -21,6 +30,21 @@ pub struct BleDevice {
     inner: BluetoothLEDevice,
 }
 
+impl BleDevice {
+    /// Create a `BleDevice` instance from the raw bluetooth address information.
+    pub(super) async fn from_addr(
+        addr: u64,
+        kind: BluetoothAddressType,
+    ) -> Result<Self, anyhow::Error> {
+        let inner =
+            BluetoothLEDevice::FromBluetoothAddressWithBluetoothAddressTypeAsync(addr, kind)?
+                .await?;
+
+        Ok(BleDevice { inner })
+    }
+}
+
+#[async_trait]
 impl Device for BleDevice {
     fn name(&self) -> Result<String, anyhow::Error> {
         Ok(self.inner.Name()?.to_string_lossy())
@@ -28,6 +52,7 @@ impl Device for BleDevice {
 }
 
 mod tests {
+    use super::*;
 
     // TODO b/288592509 unit tests
 }

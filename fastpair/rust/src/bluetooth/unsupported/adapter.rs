@@ -26,8 +26,17 @@ pub struct BleAdapter;
 
 #[async_trait]
 impl Adapter for BleAdapter {
+    type Device = BleDevice;
+
     async fn default() -> Result<Self, anyhow::Error> {
         panic!("Unsupported target platform.");
+    }
+
+    fn scan_devices(&self) -> Result<Pin<Box<dyn Stream<Item = Self::Device>>>, anyhow::Error> {
+        panic!("Unsupported target platform.");
+        #[allow(unreachable_code)]
+        // Sad satisfying trait bounds github.com/rust-lang/rust/issues/55022.
+        Ok(Box::pin(futures::stream::iter(vec![BleDevice {}])))
     }
 }
 
