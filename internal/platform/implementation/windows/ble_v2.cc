@@ -661,7 +661,12 @@ bool BleV2Medium::StopBleAdvertising() {
       return false;
     }
 
-    publisher_.Stop();
+    // publisher_ may be null when status changed during advertising.
+    if (publisher_ != nullptr &&
+        publisher_.Status() ==
+            BluetoothLEAdvertisementPublisherStatus::Started) {
+      publisher_.Stop();
+    }
 
     // Don't need to wait for the status becomes to `Stopped`. If application
     // starts to scanning immediately, the scanning still needs to wait the
