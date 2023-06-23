@@ -198,10 +198,10 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
 absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
     const LocalCredential& credential, absl::string_view salt,
     absl::string_view data_elements) const {
-  if (credential.metadata_encryption_key().size() != kBaseMetadataSize) {
+  if (credential.metadata_encryption_key_v0().size() != kBaseMetadataSize) {
     return absl::FailedPreconditionError(absl::StrFormat(
         "Metadata key size %d, expected %d",
-        credential.metadata_encryption_key().size(), kBaseMetadataSize));
+        credential.metadata_encryption_key_v0().size(), kBaseMetadataSize));
   }
 
   // HMAC is not used during encryption, so we can pass an empty value.
@@ -211,7 +211,7 @@ absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
     return encryptor.status();
   }
   std::string plaintext =
-      absl::StrCat(credential.metadata_encryption_key(), data_elements);
+      absl::StrCat(credential.metadata_encryption_key_v0(), data_elements);
   return encryptor->Encrypt(plaintext, salt);
 }
 

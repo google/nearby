@@ -91,23 +91,12 @@ class FastPairMetadataRepositoryImplTest : public ::testing::Test {
 
   void SetUp() override {
     http_client_ = std::make_unique<network::FastPairFakeHttpClient>();
-    SetNearbySharedHttpHost(kTestGoogleApisUrl);
 
     auto fetcher = std::make_unique<FakeFastPairMetadataFetcher>();
     fetcher_ = fetcher.get();
 
     repository_ = std::make_unique<FastPairMetadataRepositoryImpl>(
         std::move(fetcher), std::move(http_client_));
-  }
-
-  void SetNearbySharedHttpHost(const std::string& host) {
-    int global_host_size = 0;
-    char global_host[256];
-    if (host.size() > 256) {
-      return;
-    }
-    global_host_size = host.size();
-    memcpy(global_host, host.c_str(), global_host_size);
   }
 
   const FastPairMetadataFetcher::QueryParameters&

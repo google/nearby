@@ -202,6 +202,7 @@ class EndpointManager {
     mutable std::unique_ptr<Mutex> keep_alive_waiter_mutex_;
     std::unique_ptr<ConditionVariable> keep_alive_waiter_;
     SingleThreadExecutor keep_alive_thread_;
+    std::unique_ptr<CountDownLatch> keep_alive_latch_;
   };
 
   // RAII accessor for FrameProcessor

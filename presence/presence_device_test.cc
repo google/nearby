@@ -117,6 +117,13 @@ TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {
   EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
 }
 
+TEST(PresenceDeviceTest, TestEndpointIdIsRandom) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
+  EXPECT_NE(device.GetEndpointId(), std::string(kEndpointIdLength, 0));
+}
+
 }  // namespace
 }  // namespace presence
 }  // namespace nearby

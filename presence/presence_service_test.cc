@@ -25,6 +25,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/presence_client.h"
+#include "presence/presence_service_impl.h"
 
 namespace nearby {
 namespace presence {
@@ -58,7 +59,7 @@ CredentialSelector BuildDefaultCredentialSelector() {
 }
 
 TEST_F(PresenceServiceTest, DefaultConstructorWorks) {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
 }
 
 TEST_F(PresenceServiceTest, StartThenStopScan) {
@@ -67,7 +68,7 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
   ScanCallback scan_callback = {
       .start_scan_cb = [&](absl::Status status) { scan_result = status; },
   };
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   std::unique_ptr<PresenceClient> client =
       presence_service.CreatePresenceClient();
 
@@ -89,7 +90,7 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
 }
 
 TEST_F(PresenceServiceTest, UpdatingLocalMetadataWorks) {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata("Test account"),
                                              false, "Test app", {}, 3, 1, {});
   EXPECT_EQ(presence_service.GetLocalDeviceMetadata().SerializeAsString(),
@@ -97,12 +98,12 @@ TEST_F(PresenceServiceTest, UpdatingLocalMetadataWorks) {
 }
 
 TEST_F(PresenceServiceTest, TestGetDeviceProvider) {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   EXPECT_NE(presence_service.GetLocalDeviceProvider(), nullptr);
 }
 
 TEST_F(PresenceServiceTest, TestGetPublicCredentials) {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   CredentialSelector selector = BuildDefaultCredentialSelector();
   absl::Status status;
   nearby::CountDownLatch fetched_latch(1);
@@ -120,7 +121,7 @@ TEST_F(PresenceServiceTest, TestGetPublicCredentials) {
 }
 
 TEST_F(PresenceServiceTest, TestUpdateRemotePublicCredentials) {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   internal::SharedCredential public_credential_for_test;
   public_credential_for_test.set_identity_type(
       internal::IdentityType::IDENTITY_TYPE_TRUSTED);

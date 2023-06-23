@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -86,6 +87,14 @@ class WebRtc {
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+
+ protected:
+  // Use for unit tests only to inject a WebRtcMedium.
+  explicit WebRtc(std::unique_ptr<WebRtcMedium> medium);
+
+  // Used in unit tests to determine how many calls to `AttemptToConnect`
+  // occured during a call to `Connect`, per service id.
+  std::map<std::string, int> service_id_to_connect_attempts_count_map_;
 
  private:
   static constexpr int kConnectAttemptsLimit = 3;
@@ -225,7 +234,7 @@ class WebRtc {
 
   Mutex mutex_;
 
-  WebRtcMedium medium_;
+  std::unique_ptr<WebRtcMedium> medium_;
 
   // The single thread we throw the potentially blocking work on to.
   ScheduledExecutor single_thread_executor_;

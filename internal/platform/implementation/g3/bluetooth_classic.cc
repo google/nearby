@@ -314,11 +314,12 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
 
 void BluetoothClassicMedium::AddObserver(
     api::BluetoothClassicMedium::Observer* observer) {
-  // TODO(b/269521993): Implement observer callbacks.
+  MediumEnvironment::Instance().AddObserver(observer);
 }
+
 void BluetoothClassicMedium::RemoveObserver(
     api::BluetoothClassicMedium::Observer* observer) {
-  // TODO(b/269521993): Implement observer callbacks.
+  MediumEnvironment::Instance().RemoveObserver(observer);
 }
 
 }  // namespace g3

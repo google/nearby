@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/dart/windows/fast_pair_wrapper_adapter_dart.h"
+syntax = "proto3";
 
-#include "fastpair/dart/windows/fast_pair_wrapper_adapter.h"
+package nearby.fastpair.dart.proto;
 
-namespace nearby {
-namespace fastpair {
-namespace windows {
+import "third_party/nearby/fastpair/proto/fastpair_rpcs.proto";
 
-void StartScanDart(FastPairWrapper *pWrapper) {
-  if (IsScanning(pWrapper)) return;
-  StartScan(pWrapper);
+// NextId: 2
+message CallbackData {
+  string message = 1;
 }
 
-void ServerAccessDart(FastPairWrapper *pWrapper) {
-  IsServerAccessing(pWrapper);
+// NextId: 2
+message DeviceDownloadedCallbackData {
+  repeated nearby.fastpair.proto.Device devices = 1;
 }
-
-}  // namespace windows
-}  // namespace fastpair
-}  // namespace nearby

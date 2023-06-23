@@ -24,6 +24,7 @@
 namespace crypto {
 namespace {
 
+using ::absl::StatusCode;
 using ::testing::status::StatusIs;
 
 // From
@@ -82,8 +83,55 @@ TEST(Ed25519SignerTest, RejectsBadKeyLength) {
       "6218a1a38da47ed00230f0580816ed13ba3303ac5deb91154890802570");
   ASSERT_EQ(priv.size(), 65);
   auto signer = Ed25519Signer::Create(priv);
-  EXPECT_THAT(signer,
-              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(signer, StatusIs(StatusCode::kInvalidArgument));
+}
+
+// Wycheproof vectors
+TEST(Ed25519SignerTest, NewEd25519KeyValidSeed1) {
+  std::string private_key = absl::HexStringToBytes(
+      "add4bb8103785baf9ac534258e8aaf65f5f1adb5ef5f3df19bb80ab989c4d64b");
+  std::string public_key = absl::HexStringToBytes(
+      "7d4d0e7f6153a69b6242b522abbee685fda4420f8834b108c3bdae369ef549fa");
+  auto key = Ed25519Signer::CreateNewKeyPair(private_key);
+  ASSERT_OK(key);
+  EXPECT_EQ(key->public_key, public_key);
+  EXPECT_EQ(key->private_key, private_key);
+}
+
+TEST(Ed25519SignerTest, NewEd25519KeyValidSeed2) {
+  std::string private_key = absl::HexStringToBytes(
+      "0a23a20072891237aa0864b5765139514908787878cd77135a0059881d313f00");
+  std::string public_key = absl::HexStringToBytes(
+      "a12c2beb77265f2aac953b5009349d94155a03ada416aad451319480e983ca4c");
+  auto key = Ed25519Signer::CreateNewKeyPair(private_key);
+  ASSERT_OK(key);
+  EXPECT_EQ(key->public_key, public_key);
+  EXPECT_EQ(key->private_key, private_key);
+}
+
+TEST(Ed25519SignerTest, NewEd25519KeyValidSeed3) {
+  std::string private_key = absl::HexStringToBytes(
+      "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb");
+  std::string public_key = absl::HexStringToBytes(
+      "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c");
+  auto key = Ed25519Signer::CreateNewKeyPair(private_key);
+  ASSERT_OK(key);
+  EXPECT_EQ(key->public_key, public_key);
+  EXPECT_EQ(key->private_key, private_key);
+}
+
+TEST(Ed25519SignerTest, NewEd25519KeyInvalidSeed) {
+  std::string valid_seed = absl::HexStringToBytes(
+      "000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f");
+  // Seed that is too small.
+  for (int i = 0; i < 32; i++) {
+    EXPECT_THAT(Ed25519Signer::CreateNewKeyPair(valid_seed.substr(0, i)),
+                StatusIs(StatusCode::kInvalidArgument));
+  }
+  // Seed that is too large.
+  std::string large_seed = absl::StrCat(valid_seed, "a");
+  EXPECT_THAT(Ed25519Signer::CreateNewKeyPair(large_seed),
+              StatusIs(StatusCode::kInvalidArgument));
 }
 
 TEST(Ed25519VerifierTest, CanVerifyCorrect1) {
@@ -138,7 +186,7 @@ TEST(Ed25519VerifierTest, DoesNotVerifyBadSignature) {
                                          "8a284743a445e3680d7db5ac3ac18ff"
                                          "9b538d16f290ae67f760984dc6594a7c15e97"
                                          "16ed28dc027beceea1ec40a80")),
-              StatusIs(absl::StatusCode::kInvalidArgument));
+              StatusIs(StatusCode::kInvalidArgument));
 }
 
 TEST(Ed25519VerifierTest, RejectsBadKeyLength) {
@@ -146,7 +194,20 @@ TEST(Ed25519VerifierTest, RejectsBadKeyLength) {
       "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb91154890802570");
   ASSERT_EQ(pub.size(), 33);
   auto verifier = Ed25519Verifier::Create(pub);
-  EXPECT_THAT(verifier, StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(verifier, StatusIs(StatusCode::kInvalidArgument));
+}
+
+TEST(Ed25519SignerVerifierTest, NewKeypairFromRandomSeedRoundtrip) {
+  auto key_pair = Ed25519Signer::CreateNewKeyPair();
+  ASSERT_NE(key_pair->private_key, std::string(32, 0));
+  auto signer = Ed25519Signer::Create(
+      absl::StrCat(key_pair->private_key, key_pair->public_key));
+  ASSERT_OK(signer);
+  auto verifier = Ed25519Verifier::Create(key_pair->public_key);
+  ASSERT_OK(verifier);
+  auto signature = signer->Sign("hello world");
+  ASSERT_TRUE(signature.has_value());
+  EXPECT_OK(verifier->Verify("hello world", *signature));
 }
 
 }  // namespace

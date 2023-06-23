@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package google.internal.communications.instantmessaging.v1;
+
+import "google/api/annotations.proto";
+import "internal/proto/tachyon.proto";
+import "internal/proto/tachyon_common.proto";
+
+service Messaging {
+  // Send a message through fast-path push only. Neither the sender
+  // nor the receiver need to be registered with Tachyon, and the
+  // auth token is not required.
+  //
+  // The recipient needs to have an open bind channel to receive push
+  // messages at the time when this method is called. Otherwise this
+  // returns a NOT_FOUND error.
+  //
+  // This method is for Tachyon Express enabled Apps only.
+  rpc SendMessageExpress(SendMessageExpressRequest)
+      returns (SendMessageExpressResponse) {
+    option (google.api.http) = {
+      post: "/v1/message:sendExpress"
+      body: "*"
+    };
+    option security_level = PRIVACY_AND_INTEGRITY;
+    option deadline = 30.0;
+  }
+
+  // Open a bind channel to Tachyon server to receive streamed push
+  // messages. No registration nor auth token is required.
+  //
+  // This method is for Tachyon Express enabled Apps only.
+  rpc ReceiveMessagesExpress(ReceiveMessagesExpressRequest)
+      returns (stream ReceiveMessagesResponse) {
+    option (google.api.http) = {
+      post: "/v1/messages:receiveExpress"
+      body: "*"
+    };
+    option security_level = PRIVACY_AND_INTEGRITY;
+  }
+
+  // Echo is used for clients to check the connectivity to the Tachyon backend.
+  rpc Echo(EchoRequest) returns (EchoResponse) {
+    option (google.api.http) = {
+      post: "/v1:echo"
+      body: "*"
+    };
+    option security_level = PRIVACY_AND_INTEGRITY;
+    option deadline = 30.0;
+  }
+}

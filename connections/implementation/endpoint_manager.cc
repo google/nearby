@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/time/time.h"
 #include "connections/implementation/analytics/throughput_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
@@ -730,6 +731,15 @@ EndpointManager::EndpointState::~EndpointState() {
     MutexLock lock(keep_alive_waiter_mutex_.get());
     keep_alive_waiter_->Notify();
   }
+
+  if (keep_alive_latch_ != nullptr) {
+    ExceptionOr<bool> result = keep_alive_latch_->Await(absl::Seconds(1));
+    if (result.ok() && result.result()) {
+      NEARBY_LOGS(INFO) << "Keep alive thread exit gracefully.";
+    } else {
+      NEARBY_LOGS(WARNING) << "Keep alive thread did not exit gracefully.";
+    }
+  }
 }
 
 void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
@@ -738,11 +748,15 @@ void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
 
 void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
     std::function<void(Mutex*, ConditionVariable*)> runnable) {
+  keep_alive_latch_ = std::make_unique<CountDownLatch>(1);
   keep_alive_thread_.Execute(
       "keep-alive",
       [runnable, keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),
-       keep_alive_waiter = keep_alive_waiter_.get()]() {
+       keep_alive_waiter = keep_alive_waiter_.get(),
+       keep_alive_latch = keep_alive_latch_.get()]() {
         runnable(keep_alive_waiter_mutex, keep_alive_waiter);
+        NEARBY_LOGS(INFO) << "Keep alive thread completed.";
+        keep_alive_latch->CountDown();
       });
 }
 

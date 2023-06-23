@@ -19,6 +19,8 @@ cc_library(
         "nearby_platform_feature_flags.h",
     ],
     visibility = [
+        "//connections:__subpackages__",
+        "//fastpair:__subpackages__",
         "//internal:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
     ],

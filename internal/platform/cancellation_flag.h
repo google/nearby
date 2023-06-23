@@ -41,6 +41,15 @@ class CancellationFlag {
   // Set the flag as cancelled.
   void Cancel() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Set the flag as uncancelled. This is needed for the case where the same
+  // endpoint is being reused, and callers want to reset the cancellation flag
+  // for the new attempt. Without this API, the reused endpoint will
+  // use the cancelled flag.
+  //
+  // It is expected that calleers will only call `Uncancel()` if the flag is
+  // already cancelled (check via `Cancelled()`).
+  void Uncancel() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Returns true if the flag has been set to cancelled.
   bool Cancelled() const ABSL_LOCKS_EXCLUDED(mutex_);
 

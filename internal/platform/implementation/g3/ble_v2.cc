@@ -581,6 +581,7 @@ bool BleV2Medium::GattServer::HasCharacteristic(
 }
 
 void BleV2Medium::GattServer::Stop() {
+  if (stopped_) return;
   NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
   stopped_ = true;
   characteristics_.clear();

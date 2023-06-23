@@ -18,10 +18,10 @@ licenses(["notice"])
 lexan.cc_windows_dll(
     name = "fastpair_adapter",
     srcs = [
-        "fast_pair_wrapper_adapter.cc",
+        "fast_pair_service_adapter.cc",
     ],
     hdrs = [
-        "fast_pair_wrapper_adapter.h",
+        "fast_pair_service_adapter.h",
     ],
     copts = [
         "-Ithird_party",
@@ -32,11 +32,12 @@ lexan.cc_windows_dll(
     ],
     tags = ["windows-dll"],
     visibility = [
-        "//fastpair:__subpackages__",
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [
-        "//fastpair/dart:fastpair_wrapper",
+        "//fastpair/dart/proto:fastpair_cc_proto",
+        "//fastpair/keyed_service",
+        "//fastpair/ui:fast_pair_ui",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",
@@ -47,27 +48,31 @@ lexan.cc_windows_dll(
 lexan.cc_windows_dll(
     name = "fastpair_dart",
     srcs = [
-        "fast_pair_wrapper_adapter.cc",
-        "fast_pair_wrapper_adapter_dart.cc",
+        "fast_pair_service_adapter.cc",
+        "fast_pair_service_adapter_dart.cc",
     ],
     hdrs = [
-        "fast_pair_wrapper_adapter.h",
-        "fast_pair_wrapper_adapter_dart.h",
+        "fast_pair_service_adapter.h",
+        "fast_pair_service_adapter_dart.h",
     ],
     copts = [
+        "-Wc++17-compat",
         "-Ithird_party",
     ],
     defines = [
         "LOG_SEVERITY_VERBOSE",
+        "DART_SHARED_LIB=1",
         "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows-dll"],
     visibility = [
-        "//fastpair:__subpackages__",
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [
-        "//fastpair/dart:fastpair_wrapper",
+        "//fastpair/common",
+        "//fastpair/dart/proto:fastpair_cc_proto",
+        "//fastpair/keyed_service",
+        "//fastpair/ui:fast_pair_ui",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",

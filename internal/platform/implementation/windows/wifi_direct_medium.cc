@@ -175,16 +175,16 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
   auto server_socket = std::make_unique<WifiDirectServerSocket>(port);
   server_socket_ptr_ = server_socket.get();
 
-  server_socket->SetCloseNotifier([this]() {
-    absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << "server socket was closed on port "
-                      << server_socket_ptr_->GetPort();
-    medium_status_ &= (~kMediumStatusAccepting);
-    server_socket_ptr_ = nullptr;
-  });
-
   if (server_socket->listen()) {
     medium_status_ |= kMediumStatusAccepting;
+    server_socket->SetCloseNotifier([this]() {
+      absl::MutexLock lock(&mutex_);
+      NEARBY_LOGS(INFO) << "server socket was closed on port "
+                        << server_socket_ptr_->GetPort();
+      medium_status_ &= (~kMediumStatusAccepting);
+      server_socket_ptr_ = nullptr;
+    });
+
     NEARBY_LOGS(INFO) << "started to listen serive on port "
                       << server_socket_ptr_->GetPort();
     return server_socket;

@@ -39,7 +39,7 @@ class UIBrokerImplTest : public ::testing::Test, public UIBroker::Observer {
     ui_broker_->AddObserver(this);
   }
 
-  void OnDiscoveryAction(const FastPairDevice& device,
+  void OnDiscoveryAction(FastPairDevice& device,
                          DiscoveryAction action) override {
     on_discovery_action_notified_ = true;
     discovery_action_ = action;

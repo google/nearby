@@ -24,7 +24,8 @@ TEST(MediumTest, ConstructorWorks) {
   Mediums medium;
   EXPECT_TRUE(medium.GetBluetoothRadio().IsAdapterValid());
   EXPECT_FALSE(medium.GetBle().IsScanning());
-  EXPECT_TRUE(medium.GetBleV2().ConnectToGattServer("ble_address"));
+  EXPECT_TRUE(
+      medium.GetBleV2().ConnectToGattServer("ble_address", {}, nullptr));
   EXPECT_TRUE(medium.GetBluetoothClassic().IsAvailable());
 }
 }  // namespace

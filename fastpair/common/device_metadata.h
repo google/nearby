@@ -17,8 +17,8 @@
 
 #include <utility>
 
+#include "fastpair/common/fast_pair_version.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/common/fast_pair_device.h"
 
 namespace nearby {
 namespace fastpair {
@@ -27,9 +27,9 @@ class DeviceMetadata {
   explicit DeviceMetadata(const proto::GetObservedDeviceResponse response)
       : response_(std::move(response)) {}
   DeviceMetadata(DeviceMetadata &&) = default;
-  DeviceMetadata(const DeviceMetadata &) = delete;
-  DeviceMetadata &operator=(const DeviceMetadata &) = delete;
-  DeviceMetadata &operator=(DeviceMetadata &&) = delete;
+  DeviceMetadata(const DeviceMetadata &) = default;
+  DeviceMetadata &operator=(const DeviceMetadata &) = default;
+  DeviceMetadata &operator=(DeviceMetadata &&) = default;
   ~DeviceMetadata() = default;
   const proto::Device &GetDetails() const { return response_.device(); }
   const proto::GetObservedDeviceResponse &GetResponse() const {
@@ -46,7 +46,7 @@ class DeviceMetadata {
   }
 
  private:
-  const proto::GetObservedDeviceResponse response_;
+  proto::GetObservedDeviceResponse response_;
 };
 }  // namespace fastpair
 }  // namespace nearby

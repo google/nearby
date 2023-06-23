@@ -14,8 +14,9 @@
 
 syntax = "proto3";
 
-package nearby.internal.tachyon_proto;
+package google.internal.communications.instantmessaging.v1;
 
+import "frameworks/testing/rpcreplay/processors/rpc_replay_field_option.proto";
 import "internal/proto/tachyon_enums.proto";
 
 option optimize_for = LITE_RUNTIME;
@@ -67,6 +68,42 @@ message RequestHeader {
   Id requester_id = 10;
 }
 
+// ResponseHeader must be included in all response messages with the field name
+// `header`.
+// This will make the generated Go types of responses have GetHeader and
+// SetHeader funcs, which makes it simple to create a common interface to access
+// the header values.
+message ResponseHeader {
+  reserved 3, 102;
+
+  // rpc_global_id holds the global dapper trace id of the request that produced
+  // this response.
+  uint64 rpc_global_id = 2 [
+    jstype = JS_STRING,
+    (rpcreplay.processing).rewrite_identifier = "TACHYON_RPC_GLOBAL_ID"
+  ];
+
+  // txn_timestamp_usec indicates the timestamp that the response data was read
+  // at.
+  int64 txn_timestamp_usec = 4
+      [(rpcreplay.processing).rewrite_time = MICROSECONDS];
+
+  // api_version_warning is set by the server when the ClientInfo in the request
+  // indicate that the client was built against a API version that is soon to be
+  // deprecated. Clients should show a UI to the user asking them to update the
+  // application.
+  // @deprecated
+  ApiVersionWarning api_version_warning = 103;
+}
+
+message ApiVersionWarning {
+  // grumble_at is API version where the server starts to complain.
+  ApiVersion.Value grumble_at = 1;
+
+  // fail_at is the API version where the server no longer accepts requests.
+  ApiVersion.Value fail_at = 2;
+}
+
 message ClientInfo {
   // major, minor, point and details carry version information from client.
   int32 major = 3;
@@ -116,4 +153,17 @@ message InboxMessage {
 message StreamBody {
   repeated bytes messages = 1;
   repeated bytes noop = 15;
+}
+
+// Echo request and response for clients to test the network connectivity.
+// (== suppress_warning documentation-presence ==)
+message EchoRequest {
+  RequestHeader header = 1;
+  bytes payload = 2;
+}
+
+// (== suppress_warning documentation-presence ==)
+message EchoResponse {
+  ResponseHeader header = 1;
+  bytes payload = 2;
 }

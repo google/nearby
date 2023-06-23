@@ -21,6 +21,7 @@ cc_library(
         "ble_v2.cc",
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
+        "robust_gatt_client.cc",
     ],
     hdrs = [
         "ble.h",
@@ -28,15 +29,20 @@ cc_library(
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
+        "robust_gatt_client.h",
     ],
     visibility = [
         "//fastpair:__subpackages__",
     ],
     deps = [
-        "//internal/platform:base",
+        "//fastpair/common",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],
@@ -119,9 +125,28 @@ cc_test(
         ":mediums",
         "//internal/platform:comm",
         "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "robust_gatt_client_test",
+    size = "small",
+    srcs = [
+        "robust_gatt_client_test.cc",
+    ],
+    deps = [
+        ":mediums",
+        "//internal/platform:comm",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

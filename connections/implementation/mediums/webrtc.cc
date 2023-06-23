@@ -27,6 +27,7 @@
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -47,7 +48,10 @@ constexpr absl::Duration kRestartReceiveMessagesDuration = absl::Seconds(60);
 
 }  // namespace
 
-WebRtc::WebRtc() = default;
+WebRtc::WebRtc() : WebRtc(std::make_unique<WebRtcMedium>()) {}
+
+WebRtc::WebRtc(std::unique_ptr<WebRtcMedium> medium)
+    : medium_(std::move(medium)) {}
 
 WebRtc::~WebRtc() {
   // This ensures that all pending callbacks are run before we reset the medium
@@ -65,10 +69,10 @@ WebRtc::~WebRtc() {
 }
 
 const std::string WebRtc::GetDefaultCountryCode() {
-  return medium_.GetDefaultCountryCode();
+  return medium_->GetDefaultCountryCode();
 }
 
-bool WebRtc::IsAvailable() { return medium_.IsValid(); }
+bool WebRtc::IsAvailable() { return medium_->IsValid(); }
 
 bool WebRtc::IsAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
@@ -107,7 +111,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
 
   // Create a new SignalingMessenger so that we can communicate w/ Tachyon.
   info.signaling_messenger =
-      medium_.GetSignalingMessenger(self_peer_id.GetId(), location_hint);
+      medium_->GetSignalingMessenger(self_peer_id.GetId(), location_hint);
   if (!info.signaling_messenger->IsValid()) {
     return false;
   }
@@ -198,14 +202,31 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
                                     const WebrtcPeerId& remote_peer_id,
                                     const LocationHint& location_hint,
                                     CancellationFlag* cancellation_flag) {
-  for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
-       attempts_count++) {
+  service_id_to_connect_attempts_count_map_[service_id] = 1;
+  while (service_id_to_connect_attempts_count_map_[service_id] <=
+         kConnectAttemptsLimit) {
+    if (cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(WARNING)
+          << "Attempt #"
+          << service_id_to_connect_attempts_count_map_[service_id]
+          << ": Cannot Connect with WebRtc due to cancel.";
+      return WebRtcSocketWrapper();
+    }
+
+    NEARBY_LOGS(INFO) << "Attempt #"
+                      << service_id_to_connect_attempts_count_map_[service_id]
+                      << ": Beginning connection.";
     auto wrapper_result = AttemptToConnect(service_id, remote_peer_id,
                                            location_hint, cancellation_flag);
     if (wrapper_result.IsValid()) {
       return wrapper_result;
     }
+
+    service_id_to_connect_attempts_count_map_[service_id]++;
   }
+
+  NEARBY_LOGS(WARNING) << "Giving up after " << kConnectAttemptsLimit
+                       << " attempts";
   return WebRtcSocketWrapper();
 }
 
@@ -216,6 +237,19 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
   info.self_peer_id = WebrtcPeerId::FromRandom();
   Future<WebRtcSocketWrapper> socket_future = info.socket_future;
 
+  // `listener` will go out of scope at the end of `AttemptToConnect`, and this
+  // is expected. This `listener` is tied to `socket_future` which we block on
+  // within this stack call, and will not go out of scope until the attempt
+  // is complete.
+  CancellationFlagListener listener(
+      cancellation_flag, [this, &service_id, &socket_future]() {
+        NEARBY_LOGS(WARNING)
+            << "Attempt # "
+            << service_id_to_connect_attempts_count_map_[service_id]
+            << " to connect with WebRtc stopped due to cancel.";
+        socket_future.SetException({Exception::kFailed});
+      });
+
   {
     MutexLock lock(&mutex_);
     if (!IsAvailable()) {
@@ -223,11 +257,6 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
           WARNING,
           "Cannot connect to WebRTC peer %s because WebRTC is not available.",
           remote_peer_id.GetId().c_str());
-      return WebRtcSocketWrapper();
-    }
-
-    if (cancellation_flag->Cancelled()) {
-      NEARBY_LOGS(INFO) << "Cannot connect with WebRtc due to cancel.";
       return WebRtcSocketWrapper();
     }
 
@@ -244,8 +273,8 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
     }
 
     // Create a new SignalingMessenger so that we can communicate over Tachyon.
-    info.signaling_messenger =
-        medium_.GetSignalingMessenger(info.self_peer_id.GetId(), location_hint);
+    info.signaling_messenger = medium_->GetSignalingMessenger(
+        info.self_peer_id.GetId(), location_hint);
     if (!info.signaling_messenger->IsValid()) {
       NEARBY_LOG(
           INFO,
@@ -718,7 +747,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
             });
           }},
       },
-      medium_);
+      *medium_);
 }
 
 void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {

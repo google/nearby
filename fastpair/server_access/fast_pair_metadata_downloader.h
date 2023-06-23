@@ -21,7 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 
 namespace nearby {
 namespace fastpair {

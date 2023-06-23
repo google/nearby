@@ -20,8 +20,8 @@
 #include <string>
 #include <vector>
 
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/repository/device_metadata.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"

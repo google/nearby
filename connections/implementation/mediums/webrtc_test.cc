@@ -14,7 +14,9 @@
 
 #include "connections/implementation/mediums/webrtc.h"
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -23,6 +25,8 @@
 #include "internal/platform/listeners.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/webrtc.h"
+#include "internal/test/fake_webrtc.h"
 
 namespace nearby {
 namespace connections {
@@ -40,6 +44,16 @@ constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{
         .enable_cancellation_flag = false,
     },
+};
+
+class TestWebRtc : public WebRtc {
+ public:
+  explicit TestWebRtc(std::unique_ptr<WebRtcMedium> medium)
+      : WebRtc(std::move(medium)) {}
+
+  int connect_attempts_count(std::string service_id) {
+    return service_id_to_connect_attempts_count_map_[service_id];
+  }
 };
 
 class WebRtcTest : public ::testing::TestWithParam<FeatureFlags> {
@@ -401,6 +415,159 @@ TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
 
   webrtc.StopAcceptingConnections(service_id);
   EXPECT_FALSE(webrtc.IsAcceptingConnections(service_id));
+  env_.Stop();
+}
+
+// Tests when a CancellationFlag is cancelled during an attempt to
+// `WebRtc::AttemptToConnect` triggered by `WebRtc::Connect`.
+TEST_F(WebRtcTest, CancelDuringConnect) {
+  env_.Start({.webrtc_enabled = true});
+
+  // Enable cancellation flags.
+  env_.SetFeatureFlags(kTestCases[0]);
+
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const WebrtcPeerId self_id("self_id");
+  const std::string service_id("NearbySharing");
+  LocationHint location_hint;
+  Future<bool> connected;
+  ByteArray message("message");
+
+  CancellationFlag receiver_flag;
+  std::unique_ptr<WebRtc> receiver = std::make_unique<TestWebRtc>(
+      std::make_unique<FakeWebRtcMedium>(&receiver_flag));
+
+  CancellationFlag sender_flag;
+  std::unique_ptr<WebRtcMedium> sender_medium =
+      std::make_unique<FakeWebRtcMedium>(&sender_flag);
+  FakeWebRtcMedium* fake_sender_medium =
+      static_cast<FakeWebRtcMedium*>(sender_medium.get());
+  auto sender = std::make_unique<TestWebRtc>(std::move(sender_medium));
+
+  // Calls `CancellationFlag::Cancel` during a call to `GetSignalingMessenger`
+  // to simulate the cancellation occuring during an `AttemptToConnect`.
+  fake_sender_medium->TriggerCancellationDuringGetSignalingMessenger();
+
+  receiver->StartAcceptingConnections(
+      service_id, self_id, location_hint,
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  sender_socket =
+      sender->Connect(service_id, self_id, location_hint, &sender_flag);
+
+  // Since the flag was cancelled during the initial `AttemptToConnect`, except
+  // only one attempt instead of the usual three, because the cancellation flag
+  // should short-circuit the lengthy connection attempts during shutdown.
+  // Because of the way the iteration happens, the check for is cancelled
+  // happens after the counter has already been incremented, but before the
+  // attempt actually occurs.
+  EXPECT_FALSE(sender_socket.IsValid());
+  EXPECT_EQ(2, sender->connect_attempts_count(service_id));
+
+  env_.Stop();
+}
+
+// Tests when a CancellationFlag is cancelled before `WebRtc::Connect` is
+// called.
+TEST_F(WebRtcTest, CancelBeforeConnect) {
+  env_.Start({.webrtc_enabled = true});
+
+  // Enable cancellation flags.
+  env_.SetFeatureFlags(kTestCases[0]);
+
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const WebrtcPeerId self_id("self_id");
+  const std::string service_id("NearbySharing");
+  LocationHint location_hint;
+  Future<bool> connected;
+  ByteArray message("message");
+
+  CancellationFlag receiver_flag;
+  std::unique_ptr<WebRtc> receiver = std::make_unique<TestWebRtc>(
+      std::make_unique<FakeWebRtcMedium>(&receiver_flag));
+
+  CancellationFlag sender_flag(true);
+  auto sender = std::make_unique<TestWebRtc>(
+      std::make_unique<FakeWebRtcMedium>(&sender_flag));
+
+  receiver->StartAcceptingConnections(
+      service_id, self_id, location_hint,
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  sender_socket =
+      sender->Connect(service_id, self_id, location_hint, &sender_flag);
+
+  // Expect an invalid socket from stopping during the first attempt to connect,
+  // because `Connect` returned immediatley when it checked for cancellation.
+  EXPECT_FALSE(sender_socket.IsValid());
+  EXPECT_EQ(1, sender->connect_attempts_count(service_id));
+
+  env_.Stop();
+}
+
+// Tests when a CancellationFlag is cancelled during an attempt to
+// `WebRtc::AttemptToConnect` triggered by `WebRtc::Connect` when multiple
+// `WebRTC::Connect` calls are in flight for multiple service ids.
+TEST_F(WebRtcTest, CancelDuringConnect_MultipleConnect) {
+  env_.Start({.webrtc_enabled = true});
+
+  // Enable cancellation flags.
+  env_.SetFeatureFlags(kTestCases[0]);
+
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const WebrtcPeerId self_id("self_id");
+  const std::string ns_service_id("NearbySharing");
+  const std::string ph_service_id("PhoneHub");
+  LocationHint location_hint;
+  Future<bool> connected;
+  ByteArray message("message xyz");
+
+  CancellationFlag receiver_flag;
+  std::unique_ptr<WebRtc> receiver = std::make_unique<TestWebRtc>(
+      std::make_unique<FakeWebRtcMedium>(&receiver_flag));
+
+  CancellationFlag flag;
+  auto sender_medium = std::make_unique<FakeWebRtcMedium>(&flag);
+  FakeWebRtcMedium* fake_sender_medium = sender_medium.get();
+  auto sender = std::make_unique<TestWebRtc>(std::move(sender_medium));
+
+  receiver->StartAcceptingConnections(
+      ns_service_id, self_id, location_hint,
+      {[&receiver_socket, connected](const std::string& ns_service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  // Simulate a successful connect for the endpoint of NearbySharing.
+  sender_socket = sender->Connect(ns_service_id, self_id, location_hint, &flag);
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  // Calls `CancellationFlag::Cancel` during a call to `GetSignalingMessenger`
+  // to simulate the cancellation occuring during an `AttemptToConnect` for the
+  // endpoint of Phone Hub.
+  fake_sender_medium->TriggerCancellationDuringGetSignalingMessenger();
+  sender_socket = sender->Connect(ph_service_id, self_id, location_hint, &flag);
+  EXPECT_FALSE(sender_socket.IsValid());
+
+  // Since the flag was cancelled during the initial `AttemptToConnect`, except
+  // only one attempt instead of the usual three, because the cancellation flag
+  // should short-circuit the lengthy connection attempts during shutdown.
+  // Because of the way the iteration happens, the check for is cancelled
+  // happens after the counter has already been incremented, but before the
+  // attempt actually occurs. For the successful connect, expect only one
+  // attempt.
+  EXPECT_EQ(1, sender->connect_attempts_count(ns_service_id));
+  EXPECT_EQ(2, sender->connect_attempts_count(ph_service_id));
+
   env_.Stop();
 }
 

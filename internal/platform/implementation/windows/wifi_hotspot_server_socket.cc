@@ -34,9 +34,6 @@ namespace nearby {
 namespace windows {
 namespace {
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
-
-constexpr int kMaxRetries = 3;
-constexpr int kRetryIntervalMilliSeconds = 300;
 }  // namespace
 
 WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
@@ -123,6 +120,10 @@ Exception WifiHotspotServerSocket::Close() {
     absl::MutexLock lock(&mutex_);
     NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
 
+    if (closed_) {
+      return {Exception::kSuccess};
+    }
+
     if (NearbyFlags::GetInstance().GetBoolFlag(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableHotspotWin32Socket)) {
@@ -152,10 +153,6 @@ Exception WifiHotspotServerSocket::Close() {
 
         pending_sockets_ = {};
       }
-    }
-
-    if (closed_) {
-      return {Exception::kSuccess};
     }
 
     closed_ = true;
@@ -391,13 +388,24 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
 
 bool WifiHotspotServerSocket::listen() {
   // Get current IP addresses of the device.
-  for (int i = 0; i < kMaxRetries; i++) {
+  int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kWifiHotspotCheckIpMaxRetries);
+  int64_t ip_address_retry_interval_millis =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotCheckIpIntervalMillis);
+  NEARBY_LOGS(INFO) << "maximum IP check retries=" << ip_address_max_retries
+                    << ", IP check interval="
+                    << ip_address_retry_interval_millis << "ms";
+  for (int i = 0; i < ip_address_max_retries; i++) {
     hotspot_ipaddr_ = GetHotspotIpAddresses();
     if (hotspot_ipaddr_.empty()) {
       NEARBY_LOGS(WARNING) << "Failed to find Hotspot's IP addr for the try: "
-                           << i + 1 << ". Wait " << kRetryIntervalMilliSeconds
+                           << i + 1 << ". Wait "
+                           << ip_address_retry_interval_millis
                            << "ms snd try again";
-      Sleep(kRetryIntervalMilliSeconds);
+      Sleep(ip_address_retry_interval_millis);
     } else {
       break;
     }
@@ -447,7 +455,11 @@ std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
 
 std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
   try {
-    for (int i = 0; i < kMaxRetries; i++) {
+    int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kWifiHotspotCheckIpMaxRetries);
+
+    for (int i = 0; i < ip_address_max_retries; i++) {
       auto host_names = NetworkInformation::GetHostNames();
       for (auto host_name : host_names) {
         if (host_name.IPInformation() != nullptr &&

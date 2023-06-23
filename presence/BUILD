@@ -19,13 +19,14 @@ cc_library(
     name = "presence",
     srcs = [
         "presence_client_impl.cc",
-        "presence_service.cc",
+        "presence_service_impl.cc",
     ],
     hdrs = [
         "presence_client.h",
         "presence_client_impl.h",
         "presence_device_provider.h",
         "presence_service.h",
+        "presence_service_impl.h",
     ],
     deps = [
         ":types",
@@ -43,15 +44,18 @@ cc_library(
     testonly = 1,
     srcs = [
         "fake_presence_client.cc",
+        "fake_presence_service.cc",
     ],
     hdrs = [
         "fake_presence_client.h",
+        "fake_presence_service.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":presence",
         ":types",
-        "@com_google_absl//absl/status",
+        "//internal/platform:types",
+        "//internal/proto:metadata_cc_proto",
         "@com_google_absl//absl/status:statusor",
     ],
 )
@@ -82,11 +86,10 @@ cc_library(
         "scan_request_builder.h",
     ],
     deps = [
-        "//internal/crypto",
         "//internal/interop:device",
+        "//internal/platform:base",
         "//internal/platform:connection_info",
         "//internal/platform:logging",
-        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
         "//internal/proto:metadata_cc_proto",

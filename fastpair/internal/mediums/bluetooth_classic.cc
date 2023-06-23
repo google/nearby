@@ -34,6 +34,57 @@ bool BluetoothClassic::IsAvailableLocked() const {
   return medium_.IsValid() && adapter_.IsValid() && adapter_.IsEnabled();
 }
 
+void BluetoothClassic::AddObserver(BluetoothClassicMedium::Observer* observer) {
+  MutexLock lock(&mutex_);
+  medium_.AddObserver(observer);
+}
+
+void BluetoothClassic::RemoveObserver(
+    BluetoothClassicMedium::Observer* observer) {
+  MutexLock lock(&mutex_);
+  medium_.RemoveObserver(observer);
+}
+
+bool BluetoothClassic::StartDiscovery() {
+  MutexLock lock(&mutex_);
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO) << "Can't discover BT devices because BT isn't enabled.";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't discover BT devices because BT isn't available.";
+    return false;
+  }
+
+  if (!medium_.StartDiscovery({})) {
+    NEARBY_LOGS(INFO) << "Failed to start discovery of BT devices.";
+    return false;
+  }
+  // Mark the fact that we're currently performing a Bluetooth scan.
+  is_scanning = true;
+  return true;
+}
+
+bool BluetoothClassic::StopDiscovery() {
+  MutexLock lock(&mutex_);
+  if (!IsDiscovering()) {
+    NEARBY_LOGS(INFO)
+        << "Can't stop discovery of BT devices because it never started.";
+    return false;
+  }
+
+  if (!medium_.StopDiscovery()) {
+    NEARBY_LOGS(INFO) << "Failed to stop discovery of Bluetooth devices.";
+    return false;
+  }
+  is_scanning = false;
+  return true;
+}
+
+bool BluetoothClassic::IsDiscovering() const { return is_scanning; }
+
 std::unique_ptr<BluetoothPairing> BluetoothClassic::CreatePairing(
     absl::string_view public_address) {
   MutexLock lock(&mutex_);

@@ -139,6 +139,7 @@ cc_test(
     deps = [
         ":handshake",
         "//fastpair/common",
+        "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/server_access:test_support",
         "//internal/platform:base",
         "//internal/platform:test_util",

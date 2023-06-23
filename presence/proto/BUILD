@@ -7,5 +7,8 @@ proto_library(
 
 cc_proto_library(
     name = "presence_frame_cc_proto",
+    visibility = [
+        "//presence:__subpackages__",
+    ],
     deps = [":presence_frame_proto"],
 )

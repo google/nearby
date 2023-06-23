@@ -25,10 +25,10 @@
 
 #include "absl/functional/any_invocable.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/crypto/fast_pair_key_pair.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
-#include "fastpair/repository/device_metadata.h"
 
 namespace nearby {
 namespace fastpair {

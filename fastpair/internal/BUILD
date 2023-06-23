@@ -14,10 +14,12 @@ cc_library(
         "//fastpair:fast_pair_events",
         "//fastpair:fast_pair_seeker",
         "//fastpair/internal/mediums",
+        "//fastpair/pairing",
         "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//internal/platform:types",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -29,11 +31,14 @@ cc_test(
     ],
     deps = [
         ":internal",
+        "//fastpair/message_stream:fake_gatt_callbacks",
         "//fastpair/message_stream:fake_provider",
         "//fastpair/server_access:test_support",
         "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -30,6 +30,9 @@
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connections_device_provider.h"
+#include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
@@ -64,6 +67,7 @@ class ClientProxy final {
   std::int64_t GetClientId() const;
 
   std::string GetLocalEndpointId();
+  std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
 
   analytics::AnalyticsRecorder& GetAnalyticsRecorder() const {
     return *analytics_recorder_;
@@ -71,9 +75,11 @@ class ClientProxy final {
 
   std::string GetConnectionToken(const std::string& endpoint_id);
   const NearbyDevice* GetLocalDevice();
-  // Test-only.
   NearbyDeviceProvider* GetLocalDeviceProvider() {
-    return device_provider_.get();
+    if (external_device_provider_ != nullptr) {
+      return external_device_provider_;
+    }
+    return connections_device_provider_.get();
   }
 
   // Clears all the runtime state of this client.
@@ -90,6 +96,17 @@ class ClientProxy final {
   bool IsAdvertising() const;
   std::string GetAdvertisingServiceId() const;
 
+  // Marks this client as listening for incoming connections.
+  void StartedListeningForIncomingConnections(
+      absl::string_view service_id, Strategy strategy,
+      v3::ConnectionListener listener,
+      const v3::ConnectionListeningOptions& options);
+  void StoppedListeningForIncomingConnections();
+  bool IsListeningForIncomingConnections() const;
+  std::string GetListeningForIncomingConnectionsServiceId() const;
+
+  ConnectionListener GetAdvertisingOrIncomingConnectionListener();
+
   // Marks this client as discovering with the given callback.
   void StartedDiscovery(
       const std::string& service_id, Strategy strategy,
@@ -101,6 +118,11 @@ class ClientProxy final {
   bool IsDiscoveringServiceId(const std::string& service_id) const;
   bool IsDiscovering() const;
   std::string GetDiscoveryServiceId() const;
+
+  void UpdateLocalEndpointInfo(absl::string_view endpoint_info) {
+    MutexLock lock(&mutex_);
+    local_endpoint_info_ = std::string(endpoint_info);
+  }
 
   // Proxies to the client's DiscoveryListener::OnEndpointFound() callback.
   void OnEndpointFound(const std::string& service_id,
@@ -194,6 +216,7 @@ class ClientProxy final {
   void CancelAllEndpoints();
   AdvertisingOptions GetAdvertisingOptions() const;
   DiscoveryOptions GetDiscoveryOptions() const;
+  v3::ConnectionListeningOptions GetListeningOptions() const;
 
   // The endpoint id will be stable for 30 seconds after high visibility mode
   // (high power and Bluetooth Classic) advertisement stops.
@@ -213,8 +236,13 @@ class ClientProxy final {
       absl::string_view endpoint_id,
       const location::nearby::connections::OsInfo& remote_os_info);
 
-  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider) {
-    device_provider_ = std::move(provider);
+  void RegisterDeviceProvider(NearbyDeviceProvider* provider) {
+    external_device_provider_ = provider;
+  }
+
+  void RegisterConnectionsDeviceProvider(
+      std::unique_ptr<v3::ConnectionsDeviceProvider> provider) {
+    connections_device_provider_ = std::move(provider);
   }
 
  private:
@@ -263,6 +291,13 @@ class ClientProxy final {
     bool IsEmpty() const { return service_id.empty(); }
   };
 
+  struct ListeningInfo {
+    std::string service_id;
+    v3::ConnectionListener listener;
+    void Clear() { service_id.clear(); }
+    bool IsEmpty() const { return service_id.empty(); }
+  };
+
   // `RemoveAllEndpoints` is expected to only be called during destruction of
   // ClientProxy via `ClientProxy::Reset`, which makes destroying
   // CancellationFlags safe here since we are destroying ClientProxy. Do not
@@ -295,6 +330,7 @@ class ClientProxy final {
   mutable RecursiveMutex mutex_;
   std::int64_t client_id_;
   std::string local_endpoint_id_;
+  std::string local_endpoint_info_;
   // If currently is advertising in high visibility mode is true: high power and
   // Bluetooth Classic enabled. When high_visibility_mode_ is true, the endpoint
   // id is stable for 30s. When high_visibility_mode_ is false, the endpoint id
@@ -320,6 +356,9 @@ class ClientProxy final {
   // If not empty, we are currently discovering for the given service_id.
   DiscoveryInfo discovery_info_;
 
+  // If not empty, we are currently listening for the given service_id.
+  ListeningInfo listening_info_;
+
   // The active ClientProxy's advertising constraints. Empty()
   // returns true if the client hasn't started advertising false otherwise.
   // Note: this is not cleared when the client stops advertising because it
@@ -332,6 +371,9 @@ class ClientProxy final {
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
   DiscoveryOptions discovery_options_;
+
+  // The active ClientProxy's listening constraints.
+  v3::ConnectionListeningOptions listening_options_;
 
   // Maps endpoint_id to endpoint connection state.
   absl::flat_hash_map<std::string, ConnectionPair> connections_;
@@ -358,7 +400,11 @@ class ClientProxy final {
   std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
   // Local device OS information.
   location::nearby::connections::OsInfo local_os_info_;
-  std::unique_ptr<NearbyDeviceProvider> device_provider_;
+  // For device providers not owned by Nearby connections (e.g. Nearby
+  // Presence's DeviceProvider.)
+  NearbyDeviceProvider* external_device_provider_ = nullptr;
+  // For Nearby Connections' own device provider.
+  std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
 };
 
 }  // namespace connections

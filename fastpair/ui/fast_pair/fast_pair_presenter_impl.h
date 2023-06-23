@@ -17,8 +17,8 @@
 
 #include <memory>
 
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/repository/device_metadata.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/fast_pair/fast_pair_presenter.h"
 

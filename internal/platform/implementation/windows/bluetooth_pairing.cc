@@ -99,6 +99,8 @@ bool BluetoothPairing::InitiatePairing(
                        << ": Failed to initiate pairing. WinRT exception: "
                        << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -137,6 +139,8 @@ bool BluetoothPairing::FinishPairing(
                        << ": Failed to finish pairing. WinRT exception: "
                        << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -167,6 +171,8 @@ bool BluetoothPairing::CancelPairing() {
                        << ": Failed to cancel ongoing pairing process. "
                        << "WinRT exception: " << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -195,6 +201,8 @@ bool BluetoothPairing::Unpair() {
                        << ": Failed to unpaired with device. WinRT exception: "
                        << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -212,6 +220,8 @@ bool BluetoothPairing::IsPaired() {
                        << ": Failed to get IsPaired. WinRT exception: "
                        << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -259,6 +269,8 @@ void BluetoothPairing::OnPairingRequested(
         << __func__
         << ": Failed to request to pair with device. WinRT exception: "
         << error.code() << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   pairing_callback_.on_pairing_error_cb(PairingError::kFailed);
 }
@@ -322,6 +334,8 @@ void BluetoothPairing::OnPair(DevicePairingResult& pairing_result) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get Pairing Result Status."
                        << " WinRT exception: " << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
   }
   pairing_callback_.on_pairing_error_cb(PairingError::kFailed);
 }

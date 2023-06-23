@@ -20,7 +20,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/server_access/fast_pair_repository.h"
 #include "internal/platform/single_thread_executor.h"
 

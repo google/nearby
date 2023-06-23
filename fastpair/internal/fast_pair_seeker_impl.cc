@@ -14,21 +14,46 @@
 
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 
+#include <ios>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_format.h"
 #include "fastpair/fast_pair_events.h"
+#include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
 
+FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
+                                       SingleThreadExecutor* executor,
+                                       FastPairDeviceRepository* devices)
+    : callbacks_(std::move(callbacks)), executor_(executor), devices_(devices) {
+  pairer_broker_ = std::make_unique<PairerBrokerImpl>(mediums_, executor_);
+  pairer_broker_->AddObserver(this);
+}
+
+FastPairSeekerImpl::~FastPairSeekerImpl() {
+  pairer_broker_->RemoveObserver(this);
+  FinishPairing(absl::AbortedError("Pairing terminated"));
+  DestroyOnExecutor(std::move(pairer_broker_), executor_);
+}
+
 absl::Status FastPairSeekerImpl::StartInitialPairing(
     const FastPairDevice& device, const InitialPairingParam& params,
     PairingCallback callback) {
-  return absl::UnimplementedError("StartInitialPairing");
+  if (pairer_broker_->IsPairing()) {
+    return absl::AlreadyExistsError("Already pairing");
+  }
+
+  pairing_callback_ = std::make_unique<PairingCallback>(std::move(callback));
+  device_under_pairing_ = &const_cast<FastPairDevice&>(device);
+  pairer_broker_->PairDevice(*device_under_pairing_);
+  return absl::OkStatus();
 }
 
 absl::Status FastPairSeekerImpl::StartSubsequentPairing(
@@ -73,7 +98,91 @@ void FastPairSeekerImpl::OnDeviceFound(FastPairDevice& device) {
 // ScannerBroker::Observer::OnDeviceLost
 void FastPairSeekerImpl::OnDeviceLost(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << "Device lost: " << device;
+  if (IsDeviceUnderPairing(device)) {
+    FinishPairing(absl::UnavailableError("Device lost during pairing"));
+  }
 }
 
+// PairerBroker:Observer::OnDevicePaired
+void FastPairSeekerImpl::OnDevicePaired(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device;
+}
+
+// PairerBroker:Observer::OnAccountKeyWrite
+void FastPairSeekerImpl::OnAccountKeyWrite(FastPairDevice& device,
+                                           std::optional<PairFailure> error) {
+  if (error.has_value()) {
+    NEARBY_LOGS(INFO) << __func__ << ": Device=" << device
+                      << ",Error=" << error.value();
+    return;
+  }
+
+  NEARBY_LOGS(INFO) << __func__ << ": Device=" << device;
+  if (device.GetProtocol() == Protocol::kFastPairRetroactivePairing) {
+    // TODO: UI ShowAssociateAccount
+  }
+}
+
+// PairerBroker:Observer::OnPairingComplete
+void FastPairSeekerImpl::OnPairingComplete(FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device;
+  if (!IsDeviceUnderPairing(device)) {
+    NEARBY_LOGS(WARNING) << "unexpected on pair complete callback";
+    return;
+  }
+  FinishPairing(absl::OkStatus());
+}
+
+// PairerBroker:Observer::OnPairFailure
+void FastPairSeekerImpl::OnPairFailure(FastPairDevice& device,
+                                       PairFailure failure) {
+  NEARBY_LOGS(INFO) << __func__ << ": " << device
+                    << " with PairFailure: " << failure;
+  if (!IsDeviceUnderPairing(device)) {
+    NEARBY_LOGS(WARNING) << "unexpected on pair failure callback";
+    return;
+  }
+  FinishPairing(
+      absl::InternalError(absl::StrFormat("Pairing failed with %v", failure)));
+}
+
+bool FastPairSeekerImpl::IsDeviceUnderPairing(const FastPairDevice& device) {
+  return device_under_pairing_ == &device;
+}
+
+void FastPairSeekerImpl::FinishPairing(absl::Status result) {
+  if (pairing_callback_ && device_under_pairing_ != nullptr) {
+    pairing_callback_->on_pairing_result(*device_under_pairing_, result);
+  }
+  pairing_callback_.reset();
+  device_under_pairing_ = nullptr;
+}
+
+void FastPairSeekerImpl::SetIsScreenLocked(bool locked) {
+  executor_->Execute(
+      "on_lock_state_changed",
+      [this, locked]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+        NEARBY_LOGS(INFO) << __func__ << ": Screen lock state changed. ( "
+                          << std::boolalpha << locked << ")";
+        is_screen_locked_ = locked;
+        InvalidateScanningState();
+      });
+}
+
+void FastPairSeekerImpl::InvalidateScanningState() {
+  // Stop scanning when screen is off.
+  if (is_screen_locked_) {
+    absl::Status status = StopFastPairScan();
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": Stopping scanning because the screen is locked.";
+    return;
+  }
+
+  // TODO(b/275452353): Check if bluetooth and fast pair is enabled
+
+  // Screen is on, Bluetooth is enabled, and Fast Pair is enabled, start
+  // scanning.
+  absl::Status status = StartFastPairScan();
+}
 }  // namespace fastpair
 }  // namespace nearby

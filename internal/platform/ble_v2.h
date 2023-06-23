@@ -280,7 +280,7 @@ class GattClient final {
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<std::string> ReadCharacteristic(
-      api::ble_v2::GattCharacteristic& characteristic) {
+      const api::ble_v2::GattCharacteristic& characteristic) {
     return impl_->ReadCharacteristic(characteristic);
   }
 

@@ -23,8 +23,8 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/repository/device_metadata.h"
 #include "fastpair/repository/fake_fast_pair_metadata_repository.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader_impl.h"
@@ -53,7 +53,7 @@ class FastPairRepositoryImplTest : public ::testing::Test {
   void GetObservedDataRequestSuccess(
       const proto::GetObservedDeviceResponse& response) {
     FakeFastPairMetadataRepository* repository =
-         fake_repository_factory_->fake_repository();
+        fake_repository_factory_->fake_repository();
     std::move(repository->get_observed_device_request()->callback)(response);
   }
 
@@ -64,8 +64,7 @@ class FastPairRepositoryImplTest : public ::testing::Test {
   }
 
   std::optional<Result> result_;
-  FakeFastPairMetadataRepositoryFactory*
-      fake_repository_factory_;
+  FakeFastPairMetadataRepositoryFactory* fake_repository_factory_;
   std::unique_ptr<FastPairRepositoryImpl> repository_;
 };
 

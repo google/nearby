@@ -199,7 +199,7 @@ CredentialManagerImpl::CreateLocalCredential(const Metadata& metadata,
   std::string metadata_key(kBaseMetadataSize, 0);
   crypto::RandBytes(const_cast<std::string::value_type*>(metadata_key.data()),
                     metadata_key.size());
-  private_credential.set_metadata_encryption_key(metadata_key);
+  private_credential.set_metadata_encryption_key_v0(metadata_key);
 
   // Generate the public credential
   std::vector<uint8_t> public_key;
@@ -235,13 +235,13 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
       std::string(public_key.begin(), public_key.end()));
 
   auto metadata_encryption_key_tag =
-      Crypto::Sha256(private_credential.metadata_encryption_key());
-  public_credential.set_metadata_encryption_key_tag(
+      Crypto::Sha256(private_credential.metadata_encryption_key_v0());
+  public_credential.set_metadata_encryption_key_unsigned_adv_tag(
       std::string(metadata_encryption_key_tag.AsStringView()));
 
   // Encrypt the device metadata
   auto encrypted_meta_data = EncryptMetadata(
-      private_credential.metadata_encryption_key(),
+      private_credential.metadata_encryption_key_v0(),
       private_credential.key_seed(), metadata.SerializeAsString());
 
   if (encrypted_meta_data.empty()) {
@@ -251,7 +251,7 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
     return public_credential;
   }
 
-  public_credential.set_encrypted_metadata_bytes(encrypted_meta_data);
+  public_credential.set_encrypted_metadata_bytes_v0(encrypted_meta_data);
   return public_credential;
 }
 

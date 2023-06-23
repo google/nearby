@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,32 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/dart/fast_pair_wrapper.h"
+#include "fastpair/keyed_service/fast_pair_mediator_factory.h"
 
-#include <string>
-
-#include "internal/platform/logging.h"
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include "gtest/gtest.h"
+#include "fastpair/keyed_service/fast_pair_mediator.h"
 
 namespace nearby {
 namespace fastpair {
 namespace {
 
-using StatusCodes = FastPairWrapper::StatusCodes;
-constexpr char kUnknownStatusCodesString[] = "Unknown_StatusCodes";
-
-}  // namespace
-
-std::string FastPairWrapper::StatusCodeToString(StatusCodes status_code) {
-  switch (status_code) {
-    case StatusCodes::kOk:
-      return "kOk";
-    case StatusCodes::kError:
-      return "kError";
-  }
-  NEARBY_LOGS(ERROR) << "Unknown value for Status codes: "
-                     << static_cast<int>(status_code);
-  return kUnknownStatusCodesString;
+TEST(MediatorFactoryTest, checkMediatorCreateWithFactory) {
+  MediatorFactory *factory_ = nullptr;
+  Mediator *mediator_ = nullptr;
+  factory_ = MediatorFactory::GetInstance();
+  EXPECT_THAT(factory_, testing::NotNull());
+  mediator_ = factory_->CreateMediator();
+  EXPECT_THAT(mediator_, testing::NotNull());
 }
 
+}  // namespace
 }  // namespace fastpair
 }  // namespace nearby

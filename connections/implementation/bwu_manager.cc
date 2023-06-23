@@ -81,6 +81,7 @@ BwuManager::BwuManager(
   }
   if (config_.allow_upgrade_to.All(false)) {
     config_.allow_upgrade_to.web_rtc = true;
+    config_.allow_upgrade_to.wifi_direct = true;
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
   }
@@ -196,7 +197,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
         (proposed_medium == Medium::WIFI_HOTSPOT)) {
       NEARBY_LOGS(INFO)
           << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
-             "WIFI_HOTSPOT. Don't do the BWU because connecting to "
+             "WIFI_HOTSPOT. Don't do the BWU because STA connecting to "
              "WIFI_HOTSPOT will destroy WIFI_LAN which will lead BWU fail and "
              "other endpoint connection fail";
       return;
@@ -415,12 +416,11 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
 }
 
 bool BwuManager::IsUpgradeOngoing(const std::string& endpoint_id) {
-    CountDownLatch latch(1);
-    RunOnBwuManagerThread("is_upgrade_ongoing", [&latch]() {
-      latch.CountDown();
-    });
-    latch.Await();
-    return in_progress_upgrades_.contains(endpoint_id);
+  CountDownLatch latch(1);
+  RunOnBwuManagerThread("is_upgrade_ongoing",
+                        [&latch]() { latch.CountDown(); });
+  latch.Await();
+  return in_progress_upgrades_.contains(endpoint_id);
 }
 
 Medium BwuManager::GetBwuMediumForEndpoint(
@@ -661,12 +661,15 @@ void BwuManager::ProcessBwuPathAvailableEvent(
                            upgrade_medium);
 
   if (channel_manager_->isWifiLanConnected() &&
-      (upgrade_medium == Medium::WIFI_HOTSPOT)) {
+      ((upgrade_medium == Medium::WIFI_HOTSPOT) ||
+       ((upgrade_medium == Medium::WIFI_DIRECT) &&
+        (client->GetLocalOsInfo().type() ==
+         location::nearby::connections::OsInfo::WINDOWS)))) {
     NEARBY_LOGS(INFO)
         << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
-           "WIFI_HOTSPOT. Don't do the BWU because connecting to "
-           "WIFI_HOTSPOT will destroy WIFI_LAN which will lead BWU fail and "
-           "other endpoint connection fail";
+        << location::nearby::proto::connections::Medium_Name(upgrade_medium)
+        << ". Don't do the BWU because this will destroy WIFI_LAN which will "
+           "lead BWU fail and other endpoint connection fail";
     RunUpgradeFailedProtocol(client, endpoint_id, upgrade_path_info);
     return;
   }

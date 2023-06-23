@@ -31,6 +31,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/borrowable.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -106,7 +107,8 @@ class FastPairController : public MessageStream::Observer {
     FastPairController* controller_ = nullptr;
   };
   // Creates a device controller in retroactive pairing path.
-  FastPairController(Mediums* mediums, const BluetoothDevice& device);
+  FastPairController(Mediums* mediums, const BluetoothDevice& device,
+                     SingleThreadExecutor* executor);
 
   ~FastPairController() override {
     NEARBY_LOGS(INFO) << "Destroy FastPairController";
@@ -173,8 +175,10 @@ class FastPairController : public MessageStream::Observer {
     CHECK(gatt_client_ != nullptr);
     return gatt_client_.get();
   }
+  void CreateDataEncryptor();
   Mediums* mediums_;
   FastPairDevice device_;
+  SingleThreadExecutor* executor_;
   std::unique_ptr<Future<std::shared_ptr<FastPairDataEncryptor>>> encryptor_;
   std::unique_ptr<MessageStream> message_stream_;
   absl::Status message_stream_status_ =

@@ -25,8 +25,12 @@
 namespace nearby {
 namespace {
 
-TEST(TaskRunnerImpl, PostTask) {
-  TaskRunnerImpl task_runner{1};
+constexpr uint32_t kNumThreads[] = {1, 10};
+
+class BaseTaskRunnerImplTest : public ::testing::TestWithParam<uint32_t> {};
+
+TEST_P(BaseTaskRunnerImplTest, PostTask) {
+  TaskRunnerImpl task_runner{GetParam()};
   absl::Notification notification;
   bool called = false;
 
@@ -38,8 +42,8 @@ TEST(TaskRunnerImpl, PostTask) {
   EXPECT_TRUE(called);
 }
 
-TEST(TaskRunnerImpl, PostSequenceTasks) {
-  TaskRunnerImpl task_runner{1};
+TEST_P(BaseTaskRunnerImplTest, PostSequenceTasks) {
+  TaskRunnerImpl task_runner{GetParam()};
   std::vector<std::string> completed_tasks;
   absl::Notification notification;
 
@@ -66,8 +70,8 @@ TEST(TaskRunnerImpl, PostSequenceTasks) {
   EXPECT_EQ(completed_tasks[1], "task2");
 }
 
-TEST(TaskRunnerImpl, DISABLED_PostDelayedTask) {
-  TaskRunnerImpl task_runner{1};
+TEST_P(BaseTaskRunnerImplTest, DISABLED_PostDelayedTask) {
+  TaskRunnerImpl task_runner{GetParam()};
   std::vector<std::string> completed_tasks;
   absl::Notification notification;
 
@@ -94,8 +98,8 @@ TEST(TaskRunnerImpl, DISABLED_PostDelayedTask) {
   EXPECT_EQ(completed_tasks[1], "task1");
 }
 
-TEST(TaskRunnerImpl, DISABLED_PostTwoDelayedTask) {
-  TaskRunnerImpl task_runner{1};
+TEST_P(BaseTaskRunnerImplTest, DISABLED_PostTwoDelayedTask) {
+  TaskRunnerImpl task_runner{GetParam()};
   std::vector<std::string> completed_tasks;
   absl::Notification notification;
 
@@ -133,7 +137,26 @@ TEST(TaskRunnerImpl, DISABLED_PostTwoDelayedTask) {
   EXPECT_EQ(completed_tasks[2], "task3");
 }
 
-TEST(TaskRunnerImpl, PostTasksOnRunnerWithMultipleThreads) {
+TEST(BaseTaskRunnerImplTest, PostTasksOnRunnerWithOneThread) {
+  TaskRunnerImpl task_runner{10};
+  std::atomic_int count = 0;
+  absl::Notification notification;
+
+  for (int i = 0; i < 10; i++) {
+    task_runner.PostTask([&count, &notification]() {
+      absl::SleepFor(absl::Milliseconds(100));
+      count++;
+      if (count == 10) {
+        notification.Notify();
+      }
+    });
+  }
+
+  notification.WaitForNotificationWithTimeout(absl::Milliseconds(1900));
+  EXPECT_EQ(count, 10);
+}
+
+TEST(BaseTaskRunnerImplTest, PostTasksOnRunnerWithMultipleThreads) {
   TaskRunnerImpl task_runner{10};
   std::atomic_int count = 0;
   absl::Notification notification;
@@ -152,11 +175,15 @@ TEST(TaskRunnerImpl, PostTasksOnRunnerWithMultipleThreads) {
   EXPECT_EQ(count, 10);
 }
 
-TEST(TaskRunnerImpl, PostEmptyTask) {
-  TaskRunnerImpl task_runner{1};
+TEST_P(BaseTaskRunnerImplTest, PostEmptyTask) {
+  TaskRunnerImpl task_runner{GetParam()};
   EXPECT_TRUE(task_runner.PostTask(nullptr));
   EXPECT_TRUE(task_runner.PostDelayedTask(absl::Milliseconds(100), nullptr));
 }
+
+INSTANTIATE_TEST_SUITE_P(ParameterizedBasePcpHandlerTest,
+                         BaseTaskRunnerImplTest,
+                         ::testing::ValuesIn(kNumThreads));
 
 }  // namespace
 }  // namespace nearby

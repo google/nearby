@@ -167,8 +167,12 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Store device name, and report it as discovered.
       info.devices.emplace(&device, name);
       if (enable_notifications_) {
-        RunOnMediumEnvironmentThread(
-            [&info, &device]() { info.callback.device_discovered_cb(device); });
+        RunOnMediumEnvironmentThread([&]() {
+          info.callback.device_discovered_cb(device);
+          for (auto& observer : observers_.GetObservers()) {
+            observer->DeviceAdded(device);
+          }
+        });
       }
     }
   } else {
@@ -190,8 +194,11 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       } else {
         // Device is in discovery mode, so we are reporting it anyway.
         if (enable_notifications_) {
-          RunOnMediumEnvironmentThread([&info, &device]() {
+          RunOnMediumEnvironmentThread([&]() {
             info.callback.device_discovered_cb(device);
+            for (auto& observer : observers_.GetObservers()) {
+              observer->DeviceAdded(device);
+            }
           });
         }
       }
@@ -200,8 +207,12 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Known device is turned off.
       // Erase it from the map, and report as lost.
       if (enable_notifications_) {
-        RunOnMediumEnvironmentThread(
-            [&info, &device]() { info.callback.device_lost_cb(device); });
+        RunOnMediumEnvironmentThread([&]() {
+          info.callback.device_lost_cb(device);
+          for (auto& observer : observers_.GetObservers()) {
+            observer->DeviceRemoved(device);
+          }
+        });
       }
       info.devices.erase(item);
     }
@@ -1142,6 +1153,7 @@ void MediumEnvironment::UnregisterGattServer(api::ble_v2::BleMedium& medium) {
     }
     auto& context = it->second;
     context.gatt_server = nullptr;
+    context.ble_peripheral = nullptr;
   });
 }
 
@@ -1154,7 +1166,7 @@ Borrowable<api::ble_v2::GattServer*>* MediumEnvironment::GetGattServer(
       const BleV2MediumContext& remote_context = medium_info.second;
       const api::ble_v2::BlePeripheral* ble_peripheral =
           remote_context.ble_peripheral;
-      if (ble_peripheral != nullptr &&
+      if (remote_context.gatt_server != nullptr && ble_peripheral != nullptr &&
           (ble_peripheral->GetAddress() == peripheral.GetAddress())) {
         if (remote_context.gatt_server == nullptr) {
           break;
@@ -1199,6 +1211,11 @@ bool MediumEnvironment::SetPairingState(api::BluetoothDevice* device,
     latch.CountDown();
   });
   latch.Await();
+  if (enable_notifications_) {
+    for (auto& observer : observers_.GetObservers()) {
+      observer->DevicePairedChanged(*device, true);
+    }
+  }
   return updated;
 }
 
@@ -1262,6 +1279,11 @@ bool MediumEnvironment::FinishPairing(api::BluetoothDevice* device) {
         pairing_context->pairing_error.value());
   } else {
     pairing_context->is_paired = true;
+    if (enable_notifications_) {
+      for (auto& observer : observers_.GetObservers()) {
+        observer->DevicePairedChanged(*device, true);
+      }
+    }
     pairing_context->pairing_callback.on_paired_cb();
   }
   return finshed;
@@ -1306,4 +1328,17 @@ void MediumEnvironment::ClearBluetoothDevicesForPairing() {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([&]() { devices_pairing_contexts_.clear(); });
 }
+
+void MediumEnvironment::AddObserver(
+    api::BluetoothClassicMedium::Observer* observer) {
+  if (!enabled_) return;
+  observers_.AddObserver(observer);
+}
+
+void MediumEnvironment::RemoveObserver(
+    api::BluetoothClassicMedium::Observer* observer) {
+  if (!enabled_) return;
+  observers_.RemoveObserver(observer);
+}
+
 }  // namespace nearby

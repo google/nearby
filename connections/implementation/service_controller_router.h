@@ -24,9 +24,11 @@
 #include "absl/types/span.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
+#include "connections/listeners.h"
 #include "connections/params.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
+#include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
 #include "internal/interop/device.h"
 #include "internal/platform/runnable.h"
@@ -116,10 +118,11 @@ class ServiceControllerRouter {
                                       const ResultCallback& callback);
 
   ////////////////////////////// V3 ////////////////////////////////////////////
-  virtual Status StartListeningForIncomingConnectionsV3(
+  virtual void StartListeningForIncomingConnectionsV3(
       ClientProxy* client, absl::string_view service_id,
       v3::ConnectionListener listener,
-      const v3::ConnectionListeningOptions& options);
+      const v3::ConnectionListeningOptions& options,
+      v3::ListeningResultListener callback);
 
   virtual void StopListeningForIncomingConnectionsV3(ClientProxy* client);
 

@@ -92,6 +92,15 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client,
       BasePcpHandler::DiscoveredEndpoint* endpoint) override;
 
+  // @PCPHandlerThread
+  BasePcpHandler::StartOperationResult StartListeningForIncomingConnectionsImpl(
+      ClientProxy* client_proxy, absl::string_view service_id,
+      absl::string_view local_endpoint_id,
+      v3::ConnectionListeningOptions options) override;
+
+  // @PCPHandlerThread
+  void StopListeningForIncomingConnectionsImpl(ClientProxy* client) override;
+
  private:
   // Holds the state required to re-create a BleEndpoint we see on a
   // BlePeripheral, so BlePeripheralLostHandler can call
@@ -143,6 +152,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void BluetoothDeviceLostHandler(ClientProxy* client,
                                   const std::string& service_id,
                                   BluetoothDevice& device);
+  void BluetoothConnectionAcceptedHandler(ClientProxy* client,
+                                          absl::string_view local_endpoint_info,
+                                          const std::string& service_id,
+                                          BluetoothSocket socket);
   location::nearby::proto::connections::Medium StartBluetoothAdvertising(
       ClientProxy* client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
@@ -163,6 +176,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                       bool fast_advertisement);
   void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
                                 const std::string& service_id);
+  void BleConnectionAcceptedHandler(ClientProxy* client,
+                                    absl::string_view local_endpoint_info,
+                                    BleSocket socket,
+                                    const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
@@ -188,6 +205,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   const std::string& service_id,
                                   const ByteArray& advertisement_bytes,
                                   bool fast_advertisement);
+  void BleV2ConnectionAcceptedHandler(ClientProxy* client,
+                                      absl::string_view local_endpoint_info,
+                                      BleV2Socket socket,
+                                      const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleV2Advertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
@@ -209,6 +230,11 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void WifiLanServiceLostHandler(ClientProxy* client,
                                  NsdServiceInfo service_info,
                                  const std::string& service_id);
+  void WifiLanConnectionAcceptedHandler(ClientProxy* client,
+                                        absl::string_view local_endpoint_id,
+                                        absl::string_view local_endpoint_info,
+                                        const std::string& service_id,
+                                        WifiLanSocket socket);
   location::nearby::proto::connections::Medium StartWifiLanAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,

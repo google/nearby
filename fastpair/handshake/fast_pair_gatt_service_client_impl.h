@@ -26,12 +26,11 @@
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/handshake/fast_pair_gatt_service_client.h"
 #include "fastpair/internal/mediums/mediums.h"
-#include "internal/platform/ble_v2.h"
-#include "internal/platform/timer_impl.h"
+#include "fastpair/internal/mediums/robust_gatt_client.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
-using GattCharacteristic = api::ble_v2::GattCharacteristic;
 
 // This class is responsible for connecting to the Fast Pair GATT service for a
 // device and invoking a callback when ready, or when an error is discovered
@@ -41,7 +40,8 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   class Factory {
    public:
     static std::unique_ptr<FastPairGattServiceClient> Create(
-        const FastPairDevice& device, Mediums& mediums);
+        const FastPairDevice& device, Mediums& mediums,
+        SingleThreadExecutor* executor);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
@@ -53,7 +53,8 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   };
 
   explicit FastPairGattServiceClientImpl(const FastPairDevice& device,
-                                         Mediums& mediums);
+                                         Mediums& mediums,
+                                         SingleThreadExecutor* executor);
   FastPairGattServiceClientImpl(const FastPairGattServiceClientImpl&) = delete;
   FastPairGattServiceClientImpl& operator=(
       const FastPairGattServiceClientImpl&) = delete;
@@ -78,23 +79,22 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
       const FastPairDataEncryptor& fast_pair_data_encryptor,
       WriteAccountkeyCallback write_accountkey_callback) override;
 
+  // Allows tests to modify GATT operation timeouts.
+  RobustGattClient::ConnectionParams& GetConnectionParams() {
+    return gatt_connection_params_;
+  }
+
  private:
   // Attempt to create a GATT connection with the device. This method may be
   // called multiple times.
   void AttemptGattConnection();
   void CreateGattConnection();
-  void DiscoverServiceAndCharacteristics();
-  void GetFastPairGattCharacteristics();
-  std::optional<GattCharacteristic> GetCharacteristicsByUUIDs(
-      const Uuid& uuidV1, const Uuid& uuidV2);
 
   // Operations on KeyBased Characteristic
   // Creates a data vector based on parameter information.
   std::array<uint8_t, kAesBlockByteSize> CreateRequest(
       uint8_t message_type, uint8_t flags, absl::string_view provider_address,
       absl::string_view seekers_address);
-  // Subscribe notification when KeyBased Characteristic value changes
-  bool SubscribeKeyBasedCharacteristic();
   // Write request to KeyBased Characteristic
   void WriteKeyBasedCharacteristic(absl::string_view request);
 
@@ -102,14 +102,8 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   // Creates a data vector based on parameter information.
   std::array<uint8_t, kAesBlockByteSize> CreatePasskeyBlock(
       uint8_t message_type, uint32_t passkey);
-  // Subscribe notification when Passkey Characteristic value changes
-  bool SubscribePasskeyCharacteristic();
   // Write request to Passkey Characteristic
   void WritePasskeyCharacteristic(absl::string_view request);
-
-  // Callback is triggered when characteristic value changes
-  void OnCharacteristicValueChanged(const GattCharacteristic& characteristic,
-                                    absl::string_view value);
 
   // Operations on Account Key Characteristic
   // Creates an Account key.
@@ -120,15 +114,26 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   void NotifyInitializedError(PairFailure failure);
   // Invokes the write response callback with the proper PairFailure on a
   // write error.
-  void NotifyWriteRequestError(PairFailure failure);
-  void NotifyWritePasskeyError(PairFailure failure);
-  void NotifyWriteAccountKeyError(PairFailure failure);
+  void NotifyWriteRequestError(PairFailure failure) {
+    NotifyWriteRequestResult("", failure);
+  }
+  void NotifyWriteRequestResult(absl::string_view value,
+                                std::optional<PairFailure> = std::nullopt);
+  void NotifyWritePasskeyError(PairFailure failure) {
+    NotifyWritePasskeyResult("", failure);
+  }
+  void NotifyWritePasskeyResult(absl::string_view value,
+                                std::optional<PairFailure> = std::nullopt);
+  void NotifyWriteAccountKeyError(PairFailure failure) {
+    NotifyWriteAccountKeyResult(std::nullopt, failure);
+  }
+  void NotifyWriteAccountKeyResult(
+      std::optional<AccountKey> account_key,
+      std::optional<PairFailure> failure = std::nullopt);
 
   void ClearCurrentState();
 
   // Timers
-  TimerImpl gatt_service_discovery_timer_;
-  TimerImpl key_based_subscription_timer_;
   TimerImpl passkey_subscription_timer_;
   TimerImpl key_based_write_request_timer_;
   TimerImpl passkey_write_request_timer_;
@@ -143,21 +148,13 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   WriteResponseCallback passkey_write_response_callback_;
   WriteAccountkeyCallback account_key_write_callback_;
 
-  // Fast Pair Characteristic
-  std::optional<GattCharacteristic> key_based_characteristic_;
-  std::optional<GattCharacteristic> passkey_characteristic_;
-  std::optional<GattCharacteristic> account_key_characteristic_;
-
-  bool is_key_based_notification_subscribed_ = false;
-  bool is_passkey_notification_subscribed_ = false;
-
-  // Initialize with zero failures.
-  int num_gatt_connection_attempts_ = 0;
-
   bool is_initialized_ = false;
   std::string device_address_;
-  std::unique_ptr<GattClient> gatt_client_;
+  std::unique_ptr<RobustGattClient> gatt_client_;
+  std::unique_ptr<RobustGattClient> defunct_gatt_client_;
+  RobustGattClient::ConnectionParams gatt_connection_params_;
   Mediums& mediums_;
+  SingleThreadExecutor* executor_;
 };
 }  // namespace fastpair
 }  // namespace nearby

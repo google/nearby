@@ -16,11 +16,13 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_DEFAULT_FAST_PAIR_SEEKER_H_
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/internal/mediums/mediums.h"
+#include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/single_thread_executor.h"
@@ -37,7 +39,8 @@ class FastPairSeekerExt : public FastPairSeeker {
 };
 
 class FastPairSeekerImpl : public FastPairSeekerExt,
-                           ScannerBrokerImpl::Observer {
+                           ScannerBrokerImpl::Observer,
+                           PairerBroker::Observer {
  public:
   struct ServiceCallbacks {
     absl::AnyInvocable<void(const FastPairDevice&, InitialDiscoveryEvent)>
@@ -53,10 +56,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   };
 
   FastPairSeekerImpl(ServiceCallbacks callbacks, SingleThreadExecutor* executor,
-                     FastPairDeviceRepository* devices)
-      : callbacks_(std::move(callbacks)),
-        executor_(executor),
-        devices_(devices) {}
+                     FastPairDeviceRepository* devices);
+
+  ~FastPairSeekerImpl() override;
 
   // From FastPairSeeker.
   absl::Status StartInitialPairing(const FastPairDevice& device,
@@ -75,21 +77,37 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
 
+  // Handle the state changes of screen lock.
+  void SetIsScreenLocked(bool is_locked);
+
+  // Internal methods, not exported to plugins.
+ private:
   // From ScannerBrokerImpl::Observer.
   void OnDeviceFound(FastPairDevice& device) override;
   void OnDeviceLost(FastPairDevice& device) override;
 
-  // Internal methods, not exported to plugins.
+  // From PairerBroker:Observer
+  void OnDevicePaired(FastPairDevice& device) override;
+  void OnAccountKeyWrite(FastPairDevice& device,
+                         std::optional<PairFailure> error) override;
+  void OnPairingComplete(FastPairDevice& device) override;
+  void OnPairFailure(FastPairDevice& device, PairFailure failure) override;
 
- private:
+  void InvalidateScanningState() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  bool IsDeviceUnderPairing(const FastPairDevice& device);
+  void FinishPairing(absl::Status result);
+
   ServiceCallbacks callbacks_;
   SingleThreadExecutor* executor_;
   FastPairDeviceRepository* devices_;
   Mediums mediums_;
   std::unique_ptr<ScannerBrokerImpl> scanner_;
   std::unique_ptr<ScannerBrokerImpl::ScanningSession> scanning_session_;
-
+  std::unique_ptr<PairerBrokerImpl> pairer_broker_;
+  std::unique_ptr<PairingCallback> pairing_callback_;
+  FastPairDevice* device_under_pairing_ = nullptr;
   FastPairDevice* test_device_ = nullptr;
+  bool is_screen_locked_ = false;
 };
 
 }  // namespace fastpair

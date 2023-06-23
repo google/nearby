@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/dart/fast_pair_wrapper_impl.h"
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_INTEROP_AUTHENTICATION_TRANSPORT_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_INTEROP_AUTHENTICATION_TRANSPORT_H_
 
-#include <memory>
+#include <string>
 
-#include "gtest/gtest.h"
-#include "internal/platform/medium_environment.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
-namespace fastpair {
-namespace FastPairWrapperUnitTests {
 
-TEST(FastPairWrapperImplTest, StartScanningSuccess) {
-  FastPairWrapperImpl wrapper;
-  EXPECT_FALSE(wrapper.IsScanning());
-  EXPECT_FALSE(wrapper.IsPairing());
-  EXPECT_FALSE(wrapper.IsServerAccessing());
-}
+class AuthenticationTransport {
+ public:
+  virtual ~AuthenticationTransport() = default;
+  virtual void WriteMessage(absl::string_view message) const = 0;
+  virtual std::string ReadMessage() const = 0;
+};
 
-}  // namespace FastPairWrapperUnitTests
-}  // namespace fastpair
 }  // namespace nearby
+
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_INTEROP_AUTHENTICATION_TRANSPORT_H_

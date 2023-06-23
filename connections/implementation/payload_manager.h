@@ -329,6 +329,14 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   SingleThreadExecutor payload_status_update_executor_;
 
   EndpointManager* endpoint_manager_;
+
+  // When callback processing cannot keep the speed of callback update, the
+  // callback thread will be lag to the real transfer. In order to keep sync
+  // between callback and sending/receiving threads, we will skip non-important
+  // callbacks during file transfer.
+  mutable Mutex chunk_update_mutex_;
+  int outgoing_chunk_update_count_ ABSL_GUARDED_BY(chunk_update_mutex_) = 0;
+  int incoming_chunk_update_count_ ABSL_GUARDED_BY(chunk_update_mutex_) = 0;
 };
 
 }  // namespace connections

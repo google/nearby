@@ -25,7 +25,7 @@
 
 namespace nearby {
 
-class WebRtcSignalingMessenger final {
+class WebRtcSignalingMessenger {
  public:
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
@@ -35,35 +35,36 @@ class WebRtcSignalingMessenger final {
   explicit WebRtcSignalingMessenger(
       std::unique_ptr<api::WebRtcSignalingMessenger> messenger)
       : impl_(std::move(messenger)) {}
-  ~WebRtcSignalingMessenger() = default;
+  virtual ~WebRtcSignalingMessenger() = default;
   WebRtcSignalingMessenger(WebRtcSignalingMessenger&&) = default;
   WebRtcSignalingMessenger operator=(WebRtcSignalingMessenger&&) = delete;
 
-  bool SendMessage(absl::string_view peer_id, const ByteArray& message) {
+  virtual bool SendMessage(absl::string_view peer_id,
+                           const ByteArray& message) {
     return impl_->SendMessage(peer_id, message);
   }
 
-  bool StartReceivingMessages(
+  virtual bool StartReceivingMessages(
       OnSignalingMessageCallback on_message_callback,
       OnSignalingCompleteCallback on_complete_callback) {
     return impl_->StartReceivingMessages(std::move(on_message_callback),
                                          std::move(on_complete_callback));
   }
 
-  void StopReceivingMessages() { impl_->StopReceivingMessages(); }
+  virtual void StopReceivingMessages() { impl_->StopReceivingMessages(); }
 
-  bool IsValid() const { return impl_ != nullptr; }
+  virtual bool IsValid() const { return impl_ != nullptr; }
 
  private:
   std::unique_ptr<api::WebRtcSignalingMessenger> impl_;
 };
 
-class WebRtcMedium final {
+class WebRtcMedium {
  public:
   using PeerConnectionCallback = api::WebRtcMedium::PeerConnectionCallback;
 
   WebRtcMedium() : impl_(api::ImplementationPlatform::CreateWebRtcMedium()) {}
-  ~WebRtcMedium() = default;
+  virtual ~WebRtcMedium() = default;
   WebRtcMedium(WebRtcMedium&&) = delete;
   WebRtcMedium& operator=(WebRtcMedium&&) = delete;
 
@@ -81,14 +82,14 @@ class WebRtcMedium final {
   }
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
-  std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
+  virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
       const location::nearby::connections::LocationHint& location_hint) {
     return std::make_unique<WebRtcSignalingMessenger>(
         impl_->GetSignalingMessenger(self_id, location_hint));
   }
 
-  bool IsValid() const { return impl_ != nullptr; }
+  virtual bool IsValid() const { return impl_ != nullptr; }
 
  private:
   std::unique_ptr<api::WebRtcMedium> impl_;

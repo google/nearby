@@ -23,6 +23,8 @@
 #include "absl/strings/str_format.h"
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/internal/fast_pair_seeker_impl.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -33,6 +35,11 @@ constexpr absl::Duration kTimeout = absl::Seconds(3);
 }
 
 FastPairService::FastPairService() {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableBleV2Gatt,
+      true);
+
   seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{
           .on_initial_discovery =

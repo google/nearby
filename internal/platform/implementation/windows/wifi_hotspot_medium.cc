@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <exception>
 #include <memory>
 #include <string>
@@ -21,39 +22,17 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 
 // Nearby connections headers
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
-namespace {
-
-// The maximum scanning times for available hot sports.
-constexpr int kWifiHotspotMaxScans = 3;
-
-// The maximum connection times to remote Wi-Fi hotspot.
-constexpr int kWifiHotspotMaxConnectionRetries = 3;
-
-// The interval between 2 connectin attempts.
-constexpr absl::Duration kWifiHotspotRetryIntervalMillis =
-    absl::Milliseconds(300);
-
-// The connection timeout to remote Wi-Fi hotspot.
-constexpr absl::Duration kWifiHotspotClientSocketConnectTimeoutMillis =
-    absl::Milliseconds(10000);
-
-// The maximum times to check IP address.
-constexpr int kIpAddressMaxRetries = 20;
-
-// The time interval to check IP address.
-constexpr absl::Duration kIpAddressRetryIntervalMillis =
-    absl::Milliseconds(200);
-
-}  // namespace
 
 WifiHotspotMedium::WifiHotspotMedium() {}
 
@@ -104,9 +83,29 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   HostName host_name{winrt::to_hstring(ipv4_address)};
   winrt::hstring service_name{winrt::to_hstring(port)};
 
-  // Try connecting to the service up to kWifiHotspotMaxConnectionRetries,
+  // Try connecting to the service up to wifi_hotspot_max_connection_retries,
   // because it may fail first time if DHCP procedure is not finished yet.
-  for (int i = 0; i < kWifiHotspotMaxConnectionRetries; i++) {
+  int64_t wifi_hotspot_max_connection_retries =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionMaxRetries);
+  int64_t wifi_hotspot_retry_interval_millis =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionIntervalMillis);
+  int64_t wifi_hotspot_client_socket_connect_timeout_millis =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionTimeoutMillis);
+
+  NEARBY_LOGS(INFO) << "maximum connection retries="
+                    << wifi_hotspot_max_connection_retries
+                    << ", connection interval="
+                    << wifi_hotspot_retry_interval_millis
+                    << "ms, connection timeout="
+                    << wifi_hotspot_client_socket_connect_timeout_millis
+                    << "ms";
+  for (int i = 0; i < wifi_hotspot_max_connection_retries; i++) {
     try {
       StreamSocket socket{};
       // Listener to connect cancellation.
@@ -136,7 +135,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
               NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
               socket.Close();
             },
-            kWifiHotspotClientSocketConnectTimeoutMillis);
+            absl::Milliseconds(
+                wifi_hotspot_client_socket_connect_timeout_millis));
       }
 
       socket.ConnectAsync(host_name, service_name).get();
@@ -171,7 +171,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
       connection_timeout_ = nullptr;
     }
 
-    Sleep(kWifiHotspotRetryIntervalMillis / absl::Milliseconds(1));
+    Sleep(wifi_hotspot_retry_interval_millis);
   }
   return nullptr;
 }
@@ -192,15 +192,16 @@ WifiHotspotMedium::ListenForService(int port) {
   auto server_socket = std::make_unique<WifiHotspotServerSocket>(port);
   server_socket_ptr_ = server_socket.get();
 
-  server_socket->SetCloseNotifier([this]() {
-    absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << "Server socket was closed.";
-    medium_status_ &= (~kMediumStatusAccepting);
-    server_socket_ptr_ = nullptr;
-  });
-
   if (server_socket->listen()) {
     medium_status_ |= kMediumStatusAccepting;
+
+    // Setup close notifier after listen started.
+    server_socket->SetCloseNotifier([this]() {
+      absl::MutexLock lock(&mutex_);
+      NEARBY_LOGS(INFO) << "Server socket was closed.";
+      medium_status_ &= (~kMediumStatusAccepting);
+      server_socket_ptr_ = nullptr;
+    });
     NEARBY_LOGS(INFO) << "Started to listen serive on port "
                       << server_socket_ptr_->GetPort();
     return server_socket;
@@ -429,7 +430,12 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     wifi_adapter_.ScanAsync().get();
 
     wifi_connected_network_ = nullptr;
-    for (int i = 0; i < kWifiHotspotMaxScans; i++) {
+    int64_t wifi_hotspot_max_scans = NearbyFlags::GetInstance().GetInt64Flag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kWifiHotspotScanMaxRetries);
+
+    NEARBY_LOGS(INFO) << "maximum scan retries=" << wifi_hotspot_max_scans;
+    for (int i = 0; i < wifi_hotspot_max_scans; i++) {
       for (const auto& network :
            wifi_adapter_.NetworkReport().AvailableNetworks()) {
         if (!wifi_connected_network_ && !ssid.empty() &&
@@ -472,11 +478,21 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     // Make sure IP address is ready.
     std::string ip_address;
-    for (int i = 0; i < kIpAddressMaxRetries; i++) {
+    int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kWifiHotspotCheckIpMaxRetries);
+    int64_t ip_address_retry_interval_millis =
+        NearbyFlags::GetInstance().GetInt64Flag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kWifiHotspotCheckIpIntervalMillis);
+    NEARBY_LOGS(INFO) << "maximum IP check retries=" << ip_address_max_retries
+                      << ", IP check interval="
+                      << ip_address_retry_interval_millis << "ms";
+    for (int i = 0; i < ip_address_max_retries; i++) {
       NEARBY_LOGS(INFO) << "Check IP address at attemp " << i;
       std::vector<std::string> ip_addresses = GetIpv4Addresses();
       if (ip_addresses.empty()) {
-        Sleep(kIpAddressRetryIntervalMillis / absl::Milliseconds(1));
+        Sleep(ip_address_retry_interval_millis);
         continue;
       }
       ip_address = ip_addresses[0];

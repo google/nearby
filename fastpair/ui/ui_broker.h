@@ -31,7 +31,7 @@ class UIBroker {
   class Observer {
    public:
     virtual ~Observer() = default;
-    virtual void OnDiscoveryAction(const FastPairDevice& device,
+    virtual void OnDiscoveryAction(FastPairDevice& device,
                                    DiscoveryAction action) = 0;
   };
 

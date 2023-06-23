@@ -179,10 +179,13 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
                             "Ignoring this advertisement";
     return;
   }
+  auto fast_pair_device = std::make_unique<FastPairDevice>(
+      model_id, address, Protocol::kFastPairInitialPairing);
+  fast_pair_device->SetMetadata(device_metadata);
+
   executor_->Execute(
       "add-device",
-      [this, fast_pair_device = std::make_unique<FastPairDevice>(
-                 model_id, address, Protocol::kFastPairInitialPairing)]()
+      [this, fast_pair_device = std::move(fast_pair_device)]()
           ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
             FastPairDevice* device =
                 device_repository_->AddDevice(std::move(fast_pair_device));

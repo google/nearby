@@ -29,10 +29,12 @@
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/strategy.h"
+#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
@@ -457,10 +459,10 @@ TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUniqueWithDeviceProvider) {
-  client1_.RegisterDeviceProvider(
+  client1_.RegisterConnectionsDeviceProvider(
       std::make_unique<v3::ConnectionsDeviceProvider>(
           v3::ConnectionsDeviceProvider("", {})));
-  client2_.RegisterDeviceProvider(
+  client2_.RegisterConnectionsDeviceProvider(
       std::make_unique<v3::ConnectionsDeviceProvider>(
           v3::ConnectionsDeviceProvider("", {})));
   EXPECT_NE(client1_.GetLocalEndpointId(), client2_.GetLocalEndpointId());
@@ -965,6 +967,43 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
             OsInfo::ANDROID);
 }
 
+// Test ClientProxy::AddCancellationFlag, where if a flag is already in the map,
+// uncancel it. This addresses the case when users use NS to share/receive a
+// file, then cancel in the middle because the wrong file was selected, and then
+// re-do right after. Without the ability to uncancel a flag in
+// `AddCancelationFlag`, the second share/receive process will
+// be seen as cancelled with cancellation flags enabled. However this tests that
+// it will uncancel the flag which is added in RequestConnection and
+// OnConnectionInitiated in the NS flow, and allow another attempt with the
+// same endpoint.
+TEST_F(ClientProxyTest, UncancelCancellationFlags) {
+  // Enable cancellation flags.
+  MediumEnvironment::Instance().SetFeatureFlags(kTestCases[0]);
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  // Add a cancellation flag to the client proxy.
+  client1_.AddCancellationFlag(advertising_endpoint.id);
+  auto flag = client1_.GetCancellationFlag(advertising_endpoint.id);
+  EXPECT_FALSE(flag->Cancelled());
+  EXPECT_FALSE(
+      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+
+  // Cancel the flag.
+  flag->Cancel();
+  EXPECT_TRUE(flag->Cancelled());
+  EXPECT_TRUE(
+      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+
+  // On subsequent calls to add a new cancellation flag, expect an the flag to
+  // be uncancelled.
+  client1_.AddCancellationFlag(advertising_endpoint.id);
+  flag = client1_.GetCancellationFlag(advertising_endpoint.id);
+  EXPECT_FALSE(flag->Cancelled());
+  EXPECT_FALSE(
+      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+}
+
 TEST_F(ClientProxyTest, GetLocalDeviceWorksWithoutDeviceProvider) {
   auto device = client1_.GetLocalDevice();
   EXPECT_NE(device, nullptr);
@@ -973,12 +1012,56 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithoutDeviceProvider) {
 }
 
 TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
-  client1_.RegisterDeviceProvider(std::make_unique<MockDeviceProvider>());
+  MockDeviceProvider provider;
+  client1_.RegisterDeviceProvider(&provider);
   ASSERT_NE(client1_.GetLocalDeviceProvider(), nullptr);
   EXPECT_CALL(
       *(down_cast<MockDeviceProvider*>(client1_.GetLocalDeviceProvider())),
       GetLocalDevice);
   client1_.GetLocalDevice();
+}
+
+TEST_F(ClientProxyTest, TestGetSetLocalEndpointInfo) {
+  client1_.UpdateLocalEndpointInfo("endpoint_info");
+  EXPECT_EQ(client1_.GetLocalEndpointInfo(), "endpoint_info");
+}
+
+TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
+  CountDownLatch result_latch(2);
+  CountDownLatch bwu_latch(1);
+  CountDownLatch disconnect_latch(1);
+  CountDownLatch init_latch(1);
+  client1_.StartedListeningForIncomingConnections(
+      service_id_, Strategy::kP2pCluster,
+      {
+          .initiated_cb =
+              [&init_latch](const NearbyDevice&,
+                            const v3::InitialConnectionInfo&) {
+                init_latch.CountDown();
+              },
+          .result_cb = [&result_latch](
+                           const NearbyDevice&,
+                           v3::ConnectionResult) { result_latch.CountDown(); },
+          .disconnected_cb =
+              [&disconnect_latch](const NearbyDevice&) {
+                disconnect_latch.CountDown();
+              },
+          .bandwidth_changed_cb =
+              [&bwu_latch](const NearbyDevice&, v3::BandwidthInfo) {
+                bwu_latch.CountDown();
+              },
+      },
+      {});
+  auto listener = client1_.GetAdvertisingOrIncomingConnectionListener();
+  listener.accepted_cb("endpoint-id");
+  listener.initiated_cb("endpoint-id", {.is_incoming_connection = false});
+  listener.disconnected_cb("endpoint-id");
+  listener.rejected_cb("endpoint-id", {Status::Value::kConnectionRejected});
+  listener.bandwidth_changed_cb("endpoint-id", Medium::WIFI_LAN);
+  EXPECT_TRUE(result_latch.Await().Ok());
+  EXPECT_TRUE(init_latch.Await().Ok());
+  EXPECT_TRUE(bwu_latch.Await().Ok());
+  EXPECT_TRUE(disconnect_latch.Await().Ok());
 }
 
 }  // namespace

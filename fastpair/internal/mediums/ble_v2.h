@@ -16,8 +16,11 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_MEDIUMS_BLE_V2_H_
 
 #include <memory>
+#include <string>
 
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/internal/mediums/bluetooth_radio.h"
+#include "fastpair/internal/mediums/robust_gatt_client.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
@@ -36,8 +39,9 @@ class BleV2 {
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns a new GattClient connection to a gatt server.
-  std::unique_ptr<GattClient> ConnectToGattServer(
-      absl::string_view ble_address);
+  std::unique_ptr<RobustGattClient> ConnectToGattServer(
+      absl::string_view ble_address, RobustGattClient::ConnectionParams params,
+      RobustGattClient::ConnectionStatusCallback connection_status_callback);
 
  private:
   // Same as IsAvailable(), but must be called with mutex_ held.

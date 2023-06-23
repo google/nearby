@@ -21,7 +21,7 @@
 #include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
 #include "presence/presence_device.h"
-#include "presence/presence_service.h"
+#include "presence/presence_service_impl.h"
 
 namespace nearby {
 namespace presence {
@@ -32,10 +32,10 @@ using ::testing::status::StatusIs;
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 
-// Creates a PresenceClient and destroys PresenceService that was used to create
-// it.
+// Creates a PresenceClient and destroys PresenceServiceImpl that was used to
+// create it.
 std::unique_ptr<PresenceClient> CreateDefunctPresenceClient() {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   return presence_service.CreatePresenceClient();
 }
 
@@ -59,7 +59,7 @@ TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
   env_.Start();
   absl::Status broadcast_result;
 
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   std::unique_ptr<PresenceClient> presence_client =
       presence_service.CreatePresenceClient();
   auto unused = presence_client->StartBroadcast(
@@ -95,7 +95,7 @@ TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
       .start_scan_cb = [&](absl::Status status) { scan_result.Set(status); },
   };
 
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   std::unique_ptr<PresenceClient> presence_client =
       presence_service.CreatePresenceClient();
   EXPECT_OK(presence_client->StartScan({}, std::move(scan_callback)));
@@ -122,7 +122,7 @@ TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
 }
 
 TEST_F(PresenceClientTest, GettingDeviceWorks) {
-  PresenceService presence_service;
+  PresenceServiceImpl presence_service;
   std::unique_ptr<PresenceClient> presence_client =
       presence_service.CreatePresenceClient();
   presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata(), false, "",

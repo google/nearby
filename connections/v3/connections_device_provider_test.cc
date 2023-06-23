@@ -26,6 +26,11 @@ namespace {
 constexpr absl::string_view kEndpointId = "ABCD";
 constexpr absl::string_view kEndpointInfo = "NC endpoint";
 
+class MockAuthenticationTransport : public AuthenticationTransport {
+  MOCK_METHOD(void, WriteMessage, (absl::string_view), (const override));
+  MOCK_METHOD(std::string, ReadMessage, (), (const override));
+};
+
 TEST(ConnectionsDeviceProviderTest, TestProviderWorksTwoArgs) {
   ConnectionsDeviceProvider provider(kEndpointInfo, {});
   auto device = provider.GetLocalDevice();
@@ -44,6 +49,16 @@ TEST(ConnectionsDeviceProviderTest, TestProviderWorksThreeArgs) {
   EXPECT_EQ(connections_device->GetEndpointInfo(), kEndpointInfo);
   EXPECT_EQ(connections_device->GetConnectionInfos().size(), 0);
   EXPECT_EQ(connections_device->GetEndpointId(), kEndpointId);
+}
+
+TEST(ConnectionsDeviceProviderTest, TestUnknownAuthStatus) {
+  ConnectionsDeviceProvider provider(kEndpointId, kEndpointInfo, {});
+  MockAuthenticationTransport transport;
+  EXPECT_EQ(provider.AuthenticateConnection(/*local_device=*/nullptr,
+                                            /*remote_device=*/nullptr,
+                                            AuthenticationRole::kInitiator,
+                                            /*shared_secret=*/"", transport),
+            AuthenticationStatus::kUnknown);
 }
 
 }  // namespace

@@ -28,6 +28,8 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
+#include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_recorder.h"
@@ -75,23 +77,25 @@ std::string ClientProxy::GetLocalEndpointId() {
   if (!local_endpoint_id_.empty()) {
     return local_endpoint_id_;
   }
-  if (device_provider_ == nullptr) {
+  if (external_device_provider_ == nullptr) {
     local_endpoint_id_ = GenerateLocalEndpointId();
   } else {
-    local_endpoint_id_ = device_provider_->GetLocalDevice()->GetEndpointId();
+    local_endpoint_id_ =
+        external_device_provider_->GetLocalDevice()->GetEndpointId();
   }
   return local_endpoint_id_;
 }
 
 const NearbyDevice* ClientProxy::GetLocalDevice() {
-  if (device_provider_ == nullptr) {
+  if (external_device_provider_ == nullptr &&
+      connections_device_provider_ == nullptr) {
     // TODO(b/285602283): Plug in actual endpoint info once available.
     auto provider =
         v3::ConnectionsDeviceProvider(GetLocalEndpointId(), "V3 endpoint", {});
-    RegisterDeviceProvider(
+    RegisterConnectionsDeviceProvider(
         std::make_unique<v3::ConnectionsDeviceProvider>(provider));
   }
-  return device_provider_->GetLocalDevice();
+  return GetLocalDeviceProvider()->GetLocalDevice();
 }
 
 std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
@@ -163,6 +167,7 @@ void ClientProxy::StoppedAdvertising() {
   if (IsAdvertising()) {
     advertising_info_.Clear();
     analytics_recorder_->OnStopAdvertising();
+    local_endpoint_info_.clear();
   }
   // advertising_options_ is purposefully not cleared here.
   OnSessionComplete();
@@ -179,6 +184,87 @@ bool ClientProxy::IsAdvertising() const {
 std::string ClientProxy::GetAdvertisingServiceId() const {
   MutexLock lock(&mutex_);
   return advertising_info_.service_id;
+}
+
+void ClientProxy::StartedListeningForIncomingConnections(
+    absl::string_view service_id, Strategy strategy,
+    v3::ConnectionListener listener,
+    const v3::ConnectionListeningOptions& options) {
+  MutexLock lock(&mutex_);
+  listening_options_ = options;
+  listening_info_ = ListeningInfo{
+      .service_id = std::string(service_id),
+      .listener = std::move(listener),
+  };
+  analytics_recorder_->OnStartedIncomingConnectionListening(strategy);
+}
+
+void ClientProxy::StoppedListeningForIncomingConnections() {
+  MutexLock lock(&mutex_);
+  listening_info_.Clear();
+  analytics_recorder_->OnStoppedIncomingConnectionListening();
+}
+
+bool ClientProxy::IsListeningForIncomingConnections() const {
+  MutexLock lock(&mutex_);
+  return !listening_info_.IsEmpty();
+}
+
+std::string ClientProxy::GetListeningForIncomingConnectionsServiceId() const {
+  MutexLock lock(&mutex_);
+  if (IsListeningForIncomingConnections()) {
+    return listening_info_.service_id;
+  }
+  return "";
+}
+
+ConnectionListener ClientProxy::GetAdvertisingOrIncomingConnectionListener() {
+  if (IsListeningForIncomingConnections()) {
+    ConnectionListener listener = {
+        .initiated_cb =
+            [this](const std::string& endpoint_id,
+                   const ConnectionResponseInfo& info) {
+              auto remote_device = v3::ConnectionsDevice(
+                  endpoint_id, info.remote_endpoint_info.AsStringView(), {});
+              this->listening_info_.listener.initiated_cb(
+                  remote_device,
+                  v3::InitialConnectionInfo{
+                      .authentication_digits = info.authentication_token,
+                      .raw_authentication_token =
+                          info.raw_authentication_token.string_data(),
+                      .is_incoming_connection = info.is_incoming_connection,
+                  });
+            },
+        .accepted_cb =
+            [this](const std::string& endpoint_id) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.result_cb(
+                  remote_device,
+                  v3::ConnectionResult{.status = Status{
+                                           .value = Status::kSuccess,
+                                       }});
+            },
+        .rejected_cb =
+            [this](const std::string& endpoint_id, Status status) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.result_cb(
+                  remote_device, v3::ConnectionResult{.status = status});
+            },
+        .disconnected_cb =
+            [this](const std::string& endpoint_id) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.disconnected_cb(remote_device);
+            },
+        .bandwidth_changed_cb =
+            [this](const std::string& endpoint_id, Medium medium) {
+              auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
+              this->listening_info_.listener.bandwidth_changed_cb(
+                  remote_device, v3::BandwidthInfo{.medium = medium});
+            },
+    };
+    return listener;
+  }
+  return advertising_info_.listener;
 }
 
 void ClientProxy::StartedDiscovery(
@@ -633,6 +719,15 @@ void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
 
   auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
+    // A new flag may be added to the map with the same endpoint, even if a
+    // flag already in the map has already been cancelled, when an endpoint
+    // is being reused (for example, the case when users use NS to share/receive
+    // a file, then cancel in the middle because the wrong file was selected
+    // and  then re-do right after). The flag needs to be uncancelled in order
+    // to support a new attempt with the same endpoint.
+    if (item->second->Cancelled()) {
+      item->second->Uncancel();
+    }
     return;
   }
   cancellation_flags_.emplace(endpoint_id,
@@ -785,6 +880,10 @@ AdvertisingOptions ClientProxy::GetAdvertisingOptions() const {
 
 DiscoveryOptions ClientProxy::GetDiscoveryOptions() const {
   return discovery_options_;
+}
+
+v3::ConnectionListeningOptions ClientProxy::GetListeningOptions() const {
+  return listening_options_;
 }
 
 void ClientProxy::EnterHighVisibilityMode() {

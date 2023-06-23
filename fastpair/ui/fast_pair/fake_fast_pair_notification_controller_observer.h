@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "internal/platform/count_down_latch.h"
 

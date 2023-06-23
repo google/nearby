@@ -23,6 +23,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/simulation_user.h"
+#include "connections/medium_selector.h"
+#include "connections/v3/connection_listening_options.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
@@ -162,6 +164,41 @@ TEST_P(PcpManagerTest, CanReject) {
   EXPECT_TRUE(reject_latch.Await(absl::Milliseconds(1000)).result());
   user_a.Stop();
   user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PcpManagerTest, CanStartListeningForIncomingConnections) {
+  env_.Start();
+  BooleanMediumSelector selector = GetParam();
+  SimulationUser user_a(kDeviceA, selector);
+  CountDownLatch start_latch(1);
+  v3::ConnectionListeningOptions options;
+  options.enable_ble_listening = selector.ble;
+  options.enable_bluetooth_listening = selector.bluetooth;
+  options.enable_wlan_listening = selector.wifi_lan;
+  options.listening_mediums = selector.GetMediums(true);
+  options.upgrade_mediums = selector.GetMediums(true);
+  options.strategy = Strategy::kP2pCluster;
+  user_a.StartListeningForIncomingConnections(&start_latch, "service", options,
+                                              {Status::kSuccess});
+  user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(PcpManagerTest, StartListeningForIncomingConnectionsFailsNoStrategy) {
+  env_.Start();
+  BooleanMediumSelector selector = GetParam();
+  SimulationUser user_a(kDeviceA, selector);
+  CountDownLatch start_latch(1);
+  v3::ConnectionListeningOptions options;
+  options.enable_ble_listening = selector.ble;
+  options.enable_bluetooth_listening = selector.bluetooth;
+  options.enable_wlan_listening = selector.wifi_lan;
+  options.listening_mediums = selector.GetMediums(true);
+  options.upgrade_mediums = selector.GetMediums(true);
+  user_a.StartListeningForIncomingConnections(&start_latch, "service", options,
+                                              {Status::kError});
+  user_a.Stop();
   env_.Stop();
 }
 

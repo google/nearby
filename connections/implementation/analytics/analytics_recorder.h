@@ -57,6 +57,11 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Connection listening
+  void OnStartedIncomingConnectionListening(connections::Strategy strategy)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnStoppedIncomingConnectionListening() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Discovery phase
   void OnStartDiscovery(
       connections::Strategy strategy,

@@ -88,7 +88,7 @@ cc_test(
     deps = [
         ":fake_fast_pair_ui",
         ":fast_pair_ui",
-        "//fastpair/repository",
+        "//fastpair/common",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

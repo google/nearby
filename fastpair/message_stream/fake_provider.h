@@ -28,8 +28,10 @@
 #include "absl/strings/escaping.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/message.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/ble_v2.h"
@@ -71,7 +73,17 @@ class FakeProvider {
  public:
   using KeyBasedPairingCallback =
       absl::AnyInvocable<std::string(absl::string_view)>;
+  struct PairingConfig {
+    std::string private_key;  // binary, private Anti-Spoofing Key
+    std::string public_key;   // binary, public Anti-Spoofing Key
+    std::string model_id;
+    std::string pass_key;
+  };
   ~FakeProvider() { Shutdown(); }
+
+  // Sets the fake provider up for initial pairing
+  void PrepareForInitialPairing(PairingConfig config,
+                                FakeGattCallbacks* fake_gatt_callbacks);
 
   void Shutdown() {
     StopAdvertising();
@@ -151,25 +163,31 @@ class FakeProvider {
         BluetoothUtils::FromString(provider_adapter_.GetMacAddress()));
   }
 
-  void StartGattServer(BleV2Medium::ServerGattConnectionCallback callback);
+  void StartGattServer(FakeGattCallbacks* fake_gatt_callbacks);
 
   void InsertCorrectGattCharacteristics() {
+    CHECK_NE(fake_gatt_callbacks_, nullptr);
+
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
         properties_);
     CHECK(key_based_characteristic_.has_value());
+    fake_gatt_callbacks_->characteristics_[*key_based_characteristic_]
+        .write_result = absl::OkStatus();
 
     passkey_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kPasskeyCharacteristicUuidV2, permissions_,
         properties_);
-
     CHECK(passkey_characteristic_.has_value());
+    fake_gatt_callbacks_->characteristics_[*passkey_characteristic_]
+        .write_result = absl::OkStatus();
 
     accountkey_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kAccountKeyCharacteristicUuidV2, permissions_,
         properties_);
-
     CHECK(accountkey_characteristic_.has_value());
+    fake_gatt_callbacks_->characteristics_[*accountkey_characteristic_]
+        .write_result = absl::OkStatus();
   }
 
   void LoadAntiSpoofingKey(absl::string_view private_key,
@@ -179,14 +197,20 @@ class FakeProvider {
   std::string Encrypt(absl::string_view data);
 
   absl::Status NotifyKeyBasedPairing(ByteArray response);
+  absl::Status NotifyPasskey(ByteArray response);
 
   void StartDiscoverableAdvertisement(absl::string_view model_id);
   void StopAdvertising();
+  void ConfigurePairingContext(absl::string_view pass_key);
+  AccountKey& GetAccountKey() { return account_key_; }
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
   std::optional<GattCharacteristic> accountkey_characteristic_;
 
  private:
+  void SetKeyBasedPairingCallback();
+  void SetPasskeyCallback();
+  void SetAccountkeyCallback();
   std::string GenSec256r1Secret(absl::string_view remote_party_public_key);
   std::string CreateSharedSecret(absl::string_view remote_public_key);
   BluetoothAdapter provider_adapter_;
@@ -201,8 +225,12 @@ class FakeProvider {
   Permission permissions_ = Permission::kWrite;
   std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)> anti_spoofing_key_{
       nullptr, EVP_PKEY_free};
-  std::string account_key_;
+  std::string shared_secret_;
   SingleThreadExecutor provider_thread_;
+  std::string model_id_;
+  FakeGattCallbacks* fake_gatt_callbacks_ = nullptr;
+  unsigned int pass_key_;
+  AccountKey account_key_;
 };
 
 }  // namespace fastpair

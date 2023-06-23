@@ -55,6 +55,19 @@ void CancellationFlag::Cancel() {
   }
 }
 
+void CancellationFlag::Uncancel() {
+  // Return immediately as no-op if feature flag is not enabled.
+  if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+    return;
+  }
+
+  {
+    absl::MutexLock lock(mutex_.get());
+    assert(cancelled_);
+    cancelled_ = false;
+  }
+}
+
 bool CancellationFlag::Cancelled() const {
   absl::MutexLock lock(mutex_.get());
 

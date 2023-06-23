@@ -18,10 +18,10 @@
 #include <string>
 #include <utility>
 
-#include "fastpair/proto/fastpair_rpcs.pb.h"
-#include "fastpair/repository/device_metadata.h"
-#include "internal/platform/logging.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/device_metadata.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace fastpair {

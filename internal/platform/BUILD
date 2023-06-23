@@ -153,6 +153,7 @@ cc_library(
         "wifi_lan_connection_info.h",
     ],
     visibility = [
+        "//connections/implementation:__pkg__",
         "//connections/v3:__pkg__",
         "//internal/interop:__pkg__",
         "//presence:__subpackages__",
@@ -226,6 +227,7 @@ cc_library(
         ":logging",
         ":types",
         ":uuid",
+        "//internal/base",
         "//internal/platform/implementation:comm",
         "//internal/test",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -415,7 +417,7 @@ cc_library(
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp:__subpackages__",
+        "//internal/test:__subpackages__",
         "//presence:__subpackages__",
     ],
     deps = [

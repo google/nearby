@@ -21,6 +21,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/future.h"
 
@@ -43,14 +44,22 @@ class FakeGattCallbacks {
     // characteristic
     absl::StatusOr<std::string> read_value =
         absl::FailedPreconditionError("characteristic not set");
-    absl::AnyInvocable<absl::Status(absl::string_view)> write_callback =
-        [&](absl::string_view data) {
-          write_value.Set(std::string(data));
-          return write_result;
-        };
-    absl::AnyInvocable<absl::StatusOr<std::string>()> read_callback = [&]() {
+    absl::AnyInvocable<absl::Status(absl::string_view)> write_callback;
+    absl::AnyInvocable<absl::StatusOr<std::string>()> read_callback;
+
+    absl::Status WriteCallback(absl::string_view data) {
+      if (write_callback) {
+        return write_callback(data);
+      }
+      write_value.Set(std::string(data));
+      return write_result;
+    }
+    absl::StatusOr<std::string> ReadCallback() {
+      if (read_callback) {
+        return read_callback();
+      }
       return read_value;
-    };
+    }
   };
 
   BleV2Medium::ServerGattConnectionCallback GetGattCallback() {
@@ -65,7 +74,7 @@ class FakeGattCallbacks {
                 callback(absl::NotFoundError("characteristic not found"));
                 return;
               }
-              callback(it->second.read_callback());
+              callback(it->second.ReadCallback());
             },
         .on_characteristic_write_cb =
             [&](const api::ble_v2::BlePeripheral& remote_device,
@@ -78,7 +87,7 @@ class FakeGattCallbacks {
                 callback(absl::NotFoundError("characteristic not found"));
                 return;
               }
-              callback(it->second.write_callback(data));
+              callback(it->second.WriteCallback(data));
             }};
   }
 

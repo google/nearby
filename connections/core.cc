@@ -233,7 +233,7 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
   ByteArray local_endpoint_info;
   if (local_device.GetType() == NearbyDevice::kConnectionsDevice) {
     local_endpoint_info =
-        ByteArray(dynamic_cast<const v3::ConnectionsDevice&>(local_device)
+        ByteArray(reinterpret_cast<const v3::ConnectionsDevice&>(local_device)
                       .GetEndpointInfo());
   }
   ConnectionRequestInfo old_info = {
@@ -293,7 +293,7 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
   const NearbyDevice* local_device = client_.GetLocalDevice();
   if (local_device->GetType() == NearbyDevice::kConnectionsDevice) {
     local_endpoint_info =
-        ByteArray(dynamic_cast<const v3::ConnectionsDevice*>(local_device)
+        ByteArray(reinterpret_cast<const v3::ConnectionsDevice*>(local_device)
                       ->GetEndpointInfo());
   }
   ConnectionRequestInfo old_info = {
@@ -341,9 +341,10 @@ void Core::StopDiscoveryV3(ResultCallback result_cb) {
 
 void Core::StartListeningForIncomingConnectionsV3(
     const v3::ConnectionListeningOptions& options, absl::string_view service_id,
-    v3::ConnectionListener listener_cb, ResultCallback result_cb) {
-  result_cb.result_cb(router_->StartListeningForIncomingConnectionsV3(
-      &client_, service_id, std::move(listener_cb), options));
+    v3::ConnectionListener listener_cb, v3::ListeningResultListener result_cb) {
+  router_->StartListeningForIncomingConnectionsV3(
+      &client_, service_id, std::move(listener_cb), options,
+      std::move(result_cb));
 }
 
 void Core::StopListeningForIncomingConnectionsV3() {

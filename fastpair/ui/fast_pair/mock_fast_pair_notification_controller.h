@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_MOCK_FAST_PAIR_NOTIFICATION_CONTROLLER_H_
 
 #include "gmock/gmock.h"
-#include "fastpair/repository/device_metadata.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
