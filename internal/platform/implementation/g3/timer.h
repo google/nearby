@@ -64,7 +64,6 @@ class Timer : public api::Timer {
 
  private:
   bool Schedule(absl::Duration delay) {
-    if (delay == absl::ZeroDuration()) return false;
     absl::MutexLock lock(&mutex_);
     task_ = executor_.Schedule([this]() { TriggerCallback(); }, delay);
     return true;
@@ -72,7 +71,10 @@ class Timer : public api::Timer {
 
   void TriggerCallback() {
     if (is_stopped_) return;
-    Schedule(interval_);
+    // If interval is 0, timer is one shot.
+    if (interval_ != absl::ZeroDuration()) {
+      Schedule(interval_);
+    }
     callback_();
   }
 
