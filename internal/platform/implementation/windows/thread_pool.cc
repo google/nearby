@@ -21,6 +21,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
@@ -38,9 +39,6 @@ VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE instance, PVOID parameter,
 }
 
 std::unique_ptr<ThreadPool> ThreadPool::Create(int max_pool_size) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Create thread pool with maximum size("
-                       << max_pool_size << ").";
-
   PTP_POOL thread_pool = nullptr;
   TP_CALLBACK_ENVIRON thread_pool_environ;
   InitializeThreadpoolEnvironment(&thread_pool_environ);
@@ -93,6 +91,10 @@ ThreadPool::~ThreadPool() {
   NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
                        << ") is released.";
 
+  if (thread_pool_ == nullptr) {
+    return;
+  }
+
   ShutDown();
 }
 
@@ -100,6 +102,11 @@ bool ThreadPool::Run(Runnable task) {
   absl::MutexLock lock(&mutex_);
 
   if (thread_pool_ == nullptr) {
+    return false;
+  }
+
+  if (shutdown_latch_ != nullptr) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Thread pool is in shutting down.";
     return false;
   }
 
@@ -116,6 +123,8 @@ bool ThreadPool::Run(Runnable task) {
     return false;
   }
 
+  ++running_tasks_count_;
+
   //
   // Submit the work to the pool. Because this was a pre-allocated
   // work item (using CreateThreadpoolWork), it is guaranteed to execute.
@@ -125,17 +134,45 @@ bool ThreadPool::Run(Runnable task) {
 }
 
 void ThreadPool::ShutDown() {
-  absl::MutexLock lock(&mutex_);
+  {
+    absl::MutexLock lock(&mutex_);
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Shutdown thread pool(" << this << ").";
-  if (thread_pool_ == nullptr) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Shutdown on closed thread pool("
-                         << this << ").";
-    return;
+    if (thread_pool_ == nullptr) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Shutdown on closed thread pool("
+                           << this << ").";
+      return;
+    }
+
+    if (running_tasks_count_ == 0) {
+      CloseThreadpool(thread_pool_);
+      thread_pool_ = nullptr;
+      NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
+                           << ") is shut down.";
+      return;
+    }
+
+    if (shutdown_latch_ != nullptr) {
+      NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
+                           << ") is already in shutting down.";
+      return;
+    }
+
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
+                         << ") is shutting down.";
+
+    shutdown_latch_ = std::make_unique<CountDownLatch>(1);
   }
 
-  CloseThreadpool(thread_pool_);
-  thread_pool_ = nullptr;
+  // Wait for all tasks to complete.
+  shutdown_latch_->Await();
+
+  {
+    absl::MutexLock lock(&mutex_);
+    CloseThreadpool(thread_pool_);
+    thread_pool_ = nullptr;
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
+                         << ") is shut down.";
+  }
 }
 
 void ThreadPool::RunNextTask() {
@@ -153,15 +190,28 @@ void ThreadPool::RunNextTask() {
 
       task = std::move(tasks_.front());
       tasks_.pop();
+
+      if (task == nullptr) {
+        NEARBY_LOGS(WARNING)
+            << __func__ << ": Tried to run task in an empty thread pool.";
+        --running_tasks_count_;
+        if (running_tasks_count_ == 0 && shutdown_latch_ != nullptr) {
+          shutdown_latch_->CountDown();
+        }
+        return;
+      }
     }
-  }
-  if (task == nullptr) {
-    NEARBY_LOGS(WARNING) << __func__
-                         << ": Tried to run task in an empty thread pool.";
-    return;
   }
 
   task();
+
+  {
+    absl::MutexLock lock(&mutex_);
+    --running_tasks_count_;
+    if (running_tasks_count_ == 0 && shutdown_latch_ != nullptr) {
+      shutdown_latch_->CountDown();
+    }
+  }
 }
 
 }  // namespace windows

@@ -14,11 +14,11 @@
 
 #include "internal/platform/implementation/windows/thread_pool.h"
 
+#include <atomic>
 #include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/blocking_counter.h"
-#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 
@@ -64,6 +64,19 @@ TEST(ThreadPool, TasksInMultipleThreadsRunInParallel) {
   blocking_counter.Wait();
   EXPECT_TRUE(absl::Now() - start_time < absl::Milliseconds(1500));
   pool->ShutDown();
+}
+
+TEST(ThreadPool, ShutdownWaitsForRunningTasks) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  pool->Run([&]() {
+    absl::SleepFor(absl::Seconds(1));
+    value += 1;
+  });
+
+  pool->ShutDown();
+
+  EXPECT_EQ(value, 1);
 }
 
 }  // namespace

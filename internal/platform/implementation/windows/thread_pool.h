@@ -23,6 +23,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -37,11 +38,9 @@ class ThreadPool {
   // into the thread pool.
   bool Run(Runnable task) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // The thread pool is closed immediately if there is no outstanding work,
-  // I/O, timer, or wait objects that are bound to the pool; otherwise, the
-  // thread pool is released asynchronously after the outstanding objects are
-  // freed.
-  void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
+  // In Nearby platform, thread pool should make sure all queued tasks completed
+  // in shut down.
+  void ShutDown();
 
  private:
   ThreadPool(PTP_POOL thread_pool, TP_CALLBACK_ENVIRON thread_pool_environ,
@@ -64,6 +63,12 @@ class ThreadPool {
 
   // The maximum thread count in the thread pool
   int max_pool_size_ ABSL_GUARDED_BY(mutex_) = 0;
+
+  // Current running task count
+  int running_tasks_count_ ABSL_GUARDED_BY(mutex_) = 0;
+
+  // The latch is used to wait for running tasks
+  std::unique_ptr<CountDownLatch> shutdown_latch_ = nullptr;
 
   friend VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE instance,
                                     PVOID parameter, PTP_WORK work);
