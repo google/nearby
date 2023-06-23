@@ -33,7 +33,9 @@ cc_proto_library(
 proto_library(
     name = "metadata_proto",
     srcs = ["metadata.proto"],
-    visibility = ["//location/nearby/presence/proto:__pkg__"],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
 )
 
 proto_library(
