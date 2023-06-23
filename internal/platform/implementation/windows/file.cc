@@ -24,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
@@ -56,27 +57,31 @@ IOFile::IOFile(const absl::string_view file_path)
 }
 
 ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
-  if (!file_.is_open()) {
+  try {
+    if (!file_.is_open()) {
+      return ExceptionOr<ByteArray>{Exception::kIo};
+    }
+
+    if (!file_.good()) {
+      return ExceptionOr<ByteArray>{Exception::kIo};
+    }
+
+    if (file_.peek() == EOF) {
+      return ExceptionOr<ByteArray>{ByteArray{}};
+    }
+
+    ByteArray bytes(size);
+    std::unique_ptr<char[]> read_bytes{new char[size]};
+    file_.read(read_bytes.get(), static_cast<ptrdiff_t>(size));
+    auto num_bytes_read = file_.gcount();
+    if (num_bytes_read == 0) {
+      return ExceptionOr<ByteArray>{Exception::kIo};
+    }
+    return ExceptionOr<ByteArray>(ByteArray(read_bytes.get(), num_bytes_read));
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Fail to read";
     return ExceptionOr<ByteArray>{Exception::kIo};
   }
-
-  if (file_.peek() == EOF) {
-    return ExceptionOr<ByteArray>{ByteArray{}};
-  }
-
-  if (!file_.good()) {
-    return ExceptionOr<ByteArray>{Exception::kIo};
-  }
-
-  ByteArray bytes(size);
-  std::unique_ptr<char[]> read_bytes{new char[size]};
-  file_.read(read_bytes.get(), static_cast<ptrdiff_t>(size));
-  auto num_bytes_read = file_.gcount();
-  if (num_bytes_read == 0) {
-    return ExceptionOr<ByteArray>{Exception::kIo};
-  }
-
-  return ExceptionOr<ByteArray>(ByteArray(read_bytes.get(), num_bytes_read));
 }
 
 Exception IOFile::Close() {
@@ -87,17 +92,22 @@ Exception IOFile::Close() {
 }
 
 Exception IOFile::Write(const ByteArray& data) {
-  if (!file_.is_open()) {
+  try {
+    if (!file_.is_open()) {
+      return {Exception::kIo};
+    }
+
+    if (!file_.good()) {
+      return {Exception::kIo};
+    }
+
+    file_.write(data.data(), data.size());
+    file_.flush();
+    return {file_.good() ? Exception::kSuccess : Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Fail to write";
     return {Exception::kIo};
   }
-
-  if (!file_.good()) {
-    return {Exception::kIo};
-  }
-
-  file_.write(data.data(), data.size());
-  file_.flush();
-  return {file_.good() ? Exception::kSuccess : Exception::kIo};
 }
 
 Exception IOFile::Flush() {
