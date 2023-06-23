@@ -98,6 +98,7 @@ cc_library(
         ":fast_pair_seeker",
         "//fastpair/internal",
         "//fastpair/repository:device_repository",
+        "//fastpair/server_access",
         "//internal/flags:nearby_flags",
         "//internal/platform:types",
         "//internal/platform/flags:platform_flags",

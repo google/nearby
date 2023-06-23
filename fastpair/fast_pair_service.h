@@ -26,6 +26,7 @@
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
+#include "fastpair/server_access/fast_pair_repository.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -36,6 +37,9 @@ namespace fastpair {
 class FastPairService {
  public:
   FastPairService();
+  // Constructor for tests. Allows us to inject a serverless metadata
+  // repository.
+  explicit FastPairService(std::unique_ptr<FastPairRepository> repository);
   ~FastPairService();
 
   // Registers a plugin provider. `name` must be a unique.
@@ -66,6 +70,7 @@ class FastPairService {
   absl::flat_hash_map<std::string, std::unique_ptr<FastPairPluginProvider>>
       providers_;
   FastPairDeviceRepository devices_{&executor_};
+  std::unique_ptr<FastPairRepository> fast_pair_repository_;
 };
 
 }  // namespace fastpair

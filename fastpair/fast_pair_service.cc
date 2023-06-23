@@ -23,6 +23,7 @@
 #include "absl/strings/str_format.h"
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/internal/fast_pair_seeker_impl.h"
+#include "fastpair/server_access/fast_pair_repository_impl.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
@@ -34,12 +35,15 @@ namespace {
 constexpr absl::Duration kTimeout = absl::Seconds(3);
 }
 
-FastPairService::FastPairService() {
+FastPairService::FastPairService()
+    : FastPairService(std::make_unique<FastPairRepositoryImpl>()) {}
+
+FastPairService::FastPairService(std::unique_ptr<FastPairRepository> repository)
+    : fast_pair_repository_(std::move(repository)) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableBleV2Gatt,
       true);
-
   seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{
           .on_initial_discovery =

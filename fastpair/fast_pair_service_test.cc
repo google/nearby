@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -75,7 +76,7 @@ TEST(FastPairService, InitialDiscoveryEvent) {
   constexpr absl::string_view kPluginName = "my plugin";
   auto repository = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
   FakeProvider provider;
-  FastPairService service;
+  FastPairService service(std::move(repository));
   CountDownLatch latch(1);
   auto plugin_provider = std::make_unique<FakeFastPairPluginProvider>();
   plugin_provider->on_initial_discovery_event_ =
