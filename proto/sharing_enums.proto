@@ -303,6 +303,10 @@ enum AttachmentTransmissionStatus {
 
   // The remote response is either missing or has an unknown type.
   FAILED_UNKNOWN_REMOTE_RESPONSE = 17;
+
+  // Breakdowns of FAILED_NULL_CONNECTION (Desktop side)
+  FAILED_NULL_CONNECTION_INIT_OUTGOING = 18;
+  FAILED_NULL_CONNECTION_DISCONNECTED = 19;
 }
 
 // The status of processing attachments after receiver received payloads
