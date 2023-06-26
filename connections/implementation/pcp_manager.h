@@ -75,6 +75,10 @@ class PcpManager {
                           PayloadListener payload_listener);
   Status RejectConnection(ClientProxy* client, const string& endpoint_id);
 
+  Status UpdateAdvertisingOptions(
+      ClientProxy* client, absl::string_view service_id,
+      const AdvertisingOptions& advertising_options);
+
   location::nearby::proto::connections::Medium GetBandwidthUpgradeMedium();
   void DisconnectFromEndpointManager();
 

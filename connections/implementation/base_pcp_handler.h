@@ -150,6 +150,10 @@ class BasePcpHandler : public PcpHandler,
                             const std::string& endpoint_id,
                             CountDownLatch barrier) override;
 
+  Status UpdateAdvertisingOptions(
+      ClientProxy* client, absl::string_view service_id,
+      const AdvertisingOptions& advertising_options) override;
+
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
   void DisconnectFromEndpointManager();
@@ -301,6 +305,18 @@ class BasePcpHandler : public PcpHandler,
   virtual ConnectImplResult ConnectImpl(ClientProxy* client,
                                         DiscoveredEndpoint* endpoint)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
+
+  virtual StartOperationResult UpdateAdvertisingOptionsImpl(
+      ClientProxy* client, absl::string_view service_id,
+      absl::string_view local_endpoint_id,
+      absl::string_view local_endpoint_info,
+      const AdvertisingOptions& advertising_options)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
+
+  bool NeedsToTurnOffAdvertisingMedium(
+      location::nearby::proto::connections::Medium medium,
+      const AdvertisingOptions& old_options,
+      const AdvertisingOptions& new_options);
 
   virtual std::vector<location::nearby::proto::connections::Medium>
   GetConnectionMediumsByPriority() = 0;

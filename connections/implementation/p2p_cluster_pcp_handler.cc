@@ -1100,14 +1100,14 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
     };
   }
   switch (endpoint->medium) {
-    case location::nearby::proto::connections::Medium::BLUETOOTH: {
+    case Medium::BLUETOOTH: {
       auto* bluetooth_endpoint = down_cast<BluetoothEndpoint*>(endpoint);
       if (bluetooth_endpoint) {
         return BluetoothConnectImpl(client, bluetooth_endpoint);
       }
       break;
     }
-    case location::nearby::proto::connections::Medium::BLE: {
+    case Medium::BLE: {
       if (NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_connections_feature::
                   kEnableBleV2)) {
@@ -1124,14 +1124,14 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
       }
       break;
     }
-    case location::nearby::proto::connections::Medium::WIFI_LAN: {
+    case Medium::WIFI_LAN: {
       auto* wifi_lan_endpoint = down_cast<WifiLanEndpoint*>(endpoint);
       if (wifi_lan_endpoint) {
         return WifiLanConnectImpl(client, wifi_lan_endpoint);
       }
       break;
     }
-    case location::nearby::proto::connections::Medium::WEB_RTC: {
+    case Medium::WEB_RTC: {
       break;
     }
     default:
@@ -1260,6 +1260,125 @@ void P2pClusterPcpHandler::StopListeningForIncomingConnectionsImpl(
       }
     }
   }
+}
+
+BasePcpHandler::StartOperationResult
+P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
+    ClientProxy* client, absl::string_view service_id,
+    absl::string_view local_endpoint_id, absl::string_view local_endpoint_info,
+    const AdvertisingOptions& advertising_options) {
+  AdvertisingOptions old_options = client->GetAdvertisingOptions();
+  bool needs_restart = old_options.low_power != advertising_options.low_power;
+  // ble
+  if (NeedsToTurnOffAdvertisingMedium(Medium::BLE, old_options,
+                                      advertising_options) ||
+      needs_restart) {
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
+      mediums_->GetBleV2().StopAdvertising(std::string(service_id));
+      mediums_->GetBleV2().StopAcceptingConnections(std::string(service_id));
+    } else {
+      mediums_->GetBle().StopAdvertising(std::string(service_id));
+      mediums_->GetBle().StopAcceptingConnections(std::string(service_id));
+    }
+  }
+  // wifi lan
+  if (NeedsToTurnOffAdvertisingMedium(Medium::WIFI_LAN, old_options,
+                                      advertising_options) ||
+      needs_restart) {
+    mediums_->GetWifiLan().StopAdvertising(std::string(service_id));
+    mediums_->GetWifiLan().StopAcceptingConnections(std::string(service_id));
+  }
+  // Bluetooth classic
+  if (NeedsToTurnOffAdvertisingMedium(Medium::BLUETOOTH, old_options,
+                                      advertising_options) ||
+      needs_restart) {
+    // BT classic equivalent for advertising.
+    mediums_->GetBluetoothClassic().TurnOffDiscoverability();
+    mediums_->GetBluetoothClassic().StopAcceptingConnections(
+        std::string(service_id));
+  }
+
+  // restart
+  std::vector<Medium> restarted_mediums;
+  Status status = {Status::kSuccess};
+  WebRtcState web_rtc_state = webrtc_medium_.IsAvailable()
+                                  ? WebRtcState::kConnectable
+                                  : WebRtcState::kUndefined;
+  // ble
+  auto new_mediums = advertising_options.allowed;
+  auto old_mediums = old_options.allowed;
+  if (new_mediums.ble) {
+    if (old_mediums.ble && !needs_restart) {
+      restarted_mediums.push_back(Medium::BLE);
+    } else {
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_connections_feature::
+                  kEnableBleV2)) {
+        if (StartBleV2Advertising(
+                client, std::string(service_id), std::string(local_endpoint_id),
+                ByteArray(std::string(local_endpoint_info)),
+                advertising_options, web_rtc_state) != Medium::UNKNOWN_MEDIUM) {
+          restarted_mediums.push_back(
+              location::nearby::proto::connections::Medium::BLE);
+        } else {
+          status = {Status::kBleError};
+        }
+      } else {
+        if (StartBleAdvertising(
+                client, std::string(service_id), std::string(local_endpoint_id),
+                ByteArray(std::string(local_endpoint_info)),
+                advertising_options, web_rtc_state) != Medium::UNKNOWN_MEDIUM) {
+          restarted_mediums.push_back(
+              location::nearby::proto::connections::Medium::BLE);
+        } else {
+          status = {Status::kBleError};
+        }
+      }
+    }
+  }
+  // wifi lan
+  if (new_mediums.wifi_lan && !advertising_options.low_power) {
+    if (old_mediums.wifi_lan && !needs_restart) {
+      restarted_mediums.push_back(
+          location::nearby::proto::connections::Medium::WIFI_LAN);
+    } else {
+      if (StartWifiLanAdvertising(client, std::string(service_id),
+                                  std::string(local_endpoint_id),
+                                  ByteArray(std::string(local_endpoint_info)),
+                                  web_rtc_state) != Medium::UNKNOWN_MEDIUM) {
+        restarted_mediums.push_back(
+            location::nearby::proto::connections::Medium::WIFI_LAN);
+      } else {
+        status = {Status::kWifiLanError};
+      }
+    }
+  }
+  // bluetooth classic
+  if (new_mediums.bluetooth && !advertising_options.low_power) {
+    if (old_mediums.bluetooth && !needs_restart) {
+      restarted_mediums.push_back(
+          location::nearby::proto::connections::Medium::BLUETOOTH);
+    } else {
+      const ByteArray bluetooth_hash = GenerateHash(
+          std::string(service_id), BluetoothDeviceName::kServiceIdHashLength);
+      if (StartBluetoothAdvertising(client, std::string(service_id),
+                                    bluetooth_hash,
+                                    std::string(local_endpoint_id),
+                                    ByteArray(std::string(local_endpoint_info)),
+                                    web_rtc_state) != Medium::UNKNOWN_MEDIUM) {
+        restarted_mediums.push_back(
+            location::nearby::proto::connections::Medium::BLUETOOTH);
+      } else {
+        return StartOperationResult{.status = {Status::kBluetoothError},
+                                    .mediums = restarted_mediums};
+      }
+    }
+  }
+  return StartOperationResult{
+      .status = status,
+      .mediums = restarted_mediums,
+  };
 }
 
 void P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler(

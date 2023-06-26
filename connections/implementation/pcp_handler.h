@@ -121,6 +121,10 @@ class PcpHandler {
   // will terminate. Update state in ClientProxy.
   virtual Status RejectConnection(ClientProxy* client,
                                   const std::string& endpoint_id) = 0;
+
+  virtual Status UpdateAdvertisingOptions(
+      ClientProxy* client, absl::string_view service_id,
+      const AdvertisingOptions& advertising_options) = 0;
 };
 
 }  // namespace connections

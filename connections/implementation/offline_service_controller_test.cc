@@ -19,7 +19,10 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_simulation_user.h"
+#include "connections/status.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -74,6 +77,10 @@ constexpr BooleanMediumSelector kTestCases[] = {
 class OfflineServiceControllerTest
     : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
+  void SetUp() override {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleV2, true);
+  }
   bool SetupConnection(OfflineSimulationUser& user_a,
                        OfflineSimulationUser& user_b) {
     user_a.StartAdvertising(std::string(kServiceId), &connect_latch_);
@@ -368,6 +375,56 @@ TEST_P(OfflineServiceControllerTest, CanDisconnect) {
   EXPECT_FALSE(user_b.IsConnected());
   user_a.Stop();
   user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, TestUpdateAdvertisingOptions) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  EXPECT_FALSE(user_a.IsAdvertising());
+  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), nullptr),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(user_a.IsAdvertising());
+  NEARBY_LOGS(INFO) << "Started advertising";
+  AdvertisingOptions new_options = {
+      {
+          Strategy::kP2pCluster,
+          GetParam(),
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+  EXPECT_THAT(user_a.UpdateAdvertisingOptions(kServiceId, new_options),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(user_a.IsAdvertising());
+  NEARBY_LOGS(INFO) << "Updated advertising options";
+  user_a.StopAdvertising();
+  NEARBY_LOGS(INFO) << "Stopped advertising";
+  user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, TestNoUpdateAdvertisingOptionsAfterStop) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  EXPECT_FALSE(user_a.IsAdvertising());
+  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), nullptr),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(user_a.IsAdvertising());
+  AdvertisingOptions new_options = {
+      {
+          Strategy::kP2pCluster,
+          GetParam(),
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+  user_a.Stop();
+  EXPECT_THAT(user_a.UpdateAdvertisingOptions(kServiceId, new_options),
+              Eq(Status{Status::kOutOfOrderApiCall}));
+  EXPECT_FALSE(user_a.IsAdvertising());
   env_.Stop();
 }
 

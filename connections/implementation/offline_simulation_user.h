@@ -78,6 +78,10 @@ class OfflineSimulationUser {
   // Calls PcpManager::StopAdvertising().
   void StopAdvertising();
 
+  // Calls PcpManager::UpdateAdvertisingOptions().
+  Status UpdateAdvertisingOptions(absl::string_view service_id,
+                                  const AdvertisingOptions& options);
+
   // Calls PcpManager::StartDiscovery().
   // If found_latch is provided, will call found_latch->CountDown() in the
   // endpoint_found_cb callback.

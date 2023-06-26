@@ -101,6 +101,13 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   // @PCPHandlerThread
   void StopListeningForIncomingConnectionsImpl(ClientProxy* client) override;
 
+  // @PCPHandlerThread
+  BasePcpHandler::StartOperationResult UpdateAdvertisingOptionsImpl(
+      ClientProxy* client, absl::string_view service_id,
+      absl::string_view local_endpoint_id,
+      absl::string_view local_endpoint_info,
+      const AdvertisingOptions& advertising_options) override;
+
  private:
   // Holds the state required to re-create a BleEndpoint we see on a
   // BlePeripheral, so BlePeripheralLostHandler can call

@@ -130,6 +130,11 @@ void OfflineSimulationUser::StopAdvertising() {
   ctrl_.StopAdvertising(&client_);
 }
 
+Status OfflineSimulationUser::UpdateAdvertisingOptions(
+    absl::string_view service_id, const AdvertisingOptions& options) {
+  return ctrl_.UpdateAdvertisingOptions(&client_, service_id, options);
+}
+
 Status OfflineSimulationUser::StartDiscovery(const std::string& service_id,
                                              CountDownLatch* found_latch,
                                              CountDownLatch* lost_latch) {

@@ -147,6 +147,16 @@ Status PcpManager::RejectConnection(ClientProxy* client,
   return current_->RejectConnection(client, endpoint_id);
 }
 
+Status PcpManager::UpdateAdvertisingOptions(
+    ClientProxy* client, absl::string_view service_id,
+    const AdvertisingOptions& advertising_options) {
+  if (!current_) {
+    return {Status::kOutOfOrderApiCall};
+  }
+  return current_->UpdateAdvertisingOptions(client, service_id,
+                                            advertising_options);
+}
+
 bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
   current_ = GetPcpHandler(StrategyToPcp(strategy));
 

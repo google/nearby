@@ -1280,6 +1280,38 @@ void BasePcpHandler::OnEndpointLost(
   }
 }
 
+Status BasePcpHandler::UpdateAdvertisingOptions(
+    ClientProxy* client, absl::string_view service_id,
+    const AdvertisingOptions& advertising_options) {
+  Future<Status> status;
+  RunOnPcpHandlerThread(
+      "update-advertising-options",
+      [this, client, service_id, advertising_options, &status]()
+          RUN_ON_PCP_HANDLER_THREAD() mutable {
+            StartOperationResult result = UpdateAdvertisingOptionsImpl(
+                client, service_id, client->GetLocalEndpointId(),
+                client->GetLocalEndpointInfo(), advertising_options);
+            if (!result.status.Ok()) {
+              status.Set(result.status);
+              return;
+            }
+            client->UpdateAdvertisingOptions(advertising_options);
+            status.Set({Status::kSuccess});
+          });
+  return status.Get().GetResult();
+}
+
+bool BasePcpHandler::NeedsToTurnOffAdvertisingMedium(
+    Medium medium, const AdvertisingOptions& old_options,
+    const AdvertisingOptions& new_options) {
+  auto old_enabled_mediums = old_options.allowed.GetMediums(/*value=*/true);
+  auto new_disabled_mediums = new_options.allowed.GetMediums(/*value=*/false);
+  return (std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),
+                    medium) != old_enabled_mediums.end()) &&
+         (std::find(new_disabled_mediums.begin(), new_disabled_mediums.end(),
+                    medium) != new_disabled_mediums.end());
+}
+
 bool BasePcpHandler::IsPreferred(
     const BasePcpHandler::DiscoveredEndpoint& new_endpoint,
     const BasePcpHandler::DiscoveredEndpoint& old_endpoint) {

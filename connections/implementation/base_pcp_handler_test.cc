@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
@@ -30,6 +31,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "connections/params.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
@@ -171,6 +173,10 @@ class MockPcpHandler : public BasePcpHandler {
               (ClientProxy * client, DiscoveredEndpoint* endpoint), (override));
   MOCK_METHOD(location::nearby::proto::connections::Medium,
               GetDefaultUpgradeMedium, (), (override));
+  MOCK_METHOD(StartOperationResult, UpdateAdvertisingOptionsImpl,
+              (ClientProxy*, absl::string_view, absl::string_view,
+               absl::string_view, const AdvertisingOptions&),
+              (override));
 
   std::vector<location::nearby::proto::connections::Medium>
   GetConnectionMediumsByPriority() override {
@@ -236,6 +242,14 @@ class MockPcpHandler : public BasePcpHandler {
       BasePcpHandler::StartOperationResult result) {
     return BasePcpHandler::GetConnectionInfoFromResult(service_id, result);
   }
+
+  bool NeedsToTurnOffAdvertisingMedium(
+      location::nearby::proto::connections::Medium medium,
+      const AdvertisingOptions& old_options,
+      const AdvertisingOptions& new_options) {
+    return BasePcpHandler::NeedsToTurnOffAdvertisingMedium(medium, old_options,
+                                                           new_options);
+  }
 };
 
 class MockContext {
@@ -295,7 +309,6 @@ class BasePcpHandlerTest
 
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
                         BooleanMediumSelector allowed = GetParam()) {
-    std::string service_id{"service"};
     AdvertisingOptions advertising_options{
         {
             Strategy::kP2pCluster,
@@ -304,6 +317,13 @@ class BasePcpHandlerTest
         true,  // auto_upgrade_bandwidth
         true,  // enforce_topology_constraints
     };
+    StartAdvertisingWithOptions(client, pcp_handler, advertising_options);
+  }
+
+  void StartAdvertisingWithOptions(ClientProxy* client,
+                                   MockPcpHandler* pcp_handler,
+                                   AdvertisingOptions advertising_options) {
+    std::string service_id{"service"};
     ConnectionRequestInfo info{
         .endpoint_info = ByteArray{"remote_endpoint_name"},
         .listener = connection_listener_,
@@ -312,13 +332,26 @@ class BasePcpHandlerTest
                                                    info.endpoint_info, _))
         .WillOnce(Return(MockPcpHandler::StartOperationResult{
             .status = {Status::kSuccess},
-            .mediums = pcp_handler->GetMediumsFromSelector(allowed),
+            .mediums = pcp_handler->GetMediumsFromSelector(
+                advertising_options.allowed),
         }));
     EXPECT_EQ(pcp_handler->StartAdvertising(client, service_id,
                                             advertising_options, info),
               Status{Status::kSuccess});
     EXPECT_TRUE(client->IsAdvertising());
     EXPECT_EQ(client->GetLocalEndpointInfo(), info.endpoint_info.string_data());
+  }
+
+  void UpdateAdvertisingOptions(ClientProxy* client,
+                                MockPcpHandler* pcp_handler,
+                                AdvertisingOptions new_options,
+                                Status expected_status) {
+    EXPECT_CALL(*pcp_handler, UpdateAdvertisingOptionsImpl)
+        .WillOnce(Return(MockPcpHandler::StartOperationResult{
+            .status = expected_status,
+            .mediums = pcp_handler->GetMediumsFromSelector(new_options.allowed),
+        }));
+    pcp_handler->UpdateAdvertisingOptions(client, "service", new_options);
   }
 
   void StartDiscovery(ClientProxy* client, MockPcpHandler* pcp_handler,
@@ -1312,6 +1345,129 @@ TEST_F(BasePcpHandlerTest,
   m.GetWifiLan().StopAcceptingConnections(service_id);
   pcp_handler.StopListeningForIncomingConnections(&client);
   EXPECT_FALSE(client.IsListeningForIncomingConnections());
+}
+
+TEST_F(BasePcpHandlerTest, TestNeedsToTurnOffAdvertisingMedium) {
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  BooleanMediumSelector old_meds{
+      .bluetooth = true,
+      .ble = true,
+      .wifi_lan = false,
+  };
+  AdvertisingOptions old_opts, new_opts;
+  old_opts.allowed = old_meds;
+  BooleanMediumSelector new_meds{
+      .bluetooth = false,
+      .ble = true,
+      .wifi_lan = false,
+  };
+  new_opts.allowed = new_meds;
+  EXPECT_TRUE(pcp_handler.NeedsToTurnOffAdvertisingMedium(Medium::BLUETOOTH,
+                                                          old_opts, new_opts));
+  EXPECT_FALSE(pcp_handler.NeedsToTurnOffAdvertisingMedium(Medium::BLE,
+                                                           old_opts, new_opts));
+  EXPECT_FALSE(pcp_handler.NeedsToTurnOffAdvertisingMedium(Medium::WIFI_LAN,
+                                                           old_opts, new_opts));
+}
+
+TEST_F(BasePcpHandlerTest, TestUpdateAdvertisingOptionsWorks) {
+  env_.Start();
+  AdvertisingOptions old_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      true,   // low_power
+      false,  // enable_bluetooth_listening
+  };
+  AdvertisingOptions new_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+  };
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartAdvertisingWithOptions(&client, &pcp_handler, old_options);
+  EXPECT_TRUE(client.IsAdvertising());
+  auto current_client_opts = client.GetAdvertisingOptions();
+  // check custom option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            old_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            old_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
+  EXPECT_EQ(current_client_opts.enable_bluetooth_listening,
+            old_options.enable_bluetooth_listening);
+  UpdateAdvertisingOptions(&client, &pcp_handler, new_options,
+                           {Status::kSuccess});
+  EXPECT_TRUE(client.IsAdvertising());
+  current_client_opts = client.GetAdvertisingOptions();
+  // check new option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            new_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            new_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, new_options.low_power);
+  EXPECT_EQ(current_client_opts.enable_bluetooth_listening,
+            new_options.enable_bluetooth_listening);
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, TestUpdateAdvertisingOptionsFailsWithBadStatus) {
+  env_.Start();
+  AdvertisingOptions old_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      true,   // low_power
+      false,  // enable_bluetooth_listening
+  };
+  AdvertisingOptions new_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+  };
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartAdvertisingWithOptions(&client, &pcp_handler, old_options);
+  EXPECT_TRUE(client.IsAdvertising());
+  auto current_client_opts = client.GetAdvertisingOptions();
+  // check custom option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            old_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            old_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
+  EXPECT_EQ(current_client_opts.enable_bluetooth_listening,
+            old_options.enable_bluetooth_listening);
+  UpdateAdvertisingOptions(&client, &pcp_handler, new_options,
+                           {Status::kBleError});
+  EXPECT_TRUE(client.IsAdvertising());
+  current_client_opts = client.GetAdvertisingOptions();
+  // check new option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            old_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            old_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
+  EXPECT_EQ(current_client_opts.enable_bluetooth_listening,
+            old_options.enable_bluetooth_listening);
+  env_.Stop();
 }
 
 }  // namespace

@@ -156,6 +156,143 @@ TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
   env_.Stop();
 }
 
+TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptions) {
+  bool ble_v2_enabled = std::get<1>(GetParam());
+  if (!ble_v2_enabled) {
+    // Just don't run the test if ble_v2 is disabled.
+    return;
+  }
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  // Reset medium states.
+  mediums_a.GetBluetoothClassic().TurnOffDiscoverability();
+  ASSERT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  mediums_a.GetBluetoothClassic().StopAcceptingConnections(service_id_);
+  ASSERT_FALSE(
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  mediums_a.GetWifiLan().StopAcceptingConnections(service_id_);
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
+  mediums_a.GetWifiLan().StopAdvertising(service_id_);
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
+  mediums_a.GetBleV2().StopAcceptingConnections(service_id_);
+  ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
+  mediums_a.GetBleV2().StopAdvertising(service_id_);
+  ASSERT_FALSE(mediums_a.GetBleV2().IsAdvertising(service_id_));
+  EXPECT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  BooleanMediumSelector enabled = advertising_options_.allowed;
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+  EXPECT_EQ(enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsAdvertising(service_id_));
+  EXPECT_EQ(
+      enabled.bluetooth || enabled.ble,
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  EXPECT_EQ(enabled.bluetooth,
+            mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  // Turn discoverability back on
+  mediums_a.GetBluetoothClassic().TurnOnDiscoverability(service_id_);
+  AdvertisingOptions new_options{
+      {
+          Strategy::kP2pCluster,
+          enabled,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+  EXPECT_EQ(
+      handler_a.UpdateAdvertisingOptions(&client_a_, service_id_, new_options),
+      Status{Status::kSuccess});
+  if (ble_v2_enabled) {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+  } else {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsAdvertising(service_id_));
+  }
+  EXPECT_FALSE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
+  EXPECT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  EXPECT_FALSE(
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  handler_a.StopAdvertising(&client_a_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
+  bool ble_v2_enabled = std::get<1>(GetParam());
+  if (!ble_v2_enabled) {
+    // Just don't run the test if ble_v2 is disabled.
+    return;
+  }
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  BooleanMediumSelector enabled = advertising_options_.allowed;
+  // Reset medium states.
+  mediums_a.GetBluetoothClassic().TurnOffDiscoverability();
+  ASSERT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  mediums_a.GetBluetoothClassic().StopAcceptingConnections(service_id_);
+  ASSERT_FALSE(
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  mediums_a.GetWifiLan().StopAcceptingConnections(service_id_);
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
+  mediums_a.GetWifiLan().StopAdvertising(service_id_);
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
+  mediums_a.GetBleV2().StopAcceptingConnections(service_id_);
+  ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
+  mediums_a.GetBleV2().StopAdvertising(service_id_);
+  ASSERT_FALSE(mediums_a.GetBleV2().IsAdvertising(service_id_));
+  AdvertisingOptions old_options{
+      {
+          Strategy::kP2pCluster,
+          enabled,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      false,  // enable_bluetooth_listening
+  };
+  EXPECT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, old_options,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+  EXPECT_EQ(enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsAdvertising(service_id_));
+  EXPECT_EQ(enabled.bluetooth,
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  EXPECT_EQ(enabled.bluetooth,
+            mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  EXPECT_EQ(handler_a.UpdateAdvertisingOptions(&client_a_, service_id_,
+                                               advertising_options_),
+            Status{Status::kSuccess});
+  if (ble_v2_enabled) {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+  } else {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsAdvertising(service_id_));
+  }
+  EXPECT_EQ(enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsAdvertising(service_id_));
+  EXPECT_EQ(enabled.bluetooth,
+            mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  EXPECT_EQ(
+      enabled.bluetooth || enabled.ble,
+      mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  handler_a.StopAdvertising(&client_a_);
+  env_.Stop();
+}
+
 TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};

@@ -124,6 +124,11 @@ class ClientProxy final {
     local_endpoint_info_ = std::string(endpoint_info);
   }
 
+  void UpdateAdvertisingOptions(const AdvertisingOptions& advertising_options) {
+    MutexLock lock(&mutex_);
+    advertising_options_ = advertising_options;
+  }
+
   // Proxies to the client's DiscoveryListener::OnEndpointFound() callback.
   void OnEndpointFound(const std::string& service_id,
                        const std::string& endpoint_id,
