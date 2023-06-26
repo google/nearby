@@ -14,14 +14,19 @@
 
 #include "fastpair/server_access/fast_pair_repository.h"
 
-#include <utility>
+#include <array>
+#include <string>
+#include <vector>
 
-#include "internal/platform/logging.h"
+#include "absl/strings/string_view.h"
+#include "internal/base/bluetooth_address.h"
+#include "internal/crypto/sha2.h"
 
 namespace nearby {
 namespace fastpair {
 namespace {
 FastPairRepository* g_instance = nullptr;
+constexpr int kBluetoothAddressSize = 6;
 }
 
 FastPairRepository* FastPairRepository::Get() {
@@ -37,6 +42,26 @@ void FastPairRepository::SetInstance(FastPairRepository* instance) {
 FastPairRepository::FastPairRepository() { SetInstance(this); }
 
 FastPairRepository::~FastPairRepository() { SetInstance(nullptr); }
+
+// static
+std::string FastPairRepository::GenerateSha256OfAccountKeyAndMacAddress(
+    const AccountKey& account_key, absl::string_view public_address) {
+  std::string account_key_str = std::string(account_key.GetAsBytes());
+  std::vector<uint8_t> concat_bytes(account_key_str.begin(),
+                                    account_key_str.end());
+
+  std::vector<uint8_t> public_address_bytes(kBluetoothAddressSize);
+  device::ParseBluetoothAddress(
+      public_address,
+      absl::MakeSpan(public_address_bytes.data(), kBluetoothAddressSize));
+
+  concat_bytes.insert(concat_bytes.end(), public_address_bytes.begin(),
+                      public_address_bytes.end());
+  std::array<uint8_t, crypto::kSHA256Length> hashed =
+      crypto::SHA256Hash(concat_bytes);
+
+  return std::string(hashed.begin(), hashed.end());
+}
 
 }  // namespace fastpair
 }  // namespace nearby

@@ -21,6 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 
 namespace nearby {
@@ -29,6 +30,12 @@ using DeviceMetadataCallback = absl::AnyInvocable<void(DeviceMetadata&)>;
 class FastPairRepository {
  public:
   static FastPairRepository* Get();
+
+  // Computes and returns the SHA256 of the concatenation of the given
+  // |account_key| and |public_address|.
+  static std::string GenerateSha256OfAccountKeyAndMacAddress(
+      const AccountKey& account_key, absl::string_view public_address);
+
   FastPairRepository();
   virtual ~FastPairRepository();
   virtual void GetDeviceMetadata(absl::string_view hex_model_id,

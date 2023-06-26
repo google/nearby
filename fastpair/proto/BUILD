@@ -25,7 +25,7 @@ cc_proto_library(
 )
 
 cc_library(
-    name = "util",
+    name = "proto_to_json",
     srcs = [
         "proto_to_json.cc",
     ],
@@ -40,5 +40,43 @@ cc_library(
         "//internal/platform:logging",
         "@com_google_absl//absl/strings",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "proto_builder",
+    srcs = [
+        "proto_builder.cc",
+    ],
+    hdrs = [
+        "proto_builder.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":fastpair_cc_proto",
+        "//fastpair/common",
+        "//fastpair/server_access",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_test(
+    name = "proto_builder_test",
+    srcs = [
+        "proto_builder_test.cc",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    deps = [
+        ":fastpair_cc_proto",
+        ":proto_builder",
+        "//fastpair/common",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )

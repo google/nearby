@@ -115,6 +115,9 @@ message Device {
   // Fast Pair only - The type of device being registered.
   DeviceType device_type = 13;
 
+  // Fast Pair only - Additional images for true wireless headsets.
+  TrueWirelessHeadsetImages true_wireless_images = 15;
+
   // Name of the device that is displayed on the console.
   string display_name = 21;
 }
