@@ -34,6 +34,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
 #include "connections/status.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
@@ -611,7 +612,7 @@ Status BasePcpHandler::RequestConnection(
 
         // If our child class says we can't send any more outgoing connections,
         // listen to them.
-        if (ShouldEnforceTopologyConstraints(client->GetAdvertisingOptions()) &&
+        if (client->ShouldEnforceTopologyConstraints() &&
             !CanSendOutgoingConnection(client)) {
           NEARBY_LOGS(INFO)
               << "In requestConnection(), client=" << client->GetClientId()
@@ -972,17 +973,6 @@ void BasePcpHandler::ProcessPreConnectionResultFailure(
   auto item = pending_connections_.extract(endpoint_id);
   endpoint_manager_->DiscardEndpoint(client, endpoint_id);
   client->OnConnectionRejected(endpoint_id, {Status::kError});
-}
-
-bool BasePcpHandler::ShouldEnforceTopologyConstraints(
-    const AdvertisingOptions& local_advertising_options) const {
-  // Topology constraints only matter for the advertiser.
-  // For discoverers, we'll always enforce them.
-  if (local_advertising_options.strategy.IsNone()) {
-    return true;
-  }
-
-  return local_advertising_options.enforce_topology_constraints;
 }
 
 bool BasePcpHandler::AutoUpgradeBandwidth(
@@ -1388,7 +1378,7 @@ Exception BasePcpHandler::OnIncomingConnection(
 
   // If our child class says we can't accept any more incoming connections,
   // listen to them.
-  if (ShouldEnforceTopologyConstraints(client->GetAdvertisingOptions()) &&
+  if (client->ShouldEnforceTopologyConstraints() &&
       !CanReceiveIncomingConnection(client)) {
     NEARBY_LOGS(ERROR) << "Incoming connections are currently disallowed.";
     return {Exception::kIo};

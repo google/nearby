@@ -711,6 +711,21 @@ bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
       endpoint_id, ClientProxy::Connection::kRemoteEndpointAccepted);
 }
 
+bool ClientProxy::ShouldEnforceTopologyConstraints() const {
+  bool result = false;
+  if (IsAdvertising() &&
+      (GetAdvertisingOptions().strategy.IsNone() ||
+       GetAdvertisingOptions().enforce_topology_constraints)) {
+    result |= true;
+  }
+  if (IsListeningForIncomingConnections() &&
+      (GetListeningOptions().strategy.IsNone() ||
+       GetListeningOptions().enforce_topology_constraints)) {
+    result |= true;
+  }
+  return result;
+}
+
 void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
   // Don't insert the CancellationFlag to the map if feature flag is disabled.
   if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {

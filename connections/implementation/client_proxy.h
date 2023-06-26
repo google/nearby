@@ -197,6 +197,8 @@ class ClientProxy final {
   // Returns true if either the local endpoint or the remote endpoint has
   // rejected the connection.
   bool IsConnectionRejected(const std::string& endpoint_id) const;
+  // Returns true if the client should enforce topology constraints.
+  bool ShouldEnforceTopologyConstraints() const;
 
   // Proxies to the client's PayloadListener::OnPayload() callback.
   void OnPayload(const std::string& endpoint_id, Payload payload);

@@ -18,6 +18,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -142,6 +143,23 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
         endpoint.id, discovery_connection_info_, connection_options_,
         advertising_connection_listener_, connection_token);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint.id));
+  }
+
+  Endpoint StartListeningForIncomingConnections(
+      ClientProxy* client, v3::ConnectionListener listener,
+      v3::ConnectionListeningOptions options = {}) {
+    Endpoint endpoint{
+        .info = ByteArray{"advertising endpoint name"},
+        .id = client->GetLocalEndpointId(),
+    };
+    client->StartedListeningForIncomingConnections(
+        service_id_, strategy_, std::move(listener), options);
+    return endpoint;
+  }
+
+  void StopListeningForIncomingConnections(ClientProxy* client) {
+    client->StoppedListeningForIncomingConnections();
+    EXPECT_FALSE(client->IsListeningForIncomingConnections());
   }
 
   Endpoint StartDiscovery(ClientProxy* client, DiscoveryListener listener) {
@@ -1062,6 +1080,30 @@ TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
   EXPECT_TRUE(init_latch.Await().Ok());
   EXPECT_TRUE(bwu_latch.Await().Ok());
   EXPECT_TRUE(disconnect_latch.Await().Ok());
+}
+
+TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedAdvertising) {
+  EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
+  StartAdvertising(&client1_, advertising_connection_listener_,
+                   {.enforce_topology_constraints = true});
+  EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
+}
+
+TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedListeningWithStrategy) {
+  EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
+  StartListeningForIncomingConnections(&client1_,
+                                       {},
+                                       {.strategy = Strategy::kP2pCluster,
+                                        .enforce_topology_constraints = true});
+  EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
+}
+
+TEST_F(ClientProxyTest, DontEnforceTopologyWhenRequestedWithNoStrategy) {
+  EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
+  StartListeningForIncomingConnections(&client1_,
+                                       {},
+                                       {.strategy = Strategy::kNone});
+  EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
 }
 
 }  // namespace

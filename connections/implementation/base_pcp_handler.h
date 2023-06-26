@@ -36,6 +36,7 @@
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/status.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
@@ -434,10 +435,6 @@ class BasePcpHandler : public PcpHandler,
   // Returns true if the new endpoint is preferred over the old endpoint.
   bool IsPreferred(const BasePcpHandler::DiscoveredEndpoint& new_endpoint,
                    const BasePcpHandler::DiscoveredEndpoint& old_endpoint);
-
-  // Returns true, if connection party should respect the specified topology.
-  bool ShouldEnforceTopologyConstraints(
-      const AdvertisingOptions& local_advertising_options) const;
 
   // Returns true, if connection party should attempt to upgrade itself to
   // use a higher bandwidth medium, if it is available.
