@@ -35,10 +35,12 @@ FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
     : callbacks_(std::move(callbacks)), executor_(executor), devices_(devices) {
   pairer_broker_ = std::make_unique<PairerBrokerImpl>(mediums_, executor_);
   pairer_broker_->AddObserver(this);
+  mediums_.GetBluetoothClassic().AddObserver(this);
 }
 
 FastPairSeekerImpl::~FastPairSeekerImpl() {
   pairer_broker_->RemoveObserver(this);
+  mediums_.GetBluetoothClassic().RemoveObserver(this);
   FinishPairing(absl::AbortedError("Pairing terminated"));
   DestroyOnExecutor(std::move(pairer_broker_), executor_);
 }
@@ -184,5 +186,32 @@ void FastPairSeekerImpl::InvalidateScanningState() {
   // scanning.
   absl::Status status = StartFastPairScan();
 }
+
+void FastPairSeekerImpl::DeviceAdded(BluetoothDevice& device) {
+  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ")";
+}
+
+void FastPairSeekerImpl::DeviceRemoved(BluetoothDevice& device) {
+  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ")";
+}
+
+void FastPairSeekerImpl::DeviceAddressChanged(BluetoothDevice& device,
+                                              absl::string_view old_address) {
+  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ", "
+                       << old_address << ")";
+}
+
+void FastPairSeekerImpl::DevicePairedChanged(BluetoothDevice& device,
+                                             bool new_paired_status) {
+  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ", "
+                       << new_paired_status << ")";
+}
+
+void FastPairSeekerImpl::DeviceConnectedStateChanged(BluetoothDevice& device,
+                                                     bool connected) {
+  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ", "
+                       << connected << ")";
+}
+
 }  // namespace fastpair
 }  // namespace nearby

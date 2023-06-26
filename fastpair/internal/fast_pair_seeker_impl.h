@@ -40,7 +40,8 @@ class FastPairSeekerExt : public FastPairSeeker {
 
 class FastPairSeekerImpl : public FastPairSeekerExt,
                            ScannerBrokerImpl::Observer,
-                           PairerBroker::Observer {
+                           PairerBroker::Observer,
+                           BluetoothClassicMedium::Observer {
  public:
   struct ServiceCallbacks {
     absl::AnyInvocable<void(const FastPairDevice&, InitialDiscoveryEvent)>
@@ -76,6 +77,16 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   // From FastPairSeekerExt.
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
+
+  // From BluetoothClassicMedium::Observer.
+  void DeviceAdded(BluetoothDevice& device) override;
+  void DeviceRemoved(BluetoothDevice& device) override;
+  void DeviceAddressChanged(BluetoothDevice& device,
+                            absl::string_view old_address) override;
+  void DevicePairedChanged(BluetoothDevice& device,
+                           bool new_paired_status) override;
+  void DeviceConnectedStateChanged(BluetoothDevice& device,
+                                   bool connected) override;
 
   // Handle the state changes of screen lock.
   void SetIsScreenLocked(bool is_locked);
