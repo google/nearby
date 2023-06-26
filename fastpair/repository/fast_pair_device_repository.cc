@@ -47,7 +47,10 @@ void FastPairDeviceRepository::RemoveDevice(const FastPairDevice* device) {
   // Tasks running in the background may still be referencing `device`. Defering
   // the destruction to the background thread should prevent use-after-free
   // errors.
-  executor_->Execute([fast_pair_device = std::move(fast_pair_device)]() {
+  executor_->Execute([this, fast_pair_device = std::move(fast_pair_device)]() {
+    for (auto* callback : observers_.GetObservers()) {
+      (*callback)(*fast_pair_device);
+    }
     NEARBY_LOGS(VERBOSE) << "Destroyed FP device: " << fast_pair_device;
   });
 }

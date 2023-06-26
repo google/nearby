@@ -18,6 +18,7 @@ cc_library(
         "//fastpair/repository:device_repository",
         "//fastpair/scanning:scanner",
         "//internal/platform:types",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:str_format",
     ],

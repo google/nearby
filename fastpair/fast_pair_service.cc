@@ -39,11 +39,14 @@ FastPairService::FastPairService()
     : FastPairService(std::make_unique<FastPairRepositoryImpl>()) {}
 
 FastPairService::FastPairService(std::unique_ptr<FastPairRepository> repository)
-    : fast_pair_repository_(std::move(repository)) {
+    : fast_pair_repository_(std::move(repository)),
+      on_device_destroyed_callback_(
+          [this](const FastPairDevice& device) { OnDeviceDestroyed(device); }) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableBleV2Gatt,
       true);
+  devices_.AddObserver(&on_device_destroyed_callback_);
   seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{
           .on_initial_discovery =
@@ -81,8 +84,10 @@ absl::Status FastPairService::RegisterPluginProvider(
     absl::string_view name, std::unique_ptr<FastPairPluginProvider> provider) {
   Future<absl::Status> result;
   executor_.Execute("register-plugin", [&]() {
-    bool success =
-        providers_.insert({std::string(name), std::move(provider)}).second;
+    bool success = plugin_states_
+                       .insert({std::string(name),
+                                PluginState{.provider = std::move(provider)}})
+                       .second;
     absl::Status status = success
                               ? absl::OkStatus()
                               : absl::AlreadyExistsError(absl::StrFormat(
@@ -97,7 +102,7 @@ absl::Status FastPairService::RegisterPluginProvider(
 absl::Status FastPairService::UnregisterPluginProvider(absl::string_view name) {
   Future<absl::Status> result;
   executor_.Execute("unregister-plugin", [&]() {
-    bool success = success = providers_.erase(name);
+    bool success = success = plugin_states_.erase(name);
     absl::Status status = success
                               ? absl::OkStatus()
                               : absl::NotFoundError(absl::StrFormat(
@@ -114,8 +119,8 @@ void FastPairService::OnInitialDiscoveryEvent(const FastPairDevice& device,
   executor_.Execute("on-initial-discovery", [this, device = &device,
                                              event = std::move(event)]() {
     NEARBY_LOGS(INFO) << "OnInitialDiscoveryEvent " << *device;
-    for (auto& entry : providers_) {
-      auto plugin = entry.second->GetPlugin(seeker_.get(), device);
+    for (auto& entry : plugin_states_) {
+      auto plugin = entry.second.GetPlugin(seeker_.get(), device);
       plugin->OnInitialDiscoveryEvent(event);
     }
   });
@@ -131,5 +136,22 @@ void FastPairService::OnBatteryEvent(const FastPairDevice& device,
 void FastPairService::OnRingEvent(const FastPairDevice& device,
                                   RingEvent event) {}
 
+void FastPairService::OnDeviceDestroyed(const FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << "OnDeviceDestroyed " << device;
+  for (auto& entry : plugin_states_) {
+    entry.second.plugins.erase(&device);
+  }
+}
+
+FastPairPlugin* FastPairService::PluginState::GetPlugin(
+    FastPairSeeker* seeker, const FastPairDevice* device) {
+  auto it = plugins.find(device);
+  if (it != plugins.end()) {
+    return it->second.get();
+  }
+  auto result = plugins.insert({device, provider->GetPlugin(seeker, device)});
+  DCHECK(result.second);
+  return result.first->second.get();
+}
 }  // namespace fastpair
 }  // namespace nearby

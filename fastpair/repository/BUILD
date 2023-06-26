@@ -40,8 +40,10 @@ cc_library(
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",
+        "//internal/base",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "@com_google_absl//absl/functional:any_invocable",
     ],
 )
 

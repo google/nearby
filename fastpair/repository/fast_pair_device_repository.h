@@ -19,7 +19,9 @@
 #include <optional>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "internal/base/observer_list.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -29,6 +31,12 @@ namespace fastpair {
 // Owner of `FastPairDevice` instances.
 class FastPairDeviceRepository {
  public:
+  // Called on the background thread right before `device` is destroyed.
+  // The callbacks are not called when FastPairDeviceRepository is
+  // destructing.
+  using RemoveDeviceCallback =
+      absl::AnyInvocable<void(const FastPairDevice& device)>;
+
   explicit FastPairDeviceRepository(SingleThreadExecutor* executor)
       : executor_(executor) {}
 
@@ -46,12 +54,20 @@ class FastPairDeviceRepository {
   // or BLE.
   std::optional<FastPairDevice*> FindDevice(absl::string_view mac_address);
 
+  void AddObserver(RemoveDeviceCallback* observer) {
+    observers_.AddObserver(observer);
+  }
+  void RemoveObserver(RemoveDeviceCallback* observer) {
+    observers_.RemoveObserver(observer);
+  }
+
  private:
   // Removes `device` from `devices_`.
   std::unique_ptr<FastPairDevice> ExtractDevice(const FastPairDevice* device);
   Mutex mutex_;
   SingleThreadExecutor* executor_;
   std::vector<std::unique_ptr<FastPairDevice>> devices_ ABSL_GUARDED_BY(mutex_);
+  ObserverList<RemoveDeviceCallback> observers_;
 };
 
 }  // namespace fastpair

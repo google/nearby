@@ -100,6 +100,19 @@ TEST(FastPairDeviceRepositoryTest, RemovingNonRegisteredDeviceIsSafe) {
   EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
 }
 
+TEST(FastPairDeviceRepositoryTest, RemovingDeviceCallsCallback) {
+  SingleThreadExecutor executor;
+  FastPairDeviceRepository repo(&executor);
+  FastPairDevice* device = repo.AddDevice(std::make_unique<FastPairDevice>(
+      kModelId, kBleAddress, Protocol::kFastPairInitialPairing));
+  FastPairDeviceRepository::RemoveDeviceCallback callback =
+      [&](const FastPairDevice& device) {};
+  repo.AddObserver(&callback);
+  repo.RemoveDevice(device);
+
+  EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
+}
+
 }  // namespace
 
 }  // namespace fastpair

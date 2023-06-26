@@ -57,6 +57,14 @@ class FastPairService {
   FastPairSeeker* GetSeeker() const { return seeker_.get(); }
 
  private:
+  struct PluginState {
+    // Gets the plugin for `device`. Creates the plugin if it does not exist.
+    FastPairPlugin* GetPlugin(FastPairSeeker* seeker,
+                              const FastPairDevice* device);
+    std::unique_ptr<FastPairPluginProvider> provider;
+    absl::flat_hash_map<const FastPairDevice*, std::unique_ptr<FastPairPlugin>>
+        plugins;
+  };
   void OnInitialDiscoveryEvent(const FastPairDevice& device,
                                InitialDiscoveryEvent event);
   void OnSubsequentDiscoveryEvent(const FastPairDevice& device,
@@ -65,12 +73,14 @@ class FastPairService {
   void OnScreenEvent(const FastPairDevice& device, ScreenEvent event);
   void OnBatteryEvent(const FastPairDevice& device, BatteryEvent event);
   void OnRingEvent(const FastPairDevice& device, RingEvent event);
+  void OnDeviceDestroyed(const FastPairDevice& device);
   SingleThreadExecutor executor_;
   std::unique_ptr<FastPairSeeker> seeker_;
-  absl::flat_hash_map<std::string, std::unique_ptr<FastPairPluginProvider>>
-      providers_;
+  // Plugin name is the key.
+  absl::flat_hash_map<std::string, PluginState> plugin_states_;
   FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<FastPairRepository> fast_pair_repository_;
+  FastPairDeviceRepository::RemoveDeviceCallback on_device_destroyed_callback_;
 };
 
 }  // namespace fastpair
