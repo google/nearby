@@ -975,15 +975,6 @@ void BasePcpHandler::ProcessPreConnectionResultFailure(
   client->OnConnectionRejected(endpoint_id, {Status::kError});
 }
 
-bool BasePcpHandler::AutoUpgradeBandwidth(
-    const AdvertisingOptions& local_advertising_options) const {
-  if (local_advertising_options.strategy.IsNone()) {
-    return true;
-  }
-
-  return local_advertising_options.auto_upgrade_bandwidth;
-}
-
 Status BasePcpHandler::AcceptConnection(ClientProxy* client,
                                         const std::string& endpoint_id,
                                         PayloadListener payload_listener) {
@@ -1373,7 +1364,8 @@ Exception BasePcpHandler::OnIncomingConnection(
       NEARBY_LOGS(ERROR)
           << "Failed to parse incoming connection request; client="
           << client->GetClientId()
-          << "; device=" << absl::BytesToHexString(remote_endpoint_info.data());
+          << "; device=" << absl::BytesToHexString(remote_endpoint_info.data())
+          << "with error: " << wrapped_frame.exception();
       ProcessPreConnectionInitiationFailure(
           client, medium, "", channel.get(),
           /* is_incoming= */ false, start_time, {Status::kError}, nullptr);
@@ -1743,8 +1735,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
                            medium);
 
   // Kick off the bandwidth upgrade for incoming connections.
-  if (connection_info.is_incoming &&
-      AutoUpgradeBandwidth(client->GetAdvertisingOptions())) {
+  if (connection_info.is_incoming && client->AutoUpgradeBandwidth()) {
     bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id);
   }
 }

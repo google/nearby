@@ -205,6 +205,10 @@ class ClientProxy final {
   // Returns true if the client should enforce topology constraints.
   bool ShouldEnforceTopologyConstraints() const;
 
+  // Returns true, if connection party should attempt to upgrade itself to
+  // use a higher bandwidth medium, if it is available.
+  bool AutoUpgradeBandwidth() const;
+
   // Proxies to the client's PayloadListener::OnPayload() callback.
   void OnPayload(const std::string& endpoint_id, Payload payload);
   // Proxies to the client's PayloadListener::OnPayloadProgress() callback.

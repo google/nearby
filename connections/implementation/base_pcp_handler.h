@@ -452,11 +452,6 @@ class BasePcpHandler : public PcpHandler,
   bool IsPreferred(const BasePcpHandler::DiscoveredEndpoint& new_endpoint,
                    const BasePcpHandler::DiscoveredEndpoint& old_endpoint);
 
-  // Returns true, if connection party should attempt to upgrade itself to
-  // use a higher bandwidth medium, if it is available.
-  bool AutoUpgradeBandwidth(
-      const AdvertisingOptions& local_advertising_options) const;
-
   // Returns true if the incoming connection should be killed. This only
   // happens when an incoming connection arrives while we have an outgoing
   // connection to the same endpoint and we need to stop one connection.

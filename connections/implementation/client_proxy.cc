@@ -711,6 +711,20 @@ bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
       endpoint_id, ClientProxy::Connection::kRemoteEndpointAccepted);
 }
 
+bool ClientProxy::AutoUpgradeBandwidth() const {
+  bool result = false;
+  if (IsAdvertising() && (GetAdvertisingOptions().strategy.IsNone() ||
+                          GetAdvertisingOptions().auto_upgrade_bandwidth)) {
+    result |= true;
+  }
+  if (IsListeningForIncomingConnections() &&
+      (GetListeningOptions().strategy.IsNone() ||
+       GetListeningOptions().auto_upgrade_bandwidth)) {
+    result |= true;
+  }
+  return result;
+}
+
 bool ClientProxy::ShouldEnforceTopologyConstraints() const {
   bool result = false;
   if (IsAdvertising() &&

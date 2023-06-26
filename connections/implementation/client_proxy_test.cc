@@ -31,6 +31,7 @@
 #include "connections/listeners.h"
 #include "connections/strategy.h"
 #include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/interop/device_provider.h"
@@ -1104,6 +1105,21 @@ TEST_F(ClientProxyTest, DontEnforceTopologyWhenRequestedWithNoStrategy) {
                                        {},
                                        {.strategy = Strategy::kNone});
   EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
+}
+
+TEST_F(ClientProxyTest, TestAutoBwuWhenAdvertisingWithAutoBwu) {
+  EXPECT_FALSE(client1_.AutoUpgradeBandwidth());
+  StartAdvertising(&client1_, advertising_connection_listener_,
+                   {.auto_upgrade_bandwidth = true});
+  EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
+}
+
+TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
+  EXPECT_FALSE(client1_.AutoUpgradeBandwidth());
+  StartListeningForIncomingConnections(&client1_,
+                                       {},
+                                       {.auto_upgrade_bandwidth = true});
+  EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
 }
 
 }  // namespace
