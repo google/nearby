@@ -65,5 +65,6 @@ cc_library(
         "//fastpair:fast_pair_plugin",
         "//fastpair:fast_pair_seeker",
         "//fastpair/common",
+        "@com_google_absl//absl/functional:any_invocable",
     ],
 )

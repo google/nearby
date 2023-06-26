@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "fastpair/fast_pair_events.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/server_access/fake_fast_pair_repository.h"
@@ -119,20 +120,19 @@ TEST_F(FastPairSeekerImplTest, StopFastPairScanTwiceFails) {
 }
 
 TEST_F(FastPairSeekerImplTest, ScreenLocksDuringAdvertising) {
-  CountDownLatch latch(1);
+  CountDownLatch latch(2);
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{
           .on_initial_discovery =
               [&](const FastPairDevice& device, InitialDiscoveryEvent event) {
                 latch.CountDown();
+              },
+          .on_screen_event =
+              [&](ScreenEvent event) {
+                EXPECT_TRUE(event.is_locked);
+                latch.CountDown();
               }},
       &executor_, &devices_);
-
-  EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
-  EXPECT_THAT(fast_pair_seeker_->StartFastPairScan(),
-              StatusIs(absl::StatusCode::kAlreadyExists));
-
-  fast_pair_seeker_->SetIsScreenLocked(true);
   // Create Advertiser and startAdvertising
   Mediums mediums_2;
   std::string service_id(kServiceID);
@@ -140,8 +140,11 @@ TEST_F(FastPairSeekerImplTest, ScreenLocksDuringAdvertising) {
   std::string fast_pair_service_uuid(kFastPairServiceUuid);
   mediums_2.GetBle().GetMedium().StartAdvertising(
       service_id, advertisement_bytes, fast_pair_service_uuid);
+  EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
 
-  EXPECT_FALSE(latch.Await(kTaskWaitTimeout).result());
+  fast_pair_seeker_->SetIsScreenLocked(true);
+
+  EXPECT_TRUE(latch.Await().Ok());
 }
 
 TEST_F(FastPairSeekerImplTest, InitialPairing) {

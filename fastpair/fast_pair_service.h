@@ -70,7 +70,7 @@ class FastPairService {
   void OnSubsequentDiscoveryEvent(const FastPairDevice& device,
                                   SubsequentDiscoveryEvent event);
   void OnPairEvent(const FastPairDevice& device, PairEvent event);
-  void OnScreenEvent(const FastPairDevice& device, ScreenEvent event);
+  void OnScreenEvent(ScreenEvent event);
   void OnBatteryEvent(const FastPairDevice& device, BatteryEvent event);
   void OnRingEvent(const FastPairDevice& device, RingEvent event);
   void OnDeviceDestroyed(const FastPairDevice& device);

@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "absl/functional/any_invocable.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_plugin.h"
@@ -33,6 +34,7 @@ class FakeFastPairPlugin : public FastPairPlugin {
       : seeker_(seeker), device_(device), provider_(provider) {}
 
   void OnInitialDiscoveryEvent(const InitialDiscoveryEvent& event) override;
+  void OnScreenEvent(const ScreenEvent& event) override;
 
  private:
   FastPairSeeker* seeker_;
@@ -50,6 +52,7 @@ class FakeFastPairPluginProvider : public FastPairPluginProvider {
   absl::AnyInvocable<void(const FastPairDevice* device,
                           const InitialDiscoveryEvent& event)>
       on_initial_discovery_event_ = nullptr;
+  absl::AnyInvocable<void(const ScreenEvent& event)> on_screen_event_ = nullptr;
 };
 
 }  // namespace fastpair

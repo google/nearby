@@ -161,14 +161,10 @@ void FastPairSeekerImpl::FinishPairing(absl::Status result) {
 }
 
 void FastPairSeekerImpl::SetIsScreenLocked(bool locked) {
-  executor_->Execute(
-      "on_lock_state_changed",
-      [this, locked]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-        NEARBY_LOGS(INFO) << __func__ << ": Screen lock state changed. ( "
-                          << std::boolalpha << locked << ")";
-        is_screen_locked_ = locked;
-        InvalidateScanningState();
-      });
+  NEARBY_LOGS(INFO) << __func__ << ": Screen lock state changed. ( "
+                    << std::boolalpha << locked << ")";
+  is_screen_locked_ = locked;
+  callbacks_.on_screen_event(ScreenEvent{.is_locked = locked});
 }
 
 void FastPairSeekerImpl::InvalidateScanningState() {

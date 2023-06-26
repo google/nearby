@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_EVENTS_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_EVENTS_H_
 
+#include <optional>
 namespace nearby {
 namespace fastpair {
 
@@ -27,7 +28,9 @@ struct SubsequentDiscoveryEvent {};
 
 struct PairEvent {};
 
-struct ScreenEvent {};
+struct ScreenEvent {
+  std::optional<bool> is_locked;
+};
 
 struct BatteryEvent {};
 

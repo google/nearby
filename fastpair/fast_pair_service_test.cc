@@ -99,6 +99,38 @@ TEST(FastPairService, InitialDiscoveryEvent) {
   MediumEnvironment::Instance().Stop();
 }
 
+TEST(FastPairService, ScreenEvent) {
+  MediumEnvironment::Instance().Start();
+  constexpr absl::string_view kPluginName = "my plugin";
+  auto repository = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
+  FakeProvider provider;
+  FastPairService service(std::move(repository));
+  CountDownLatch latch(1);
+  auto plugin_provider = std::make_unique<FakeFastPairPluginProvider>();
+  plugin_provider->on_initial_discovery_event_ =
+      [&](const FastPairDevice* device, const InitialDiscoveryEvent& event) {
+        NEARBY_LOGS(INFO) << "Initial discovery: " << device;
+        EXPECT_EQ(device->GetModelId(), kModelId);
+        latch.CountDown();
+      };
+  plugin_provider->on_screen_event_ = [&](ScreenEvent event) {
+    EXPECT_TRUE(event.is_locked);
+    latch.CountDown();
+  };
+  EXPECT_OK(
+      service.RegisterPluginProvider(kPluginName, std::move(plugin_provider)));
+  FastPairSeekerExt* seeker =
+      static_cast<FastPairSeekerExt*>(service.GetSeeker());
+  EXPECT_OK(seeker->StartFastPairScan());
+  provider.StartDiscoverableAdvertisement(kModelId);
+  seeker->SetIsScreenLocked(true);
+  latch.Await();
+
+  EXPECT_OK(seeker->StopFastPairScan());
+  EXPECT_OK(service.UnregisterPluginProvider(kPluginName));
+  MediumEnvironment::Instance().Stop();
+}
+
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

@@ -24,5 +24,11 @@ void FakeFastPairPlugin::OnInitialDiscoveryEvent(
   }
 }
 
+void FakeFastPairPlugin::OnScreenEvent(const ScreenEvent& event) {
+  if (provider_->on_screen_event_ != nullptr) {
+    provider_->on_screen_event_(event);
+  }
+}
+
 }  // namespace fastpair
 }  // namespace nearby

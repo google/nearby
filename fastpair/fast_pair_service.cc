@@ -64,9 +64,7 @@ FastPairService::FastPairService(std::unique_ptr<FastPairRepository> repository)
                 OnPairEvent(device, std::move(event));
               },
           .on_screen_event =
-              [this](const FastPairDevice& device, ScreenEvent event) {
-                OnScreenEvent(device, std::move(event));
-              },
+              [this](ScreenEvent event) { OnScreenEvent(std::move(event)); },
           .on_battery_event =
               [this](const FastPairDevice& device, BatteryEvent event) {
                 OnBatteryEvent(device, std::move(event));
@@ -125,12 +123,21 @@ void FastPairService::OnInitialDiscoveryEvent(const FastPairDevice& device,
     }
   });
 }
+
 void FastPairService::OnSubsequentDiscoveryEvent(
     const FastPairDevice& device, SubsequentDiscoveryEvent event) {}
 void FastPairService::OnPairEvent(const FastPairDevice& device,
                                   PairEvent event) {}
-void FastPairService::OnScreenEvent(const FastPairDevice& device,
-                                    ScreenEvent event) {}
+void FastPairService::OnScreenEvent(ScreenEvent event) {
+  executor_.Execute("on-screen-event", [this, event = std::move(event)]() {
+    NEARBY_LOGS(INFO) << "OnScreenEvent ";
+    for (auto& entry : plugin_states_) {
+      for (auto& plugin : entry.second.plugins) {
+        plugin.second->OnScreenEvent(event);
+      }
+    }
+  });
+}
 void FastPairService::OnBatteryEvent(const FastPairDevice& device,
                                      BatteryEvent event) {}
 void FastPairService::OnRingEvent(const FastPairDevice& device,

@@ -36,6 +36,9 @@ class FastPairSeekerExt : public FastPairSeeker {
  public:
   virtual absl::Status StartFastPairScan() = 0;
   virtual absl::Status StopFastPairScan() = 0;
+
+  // Handle the state changes of screen lock.
+  virtual void SetIsScreenLocked(bool is_locked) = 0;
 };
 
 class FastPairSeekerImpl : public FastPairSeekerExt,
@@ -49,8 +52,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
     absl::AnyInvocable<void(const FastPairDevice&, SubsequentDiscoveryEvent)>
         on_subsequent_discovery;
     absl::AnyInvocable<void(const FastPairDevice&, PairEvent)> on_pair_event;
-    absl::AnyInvocable<void(const FastPairDevice&, ScreenEvent)>
-        on_screen_event;
+    absl::AnyInvocable<void(ScreenEvent)> on_screen_event;
     absl::AnyInvocable<void(const FastPairDevice&, BatteryEvent)>
         on_battery_event;
     absl::AnyInvocable<void(const FastPairDevice&, RingEvent)> on_ring_event;
@@ -77,6 +79,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   // From FastPairSeekerExt.
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
+  void SetIsScreenLocked(bool is_locked) override;
 
   // From BluetoothClassicMedium::Observer.
   void DeviceAdded(BluetoothDevice& device) override;
@@ -87,9 +90,6 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
                            bool new_paired_status) override;
   void DeviceConnectedStateChanged(BluetoothDevice& device,
                                    bool connected) override;
-
-  // Handle the state changes of screen lock.
-  void SetIsScreenLocked(bool is_locked);
 
   // Internal methods, not exported to plugins.
  private:
