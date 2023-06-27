@@ -19,8 +19,10 @@
 
 #include "internal/interop/device.h"
 #include "internal/platform/ble_connection_info.h"
+#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/prng.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
@@ -53,6 +55,16 @@ PresenceDevice::PresenceDevice(DeviceMotion device_motion,
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
       device_motion_(device_motion),
       metadata_(metadata) {
+  endpoint_id_ = GenerateRandomEndpointId();
+}
+
+PresenceDevice::PresenceDevice(
+    DeviceMotion device_motion, Metadata metadata,
+    nearby::internal::IdentityType identity_type) noexcept
+    : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
+      device_motion_(device_motion),
+      metadata_(metadata),
+      identity_type_(identity_type) {
   endpoint_id_ = GenerateRandomEndpointId();
 }
 

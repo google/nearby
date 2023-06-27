@@ -14,13 +14,12 @@
 
 #include "presence/presence_device.h"
 
-#include <memory>
-
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/presence_action.h"
 
@@ -58,17 +57,21 @@ TEST(PresenceDeviceTest, DefaultMotionEquals) {
 TEST(PresenceDeviceTest, ExplicitInitEquals) {
   Metadata metadata = CreateTestMetadata();
   PresenceDevice device1 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata);
+      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
+                     internal::IDENTITY_TYPE_PUBLIC);
   PresenceDevice device2 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata);
+      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
+                     internal::IDENTITY_TYPE_PUBLIC);
   EXPECT_EQ(device1, device2);
 }
 
 TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
   Metadata metadata = CreateTestMetadata();
-  PresenceDevice device1 = PresenceDevice({kDefaultMotionType}, metadata);
+  PresenceDevice device1 = PresenceDevice({kDefaultMotionType}, metadata,
+                                          internal::IDENTITY_TYPE_PUBLIC);
   PresenceDevice device2 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata);
+      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
+                     internal::IDENTITY_TYPE_PRIVATE);
   EXPECT_NE(device1, device2);
 }
 
@@ -84,7 +87,7 @@ TEST(PresenceDeviceTest, TestGetBleConnectionInfo) {
   EXPECT_EQ(ble_info.GetActions(), std::vector<uint8_t>{kTestAction});
 }
 
-TEST(PresenceDevicetest, TestGetAddExtendedProperties) {
+TEST(PresenceDeviceTest, TestGetAddExtendedProperties) {
   Metadata metadata = CreateTestMetadata();
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   device.AddExtendedProperty({kDataElementType, kDataElementValue});
@@ -93,7 +96,7 @@ TEST(PresenceDevicetest, TestGetAddExtendedProperties) {
             DataElement(kDataElementType, kDataElementValue));
 }
 
-TEST(PresenceDevicetest, TestGetAddExtendedPropertiesVector) {
+TEST(PresenceDeviceTest, TestGetAddExtendedPropertiesVector) {
   Metadata metadata = CreateTestMetadata();
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   device.AddExtendedProperties(
@@ -122,6 +125,13 @@ TEST(PresenceDeviceTest, TestEndpointIdIsRandom) {
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
   EXPECT_NE(device.GetEndpointId(), std::string(kEndpointIdLength, 0));
+}
+
+TEST(PresenceDeviceTest, TestGetIdentityType) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device =
+      PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
+  EXPECT_EQ(device.GetIdentityType(), internal::IDENTITY_TYPE_PUBLIC);
 }
 
 }  // namespace
