@@ -15,7 +15,7 @@
 import 'dart:ffi';
 import 'dart:isolate';
 
-import 'package:mobile.flutter.contrib.disposable/disposable.dart';
+import 'package:auto_disposable/auto_disposable.dart';
 
 /// A convenience class for listening to a [ReceivePort].
 ///
