@@ -22,12 +22,12 @@ namespace nearby {
 namespace fastpair {
 
 // Builds FastPairInfo proto from a FastPairDevice instance
-::nearby::fastpair::proto::FastPairInfo BuildFastPairInfo(
-    const FastPairDevice& fast_pair_device);
+void BuildFastPairInfo(::nearby::fastpair::proto::FastPairInfo* fast_pair_info,
+                       const FastPairDevice& fast_pair_device);
 
 // Builds FastPairInfo proto from OptInStatus
-::nearby::fastpair::proto::FastPairInfo BuildFastPairInfoForOptIn(
-    proto::OptInStatus opt_in_status);
+void BuildFastPairInfo(::nearby::fastpair::proto::FastPairInfo* fast_pair_info,
+                       proto::OptInStatus opt_in_status);
 
 }  // namespace fastpair
 }  // namespace nearby

@@ -17,6 +17,7 @@ licenses(["notice"])
 cc_library(
     name = "server_access",
     srcs = [
+        "fast_pair_client_impl.cc",
         "fast_pair_http_notifier.cc",
         "fast_pair_metadata_downloader.cc",
         "fast_pair_metadata_downloader_impl.cc",
@@ -24,6 +25,8 @@ cc_library(
         "fast_pair_repository_impl.cc",
     ],
     hdrs = [
+        "fast_pair_client.h",
+        "fast_pair_client_impl.h",
         "fast_pair_http_notifier.h",
         "fast_pair_metadata_downloader.h",
         "fast_pair_metadata_downloader_impl.h",
@@ -38,14 +41,20 @@ cc_library(
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/proto:proto_to_json",
         "//fastpair/repository",
+        "//internal/account",
+        "//internal/auth:types",
         "//internal/base",
         "//internal/base:bluetooth_address",
         "//internal/crypto",
         "//internal/network:nearby_http_client",
         "//internal/network:types",
         "//internal/platform:logging",
+        "//internal/platform:types",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
         "@nlohmann_json//:json",
     ],
 )
@@ -137,6 +146,32 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_client_impl_test",
+    srcs = [
+        "fast_pair_client_impl_test.cc",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    deps = [
+        ":server_access",
+        "//fastpair/common",
+        "//fastpair/proto:fastpair_cc_proto",
+        "//fastpair/proto:proto_builder",
+        "//internal/account",
+        "//internal/account:test_support",
+        "//internal/auth:credential",
+        "//internal/network:types",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/test",
+        "//internal/test/google3_only:test",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

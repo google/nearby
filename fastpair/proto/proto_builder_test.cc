@@ -52,7 +52,8 @@ TEST(ProtoBuilderTest, BuildFastPairInfo) {
   device.SetMetadata(device_metadata);
 
   // Builds FastPairInfo from the created FastPairDevice
-  proto::FastPairInfo fast_proto_info = BuildFastPairInfo(device);
+  proto::FastPairInfo fast_proto_info;
+  BuildFastPairInfo(&fast_proto_info, device);
 
   EXPECT_EQ(fast_proto_info.device().account_key(), account_key.GetAsBytes());
   EXPECT_EQ(absl::BytesToHexString(
@@ -69,8 +70,9 @@ TEST(ProtoBuilderTest, BuildFastPairInfo) {
 }
 
 TEST(ProtoBuilderTest, BuildFastPairInfoForOptIn) {
-  proto::FastPairInfo fast_proto_info =
-      BuildFastPairInfoForOptIn(proto::OptInStatus::OPT_IN_STATUS_OPTED_IN);
+  proto::FastPairInfo fast_proto_info;
+  BuildFastPairInfo(&fast_proto_info,
+                    proto::OptInStatus::OPT_IN_STATUS_OPTED_IN);
   EXPECT_EQ(fast_proto_info.opt_in_status(),
             proto::OptInStatus::OPT_IN_STATUS_OPTED_IN);
 }

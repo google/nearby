@@ -31,17 +31,16 @@
 namespace nearby {
 namespace fastpair {
 
-::nearby::fastpair::proto::FastPairInfo BuildFastPairInfo(
-    const FastPairDevice& fast_pair_device) {
+void BuildFastPairInfo(::nearby::fastpair::proto::FastPairInfo* fast_pair_info,
+                       const FastPairDevice& fast_pair_device) {
   NEARBY_LOGS(VERBOSE) << __func__;
   const AccountKey& account_key = fast_pair_device.GetAccountKey();
   auto& metadata = fast_pair_device.GetMetadata();
   DCHECK(metadata);
   DCHECK(account_key.Ok());
 
-  ::nearby::fastpair::proto::FastPairInfo proto;
-  // Sets FastPairDevice to FastPairInfo
-  auto* device = proto.mutable_device();
+  // Sets FastPairDevice of FastPairInfo
+  auto* device = fast_pair_info->mutable_device();
   device->set_account_key(account_key.GetAsBytes());
   // Create a SHA256 hash of the |mac_address| with the |account_key| as salt.
   // The hash is used to identify devices via non discoverable advertisements.
@@ -122,15 +121,11 @@ namespace fastpair {
   fast_pair_strings->set_sync_sms_description(strings.sync_sms_description());
 
   device->set_discovery_item_bytes(discovery_item.SerializeAsString());
-
-  return proto;
 }
 
-::nearby::fastpair::proto::FastPairInfo BuildFastPairInfoForOptIn(
-    proto::OptInStatus opt_in_status) {
-  proto::FastPairInfo proto;
-  proto.set_opt_in_status(opt_in_status);
-  return proto;
+void BuildFastPairInfo(::nearby::fastpair::proto::FastPairInfo* fast_pair_info,
+                       proto::OptInStatus opt_in_status) {
+  fast_pair_info->set_opt_in_status(opt_in_status);
 }
 }  // namespace fastpair
 }  // namespace nearby
