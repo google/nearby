@@ -19,6 +19,7 @@ cc_library(
     name = "presence",
     srcs = [
         "presence_client_impl.cc",
+        "presence_device_provider.cc",
         "presence_service_impl.cc",
     ],
     hdrs = [
@@ -32,6 +33,7 @@ cc_library(
         ":types",
         "//internal/interop:device",
         "//internal/platform:types",
+        "//internal/proto:credential_cc_proto",
         "//internal/proto:metadata_cc_proto",
         "//presence/implementation:internal",  # build_cleaner: keep
         "@com_google_absl//absl/status",

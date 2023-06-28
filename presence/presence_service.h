@@ -60,6 +60,11 @@ class PresenceService {
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 
+  virtual AuthenticationStatus AuthenticateConnection(
+      internal::IdentityType identity_type, AuthenticationRole role,
+      absl::string_view shared_secret,
+      const AuthenticationTransport& authentication_transport) const = 0;
+
   // Testing only.
   virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
 };

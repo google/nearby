@@ -29,7 +29,7 @@ namespace presence {
 PresenceServiceImpl::PresenceServiceImpl() {
   service_controller_ = std::make_unique<ServiceControllerImpl>();
   provider_ = std::make_unique<PresenceDeviceProvider>(
-      service_controller_->GetLocalDeviceMetadata());
+      service_controller_->GetLocalDeviceMetadata(), lender_.GetBorrowable());
 }
 
 std::unique_ptr<PresenceClient> PresenceServiceImpl::CreatePresenceClient() {
@@ -82,6 +82,14 @@ void PresenceServiceImpl::UpdateRemotePublicCredentials(
   service_controller_->UpdateRemotePublicCredentials(
       manager_app_id, account_name, remote_public_creds,
       std::move(credentials_updated_cb));
+}
+
+AuthenticationStatus PresenceServiceImpl::AuthenticateConnection(
+    internal::IdentityType identity_type, AuthenticationRole role,
+    absl::string_view shared_secret,
+    const AuthenticationTransport& authentication_transport) const {
+  return service_controller_->AuthenticateConnection(
+      identity_type, role, shared_secret, authentication_transport);
 }
 
 }  // namespace presence

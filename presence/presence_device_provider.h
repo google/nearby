@@ -15,26 +15,29 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_PROVIDER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_PROVIDER_H_
 
+#include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
+#include "internal/platform/borrowable.h"
+#include "internal/proto/credential.pb.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/presence_device.h"
 
 namespace nearby {
 namespace presence {
 
+class PresenceService;
+
 class PresenceDeviceProvider : public NearbyDeviceProvider {
  public:
-  explicit PresenceDeviceProvider(::nearby::internal::Metadata metadata)
-      : device_{metadata} {}
+  explicit PresenceDeviceProvider(::nearby::internal::Metadata metadata,
+                                  Borrowable<PresenceService*> presence_service)
+      : device_{metadata}, borrowable_presence_service_(presence_service) {}
 
   const NearbyDevice* GetLocalDevice() override { return &device_; }
   AuthenticationStatus AuthenticateConnection(
-      NearbyDevice* local_device, NearbyDevice* remote_device,
+      const NearbyDevice* local_device, const NearbyDevice* remote_device,
       AuthenticationRole role, absl::string_view shared_secret,
-      const AuthenticationTransport& authentication_transport) const override {
-    // TODO(b/282027237): Implement.
-    return AuthenticationStatus::kUnknown;
-  }
+      const AuthenticationTransport& authentication_transport) const override;
 
   void UpdateMetadata(const ::nearby::internal::Metadata& metadata) {
     device_.SetMetadata(metadata);
@@ -42,6 +45,7 @@ class PresenceDeviceProvider : public NearbyDeviceProvider {
 
  private:
   PresenceDevice device_;
+  Borrowable<PresenceService*> borrowable_presence_service_;
 };
 }  // namespace presence
 }  // namespace nearby

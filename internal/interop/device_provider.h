@@ -41,7 +41,7 @@ class NearbyDeviceProvider {
 
   const virtual NearbyDevice* GetLocalDevice() = 0;
   virtual AuthenticationStatus AuthenticateConnection(
-      NearbyDevice* local_device, NearbyDevice* remote_device,
+      const NearbyDevice* local_device, const NearbyDevice* remote_device,
       AuthenticationRole role, absl::string_view shared_secret,
       const AuthenticationTransport& authentication_transport) const {
     // We want to check out-of-band by default (Show UKEY2 digits to user).
