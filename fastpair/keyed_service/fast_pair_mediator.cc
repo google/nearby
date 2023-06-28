@@ -30,12 +30,18 @@
 #include "fastpair/ui/ui_broker_impl.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/device_info_impl.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
+namespace {
+constexpr FeatureFlags::Flags fast_pair_feature_flags = FeatureFlags::Flags{
+    .enable_scan_for_fast_pair_advertisement = true,
+};
+}
 
 Mediator::Mediator(
     std::unique_ptr<Mediums> mediums, std::unique_ptr<UIBroker> ui_broker,
@@ -51,6 +57,9 @@ Mediator::Mediator(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableBleV2Gatt,
       true);
+  const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
+      .SetFlags(fast_pair_feature_flags);
+
   devices_ = std::make_unique<FastPairDeviceRepository>(executor_.get());
   scanner_broker_ = std::make_unique<ScannerBrokerImpl>(
       *mediums_, executor_.get(), devices_.get());

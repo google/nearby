@@ -50,9 +50,12 @@ class FeatureFlags {
     // If the feature is enabled, medium connection will timeout when cannot
     // create connection with remote device in a duration.
     bool enable_connection_timeout = true;
-    // Controls to enable or disable to track the status of Bluetooth classic
+    // Controls enable or disable to track the status of Bluetooth classic
     // conncetion.
     bool enable_bluetooth_connection_status_track = true;
+    // Controls enable or disable BLE scan advertisement for fast pair
+    // service uuid 0x2cfe
+    bool enable_scan_for_fast_pair_advertisement = false;
   };
 
   static const FeatureFlags& GetInstance() {
@@ -69,16 +72,14 @@ class FeatureFlags {
     return const_cast<FeatureFlags&>(GetInstance()).flags_;
   }
 
- private:
-  FeatureFlags() = default;
-
-  // MediumEnvironment is testing util class. Use friend class here to enable
-  // SetFlags for feature controlling need in test environment.
-  friend class MediumEnvironment;
+  // SetFlags for feature controlling
   void SetFlags(const Flags& flags) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
     flags_ = flags;
   }
+
+ private:
+  FeatureFlags() = default;
   Flags flags_ ABSL_GUARDED_BY(mutex_);
   mutable absl::Mutex mutex_;
 };

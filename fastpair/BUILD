@@ -100,6 +100,7 @@ cc_library(
         "//fastpair/repository:device_repository",
         "//fastpair/server_access",
         "//internal/flags:nearby_flags",
+        "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/flags:platform_flags",
         "@com_google_absl//absl/container:flat_hash_map",

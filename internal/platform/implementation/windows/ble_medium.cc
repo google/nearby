@@ -26,6 +26,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/windows/ble_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -129,6 +130,12 @@ using IVector = winrt::Windows::Foundation::Collections::IVector<T>;
 
 // Copresence Service UUID 0xfef3 (little-endian)
 constexpr uint16_t kCopresenceServiceUuid = 0xf3fe;
+
+bool IsFastPairScanner() {
+  return FeatureFlags::GetInstance()
+      .GetFlags()
+      .enable_scan_for_fast_pair_advertisement;
+}
 }  // namespace
 
 BleMedium::BleMedium(api::BluetoothAdapter& adapter)
@@ -579,10 +586,11 @@ void BleMedium::AdvertisementReceivedHandler(
     DataReader data_reader = DataReader::FromBuffer(service_data.Data());
 
     // Discard the first 2 bytes of Service Uuid in Service Data
-    uint8_t first_byte = data_reader.ReadByte();   // 0xf3
-    uint8_t second_byte = data_reader.ReadByte();  // 0xfe
+    uint8_t first_byte = data_reader.ReadByte();
+    uint8_t second_byte = data_reader.ReadByte();
 
-    if (first_byte == 0xf3 && second_byte == 0xfe) {
+    if ((IsFastPairScanner() && first_byte == 0x2c && second_byte == 0xfe) ||
+        (!IsFastPairScanner() && first_byte == 0xf3 && second_byte == 0xfe)) {
       std::string data;
 
       uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
@@ -592,11 +600,11 @@ void BleMedium::AdvertisementReceivedHandler(
 
       ByteArray advertisement_data(data);
 
-      NEARBY_LOGS(VERBOSE)
-          << "Nearby BLE Medium 0xFEF3 Advertisement discovered. "
-             "0x16 Service data: advertisement bytes= 0x"
-          << absl::BytesToHexString(advertisement_data.AsStringView()) << "("
-          << advertisement_data.size() << ")";
+      NEARBY_LOGS(VERBOSE) << "Nearby BLE Medium Advertisement discovered. "
+                              "0x16 Service data: advertisement bytes= 0x"
+                           << absl::BytesToHexString(
+                                  advertisement_data.AsStringView())
+                           << "(" << advertisement_data.size() << ")";
 
       std::string peripheral_name =
           uint64_to_mac_address_string(args.BluetoothAddress());

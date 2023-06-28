@@ -37,6 +37,7 @@ cc_library(
         "//fastpair/server_access",
         "//fastpair/ui:fast_pair_ui",
         "//internal/flags:nearby_flags",
+        "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/flags:platform_flags",

@@ -25,6 +25,7 @@
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 #include "fastpair/server_access/fast_pair_repository_impl.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 
@@ -33,6 +34,9 @@ namespace fastpair {
 
 namespace {
 constexpr absl::Duration kTimeout = absl::Seconds(3);
+constexpr FeatureFlags::Flags fast_pair_feature_flags = FeatureFlags::Flags{
+    .enable_scan_for_fast_pair_advertisement = true,
+};
 }
 
 FastPairService::FastPairService()
@@ -46,6 +50,8 @@ FastPairService::FastPairService(std::unique_ptr<FastPairRepository> repository)
       platform::config_package_nearby::nearby_platform_feature::
           kEnableBleV2Gatt,
       true);
+  const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
+      .SetFlags(fast_pair_feature_flags);
   devices_.AddObserver(&on_device_destroyed_callback_);
   seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{
