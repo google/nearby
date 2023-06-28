@@ -15,8 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SENSOR_FUSION_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SENSOR_FUSION_H_
 
+#include <cstdint>
 #include <functional>
-#include <string>
 #include <vector>
 
 #include "absl/types/optional.h"
@@ -52,7 +52,7 @@ struct ZoneTransition {
 };
 
 struct RangingData {
-  std::vector<DataSource> data_sources;
+  DataSource data_source;
   RangingPosition position;
   absl::optional<ZoneTransition> zone_transition;
   std::vector<DeviceMotion> device_motions;
@@ -64,7 +64,7 @@ class SensorFusion {
 
   // Called when the proximity zone to a nearby peer device has changed.
   typedef std::function<void(
-      std::string device_id,
+      uint64_t device_id,
       PresenceZone::DistanceBoundary::RangeType proximity_zone)>
       ZoneTransitionCallback;
 
@@ -98,7 +98,7 @@ class SensorFusion {
    * @param elapsed_realtime_millis Elapsed timestamp since boot when the
    * scan result is discovered.
    */
-  virtual void updateBleScanResult(std::string device_id,
+  virtual void updateBleScanResult(uint64_t device_id,
                                    absl::optional<int8_t> txPower, int rssi,
                                    uint64_t elapsed_realtime_millis);
 
@@ -108,7 +108,7 @@ class SensorFusion {
    * @param device_id A unique device id of the peer device.
    * @param position UWB ranging result (distance and optionally angle)
    */
-  virtual void updateUwbRangingResult(std::string device_id,
+  virtual void updateUwbRangingResult(uint64_t device_id,
                                       RangingPosition position);
 
   /**
@@ -137,7 +137,7 @@ class SensorFusion {
    *
    * @param device_id Id of the peer device.
    */
-  virtual absl::optional<RangingData> getRangingData(std::string device_id);
+  virtual absl::optional<RangingData> getRangingData(uint64_t device_id);
 };
 
 }  // namespace presence

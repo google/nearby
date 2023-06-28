@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::collections::{HashMap, VecDeque};
-use std::time::Instant;
+use std::time::{Instant, SystemTime};
 
 use itertools::Itertools;
 
@@ -47,6 +47,7 @@ fn get_proximity_state_from_threshold(distance_meters: f64) -> ProximityState {
 
 /// Tracks and computes proximity/presence state events.
 pub struct PresenceDetector {
+    start_time: Instant,
     last_range_update_time: RangingUpdateTime,
     best_proximity_estimate_per_device: HashMap<u64, ProximityEstimate>,
     transition_history: VecDeque<ProximityState>,
@@ -60,8 +61,8 @@ impl RangingUpdateTime {
         elapsed_real_time_millis - self.0 > DEFAULT_ESTIMATED_DISTANCE_DATA_TTL_MILLIS
     }
 
-    pub fn update(&mut self) {
-        self.0 = Instant::now().elapsed().as_millis();
+    pub fn update(&mut self, start_time: Instant) {
+        self.0 = Instant::now().duration_since(start_time).as_millis();
     }
 }
 
@@ -69,6 +70,7 @@ impl PresenceDetector {
     /// Creates a new instance of presence detector
     pub fn new() -> Self {
         PresenceDetector {
+            start_time: Instant::now(),
             last_range_update_time: RangingUpdateTime(0),
             best_proximity_estimate_per_device: HashMap::new(),
             transition_history: VecDeque::with_capacity(
@@ -77,17 +79,15 @@ impl PresenceDetector {
         }
     }
 
-    /// Updates the presence detector with a new scan result and returns the current proximity estimate
+    /// Updates the presence detector with a new scan result and returns the
+    /// current proximity estimate
     pub fn on_ble_scan_result(
         &mut self,
         ble_scan_result: BleScanResult,
     ) -> Option<ProximityEstimate> {
         let device_id = ble_scan_result.device_id;
         if ble_scan_result.rssi > MAX_RSSI_FILTER_VALUE {
-            return self
-                .best_proximity_estimate_per_device
-                .get(&device_id)
-                .copied();
+            return self.best_proximity_estimate_per_device.get(&device_id).copied();
         }
         if self.last_range_update_time.is_expired() {
             self.transition_history.clear();
@@ -103,30 +103,24 @@ impl PresenceDetector {
             distance_confidence: MeasurementConfidence::Low,
             distance_meters,
             proximity_state: get_proximity_state_from_threshold(distance_meters),
-            elapsed_real_time_millis: Instant::now().elapsed().as_millis(),
+            elapsed_real_time_millis: Instant::now().duration_since(self.start_time).as_millis()
+                as u64,
             source: PresenceDataSource::Ble,
         };
-        self.transition_history
-            .push_front(new_proximity_estimate.proximity_state);
-        self.transition_history
-            .truncate(DEFAULT_CONSECUTIVE_SCANS_REQUIRED.into());
+        self.transition_history.push_front(new_proximity_estimate.proximity_state);
+        self.transition_history.truncate(DEFAULT_CONSECUTIVE_SCANS_REQUIRED.into());
         if self.transition_history.iter().unique().count() == 1
             && self.transition_history.len() == DEFAULT_CONSECUTIVE_SCANS_REQUIRED.into()
         {
-            self.best_proximity_estimate_per_device
-                .insert(device_id, new_proximity_estimate);
-            self.last_range_update_time.update();
+            self.best_proximity_estimate_per_device.insert(device_id, new_proximity_estimate);
+            self.last_range_update_time.update(self.start_time);
         }
-        self.best_proximity_estimate_per_device
-            .get(&device_id)
-            .copied()
+        self.best_proximity_estimate_per_device.get(&device_id).copied()
     }
 
     /// Returns the current proximity estimate for a given device
     pub fn get_proximity_estimate(&self, device_id: u64) -> Option<ProximityEstimate> {
-        self.best_proximity_estimate_per_device
-            .get(&device_id)
-            .copied()
+        self.best_proximity_estimate_per_device.get(&device_id).copied()
     }
 }
 

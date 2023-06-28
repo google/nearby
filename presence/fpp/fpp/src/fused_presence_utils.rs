@@ -97,8 +97,9 @@ pub struct ProximityEstimate {
     pub distance_meters: f64,
     /// Measurement confidence of the estimate
     pub distance_confidence: MeasurementConfidence,
-    /// The time the proximity estimate was obtained
-    pub elapsed_real_time_millis: u128,
+    /// The time the proximity estimate was obtained (milliseconds since the
+    /// program start time)
+    pub elapsed_real_time_millis: u64,
     /// Proximity state zone of the nearby device
     pub proximity_state: ProximityState,
     /// Medium through which the proximity estimate was computed
