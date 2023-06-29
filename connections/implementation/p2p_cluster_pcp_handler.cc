@@ -221,9 +221,8 @@ bool P2pClusterPcpHandler::IsRecognizedBluetoothEndpoint(
     const std::string& name_string, const std::string& service_id,
     const BluetoothDeviceName& name) const {
   if (!name.IsValid()) {
-    NEARBY_LOGS(INFO)
-        << name_string
-        << " doesn't conform to the BluetoothDeviceName format, discarding.";
+    NEARBY_LOGS(INFO) << name_string
+                      << " doesn't have any endpoint id, discarding.";
     return false;
   }
 
