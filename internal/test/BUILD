@@ -25,6 +25,7 @@ cc_library(
     ],
     hdrs = [
         "fake_clock.h",
+        "fake_data_set.h",
         "fake_device_info.h",
         "fake_single_thread_executor.h",
         "fake_task_runner.h",
@@ -37,6 +38,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base:bluetooth_address",
+        "//internal/data:data_manager",
         "//internal/platform:comm",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
@@ -55,6 +57,7 @@ cc_test(
     timeout = "short",
     srcs = [
         "fake_clock_test.cc",
+        "fake_data_set_test.cc",
         "fake_device_info_test.cc",
         "fake_task_runner_test.cc",
         "fake_timer_test.cc",
@@ -65,9 +68,9 @@ cc_test(
     shard_count = 8,
     deps = [
         ":test",
-        "//internal/platform:types",
+        "//internal/data:data_manager",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/g3",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",

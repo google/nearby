@@ -410,6 +410,7 @@ let package = Package(
         "internal/flags/BUILD",
         "internal/network/BUILD",
         "internal/base/BUILD",
+        "internal/data/BUILD",
         "internal/test/BUILD",
         // tests
         "connections/listeners_test.cc",
@@ -476,6 +477,8 @@ let package = Package(
         "internal/crypto/sha2_unittest.cc",
         "internal/crypto/signature_verifier_unittest.cc",
         "internal/crypto/symmetric_key_unittest.cc",
+        "internal/data/leveldb_data_set_test.cc",
+        "internal/data/memory_data_set_test.cc",
         "internal/flags/nearby_flags_test.cc",
         "internal/proto/analytics/connections_log_test.cc",
         "internal/platform/feature_flags_test.cc",
@@ -539,6 +542,7 @@ let package = Package(
         "internal/test/fake_timer_test.cc",
         "internal/test/fake_device_info_test.cc",
         "internal/test/fake_task_runner_test.cc",
+        "internal/test/fake_data_set_test.cc",
         "internal/weave/base_socket_test.cc",
         "internal/weave/control_packet_write_request_test.cc",
         "internal/weave/message_write_request_test.cc",
@@ -552,6 +556,7 @@ let package = Package(
         "connections/implementation/proto",
         "internal/proto",
         "proto",
+        "internal/data/leveldb_data_set_test.proto",
         // webrtc
         "connections/implementation/webrtc_bwu_handler.cc",
         "connections/implementation/webrtc_endpoint_channel.cc",

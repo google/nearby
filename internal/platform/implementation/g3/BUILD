@@ -142,6 +142,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/account:__subpackages__",
         "//internal/auth:__subpackages__",
+        "//internal/data:__subpackages__",
         "//internal/flags:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
