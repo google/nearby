@@ -47,7 +47,6 @@ constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
 // LINT.ThenChange(
 //   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.h,
 //   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.cc,
-//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/ffi_types.dart,
 //   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
 // )
 
