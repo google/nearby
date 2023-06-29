@@ -12,18 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+use std::pin::Pin;
 
-mod bluetooth;
+use async_trait::async_trait;
+use futures::stream::Stream;
 
-use bluetooth::common::Adapter;
+use super::BleDevice;
+use crate::bluetooth::common::Adapter;
 
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
+/// Concrete type implementing `Adapter`, used for unsupported devices.
+/// Every method should panic.
+pub struct BleAdapter;
 
-        Ok(())
-    };
+#[async_trait]
+impl Adapter for BleAdapter {
+    async fn default() -> Result<Self, anyhow::Error> {
+        panic!("Unsupported target platform.");
+    }
+}
 
-    executor::block_on(run)
+mod tests {
+    use super::*;
+
+    // TODO b/288592509 unit tests
 }

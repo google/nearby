@@ -12,18 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+/// Bluetooth LE module for unsupported devices. Every method panics.
+mod adapter;
+mod device;
 
-mod bluetooth;
-
-use bluetooth::common::Adapter;
-
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
-
-        Ok(())
-    };
-
-    executor::block_on(run)
-}
+pub use adapter::*;
+pub use device::*;

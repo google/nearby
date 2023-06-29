@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+use crate::bluetooth::common::Device;
 
-mod bluetooth;
+/// Concrete type implementing `Device`, used for unsupported devices.
+/// Every method should panic.
+pub struct BleDevice;
 
-use bluetooth::common::Adapter;
+impl Device for BleDevice {
+    fn name(&self) -> Result<String, anyhow::Error> {
+        panic!("Unsupported target platform.")
+    }
+}
 
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
+mod tests {
+    use super::*;
 
-        Ok(())
-    };
-
-    executor::block_on(run)
+    // TODO b/288592509 unit tests
 }

@@ -12,18 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+use windows::Devices::Bluetooth::BluetoothLEDevice;
 
-mod bluetooth;
+use crate::bluetooth::common::Device;
 
-use bluetooth::common::Adapter;
+/// Concrete type implementing `Device`, used for Windows BLE.
+pub struct BleDevice {
+    inner: BluetoothLEDevice,
+}
 
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
+impl Device for BleDevice {
+    fn name(&self) -> Result<String, anyhow::Error> {
+        Ok(self.inner.Name()?.to_string_lossy())
+    }
+}
 
-        Ok(())
-    };
+mod tests {
 
-    executor::block_on(run)
+    // TODO b/288592509 unit tests
 }

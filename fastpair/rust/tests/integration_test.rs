@@ -12,18 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
 
-mod bluetooth;
 
-use bluetooth::common::Adapter;
+mod tests {
+    
 
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
-
-        Ok(())
-    };
-
-    executor::block_on(run)
+    // TODO b/288592509 write integration tests
 }

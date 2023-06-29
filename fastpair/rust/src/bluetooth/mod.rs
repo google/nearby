@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+// Split into separate crate once demo is finished, providing custom error types
+// instead of using anyhow.
+// b/290070686
 
-mod bluetooth;
+pub mod common;
 
-use bluetooth::common::Adapter;
-
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let _adapter = bluetooth::BleAdapter::default().await?;
-
-        Ok(())
-    };
-
-    executor::block_on(run)
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        mod windows_ble;
+        pub use windows_ble::*;
+    } else {
+        mod unsupported;
+        pub use unsupported::*;
+    }
 }
