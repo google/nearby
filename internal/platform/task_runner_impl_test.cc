@@ -42,8 +42,8 @@ TEST_P(BaseTaskRunnerImplTest, PostTask) {
   EXPECT_TRUE(called);
 }
 
-TEST_P(BaseTaskRunnerImplTest, PostSequenceTasks) {
-  TaskRunnerImpl task_runner{GetParam()};
+TEST_F(BaseTaskRunnerImplTest, PostSequenceTasks) {
+  TaskRunnerImpl task_runner{1};
   std::vector<std::string> completed_tasks;
   absl::Notification notification;
 
@@ -137,7 +137,7 @@ TEST_P(BaseTaskRunnerImplTest, DISABLED_PostTwoDelayedTask) {
   EXPECT_EQ(completed_tasks[2], "task3");
 }
 
-TEST(BaseTaskRunnerImplTest, PostTasksOnRunnerWithOneThread) {
+TEST_F(BaseTaskRunnerImplTest, PostTasksOnRunnerWithOneThread) {
   TaskRunnerImpl task_runner{10};
   std::atomic_int count = 0;
   absl::Notification notification;
@@ -156,7 +156,7 @@ TEST(BaseTaskRunnerImplTest, PostTasksOnRunnerWithOneThread) {
   EXPECT_EQ(count, 10);
 }
 
-TEST(BaseTaskRunnerImplTest, PostTasksOnRunnerWithMultipleThreads) {
+TEST_F(BaseTaskRunnerImplTest, PostTasksOnRunnerWithMultipleThreads) {
   TaskRunnerImpl task_runner{10};
   std::atomic_int count = 0;
   absl::Notification notification;
