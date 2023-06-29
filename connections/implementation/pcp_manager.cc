@@ -157,6 +157,16 @@ Status PcpManager::UpdateAdvertisingOptions(
                                             advertising_options);
 }
 
+Status PcpManager::UpdateDiscoveryOptions(
+    ClientProxy* client, absl::string_view service_id,
+    const DiscoveryOptions& discovery_options) {
+  if (!current_) {
+    return {Status::kOutOfOrderApiCall};
+  }
+  return current_->UpdateDiscoveryOptions(client, service_id,
+                                          discovery_options);
+}
+
 bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
   current_ = GetPcpHandler(StrategyToPcp(strategy));
 

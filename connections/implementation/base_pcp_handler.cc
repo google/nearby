@@ -1292,9 +1292,41 @@ Status BasePcpHandler::UpdateAdvertisingOptions(
   return status.Get().GetResult();
 }
 
+Status BasePcpHandler::UpdateDiscoveryOptions(
+    ClientProxy* client, absl::string_view service_id,
+    const DiscoveryOptions& discovery_options) {
+  Future<Status> status;
+  RunOnPcpHandlerThread(
+      "update-discovery-options",
+      [this, client, service_id, discovery_options, &status]()
+          RUN_ON_PCP_HANDLER_THREAD() mutable {
+            StartOperationResult result = UpdateDiscoveryOptionsImpl(
+                client, service_id, client->GetLocalEndpointId(),
+                client->GetLocalEndpointInfo(), discovery_options);
+            if (!result.status.Ok()) {
+              status.Set(result.status);
+              return;
+            }
+            client->UpdateDiscoveryOptions(discovery_options);
+            status.Set({Status::kSuccess});
+          });
+  return status.Get().GetResult();
+}
+
 bool BasePcpHandler::NeedsToTurnOffAdvertisingMedium(
     Medium medium, const AdvertisingOptions& old_options,
     const AdvertisingOptions& new_options) {
+  auto old_enabled_mediums = old_options.allowed.GetMediums(/*value=*/true);
+  auto new_disabled_mediums = new_options.allowed.GetMediums(/*value=*/false);
+  return (std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),
+                    medium) != old_enabled_mediums.end()) &&
+         (std::find(new_disabled_mediums.begin(), new_disabled_mediums.end(),
+                    medium) != new_disabled_mediums.end());
+}
+
+bool BasePcpHandler::NeedsToTurnOffDiscoveryMedium(
+    Medium medium, const DiscoveryOptions& old_options,
+    const DiscoveryOptions& new_options) {
   auto old_enabled_mediums = old_options.allowed.GetMediums(/*value=*/true);
   auto new_disabled_mediums = new_options.allowed.GetMediums(/*value=*/false);
   return (std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),

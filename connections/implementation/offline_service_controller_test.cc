@@ -428,6 +428,58 @@ TEST_P(OfflineServiceControllerTest, TestNoUpdateAdvertisingOptionsAfterStop) {
   env_.Stop();
 }
 
+TEST_P(OfflineServiceControllerTest, TestUpdateDiscoveryOptions) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  EXPECT_FALSE(user_a.IsDiscovering());
+  EXPECT_THAT(user_a.StartDiscovery(std::string(kServiceId), nullptr),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(user_a.IsDiscovering());
+  DiscoveryOptions new_options = {
+      {
+          Strategy::kP2pCluster,
+          GetParam(),
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // is_out_of_band_connection
+      "",     // fast_advertisement_service_uuid
+      true,   // low_power
+  };
+  // TODO(b/284048592): Change to kSuccess when implemented.
+  EXPECT_THAT(user_a.UpdateDiscoveryOptions(kServiceId, new_options),
+              Eq(Status{Status::kError}));
+  EXPECT_TRUE(user_a.IsDiscovering());
+  user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, TestNoUpdateDiscoveryOptionsAfterStop) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  EXPECT_FALSE(user_a.IsDiscovering());
+  EXPECT_THAT(user_a.StartDiscovery(std::string(kServiceId), nullptr),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(user_a.IsDiscovering());
+  DiscoveryOptions new_options = {
+      {
+          Strategy::kP2pCluster,
+          GetParam(),
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // is_out_of_band_connection
+      "",     // fast_advertisement_service_uuid
+      true,   // low_power
+  };
+  user_a.Stop();
+  EXPECT_FALSE(user_a.IsDiscovering());
+  EXPECT_THAT(user_a.UpdateDiscoveryOptions(kServiceId, new_options),
+              Eq(Status{Status::kOutOfOrderApiCall}));
+  EXPECT_FALSE(user_a.IsDiscovering());
+  env_.Stop();
+}
+
 INSTANTIATE_TEST_SUITE_P(ParametrisedOfflineServiceControllerTest,
                          OfflineServiceControllerTest,
                          ::testing::ValuesIn(kTestCases));

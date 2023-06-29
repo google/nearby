@@ -154,6 +154,10 @@ class BasePcpHandler : public PcpHandler,
       ClientProxy* client, absl::string_view service_id,
       const AdvertisingOptions& advertising_options) override;
 
+  Status UpdateDiscoveryOptions(
+      ClientProxy* client, absl::string_view service_id,
+      const DiscoveryOptions& discovery_options) override;
+
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
   void DisconnectFromEndpointManager();
@@ -313,10 +317,21 @@ class BasePcpHandler : public PcpHandler,
       const AdvertisingOptions& advertising_options)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
+  virtual StartOperationResult UpdateDiscoveryOptionsImpl(
+      ClientProxy* client, absl::string_view service_id,
+      absl::string_view local_endpoint_id,
+      absl::string_view local_endpoint_info,
+      const DiscoveryOptions& discovery_options)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
+
   bool NeedsToTurnOffAdvertisingMedium(
       location::nearby::proto::connections::Medium medium,
       const AdvertisingOptions& old_options,
       const AdvertisingOptions& new_options);
+
+  bool NeedsToTurnOffDiscoveryMedium(
+      location::nearby::proto::connections::Medium medium,
+      const DiscoveryOptions& old_options, const DiscoveryOptions& new_options);
 
   virtual std::vector<location::nearby::proto::connections::Medium>
   GetConnectionMediumsByPriority() = 0;

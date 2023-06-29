@@ -221,6 +221,16 @@ TEST_F(PcpManagerTest, InjectEndpoint) {
   env_.Stop();
 }
 
+TEST_F(PcpManagerTest, TestUpdateDiscoveryFailsWithoutPcpHandler) {
+  BooleanMediumSelector selector;
+  selector.SetAll(true);
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+  EXPECT_EQ(user_a.UpdateDiscoveryOptions(kServiceId).value,
+            Status::Value::kOutOfOrderApiCall);
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

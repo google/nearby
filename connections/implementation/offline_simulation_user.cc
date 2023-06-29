@@ -152,6 +152,11 @@ Status OfflineSimulationUser::StartDiscovery(const std::string& service_id,
 
 void OfflineSimulationUser::StopDiscovery() { ctrl_.StopDiscovery(&client_); }
 
+Status OfflineSimulationUser::UpdateDiscoveryOptions(
+    absl::string_view service_id, const DiscoveryOptions& options) {
+  return ctrl_.UpdateDiscoveryOptions(&client_, service_id, options);
+}
+
 void OfflineSimulationUser::InjectEndpoint(
     const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {

@@ -91,6 +91,9 @@ class SimulationUser {
   // callback.
   void StartDiscovery(const std::string& service_id, CountDownLatch* latch);
 
+  // Calls PcpManager::UpdateDiscoveryOptions.
+  Status UpdateDiscoveryOptions(absl::string_view service_id);
+
   // Calls PcpManager::InjectEndpoint.
   void InjectEndpoint(const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata);

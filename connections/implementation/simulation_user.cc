@@ -129,6 +129,10 @@ void SimulationUser::StartDiscovery(const std::string& service_id,
           .Ok());
 }
 
+Status SimulationUser::UpdateDiscoveryOptions(absl::string_view service_id) {
+  return mgr_.UpdateDiscoveryOptions(&client_, service_id, discovery_options_);
+}
+
 void SimulationUser::InjectEndpoint(
     const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {

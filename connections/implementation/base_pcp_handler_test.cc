@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
@@ -177,6 +178,10 @@ class MockPcpHandler : public BasePcpHandler {
               (ClientProxy*, absl::string_view, absl::string_view,
                absl::string_view, const AdvertisingOptions&),
               (override));
+  MOCK_METHOD(StartOperationResult, UpdateDiscoveryOptionsImpl,
+              (ClientProxy*, absl::string_view, absl::string_view,
+               absl::string_view, const DiscoveryOptions&),
+              (override));
 
   std::vector<location::nearby::proto::connections::Medium>
   GetConnectionMediumsByPriority() override {
@@ -249,6 +254,14 @@ class MockPcpHandler : public BasePcpHandler {
       const AdvertisingOptions& new_options) {
     return BasePcpHandler::NeedsToTurnOffAdvertisingMedium(medium, old_options,
                                                            new_options);
+  }
+
+  bool NeedsToTurnOffDiscoveryMedium(
+      location::nearby::proto::connections::Medium medium,
+      const DiscoveryOptions& old_options,
+      const DiscoveryOptions& new_options) {
+    return BasePcpHandler::NeedsToTurnOffDiscoveryMedium(medium, old_options,
+                                                         new_options);
   }
 };
 
@@ -356,7 +369,6 @@ class BasePcpHandlerTest
 
   void StartDiscovery(ClientProxy* client, MockPcpHandler* pcp_handler,
                       BooleanMediumSelector allowed = GetParam()) {
-    std::string service_id{"service"};
     DiscoveryOptions discovery_options{
         {
             Strategy::kP2pCluster,
@@ -365,15 +377,34 @@ class BasePcpHandlerTest
         true,  // auto_upgrade_bandwidth
         true,  // enforce_topology_constraints
     };
+    StartDiscoveryWithOptions(client, pcp_handler, discovery_options);
+  }
+
+  void StartDiscoveryWithOptions(ClientProxy* client,
+                                 MockPcpHandler* pcp_handler,
+                                 const DiscoveryOptions& discovery_options) {
+    std::string service_id("service");
     EXPECT_CALL(*pcp_handler, StartDiscoveryImpl(client, service_id, _))
         .WillOnce(Return(MockPcpHandler::StartOperationResult{
             .status = {Status::kSuccess},
-            .mediums = pcp_handler->GetMediumsFromSelector(allowed),
+            .mediums =
+                pcp_handler->GetMediumsFromSelector(discovery_options.allowed),
         }));
     EXPECT_EQ(pcp_handler->StartDiscovery(client, service_id, discovery_options,
                                           discovery_listener_),
               Status{Status::kSuccess});
     EXPECT_TRUE(client->IsDiscovering());
+  }
+
+  void UpdateDiscoveryOptions(ClientProxy* client, MockPcpHandler* pcp_handler,
+                              DiscoveryOptions new_options,
+                              Status expected_status) {
+    EXPECT_CALL(*pcp_handler, UpdateDiscoveryOptionsImpl)
+        .WillOnce(Return(MockPcpHandler::StartOperationResult{
+            .status = expected_status,
+            .mediums = pcp_handler->GetMediumsFromSelector(new_options.allowed),
+        }));
+    pcp_handler->UpdateDiscoveryOptions(client, "service", new_options);
   }
 
   std::pair<std::unique_ptr<MockEndpointChannel>,
@@ -1467,6 +1498,141 @@ TEST_F(BasePcpHandlerTest, TestUpdateAdvertisingOptionsFailsWithBadStatus) {
   EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
   EXPECT_EQ(current_client_opts.enable_bluetooth_listening,
             old_options.enable_bluetooth_listening);
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, TestNeedsToTurnOffDiscoveryMedium) {
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  BooleanMediumSelector old_meds{
+      .bluetooth = true,
+      .ble = true,
+      .wifi_lan = false,
+  };
+  DiscoveryOptions old_opts, new_opts;
+  old_opts.allowed = old_meds;
+  BooleanMediumSelector new_meds{
+      .bluetooth = false,
+      .ble = true,
+      .wifi_lan = false,
+  };
+  new_opts.allowed = new_meds;
+  EXPECT_TRUE(pcp_handler.NeedsToTurnOffDiscoveryMedium(Medium::BLUETOOTH,
+                                                        old_opts, new_opts));
+  EXPECT_FALSE(pcp_handler.NeedsToTurnOffDiscoveryMedium(Medium::BLE, old_opts,
+                                                         new_opts));
+  EXPECT_FALSE(pcp_handler.NeedsToTurnOffDiscoveryMedium(Medium::WIFI_LAN,
+                                                         old_opts, new_opts));
+}
+
+TEST_F(BasePcpHandlerTest, TestUpdateDiscoveryOptionsWorks) {
+  env_.Start();
+  DiscoveryOptions old_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection,
+      "",     // fast_advertisement_service_uuid
+      false,  // low_power
+  };
+  DiscoveryOptions new_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection,
+      "",     // fast_advertisement_service_uuid
+      true,   // low_power
+  };
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscoveryWithOptions(&client, &pcp_handler, old_options);
+  EXPECT_TRUE(client.IsDiscovering());
+  auto current_client_opts = client.GetDiscoveryOptions();
+  // check custom option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            old_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            old_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
+  EXPECT_EQ(current_client_opts.is_out_of_band_connection,
+            old_options.is_out_of_band_connection);
+  EXPECT_EQ(current_client_opts.fast_advertisement_service_uuid,
+            old_options.fast_advertisement_service_uuid);
+  UpdateDiscoveryOptions(&client, &pcp_handler, new_options,
+                         {Status::kSuccess});
+  EXPECT_TRUE(client.IsDiscovering());
+  current_client_opts = client.GetDiscoveryOptions();
+  // check new option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            new_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            new_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, new_options.low_power);
+  EXPECT_EQ(current_client_opts.is_out_of_band_connection,
+            new_options.is_out_of_band_connection);
+  EXPECT_EQ(current_client_opts.fast_advertisement_service_uuid,
+            new_options.fast_advertisement_service_uuid);
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, TestUpdateDiscoveryOptionsFailsWithBadStatus) {
+  env_.Start();
+  DiscoveryOptions old_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection,
+      "",     // fast_advertisement_service_uuid
+      false,  // low_power
+  };
+  DiscoveryOptions new_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection,
+      "",     // fast_advertisement_service_uuid
+      true,   // low_power
+  };
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscoveryWithOptions(&client, &pcp_handler, old_options);
+  EXPECT_TRUE(client.IsDiscovering());
+  auto current_client_opts = client.GetDiscoveryOptions();
+  // check custom option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            old_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            old_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
+  EXPECT_EQ(current_client_opts.is_out_of_band_connection,
+            old_options.is_out_of_band_connection);
+  EXPECT_EQ(current_client_opts.fast_advertisement_service_uuid,
+            old_options.fast_advertisement_service_uuid);
+  UpdateDiscoveryOptions(&client, &pcp_handler, new_options,
+                         {Status::kBleError});
+  EXPECT_TRUE(client.IsDiscovering());
+  current_client_opts = client.GetDiscoveryOptions();
+  // check new option parameters
+  EXPECT_EQ(current_client_opts.auto_upgrade_bandwidth,
+            old_options.auto_upgrade_bandwidth);
+  EXPECT_EQ(current_client_opts.enforce_topology_constraints,
+            old_options.enforce_topology_constraints);
+  EXPECT_EQ(current_client_opts.low_power, old_options.low_power);
+  EXPECT_EQ(current_client_opts.is_out_of_band_connection,
+            old_options.is_out_of_band_connection);
+  EXPECT_EQ(current_client_opts.fast_advertisement_service_uuid,
+            old_options.fast_advertisement_service_uuid);
   env_.Stop();
 }
 

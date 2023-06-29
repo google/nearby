@@ -94,6 +94,10 @@ class OfflineSimulationUser {
   // Calls PcpManager::StopDiscovery().
   void StopDiscovery();
 
+  // Calls PcpManager::UpdateDiscoveryOptions().
+  Status UpdateDiscoveryOptions(absl::string_view service_id,
+                                const DiscoveryOptions& options);
+
   // Calls PcpManager::InjectEndpoint();
   void InjectEndpoint(const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata);

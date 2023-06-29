@@ -108,6 +108,18 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       absl::string_view local_endpoint_info,
       const AdvertisingOptions& advertising_options) override;
 
+  // @PCPHandlerThread
+  BasePcpHandler::StartOperationResult UpdateDiscoveryOptionsImpl(
+      ClientProxy* client, absl::string_view service_id,
+      absl::string_view local_endpoint_id,
+      absl::string_view local_endpoint_info,
+      const DiscoveryOptions& discovery_options) override {
+    // TODO(b/284048592): Implement.
+    return StartOperationResult {
+      .status = {Status::kError},
+    };
+  }
+
  private:
   // Holds the state required to re-create a BleEndpoint we see on a
   // BlePeripheral, so BlePeripheralLostHandler can call

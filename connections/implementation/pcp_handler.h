@@ -125,6 +125,10 @@ class PcpHandler {
   virtual Status UpdateAdvertisingOptions(
       ClientProxy* client, absl::string_view service_id,
       const AdvertisingOptions& advertising_options) = 0;
+
+  virtual Status UpdateDiscoveryOptions(
+      ClientProxy* client, absl::string_view service_id,
+      const DiscoveryOptions& discovery_options) = 0;
 };
 
 }  // namespace connections
