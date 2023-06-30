@@ -187,6 +187,40 @@ TEST_F(FastPairSeekerImplTest, InitialPairing) {
   EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
 }
 
+TEST_F(FastPairSeekerImplTest, RetroactivePairing) {
+  NEARBY_LOG_SET_SEVERITY(VERBOSE);
+  FakeProvider provider;
+  CountDownLatch pair_latch(1);
+  CountDownLatch retro_latch(1);
+  fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
+      FastPairSeekerImpl::ServiceCallbacks{
+          .on_pair_event =
+              [&](const FastPairDevice& device, PairEvent event) {
+                NEARBY_LOGS(INFO) << "Pair callback";
+                pair_latch.CountDown();
+                EXPECT_OK(fast_pair_seeker_->StartRetroactivePairing(
+                    device, RetroactivePairingParam{},
+                    {.on_pairing_result = [&](const FastPairDevice&,
+                                              absl::Status status) {
+                      EXPECT_OK(status);
+                      retro_latch.CountDown();
+                    }}));
+              }},
+      &executor_, &devices_);
+
+  provider.PrepareForRetroactivePairing(
+      {.private_key = absl::HexStringToBytes(kBobPrivateKey),
+       .public_key = absl::HexStringToBytes(kBobPublicKey),
+       .model_id = std::string(kModelId)},
+      &fake_gatt_callbacks_);
+
+  EXPECT_TRUE(pair_latch.Await().Ok());
+  EXPECT_TRUE(retro_latch.Await().Ok());
+  auto fp_device = devices_.FindDevice(provider.GetMacAddress());
+  ASSERT_TRUE(fp_device.has_value());
+  EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
+}
+
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

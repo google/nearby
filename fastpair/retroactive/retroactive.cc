@@ -120,7 +120,7 @@ void Retroactive::SetPairingStep(PairingStep step) {
       data_encryptor_.AddListener(
           [this](ExceptionOr<std::shared_ptr<FastPairDataEncryptor>> result) {
             if (result.ok() && result.result()) {
-              SetPairingStep(PairingStep::kSendAccountKeyToProvider);
+              SetPairingStep(PairingStep::kSendKeyBasedPairingRequest);
             } else {
               SetPairingStep(PairingStep::kFailed);
             }
@@ -128,8 +128,8 @@ void Retroactive::SetPairingStep(PairingStep step) {
           &executor_);
       break;
     }
-    case PairingStep::kSendAccountKeyToProvider: {
-      // Open GATT connection and push the Account Key to provider.
+    case PairingStep::kSendKeyBasedPairingRequest: {
+      // Open GATT connection and send Key-based pairing request to provider.
       gatt_client_ = controller_->GetGattClientRef();
       gatt_client_.AddListener(
           [this](ExceptionOr<FastPairController::GattClientRef> gatt) {
@@ -140,12 +140,11 @@ void Retroactive::SetPairingStep(PairingStep step) {
             NEARBY_LOGS(INFO) << "Sending Key Based Pairing request to "
                               << controller_->GetDevice().GetBleAddress();
             auto decryptor = data_encryptor_.Get().result().get();
-            // TODO(jsobczak): Use real seeker address
             (gatt.result())
                 ->WriteRequestAsync(
                     kKeyBasedPairingType, kRetroactiveFlags,
-                    controller_->GetDevice().GetBleAddress(), kSeekerAddress,
-                    *decryptor,
+                    controller_->GetDevice().GetBleAddress(),
+                    controller_->GetSeekerMacAddress(), *decryptor,
                     [this](absl::string_view response,
                            std::optional<PairFailure> failure) {
                       if (failure.has_value()) {
@@ -156,10 +155,30 @@ void Retroactive::SetPairingStep(PairingStep step) {
                       }
                       NEARBY_LOGS(INFO) << "key based pairing reply "
                                         << absl::BytesToHexString(response);
-                      SetPairingStep(PairingStep::kAskForUserConfirmation);
+                      SetPairingStep(PairingStep::kSendAccountKeyToProvider);
                     });
           },
           &executor_);
+      break;
+    }
+    case PairingStep::kSendAccountKeyToProvider: {
+      auto decryptor = data_encryptor_.Get().result().get();
+      gatt_client_.Get().result()->WriteAccountKey(
+          *decryptor, [this](std::optional<AccountKey> account_key,
+                             std::optional<PairFailure> failure) {
+            if (failure.has_value()) {
+              NEARBY_LOGS(WARNING)
+                  << "Account key write failed with: " << *failure;
+              SetPairingStep(PairingStep::kFailed);
+              return;
+            }
+            DCHECK(account_key.has_value());
+            NEARBY_LOGS(INFO)
+                << "Sent account key: "
+                << absl::BytesToHexString(account_key->GetAsBytes());
+            controller_->GetDevice().SetAccountKey(*account_key);
+            SetPairingStep(PairingStep::kAskForUserConfirmation);
+          });
       break;
     }
     case PairingStep::kAskForUserConfirmation: {

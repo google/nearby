@@ -42,6 +42,7 @@ class Retroactive {
     kWaitForModelIdAndBleAddress,
     kFetchAntiSpoofingKey,
     kOpenGattConnection,
+    kSendKeyBasedPairingRequest,
     kSendAccountKeyToProvider,
     kAskForUserConfirmation,
     kUploadAccountKeyToCloud,

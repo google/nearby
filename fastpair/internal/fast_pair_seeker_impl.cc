@@ -21,6 +21,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "fastpair/fast_pair_controller.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
@@ -36,6 +37,9 @@ FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
   pairer_broker_ = std::make_unique<PairerBrokerImpl>(mediums_, executor_);
   pairer_broker_->AddObserver(this);
   mediums_.GetBluetoothClassic().AddObserver(this);
+  retro_detector_ = std::make_unique<RetroactivePairingDetectorImpl>(
+      mediums_, devices, executor);
+  retro_detector_->AddObserver(this);
 }
 
 FastPairSeekerImpl::~FastPairSeekerImpl() {
@@ -67,7 +71,23 @@ absl::Status FastPairSeekerImpl::StartSubsequentPairing(
 absl::Status FastPairSeekerImpl::StartRetroactivePairing(
     const FastPairDevice& device, const RetroactivePairingParam& param,
     PairingCallback callback) {
-  return absl::UnimplementedError("StartRetroactivePairing");
+  if (pairer_broker_->IsPairing()) {
+    return absl::AlreadyExistsError("Already pairing");
+  }
+
+  device_under_pairing_ = &const_cast<FastPairDevice&>(device);
+  controller_ = std::make_unique<FastPairController>(
+      &mediums_, device_under_pairing_, executor_);
+  retroactive_pair_ = std::make_unique<Retroactive>(controller_.get());
+  pairing_callback_ = std::make_unique<PairingCallback>(std::move(callback));
+  retroactive_pair_->Pair().AddListener(
+      [this](ExceptionOr<absl::Status> result) {
+        retroactive_pair_.reset();
+        controller_.reset();
+        FinishPairing(result.result());
+      },
+      executor_);
+  return absl::OkStatus();
 }
 
 absl::Status FastPairSeekerImpl::StartFastPairScan() {
@@ -184,29 +204,34 @@ void FastPairSeekerImpl::InvalidateScanningState() {
 }
 
 void FastPairSeekerImpl::DeviceAdded(BluetoothDevice& device) {
-  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ")";
+  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ")";
 }
 
 void FastPairSeekerImpl::DeviceRemoved(BluetoothDevice& device) {
-  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ")";
+  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ")";
 }
 
 void FastPairSeekerImpl::DeviceAddressChanged(BluetoothDevice& device,
                                               absl::string_view old_address) {
-  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ", "
+  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
                        << old_address << ")";
 }
 
 void FastPairSeekerImpl::DevicePairedChanged(BluetoothDevice& device,
                                              bool new_paired_status) {
-  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ", "
+  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
                        << new_paired_status << ")";
 }
 
 void FastPairSeekerImpl::DeviceConnectedStateChanged(BluetoothDevice& device,
                                                      bool connected) {
-  NEARBY_LOGS(VERBOSE) << "__func__(" << device.GetMacAddress() << ", "
+  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
                        << connected << ")";
+}
+
+void FastPairSeekerImpl::OnRetroactivePairFound(FastPairDevice& device) {
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << device;
+  callbacks_.on_pair_event(device, PairEvent{});
 }
 
 }  // namespace fastpair

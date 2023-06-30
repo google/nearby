@@ -14,6 +14,7 @@
 
 #include "fastpair/fast_pair_controller.h"
 
+#include <memory>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -45,6 +46,9 @@ class FastPairControllerTest : public testing::Test {
     NEARBY_LOGS(INFO) << "Provider address: " << address;
     remote_device_ = seeker_medium.GetRemoteDevice(provider_.GetMacAddress());
     ASSERT_TRUE(remote_device_.IsValid());
+    fast_pair_device_ =
+        std::make_unique<FastPairDevice>(Protocol::kFastPairRetroactivePairing);
+    fast_pair_device_->SetPublicAddress(remote_device_.GetMacAddress());
   }
 
   void TearDown() override {
@@ -60,14 +64,15 @@ class FastPairControllerTest : public testing::Test {
   Mediums mediums_;
   FakeProvider provider_;
   BluetoothDevice remote_device_;
+  std::unique_ptr<FastPairDevice> fast_pair_device_;
 };
 
 TEST_F(FastPairControllerTest, Constructor) {
-  FastPairController controller(&mediums_, remote_device_, &executor_);
+  FastPairController controller(&mediums_, &*fast_pair_device_, &executor_);
 }
 
 TEST_F(FastPairControllerTest, OpenMessageStream) {
-  FastPairController controller(&mediums_, remote_device_, &executor_);
+  FastPairController controller(&mediums_, &*fast_pair_device_, &executor_);
 
   EXPECT_OK(controller.OpenMessageStream());
 }

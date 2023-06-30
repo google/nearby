@@ -15,6 +15,9 @@
 #include "fastpair/retroactive/retroactive_pairing_detector_impl.h"
 
 #include <ios>
+#include <memory>
+#include <optional>
+#include <utility>
 
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/pairer_broker.h"
@@ -23,9 +26,9 @@ namespace nearby {
 namespace fastpair {
 
 RetroactivePairingDetectorImpl::RetroactivePairingDetectorImpl(
-    Mediums& mediums, PairerBroker* pairer_broker)
-    : mediums_(mediums) {
-  pairer_broker->AddObserver(this);
+    Mediums& mediums, FastPairDeviceRepository* repository,
+    SingleThreadExecutor* executor)
+    : mediums_(mediums), repository_(repository), executor_(executor) {
   mediums_.GetBluetoothClassic().AddObserver(this);
   mediums_.GetBluetoothClassic().StartDiscovery();
 }
@@ -45,30 +48,6 @@ void RetroactivePairingDetectorImpl::RemoveObserver(
   observers_.RemoveObserver(observer);
 }
 
-void RetroactivePairingDetectorImpl::OnDevicePaired(FastPairDevice& device) {
-  // The classic address is assigned to the Device during the
-  // initial Fast Pair pairing protocol and if it doesn't exist,
-  // then it wasn't properly paired during initial Fast Pair
-  // pairing.
-  if (!device.GetPublicAddress().has_value()) {
-    return;
-  }
-
-  // The Bluetooth Adapter system event `DevicePairedChanged` fires before
-  // Fast Pair's `OnDevicePaired`, and a Fast Pair pairing is expected to have
-  // both events. If a device is Fast Paired, it is already inserted in the
-  // |potential_retroactive_addresses_| in `DevicePairedChanged`; we need to
-  // remove it to prevent a false positive.
-  if (potential_retroactive_addresses_.contains(
-          device.GetPublicAddress().value())) {
-    NEARBY_LOGS(INFO)
-        << __func__
-        << ": paired with initial pairing, removing device at address = "
-        << device.GetPublicAddress().value();
-    potential_retroactive_addresses_.erase(device.GetPublicAddress().value());
-  }
-}
-
 void RetroactivePairingDetectorImpl::DevicePairedChanged(
     BluetoothDevice& device, bool new_paired_status) {
   NEARBY_LOGS(INFO) << __func__
@@ -84,12 +63,13 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
     return;
   }
 
-  // Both classic paired and Fast paired devices call this function, so we
-  // have to add the device to |potential_retroactive_addresses_|. We expect
-  // devices paired via Fast Pair to always call `OnDevicePaired` after calling
-  // this function, which will remove the device from
-  // |potential_retroactive_addresses_|.
-  potential_retroactive_addresses_.insert(device.GetMacAddress());
+  std::optional<FastPairDevice*> existing_device =
+      repository_->FindDevice(device.GetMacAddress());
+  if (existing_device.has_value()) {
+    // Both classic paired and Fast paired devices call this function, so we
+    // have to filter out pairing events for devices that we already know.
+    return;
+  }
 
   // In order to confirm that this device is a retroactive pairing, we need to
   // first check if it has already been saved to the user's account. If it has
@@ -98,7 +78,19 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
   // TODO(b/285047010): check if device has already been saved to the user's
   // account
 
-  // TODO(Janusz) Add implementation for AttemptRetroactivePairing
+  auto fast_pair_device =
+      std::make_unique<FastPairDevice>(Protocol::kFastPairRetroactivePairing);
+  fast_pair_device->SetPublicAddress(device.GetMacAddress());
+  repository_->AddDevice(std::move(fast_pair_device));
+  executor_->Execute("notify-retro-candidate",
+                     [this, address = device.GetMacAddress()]() {
+                       std::optional<FastPairDevice*> fast_pair_device =
+                           repository_->FindDevice(address);
+                       if (!fast_pair_device) return;
+                       for (auto observer : observers_.GetObservers()) {
+                         observer->OnRetroactivePairFound(**fast_pair_device);
+                       }
+                     });
 }
 
 }  // namespace fastpair

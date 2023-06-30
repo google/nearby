@@ -14,6 +14,7 @@
 
 #include "fastpair/retroactive/retroactive.h"
 
+#include <memory>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -21,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "fastpair/common/constant.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
@@ -34,7 +36,7 @@ namespace nearby {
 namespace fastpair {
 namespace {
 
-constexpr char kModelId[] = {0xAB, 0xCD, 0xEF};
+constexpr char kModelId[] = "abcdef";
 constexpr absl::string_view kBobPrivateKey =
     "02B437B0EDD6BBD429064A4E529FCBF1C48D0D624924D592274B7ED81193D763";
 constexpr absl::string_view kBobPublicKey =
@@ -58,6 +60,9 @@ class RetroactiveTest : public testing::Test {
     provider_.StartGattServer(&gatt_callbacks_);
     provider_.InsertCorrectGattCharacteristics();
     ASSERT_TRUE(remote_device_.IsValid());
+    fast_pair_device_ =
+        std::make_unique<FastPairDevice>(Protocol::kFastPairRetroactivePairing);
+    fast_pair_device_->SetPublicAddress(remote_device_.GetMacAddress());
   }
 
   void TearDown() override {
@@ -83,20 +88,23 @@ class RetroactiveTest : public testing::Test {
   BluetoothDevice remote_device_;
   FakeFastPairRepository repository_;
   FakeGattCallbacks gatt_callbacks_;
+  std::unique_ptr<FastPairDevice> fast_pair_device_;
 };
 
 TEST_F(RetroactiveTest, Constructor) {
-  FastPairController controller(&mediums_, remote_device_, &executor_);
+  FastPairController controller(&mediums_, &*fast_pair_device_, &executor_);
   Retroactive retro(&controller);
 }
 
 TEST_F(RetroactiveTest, Pair) {
   SetUpFastPairRepository(kModelId, absl::HexStringToBytes(kBobPublicKey));
-  FastPairController controller(&mediums_, remote_device_, &executor_);
+  FastPairController controller(&mediums_, &*fast_pair_device_, &executor_);
   provider_.EnableProviderRfcomm();
   provider_.LoadAntiSpoofingKey(absl::HexStringToBytes(kBobPrivateKey),
                                 absl::HexStringToBytes(kBobPublicKey));
   std::string provider_ble_address = provider_.GetMacAddressAsBytes();
+  std::string seeker_address =
+      std::string(BluetoothUtils::FromString(controller.GetSeekerMacAddress()));
   gatt_callbacks_.characteristics_[*provider_.key_based_characteristic_]
       .write_callback = [&](absl::string_view request) {
     // https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.1
@@ -106,9 +114,8 @@ TEST_F(RetroactiveTest, Pair) {
     // Bytes 2 - 7, aabbccddeeff, provider's address
     // Bytes 8 - 13, 111213141516, seeker's address
     // Bytes 14 - 15, (not included), random salt
-    std::string expected_kbp_request = absl::HexStringToBytes("0010") +
-                                       provider_ble_address +
-                                       absl::HexStringToBytes("111213141516");
+    std::string expected_kbp_request =
+        absl::HexStringToBytes("0010") + provider_ble_address + seeker_address;
 
     // https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.2.2
     // Byte 0, 0x01 = Key-based Pairing Response
@@ -143,6 +150,12 @@ TEST_F(RetroactiveTest, Pair) {
                                provider_ble_address);
 
   EXPECT_TRUE(result.Get(absl::Minutes(5)).ok());
+  EXPECT_EQ(
+      gatt_callbacks_.characteristics_[*provider_.accountkey_characteristic_]
+          .write_value.Get()
+          .result()
+          .size(),
+      kAccountKeySize);
 }
 
 }  // namespace

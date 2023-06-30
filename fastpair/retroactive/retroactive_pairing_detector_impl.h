@@ -19,18 +19,22 @@
 #include "absl/container/flat_hash_set.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/pairer_broker.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/retroactive/retroactive_pairing_detector.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
 
-class RetroactivePairingDetectorImpl : public RetroactivePairingDetector,
-                                       public BluetoothClassicMedium ::Observer,
-                                       public PairerBroker::Observer {
+class RetroactivePairingDetectorImpl
+    : public RetroactivePairingDetector,
+      public BluetoothClassicMedium ::Observer {
  public:
-  RetroactivePairingDetectorImpl(Mediums& mediums, PairerBroker* pairer_broker);
+  RetroactivePairingDetectorImpl(Mediums& mediums,
+                                 FastPairDeviceRepository* repository,
+                                 SingleThreadExecutor* executor);
   RetroactivePairingDetectorImpl(const RetroactivePairingDetectorImpl&) =
       delete;
   RetroactivePairingDetectorImpl& operator=(
@@ -41,17 +45,15 @@ class RetroactivePairingDetectorImpl : public RetroactivePairingDetector,
   void AddObserver(RetroactivePairingDetector::Observer* observer) override;
   void RemoveObserver(RetroactivePairingDetector::Observer* observer) override;
 
-  // BluetoothClassicMedium :: Observer
+  // BluetoothClassicMedium::Observer
   void DevicePairedChanged(BluetoothDevice& device,
                            bool new_paired_status) override;
-
-  // PairerBroker::Observer
-  void OnDevicePaired(FastPairDevice& device) override;
 
  private:
   Mediums& mediums_;
   ObserverList<RetroactivePairingDetector::Observer> observers_;
-  absl::flat_hash_set<std::string> potential_retroactive_addresses_;
+  FastPairDeviceRepository* repository_;
+  SingleThreadExecutor* executor_;
 };
 
 }  // namespace fastpair

@@ -19,11 +19,14 @@
 #include <optional>
 #include <utility>
 
+#include "fastpair/fast_pair_controller.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
+#include "fastpair/retroactive/retroactive.h"
+#include "fastpair/retroactive/retroactive_pairing_detector_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -44,7 +47,8 @@ class FastPairSeekerExt : public FastPairSeeker {
 class FastPairSeekerImpl : public FastPairSeekerExt,
                            ScannerBrokerImpl::Observer,
                            PairerBroker::Observer,
-                           BluetoothClassicMedium::Observer {
+                           BluetoothClassicMedium::Observer,
+                           RetroactivePairingDetector::Observer {
  public:
   struct ServiceCallbacks {
     absl::AnyInvocable<void(const FastPairDevice&, InitialDiscoveryEvent)>
@@ -91,6 +95,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   void DeviceConnectedStateChanged(BluetoothDevice& device,
                                    bool connected) override;
 
+  // From RetroactivePairingDetector::Observer.
+  void OnRetroactivePairFound(FastPairDevice& device) override;
+
   // Internal methods, not exported to plugins.
  private:
   // From ScannerBrokerImpl::Observer.
@@ -116,6 +123,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   std::unique_ptr<ScannerBrokerImpl::ScanningSession> scanning_session_;
   std::unique_ptr<PairerBrokerImpl> pairer_broker_;
   std::unique_ptr<PairingCallback> pairing_callback_;
+  std::unique_ptr<RetroactivePairingDetectorImpl> retro_detector_;
+  std::unique_ptr<FastPairController> controller_;
+  std::unique_ptr<Retroactive> retroactive_pair_;
   FastPairDevice* device_under_pairing_ = nullptr;
   FastPairDevice* test_device_ = nullptr;
   bool is_screen_locked_ = false;

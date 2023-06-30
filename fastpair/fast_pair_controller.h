@@ -107,7 +107,7 @@ class FastPairController : public MessageStream::Observer {
     FastPairController* controller_ = nullptr;
   };
   // Creates a device controller in retroactive pairing path.
-  FastPairController(Mediums* mediums, const BluetoothDevice& device,
+  FastPairController(Mediums* mediums, FastPairDevice* device,
                      SingleThreadExecutor* executor);
 
   ~FastPairController() override {
@@ -155,7 +155,10 @@ class FastPairController : public MessageStream::Observer {
   void OnRemainingBatteryTime(absl::Duration duration) override;
   bool OnRing(uint8_t components, absl::Duration duration) override;
 
-  const FastPairDevice& GetDevice() { return device_; }
+  FastPairDevice& GetDevice() { return *device_; }
+  std::string GetSeekerMacAddress() const {
+    return mediums_->GetBluetoothClassic().GetMedium().GetMacAddress();
+  }
 
  private:
   void SetDataEncryptor(std::unique_ptr<FastPairDataEncryptor> encryptor) {
@@ -177,7 +180,7 @@ class FastPairController : public MessageStream::Observer {
   }
   void CreateDataEncryptor();
   Mediums* mediums_;
-  FastPairDevice device_;
+  FastPairDevice* device_;
   SingleThreadExecutor* executor_;
   std::unique_ptr<Future<std::shared_ptr<FastPairDataEncryptor>>> encryptor_;
   std::unique_ptr<MessageStream> message_stream_;

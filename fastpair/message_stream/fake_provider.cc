@@ -13,6 +13,7 @@
 // limitations under the License.
 #include "fastpair/message_stream/fake_provider.h"
 
+#include <array>
 #include <string>
 #include <utility>
 
@@ -20,6 +21,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
 #include "fastpair/common/constant.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/medium_environment.h"
 #include <openssl/base.h>
 #include <openssl/bn.h>
@@ -321,6 +323,13 @@ void FakeProvider::ConfigurePairingContext(absl::string_view pass_key) {
   CHECK(absl::SimpleAtoi(pass_key, &pass_key_));
 }
 
+void FakeProvider::SetPairedStatus(bool paired) {
+  auto device = MediumEnvironment::Instance().FindBluetoothDevice(
+      provider_medium_.GetMacAddress());
+  CHECK_NE(device, nullptr);
+  MediumEnvironment::Instance().SetPairingState(device, paired);
+}
+
 void FakeProvider::PrepareForInitialPairing(
     PairingConfig config, FakeGattCallbacks *fake_gatt_callbacks) {
   LoadAntiSpoofingKey(config.private_key, config.public_key);
@@ -333,6 +342,48 @@ void FakeProvider::PrepareForInitialPairing(
       BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   ConfigurePairingContext(config.pass_key);
   StartDiscoverableAdvertisement(config.model_id);
+}
+
+ByteArray FakeProvider::GetModelIdMessage(absl::string_view model_id) {
+  std::string binary_id = absl::HexStringToBytes(model_id);
+  std::array<char, 7> data = {3,           1, 0, 3, binary_id[0], binary_id[1],
+                              binary_id[2]};
+  return ByteArray(data);
+}
+
+ByteArray FakeProvider::GetBleAddressMessage() {
+  std::string data =
+      absl::HexStringToBytes("03020006") + GetMacAddressAsBytes();
+  return ByteArray(data);
+}
+
+void FakeProvider::EnableProviderRfcommForRetro(PairingConfig &config) {
+  std::string service_name{"service"};
+  std::string uuid(kRfcommUuid);
+  provider_server_socket_ =
+      provider_medium_.ListenForService(service_name, uuid);
+  model_id_ = config.model_id;
+  provider_thread_.Execute([this]() {
+    provider_socket_ = provider_server_socket_.Accept();
+    if (provider_server_socket_.IsValid()) {
+      NEARBY_LOGS(VERBOSE)
+          << "Message stream connected. Sending Model Id and BLE address";
+      provider_socket_.GetOutputStream().Write(GetModelIdMessage(model_id_));
+      provider_socket_.GetOutputStream().Write(GetBleAddressMessage());
+    }
+  });
+}
+
+void FakeProvider::PrepareForRetroactivePairing(
+    PairingConfig config, FakeGattCallbacks *fake_gatt_callbacks) {
+  LoadAntiSpoofingKey(config.private_key, config.public_key);
+  StartGattServer(fake_gatt_callbacks);
+  InsertCorrectGattCharacteristics();
+  SetKeyBasedPairingCallback();
+  SetAccountkeyCallback();
+  EnableProviderRfcommForRetro(config);
+  provider_adapter_.SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  SetPairedStatus(true);
 }
 
 }  // namespace fastpair

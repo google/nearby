@@ -85,6 +85,10 @@ class FakeProvider {
   void PrepareForInitialPairing(PairingConfig config,
                                 FakeGattCallbacks* fake_gatt_callbacks);
 
+  // Sets the fake provider up for retroactive pairing
+  void PrepareForRetroactivePairing(PairingConfig config,
+                                    FakeGattCallbacks* fake_gatt_callbacks);
+
   void Shutdown() {
     StopAdvertising();
     provider_thread_.Shutdown();
@@ -211,6 +215,10 @@ class FakeProvider {
   void SetKeyBasedPairingCallback();
   void SetPasskeyCallback();
   void SetAccountkeyCallback();
+  void SetPairedStatus(bool paired);
+  void EnableProviderRfcommForRetro(PairingConfig& config);
+  ByteArray GetModelIdMessage(absl::string_view model_id);
+  ByteArray GetBleAddressMessage();
   std::string GenSec256r1Secret(absl::string_view remote_party_public_key);
   std::string CreateSharedSecret(absl::string_view remote_public_key);
   BluetoothAdapter provider_adapter_;

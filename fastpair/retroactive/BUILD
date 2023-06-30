@@ -36,6 +36,7 @@ cc_library(
         "//fastpair/internal/mediums",
         "//fastpair/message_stream",
         "//fastpair/pairing",
+        "//fastpair/repository:device_repository",
         "//internal/base",
         "//internal/platform:comm",
         "//internal/platform:types",
@@ -54,6 +55,7 @@ cc_test(
     ],
     deps = [
         ":retroactive",
+        "//fastpair/common",
         "//fastpair/message_stream:fake_gatt_callbacks",
         "//fastpair/message_stream:fake_provider",
         "//fastpair/proto:fastpair_cc_proto",
