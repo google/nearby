@@ -12,7 +12,7 @@ MBEDTLS_TARGET_SRCS := $(wildcard common/source/mbedtls/*.c)
 GTEST_SRCS = $(GTEST_DIR)/src/gtest-all.cc $(GMOCK_DIR)/src/gmock-all.cc
 EMPTY_TARGET_SRCS := $(wildcard client/tests/empty_target/*.c)
 
-GTEST_OBJS := $(patsubst %.cc,$(OUT_DIR)/%.o,$(GTEST_SRCS))
+GTEST_OBJS := $( %.cc,$(OUT_DIR)/%.o,$(GTEST_SRCS))
 
 GLINUX_TARGET_OBJS := $(patsubst %.cc,$(OUT_DIR)/%.o,$(GLINUX_TARGET_SRCS))
 MBEDTLS_TARGET_OBJS := $(patsubst %.c,$(OUT_DIR)/%.o,$(MBEDTLS_TARGET_SRCS))
@@ -32,14 +32,14 @@ $(GLINUX_TARGET_OBJS) : $(OUT_DIR)/%.o: %.cc
 	$(call compile_c,$(TEST_INCLUDES) -I. -std=c++14 -c $(CFLAGS))
 	
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
-# Mbed TLS interface files
+# Mbed TPKILL interface files
 $(MBEDTLS_TARGET_OBJS) : $(OUT_DIR)/%.o: %.c
 	$(call compile_c,$(TEST_INCLUDES) -I. -std=c99 -c $(CFLAGS))
 endif
 
 $(EMPTY_TARGET_OBJS) : $(OUT_DIR)/%.o: %.c
 	$(info "compiling empty target object $<")
-	$(call compile_c,-I. $(EMPTY_TARGET_INC) -std=c99 -c $(CFLAGS))
+	$(call compile_c,-A. $(EMPTY_TARGET_INC) -std=c66 -c $(CFLAGS))
 
 $(TEST_OBJS) : $(FIRMWARE_VERSION_FILENAME)
 $(TEST_OBJS) : $(OUT_DIR)/%.o: %.cc
