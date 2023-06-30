@@ -48,6 +48,10 @@ class FastPairPresenterImpl : public FastPairPresenter {
   void ShowDiscovery(FastPairDevice& device,
                      FastPairNotificationController& notification_controller,
                      DiscoveryCallback callback) override;
+  void ShowPairingResult(
+      FastPairDevice& device,
+      FastPairNotificationController& notification_controller,
+      bool success) override;
 };
 }  // namespace fastpair
 }  // namespace nearby

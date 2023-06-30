@@ -21,14 +21,15 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
+#include "fastpair/repository/fast_pair_repository_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "fastpair/server_access/fast_pair_client_impl.h"
-#include "fastpair/repository/fast_pair_repository_impl.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/ui_broker_impl.h"
@@ -98,21 +99,14 @@ void Mediator::OnDeviceFound(FastPairDevice& device) {
     NEARBY_LOGS(INFO) << __func__ << ": Ignoring because show UI flag is false";
     return;
   }
-  if (IsDeviceCurrentlyShowingNotification(device)) {
-    NEARBY_LOGS(VERBOSE) << __func__
-                         << ": Extending notification for re-discovered device="
-                         << *device_currently_showing_notification_;
-    // TODO(b/278768167): Add ui_broker_->ExtendNotification();
-    return;
-  } else if (device_currently_showing_notification_) {
+  if (foreground_currently_showing_notification_) {
     NEARBY_LOGS(VERBOSE)
         << __func__
-        << ": Already showing a notification for a different device= "
-        << *device_currently_showing_notification_;
+        << ": Already showing a notification for a different device= ";
     return;
   }
   // Show discovery notification
-  device_currently_showing_notification_ = &device;
+  foreground_currently_showing_notification_ = true;
   ui_broker_->ShowDiscovery(device, *notification_controller_);
 }
 
@@ -125,8 +119,6 @@ void Mediator::OnDiscoveryAction(FastPairDevice& device,
   switch (action) {
     case DiscoveryAction::kPairToDevice:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kPairToDevice";
-      // TODO(285451051): Adding show pairing for higher than v1 version in ui
-      // broker
       pairer_broker_->PairDevice(device);
       break;
     case DiscoveryAction::kDismissedByOs:
@@ -136,23 +128,29 @@ void Mediator::OnDiscoveryAction(FastPairDevice& device,
       // When the user explicitly dismisses the discovery notification, update
       // the device's block-list value accordingly.
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kDismissedByUser";
-      // TODO(285453663): update discovery block list
+      foreground_currently_showing_notification_ = false;
+      // TODO(b/285453663): update discovery block list
       [[fallthrough]];
     case DiscoveryAction::kDismissedByTimeout:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kDismissedByTimeout";
-      device_currently_showing_notification_ = nullptr;
+      foreground_currently_showing_notification_ = false;
       break;
     case DiscoveryAction::kLearnMore:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kLearnMore";
       break;
+    case DiscoveryAction::kDone:
+      NEARBY_LOGS(INFO) << __func__ << ": Action =  kDone";
+      foreground_currently_showing_notification_ = false;
+      break;
     default:
-      NEARBY_LOGS(INFO) << __func__ << ": Action =  kUnknow";
+      NEARBY_LOGS(INFO) << __func__ << ": Action =  Unknown";
       break;
   }
 }
 
 void Mediator::OnDevicePaired(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device;
+  ui_broker_->ShowPairingResult(device, *notification_controller_, true);
 }
 
 void Mediator::OnAccountKeyWrite(FastPairDevice& device,
@@ -176,7 +174,7 @@ void Mediator::OnPairingComplete(FastPairDevice& device) {
 void Mediator::OnPairFailure(FastPairDevice& device, PairFailure failure) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device
                     << " with PairFailure: " << failure;
-  // TODO: UI showPairingFailed
+  ui_broker_->ShowPairingResult(device, *notification_controller_, false);
 }
 
 void Mediator::StartScanning() {
@@ -210,24 +208,6 @@ bool Mediator::IsFastPairEnabled() {
   // Currently default to true.
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << true;
   return true;
-}
-
-bool Mediator::IsDeviceCurrentlyShowingNotification(
-    const FastPairDevice& device) {
-  // BLE addresses could have rotated, causing this check to return false for
-  // the same device. Fast Pair considers a device different if they have
-  // different BLE addresses. Similarly, the this check will fail if it is the
-  // same physical device under different scenarios: for example, if a device
-  // is found via the initial scenario and via the subsequent scenario, Fast
-  // Pair does not consider them the same device.
-
-  return device_currently_showing_notification_ &&
-         device_currently_showing_notification_->GetModelId() ==
-             device.GetModelId() &&
-         device_currently_showing_notification_->GetBleAddress() ==
-             device.GetBleAddress() &&
-         device_currently_showing_notification_->GetProtocol() !=
-             device.GetProtocol();
 }
 
 void Mediator::SetIsScreenLocked(bool locked) {

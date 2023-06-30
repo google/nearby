@@ -25,6 +25,7 @@
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
+#include "internal/platform/count_down_latch.h"
 
 namespace nearby {
 namespace fastpair {
@@ -34,46 +35,46 @@ const int64_t kDeviceId = 10148625;
 const char kModelId[] = "9adb11";
 const char kDeviceName[] = "Pixel Buds Pro";
 
-class FastPairNotificationControllerTest : public ::testing::Test {
- protected:
-  FastPairNotificationControllerTest() {
-    notification_controller_obsesrver_ =
-        std::make_unique<FakeFastPairNotificationControllerObserver>(
-            std::nullopt);
-    notification_controller_.AddObserver(
-        notification_controller_obsesrver_.get());
-  }
-
-  void TriggerOnUpdateDevice(DeviceMetadata& device,
-                             DiscoveryCallback callback) {
-    notification_controller_.ShowGuestDiscoveryNotification(
-        device, std::move(callback));
-  }
-
-  void DiscoveryActionClicked(DiscoveryAction action) {
-    discovery_action_ = action;
-  }
-
-  FastPairNotificationController notification_controller_;
-  std::unique_ptr<FakeFastPairNotificationControllerObserver>
-      notification_controller_obsesrver_;
-  DiscoveryAction discovery_action_;
-};
-
-TEST_F(FastPairNotificationControllerTest, ShowGuestDiscoveryNotification) {
+TEST(FastPairNotificationControllerTest, ShowGuestDiscoveryNotification) {
+  FastPairNotificationController notification_controller;
   proto::GetObservedDeviceResponse response;
-  response.mutable_device()->set_id(kDeviceId);
-  response.mutable_device()->set_name(kDeviceName);
   DeviceMetadata device_metadata(response);
-  TriggerOnUpdateDevice(device_metadata, [this](DiscoveryAction action) {
-    DiscoveryActionClicked(action);
-  });
 
-  EXPECT_TRUE(notification_controller_obsesrver_
-                  ->CheckDeviceMetadataListContainTestDevice(kDeviceName));
-  EXPECT_EQ(1, notification_controller_obsesrver_->on_update_device_count());
-  notification_controller_.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
-  EXPECT_EQ(DiscoveryAction::kPairToDevice, discovery_action_);
+  CountDownLatch on_update_device_latch(1);
+  CountDownLatch on_click_latch(1);
+  FakeFastPairNotificationControllerObserver observer(&on_update_device_latch,
+                                                      nullptr);
+  notification_controller.AddObserver(&observer);
+  EXPECT_EQ(observer.GetDevice(), nullptr);
+  DiscoveryAction discovery_action = DiscoveryAction::kUnknown;
+  notification_controller.ShowGuestDiscoveryNotification(
+      device_metadata, [&](DiscoveryAction action) {
+        on_click_latch.CountDown();
+        discovery_action = action;
+      });
+  on_update_device_latch.Await();
+  EXPECT_EQ(observer.GetDevice(), &device_metadata);
+  notification_controller.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
+  on_click_latch.Await();
+  EXPECT_EQ(discovery_action, DiscoveryAction::kPairToDevice);
+}
+
+TEST(FastPairNotificationControllerTest, ShowPairingResultNotification) {
+  FastPairNotificationController notification_controller;
+  proto::GetObservedDeviceResponse response;
+  DeviceMetadata device_metadata(response);
+
+  CountDownLatch on_pairing_result_latch(1);
+  FakeFastPairNotificationControllerObserver observer(nullptr,
+                                                      &on_pairing_result_latch);
+  notification_controller.AddObserver(&observer);
+  EXPECT_FALSE(observer.GetPairingResult().has_value());
+  EXPECT_EQ(observer.GetDevice(), nullptr);
+  notification_controller.ShowPairingResultNotification(device_metadata, true);
+  on_pairing_result_latch.Await();
+  EXPECT_EQ(observer.GetDevice(), &device_metadata);
+  EXPECT_TRUE(observer.GetPairingResult().has_value());
+  EXPECT_TRUE(observer.GetPairingResult().value());
 }
 
 }  // namespace

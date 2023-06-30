@@ -39,11 +39,25 @@ void FastPairNotificationController::NotifyShowDiscovery(
   }
 }
 
+void FastPairNotificationController::NotifyShowPairingResult(
+    const DeviceMetadata& device, bool success) {
+  NEARBY_LOGS(INFO) << __func__;
+  for (Observer* observer : observers_.GetObservers()) {
+    observer->OnPairingResult(device, success);
+  }
+}
+
 void FastPairNotificationController::ShowGuestDiscoveryNotification(
     const DeviceMetadata& device, DiscoveryCallback callback) {
   callback_ = std::move(callback);
   NEARBY_LOGS(INFO) << __func__ << "Notify show guest discovery notification. ";
   NotifyShowDiscovery(device);
+}
+
+void FastPairNotificationController::ShowPairingResultNotification(
+    const DeviceMetadata& device, bool success) {
+  NEARBY_LOGS(INFO) << __func__ << "Notify show pairing result notification. ";
+  NotifyShowPairingResult(device, success);
 }
 
 void FastPairNotificationController::OnDiscoveryClicked(
