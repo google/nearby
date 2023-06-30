@@ -48,7 +48,7 @@ class MockFlagReader : public flags::FlagReader {
   MOCK_METHOD(bool, GetBoolFlag, (const flags::Flag<bool>& flag), (override));
   MOCK_METHOD(int64_t, GetInt64Flag, (const flags::Flag<int64_t>& flag),
               (override));
-  MOCK_METHOD(double, GetDoubleFlag, (const flags::Flag<double>& flag),
+  MOCK_METHOD(double, GetFloat64Flag, (const flags::Flag<double>& flag),
               (override));
   MOCK_METHOD(std::string, GetStringFlag,
               (const flags::Flag<absl::string_view>& flag), (override));
@@ -59,7 +59,7 @@ TEST(NearbyFlags, GetDefaultValues) {
             kTestBoolFlag.default_value());
   EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64Flag.default_value());
-  EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetFloat64Flag(kTestDoubleFlag),
             kTestDoubleFlag.default_value());
   EXPECT_EQ(NearbyFlags::GetInstance().GetStringFlag(kTestStringFlag),
             kTestStringFlag.default_value());
@@ -74,15 +74,15 @@ TEST(NearbyFlags, OverrideDefaultValues) {
                                                     kTestInt64FlagTestValue);
   EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64FlagTestValue);
-  NearbyFlags::GetInstance().OverrideDoubleFlagValue(kTestDoubleFlag,
-                                                     kTestDoubleFlagTestValue);
-  EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
+  NearbyFlags::GetInstance().OverrideFloat64FlagValue(kTestDoubleFlag,
+                                                      kTestDoubleFlagTestValue);
+  EXPECT_EQ(NearbyFlags::GetInstance().GetFloat64Flag(kTestDoubleFlag),
             kTestDoubleFlagTestValue);
   NearbyFlags::GetInstance().OverrideStringFlagValue(kTestStringFlag,
                                                      kTestStringFlagTestValue);
   EXPECT_EQ(NearbyFlags::GetInstance().GetStringFlag(kTestStringFlag),
             kTestStringFlagTestValue);
-  NearbyFlags::GetInstance().ResetOverridedValues();
+  NearbyFlags::GetInstance().ResetOverriddenValues();
 }
 
 TEST(NearbyFlags, SetFlagReader) {
@@ -100,11 +100,11 @@ TEST(NearbyFlags, SetFlagReader) {
       }));
   EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64FlagTestValue);
-  EXPECT_CALL(*flag_reader, GetDoubleFlag(::testing::_))
+  EXPECT_CALL(*flag_reader, GetFloat64Flag(::testing::_))
       .WillOnce(::testing::Invoke([=](const flags::Flag<double>& flag) {
         return kTestDoubleFlagTestValue;
       }));
-  EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetFloat64Flag(kTestDoubleFlag),
             kTestDoubleFlagTestValue);
   EXPECT_CALL(*flag_reader, GetStringFlag(::testing::_))
       .WillOnce(

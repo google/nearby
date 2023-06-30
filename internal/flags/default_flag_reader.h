@@ -39,7 +39,7 @@ class DefaultFlagReader : public FlagReader {
   }
 
   // Returns the default double value of the flag.
-  double GetDoubleFlag(const Flag<double>& flag) override {
+  double GetFloat64Flag(const Flag<double>& flag) override {
     return flag.default_value();
   }
 

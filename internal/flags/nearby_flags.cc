@@ -29,8 +29,8 @@ NearbyFlags& NearbyFlags::GetInstance() {
 bool NearbyFlags::GetBoolFlag(const flags::Flag<bool>& flag) {
   MutexLock lock(&mutex_);
 
-  const auto& it = overrided_bool_flag_values_.find(flag.name());
-  if (it != overrided_bool_flag_values_.end()) {
+  const auto& it = overridden_bool_flag_values_.find(flag.name());
+  if (it != overridden_bool_flag_values_.end()) {
     return it->second;
   }
 
@@ -43,8 +43,8 @@ bool NearbyFlags::GetBoolFlag(const flags::Flag<bool>& flag) {
 int64_t NearbyFlags::GetInt64Flag(const flags::Flag<int64_t>& flag) {
   MutexLock lock(&mutex_);
 
-  const auto& it = overrided_int64_flag_values_.find(flag.name());
-  if (it != overrided_int64_flag_values_.end()) {
+  const auto& it = overridden_int64_flag_values_.find(flag.name());
+  if (it != overridden_int64_flag_values_.end()) {
     return it->second;
   }
 
@@ -54,26 +54,26 @@ int64_t NearbyFlags::GetInt64Flag(const flags::Flag<int64_t>& flag) {
   return default_flag_reader_.GetInt64Flag(flag);
 }
 
-double NearbyFlags::GetDoubleFlag(const flags::Flag<double>& flag) {
+double NearbyFlags::GetFloat64Flag(const flags::Flag<double>& flag) {
   MutexLock lock(&mutex_);
 
-  const auto& it = overrided_double_flag_values_.find(flag.name());
-  if (it != overrided_double_flag_values_.end()) {
+  const auto& it = overridden_double_flag_values_.find(flag.name());
+  if (it != overridden_double_flag_values_.end()) {
     return it->second;
   }
 
   if (flag_reader_ != nullptr) {
-    return flag_reader_->GetDoubleFlag(flag);
+    return flag_reader_->GetFloat64Flag(flag);
   }
-  return default_flag_reader_.GetDoubleFlag(flag);
+  return default_flag_reader_.GetFloat64Flag(flag);
 }
 
 std::string NearbyFlags::GetStringFlag(
     const flags::Flag<absl::string_view>& flag) {
   MutexLock lock(&mutex_);
 
-  const auto& it = overrided_string_flag_values_.find(flag.name());
-  if (it != overrided_string_flag_values_.end()) {
+  const auto& it = overridden_string_flag_values_.find(flag.name());
+  if (it != overridden_string_flag_values_.end()) {
     return it->second;
   }
 
@@ -91,33 +91,33 @@ void NearbyFlags::SetFlagReader(flags::FlagReader& flag_reader) {
 void NearbyFlags::OverrideBoolFlagValue(const flags::Flag<bool>& flag,
                                         bool new_value) {
   MutexLock lock(&mutex_);
-  overrided_bool_flag_values_[flag.name()] = new_value;
+  overridden_bool_flag_values_[flag.name()] = new_value;
 }
 
 void NearbyFlags::OverrideInt64FlagValue(const flags::Flag<int64_t>& flag,
                                          int64_t new_value) {
   MutexLock lock(&mutex_);
-  overrided_int64_flag_values_[flag.name()] = new_value;
+  overridden_int64_flag_values_[flag.name()] = new_value;
 }
 
-void NearbyFlags::OverrideDoubleFlagValue(const flags::Flag<double>& flag,
-                                          double new_value) {
+void NearbyFlags::OverrideFloat64FlagValue(const flags::Flag<double>& flag,
+                                           double new_value) {
   MutexLock lock(&mutex_);
-  overrided_double_flag_values_[flag.name()] = new_value;
+  overridden_double_flag_values_[flag.name()] = new_value;
 }
 
 void NearbyFlags::OverrideStringFlagValue(
     const flags::Flag<absl::string_view>& flag, absl::string_view new_value) {
   MutexLock lock(&mutex_);
-  overrided_string_flag_values_[flag.name()] = std::string(new_value);
+  overridden_string_flag_values_[flag.name()] = std::string(new_value);
 }
 
-void NearbyFlags::ResetOverridedValues() {
+void NearbyFlags::ResetOverriddenValues() {
   MutexLock lock(&mutex_);
-  overrided_bool_flag_values_.clear();
-  overrided_int64_flag_values_.clear();
-  overrided_double_flag_values_.clear();
-  overrided_string_flag_values_.clear();
+  overridden_bool_flag_values_.clear();
+  overridden_int64_flag_values_.clear();
+  overridden_double_flag_values_.clear();
+  overridden_string_flag_values_.clear();
 }
 
 }  // namespace nearby

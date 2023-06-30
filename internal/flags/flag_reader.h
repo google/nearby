@@ -25,7 +25,7 @@ namespace nearby {
 namespace flags {
 
 // Allows caller to get flag values form backend system.
-// The caller could implement flexiable control on Nearby SDK in granularity,
+// The caller could implement flexible control on Nearby SDK in granularity,
 // such as feature, configuration etc. Default value will be returned if no
 // flag-supported backend.
 class FlagReader {
@@ -39,7 +39,7 @@ class FlagReader {
   virtual int64_t GetInt64Flag(const Flag<int64_t>& flag) = 0;
 
   // Reads flag with double value.
-  virtual double GetDoubleFlag(const Flag<double>& flag) = 0;
+  virtual double GetFloat64Flag(const Flag<double>& flag) = 0;
 
   // Reads flag with string value.
   virtual std::string GetStringFlag(const Flag<absl::string_view>& flag) = 0;

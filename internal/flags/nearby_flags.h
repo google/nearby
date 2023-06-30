@@ -40,7 +40,7 @@ class NearbyFlags final : public nearby::flags::FlagReader {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Reads flag with double value.
-  double GetDoubleFlag(const flags::Flag<double>& flag) override
+  double GetFloat64Flag(const flags::Flag<double>& flag) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Reads flag with string value.
@@ -58,15 +58,15 @@ class NearbyFlags final : public nearby::flags::FlagReader {
   void OverrideInt64FlagValue(const flags::Flag<int64_t>& flag,
                               int64_t new_value) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void OverrideDoubleFlagValue(const flags::Flag<double>& flag,
-                               double new_value) ABSL_LOCKS_EXCLUDED(mutex_);
+  void OverrideFloat64FlagValue(const flags::Flag<double>& flag,
+                                double new_value) ABSL_LOCKS_EXCLUDED(mutex_);
 
   void OverrideStringFlagValue(const flags::Flag<absl::string_view>& flag,
                                absl::string_view new_value)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Reset all overrided values.
-  void ResetOverridedValues() ABSL_LOCKS_EXCLUDED(mutex_);
+  // Reset all overridden values.
+  void ResetOverriddenValues() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   NearbyFlags() = default;
@@ -75,16 +75,16 @@ class NearbyFlags final : public nearby::flags::FlagReader {
   flags::DefaultFlagReader default_flag_reader_;
 
   mutable Mutex mutex_;
-  absl::flat_hash_map<std::string, bool> overrided_bool_flag_values_
+  absl::flat_hash_map<std::string, bool> overridden_bool_flag_values_
       ABSL_GUARDED_BY(mutex_);
 
-  absl::flat_hash_map<std::string, int64_t> overrided_int64_flag_values_
+  absl::flat_hash_map<std::string, int64_t> overridden_int64_flag_values_
       ABSL_GUARDED_BY(mutex_);
 
-  absl::flat_hash_map<std::string, double> overrided_double_flag_values_
+  absl::flat_hash_map<std::string, double> overridden_double_flag_values_
       ABSL_GUARDED_BY(mutex_);
 
-  absl::flat_hash_map<std::string, std::string> overrided_string_flag_values_
+  absl::flat_hash_map<std::string, std::string> overridden_string_flag_values_
       ABSL_GUARDED_BY(mutex_);
 };
 
