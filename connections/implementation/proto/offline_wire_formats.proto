@@ -46,6 +46,7 @@ message V1Frame {
     AUTHENTICATION_MESSAGE = 8;
     AUTHENTICATION_RESULT = 9;
     AUTO_RESUME = 10;
+    AUTO_RECONNECT = 11;
   }
   optional FrameType type = 1;
 
@@ -60,6 +61,7 @@ message V1Frame {
   optional AuthenticationMessageFrame authentication_message = 9;
   optional AuthenticationResultFrame authentication_result = 10;
   optional AutoResumeFrame auto_resume = 11;
+  optional AutoReconnectFrame auto_reconnect = 12;
 }
 
 message ConnectionRequestFrame {
@@ -355,6 +357,16 @@ message AutoResumeFrame {
   optional EventType event_type = 1;
   optional int64 pending_payload_id = 2;
   optional int32 next_payload_chunk_index = 3;
+}
+
+message AutoReconnectFrame {
+  enum EventType {
+    UNKNOWN_EVENT_TYPE = 0;
+    CLIENT_INTRODUCTION = 1;
+    CLIENT_INTRODUCTION_ACK = 2;
+  }
+  optional string endpoint_id = 1;
+  optional EventType event_type = 2;
 }
 
 message MediumMetadata {
