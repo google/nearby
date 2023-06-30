@@ -118,4 +118,22 @@ TEST(ExceptionOr, ExplicitConversionFailsToCompile) {
   EXPECT_NON_COMPILE("no matching constructor", { ExceptionOr<B> b(a); });
 }
 
+TEST(ExceptionOr, BoolType) {
+  EXPECT_TRUE(ExceptionOr<bool>(true));
+  EXPECT_TRUE(ExceptionOr<bool>(true).GetResult());
+  EXPECT_TRUE(ExceptionOr<bool>(true).result());
+  EXPECT_TRUE(ExceptionOr<bool>(true).ok());
+  EXPECT_EQ(ExceptionOr<bool>(true).exception(), Exception::kSuccess);
+  EXPECT_TRUE(ExceptionOr<bool>(Exception::kSuccess));
+  EXPECT_FALSE(ExceptionOr<bool>(false));
+  EXPECT_FALSE(ExceptionOr<bool>(false).GetResult());
+  EXPECT_FALSE(ExceptionOr<bool>(false).result());
+  EXPECT_FALSE(ExceptionOr<bool>(false).ok());
+  EXPECT_EQ(ExceptionOr<bool>(false).exception(), Exception::kFailed);
+  EXPECT_FALSE(ExceptionOr<bool>());
+  EXPECT_FALSE(ExceptionOr<bool>(Exception::kInterrupted));
+  EXPECT_EQ(ExceptionOr<bool>(Exception::kInterrupted).exception(),
+            Exception::kInterrupted);
+}
+
 }  // namespace nearby

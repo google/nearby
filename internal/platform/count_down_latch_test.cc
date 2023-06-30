@@ -52,8 +52,7 @@ TEST(CountDownLatch, LatchAwaitWithTimeoutCanExpire) {
   CountDownLatch latch(1);
   SingleThreadExecutor executor;
   auto response = latch.Await(absl::Milliseconds(100));
-  EXPECT_TRUE(response.ok());
-  EXPECT_FALSE(response.result());
+  EXPECT_FALSE(response);
 }
 
 TEST(CountDownLatch, InitialCountZero_AwaitDoesNotBlock) {

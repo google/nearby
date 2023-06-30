@@ -218,7 +218,6 @@ TEST_F(MessageStreamTest, RingNacked) {
 
   VerifySentMessage(absl::HexStringToBytes("04010002500A"));
   provider_.WriteProviderBytes(absl::HexStringToBytes("FF0200020401"));
-  ASSERT_TRUE(result.Get().ok());
   ASSERT_FALSE(result.Get().GetResult());
 }
 
@@ -289,8 +288,7 @@ TEST_F(MessageStreamTest, ReceiveDisableSilenceMode) {
 
   provider_.WriteProviderBytes(absl::HexStringToBytes("01020000"));
 
-  ASSERT_TRUE(observer_.silence_mode_.Get().ok());
-  ASSERT_FALSE(observer_.silence_mode_.Get().GetResult());
+  EXPECT_FALSE(observer_.silence_mode_.Get());
 }
 
 TEST_F(MessageStreamTest, ReceiveLogBufferFull) {
