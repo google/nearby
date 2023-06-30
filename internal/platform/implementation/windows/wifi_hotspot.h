@@ -211,9 +211,8 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   bool SetupServerSocketWinRT();
   bool SetupServerSocketWinSock();
 
-  // Retrieves IP addresses from local machine
-  std::vector<std::string> GetIpAddresses() const;
-  std::string GetHotspotIpAddresses() const;
+  // Retrieves hotspot IP address from local machine
+  std::string GetHotspotIpAddress() const;
 
   mutable absl::Mutex mutex_;
   absl::CondVar cond_;

@@ -53,14 +53,11 @@ std::string WifiHotspotServerSocket::GetIPAddress() const {
     }
   }
 
-  if (ip_addresses_.empty()) {
-    auto ip_addr = GetIpAddresses();
-    if (ip_addr.empty()) {
-      return {};
-    }
-    return ip_addr.front();
-  }
-  return ip_addresses_.front();
+  std::string hotspot_ip_address = GetHotspotIpAddress();
+  NEARBY_LOGS(INFO) << __func__
+               << ": Return hotspot IP address: " << hotspot_ip_address;
+
+  return hotspot_ip_address;
 }
 
 int WifiHotspotServerSocket::GetPort() const {
@@ -399,7 +396,7 @@ bool WifiHotspotServerSocket::listen() {
                     << ", IP check interval="
                     << ip_address_retry_interval_millis << "ms";
   for (int i = 0; i < ip_address_max_retries; i++) {
-    hotspot_ipaddr_ = GetHotspotIpAddresses();
+    hotspot_ipaddr_ = GetHotspotIpAddress();
     if (hotspot_ipaddr_.empty()) {
       NEARBY_LOGS(WARNING) << "Failed to find Hotspot's IP addr for the try: "
                            << i + 1 << ". Wait "
@@ -425,35 +422,7 @@ bool WifiHotspotServerSocket::listen() {
   }
 }
 
-std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
-  std::vector<std::string> result;
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (auto host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        std::string ipv4_s = winrt::to_string(host_name.ToString());
-
-        if (absl::EndsWith(ipv4_s, ".1")) {
-          NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
-          result.push_back(ipv4_s);
-        }
-      }
-    }
-  } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
-  } catch (const winrt::hresult_error &error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
-  }
-
-  return result;
-}
-
-std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
+std::string WifiHotspotServerSocket::GetHotspotIpAddress() const {
   try {
     int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
         platform::config_package_nearby::nearby_platform_feature::
@@ -461,19 +430,32 @@ std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
 
     for (int i = 0; i < ip_address_max_retries; i++) {
       auto host_names = NetworkInformation::GetHostNames();
+      std::vector<std::string> ip_candidates;
       for (auto host_name : host_names) {
         if (host_name.IPInformation() != nullptr &&
             host_name.IPInformation().NetworkAdapter() != nullptr &&
             host_name.Type() == HostNameType::Ipv4) {
           std::string ipv4_s = winrt::to_string(host_name.ToString());
           if (absl::EndsWith(ipv4_s, ".1")) {
-            // TODO(b/228541380): replace when we find a better way to
-            // identifying the hotspot address
-            NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
-            return ipv4_s;
+            ip_candidates.push_back(ipv4_s);
           }
         }
       }
+
+      if (ip_candidates.empty()) {
+        continue;
+      }
+
+      // Windows always creates Hotspot at address "192.168.137.1".
+      for (auto &ip_candidate : ip_candidates) {
+        if (ip_candidate == "192.168.137.1") {
+          NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ip_candidate;
+          return ip_candidate;
+        }
+      }
+
+      NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ip_candidates.front();
+      return ip_candidates.front();
     }
     return {};
   } catch (std::exception exception) {
