@@ -18,18 +18,10 @@ cc_library(
     name = "handshake",
     srcs = [
         "fast_pair_data_encryptor_impl.cc",
-        "fast_pair_gatt_service_client_impl.cc",
-        "fast_pair_handshake_impl.cc",
-        "fast_pair_handshake_lookup.cc",
+        
     ],
     hdrs = [
         "fast_pair_data_encryptor.h",
-        "fast_pair_data_encryptor_impl.h",
-        "fast_pair_gatt_service_client.h",
-        "fast_pair_gatt_service_client_impl.h",
-        "fast_pair_handshake.h",
-        "fast_pair_handshake_impl.h",
-        "fast_pair_handshake_lookup.h",
     ],
     visibility = [
         "//:__subpackages__",
@@ -37,22 +29,9 @@ cc_library(
     ],
     deps = [
         "//fastpair/common",
-        "//fastpair/crypto",
-        "//fastpair/dataparser",
-        "//fastpair/internal/mediums",
-        "//fastpair/repository",
-        "//fastpair/server_access",
-        "//internal/base:bluetooth_address",
-        "//internal/platform:comm",
-        "//internal/platform:logging",
-        "//internal/platform:types",
-        "//internal/platform:uuid",
+        
         "@boringssl//:crypto",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
     ],

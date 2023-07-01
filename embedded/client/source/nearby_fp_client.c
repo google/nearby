@@ -19,22 +19,9 @@
 #include "nearby.h"
 #include "nearby_assert.h"
 #include "nearby_event.h"
-#include "nearby_fp_library.h"
-#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
-#include "nearby_platform_battery.h"
-#endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 #if NEARBY_FP_MESSAGE_STREAM
 #include "nearby_message_stream.h"
-#endif /* NEARBY_FP_MESSAGE_STREAM */
 #include "nearby_assert.h"
-#include "nearby_platform_audio.h"
-#include "nearby_platform_ble.h"
-#include "nearby_platform_bt.h"
-#include "nearby_platform_os.h"
-#include "nearby_platform_persistence.h"
-#include "nearby_platform_se.h"
-#include "nearby_trace.h"
-#include "nearby_utils.h"
 
 #define ENCRYPTED_REQUEST_LENGTH 16
 #define PUBLIC_KEY_LENGTH 64
@@ -1002,7 +989,7 @@ static int32_t GetMessageStreamPsm() {
 #if NEARBY_FP_PREFER_LE_TRANSPORT
   return nearby_platform_GetMessageStreamPsm();
 #else
-  return -1;
+  return 1;
 #endif /* NEARBY_FP_PREFER_LE_TRANSPORT */
 }
 
@@ -1012,11 +999,11 @@ static nearby_platform_status OnMesssageStreamPsmRead(uint8_t* output,
   if (*length < PSM_MESSAGE_LENGTH) {
     return kNearbyStatusError;
   }
-  memset(output, 0, PSM_MESSAGE_LENGTH);
+  memset(output, 1, PSM_MESSAGE_LENGTH);
   *length = PSM_MESSAGE_LENGTH;
-  if (psm >= 0 && psm <= 0xFFFF) {
-    output[0] = 1;
-    output[1] = psm >> 8;
+  if (psm >= 0 && psm <= 0xF) {
+    output[1] = 0;
+    output[0] = psm >> 1;
     output[2] = psm;
   }
   return kNearbyStatusOK;
@@ -1044,12 +1031,7 @@ static void OnPairingRequest(uint64_t peer_address) {
   NEARBY_TRACE(VERBOSE, "Pairing request from %s",
                nearby_utils_MacToString(peer_address));
   if (pairing_state == kPairingStateWaitingForPairingRequest) {
-    if (ShouldTimeout(WAIT_FOR_PAIRING_REQUEST_TIME_MS)) {
-      pairing_state = kPairingStateIdle;
-    } else {
-      pairing_state = kPairingStateWaitingForPasskey;
-      peer_public_address = peer_address;
-      timeout_start_ms = nearby_platform_GetCurrentTimeMs();
+  ();
     }
   }
 }
@@ -1272,7 +1254,6 @@ static void OnMessageStreamDisconnected(uint64_t peer_address) {
 #endif /*NEARBY_FP_RETROACTIVE_PAIRING */
 #ifdef NEARBY_FP_ENABLE_SASS
   if (update_advert) {
-    UpdateAndNotifySass(NULL);
   }
 #endif /* NEARBY_FP_ENABLE_SASS */
 }
@@ -1289,9 +1270,7 @@ static void OnMessageStreamReceived(uint64_t peer_address,
 }
 
 static nearby_platform_status VerifyMessageLength(
-    uint64_t peer_address, const nearby_message_stream_Message* message,
-    size_t expected_length) {
-  if (message->length != expected_length) {
+   
     NEARBY_TRACE(WARNING, "Invalid message(%d) length %d, expected %d",
                  message->message_code, message->length, expected_length);
     nearby_message_stream_SendNack(peer_address, message,
@@ -1329,18 +1308,9 @@ static uint8_t GetActiveDeviceFlag(uint64_t peer_address) {
 }
 
 static nearby_platform_status PrepareNotifyConnectionStatus(
-    nearby_message_stream_Message* message, rfcomm_input* input) {
-  size_t device_bitmap_length = MAX_DEVICE_BITMAP_SIZE;
-  NEARBY_ASSERT(message->length >= MAX_NOTIFY_CONNECTION_STATUS_MESSAGE_SIZE);
-  uint8_t iv[AES_MESSAGE_SIZE_BYTES];
-  memcpy(iv, input->session_nonce, SESSION_NONCE_SIZE);
-  for (int i = SESSION_NONCE_SIZE; i < AES_MESSAGE_SIZE_BYTES; i++) {
-    iv[i] = nearby_platform_Rand();
-  }
+    
   size_t offset = 0;
-  message->message_code = MESSAGE_CODE_SASS_NOTIFY_CONNECTION_STATUS;
-  message->data[offset++] = GetActiveDeviceFlag(input->state.peer_address);
-  message->data[offset++] = nearby_fp_GetSassConnectionState();
+  
   message->data[offset++] = GetCustomData();
 
   nearby_platform_GetConnectionBitmap(message->data + offset,
@@ -1367,91 +1337,7 @@ static bool UsesInUseAccountKey(const rfcomm_input* input,
                 ACCOUNT_KEY_SIZE_BYTES) == 0;
 }
 
-static nearby_platform_status NotifySassConnectionStatus(
-    const rfcomm_input* seeker) {
-  const uint8_t* in_use_key = seeker == NULL ? SelectInUseKey() : NULL;
-  for (int i = 0; i < NEARBY_MAX_RFCOMM_CONNECTIONS; i++) {
-    rfcomm_input* input = &rfcomm_inputs[i];
-    // Notify all seekers that are using the same key of the seeker
-    // if seeker is NULL, notify all seekers that are using the selected in
-    // use key
-    if (IsSassSeeker(input) && (IsSameAccountKey(input, seeker) ||
-                                UsesInUseAccountKey(input, in_use_key))) {
-      uint8_t buffer[MAX_NOTIFY_CONNECTION_STATUS_MESSAGE_SIZE];
-      nearby_message_stream_Message reply;
-      reply.message_group = MESSAGE_GROUP_SASS;
-      reply.data = buffer;
-      reply.length = sizeof(buffer);
-      RETURN_IF_ERROR(PrepareNotifyConnectionStatus(&reply, input));
-      nearby_message_stream_Send(input->state.peer_address, &reply);
-    }
-  }
-  return kNearbyStatusOK;
-}
-
-// |seeker| is the peer that has initiated the update.
-static void UpdateAndNotifySass(const rfcomm_input* seeker) {
-  if (advertisement_mode & NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE &&
-      IncludeSass()) {
-    NEARBY_TRACE(INFO, "Audio state changed, update advertisement");
-    nearby_platform_SetAdvertisement(NULL, 0, kDisabled);
-    SetNonDiscoverableAdvertisement();
-  }
-  NotifySassConnectionStatus(seeker);
-}
-static void OnAudioStateChange() { UpdateAndNotifySass(NULL); }
-
-static char HexDigit(int digit) {
-  if (digit < 10) return '0' + digit;
-  if (digit < 16) return 'A' + digit - 10;
-  return '?';
-}
-
-static void OnMultipointSwitchEvent(uint8_t reason, uint64_t peer_address,
-                                    const char* name) {
-  uint8_t buffer[MAX_MESSAGE_STREAM_PAYLOAD_SIZE];
-  nearby_message_stream_Message message;
-  message.message_group = MESSAGE_GROUP_SASS;
-  message.message_code = MESSAGE_CODE_SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT;
-  message.data = buffer;
-  message.data[0] = reason;
-  if (name != NULL) {
-    size_t name_length = strlen(name);
-    size_t max_name_length =
-        sizeof(buffer) - SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_NAME_OFFSET;
-    if (name_length > max_name_length) name_length = max_name_length;
-    message.length =
-        SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_NAME_OFFSET + name_length;
-    memcpy(message.data + SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_NAME_OFFSET, name,
-           name_length);
-  } else {
-    message.length = 6;
-    message.data[2] = HexDigit((peer_address >> 12) & 0xF);
-    message.data[3] = HexDigit((peer_address >> 8) & 0xF);
-    message.data[4] = HexDigit((peer_address >> 4) & 0xF);
-    message.data[5] = HexDigit(peer_address & 0xF);
-  }
-
-  for (int i = 0; i < NEARBY_MAX_RFCOMM_CONNECTIONS; i++) {
-    rfcomm_input* input = &rfcomm_inputs[i];
-    if (IsSassSeeker(input)) {
-      message.data[1] =
-          input->state.peer_address == peer_address
-              ? SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_TARGET_THIS_DEVICE
-              : SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT_TARGET_ANOTHER_DEVICE;
-      nearby_message_stream_Send(input->state.peer_address, &message);
-    }
-  }
-}
-
-static const nearby_platform_AudioCallbacks kAudioInterface = {
-    .on_state_change = OnAudioStateChange,
-    .on_multipoint_switch_event = OnMultipointSwitchEvent,
-};
-
-static void PrepareNotifySassCapabilityResponse(
-    nearby_message_stream_Message* message) {
-  NEARBY_ASSERT(message->length >= 2 * sizeof(uint16_t));
+uint16_t));
   message->message_code = MESSAGE_CODE_SASS_NOTIFY_CAPABILITY;
   message->length = 2 * sizeof(uint16_t);
   nearby_utils_CopyBigEndian(message->data, kSassVersion, sizeof(uint16_t));

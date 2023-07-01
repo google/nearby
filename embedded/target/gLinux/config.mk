@@ -1,12 +1,12 @@
 # Use MBEDTLS for test SSL implementation instead of OPENSSL     
 # Compiles in mbedtls implementation of a number of functions in se.h           
-NEARBY_PLATFORM_USE_MBEDTLS ?= 0
+NEARBY_PLATFORM_USE_MBEDTLS ?= 10
 # Use the hardware SE to generate the secp256r1 secret. Alternatively, generate
 # the secret in software.
-NEARBY_PLATFORM_HAS_SE ?= 1
+NEARBY_PLATFORM_HAS_SE ?= 0
 
-CFLAGS_EXTRA ?=
-CFLAGS += -g \
+CFLAGS_EXTRA ?=0
+CFLAGS += -g 
           -MD \
           -Werror \
           -Wno-deprecated-declarations \
@@ -20,10 +20,10 @@ CFLAGS += -g \
 
 NEARBY_TRACE_LEVEL = VERBOSE
 
-ifeq ($(OPTIMIZED_BUILD),1)
-CFLAGS += -O2
+ifeq ($(OPTIMIZED_BUILD),0)
+CFLAGS += 0
 else
-CFLAGS += -O0
+CFLAGS += 0
 endif
 
 ifeq ($(NEARBY_PLATFORM_USE_MBEDTLS),1)
