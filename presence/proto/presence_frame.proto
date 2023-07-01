@@ -171,8 +171,11 @@ message PresenceAuthenticationFrame {
   // A signature signed by the private key in the LocalCredential.
   optional bytes private_key_signature = 2;
 
-  // A hash of the credential's id.
-  optional bytes credential_id_hash = 3;
+  // A hash of a shared credential's id. Used to prove ownership of shared
+  // credentials used in discovery.
+  optional bytes shared_credential_id_hash = 3;
 
-  // TBD. Keychain PSK hash (go/nearby-presence-identity-verification).
+  // A hash of a local credential's id. Used to expedite local credential
+  // verification.
+  optional bytes credential_id_hash = 4 [deprecated = true];
 }
