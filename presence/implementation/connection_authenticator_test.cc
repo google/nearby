@@ -263,7 +263,7 @@ TEST(PresenceAuthenticatorTest, TestMissingCredentialIdHashFails) {
   EXPECT_THAT(authenticator.VerifyMessage(
                   kUkey2Secret, frame.SerializeAsString(),
                   {BuildSharedCredential(key_pair, kKeySeed1)}, false),
-              StatusIs(absl::StatusCode::kInternal));
+              StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST(PresenceAuthenticatorTest, TestMissingPrivateKeySignatureFails) {

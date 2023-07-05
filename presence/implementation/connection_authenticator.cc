@@ -91,6 +91,12 @@ absl::Status ConnectionAuthenticator::VerifyMessage(
   if (auth_frame.version() != kPresenceAuthenticatorVersion) {
     return absl::InvalidArgumentError("Presence frame has wrong version.");
   }
+  if (!auth_frame.has_credential_id_hash() ||
+      (auth_frame.credential_id_hash().size() !=
+       kPresenceAuthenticatorHkdfKeySize)) {
+    return absl::InvalidArgumentError(
+        "Presence frame missing/has bad cid hash");
+  }
   // We want to check each shared credential to verify using its public key.
   for (const auto& shared_credential : shared_credentials) {
     // Verify Credential ID hash.
