@@ -14,36 +14,62 @@
 
 #include "fastpair/fast_pair_service.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/internal/fast_pair_seeker_impl.h"
+#include "fastpair/server_access/fast_pair_client_impl.h"
+#include "fastpair/server_access/fast_pair_http_notifier.h"
 #include "fastpair/server_access/fast_pair_repository_impl.h"
+#include "internal/account/account_manager_impl.h"
+#include "internal/auth/authentication_manager_impl.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/network/http_client_impl.h"
+#include "internal/platform/device_info_impl.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/task_runner_impl.h"
 
 namespace nearby {
 namespace fastpair {
 
 namespace {
-constexpr absl::Duration kTimeout = absl::Seconds(3);
+constexpr char kFastPairPreferencesFilePath[] = "Google/Nearby/FastPair";
 constexpr FeatureFlags::Flags fast_pair_feature_flags = FeatureFlags::Flags{
     .enable_scan_for_fast_pair_advertisement = true,
 };
+constexpr absl::Duration kTimeout = absl::Seconds(3);
 }
 
 FastPairService::FastPairService()
-    : FastPairService(std::make_unique<FastPairRepositoryImpl>()) {}
+    : FastPairService(std::make_unique<auth::AuthenticationManagerImpl>(),
+                      std::make_unique<network::NearbyHttpClient>(),
+                      std::make_unique<DeviceInfoImpl>()) {}
 
-FastPairService::FastPairService(std::unique_ptr<FastPairRepository> repository)
-    : fast_pair_repository_(std::move(repository)),
+FastPairService::FastPairService(
+    std::unique_ptr<auth::AuthenticationManager> authentication_manager,
+    std::unique_ptr<network::HttpClient> http_client,
+    std::unique_ptr<DeviceInfo> device_info)
+    : authentication_manager_(std::move(authentication_manager)),
+      http_client_(std::move(http_client)),
+      device_info_(std::move(device_info)),
+      task_runner_(std::make_unique<TaskRunnerImpl>(1)),
+      preferences_manager_(std::make_unique<preferences::PreferencesManager>(
+          kFastPairPreferencesFilePath)),
+      account_manager_(AccountManagerImpl::Factory::Create(
+          preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
+          authentication_manager_.get(), task_runner_.get())),
+      fast_pair_client_(std::make_unique<FastPairClientImpl>(
+          authentication_manager_.get(), account_manager_.get(),
+          http_client_.get(), &fast_pair_http_notifier_, device_info_.get())),
+      fast_pair_repository_(
+          std::make_unique<FastPairRepositoryImpl>(fast_pair_client_.get())),
       on_device_destroyed_callback_(
           [this](const FastPairDevice& device) { OnDeviceDestroyed(device); }) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -52,6 +78,7 @@ FastPairService::FastPairService(std::unique_ptr<FastPairRepository> repository)
       true);
   const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
       .SetFlags(fast_pair_feature_flags);
+
   devices_.AddObserver(&on_device_destroyed_callback_);
   seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{

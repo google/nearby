@@ -92,8 +92,14 @@ FastPairController::GetDataEncryptor() {
       CreateDataEncryptor();
     } else {
       FastPairRepository::Get()->GetDeviceMetadata(
-          device_->GetModelId(), [this](DeviceMetadata& metadata) {
-            device_->SetMetadata(metadata);
+          device_->GetModelId(),
+          [this](std::optional<DeviceMetadata> metadata) {
+            if (!metadata.has_value()) {
+              NEARBY_LOGS(WARNING)
+                  << __func__ << ": Failed to get device metadata";
+              return;
+            }
+            device_->SetMetadata(metadata.value());
             CreateDataEncryptor();
           });
     }

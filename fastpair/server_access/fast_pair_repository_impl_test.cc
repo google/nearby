@@ -14,92 +14,63 @@
 
 #include "fastpair/server_access/fast_pair_repository_impl.h"
 
-#include <cstddef>
 #include <memory>
 #include <optional>
-#include <string>
-#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "fastpair/common/device_metadata.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/repository/fake_fast_pair_metadata_repository.h"
-#include "fastpair/server_access/fast_pair_metadata_downloader.h"
-#include "fastpair/server_access/fast_pair_metadata_downloader_impl.h"
+#include "fastpair/server_access/fake_fast_pair_client.h"
+#include "internal/platform/count_down_latch.h"
 
 namespace nearby {
 namespace fastpair {
-
-constexpr absl::Duration kWaitTimeout = absl::Milliseconds(500);
-const int64_t kDeviceId = 10148625;
-const char kModelId[] = "9adb11";
-const char kDeviceName[] = "Pixel Buds Pro";
-
-class FakeFastPairMetadataRepositoryFactory;
-
 namespace {
-class FastPairRepositoryImplTest : public ::testing::Test {
- protected:
-  struct Result {
-    bool success;
-    std::optional<proto::Device> device;
-  };
+constexpr absl::string_view kHexModelId = "718C17";
+constexpr absl::string_view kInitialPairingdescription =
+    "InitialPairingdescription";
 
-  FastPairRepositoryImplTest() {}
-  ~FastPairRepositoryImplTest() override = default;
+// A gMock matcher to match proto values. Use this matcher like:
+// request/response proto, expected_proto;
+// EXPECT_THAT(proto, MatchesProto(expected_proto));
+MATCHER_P(
+    MatchesProto, expected_proto,
+    absl::StrCat(negation ? "does not match" : "matches",
+                 testing::PrintToString(expected_proto.SerializeAsString()))) {
+  return arg.SerializeAsString() == expected_proto.SerializeAsString();
+}
 
-  void GetObservedDataRequestSuccess(
-      const proto::GetObservedDeviceResponse& response) {
-    FakeFastPairMetadataRepository* repository =
-        fake_repository_factory_->fake_repository();
-    std::move(repository->get_observed_device_request()->callback)(response);
-  }
+TEST(FastPairRepositoryImplTest, MetadataDownloadSuccess) {
+  FakeFastPairClient fake_fast_pair_client;
+  auto fast_pair_repository =
+      std::make_unique<FastPairRepositoryImpl>(&fake_fast_pair_client);
 
-  void OnSuccess(DeviceMetadata& device_metadata) {
-    result_ = Result();
-    result_->success = true;
-    result_->device = device_metadata.GetDetails();
-  }
+  // Sets up proto::GetObservedDeviceResponse
+  proto::GetObservedDeviceResponse response_proto;
+  auto* device = response_proto.mutable_device();
+  int64_t device_id;
+  CHECK(absl::SimpleHexAtoi(kHexModelId, &device_id));
+  device->set_id(device_id);
+  auto* observed_device_strings = response_proto.mutable_strings();
+  observed_device_strings->set_initial_pairing_description(
+      kInitialPairingdescription);
+  fake_fast_pair_client.SetGetObservedDeviceResponse(response_proto);
 
-  std::optional<Result> result_;
-  FakeFastPairMetadataRepositoryFactory* fake_repository_factory_;
-  std::unique_ptr<FastPairRepositoryImpl> repository_;
-};
-
-TEST_F(FastPairRepositoryImplTest, MetadataDownloadSuccess) {
-  absl::Notification notification;
-
-  auto fake_repository_factory =
-      std::make_unique<FakeFastPairMetadataRepositoryFactory>();
-  fake_repository_factory_ = fake_repository_factory.get();
-
-  repository_ = std::make_unique<FastPairRepositoryImpl>(
-      std::move(fake_repository_factory));
-
-  repository_->Get()->GetDeviceMetadata(kModelId,
-                                        [&](DeviceMetadata& device_metadata) {
-                                          OnSuccess(device_metadata);
-                                          notification.Notify();
-                                        });
-  ASSERT_TRUE(fake_repository_factory_->fake_repository() != nullptr);
-  FakeFastPairMetadataRepository* repository =
-      fake_repository_factory_->fake_repository();
-  const proto::GetObservedDeviceRequest& request =
-      repository->get_observed_device_request()->request;
-  EXPECT_EQ(request.device_id(), kDeviceId);
-
-  proto::GetObservedDeviceResponse response;
-  response.mutable_device()->set_id(kDeviceId);
-  response.mutable_device()->set_name(kDeviceName);
-  GetObservedDataRequestSuccess(response);
-  ASSERT_TRUE(result_);
-  EXPECT_TRUE(result_->success);
-  ASSERT_TRUE(result_->device);
-  EXPECT_EQ(result_->device->name(), kDeviceName);
-  EXPECT_EQ(result_->device->id(), kDeviceId);
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  CountDownLatch latch(1);
+  fast_pair_repository->GetDeviceMetadata(
+      kHexModelId, [&](std::optional<DeviceMetadata> device_metadata) {
+        EXPECT_TRUE(device_metadata.has_value());
+        // Verifies proto::GetObservedDeviceResponse is as expected
+        proto::GetObservedDeviceResponse response =
+            device_metadata->GetResponse();
+        EXPECT_THAT(response, MatchesProto(response_proto));
+        EXPECT_EQ(response.device().id(), device_id);
+        EXPECT_EQ(response.strings().initial_pairing_description(),
+                  kInitialPairingdescription);
+        latch.CountDown();
+      });
+  latch.Await();
 }
 
 }  // namespace

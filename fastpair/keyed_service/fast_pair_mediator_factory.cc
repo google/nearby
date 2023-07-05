@@ -17,9 +17,11 @@
 #include <memory>
 
 #include "fastpair/internal/mediums/mediums.h"
-#include "fastpair/server_access/fast_pair_repository_impl.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/ui_broker_impl.h"
+#include "internal/auth/authentication_manager_impl.h"
+#include "internal/network/http_client_impl.h"
+#include "internal/platform/device_info_impl.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -32,10 +34,12 @@ MediatorFactory* MediatorFactory::GetInstance() {
 
 Mediator* MediatorFactory::CreateMediator() {
   mediator_ = std::make_unique<Mediator>(
-      std::make_unique<Mediums>(), std::make_unique<UIBrokerImpl>(),
+      std::make_unique<SingleThreadExecutor>(), std::make_unique<Mediums>(),
+      std::make_unique<UIBrokerImpl>(),
       std::make_unique<FastPairNotificationController>(),
-      std::make_unique<FastPairRepositoryImpl>(),
-      std::make_unique<SingleThreadExecutor>());
+      std::make_unique<auth::AuthenticationManagerImpl>(),
+      std::make_unique<network::NearbyHttpClient>(),
+      std::make_unique<DeviceInfoImpl>());
   return mediator_.get();
 }
 

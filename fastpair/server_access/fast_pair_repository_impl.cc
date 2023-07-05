@@ -14,42 +14,49 @@
 
 #include "fastpair/server_access/fast_pair_repository_impl.h"
 
-#include <algorithm>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 
-#include "fastpair/repository/fast_pair_metadata_repository.h"
-#include "fastpair/repository/fast_pair_metadata_repository_impl.h"
-#include "fastpair/server_access/fast_pair_metadata_downloader_impl.h"
-#include "internal/network/http_client_factory.h"
-#include "internal/network/http_client_factory_impl.h"
-#include "internal/platform/logging.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/device_metadata.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
 
-FastPairRepositoryImpl::FastPairRepositoryImpl()
-    : http_factory_(std::make_unique<nearby::network::HttpClientFactoryImpl>()),
-      repository_factory_(
-          std::make_unique<FastPairMetadataRepositoryFactoryImpl>(
-              http_factory_.get())) {}
-
-FastPairRepositoryImpl::FastPairRepositoryImpl(
-    std::unique_ptr<FastPairMetadataRepositoryFactory> repository)
-    : repository_factory_(std::move(repository)) {}
+FastPairRepositoryImpl::FastPairRepositoryImpl(FastPairClient* fast_pair_client)
+    : fast_pair_client_(fast_pair_client) {}
 
 void FastPairRepositoryImpl::GetDeviceMetadata(
-    absl::string_view hex_model_id,
-    DeviceMetadataCallback callback) {
-  downloader_ = FastPairMetadataDownloaderImpl::Factory::Create(
-      hex_model_id, repository_factory_.get(), std::move(callback), []() {
-        NEARBY_LOGS(INFO) << __func__
-                          << ": Fast Pair Metadata download failed.";
+    absl::string_view hex_model_id, DeviceMetadataCallback callback) {
+  NEARBY_LOGS(INFO) << __func__ << " with model id= " << hex_model_id;
+  executor_.Execute(
+      "Get Device Metadata", [this, hex_model_id = std::string(hex_model_id),
+                              callback = std::move(callback)]() mutable {
+        NEARBY_LOGS(INFO) << __func__ << ": Start to get devic metadata.";
+        proto::GetObservedDeviceRequest request;
+        int64_t device_id;
+        CHECK(absl::SimpleHexAtoi(hex_model_id, &device_id));
+        request.set_device_id(device_id);
+        request.set_mode(proto::GetObservedDeviceRequest::MODE_RELEASE);
+        absl::StatusOr<proto::GetObservedDeviceResponse> response =
+            fast_pair_client_->GetObservedDevice(request);
+        if (response.ok()) {
+          NEARBY_LOGS(WARNING) << "Got GetObservedDeviceResponse from backend.";
+          metadata_cache_[hex_model_id] =
+              std::make_unique<DeviceMetadata>(response.value());
+          // TODO(b/289139378) : save device's metadata in local cache.
+          callback(*metadata_cache_[hex_model_id]);
+        } else {
+          NEARBY_LOGS(WARNING)
+              << "Failed to get GetObservedDeviceResponse from backend.";
+          callback(std::nullopt);
+        }
       });
-  downloader_->Run();
 }
+
 }  // namespace fastpair
 }  // namespace nearby

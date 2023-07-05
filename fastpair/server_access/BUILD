@@ -63,6 +63,7 @@ cc_library(
     name = "test_support",
     srcs = ["fake_fast_pair_repository.cc"],
     hdrs = [
+        "fake_fast_pair_client.h",
         "fake_fast_pair_repository.h",
     ],
     visibility = [
@@ -95,10 +96,9 @@ cc_library(
 )
 
 cc_test(
-    name = "server_access_test",
+    name = "fast_pair_metadata_downloader_impl_test",
     srcs = [
         "fast_pair_metadata_downloader_impl_test.cc",
-        "fast_pair_repository_impl_test.cc",
     ],
     copts = [
         "-Ithird_party",
@@ -111,6 +111,25 @@ cc_test(
         "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fast_pair_repository_impl_test",
+    srcs = [
+        "fast_pair_repository_impl_test.cc",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    deps = [
+        ":server_access",
+        ":test_support",
+        "//fastpair/common",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

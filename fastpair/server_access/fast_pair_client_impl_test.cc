@@ -37,7 +37,6 @@
 #include "internal/account/fake_account_manager.h"
 #include "internal/auth/auth_status_util.h"
 #include "internal/network/http_client.h"
-#include "internal/network/http_client_factory.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
 #include "internal/network/http_status_code.h"
@@ -57,29 +56,33 @@ using ::nearby::network::HttpResponse;
 using ::nearby::network::HttpStatusCode;
 using ::nearby::network::Url;
 
-constexpr char kHexModelId[] = "718C17";
-constexpr char kAccessToken[] = "access_token";
-constexpr char kTestAccountId[] = "test_account_id";
-constexpr char kFastPairPreferencesFilePath[] = "Google/Nearby/FastPair";
-constexpr char kDevicesPath[] = "device/";
-constexpr char kUserDevicesPath[] = "user/devices";
-constexpr char kUserDeleteDevicePath[] = "user/device";
-constexpr char kKey[] = "key";
-constexpr char kClientId[] = "AIzaSyBv7ZrOlX5oIJLVQrZh-WkZFKm5L6FlStQ";
-const char kQueryParameterAlternateOutputKey[] = "alt";
-const char kQueryParameterAlternateOutputProto[] = "proto";
-const char kPlatformTypeHeaderName[] = "X-FastPair-Platform-Type";
-constexpr char kWindowsPlatformType[] = "OSType.WINDOWS";
-constexpr char kMode[] = "mode";
-constexpr char kReleaseMode[] = "MODE_RELEASE";
-constexpr char kTestGoogleApisUrl[] =
+constexpr absl::string_view kHexModelId = "718C17";
+constexpr absl::string_view kAccessToken = "access_token";
+constexpr absl::string_view kTestAccountId = "test_account_id";
+constexpr absl::string_view kFastPairPreferencesFilePath =
+    "Google/Nearby/FastPair";
+constexpr absl::string_view kDevicesPath = "device/";
+constexpr absl::string_view kUserDevicesPath = "user/devices";
+constexpr absl::string_view kUserDeleteDevicePath = "user/device";
+constexpr absl::string_view kKey = "key";
+constexpr absl::string_view kClientId =
+    "AIzaSyBv7ZrOlX5oIJLVQrZh-WkZFKm5L6FlStQ";
+constexpr absl::string_view kQueryParameterAlternateOutputKey = "alt";
+constexpr absl::string_view kQueryParameterAlternateOutputProto = "proto";
+constexpr absl::string_view kPlatformTypeHeaderName =
+    "X-FastPair-Platform-Type";
+constexpr absl::string_view kWindowsPlatformType = "OSType.WINDOWS";
+constexpr absl::string_view kMode = "mode";
+constexpr absl::string_view kReleaseMode = "MODE_RELEASE";
+constexpr absl::string_view kTestGoogleApisUrl =
     "https://nearbydevices-pa.testgoogleapis.com";
-constexpr char kBleAddress[] = "11::22::33::44::55::66";
-constexpr char kPublicAddress[] = "20:64:DE:40:F8:93";
-constexpr char kDisplayName[] = "Test Device";
-constexpr char kInitialPairingdescription[] = "InitialPairingdescription";
-constexpr char kAccountKey[] = "04b85786180add47fb81a04a8ce6b0de";
-constexpr char kExpectedSha256Hash[] =
+constexpr absl::string_view kBleAddress = "11::22::33::44::55::66";
+constexpr absl::string_view kPublicAddress = "20:64:DE:40:F8:93";
+constexpr absl::string_view kDisplayName = "Test Device";
+constexpr absl::string_view kInitialPairingdescription =
+    "InitialPairingdescription";
+constexpr absl::string_view kAccountKey = "04b85786180add47fb81a04a8ce6b0de";
+constexpr absl::string_view kExpectedSha256Hash =
     "6353c0075a35b7d81bb30a6190ab246da4b8c55a6111d387400579133c090ed8";
 
 class MockHttpClient : public HttpClient {
@@ -142,13 +145,13 @@ class FastPairClientImplTest : public ::testing::Test,
 
   void SetUp() override {
     GetAuthManager()->EnableSyncMode();
-    auto http_client = std::make_unique<::testing::NiceMock<MockHttpClient>>();
-    http_client_ =
-        dynamic_cast<::testing::NiceMock<MockHttpClient>*>(http_client.get());
-    switches::SetNearbyFastPairHttpHost(kTestGoogleApisUrl);
+    mock_http_client_ = std::make_unique<::testing::NiceMock<MockHttpClient>>();
+    http_client_ = dynamic_cast<::testing::NiceMock<MockHttpClient>*>(
+        mock_http_client_.get());
+    switches::SetNearbyFastPairHttpHost(std::string(kTestGoogleApisUrl));
     fast_pair_client_ = std::make_unique<FastPairClientImpl>(
         authentication_manager_.get(), account_manager_.get(),
-        std::move(http_client), &notifier_, device_info_.get());
+        mock_http_client_.get(), &notifier_, device_info_.get());
     notifier_.AddObserver(this);
   }
 
@@ -219,10 +222,10 @@ class FastPairClientImplTest : public ::testing::Test,
   std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
   std::unique_ptr<FakeAccountManager> account_manager_;
   std::unique_ptr<FastPairClient> fast_pair_client_;
-  std::unique_ptr<network::HttpClientFactory> http_client_factory_;
   std::unique_ptr<DeviceInfo> device_info_;
   std::unique_ptr<TaskRunner> task_runner_;
   ::testing::NiceMock<MockHttpClient>* http_client_;
+  std::unique_ptr<MockHttpClient> mock_http_client_;
   FastPairHttpNotifier notifier_;
 };
 
@@ -255,17 +258,17 @@ TEST_F(FastPairClientImplTest, GetObservedDeviceSuccess) {
                     ::testing::HasSubstr(GetUrl(kDevicesPath).GetUrlPath()));
 
         EXPECT_EQ(request.GetAllHeaders().find(kPlatformTypeHeaderName)->second,
-                  std::vector<std::string>{kWindowsPlatformType});
+                  std::vector<std::string>{std::string(kWindowsPlatformType)});
         EXPECT_EQ(
             ExpectQueryStringValues(request.GetAllQueryParameters(), kKey),
-            std::vector<std::string>{kClientId});
-        EXPECT_EQ(
-            ExpectQueryStringValues(request.GetAllQueryParameters(),
-                                    kQueryParameterAlternateOutputKey),
-            std::vector<std::string>{kQueryParameterAlternateOutputProto});
+            std::vector<std::string>{std::string(kClientId)});
+        EXPECT_EQ(ExpectQueryStringValues(request.GetAllQueryParameters(),
+                                          kQueryParameterAlternateOutputKey),
+                  std::vector<std::string>{
+                      std::string(kQueryParameterAlternateOutputProto)});
         EXPECT_EQ(
             ExpectQueryStringValues(request.GetAllQueryParameters(), kMode),
-            std::vector<std::string>{kReleaseMode});
+            std::vector<std::string>{std::string(kReleaseMode)});
         proto::GetObservedDeviceRequest expected_request;
         EXPECT_TRUE(expected_request.ParseFromString(
             request_proto.SerializeAsString()));
@@ -344,7 +347,7 @@ TEST_F(FastPairClientImplTest, UserReadDevicesSuccess) {
   http_response.SetBody(response_proto.SerializeAsString());
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
@@ -376,7 +379,7 @@ TEST_F(FastPairClientImplTest, UserReadDevicesFailureWhenNoRespsone) {
   proto::UserReadDevicesRequest request_proto;
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
@@ -415,7 +418,7 @@ TEST_F(FastPairClientImplTest, UserReadDevicesFailureWhenParseResponse) {
       });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
   absl::StatusOr<proto::UserReadDevicesResponse> response =
       fast_pair_client_->UserReadDevices(proto::UserReadDevicesRequest());
   EXPECT_TRUE(absl::IsInvalidArgument(response.status()));
@@ -449,7 +452,7 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceSuccess) {
   http_response.SetBody(response_proto.SerializeAsString());
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
@@ -497,7 +500,7 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceFailureWhenNoRespsone) {
   proto::UserWriteDeviceRequest request_proto;
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
@@ -536,7 +539,7 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceFailureWhenParseResponse) {
       });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
   absl::StatusOr<proto::UserWriteDeviceResponse> response =
       fast_pair_client_->UserWriteDevice(proto::UserWriteDeviceRequest());
   EXPECT_TRUE(absl::IsInvalidArgument(response.status()));
@@ -544,7 +547,7 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceFailureWhenParseResponse) {
 
 TEST_F(FastPairClientImplTest, UserDeleteDeviceSuccess) {
   // Sets up proto::UserDeleteDeviceRequest
-  std::string hex_account_key = kAccountKey;
+  std::string hex_account_key = std::string(kAccountKey);
   absl::AsciiStrToUpper(&hex_account_key);
   proto::UserDeleteDeviceRequest request_proto;
   request_proto.set_hex_account_key(hex_account_key);
@@ -558,7 +561,7 @@ TEST_F(FastPairClientImplTest, UserDeleteDeviceSuccess) {
   http_response.SetBody(response_proto.SerializeAsString());
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
@@ -591,7 +594,7 @@ TEST_F(FastPairClientImplTest, UserDeleteDeviceFailureWhenNoRespsone) {
   proto::UserDeleteDeviceRequest request_proto;
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
@@ -630,7 +633,7 @@ TEST_F(FastPairClientImplTest, UserDeleteDeviceFailureWhenParseResponse) {
       });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
   absl::StatusOr<proto::UserDeleteDeviceResponse> response =
       fast_pair_client_->UserDeleteDevice(proto::UserDeleteDeviceRequest());
   EXPECT_TRUE(absl::IsInvalidArgument(response.status()));
@@ -658,7 +661,7 @@ TEST_F(FastPairClientImplTest, ParseResponseProtoFailure) {
       });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
-                                              kAccessToken);
+                                              std::string(kAccessToken));
   absl::StatusOr<proto::UserReadDevicesResponse> response =
       fast_pair_client_->UserReadDevices(proto::UserReadDevicesRequest());
   EXPECT_TRUE(absl::IsInvalidArgument(response.status()));

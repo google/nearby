@@ -17,42 +17,53 @@
 #include <ios>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 
+#include "absl/status/status.h"
+#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
+#include "fastpair/server_access/fast_pair_client_impl.h"
 #include "fastpair/server_access/fast_pair_repository_impl.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/ui_broker_impl.h"
+#include "internal/account/account_manager_impl.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/device_info_impl.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/task_runner_impl.h"
+#include "internal/preferences/preferences_manager.h"
 
 namespace nearby {
 namespace fastpair {
 namespace {
+constexpr char kFastPairPreferencesFilePath[] = "Google/Nearby/FastPair";
 constexpr FeatureFlags::Flags fast_pair_feature_flags = FeatureFlags::Flags{
     .enable_scan_for_fast_pair_advertisement = true,
 };
 }
 
 Mediator::Mediator(
+    std::unique_ptr<SingleThreadExecutor> executor,
     std::unique_ptr<Mediums> mediums, std::unique_ptr<UIBroker> ui_broker,
     std::unique_ptr<FastPairNotificationController> notification_controller,
-    std::unique_ptr<FastPairRepository> fast_pair_repository,
-    std::unique_ptr<SingleThreadExecutor> executor)
-    : mediums_(std::move(mediums)),
+    std::unique_ptr<auth::AuthenticationManager> authentication_manager,
+    std::unique_ptr<network::HttpClient> http_client,
+    std::unique_ptr<DeviceInfo> device_info)
+    : executor_(std::move(executor)),
+      mediums_(std::move(mediums)),
       ui_broker_(std::move(ui_broker)),
       notification_controller_(std::move(notification_controller)),
-      fast_pair_repository_(std::move(fast_pair_repository)),
-      executor_(std::move(executor)) {
+      authentication_manager_(std::move(authentication_manager)),
+      http_client_(std::move(http_client)),
+      device_info_(std::move(device_info)) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableBleV2Gatt,
@@ -65,7 +76,17 @@ Mediator::Mediator(
       *mediums_, executor_.get(), devices_.get());
   pairer_broker_ =
       std::make_unique<PairerBrokerImpl>(*mediums_, executor_.get());
-
+  task_runner_ = std::make_unique<TaskRunnerImpl>(1);
+  preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
+      kFastPairPreferencesFilePath);
+  account_manager_ = AccountManagerImpl::Factory::Create(
+      preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
+      authentication_manager_.get(), task_runner_.get());
+  fast_pair_client_ = std::make_unique<FastPairClientImpl>(
+      authentication_manager_.get(), account_manager_.get(), http_client_.get(),
+      &fast_pair_http_notifier_, device_info_.get());
+  fast_pair_repository_ =
+      std::make_unique<FastPairRepositoryImpl>(fast_pair_client_.get());
   scanner_broker_->AddObserver(this);
   ui_broker_->AddObserver(this);
   pairer_broker_->AddObserver(this);

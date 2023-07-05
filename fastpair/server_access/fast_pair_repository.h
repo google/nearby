@@ -26,7 +26,9 @@
 
 namespace nearby {
 namespace fastpair {
-using DeviceMetadataCallback = absl::AnyInvocable<void(DeviceMetadata&)>;
+using DeviceMetadataCallback =
+    absl::AnyInvocable<void(std::optional<DeviceMetadata> device_metadata)>;
+
 class FastPairRepository {
  public:
   static FastPairRepository* Get();

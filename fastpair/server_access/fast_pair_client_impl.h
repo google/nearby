@@ -41,7 +41,7 @@ class FastPairClientImpl : public FastPairClient {
 
   FastPairClientImpl(auth::AuthenticationManager* authentication_manager,
                      AccountManager* account_manager,
-                     std::unique_ptr<network::HttpClient> http_client,
+                     network::HttpClient* http_client,
                      FastPairHttpNotifier* notifier, DeviceInfo* device_info);
   FastPairClientImpl(FastPairClientImpl&) = delete;
   FastPairClientImpl& operator=(FastPairClientImpl&) = delete;
@@ -77,7 +77,7 @@ class FastPairClientImpl : public FastPairClient {
 
   auth::AuthenticationManager* authentication_manager_ = nullptr;
   AccountManager* account_manager_ = nullptr;
-  std::unique_ptr<network::HttpClient> http_client_;
+  network::HttpClient* http_client_;
   FastPairHttpNotifier* notifier_ = nullptr;
   DeviceInfo* device_info_ = nullptr;
 };

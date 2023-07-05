@@ -19,7 +19,6 @@
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
@@ -34,10 +33,10 @@ constexpr absl::string_view kPublicKey = "test public key";
 namespace {
 TEST(FastPairPresenterImplTest, ShowDiscoveryForV1Version) {
   // Setup repository with v1 version device metadata
-  FakeFastPairRepository repository;
-  proto::Device v1_version_device;
-  repository.SetFakeMetadata(kModelId, v1_version_device);
   FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
+  proto::GetObservedDeviceResponse response;
+  DeviceMetadata device_metadata(response);
+  device.SetMetadata(device_metadata);
 
   // Register FastPairNotificationControllerObserver
   auto latch_1 = std::make_optional<CountDownLatch>(1);
@@ -66,12 +65,13 @@ TEST(FastPairPresenterImplTest, ShowDiscoveryForV1Version) {
 
 TEST(FastPairPresenterImplTest, ShowDiscoveryForHigherThanV1Version) {
   // Setup repository with HigherThanV1Version device metadata
-  FakeFastPairRepository repository;
-  proto::Device higher_than_v1_version_device;
-  higher_than_v1_version_device.mutable_anti_spoofing_key_pair()
-      ->set_public_key(kPublicKey);
-  repository.SetFakeMetadata(kModelId, higher_than_v1_version_device);
   FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
+  proto::GetObservedDeviceResponse response;
+  auto* higher_than_v1_version_device = response.mutable_device();
+  higher_than_v1_version_device->mutable_anti_spoofing_key_pair()
+      ->set_public_key(kPublicKey);
+  DeviceMetadata device_metadata(response);
+  device.SetMetadata(device_metadata);
 
   // Register FastPairNotificationControllerObserver
   auto latch_1 = std::make_optional<CountDownLatch>(1);

@@ -25,23 +25,72 @@
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/plugins/fake_fast_pair_plugin.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "internal/account/fake_account_manager.h"
+#include "internal/network/http_client.h"
+#include "internal/platform/device_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/test/fake_device_info.h"
+#include "internal/test/fake_http_client.h"
+#include "internal/test/google3_only/fake_authentication_manager.h"
 
 namespace nearby {
 namespace fastpair {
 
 namespace {
+constexpr absl::string_view kPluginName = "my plugin";
 constexpr absl::string_view kModelId{"718c17"};
 constexpr absl::string_view kPublicAntiSpoof =
     "Wuyr48lD3txnUhGiMF1IfzlTwRxxe+wMB1HLzP+"
     "0wVcljfT3XPoiy1fntlneziyLD5knDVAJSE+RM/zlPRP/Jg==";
-
 using ::testing::status::StatusIs;
 
+class FastPairServiceTest : public ::testing::Test {
+ protected:
+  FastPairServiceTest() {
+    AccountManagerImpl::Factory::SetFactoryForTesting(
+        &account_manager_factory_);
+    http_client_ = std::make_unique<network::FakeHttpClient>();
+    device_info_ = std::make_unique<FakeDeviceInfo>();
+    authentication_manager_ =
+        std::make_unique<nearby::FakeAuthenticationManager>();
+  }
+
+  void SetUp() override {
+    MediumEnvironment::Instance().Start();
+    GetAuthManager()->EnableSyncMode();
+  }
+
+  void TearDown() override { MediumEnvironment::Instance().Stop(); }
+
+  nearby::FakeAuthenticationManager* GetAuthManager() {
+    return reinterpret_cast<nearby::FakeAuthenticationManager*>(
+        authentication_manager_.get());
+  }
+
+  network::FakeHttpClient* GetHttpClient() {
+    return reinterpret_cast<network::FakeHttpClient*>(http_client_.get());
+  }
+
+  void SetUpDeviceMetadata() {
+    proto::GetObservedDeviceResponse response_proto;
+    auto* device = response_proto.mutable_device();
+    int64_t device_id;
+    CHECK(absl::SimpleHexAtoi(kModelId, &device_id));
+    device->set_id(device_id);
+    network::HttpResponse response;
+    response.SetStatusCode(network::HttpStatusCode::kHttpOk);
+    response.SetBody(response_proto.SerializeAsString());
+    GetHttpClient()->SetResponseForSyncRequest(response);
+  }
+
+  FakeAccountManager::Factory account_manager_factory_;
+  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
+  std::unique_ptr<network::HttpClient> http_client_;
+  std::unique_ptr<DeviceInfo> device_info_;
+};
+
 TEST(FastPairService, RegisterUnregister) {
-  constexpr absl::string_view kPluginName = "my plugin";
   FastPairService service;
 
   EXPECT_OK(service.RegisterPluginProvider(
@@ -50,7 +99,6 @@ TEST(FastPairService, RegisterUnregister) {
 }
 
 TEST(FastPairService, RegisterTwiceFails) {
-  constexpr absl::string_view kPluginName = "my plugin";
   FastPairService service;
   EXPECT_OK(service.RegisterPluginProvider(
       kPluginName, std::make_unique<FakeFastPairPluginProvider>()));
@@ -61,7 +109,6 @@ TEST(FastPairService, RegisterTwiceFails) {
 }
 
 TEST(FastPairService, UnregisterTwiceFails) {
-  constexpr absl::string_view kPluginName = "my plugin";
   FastPairService service;
   EXPECT_OK(service.RegisterPluginProvider(
       kPluginName, std::make_unique<FakeFastPairPluginProvider>()));
@@ -71,12 +118,12 @@ TEST(FastPairService, UnregisterTwiceFails) {
               StatusIs(absl::StatusCode::kNotFound));
 }
 
-TEST(FastPairService, InitialDiscoveryEvent) {
-  MediumEnvironment::Instance().Start();
-  constexpr absl::string_view kPluginName = "my plugin";
-  auto repository = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
+TEST_F(FastPairServiceTest, InitialDiscoveryEvent) {
   FakeProvider provider;
-  FastPairService service(std::move(repository));
+  SetUpDeviceMetadata();
+  FastPairService service(std::move(authentication_manager_),
+                          std::move(http_client_), std::move(device_info_));
+
   CountDownLatch latch(1);
   auto plugin_provider = std::make_unique<FakeFastPairPluginProvider>();
   plugin_provider->on_initial_discovery_event_ =
@@ -96,15 +143,14 @@ TEST(FastPairService, InitialDiscoveryEvent) {
 
   EXPECT_OK(seeker->StopFastPairScan());
   EXPECT_OK(service.UnregisterPluginProvider(kPluginName));
-  MediumEnvironment::Instance().Stop();
 }
 
-TEST(FastPairService, ScreenEvent) {
-  MediumEnvironment::Instance().Start();
-  constexpr absl::string_view kPluginName = "my plugin";
-  auto repository = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
+TEST_F(FastPairServiceTest, ScreenEvent) {
   FakeProvider provider;
-  FastPairService service(std::move(repository));
+  SetUpDeviceMetadata();
+  FastPairService service(std::move(authentication_manager_),
+                          std::move(http_client_), std::move(device_info_));
+
   CountDownLatch latch(1);
   auto plugin_provider = std::make_unique<FakeFastPairPluginProvider>();
   plugin_provider->on_initial_discovery_event_ =
@@ -128,7 +174,6 @@ TEST(FastPairService, ScreenEvent) {
 
   EXPECT_OK(seeker->StopFastPairScan());
   EXPECT_OK(service.UnregisterPluginProvider(kPluginName));
-  MediumEnvironment::Instance().Stop();
 }
 
 }  // namespace

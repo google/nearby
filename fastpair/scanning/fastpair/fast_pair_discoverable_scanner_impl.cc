@@ -159,11 +159,14 @@ void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
 
 void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
     const std::string address, const std::string model_id,
-    DeviceMetadata& device_metadata) {
-  DCHECK(&device_metadata);
+    std::optional<DeviceMetadata> device_metadata) {
+  if (!device_metadata.has_value()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Failed to get device metadata";
+    return;
+  }
   // Ignore advertisements that aren't for Fast Pair but leverage the service
   // UUID.
-  if (!IsValidDeviceType(device_metadata.GetDetails())) {
+  if (!IsValidDeviceType(device_metadata->GetDetails())) {
     NEARBY_LOGS(WARNING)
         << __func__
         << ": Invalid device type for Fast Pair. Ignoring this advertisement";
@@ -173,7 +176,7 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
   // Ignore advertisements for unsupported notification types, such as
   // APP_LAUNCH which should launch a companion app instead of beginning Fast
   // Pair.
-  if (!IsSupportedNotificationType(device_metadata.GetDetails())) {
+  if (!IsSupportedNotificationType(device_metadata->GetDetails())) {
     NEARBY_LOGS(WARNING) << __func__
                          << ": Unsupported notification type for Fast Pair. "
                             "Ignoring this advertisement";
@@ -181,7 +184,7 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
   }
   auto fast_pair_device = std::make_unique<FastPairDevice>(
       model_id, address, Protocol::kFastPairInitialPairing);
-  fast_pair_device->SetMetadata(device_metadata);
+  fast_pair_device->SetMetadata(device_metadata.value());
 
   executor_->Execute(
       "add-device",

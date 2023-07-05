@@ -74,7 +74,7 @@ class FastPairDiscoverableScannerImpl : public FastPairDiscoverableScanner,
   void OnModelIdRetrieved(const std::string& address,
                           std::optional<absl::string_view> model_id);
   void OnDeviceMetadataRetrieved(std::string address, std::string model_id,
-                                 DeviceMetadata& device_metadata);
+                                 std::optional<DeviceMetadata> device_metadata);
   void NotifyDeviceFound(FastPairDevice& device)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
 

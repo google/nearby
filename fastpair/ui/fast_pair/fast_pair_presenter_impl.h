@@ -48,13 +48,6 @@ class FastPairPresenterImpl : public FastPairPresenter {
   void ShowDiscovery(FastPairDevice& device,
                      FastPairNotificationController& notification_controller,
                      DiscoveryCallback callback) override;
-
- private:
-  // observer_list of notification_controller is updated
-  void OnDiscoveryMetadataRetrieved(
-      FastPairDevice& device, const DeviceMetadata& device_metadata,
-      FastPairNotificationController& notification_controller);
-  DiscoveryCallback callback_;
 };
 }  // namespace fastpair
 }  // namespace nearby

@@ -14,7 +14,6 @@
 
 #include "fastpair/keyed_service/fast_pair_mediator.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -29,12 +28,16 @@
 #include "fastpair/testing/fast_pair_service_data_creator.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
-#include "fastpair/ui/fast_pair/mock_fast_pair_notification_controller.h"
 #include "fastpair/ui/mock_ui_broker.h"
 #include "fastpair/ui/ui_broker.h"
-#include "fastpair/ui/ui_broker_impl.h"
+#include "internal/account/fake_account_manager.h"
+#include "internal/network/http_client_impl.h"
+#include "internal/platform/device_info_impl.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/test/fake_device_info.h"
+#include "internal/test/fake_http_client.h"
+#include "internal/test/google3_only/fake_authentication_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -61,19 +64,18 @@ constexpr absl::string_view kAddress = "74:74:46:01:6C:21";
 
 class MediatorTest : public testing::Test {
  public:
+  MediatorTest() {
+    AccountManagerImpl::Factory::SetFactoryForTesting(
+        &account_manager_factory_);
+    http_client_ = std::make_unique<network::FakeHttpClient>();
+    device_info_ = std::make_unique<FakeDeviceInfo>();
+    authentication_manager_ =
+        std::make_unique<nearby::FakeAuthenticationManager>();
+  }
   void SetUp() override {
     env_.Start();
+    GetAuthManager()->EnableSyncMode();
     mediums_ = std::make_unique<Mediums>();
-
-    // Setup FakeFastPairRepository for two devices
-    repository_ = FakeFastPairRepository::Create(kModelId, kPublicAntiSpoof);
-
-    std::string decoded_key;
-    absl::Base64Unescape(kPublicAntiSpoof2, &decoded_key);
-    proto::Device metadata;
-    metadata.mutable_anti_spoofing_key_pair()->set_public_key(decoded_key);
-    repository_->SetFakeMetadata(kModelId2, metadata);
-
     ui_broker_ = std::make_unique<MockUIBroker>();
     mock_ui_broker_ = static_cast<MockUIBroker*>(ui_broker_.get());
 
@@ -94,6 +96,27 @@ class MediatorTest : public testing::Test {
     env_.Stop();
   }
 
+  nearby::FakeAuthenticationManager* GetAuthManager() {
+    return reinterpret_cast<nearby::FakeAuthenticationManager*>(
+        authentication_manager_.get());
+  }
+
+  network::FakeHttpClient* GetHttpClient() {
+    return reinterpret_cast<network::FakeHttpClient*>(http_client_.get());
+  }
+
+  void SetUpDeviceMetadata() {
+    proto::GetObservedDeviceResponse response_proto;
+    auto* device = response_proto.mutable_device();
+    int64_t device_id;
+    CHECK(absl::SimpleHexAtoi(kModelId, &device_id));
+    device->set_id(device_id);
+    network::HttpResponse response;
+    response.SetStatusCode(network::HttpStatusCode::kHttpOk);
+    response.SetBody(response_proto.SerializeAsString());
+    GetHttpClient()->SetResponseForSyncRequest(response);
+  }
+
  protected:
   MediumEnvironment& env_{MediumEnvironment::Instance()};
   std::unique_ptr<Mediums> mediums_;
@@ -103,19 +126,23 @@ class MediatorTest : public testing::Test {
   std::unique_ptr<SingleThreadExecutor> executor_;
   MockUIBroker* mock_ui_broker_;
   std::unique_ptr<Mediator> mediator_;
+  FakeAccountManager::Factory account_manager_factory_;
+  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
+  std::unique_ptr<network::HttpClient> http_client_;
+  std::unique_ptr<DeviceInfo> device_info_;
 };
 
 TEST_F(MediatorTest, StartScanningFoundDevice) {
+  SetUpDeviceMetadata();
+  // Create Fast Pair Mediator
+  mediator_ = std::make_unique<Mediator>(
+      std::move(executor_), std::move(mediums_), std::move(ui_broker_),
+      std::move(notification_controller_), std::move(authentication_manager_),
+      std::move(http_client_), std::move(device_info_));
   absl::Notification done;
   EXPECT_CALL(*mock_ui_broker_, ShowDiscovery).WillOnce([&done] {
     done.Notify();
   });
-
-  // Create Fast Pair Mediator
-  mediator_ =
-      std::make_unique<Mediator>(std::move(mediums_), std::move(ui_broker_),
-                                 std::move(notification_controller_),
-                                 std::move(repository_), std::move(executor_));
 
   // Create Advertiser and startAdvertising
   Mediums mediums_advertiser;
@@ -130,16 +157,16 @@ TEST_F(MediatorTest, StartScanningFoundDevice) {
 }
 
 TEST_F(MediatorTest, StartScanningFoundDifferentDeviceWhenDisplaying) {
+  SetUpDeviceMetadata();
+  // Create Fast Pair Mediator
+  mediator_ = std::make_unique<Mediator>(
+      std::move(executor_), std::move(mediums_), std::move(ui_broker_),
+      std::move(notification_controller_), std::move(authentication_manager_),
+      std::move(http_client_), std::move(device_info_));
   absl::Notification done;
   EXPECT_CALL(*mock_ui_broker_, ShowDiscovery).Times(1).WillOnce([&done] {
     done.Notify();
   });
-
-  // Create Fast Pair Mediator
-  mediator_ =
-      std::make_unique<Mediator>(std::move(mediums_), std::move(ui_broker_),
-                                 std::move(notification_controller_),
-                                 std::move(repository_), std::move(executor_));
 
   // Create Advertiser and startAdvertising
   Mediums mediums_advertiser;
@@ -160,16 +187,16 @@ TEST_F(MediatorTest, StartScanningFoundDifferentDeviceWhenDisplaying) {
 }
 
 TEST_F(MediatorTest, StartScanningFoundSameDeviceWhenDisplaying) {
+  SetUpDeviceMetadata();
+  // Create Fast Pair Mediator
+  mediator_ = std::make_unique<Mediator>(
+      std::move(executor_), std::move(mediums_), std::move(ui_broker_),
+      std::move(notification_controller_), std::move(authentication_manager_),
+      std::move(http_client_), std::move(device_info_));
   absl::Notification done;
   EXPECT_CALL(*mock_ui_broker_, ShowDiscovery).Times(1).WillOnce([&done] {
     done.Notify();
   });
-
-  // Create Fast Pair Mediator
-  mediator_ =
-      std::make_unique<Mediator>(std::move(mediums_), std::move(ui_broker_),
-                                 std::move(notification_controller_),
-                                 std::move(repository_), std::move(executor_));
 
   // Create Advertiser and startAdvertising
   Mediums mediums_advertiser;
@@ -191,16 +218,16 @@ TEST_F(MediatorTest, StartScanningFoundSameDeviceWhenDisplaying) {
 
 TEST_F(MediatorTest,
        StartScanningForSubsequentPairingFoundSameDeviceWhenDisplaying) {
+  SetUpDeviceMetadata();
+  // Create Fast Pair Mediator
+  mediator_ = std::make_unique<Mediator>(
+      std::move(executor_), std::move(mediums_), std::move(ui_broker_),
+      std::move(notification_controller_), std::move(authentication_manager_),
+      std::move(http_client_), std::move(device_info_));
   absl::Notification done;
   EXPECT_CALL(*mock_ui_broker_, ShowDiscovery).Times(1).WillOnce([&done] {
     done.Notify();
   });
-
-  // Create Fast Pair Mediator
-  mediator_ =
-      std::make_unique<Mediator>(std::move(mediums_), std::move(ui_broker_),
-                                 std::move(notification_controller_),
-                                 std::move(repository_), std::move(executor_));
 
   // Create Advertiser and advertising discoverable advertisement
   Mediums mediums_advertiser;
@@ -231,16 +258,18 @@ TEST_F(MediatorTest,
 }
 
 TEST_F(MediatorTest, OnDiscoveryActionClicked) {
+  SetUpDeviceMetadata();
+  SetUpDeviceMetadata();
+  // Create Fast Pair Mediator
+  mediator_ = std::make_unique<Mediator>(
+      std::move(executor_), std::move(mediums_), std::move(ui_broker_),
+      std::move(notification_controller_), std::move(authentication_manager_),
+      std::move(http_client_), std::move(device_info_));
+
   absl::Notification done;
   EXPECT_CALL(*mock_ui_broker_, ShowDiscovery).Times(2).WillOnce([&done] {
     done.Notify();
   });
-
-  // Create Fast Pair Mediator
-  mediator_ =
-      std::make_unique<Mediator>(std::move(mediums_), std::move(ui_broker_),
-                                 std::move(notification_controller_),
-                                 std::move(repository_), std::move(executor_));
 
   // Create Advertiser and startAdvertising
   Mediums mediums_advertiser;

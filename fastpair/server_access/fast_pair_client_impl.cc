@@ -33,7 +33,6 @@
 namespace nearby {
 namespace fastpair {
 namespace {
-using ::nearby::network::HttpClient;
 using ::nearby::network::HttpRequest;
 using ::nearby::network::HttpRequestMethod;
 using ::nearby::network::HttpResponse;
@@ -89,8 +88,7 @@ Url CreateV1RequestUrl(absl::string_view request_path) {
 
 FastPairClientImpl::FastPairClientImpl(
     auth::AuthenticationManager* authentication_manager,
-    AccountManager* account_manager,
-    std::unique_ptr<network::HttpClient> http_client,
+    AccountManager* account_manager, network::HttpClient* http_client,
     FastPairHttpNotifier* notifier, DeviceInfo* device_info)
     : authentication_manager_(authentication_manager),
       account_manager_(account_manager),
@@ -199,7 +197,6 @@ FastPairClientImpl::UserWriteDevice(
       /*Url=*/CreateV1RequestUrl(kUserDevicesPath), RequestType::kPost,
       /*query parameters=*/std::nullopt,
       /*body=*/request.SerializeAsString());
-
   absl::StatusOr<HttpResponse> http_response =
       http_client_->GetResponse(http_request);
 

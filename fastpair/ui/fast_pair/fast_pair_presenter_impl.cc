@@ -51,22 +51,8 @@ void FastPairPresenterImpl::ShowDiscovery(
     FastPairDevice& device,
     FastPairNotificationController& notification_controller,
     DiscoveryCallback callback) {
-  callback_ = std::move(callback);
-  FastPairRepository::Get()->GetDeviceMetadata(
-      device.GetModelId(), [&](const DeviceMetadata& device_metadata) {
-        NEARBY_LOGS(INFO) << __func__
-                          << "Retrieved metadata to notification controller.";
-        OnDiscoveryMetadataRetrieved(device, device_metadata,
-                                     notification_controller);
-      });
-}
-
-void FastPairPresenterImpl::OnDiscoveryMetadataRetrieved(
-    FastPairDevice& device, const DeviceMetadata& device_metadata,
-    FastPairNotificationController& notification_controller) {
-  device.SetMetadata(device_metadata);
   notification_controller.ShowGuestDiscoveryNotification(*device.GetMetadata(),
-                                                         std::move(callback_));
+                                                         std::move(callback));
 }
 }  // namespace fastpair
 }  // namespace nearby

@@ -105,7 +105,6 @@ cc_test(
         ":fast_pair_ui",
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
-        "//fastpair/server_access:test_support",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",

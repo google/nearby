@@ -24,10 +24,18 @@
 #include "fastpair/pairing/pairer_broker.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker.h"
+#include "fastpair/server_access/fast_pair_client.h"
+#include "fastpair/server_access/fast_pair_http_notifier.h"
 #include "fastpair/server_access/fast_pair_repository.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/ui_broker.h"
+#include "internal/account/account_manager.h"
+#include "internal/auth/authentication_manager.h"
+#include "internal/network/http_client.h"
+#include "internal/platform/device_info.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/task_runner.h"
+#include "internal/preferences/preferences_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -38,10 +46,12 @@ class Mediator final : public ScannerBroker::Observer,
                        public PairerBroker::Observer {
  public:
   Mediator(
+      std::unique_ptr<SingleThreadExecutor> executor,
       std::unique_ptr<Mediums> mediums, std::unique_ptr<UIBroker> ui_broker,
       std::unique_ptr<FastPairNotificationController> notification_controller,
-      std::unique_ptr<FastPairRepository> fast_pair_repository,
-      std::unique_ptr<SingleThreadExecutor> executor);
+      std::unique_ptr<auth::AuthenticationManager> authentication_manager,
+      std::unique_ptr<network::HttpClient> http_client,
+      std::unique_ptr<DeviceInfo> device_info);
   Mediator(const Mediator&) = delete;
   Mediator& operator=(const Mediator&) = delete;
   ~Mediator() override {
@@ -60,12 +70,12 @@ class Mediator final : public ScannerBroker::Observer,
     return notification_controller_.get();
   }
 
+  void StartScanning();
+  void StopScanning();
+
   // ScannerBroker::Observer
   void OnDeviceFound(FastPairDevice& device) override;
   void OnDeviceLost(FastPairDevice& device) override;
-
-  void StartScanning();
-  void StopScanning();
 
   // UIBroker::Observer
   void OnDiscoveryAction(FastPairDevice& device,
@@ -89,7 +99,8 @@ class Mediator final : public ScannerBroker::Observer,
   // |device_currently_showing_notification_| can be null if there is no
   // notification currently displayed to the user.
   FastPairDevice* device_currently_showing_notification_ = nullptr;
-
+  FastPairHttpNotifier fast_pair_http_notifier_;
+  std::unique_ptr<SingleThreadExecutor> executor_;
   std::unique_ptr<Mediums> mediums_;
   std::unique_ptr<ScannerBroker> scanner_broker_;
   std::unique_ptr<ScannerBroker::ScanningSession> scanning_session_;
@@ -97,8 +108,14 @@ class Mediator final : public ScannerBroker::Observer,
   std::unique_ptr<PairerBroker> pairer_broker_;
   std::unique_ptr<FastPairNotificationController> notification_controller_;
   std::unique_ptr<FastPairRepository> fast_pair_repository_;
-  std::unique_ptr<SingleThreadExecutor> executor_;
+  std::unique_ptr<TaskRunner> task_runner_;
   std::unique_ptr<FastPairDeviceRepository> devices_;
+  std::unique_ptr<AccountManager> account_manager_;
+  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
+  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
+  std::unique_ptr<FastPairClient> fast_pair_client_;
+  std::unique_ptr<network::HttpClient> http_client_;
+  std::unique_ptr<DeviceInfo> device_info_;
   bool is_screen_locked_ = false;
 };
 

@@ -16,23 +16,21 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_REPOSITORY_IMPL_H_
 
 #include <memory>
-#include <optional>
 #include <string>
-#include <utility>
 
-#include "fastpair/repository/fast_pair_metadata_repository.h"
-#include "fastpair/server_access/fast_pair_metadata_downloader.h"
-#include "fastpair/server_access/fast_pair_repository.h"
-#include "internal/network/http_client_factory.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/device_metadata.h"
+#include "fastpair/server_access/fast_pair_client.h"
+#include "fastpair/server_access/fast_pair_repository.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
+
 class FastPairRepositoryImpl : public FastPairRepository {
  public:
-  FastPairRepositoryImpl();
-  explicit FastPairRepositoryImpl(
-      std::unique_ptr<FastPairMetadataRepositoryFactory> repository);
+  explicit FastPairRepositoryImpl(FastPairClient* fast_pair_client);
+
   FastPairRepositoryImpl(const FastPairRepositoryImpl&) = delete;
   FastPairRepositoryImpl& operator=(const FastPairRepositoryImpl&) = delete;
   ~FastPairRepositoryImpl() override = default;
@@ -41,9 +39,11 @@ class FastPairRepositoryImpl : public FastPairRepository {
                          DeviceMetadataCallback callback) override;
 
  private:
-  std::unique_ptr<FastPairMetadataDownloader> downloader_;
-  std::unique_ptr<network::HttpClientFactory> http_factory_;
-  std::unique_ptr<FastPairMetadataRepositoryFactory> repository_factory_;
+  // A thread for running blocking tasks.
+  SingleThreadExecutor executor_;
+  FastPairClient* fast_pair_client_;
+  absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>>
+      metadata_cache_;
 };
 }  // namespace fastpair
 }  // namespace nearby
