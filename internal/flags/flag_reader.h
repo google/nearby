@@ -25,7 +25,7 @@ namespace nearby {
 namespace flags {
 
 // Allows caller to get flag values form backend system.
-// The caller could implement flexiable control on Nearby SDK in granularity,
+// The caller could implement flexible control on Nearby SDK in granularity,
 // such as feature, configuration etc. Default value will be returned if no
 // flag-supported backend.
 class FlagReader {
