@@ -89,14 +89,14 @@ void BaseSocket::ShutDown() {
 }
 
 void BaseSocket::TryWriteNextControl() {
-  bool connected = IsConnected();
   MutexLock lock(&mutex_);
   if (current_control_ == nullptr) {
     if (!control_request_queue_.empty()) {
       current_control_ = &control_request_queue_.front();
     }
   }
-  if (current_control_ == nullptr && connected) {
+  // We should have a control packet to write at this point. If we don't, abort.
+  if (current_control_ == nullptr) {
     return;
   }
   // We need to do this because if a control packet is being sent, it is
