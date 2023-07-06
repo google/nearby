@@ -310,6 +310,7 @@ cc_test(
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
         "//net/proto2/contrib/parse_proto:testing",

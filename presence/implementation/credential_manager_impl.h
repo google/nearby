@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,6 +27,8 @@
 #include "absl/log/die_if_null.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "absl/types/variant.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/runnable.h"
@@ -181,6 +184,29 @@ class CredentialManagerImpl : public CredentialManager {
                                     Runnable&& runnable) {
     executor_->Execute(std::string(name), std::move(runnable));
   }
+
+  bool WaitForLatch(absl::string_view method_name, CountDownLatch* latch);
+
+  // The similar flow to check-expired-then-refill-if-needed is needed in both
+  // GetLocalCredentials() and GetPublicCredentials(). The high level flow is:
+  // check if there're expired creds from the result credentials list from
+  // GetLocal/GetPublic, if some creds expired, prune the expired, merge with
+  // newly generated ones. Then get the corresponding(local/shared) creds list
+  // from the storage, also prune expired, merge with newly
+  // generated. Then finally, save the newly merged two lists (local & shared)
+  // to storage. For re-use purpose, this private function is made to be able
+  // to take in different parameters from both GetLocalCredentials() and
+  // GetPublicCredentials().
+  void CheckCredentialsAndRefillIfNeeded(
+      const CredentialSelector& credential_selector,
+      absl::variant<std::vector<nearby::internal::LocalCredential>*,
+                    std::vector<nearby::internal::SharedCredential>*>
+          credential_list_variant,
+      std::optional<GetLocalCredentialsResultCallback>
+          callback_for_local_credentials,
+      std::optional<GetPublicCredentialsResultCallback>
+          callback_for_shared_credentials);
+
   void OnCredentialsChanged(absl::string_view manager_app_id,
                             absl::string_view account_name,
                             PublicCredentialType credential_type)

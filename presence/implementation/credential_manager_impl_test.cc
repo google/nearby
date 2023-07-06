@@ -30,6 +30,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -254,8 +255,8 @@ TEST_F(CredentialManagerImplTest,
   Fence();
   EXPECT_OK(public_credentials1);
   EXPECT_OK(public_credentials2);
-  EXPECT_EQ(public_credentials1->size(), 1);
-  EXPECT_EQ(public_credentials2->size(), 1);
+  EXPECT_EQ(public_credentials1->size(), 6);
+  EXPECT_EQ(public_credentials2->size(), 6);
   // Cleanup
   credential_manager_.UnsubscribeFromPublicCredentials(id1);
   credential_manager_.UnsubscribeFromPublicCredentials(id2);
@@ -282,7 +283,7 @@ TEST_F(CredentialManagerImplTest,
 
   Fence();
   ASSERT_OK(public_credentials);
-  EXPECT_EQ(public_credentials->size(), 1);
+  EXPECT_EQ(public_credentials->size(), 6);
   // Cleanup
   credential_manager_.UnsubscribeFromPublicCredentials(id);
   Fence();
@@ -489,7 +490,7 @@ TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
 }
 
 TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
-  constexpr int kNumCredentials = 5;
+  constexpr int kNumCredentials = 6;
   constexpr int kSelectedCredentialId = 2;
   constexpr uint16_t kSalt = 1000;
   absl::Status update_status = absl::UnknownError("");
@@ -571,6 +572,66 @@ TEST_F(CredentialManagerImplTest, ParseAndroidSharedCredential) {
   Metadata metadata;
   ASSERT_TRUE(metadata.ParseFromString(decrypted_metadata));
   EXPECT_THAT(metadata, EqualsProto(expected_metadata));
+}
+
+// TODO (b/289580088) verify expired cres pruned.
+TEST_F(CredentialManagerImplTest, RefillCredentailInGetLocalCredentials) {
+  Metadata metadata = CreateTestMetadata();
+  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
+  CredentialSelector credential_selector = BuildDefaultCredentialSelector();
+
+  credential_manager_.GenerateCredentials(
+      metadata, kManagerAppId, identity_types, 1, 1,
+      {.credentials_generated_cb =
+           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
+             public_credentials = std::move(credentials);
+           }});
+
+  EXPECT_OK(public_credentials);
+  EXPECT_EQ(public_credentials->size(), 1);
+
+  // only generate 1 creds, expecting GetLocal would trigger refill to 6.
+  credential_manager_.GetLocalCredentials(
+      credential_selector,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
+             private_credentials = std::move(credentials);
+           }});
+
+  EXPECT_OK(private_credentials);
+  EXPECT_EQ(private_credentials->size(), 6);
+}
+
+TEST_F(CredentialManagerImplTest, RefillCredentailInGetSharedCredentials) {
+  Metadata metadata = CreateTestMetadata();
+  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  absl::StatusOr<std::vector<SharedCredential>> refilled_public_credentials;
+  CredentialSelector credential_selector = BuildDefaultCredentialSelector();
+
+  credential_manager_.GenerateCredentials(
+      metadata, kManagerAppId, identity_types, 1, 1,
+      {.credentials_generated_cb =
+           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
+             public_credentials = std::move(credentials);
+           }});
+
+  EXPECT_OK(public_credentials);
+  EXPECT_EQ(public_credentials->size(), 1);
+
+  // Only generated 1 creds, expecting GetPublicCredentials for
+  // kLocalPublicCredential type would trigger refill to 6.
+  credential_manager_.GetPublicCredentials(
+      credential_selector, PublicCredentialType::kLocalPublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
+             refilled_public_credentials = std::move(credentials);
+           }});
+
+  EXPECT_OK(refilled_public_credentials);
+  EXPECT_EQ(refilled_public_credentials->size(), 6);
 }
 
 }  // namespace
