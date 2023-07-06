@@ -36,7 +36,7 @@ cc_test(
         "//fastpair:fast_pair_events",
         "//fastpair/message_stream:fake_gatt_callbacks",
         "//fastpair/message_stream:fake_provider",
-        "//fastpair/server_access:test_support",
+        "//fastpair/repository:test_support",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

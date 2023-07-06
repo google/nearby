@@ -24,7 +24,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
 #include "fastpair/testing/fast_pair_service_data_creator.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
@@ -47,9 +46,6 @@ constexpr absl::string_view kModelId = "718c17";
 constexpr absl::string_view kServiceID = "Fast Pair";
 constexpr absl::string_view kFastPairServiceUuid =
     "0000FE2C-0000-1000-8000-00805F9B34FB";
-constexpr absl::string_view kPublicAntiSpoof =
-    "Wuyr48lD3txnUhGiMF1IfzlTwRxxe+wMB1HLzP+"
-    "0wVcljfT3XPoiy1fntlneziyLD5knDVAJSE+RM/zlPRP/Jg==";
 constexpr int kNotDiscoverableAdvHeader = 0b00000110;
 constexpr int kAccountKeyFilterHeader = 0b01100000;
 constexpr int kSaltHeader = 0b00010001;
@@ -57,9 +53,6 @@ constexpr absl::string_view kAccountKeyFilter("112233445566");
 constexpr absl::string_view kSalt("01");
 
 constexpr absl::string_view kModelId2 = "9adb11";
-constexpr absl::string_view kPublicAntiSpoof2 =
-    "z+grhW8lWVA34JUQhXOxMrk1WqVy+VpEDd2K+01ZJvS6KdV0OUg7FRMzq+"
-    "ITuOqKO/2TIRKEAEfMKdyk2Ob1Vw==";
 constexpr absl::string_view kAddress = "74:74:46:01:6C:21";
 
 class MediatorTest : public testing::Test {
@@ -88,7 +81,6 @@ class MediatorTest : public testing::Test {
   void TearDown() override {
     executor_.reset();
     mediums_.reset();
-    repository_.reset();
     ui_broker_.reset();
     mock_ui_broker_ = nullptr;
     notification_controller_.reset();
@@ -120,7 +112,6 @@ class MediatorTest : public testing::Test {
  protected:
   MediumEnvironment& env_{MediumEnvironment::Instance()};
   std::unique_ptr<Mediums> mediums_;
-  std::unique_ptr<FakeFastPairRepository> repository_;
   std::unique_ptr<UIBroker> ui_broker_;
   std::unique_ptr<FastPairNotificationController> notification_controller_;
   std::unique_ptr<SingleThreadExecutor> executor_;

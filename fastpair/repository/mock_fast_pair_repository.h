@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_MOCK_FAST_PAIR_REPOSITORY_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_MOCK_FAST_PAIR_REPOSITORY_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_MOCK_FAST_PAIR_REPOSITORY_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_MOCK_FAST_PAIR_REPOSITORY_H_
 
 #include "gmock/gmock.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 
 namespace nearby {
 namespace fastpair {
@@ -33,4 +33,4 @@ class MockFastPairRepository : public FastPairRepository {
 }  // namespace nearby
 
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_MOCK_FAST_PAIR_REPOSITORY_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_MOCK_FAST_PAIR_REPOSITORY_H_

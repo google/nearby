@@ -31,7 +31,9 @@ cc_library(
         "//fastpair/common",
         "//fastpair/internal/mediums",
         "//fastpair/pairing",
+        "//fastpair/repository",
         "//fastpair/repository:device_repository",
+        "//fastpair/repository:repository_impl",
         "//fastpair/scanning:scanner",
         "//fastpair/server_access",
         "//fastpair/ui:fast_pair_ui",
@@ -60,7 +62,6 @@ cc_test(
     shard_count = 16,
     deps = [
         ":keyed_service",
-        "//fastpair/server_access:test_support",
         "//fastpair/testing",
         "//fastpair/ui:fast_pair_ui",
         "//fastpair/ui:mock_fast_pair_ui",

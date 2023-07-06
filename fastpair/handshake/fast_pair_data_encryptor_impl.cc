@@ -37,7 +37,7 @@
 #include "fastpair/crypto/fast_pair_key_pair.h"
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 #include "fastpair/handshake/fast_pair_data_encryptor.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

@@ -26,7 +26,7 @@
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/server_access/fast_pair_client.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/account/account_manager.h"
 #include "internal/auth/authentication_manager.h"
 #include "internal/network/http_client.h"

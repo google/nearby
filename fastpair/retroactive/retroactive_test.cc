@@ -26,7 +26,7 @@
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"

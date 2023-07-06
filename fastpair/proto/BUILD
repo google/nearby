@@ -56,7 +56,7 @@ cc_library(
     deps = [
         ":fastpair_cc_proto",
         "//fastpair/common",
-        "//fastpair/server_access",
+        "//fastpair/repository",
         "//internal/platform:logging",
         "@com_google_absl//absl/time",
     ],

@@ -51,7 +51,7 @@ cc_test(
         ":pairing",
         "//fastpair/common",
         "//fastpair/handshake",
-        "//fastpair/server_access:test_support",
+        "//fastpair/repository:test_support",
         "//internal/base:bluetooth_address",
         "//internal/platform:comm",
         "//internal/platform:test_util",

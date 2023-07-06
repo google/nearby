@@ -25,7 +25,7 @@
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 #include "fastpair/server_access/fast_pair_client_impl.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "fastpair/server_access/fast_pair_repository_impl.h"
+#include "fastpair/repository/fast_pair_repository_impl.h"
 #include "internal/account/account_manager_impl.h"
 #include "internal/auth/authentication_manager_impl.h"
 #include "internal/flags/nearby_flags.h"

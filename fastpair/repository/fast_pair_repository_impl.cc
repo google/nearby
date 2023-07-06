@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/server_access/fast_pair_repository_impl.h"
+#include "fastpair/repository/fast_pair_repository_impl.h"
 
 #include <memory>
 #include <optional>

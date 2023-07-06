@@ -25,7 +25,7 @@
 #include "fastpair/proto/enum.proto.h"
 #include "fastpair/proto/fast_pair_string.proto.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

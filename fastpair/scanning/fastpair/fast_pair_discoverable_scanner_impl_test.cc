@@ -22,7 +22,7 @@
 #include "absl/synchronization/notification.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/fastpair/fake_fast_pair_scanner.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "fastpair/testing/fast_pair_service_data_creator.h"
 #include "internal/platform/bluetooth_adapter.h"
 

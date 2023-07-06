@@ -59,7 +59,7 @@ cc_test(
         "//fastpair/message_stream:fake_gatt_callbacks",
         "//fastpair/message_stream:fake_provider",
         "//fastpair/proto:fastpair_cc_proto",
-        "//fastpair/server_access:test_support",
+        "//fastpair/repository:test_support",
         "//internal/base:bluetooth_address",
         "//internal/platform:base",
         "//internal/platform:comm",

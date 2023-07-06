@@ -12,40 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_REPOSITORY_IMPL_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_REPOSITORY_IMPL_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_FAKE_FAST_PAIR_REPOSITORY_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_FAKE_FAST_PAIR_REPOSITORY_H_
 
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/device_metadata.h"
-#include "fastpair/server_access/fast_pair_client.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
-
-class FastPairRepositoryImpl : public FastPairRepository {
+class FakeFastPairRepository : public FastPairRepository {
  public:
-  explicit FastPairRepositoryImpl(FastPairClient* fast_pair_client);
+  FakeFastPairRepository() = default;
+  FakeFastPairRepository(const FakeFastPairRepository&) = delete;
+  FakeFastPairRepository& operator=(const FakeFastPairRepository&) = delete;
+  ~FakeFastPairRepository() override = default;
 
-  FastPairRepositoryImpl(const FastPairRepositoryImpl&) = delete;
-  FastPairRepositoryImpl& operator=(const FastPairRepositoryImpl&) = delete;
-  ~FastPairRepositoryImpl() override = default;
+  static std::unique_ptr<FakeFastPairRepository> Create(
+      absl::string_view model_id, absl::string_view public_anti_spoof_key);
 
+  void SetFakeMetadata(absl::string_view hex_model_id, proto::Device metadata);
+  void ClearFakeMetadata(absl::string_view hex_model_id);
+  // FastPairRepository::
   void GetDeviceMetadata(absl::string_view hex_model_id,
                          DeviceMetadataCallback callback) override;
 
  private:
-  // A thread for running blocking tasks.
+  absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>> data_;
   SingleThreadExecutor executor_;
-  FastPairClient* fast_pair_client_;
-  absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>>
-      metadata_cache_;
 };
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_REPOSITORY_IMPL_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_FAKE_FAST_PAIR_REPOSITORY_H_

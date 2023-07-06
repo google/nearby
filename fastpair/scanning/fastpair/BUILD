@@ -37,7 +37,6 @@ cc_library(
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/repository",
         "//fastpair/repository:device_repository",
-        "//fastpair/server_access",
         "//internal/base",
         "//internal/platform:base",
         "//internal/platform:comm",
@@ -104,7 +103,7 @@ cc_test(
         ":scanning",
         ":test_support",
         "//fastpair/repository:device_repository",
-        "//fastpair/server_access:test_support",
+        "//fastpair/repository:test_support",
         "//fastpair/testing",
         "//internal/platform:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

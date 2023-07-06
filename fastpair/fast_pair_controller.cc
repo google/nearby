@@ -25,7 +25,7 @@
 #include "fastpair/common/protocol.h"
 #include "fastpair/handshake/fast_pair_data_encryptor_impl.h"
 #include "fastpair/message_stream/message_stream.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/single_thread_executor.h"

@@ -28,7 +28,7 @@
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "fastpair/server_access/fast_pair_client_impl.h"
-#include "fastpair/server_access/fast_pair_repository_impl.h"
+#include "fastpair/repository/fast_pair_repository_impl.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "fastpair/ui/ui_broker_impl.h"

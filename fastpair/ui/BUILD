@@ -36,7 +36,6 @@ cc_library(
     deps = [
         "//fastpair/common",
         "//fastpair/repository",
-        "//fastpair/server_access",
         "//internal/base",
         "//internal/platform:logging",
         "@com_google_absl//absl/functional:any_invocable",

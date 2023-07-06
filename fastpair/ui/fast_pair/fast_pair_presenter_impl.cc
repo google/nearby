@@ -20,7 +20,7 @@
 
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "internal/platform/logging.h"
 

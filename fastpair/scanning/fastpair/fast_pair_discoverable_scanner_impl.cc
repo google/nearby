@@ -30,7 +30,7 @@
 #include "fastpair/common/protocol.h"
 #include "fastpair/dataparser/fast_pair_data_parser.h"
 #include "fastpair/proto/fastpair_rpcs.pb.h"
-#include "fastpair/server_access/fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 

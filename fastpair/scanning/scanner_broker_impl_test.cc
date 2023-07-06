@@ -25,7 +25,7 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/scanning/scanner_broker.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"

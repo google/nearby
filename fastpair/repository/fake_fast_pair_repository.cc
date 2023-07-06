@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 
 #include <memory>
 #include <string>

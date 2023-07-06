@@ -27,7 +27,7 @@
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
-#include "fastpair/server_access/fake_fast_pair_repository.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
