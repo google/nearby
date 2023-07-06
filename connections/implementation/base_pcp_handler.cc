@@ -38,6 +38,7 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/device.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/bluetooth_utils.h"
@@ -1379,7 +1380,8 @@ bool BasePcpHandler::IsPreferred(
 Exception BasePcpHandler::OnIncomingConnection(
     ClientProxy* client, const ByteArray& remote_endpoint_info,
     std::unique_ptr<EndpointChannel> channel,
-    location::nearby::proto::connections::Medium medium) {
+    location::nearby::proto::connections::Medium medium,
+    NearbyDevice::Type listening_device_type) {
   absl::Time start_time = SystemClock::ElapsedRealtime();
 
   //  Fixes an NPE in ClientProxy.OnConnectionAccepted. The crash happened when
@@ -1445,6 +1447,22 @@ Exception BasePcpHandler::OnIncomingConnection(
   if (client->ShouldEnforceTopologyConstraints() &&
       !CanReceiveIncomingConnection(client)) {
     NEARBY_LOGS(ERROR) << "Incoming connections are currently disallowed.";
+    return {Exception::kIo};
+  }
+
+  // Make sure we only accept connections from the device type we're explicitly
+  // listening to.
+  NearbyDevice::Type incoming_type =
+      connection_request.has_connections_device()
+          ? NearbyDevice::Type::kConnectionsDevice
+      : connection_request.has_presence_device()
+          ? NearbyDevice::Type::kPresenceDevice
+          // Legacy clients will be treated as Connections devices.
+          : NearbyDevice::Type::kConnectionsDevice;
+  if (listening_device_type != incoming_type) {
+    NEARBY_LOGS(WARNING) << "Device requesting a connection is the wrong type."
+                         << "Expected type: " << listening_device_type
+                         << ", got type: " << incoming_type;
     return {Exception::kIo};
   }
 

@@ -342,6 +342,8 @@ void Core::StopDiscoveryV3(ResultCallback result_cb) {
 void Core::StartListeningForIncomingConnectionsV3(
     const v3::ConnectionListeningOptions& options, absl::string_view service_id,
     v3::ConnectionListener listener_cb, v3::ListeningResultListener result_cb) {
+  CHECK(options.listening_endpoint_type != NearbyDevice::Type::kUnknownDevice);
+
   router_->StartListeningForIncomingConnectionsV3(
       &client_, service_id, std::move(listener_cb), options,
       std::move(result_cb));

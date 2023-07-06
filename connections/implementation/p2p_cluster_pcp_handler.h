@@ -173,6 +173,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   BluetoothDevice& device);
   void BluetoothConnectionAcceptedHandler(ClientProxy* client,
                                           absl::string_view local_endpoint_info,
+                                          NearbyDevice::Type device_type,
                                           const std::string& service_id,
                                           BluetoothSocket socket);
   location::nearby::proto::connections::Medium StartBluetoothAdvertising(
@@ -197,6 +198,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                 const std::string& service_id);
   void BleConnectionAcceptedHandler(ClientProxy* client,
                                     absl::string_view local_endpoint_info,
+                                    NearbyDevice::Type device_type,
                                     BleSocket socket,
                                     const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleAdvertising(
@@ -226,6 +228,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   bool fast_advertisement);
   void BleV2ConnectionAcceptedHandler(ClientProxy* client,
                                       absl::string_view local_endpoint_info,
+                                      NearbyDevice::Type device_type,
                                       BleV2Socket socket,
                                       const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleV2Advertising(
@@ -252,6 +255,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void WifiLanConnectionAcceptedHandler(ClientProxy* client,
                                         absl::string_view local_endpoint_id,
                                         absl::string_view local_endpoint_info,
+                                        NearbyDevice::Type device_type,
                                         const std::string& service_id,
                                         WifiLanSocket socket);
   location::nearby::proto::connections::Medium StartWifiLanAdvertising(

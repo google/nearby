@@ -337,6 +337,8 @@ class Core {
   // Starts listening for incoming connections.
   //
   // options - The options for listening for a connection.
+  //   - options.listening_device_type will be checked to make sure it is one of
+  //   kConnectionsDevice or kPresenceDevice before starting the operation.
   // service_id - The service ID to listen for.
   // listener_cb - The connection listener to broadcast any updates.
   // result_cb - to access the status of the operation when available.
