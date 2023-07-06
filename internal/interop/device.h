@@ -46,6 +46,7 @@ class NearbyDevice {
   // implemented.
   virtual std::vector<ConnectionInfoVariant> GetConnectionInfos() const = 0;
   virtual Type GetType() const { return Type::kUnknownDevice; }
+  virtual std::string ToProtoBytes() const = 0;
 };
 
 }  // namespace nearby

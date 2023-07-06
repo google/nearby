@@ -54,6 +54,8 @@ class ConnectionsDevice : public nearby::NearbyDevice {
   Type GetType() const override { return Type::kConnectionsDevice; }
 
   std::string GetEndpointInfo() const { return endpoint_info_; }
+  // TODO(b/289368652): Implement.
+  std::string ToProtoBytes() const override { return ""; }
 
  private:
   std::string GenerateRandomEndpointId() {

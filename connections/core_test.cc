@@ -39,6 +39,7 @@ class FakeNearbyDevice : public NearbyDevice {
   MOCK_METHOD(std::string, GetEndpointId, (), (const override));
   MOCK_METHOD(std::vector<ConnectionInfoVariant>, GetConnectionInfos, (),
               (const override));
+  MOCK_METHOD(std::string, ToProtoBytes, (), (const override));
 };
 
 class FakeNearbyDeviceProvider : public NearbyDeviceProvider {

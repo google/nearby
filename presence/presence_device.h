@@ -60,6 +60,8 @@ class PresenceDevice : public nearby::NearbyDevice {
   // Add more medium ConnectionInfos as we introduce them.
   std::vector<nearby::ConnectionInfoVariant> GetConnectionInfos()
       const override;
+  // TODO(b/289368652): Implement.
+  std::string ToProtoBytes() const override { return ""; }
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
   Metadata GetMetadata() const { return metadata_; }
   void SetMetadata(const Metadata metadata) { metadata_ = metadata; }
