@@ -25,21 +25,21 @@ namespace fastpair {
 namespace windows {
 
 // Initiates a default Mediator instance.
-DLL_EXPORT void __stdcall InitMediatorDart();
+DLL_EXPORT void* __stdcall InitMediatorDart();
 
 // Starts scanning service
-DLL_EXPORT void __stdcall StartScanDart(Mediator* pMediator);
+DLL_EXPORT void __stdcall StartScanDart(void* instance);
 
 // Adds a notification controller observer to the service.
-DLL_EXPORT void __stdcall AddNotificationControllerObserverDart(
-    Mediator* pMediator, Dart_Port port);
+DLL_EXPORT void __stdcall AddNotificationControllerObserverDart(void* instance,
+                                                                Dart_Port port);
 
 // Removes a notification controller observer to the service.
 DLL_EXPORT void __stdcall RemoveNotificationControllerObserverDart(
-    Mediator* pMediator, Dart_Port port);
+    void* instance, Dart_Port port);
 
 // Triggers discovery click action
-DLL_EXPORT void __stdcall DiscoveryClickedDart(Mediator* pMediator, int action);
+DLL_EXPORT void __stdcall DiscoveryClickedDart(void* instance, int action);
 
 }  // namespace windows
 }  // namespace fastpair

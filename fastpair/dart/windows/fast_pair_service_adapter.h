@@ -31,18 +31,18 @@ namespace windows {
 DLL_EXPORT void *__stdcall InitMediator();
 
 // Starts scanning service
-DLL_EXPORT void __stdcall StartScan(Mediator *pMediator);
+DLL_EXPORT void __stdcall StartScan(void *instance);
 
 // Adds a notification controller observer to the service.
 DLL_EXPORT void __stdcall AddNotificationControllerObserver(
-    Mediator *pMediator, FastPairNotificationController::Observer *observer);
+    void *instance, FastPairNotificationController::Observer *observer);
 
 // Removes a notification controller observer to the service.
 DLL_EXPORT void __stdcall RemoveNotificationControllerObserver(
-    Mediator *pMediator, FastPairNotificationController::Observer *observer);
+    void *instance, FastPairNotificationController::Observer *observer);
 
 // Triggers discovery click action
-DLL_EXPORT void DiscoveryClicked(Mediator *pMediator, DiscoveryAction action);
+DLL_EXPORT void DiscoveryClicked(void *instance, DiscoveryAction action);
 
 // Sends screen locked event.
 DLL_EXPORT void __stdcall SetIsScreenLocked(bool is_locked);

@@ -33,6 +33,23 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "windows_admin_plugin",
+    srcs = ["windows_admin_plugin.cc"],
+    hdrs = ["windows_admin_plugin.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//fastpair:fast_pair_events",
+        "//fastpair:fast_pair_plugin",
+        "//fastpair:fast_pair_seeker",
+        "//fastpair:fast_pair_service",
+        "//fastpair/common",
+        "//fastpair/ui:fast_pair_ui",
+        "//internal/platform:types",
+    ],
+)
+
 cc_test(
     name = "fake_initial_pair_plugin_test",
     size = "small",

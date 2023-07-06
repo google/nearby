@@ -45,7 +45,7 @@ constexpr FeatureFlags::Flags fast_pair_feature_flags = FeatureFlags::Flags{
     .enable_scan_for_fast_pair_advertisement = true,
 };
 constexpr absl::Duration kTimeout = absl::Seconds(3);
-}
+}  // namespace
 
 FastPairService::FastPairService()
     : FastPairService(std::make_unique<auth::AuthenticationManagerImpl>(),
@@ -159,8 +159,19 @@ void FastPairService::OnInitialDiscoveryEvent(const FastPairDevice& device,
 
 void FastPairService::OnSubsequentDiscoveryEvent(
     const FastPairDevice& device, SubsequentDiscoveryEvent event) {}
+
 void FastPairService::OnPairEvent(const FastPairDevice& device,
-                                  PairEvent event) {}
+                                  PairEvent event) {
+  executor_.Execute(
+      "on-pair-event", [this, device = &device, event = std::move(event)]() {
+        NEARBY_LOGS(INFO) << "OnPairEvent " << *device;
+        for (auto& entry : plugin_states_) {
+          auto plugin = entry.second.GetPlugin(seeker_.get(), device);
+          plugin->OnPairEvent(event);
+        }
+      });
+}
+
 void FastPairService::OnScreenEvent(ScreenEvent event) {
   executor_.Execute("on-screen-event", [this, event = std::move(event)]() {
     NEARBY_LOGS(INFO) << "OnScreenEvent ";

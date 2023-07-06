@@ -26,7 +26,9 @@ struct InitialDiscoveryEvent {};
 
 struct SubsequentDiscoveryEvent {};
 
-struct PairEvent {};
+struct PairEvent {
+  bool is_paired;
+};
 
 struct ScreenEvent {
   std::optional<bool> is_locked;

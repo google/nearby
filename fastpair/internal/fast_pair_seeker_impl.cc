@@ -221,6 +221,10 @@ void FastPairSeekerImpl::DevicePairedChanged(BluetoothDevice& device,
                                              bool new_paired_status) {
   NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
                        << new_paired_status << ")";
+  // Note, the FP service will be notified about paired events from the
+  // retroactive pairing path if `device` is an FP device.
+  // TODO(jsobczak): Notify service about unpair events if `device` is a known
+  // FP device.
 }
 
 void FastPairSeekerImpl::DeviceConnectedStateChanged(BluetoothDevice& device,
@@ -231,7 +235,7 @@ void FastPairSeekerImpl::DeviceConnectedStateChanged(BluetoothDevice& device,
 
 void FastPairSeekerImpl::OnRetroactivePairFound(FastPairDevice& device) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << device;
-  callbacks_.on_pair_event(device, PairEvent{});
+  callbacks_.on_pair_event(device, PairEvent{.is_paired = true});
 }
 
 }  // namespace fastpair

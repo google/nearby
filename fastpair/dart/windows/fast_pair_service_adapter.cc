@@ -17,8 +17,11 @@
 #include <memory>
 #include <string>
 
+#include "fastpair/fast_pair_service.h"
+#include "fastpair/internal/fast_pair_seeker_impl.h"
 #include "fastpair/keyed_service/fast_pair_mediator.h"
 #include "fastpair/keyed_service/fast_pair_mediator_factory.h"
+#include "fastpair/plugins/windows_admin_plugin.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "internal/platform/logging.h"
@@ -27,69 +30,138 @@ namespace nearby {
 namespace fastpair {
 namespace windows {
 
-static Mediator *pMediator_ = nullptr;
+// Set to 1 to use Mediator. Set to 0 to use scalable seeker.
+#define USE_MEDIATOR 0
+
+namespace {
+#if USE_MEDIATOR
+Mediator *pMediator_ = nullptr;
+#else
+WindowsAdminPlugin::PluginState *plugin_state = nullptr;
+#endif /* USE_MEDIATOR */
+
+WindowsAdminPlugin::PluginState *InitFastPairService() {
+  NEARBY_LOGS(INFO) << "[[ Init Fast Pair Service. ]]";
+  plugin_state = new WindowsAdminPlugin::PluginState();
+  plugin_state->fast_pair_service = std::make_unique<FastPairService>();
+  plugin_state->fast_pair_service->RegisterPluginProvider(
+      "admin", std::make_unique<WindowsAdminPlugin::Provider>(plugin_state));
+  return plugin_state;
+}
+
+void CloseFastPairService(void *instance) {
+  NEARBY_LOGS(INFO) << "[[ Closing Fast Pair Service. ]]";
+  CHECK_EQ(plugin_state, instance);
+  delete plugin_state;
+  plugin_state = nullptr;
+  NEARBY_LOGS(INFO) << "[[ Successfully closed Fast Pair Service. ]]";
+}
+
+void StartFastPairServiceScan(void *instance) {
+  CHECK_EQ(plugin_state, instance);
+  FastPairSeekerExt *seeker = static_cast<FastPairSeekerExt *>(
+      plugin_state->fast_pair_service->GetSeeker());
+  absl::Status status = seeker->StartFastPairScan();
+  NEARBY_LOGS(INFO) << "Start FP scan result: " << status;
+}
+}  // namespace
+
 void *InitMediator() {
 #if defined(NEARBY_LOG_SEVERITY)
   // Direct override of logging level.
   NEARBY_LOG_SET_SEVERITY(NEARBY_LOG_SEVERITY);
 #endif  // LOG_SEVERITY_VERBOSE;
 
-  Mediator *pMediator = MediatorFactory::GetInstance()->CreateMediator();
-  pMediator_ = pMediator;
+#if USE_MEDIATOR
+  pMediator_ = MediatorFactory::GetInstance()->CreateMediator();
   return pMediator_;
+#else
+  return InitFastPairService();
+#endif /* USE_MEDIATOR */
 }
 
-void CloseMediator(Mediator *pMediator) {
+void CloseMediator(void *instance) {
+#if USE_MEDIATOR
   NEARBY_LOGS(INFO) << "[[ Closing Fast Pair Mediator. ]]";
   if (pMediator_ != nullptr) delete pMediator_;
   NEARBY_LOGS(INFO) << "[[ Successfully closed Fast Pair Mediator. ]]";
+#else
+  CloseFastPairService(instance);
+#endif /* USE_MEDIATOR */
 }
 
-void __stdcall StartScan(Mediator *pMediator) {
+void __stdcall StartScan(void *instance) {
   NEARBY_LOGS(INFO) << "StartScan is called";
+#if USE_MEDIATOR
   if (pMediator_ == nullptr) {
     NEARBY_LOGS(VERBOSE) << "The pMediator is a null pointer.";
     return;
   }
-  pMediator_->StartScanning();
+  Mediator *mediator = static_cast<Mediator *>(instance);
+  mediator->StartScanning();
+#else
+  StartFastPairServiceScan(instance);
+#endif /* USE_MEDIATOR */
 }
 
 void __stdcall AddNotificationControllerObserver(
-    Mediator *pMediator, FastPairNotificationController::Observer *observer) {
+    void *instance, FastPairNotificationController::Observer *observer) {
   NEARBY_LOGS(INFO) << "AddNotificationControllerObserver is called";
+#if USE_MEDIATOR
   if (pMediator_ == nullptr) {
     NEARBY_LOGS(VERBOSE) << "The pMediator is a null pointer.";
     return;
   }
-  static_cast<Mediator *>(pMediator)->GetNotificationController()->AddObserver(
-      observer);
+  Mediator *mediator = static_cast<Mediator *>(instance);
+  mediator->GetNotificationController()->AddObserver(observer);
+#else
+  CHECK_EQ(plugin_state, instance);
+  plugin_state->observers.AddObserver(observer);
+#endif /* USE_MEDIATOR */
 }
 
 void __stdcall RemoveNotificationControllerObserver(
-    Mediator *pMediator, FastPairNotificationController::Observer *observer) {
+    void *instance, FastPairNotificationController::Observer *observer) {
+#if USE_MEDIATOR
   if (pMediator_ == nullptr) {
     NEARBY_LOGS(VERBOSE) << "The pMediator is a null pointer.";
     return;
   }
-  static_cast<Mediator *>(pMediator)
-      ->GetNotificationController()
-      ->RemoveObserver(observer);
+  Mediator *mediator = static_cast<Mediator *>(instance);
+  mediator->GetNotificationController()->RemoveObserver(observer);
+#else
+  CHECK_EQ(plugin_state, instance);
+  plugin_state->observers.RemoveObserver(observer);
+#endif /* USE_MEDIATOR */
 }
 
-void __stdcall DiscoveryClicked(Mediator *pMediator, DiscoveryAction action) {
-  static_cast<Mediator *>(pMediator)
-      ->GetNotificationController()
-      ->OnDiscoveryClicked(action);
+void __stdcall DiscoveryClicked(void *instance, DiscoveryAction action) {
+#if USE_MEDIATOR
+  Mediator *mediator = static_cast<Mediator *>(instance);
+  mediator->GetNotificationController()->OnDiscoveryClicked(action);
+#else
+  CHECK_EQ(plugin_state, instance);
+  plugin_state->DiscoveryClicked(action);
+#endif /* USE_MEDIATOR */
 }
 
 void __stdcall SetIsScreenLocked(bool is_locked) {
+#if USE_MEDIATOR
   if (pMediator_ == nullptr) {
     NEARBY_LOGS(INFO) << "The pMediator is a null pointer.";
     return;
   }
   NEARBY_LOGS(INFO) << "SetIsScreenLocked :" << is_locked;
   pMediator_->SetIsScreenLocked(is_locked);
+#else
+  if (plugin_state == nullptr) {
+    NEARBY_LOGS(INFO) << "Plugin not initialized";
+    return;
+  }
+  plugin_state->SetIsScreenLocked(is_locked);
+#endif /* USE_MEDIATOR */
 }
+
 }  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby

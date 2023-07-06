@@ -35,8 +35,10 @@ lexan.cc_windows_dll(
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [
+        "//fastpair:fast_pair_service",
         "//fastpair/dart/proto:fastpair_cc_proto",
         "//fastpair/keyed_service",
+        "//fastpair/plugins:windows_admin_plugin",
         "//fastpair/ui:fast_pair_ui",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
@@ -69,9 +71,11 @@ lexan.cc_windows_dll(
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [
+        "//fastpair:fast_pair_service",
         "//fastpair/common",
         "//fastpair/dart/proto:fastpair_cc_proto",
         "//fastpair/keyed_service",
+        "//fastpair/plugins:windows_admin_plugin",
         "//fastpair/ui:fast_pair_ui",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",

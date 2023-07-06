@@ -68,40 +68,38 @@ class NotificationControllerObserver
 };
 }  // namespace
 
-void InitMediatorDart() { InitMediator(); }
+void *InitMediatorDart() { return InitMediator(); }
 
-void StartScanDart(Mediator *pMediator) { StartScan(pMediator); }
+void StartScanDart(void *instance) { StartScan(instance); }
 
 static absl::flat_hash_map<Dart_Port,
                            std::unique_ptr<NotificationControllerObserver>>
     *notification_controller_observer_map_ = new absl::flat_hash_map<
         Dart_Port, std::unique_ptr<NotificationControllerObserver>>();
 
-void AddNotificationControllerObserverDart(Mediator *pMediator,
-                                           Dart_Port port) {
+void AddNotificationControllerObserverDart(void *instance, Dart_Port port) {
   auto observer = std::make_unique<NotificationControllerObserver>(port);
-  AddNotificationControllerObserver(pMediator, observer.get());
+  AddNotificationControllerObserver(instance, observer.get());
   notification_controller_observer_map_->insert({port, std::move(observer)});
   CHECK(notification_controller_observer_map_->contains(port));
 }
 
-void RemoveNotificationControllerObserverDart(Mediator *pMediator,
-                                              Dart_Port port) {
+void RemoveNotificationControllerObserverDart(void *instance, Dart_Port port) {
   auto it = notification_controller_observer_map_->find(port);
   if (it != notification_controller_observer_map_->end()) {
-    RemoveNotificationControllerObserver(pMediator, it->second.get());
+    RemoveNotificationControllerObserver(instance, it->second.get());
     notification_controller_observer_map_->erase(it);
   }
 }
 
-void DiscoveryClickedDart(Mediator *pMediator, int action) {
+void DiscoveryClickedDart(void *instance, int action) {
   switch (action) {
     case ::nearby::fastpair::dart::proto::DISCOVERY_ACTION_PAIR_TO_DEVICE:
-      DiscoveryClicked(pMediator,
+      DiscoveryClicked(instance,
                        ::nearby::fastpair::DiscoveryAction::kPairToDevice);
       break;
     case ::nearby::fastpair::dart::proto::DISCOVERY_ACTION_LEARN_MORE:
-      DiscoveryClicked(pMediator,
+      DiscoveryClicked(instance,
                        ::nearby::fastpair::DiscoveryAction::kLearnMore);
       break;
   }
