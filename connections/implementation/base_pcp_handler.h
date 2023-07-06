@@ -258,10 +258,12 @@ class BasePcpHandler : public PcpHandler,
 
   void OnEndpointFound(ClientProxy* client,
                        std::shared_ptr<DiscoveredEndpoint> endpoint)
-      RUN_ON_PCP_HANDLER_THREAD();
+      RUN_ON_PCP_HANDLER_THREAD()
+          ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint)
-      RUN_ON_PCP_HANDLER_THREAD();
+      RUN_ON_PCP_HANDLER_THREAD()
+          ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   Exception OnIncomingConnection(
       ClientProxy* client, const ByteArray& remote_endpoint_info,
@@ -339,16 +341,19 @@ class BasePcpHandler : public PcpHandler,
   GetDefaultUpgradeMedium() = 0;
 
   // Returns the first discovered endpoint for the given endpoint_id.
-  DiscoveredEndpoint* GetDiscoveredEndpoint(const std::string& endpoint_id);
+  DiscoveredEndpoint* GetDiscoveredEndpoint(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Returns a vector of discovered endpoints, sorted in order of decreasing
   // preference.
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
-      const std::string& endpoint_id);
+      const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Returns a vector of discovered endpoints that share a given Medium.
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
-      const location::nearby::proto::connections::Medium medium);
+      const location::nearby::proto::connections::Medium medium)
+      ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Start alarms for endpoints lost by their mediums. Used when updating
   // discovery options.
@@ -484,12 +489,14 @@ class BasePcpHandler : public PcpHandler,
   bool AppendRemoteBluetoothMacAddressEndpoint(
       const std::string& endpoint_id,
       const std::string& remote_bluetooth_mac_address,
-      const DiscoveryOptions& local_discovery_options);
+      const DiscoveryOptions& local_discovery_options)
+      ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Returns true if the webrtc endpoint is created and appended into
   // discovered_endpoints_ with key endpoint_id.
   bool AppendWebRTCEndpoint(const std::string& endpoint_id,
-                            const DiscoveryOptions& local_discovery_options);
+                            const DiscoveryOptions& local_discovery_options)
+      ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   void ProcessPreConnectionInitiationFailure(
       ClientProxy* client, Medium medium, const std::string& endpoint_id,
@@ -567,6 +574,7 @@ class BasePcpHandler : public PcpHandler,
 
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
+  Mutex discovered_endpoint_mutex_;
 
   // A map of endpoint id -> PendingConnectionInfo. Entries in this map imply
   // that there is an active connection to the endpoint and we're waiting for
@@ -576,7 +584,7 @@ class BasePcpHandler : public PcpHandler,
   absl::flat_hash_map<std::string, PendingConnectionInfo> pending_connections_;
   // A map of endpoint id -> DiscoveredEndpoint.
   absl::btree_multimap<std::string, std::shared_ptr<DiscoveredEndpoint>>
-      discovered_endpoints_;
+      discovered_endpoints_ ABSL_GUARDED_BY(discovered_endpoint_mutex_);
   // A map of endpoint id -> alarm. These alarms delay closing the
   // EndpointChannel to give the other side enough time to read the rejection
   // message. It's expected that the other side will close the connection

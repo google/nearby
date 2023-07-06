@@ -394,6 +394,11 @@ class BasePcpHandlerTest
                                           discovery_listener_),
               Status{Status::kSuccess});
     EXPECT_TRUE(client->IsDiscovering());
+    for (const auto& discovered_medium :
+         pcp_handler->GetDiscoveryMediums(client)) {
+      EXPECT_TRUE(
+          pcp_handler->GetDiscoveredEndpoints(discovered_medium).empty());
+    }
   }
 
   void UpdateDiscoveryOptions(ClientProxy* client, MockPcpHandler* pcp_handler,
@@ -680,6 +685,34 @@ TEST_P(BasePcpHandlerTest, StartDiscoveryChangesState) {
   env_.Stop();
 }
 
+TEST_P(BasePcpHandlerTest, StartDiscoveryFails) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  DiscoveryOptions discovery_options{
+      {},
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection,
+      "",     // fast_advertisement_service_uuid
+      true,   // low_power
+  };
+  EXPECT_CALL(pcp_handler, StartDiscoveryImpl)
+      .WillOnce(Return(MockPcpHandler::StartOperationResult{
+          .status = {Status::kError},
+          .mediums = {},
+      }));
+  EXPECT_EQ(pcp_handler.StartDiscovery(&client, "service", discovery_options,
+                                       discovery_listener_),
+            Status{Status::kError});
+  bwu.Shutdown();
+  env_.Stop();
+}
+
 TEST_P(BasePcpHandlerTest, StopDiscoveryChangesState) {
   env_.Start();
   ClientProxy client;
@@ -693,6 +726,37 @@ TEST_P(BasePcpHandlerTest, StopDiscoveryChangesState) {
   EXPECT_TRUE(client.IsDiscovering());
   pcp_handler.StopDiscovery(&client);
   EXPECT_FALSE(client.IsDiscovering());
+  bwu.Shutdown();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, StartStopStartDiscoveryClearsEndpoints) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  pcp_handler.OnEndpointFound(
+      &client, std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                   {
+                       "DEFG",
+                       ByteArray("1"),
+                       "service",
+                       connect_medium,
+                       WebRtcState::kUndefined,
+                   },
+                   MockContext{nullptr},
+               }));
+  EXPECT_CALL(pcp_handler, StopDiscoveryImpl(&client)).Times(1);
+  pcp_handler.StopDiscovery(&client);
+  EXPECT_FALSE(client.IsDiscovering());
+  StartDiscovery(&client, &pcp_handler);
   bwu.Shutdown();
   env_.Stop();
 }
