@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/timer_impl.h"
@@ -52,17 +53,15 @@ bool TaskRunnerImpl::PostDelayedTask(absl::Duration delay,
 
   absl::MutexLock lock(&mutex_);
   uint64_t id = GenerateId();
-
   std::unique_ptr<Timer> timer = std::make_unique<TimerImpl>();
-  if (timer->Start(delay / absl::Milliseconds(1), 0,
+  if (timer->Start(absl::ToInt64Milliseconds(delay), 0,
                    [this, id, task = std::move(task)]() mutable {
-                     if (task) {
-                       PostTask(std::move(task));
-                     }
-                     {
-                       absl::MutexLock lock(&mutex_);
-                       timers_map_.erase(id);
-                     }
+                     PostTask(std::move(task));
+                     // We can't destroy the timer directly from the timer
+                     // callback.
+                     absl::MutexLock lock(&mutex_);
+                     auto timer = timers_map_.extract(id);
+                     PostTask([timer = std::move(timer)]() {});
                    })) {
     timers_map_.emplace(id, std::move(timer));
     return true;
