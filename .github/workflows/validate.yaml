@@ -36,7 +36,7 @@ jobs:
     - name: Build Connections
       run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections:core --spawn_strategy=standalone
     - name: Build Presence
-      run: CC=clang CXX=clang++ bazel build --check_visibility=false //presence --spawn_strategy=standalone --//presence/implementation:enable_rust_ldt=False
+      run: CC=clang CXX=clang++ bazel build --check_visibility=false //presence --spawn_strategy=standalone
 
   build-rust-linux:
     name: Build Rust on Linux

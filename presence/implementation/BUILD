@@ -21,7 +21,7 @@ licenses(["notice"])
 # When not set, LDT encryption will not be available. We won't be able to advertise encrypted BLE4.2 advertisements nor scan for them.
 bool_flag(
     name = "enable_rust_ldt",
-    build_setting_default = True,
+    build_setting_default = False,
 )
 
 config_setting(
