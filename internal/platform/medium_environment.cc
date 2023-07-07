@@ -1144,22 +1144,29 @@ void MediumEnvironment::RegisterGattServer(
 
 void MediumEnvironment::UnregisterGattServer(api::ble_v2::BleMedium& medium) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium]() {
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
     auto it = ble_v2_mediums_.find(&medium);
     if (it == ble_v2_mediums_.end()) {
       NEARBY_LOGS(INFO) << "G3 UnregisterGattServer failed. There is no "
                            "medium registered.";
+      latch.CountDown();
       return;
     }
     auto& context = it->second;
+    NEARBY_LOGS(INFO) << "UnregisterGattServer for "
+                      << context.ble_peripheral->GetAddress();
     context.gatt_server = nullptr;
     context.ble_peripheral = nullptr;
+    latch.CountDown();
   });
+  latch.Await();
 }
 
-Borrowable<api::ble_v2::GattServer*>* MediumEnvironment::GetGattServer(
+Borrowable<api::ble_v2::GattServer*> MediumEnvironment::GetGattServer(
     api::ble_v2::BlePeripheral& peripheral) {
-  Borrowable<api::ble_v2::GattServer*>* result = nullptr;
+  Borrowable<api::ble_v2::GattServer*> result;
+  bool found_server = false;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([&]() {
     for (const auto& medium_info : ble_v2_mediums_) {
@@ -1171,13 +1178,14 @@ Borrowable<api::ble_v2::GattServer*>* MediumEnvironment::GetGattServer(
         if (remote_context.gatt_server == nullptr) {
           break;
         }
-        result = remote_context.gatt_server.get();
+        found_server = true;
+        result = *(remote_context.gatt_server);
       }
     }
     latch.CountDown();
   });
   latch.Await();
-  if (result == nullptr) {
+  if (!found_server) {
     NEARBY_LOGS(INFO) << "G3 GetGattServer failed. No GATT server for "
                       << peripheral.GetAddress();
   }

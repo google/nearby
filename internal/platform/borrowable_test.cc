@@ -125,5 +125,22 @@ TEST(Borrowable, BorrowIsExclusive) {
   EXPECT_NE(lender.GetBorrowable().Borrow()->GetValue(), kDefaultValue);
 }
 
+TEST(Borrowable, DefaultBorrowableFails) {
+  Borrowable<int> borrowable;
+  EXPECT_FALSE(borrowable.Borrow());
+}
+
+TEST(Borrowable, CopyBorrowable) {
+  constexpr int kValue = 1;
+
+  Lender<int> lender(kValue);
+  Borrowable<int> borrowable = lender.GetBorrowable();
+  Borrowable<int> copy = borrowable;
+  Borrowed<int> borrowed = copy.Borrow();
+
+  ASSERT_TRUE(borrowed);
+  EXPECT_EQ(*borrowed, kValue);
+}
+
 }  // namespace
 }  // namespace nearby

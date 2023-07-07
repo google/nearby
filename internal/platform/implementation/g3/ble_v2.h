@@ -279,18 +279,15 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     bool HasCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic);
 
-    void Connect(GattClient* client) { connected_clients_.push_back(client); }
-    void Disconnect(GattClient* client) {
-      connected_clients_.erase(std::remove(connected_clients_.begin(),
-                                           connected_clients_.end(), client),
-                               connected_clients_.end());
-    }
+    void Connect(GattClient* client);
+    void Disconnect(GattClient* client);
 
    private:
     using SubscriberKey =
         std::pair<const BleV2Peripheral*, api::ble_v2::GattCharacteristic>;
     using SubscriberCallback =
         absl::AnyInvocable<void(absl::string_view value)>;
+    absl::Mutex mutex_;
     BleV2Medium& medium_;
     api::ble_v2::ServerGattConnectionCallback callback_;
     BleV2Peripheral ble_peripheral_;
@@ -340,13 +337,13 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     // A flag to indicate the gatt connection alive or not. If it is
     // disconnected/*false*/, the instance needs to be created again to bring
     // it alive.
-    bool is_connection_alive_ ABSL_GUARDED_BY(mutex_) = true;
+    std::atomic_bool is_connection_alive_ = true;
     BleV2Peripheral& peripheral_;
     Borrowable<api::ble_v2::GattServer*> gatt_server_;
     api::ble_v2::ClientGattConnectionCallback callback_;
   };
 
-  bool IsStopped(Borrowable<api::ble_v2::GattServer*>* server);
+  bool IsStopped(Borrowable<api::ble_v2::GattServer*> server);
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
   BleV2Peripheral peripheral_{adapter_};

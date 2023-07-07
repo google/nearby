@@ -102,8 +102,13 @@ class Borrowed {
 template <typename T>
 class Borrowable {
  public:
+  Borrowable() = default;
   explicit Borrowable(std::weak_ptr<BorrowableSharedData<T>> resource)
       : resource_(resource) {}
+  Borrowable(const Borrowable&) = default;
+  Borrowable(Borrowable&&) = default;
+  Borrowable& operator=(const Borrowable&) = default;
+  Borrowable& operator=(Borrowable&&) = default;
 
   // Gives the caller exclusive access to the stored object. Borrowing fails if
   // the object has already been destroyed. The call will block if another

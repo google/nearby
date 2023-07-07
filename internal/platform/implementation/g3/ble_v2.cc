@@ -361,8 +361,8 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
   return std::make_unique<GattServer>(*this, std::move(callback));
 }
 
-bool BleV2Medium::IsStopped(Borrowable<api::ble_v2::GattServer*>* server) {
-  auto borrowed = server->Borrow();
+bool BleV2Medium::IsStopped(Borrowable<api::ble_v2::GattServer*> server) {
+  auto borrowed = server.Borrow();
   if (!borrowed) {
     return true;
   }
@@ -373,14 +373,14 @@ bool BleV2Medium::IsStopped(Borrowable<api::ble_v2::GattServer*>* server) {
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  Borrowable<api::ble_v2::GattServer*>* server =
+  Borrowable<api::ble_v2::GattServer*> server =
       MediumEnvironment::Instance().GetGattServer(peripheral);
-  if (server == nullptr || IsStopped(server)) {
+  if (IsStopped(server)) {
     NEARBY_LOGS(WARNING) << "No GATT server found for "
                          << peripheral.GetAddress();
     return nullptr;
   }
-  return std::make_unique<GattClient>(peripheral, *server, std::move(callback));
+  return std::make_unique<GattClient>(peripheral, server, std::move(callback));
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
@@ -580,14 +580,26 @@ bool BleV2Medium::GattServer::HasCharacteristic(
   return characteristics_.find(characteristic) != characteristics_.end();
 }
 
+void BleV2Medium::GattServer::Connect(GattClient* client) {
+  absl::MutexLock lock(&mutex_);
+  connected_clients_.push_back(client);
+}
+
+void BleV2Medium::GattServer::Disconnect(GattClient* client) {
+  absl::MutexLock lock(&mutex_);
+  connected_clients_.erase(
+      std::remove(connected_clients_.begin(), connected_clients_.end(), client),
+      connected_clients_.end());
+}
+
 void BleV2Medium::GattServer::Stop() {
   if (stopped_) return;
-  NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
+  absl::MutexLock lock(&mutex_);
   stopped_ = true;
-  characteristics_.clear();
   for (auto& client : connected_clients_) {
     client->OnServerDisconnected();
   }
+  characteristics_.clear();
 }
 
 BleV2Medium::GattClient::GattClient(
@@ -754,9 +766,9 @@ bool BleV2Medium::GattClient::SetCharacteristicSubscription(
 }
 
 void BleV2Medium::GattClient::Disconnect() {
-  absl::MutexLock lock(&mutex_);
+  bool was_alive = is_connection_alive_.exchange(false);
+  if (!was_alive) return;
   NEARBY_LOGS(INFO) << "G3 Ble GattClient Disconnect";
-  is_connection_alive_ = false;
   Borrowed<api::ble_v2::GattServer*> borrowed = gatt_server_.Borrow();
   if (borrowed) {
     BleV2Medium::GattServer* gatt_server =
@@ -766,11 +778,9 @@ void BleV2Medium::GattClient::Disconnect() {
 }
 
 void BleV2Medium::GattClient::OnServerDisconnected() {
-  {
-    absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << "G3 Ble GattServer disconnected";
-    is_connection_alive_ = false;
-  }
+  bool was_alive = is_connection_alive_.exchange(false);
+  if (!was_alive) return;
+  NEARBY_LOGS(INFO) << "G3 Ble GattServer disconnected";
   if (callback_.disconnected_cb != nullptr) {
     callback_.disconnected_cb();
   }
