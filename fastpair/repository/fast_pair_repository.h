@@ -18,19 +18,34 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
+#include "fastpair/common/fast_pair_device.h"
+#include "fastpair/proto/data.proto.h"
+#include "fastpair/proto/enum.proto.h"
 
 namespace nearby {
 namespace fastpair {
 using DeviceMetadataCallback =
     absl::AnyInvocable<void(std::optional<DeviceMetadata> device_metadata)>;
+using OperationToFootprintsCallback =
+    absl::AnyInvocable<void(absl::Status status)>;
 
 class FastPairRepository {
  public:
+  class Observer {
+   public:
+    virtual ~Observer() = default;
+
+    virtual void OnGetUserSavedDevices(
+        const proto::OptInStatus& opt_in_status,
+        const std::vector<proto::FastPairDevice>& devices) = 0;
+  };
+
   static FastPairRepository* Get();
 
   // Computes and returns the SHA256 of the concatenation of the given
@@ -40,8 +55,25 @@ class FastPairRepository {
 
   FastPairRepository();
   virtual ~FastPairRepository();
+
+  virtual void AddObserver(Observer* observer) = 0;
+  virtual void RemoveObserver(Observer* observer) = 0;
+
   virtual void GetDeviceMetadata(absl::string_view hex_model_id,
                                  DeviceMetadataCallback callback) = 0;
+
+  // Gets a list of devices saved to the current user's account and the user's
+  // opt in status for saving future devices to their account.
+  virtual void GetUserSavedDevices() = 0;
+
+  // Stores the given |account_key| for a |device| on the Footprints server.
+  virtual void WriteAccountAssociationToFootprints(
+      FastPairDevice& device, OperationToFootprintsCallback callback) = 0;
+
+  // Deletes the associated data for a given |account_key|.
+  virtual void DeleteAssociatedDeviceByAccountKey(
+      const AccountKey& account_key,
+      OperationToFootprintsCallback callback) = 0;
 
  protected:
   static void SetInstance(FastPairRepository* instance);

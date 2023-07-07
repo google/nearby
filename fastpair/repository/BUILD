@@ -14,6 +14,7 @@ cc_library(
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",
+        "//fastpair/proto:fastpair_cc_proto",
         "//internal/base:bluetooth_address",
         "//internal/crypto",
         "@com_google_absl//absl/functional:any_invocable",
@@ -40,13 +41,11 @@ cc_library(
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/proto:proto_builder",
         "//fastpair/server_access",
-        "//internal/base:bluetooth_address",
-        "//internal/crypto",
+        "//internal/base",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
     ],
 )
 
@@ -146,14 +145,15 @@ cc_test(
         "-Ithird_party",
     ],
     deps = [
-        ":repository",
         ":repository_impl",
-        ":test_support",
         "//fastpair/common",
+        "//fastpair/proto:fastpair_cc_proto",
+        "//fastpair/proto:proto_builder",
         "//fastpair/server_access:test_support",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )

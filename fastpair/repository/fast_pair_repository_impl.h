@@ -20,8 +20,9 @@
 
 #include "absl/strings/string_view.h"
 #include "fastpair/common/device_metadata.h"
-#include "fastpair/server_access/fast_pair_client.h"
 #include "fastpair/repository/fast_pair_repository.h"
+#include "fastpair/server_access/fast_pair_client.h"
+#include "internal/base/observer_list.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -35,8 +36,20 @@ class FastPairRepositoryImpl : public FastPairRepository {
   FastPairRepositoryImpl& operator=(const FastPairRepositoryImpl&) = delete;
   ~FastPairRepositoryImpl() override = default;
 
+  void AddObserver(Observer* observer) override;
+  void RemoveObserver(Observer* observer) override;
+
   void GetDeviceMetadata(absl::string_view hex_model_id,
                          DeviceMetadataCallback callback) override;
+
+  void GetUserSavedDevices() override;
+
+  void WriteAccountAssociationToFootprints(
+      FastPairDevice& device, OperationToFootprintsCallback callback) override;
+
+  void DeleteAssociatedDeviceByAccountKey(
+      const AccountKey& account_key,
+      OperationToFootprintsCallback callback) override;
 
  private:
   // A thread for running blocking tasks.
@@ -44,6 +57,7 @@ class FastPairRepositoryImpl : public FastPairRepository {
   FastPairClient* fast_pair_client_;
   absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>>
       metadata_cache_;
+  ObserverList<FastPairRepository::Observer> observers_;
 };
 }  // namespace fastpair
 }  // namespace nearby

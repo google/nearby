@@ -38,9 +38,23 @@ class FakeFastPairRepository : public FastPairRepository {
 
   void SetFakeMetadata(absl::string_view hex_model_id, proto::Device metadata);
   void ClearFakeMetadata(absl::string_view hex_model_id);
+
   // FastPairRepository::
+  void AddObserver(Observer* observer) override{};
+  void RemoveObserver(Observer* observer) override{};
+
   void GetDeviceMetadata(absl::string_view hex_model_id,
                          DeviceMetadataCallback callback) override;
+
+  void GetUserSavedDevices() override{};
+
+  void WriteAccountAssociationToFootprints(
+      FastPairDevice& device,
+      OperationToFootprintsCallback callback) override{};
+
+  void DeleteAssociatedDeviceByAccountKey(
+      const AccountKey& account_key,
+      OperationToFootprintsCallback callback) override{};
 
  private:
   absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>> data_;
