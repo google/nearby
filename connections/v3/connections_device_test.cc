@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
@@ -62,6 +63,19 @@ TEST(ConnectionsDeviceTest, TestLongEndpointId) {
   EXPECT_EQ(device.GetEndpointId().length(), 4);
   EXPECT_NE(device.GetEndpointId(), "ABCDEF");
   EXPECT_EQ(device.GetEndpointInfo(), "connections endpoint");
+}
+
+TEST(ConnectionsDeviceTest, TestToProtoBytes) {
+  auto connection_infos = CreateDefaultConnectionInfos();
+  ConnectionsDevice device("ABCD", "connections endpoint", connection_infos);
+  auto proto_bytes = device.ToProtoBytes();
+  location::nearby::connections::ConnectionsDevice device_frame;
+  ASSERT_TRUE(device_frame.ParseFromString(proto_bytes));
+  EXPECT_EQ(device_frame.endpoint_id(), "ABCD");
+  EXPECT_EQ(device_frame.endpoint_info(), "connections endpoint");
+  EXPECT_TRUE(device_frame.has_connectivity_info_list());
+  EXPECT_EQ(device_frame.endpoint_type(),
+            location::nearby::connections::CONNECTIONS_ENDPOINT);
 }
 
 }  // namespace

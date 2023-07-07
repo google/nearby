@@ -1,5 +1,8 @@
 cc_library(
     name = "v3_types",
+    srcs = [
+        "connections_device.cc",
+    ],
     hdrs = [
         "bandwidth_info.h",
         "connection_listening_options.h",
@@ -15,11 +18,13 @@ cc_library(
     ],
     deps = [
         "//connections:core_types",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/crypto",
         "//internal/interop:device",
         "//internal/platform:connection_info",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -30,8 +35,8 @@ cc_test(
         "connections_device_test.cc",
     ],
     deps = [
-        "//connections/implementation:internal_test",
-        "//connections/v3:v3_types",
+        ":v3_types",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:connection_info",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
