@@ -72,24 +72,28 @@ class FakeBlePeripheral : public api::BlePeripheral {
   ByteArray advertisement_data_;
 };
 
-TEST(FastPairDiscoverableScannerImplTest, ValidModelId) {
+class FastPairDiscoverableScannerImplTest : public ::testing::Test {
+ protected:
+  void TearDown() override { executor_.Shutdown(); }
+
+  SingleThreadExecutor executor_;
+  FastPairDeviceRepository devices_{&executor_};
+  std::unique_ptr<FastPairDiscoverableScanner> discoverable_scanner_;
+};
+
+TEST_F(FastPairDiscoverableScannerImplTest, ValidModelId) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
   absl::Notification found_notification;
   absl::Notification lost_notification;
 
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
@@ -99,24 +103,19 @@ TEST(FastPairDiscoverableScannerImplTest, ValidModelId) {
   lost_notification.WaitForNotification();
 }
 
-TEST(FastPairDiscoverableScannerImplTest, InvalidModelId) {
+TEST_F(FastPairDiscoverableScannerImplTest, InvalidModelId) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
   absl::Notification found_notification;
   absl::Notification lost_notification;
 
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral = std::make_unique<FakeBlePeripheral>(
       kTestBleDeviceAddress, kInvalidModelId);
@@ -126,24 +125,19 @@ TEST(FastPairDiscoverableScannerImplTest, InvalidModelId) {
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
-TEST(FastPairDiscoverableScannerImplTest, NoServiceData) {
+TEST_F(FastPairDiscoverableScannerImplTest, NoServiceData) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
   absl::Notification found_notification;
   absl::Notification lost_notification;
 
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, "");
@@ -153,24 +147,19 @@ TEST(FastPairDiscoverableScannerImplTest, NoServiceData) {
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
-TEST(FastPairDiscoverableScannerImplTest, UnsupportedDeviceType) {
+TEST_F(FastPairDiscoverableScannerImplTest, UnsupportedDeviceType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::AUTOMOTIVE);
   repository->SetFakeMetadata(kValidModelId, metadata);
 
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
@@ -180,11 +169,9 @@ TEST(FastPairDiscoverableScannerImplTest, UnsupportedDeviceType) {
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
-TEST(FastPairDiscoverableScannerImplTest, UnsupportedNotifictionType) {
+TEST_F(FastPairDiscoverableScannerImplTest, UnsupportedNotifictionType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::HEADPHONES);
   metadata.set_notification_type(proto::NotificationType::APP_LAUNCH);
@@ -192,13 +179,10 @@ TEST(FastPairDiscoverableScannerImplTest, UnsupportedNotifictionType) {
 
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
@@ -208,14 +192,12 @@ TEST(FastPairDiscoverableScannerImplTest, UnsupportedNotifictionType) {
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
-TEST(FastPairDiscoverableScannerImplTest, UnspecifiedNotificationType) {
+TEST_F(FastPairDiscoverableScannerImplTest, UnspecifiedNotificationType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   // Set metadata to mimic a device that doesn't specify the notification
   // or device type. Since we aren't sure what this device is, we'll show
   // the notification to be safe.
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::DEVICE_TYPE_UNSPECIFIED);
   metadata.set_notification_type(
@@ -224,13 +206,10 @@ TEST(FastPairDiscoverableScannerImplTest, UnspecifiedNotificationType) {
 
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
@@ -240,13 +219,11 @@ TEST(FastPairDiscoverableScannerImplTest, UnspecifiedNotificationType) {
   lost_notification.WaitForNotification();
 }
 
-TEST(FastPairDiscoverableScannerImplTest, V1NotificationType) {
+TEST_F(FastPairDiscoverableScannerImplTest, V1NotificationType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   // Set metadata to mimic a V1 device which advertises with no device
   // type and a notification type of FAST_PAIR_ONE.
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::DEVICE_TYPE_UNSPECIFIED);
   metadata.set_notification_type(proto::NotificationType::FAST_PAIR_ONE);
@@ -254,13 +231,10 @@ TEST(FastPairDiscoverableScannerImplTest, V1NotificationType) {
 
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
@@ -270,13 +244,11 @@ TEST(FastPairDiscoverableScannerImplTest, V1NotificationType) {
   lost_notification.WaitForNotification();
 }
 
-TEST(FastPairDiscoverableScannerImplTest, V2NotificationType) {
+TEST_F(FastPairDiscoverableScannerImplTest, V2NotificationType) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   // Set metadata to mimic a V2 device which advertises with a device
   // type of TRUE_WIRELESS_HEADPHONES and a notification type of FAST_PAIR.
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   metadata.set_notification_type(proto::NotificationType::FAST_PAIR);
@@ -284,13 +256,10 @@ TEST(FastPairDiscoverableScannerImplTest, V2NotificationType) {
 
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
@@ -300,23 +269,18 @@ TEST(FastPairDiscoverableScannerImplTest, V2NotificationType) {
   lost_notification.WaitForNotification();
 }
 
-TEST(FastPairDiscoverableScannerImplTest, NearbyShareModelId) {
+TEST_F(FastPairDiscoverableScannerImplTest, NearbyShareModelId) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral = std::make_unique<FakeBlePeripheral>(
       kTestBleDeviceAddress, kNearbyShareModelId);
@@ -326,24 +290,19 @@ TEST(FastPairDiscoverableScannerImplTest, NearbyShareModelId) {
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
-TEST(FastPairDiscoverableScannerImplTest,
-     DoesntInvokeLostCallbackIfDidntInvokeFound) {
+TEST_F(FastPairDiscoverableScannerImplTest,
+       DoesntInvokeLostCallbackIfDidntInvokeFound) {
   auto scanner = std::make_unique<FakeFastPairScanner>();
   auto repository = std::make_unique<FakeFastPairRepository>();
-  SingleThreadExecutor executor;
-  FastPairDeviceRepository devices(&executor);
   proto::Device metadata;
   metadata.set_device_type(proto::DeviceType::TRUE_WIRELESS_HEADPHONES);
   repository->SetFakeMetadata(kValidModelId, metadata);
   absl::Notification found_notification;
   absl::Notification lost_notification;
-  std::unique_ptr<FastPairDiscoverableScanner>
-      discoverable_scanner_from_factory =
-          FastPairDiscoverableScannerImpl::Factory::Create(
-              *scanner,
-              [&](FastPairDevice& device) { found_notification.Notify(); },
-              [&](FastPairDevice& device) { lost_notification.Notify(); },
-              &executor, &devices);
+  discoverable_scanner_ = FastPairDiscoverableScannerImpl::Factory::Create(
+      *scanner, [&](FastPairDevice& device) { found_notification.Notify(); },
+      [&](FastPairDevice& device) { lost_notification.Notify(); }, &executor_,
+      &devices_);
 
   auto ble_peripheral =
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);

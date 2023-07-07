@@ -44,9 +44,9 @@ FastPairDevice* FastPairDeviceRepository::AddDevice(
 void FastPairDeviceRepository::RemoveDevice(const FastPairDevice* device) {
   std::unique_ptr<FastPairDevice> fast_pair_device = ExtractDevice(device);
   if (fast_pair_device == nullptr) return;
-  // Tasks running in the background may still be referencing `device`. Defering
-  // the destruction to the background thread should prevent use-after-free
-  // errors.
+  // Tasks running in the background may still be referencing `device`.
+  // Deferring the destruction to the background thread should prevent
+  // use-after-free errors.
   executor_->Execute([this, fast_pair_device = std::move(fast_pair_device)]() {
     for (auto* callback : observers_.GetObservers()) {
       (*callback)(*fast_pair_device);
