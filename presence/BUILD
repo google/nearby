@@ -86,6 +86,7 @@ cc_library(
         "scan_request_builder.h",
     ],
     deps = [
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:connection_info",
@@ -118,9 +119,11 @@ cc_test(
     shard_count = 6,
     deps = [
         ":types",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:connection_info",
         "//internal/platform:logging",
         "//internal/proto:credential_cc_proto",
+        "//internal/proto:metadata_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",

@@ -29,7 +29,7 @@
 namespace nearby {
 namespace presence {
 
-constexpr int kEndpointIdLength = 4;
+inline constexpr int kEndpointIdLength = 4;
 
 class PresenceDevice : public nearby::NearbyDevice {
   using Metadata = ::nearby::internal::Metadata;
@@ -60,8 +60,7 @@ class PresenceDevice : public nearby::NearbyDevice {
   // Add more medium ConnectionInfos as we introduce them.
   std::vector<nearby::ConnectionInfoVariant> GetConnectionInfos()
       const override;
-  // TODO(b/289368652): Implement.
-  std::string ToProtoBytes() const override { return ""; }
+  std::string ToProtoBytes() const override;
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
   Metadata GetMetadata() const { return metadata_; }
   void SetMetadata(const Metadata metadata) { metadata_ = metadata; }

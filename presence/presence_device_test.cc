@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,17 @@
 
 #include "presence/presence_device.h"
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/types/variant.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/implementation/proto/offline_wire_formats.proto.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/data_element.h"
 #include "presence/presence_action.h"
 
@@ -28,6 +33,7 @@ namespace presence {
 namespace {
 
 using ::nearby::internal::Metadata;
+using ::testing::Contains;
 
 constexpr DeviceMotion::MotionType kDefaultMotionType =
     DeviceMotion::MotionType::kPointAndHold;
@@ -44,6 +50,7 @@ Metadata CreateTestMetadata() {
   metadata.set_device_name("NP test device");
   metadata.set_device_profile_url("test_image.test.com");
   metadata.set_bluetooth_mac_address(kMacAddr);
+  metadata.set_device_type(internal::DEVICE_TYPE_LAPTOP);
   return metadata;
 }
 
@@ -132,6 +139,24 @@ TEST(PresenceDeviceTest, TestGetIdentityType) {
   PresenceDevice device =
       PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
   EXPECT_EQ(device.GetIdentityType(), internal::IDENTITY_TYPE_PUBLIC);
+}
+
+TEST(PresenceDeviceTest, TestToProtoBytes) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device =
+      PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
+  std::string proto_bytes = device.ToProtoBytes();
+  location::nearby::connections::PresenceDevice device_frame;
+  ASSERT_TRUE(device_frame.ParseFromString(proto_bytes));
+  // Public identity.
+  EXPECT_THAT(device_frame.identity_type(), Contains(2));
+  EXPECT_EQ(device_frame.endpoint_type(),
+            location::nearby::connections::PRESENCE_ENDPOINT);
+  EXPECT_EQ(device_frame.endpoint_id(), device.GetEndpointId());
+  EXPECT_EQ(device_frame.device_type(),
+            location::nearby::connections::PresenceDevice::LAPTOP);
+  EXPECT_EQ(device_frame.device_name(), "NP test device");
+  EXPECT_EQ(device_frame.device_image_url(), "test_image.test.com");
 }
 
 }  // namespace
