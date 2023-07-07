@@ -32,9 +32,7 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/common/protocol.h"
-#include "fastpair/handshake/fast_pair_gatt_service_client_impl.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
@@ -88,12 +86,11 @@ class FastPairHandshakeImplTest : public testing::Test {
  public:
   void TearDown() override {
     executor_.Shutdown();
-    repository_.reset();
     key_based_characteristic_ = std::nullopt;
     passkey_characteristic_ = std::nullopt;
+    handshake_.reset();
     gatt_server_->Stop();
     gatt_server_.reset();
-    handshake_.reset();
   }
 
   void StartGattServer(
@@ -199,7 +196,6 @@ class FastPairHandshakeImplTest : public testing::Test {
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
   std::optional<GattCharacteristic> accountkey_characteristic_;
-  std::unique_ptr<FakeFastPairRepository> repository_;
   Property properties_ = Property::kWrite | Property::kNotify;
   Permission permissions_ = Permission::kWrite;
 };

@@ -60,11 +60,6 @@ class FastPairDataEncryptorImpl : public FastPairDataEncryptor {
         absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
             on_get_instance_callback);
 
-    static void DeviceMetadataRetrieved(
-        absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
-            on_get_instance_callback,
-        DeviceMetadata& device_metadata);
-
     static void CreateAsyncWithAccountKey(
         const FastPairDevice& device,
         absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
