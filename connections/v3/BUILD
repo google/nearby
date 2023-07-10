@@ -25,6 +25,7 @@ cc_library(
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
     ],
 )
 
