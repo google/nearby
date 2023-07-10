@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::{executor, StreamExt};
+use futures::executor;
 
 mod bluetooth;
 
@@ -20,10 +20,10 @@ use bluetooth::common::{Adapter, Device};
 
 fn main() -> Result<(), anyhow::Error> {
     let run = async {
-        let adapter = bluetooth::BleAdapter::default().await?;
-        let mut scanner = adapter.scan_devices()?;
+        let mut adapter = bluetooth::BleAdapter::default().await?;
+        adapter.start_scan_devices()?;
 
-        while let Some(device) = scanner.next().await {
+        while let Ok(device) = adapter.next_device().await {
             println!("found {}", device.name()?)
         }
 

@@ -59,6 +59,11 @@ use crate::bluetooth::{common::Adapter, BleDevice};
 /// Concrete type implementing `Adapter`, used for Windows BLE.
 pub struct BleAdapter {
     inner: BluetoothAdapter,
+    // NOTE: Using Boxed dyn here is silly because only one concrete type ever
+    // used. Change this to `impl Stream` once impl trait return types
+    // stabilized for existential types.
+    // b/289224233.
+    device_stream: Option<Pin<Box<dyn Stream<Item = BleDevice> + Send + Sync>>>,
 }
 
 #[async_trait]
@@ -79,10 +84,13 @@ impl Adapter for BleAdapter {
             ));
         }
 
-        Ok(BleAdapter { inner })
+        Ok(BleAdapter {
+            inner,
+            device_stream: None,
+        })
     }
 
-    fn scan_devices(&self) -> Result<Pin<Box<dyn Stream<Item = Self::Device>>>, anyhow::Error> {
+    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error> {
         let watcher = BluetoothLEAdvertisementWatcher::new()?;
         match watcher.SetScanningMode(BluetoothLEScanningMode::Active) {
             Ok(_) => (),
@@ -106,11 +114,17 @@ impl Adapter for BleAdapter {
         let received_handler = TypedEventHandler::new(
             // Move `weak_sender` into closure.
             move |watcher: &Option<BluetoothLEAdvertisementWatcher>,
-                  event_args: &Option<BluetoothLEAdvertisementReceivedEventArgs>| {
+                  event_args: &Option<
+                BluetoothLEAdvertisementReceivedEventArgs,
+            >| {
                 if watcher.is_some() {
                     if let Some(event_args) = event_args {
                         if let Some(sender) = weak_sender.upgrade() {
-                            match sender.lock().unwrap().try_send(event_args.clone()) {
+                            match sender
+                                .lock()
+                                .unwrap()
+                                .try_send(event_args.clone())
+                            {
                                 Ok(_) => (),
                                 Err(err) => {
                                     error!("Error while handling Received event: {:?}", err)
@@ -148,15 +162,18 @@ impl Adapter for BleAdapter {
         // We apply a FilterMap to map from advertisement packet to a future
         // returning `BleDevice` and filter out undesired connections. We need a
         // pinned box to satisfy trait bounds for `Stream`.
-        Ok(Box::pin(receiver.filter_map(move |event_args| {
-            //  Move `watcher` into `FilterMap` closure. This ensures `watcher`
-            // is only dropped when the stream is closed.
-            let _watcher = &watcher;
+        self.device_stream =
+            Some(Box::pin(receiver.filter_map(move |event_args| {
+                //  Move `watcher` into `FilterMap` closure. This ensures `watcher`
+                // is only dropped when the stream is closed.
+                let _watcher = &watcher;
 
-            // Move `event_args` into async block.
-            async move {
-                match event_args.AdvertisementType().ok()? {
-                    BluetoothLEAdvertisementType::NonConnectableUndirected => None,
+                // Move `event_args` into async block.
+                async move {
+                    match event_args.AdvertisementType().ok()? {
+                    BluetoothLEAdvertisementType::NonConnectableUndirected => {
+                        None
+                    }
                     _ => {
                         let addr = event_args.BluetoothAddress().ok()?;
                         let kind = event_args.BluetoothAddressType().ok()?;
@@ -170,8 +187,30 @@ impl Adapter for BleAdapter {
                         }
                     }
                 }
-            }
-        })))
+                }
+            })));
+
+        Ok(())
+    }
+
+    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+        if let Some(_) = &self.device_stream {
+            self.device_stream.take();
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Device scanning hasn't started."))
+        }
+    }
+
+    async fn next_device(&mut self) -> Result<BleDevice, anyhow::Error> {
+        if let Some(stream) = &mut self.device_stream {
+            stream
+                .next()
+                .await
+                .ok_or(anyhow::anyhow!("Device returned from stream is None."))
+        } else {
+            Err(anyhow::anyhow!("Device scanning hasn't started."))
+        }
     }
 }
 

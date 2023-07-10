@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::pin::Pin;
-
 use async_trait::async_trait;
-use futures::stream::Stream;
 
 use super::BleDevice;
 use crate::bluetooth::common::Adapter;
@@ -32,11 +29,16 @@ impl Adapter for BleAdapter {
         panic!("Unsupported target platform.");
     }
 
-    fn scan_devices(&self) -> Result<Pin<Box<dyn Stream<Item = Self::Device>>>, anyhow::Error> {
+    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error> {
         panic!("Unsupported target platform.");
-        #[allow(unreachable_code)]
-        // Sad satisfying trait bounds github.com/rust-lang/rust/issues/55022.
-        Ok(Box::pin(futures::stream::iter(vec![BleDevice {}])))
+    }
+
+    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+        panic!("Unsupported target platform.");
+    }
+
+    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error> {
+        panic!("Unsupported target platform.");
     }
 }
 

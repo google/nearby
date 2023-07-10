@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::pin::Pin;
-
 use async_trait::async_trait;
-use futures::stream::Stream;
 
 /// Concrete types implementing this trait are Bluetooth Central devices.
 /// They provide methods for retrieving nearby connections and device info.
@@ -26,14 +23,14 @@ pub trait Adapter: Sized {
     /// Retrieve the system-default Bluetooth adapter.
     async fn default() -> Result<Self, anyhow::Error>;
 
-    /// Scan for nearby devices, returning a `Stream` of futures that can be
-    /// iterated over and polled to retrieve `BleDevice`.
-    //
-    // NOTE: Using Boxed dyn here is silly because in cross-platform code there
-    // should only ever be one concrete type implementing Adapter. Change this
-    // to `impl Stream` once impl trait return types are stabilized in traits.
-    // b/289224233.
-    fn scan_devices(&self) -> Result<Pin<Box<dyn Stream<Item = Self::Device>>>, anyhow::Error>;
+    /// Begin scanning for nearby devices.
+    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error>;
+
+    /// Stop scanning for nearby devices.
+    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error>;
+
+    /// Poll next discovered device.
+    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error>;
 }
 
 /// Concrete types implementing this trait represent Bluetooth Peripheral devices.
