@@ -15,9 +15,9 @@
 #include "connections/v3/connections_device.h"
 
 #include <string>
-#include <variant>
 
 #include "absl/strings/str_cat.h"
+#include "absl/types/variant.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
@@ -31,22 +31,22 @@ std::string ConnectionsDevice::ToProtoBytes() const {
   // Bytes holding the connection info data elements.
   std::string connection_info_string;
   for (const auto& connection_info : connection_infos_) {
-    if (std::holds_alternative<absl::monostate>(connection_info)) {
+    if (absl::holds_alternative<absl::monostate>(connection_info)) {
       continue;
     }
-    if (std::holds_alternative<BleConnectionInfo>(connection_info)) {
+    if (absl::holds_alternative<BleConnectionInfo>(connection_info)) {
       absl::StrAppend(
           &connection_info_string,
-          std::get<BleConnectionInfo>(connection_info).ToDataElementBytes());
+          absl::get<BleConnectionInfo>(connection_info).ToDataElementBytes());
     }
-    if (std::holds_alternative<WifiLanConnectionInfo>(connection_info)) {
+    if (absl::holds_alternative<WifiLanConnectionInfo>(connection_info)) {
       absl::StrAppend(&connection_info_string,
-                      std::get<WifiLanConnectionInfo>(connection_info)
+                      absl::get<WifiLanConnectionInfo>(connection_info)
                           .ToDataElementBytes());
     }
-    if (std::holds_alternative<BluetoothConnectionInfo>(connection_info)) {
+    if (absl::holds_alternative<BluetoothConnectionInfo>(connection_info)) {
       absl::StrAppend(&connection_info_string,
-                      std::get<BluetoothConnectionInfo>(connection_info)
+                      absl::get<BluetoothConnectionInfo>(connection_info)
                           .ToDataElementBytes());
     }
   }
