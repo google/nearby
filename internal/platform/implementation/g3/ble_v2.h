@@ -293,9 +293,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     BleV2Peripheral ble_peripheral_;
     absl::flat_hash_map<api::ble_v2::GattCharacteristic,
                         absl::StatusOr<ByteArray>>
-        characteristics_;
-    absl::flat_hash_map<SubscriberKey, SubscriberCallback> subscribers_;
-    std::vector<GattClient*> connected_clients_;
+        characteristics_ ABSL_GUARDED_BY(mutex_);
+    absl::flat_hash_map<SubscriberKey, SubscriberCallback> subscribers_
+        ABSL_GUARDED_BY(mutex_);
+    std::vector<GattClient*> connected_clients_ ABSL_GUARDED_BY(mutex_);
     std::atomic_bool stopped_ = false;
     Lender<api::ble_v2::GattServer*> lender_{this};
   };

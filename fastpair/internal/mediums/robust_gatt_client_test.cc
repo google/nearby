@@ -85,6 +85,7 @@ class RobustGattClientTest : public testing::Test {
                     int offset,
                     BleV2Medium::ServerGattConnectionCallback::ReadValueCallback
                         callback) {
+                  MutexLock lock(&mutex_);
                   auto it = characteristics_.find(characteristic);
                   if (it == characteristics_.end()) {
                     callback(absl::NotFoundError("characteristic not found"));
@@ -98,6 +99,7 @@ class RobustGattClientTest : public testing::Test {
                     int offset, absl::string_view data,
                     BleV2Medium::ServerGattConnectionCallback::
                         WriteValueCallback callback) {
+                  MutexLock lock(&mutex_);
                   auto it = characteristics_.find(characteristic);
                   if (it == characteristics_.end()) {
                     callback(absl::NotFoundError("characteristic not found"));
@@ -120,6 +122,7 @@ class RobustGattClientTest : public testing::Test {
   }
 
   void InsertCorrectV2GattCharacteristics() {
+    MutexLock lock(&mutex_);
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kKeyBasedCharacteristicUuidV2, permissions_,
         properties_);
@@ -143,6 +146,7 @@ class RobustGattClientTest : public testing::Test {
   }
 
   void InsertCorrectV1GattCharacteristics() {
+    MutexLock lock(&mutex_);
     key_based_characteristic_ = gatt_server_->CreateCharacteristic(
         kFastPairServiceUuid, kKeyBasedCharacteristicUuidV1, permissions_,
         properties_);
@@ -161,14 +165,35 @@ class RobustGattClientTest : public testing::Test {
         absl::OkStatus();
   }
 
+  absl::string_view GetWrittenData(GattCharacteristic characteristic) {
+    MutexLock lock(&mutex_);
+    CHECK(characteristics_.find(characteristic) != characteristics_.end());
+    return characteristics_[characteristic].written_data;
+  }
+
+  void SetWriteResult(GattCharacteristic characteristic, absl::Status status) {
+    MutexLock lock(&mutex_);
+    CHECK(characteristics_.find(characteristic) != characteristics_.end());
+    characteristics_[characteristic].write_result = status;
+  }
+
+  void SetNotifyResponse(GattCharacteristic characteristic,
+                         absl::string_view response) {
+    MutexLock lock(&mutex_);
+    CHECK(characteristics_.find(characteristic) != characteristics_.end());
+    characteristics_[characteristic].notify_response = response;
+  }
+
   MediumEnvironmentStarter env_;
+  Mutex mutex_;
   BluetoothAdapter provider_adapter_;
   BleV2Medium provider_ble_{provider_adapter_};
   BluetoothAdapter seeker_adapter_;
   BleV2Medium seeker_ble_{seeker_adapter_};
   std::unique_ptr<GattServer> gatt_server_;
   std::string provider_address_;
-  absl::flat_hash_map<GattCharacteristic, CharacteristicData> characteristics_;
+  absl::flat_hash_map<GattCharacteristic, CharacteristicData> characteristics_
+      ABSL_GUARDED_BY(mutex_);
   Property properties_ = Property::kWrite | Property::kNotify;
   Permission permissions_ = Permission::kWrite;
   std::optional<GattCharacteristic> key_based_characteristic_;
@@ -245,7 +270,7 @@ TEST_F(RobustGattClientTest, SuccessfulWriteToPrimaryUuid) {
       });
 
   EXPECT_TRUE(latch.Await().Ok());
-  EXPECT_EQ(characteristics_[*key_based_characteristic_].written_data, kData);
+  EXPECT_EQ(GetWrittenData(*key_based_characteristic_), kData);
 }
 
 TEST_F(RobustGattClientTest, SuccessfulWriteToFallbackUuid) {
@@ -268,7 +293,7 @@ TEST_F(RobustGattClientTest, SuccessfulWriteToFallbackUuid) {
       });
 
   EXPECT_TRUE(latch.Await().Ok());
-  EXPECT_EQ(characteristics_[*key_based_characteristic_].written_data, kData);
+  EXPECT_EQ(GetWrittenData(*key_based_characteristic_), kData);
 }
 
 TEST_F(RobustGattClientTest, RejectedWrite) {
@@ -276,8 +301,8 @@ TEST_F(RobustGattClientTest, RejectedWrite) {
   CountDownLatch latch(1);
   BleV2Peripheral provider = seeker_ble_.GetRemotePeripheral(provider_address_);
   InsertCorrectV2GattCharacteristics();
-  characteristics_[*key_based_characteristic_].write_result =
-      absl::UnauthenticatedError("write rejected");
+  SetWriteResult(*key_based_characteristic_,
+                 absl::UnauthenticatedError("write rejected"));
   RobustGattClient::ConnectionParams params;
   params.tx_power_level = api::ble_v2::TxPowerLevel::kMedium;
   params.service_uuid = kFastPairServiceUuid;
@@ -302,7 +327,7 @@ TEST_F(RobustGattClientTest, SuccessfulCallRemoteFunctionToPrimaryUuid) {
   CountDownLatch latch(1);
   BleV2Peripheral provider = seeker_ble_.GetRemotePeripheral(provider_address_);
   InsertCorrectV2GattCharacteristics();
-  characteristics_[*key_based_characteristic_].notify_response = kResponse;
+  SetNotifyResponse(*key_based_characteristic_, kResponse);
   RobustGattClient::ConnectionParams params;
   params.tx_power_level = api::ble_v2::TxPowerLevel::kMedium;
   params.service_uuid = kFastPairServiceUuid;
@@ -318,8 +343,7 @@ TEST_F(RobustGattClientTest, SuccessfulCallRemoteFunctionToPrimaryUuid) {
       });
 
   EXPECT_TRUE(latch.Await().Ok());
-  EXPECT_EQ(characteristics_[*key_based_characteristic_].written_data,
-            kRequest);
+  EXPECT_EQ(GetWrittenData(*key_based_characteristic_), kRequest);
 }
 
 TEST_F(RobustGattClientTest, SuccessfulCallRemoteFunctionToFallbackUuid) {
@@ -328,7 +352,7 @@ TEST_F(RobustGattClientTest, SuccessfulCallRemoteFunctionToFallbackUuid) {
   CountDownLatch latch(1);
   BleV2Peripheral provider = seeker_ble_.GetRemotePeripheral(provider_address_);
   InsertCorrectV1GattCharacteristics();
-  characteristics_[*key_based_characteristic_].notify_response = kResponse;
+  SetNotifyResponse(*key_based_characteristic_, kResponse);
   RobustGattClient::ConnectionParams params;
   params.tx_power_level = api::ble_v2::TxPowerLevel::kMedium;
   params.service_uuid = kFastPairServiceUuid;
@@ -344,8 +368,7 @@ TEST_F(RobustGattClientTest, SuccessfulCallRemoteFunctionToFallbackUuid) {
       });
 
   EXPECT_TRUE(latch.Await().Ok());
-  EXPECT_EQ(characteristics_[*key_based_characteristic_].written_data,
-            kRequest);
+  EXPECT_EQ(GetWrittenData(*key_based_characteristic_), kRequest);
 }
 
 TEST_F(RobustGattClientTest, CallRemoteFunctionRejectedWrite) {
@@ -353,8 +376,8 @@ TEST_F(RobustGattClientTest, CallRemoteFunctionRejectedWrite) {
   CountDownLatch latch(1);
   BleV2Peripheral provider = seeker_ble_.GetRemotePeripheral(provider_address_);
   InsertCorrectV2GattCharacteristics();
-  characteristics_[*key_based_characteristic_].write_result =
-      absl::InternalError("write rejected");
+  SetWriteResult(*key_based_characteristic_,
+                 absl::InternalError("write rejected"));
   RobustGattClient::ConnectionParams params;
   params.tx_power_level = api::ble_v2::TxPowerLevel::kMedium;
   params.service_uuid = kFastPairServiceUuid;
@@ -401,8 +424,8 @@ TEST_F(RobustGattClientTest, WriteTimeout) {
   CountDownLatch latch(1);
   BleV2Peripheral provider = seeker_ble_.GetRemotePeripheral(provider_address_);
   InsertCorrectV2GattCharacteristics();
-  characteristics_[*key_based_characteristic_].write_result =
-      absl::DeadlineExceededError("write time out");
+  SetWriteResult(*key_based_characteristic_,
+                 absl::DeadlineExceededError("write time out"));
   RobustGattClient::ConnectionParams params;
   params.tx_power_level = api::ble_v2::TxPowerLevel::kMedium;
   params.service_uuid = kFastPairServiceUuid;
@@ -454,7 +477,7 @@ TEST_F(RobustGattClientTest, ReconnectWorks) {
   StartGattServer();
   InsertCorrectV2GattCharacteristics();
   EXPECT_TRUE(write_after_reconnect.Await().Ok());
-  EXPECT_EQ(characteristics_[*key_based_characteristic_].written_data, kData);
+  EXPECT_EQ(GetWrittenData(*key_based_characteristic_), kData);
 }
 
 TEST_F(RobustGattClientTest, SuccessfulSubscribeToPrimaryUuid) {

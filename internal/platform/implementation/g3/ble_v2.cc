@@ -450,6 +450,7 @@ BleV2Medium::GattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
     api::ble_v2::GattCharacteristic::Permission permission,
     api::ble_v2::GattCharacteristic::Property property) {
+  absl::MutexLock lock(&mutex_);
   api::ble_v2::GattCharacteristic characteristic = {
       .uuid = characteristic_uuid, .service_uuid = service_uuid};
   characteristics_[characteristic] = absl::NotFoundError("value not set");
@@ -458,6 +459,7 @@ BleV2Medium::GattServer::CreateCharacteristic(
 
 bool BleV2Medium::GattServer::DiscoverBleV2MediumGattCharacteristics(
     const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
+  absl::MutexLock lock(&mutex_);
   auto contains = [&](const Uuid& characteristic_uuid) {
     return std::find(characteristic_uuids.begin(), characteristic_uuids.end(),
                      characteristic_uuid) != characteristic_uuids.end();
@@ -475,6 +477,7 @@ bool BleV2Medium::GattServer::DiscoverBleV2MediumGattCharacteristics(
 bool BleV2Medium::GattServer::UpdateCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     const nearby::ByteArray& value) {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO)
       << "G3 Ble GattServer UpdateCharacteristic, characteristic=("
       << characteristic.service_uuid.Get16BitAsString() << ","
@@ -487,6 +490,7 @@ bool BleV2Medium::GattServer::UpdateCharacteristic(
 absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
     const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
     const ByteArray& new_value) {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO)
       << "G3 Ble GattServer NotifyCharacteristicChanged, characteristic=("
       << characteristic.service_uuid.Get16BitAsString() << ","
@@ -507,36 +511,37 @@ absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
 absl::StatusOr<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
     const BleV2Peripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic, int offset) {
-  const auto it = characteristics_.find(characteristic);
-  if (it != characteristics_.end()) {
-    if (it->second.ok()) {
+  {
+    absl::MutexLock lock(&mutex_);
+    const auto it = characteristics_.find(characteristic);
+    if (it == characteristics_.end()) {
+      return absl::FailedPreconditionError(
+          absl::StrCat(characteristic, " not found"));
+    } else if (it->second.ok()) {
       return it->second;
     }
-    absl::StatusOr<ByteArray> result;
-    CountDownLatch latch(1);
-    callback_.on_characteristic_read_cb(
-        remote_device, characteristic, offset,
-        [&](absl::StatusOr<absl::string_view> data) {
-          if (data.ok()) {
-            result = ByteArray(std::string(*data));
-          } else {
-            result = data.status();
-          }
-          latch.CountDown();
-        });
-    latch.Await();
-    return result;
   }
-  return absl::FailedPreconditionError(
-      absl::StrCat(characteristic, " not found"));
+  absl::StatusOr<ByteArray> result;
+  CountDownLatch latch(1);
+  callback_.on_characteristic_read_cb(
+      remote_device, characteristic, offset,
+      [&](absl::StatusOr<absl::string_view> data) {
+        if (data.ok()) {
+          result = ByteArray(std::string(*data));
+        } else {
+          result = data.status();
+        }
+        latch.CountDown();
+      });
+  latch.Await();
+  return result;
 }
 
 absl::Status BleV2Medium::GattServer::WriteCharacteristic(
     const BleV2Peripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic, int offset,
     absl::string_view data) {
-  const auto it = characteristics_.find(characteristic);
-  if (it != characteristics_.end()) {
+  if (HasCharacteristic(characteristic)) {
     absl::Status result;
     CountDownLatch latch(1);
     callback_.on_characteristic_write_cb(remote_device, characteristic, offset,
@@ -555,6 +560,7 @@ bool BleV2Medium::GattServer::AddCharacteristicSubscription(
     const BleV2Peripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic,
     absl::AnyInvocable<void(absl::string_view value)> callback) {
+  absl::MutexLock lock(&mutex_);
   const auto it = characteristics_.find(characteristic);
   if (it != characteristics_.end()) {
     subscribers_[SubscriberKey(&remote_device, characteristic)] =
@@ -567,6 +573,7 @@ bool BleV2Medium::GattServer::AddCharacteristicSubscription(
 bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
     const BleV2Peripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic) {
+  absl::MutexLock lock(&mutex_);
   const auto it = characteristics_.find(characteristic);
   if (it != characteristics_.end()) {
     subscribers_.erase(SubscriberKey(&remote_device, characteristic));
@@ -577,6 +584,7 @@ bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
 
 bool BleV2Medium::GattServer::HasCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic) {
+  absl::MutexLock lock(&mutex_);
   return characteristics_.find(characteristic) != characteristics_.end();
 }
 
