@@ -44,5 +44,6 @@ cc_library(
         "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/cpp/sharing/implementation/internal:__subpackages__",
+        "//third_party/nearby/sharing:__subpackages__",
     ],
 )

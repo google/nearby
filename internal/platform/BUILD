@@ -54,6 +54,7 @@ cc_library(
         "//internal/weave:__pkg__",
         "//location/nearby/cpp:__subpackages__",
         "//presence:__subpackages__",
+        "//third_party/nearby/sharing:__subpackages__",
     ],
     deps = [
         "//proto:connections_enums_cc_proto",
@@ -365,6 +366,7 @@ cc_library(
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",
         "//presence:__subpackages__",
+        "//third_party/nearby/sharing:__subpackages__",
     ],
     deps = [
         ":base",

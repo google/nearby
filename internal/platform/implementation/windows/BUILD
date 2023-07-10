@@ -42,7 +42,7 @@ cc_library(
     ],
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
-    visibility = ["//location/nearby/cpp/sharing/implementation/internal/impl/windows:__pkg__"],
+    visibility = ["//third_party/nearby/sharing/internal/impl/windows:__pkg__"],
     deps = [
         ":comm",
         "//base",
@@ -191,6 +191,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
         "//presence:__subpackages__",
+        "//third_party/nearby/sharing:__subpackages__",
     ],
     deps = [
         ":comm",
