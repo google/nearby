@@ -21,6 +21,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
@@ -329,6 +331,88 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
   EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
   // We discovered endpoint over one medium. Before we finish the test, we have
   // to stop discovery for other mediums that may be still ongoing.
+  handler_b.StopDiscovery(&client_b_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, CanBluetoothDiscoverChangeName) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  Mediums mediums_b;
+  EndpointChannelManager ecm_a;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_a(&ecm_a);
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  // For the first time we find the device with the old name.
+  CountDownLatch first_found_latch(1);
+  // For the second time we "find" the device with the new name.
+  CountDownLatch second_found_latch(1);
+  // For when the name is changed.
+  CountDownLatch lost_latch(1);
+  AdvertisingOptions advertising_options = {
+      {
+          Strategy::kP2pCluster,
+          BooleanMediumSelector{
+              .bluetooth = true,
+          },
+      },
+  };
+
+  DiscoveryOptions discovery_options = {
+      {
+          Strategy::kP2pCluster,
+          BooleanMediumSelector{
+              .bluetooth = true,
+          },
+      },
+  };
+  bool first = false;
+  EXPECT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  EXPECT_EQ(handler_b.StartDiscovery(
+                &client_b_, service_id_, discovery_options,
+                {
+                    .endpoint_found_cb =
+                        [&](const std::string& endpoint_id,
+                            const ByteArray& endpoint_info,
+                            const std::string& service_id) {
+                          NEARBY_LOG(INFO, "Device discovered: id=%s",
+                                     endpoint_id.c_str());
+                          if (!first) {
+                            first_found_latch.CountDown();
+                            first = true;
+                          } else {
+                            second_found_latch.CountDown();
+                          }
+                        },
+                    .endpoint_lost_cb =
+                        [&](const std::string& id) {
+                          NEARBY_LOG(INFO, "Device lost: id=%s", id.c_str());
+                          lost_latch.CountDown();
+                        },
+                }),
+            Status{Status::kSuccess});
+  ASSERT_TRUE(mediums_a.GetBluetoothRadio().IsAdapterValid());
+  BluetoothDeviceName name(
+      mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetName());
+  BluetoothDeviceName new_name(name.GetVersion(), name.GetPcp(),
+                               name.GetEndpointId(), name.GetServiceIdHash(),
+                               ByteArray("BT Device A"), name.GetUwbAddress(),
+                               name.GetWebRtcState());
+  EXPECT_TRUE(first_found_latch.Await().Ok());
+  mediums_a.GetBluetoothRadio().GetBluetoothAdapter().SetName(
+      std::string(new_name));
+  EXPECT_TRUE(second_found_latch.Await().Ok());
+  EXPECT_TRUE(lost_latch.Await().Ok());
   handler_b.StopDiscovery(&client_b_);
   env_.Stop();
 }

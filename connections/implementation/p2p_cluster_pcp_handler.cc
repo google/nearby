@@ -946,16 +946,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
 
   if (discovery_options.allowed.wifi_lan) {
     location::nearby::proto::connections::Medium wifi_lan_medium =
-        StartWifiLanDiscovery(
-            {
-                .service_discovered_cb = absl::bind_front(
-                    &P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler,
-                    this, client),
-                .service_lost_cb = absl::bind_front(
-                    &P2pClusterPcpHandler::WifiLanServiceLostHandler, this,
-                    client),
-            },
-            client, service_id);
+        StartWifiLanDiscovery(client, service_id);
     if (wifi_lan_medium !=
         location::nearby::proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOGS(INFO)
@@ -967,17 +958,6 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   if (discovery_options.allowed.bluetooth) {
     location::nearby::proto::connections::Medium bluetooth_medium =
         StartBluetoothDiscovery(
-            {
-                .device_discovered_cb = absl::bind_front(
-                    &P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler,
-                    this, client, service_id),
-                .device_name_changed_cb = absl::bind_front(
-                    &P2pClusterPcpHandler::BluetoothNameChangedHandler, this,
-                    client, service_id),
-                .device_lost_cb = absl::bind_front(
-                    &P2pClusterPcpHandler::BluetoothDeviceLostHandler, this,
-                    client, service_id),
-            },
             client, service_id);
     if (bluetooth_medium !=
         location::nearby::proto::connections::UNKNOWN_MEDIUM) {
@@ -992,14 +972,6 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
             config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
       location::nearby::proto::connections::Medium ble_v2_medium =
           StartBleV2Scanning(
-              {
-                  .peripheral_discovered_cb = absl::bind_front(
-                      &P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler,
-                      this, client),
-                  .peripheral_lost_cb = absl::bind_front(
-                      &P2pClusterPcpHandler::BleV2PeripheralLostHandler, this,
-                      client),
-              },
               client, service_id, discovery_options);
       if (ble_v2_medium !=
           location::nearby::proto::connections::UNKNOWN_MEDIUM) {
@@ -1009,17 +981,8 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
       }
     } else {
       location::nearby::proto::connections::Medium ble_medium =
-          StartBleScanning(
-              {
-                  .peripheral_discovered_cb = absl::bind_front(
-                      &P2pClusterPcpHandler::BlePeripheralDiscoveredHandler,
-                      this, client),
-                  .peripheral_lost_cb = absl::bind_front(
-                      &P2pClusterPcpHandler::BlePeripheralLostHandler, this,
-                      client),
-              },
-              client, service_id,
-              discovery_options.fast_advertisement_service_uuid);
+          StartBleScanning(client, service_id,
+                           discovery_options.fast_advertisement_service_uuid);
       if (ble_medium != location::nearby::proto::connections::UNKNOWN_MEDIUM) {
         NEARBY_LOGS(INFO)
             << "P2pClusterPcpHandler::StartDiscoveryImpl: Ble added.";
@@ -1498,11 +1461,20 @@ P2pClusterPcpHandler::StartBluetoothAdvertising(
 }
 
 location::nearby::proto::connections::Medium
-P2pClusterPcpHandler::StartBluetoothDiscovery(
-    BluetoothDiscoveredDeviceCallback callback, ClientProxy* client,
-    const std::string& service_id) {
+P2pClusterPcpHandler::StartBluetoothDiscovery(ClientProxy* client,
+                                              const std::string& service_id) {
   if (bluetooth_radio_.Enable() &&
-      bluetooth_medium_.StartDiscovery(std::move(callback))) {
+      bluetooth_medium_.StartDiscovery({
+          .device_discovered_cb = absl::bind_front(
+              &P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler, this,
+              client, service_id),
+          .device_name_changed_cb = absl::bind_front(
+              &P2pClusterPcpHandler::BluetoothNameChangedHandler, this, client,
+              service_id),
+          .device_lost_cb = absl::bind_front(
+              &P2pClusterPcpHandler::BluetoothDeviceLostHandler, this, client,
+              service_id),
+      })) {
     NEARBY_LOGS(INFO) << "In StartBluetoothDiscovery(), client="
                       << client->GetClientId()
                       << " started scanning for Bluetooth for service_id="
@@ -1714,12 +1686,19 @@ P2pClusterPcpHandler::StartBleAdvertising(
 
 location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartBleScanning(
-    BleDiscoveredPeripheralCallback callback, ClientProxy* client,
-    const std::string& service_id,
+    ClientProxy* client, const std::string& service_id,
     const std::string& fast_advertisement_service_uuid) {
   if (bluetooth_radio_.Enable() &&
-      ble_medium_.StartScanning(service_id, fast_advertisement_service_uuid,
-                                std::move(callback))) {
+      ble_medium_.StartScanning(
+          service_id, fast_advertisement_service_uuid,
+          {
+              .peripheral_discovered_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::BlePeripheralDiscoveredHandler, this,
+                  client),
+              .peripheral_lost_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::BlePeripheralLostHandler, this,
+                  client),
+          })) {
     NEARBY_LOGS(INFO)
         << "In StartBleScanning(), client=" << client->GetClientId()
         << " started scanning for BLE advertisements for service_id="
@@ -1923,13 +1902,21 @@ P2pClusterPcpHandler::StartBleV2Advertising(
 
 location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartBleV2Scanning(
-    BleV2DiscoveredPeripheralCallback callback, ClientProxy* client,
-    const std::string& service_id, const DiscoveryOptions& discovery_options) {
+    ClientProxy* client, const std::string& service_id,
+    const DiscoveryOptions& discovery_options) {
   PowerLevel power_level = discovery_options.low_power ? PowerLevel::kLowPower
                                                        : PowerLevel::kHighPower;
   if (bluetooth_radio_.Enable() &&
-      ble_v2_medium_.StartScanning(service_id, power_level,
-                                   std::move(callback))) {
+      ble_v2_medium_.StartScanning(
+          service_id, power_level,
+          {
+              .peripheral_discovered_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler, this,
+                  client),
+              .peripheral_lost_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::BleV2PeripheralLostHandler, this,
+                  client),
+          })) {
     NEARBY_LOGS(INFO)
         << "In StartBleScanning(), client=" << client->GetClientId()
         << " started scanning for BLE advertisements for service_id="
@@ -2086,10 +2073,18 @@ P2pClusterPcpHandler::StartWifiLanAdvertising(
 }
 
 location::nearby::proto::connections::Medium
-P2pClusterPcpHandler::StartWifiLanDiscovery(
-    WifiLanDiscoveredServiceCallback callback, ClientProxy* client,
-    const std::string& service_id) {
-  if (wifi_lan_medium_.StartDiscovery(service_id, std::move(callback))) {
+P2pClusterPcpHandler::StartWifiLanDiscovery(ClientProxy* client,
+                                            const std::string& service_id) {
+  if (wifi_lan_medium_.StartDiscovery(
+          service_id,
+          {
+              .service_discovered_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler, this,
+                  client),
+              .service_lost_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::WifiLanServiceLostHandler, this,
+                  client),
+          })) {
     NEARBY_LOGS(INFO) << "In StartWifiLanDiscovery(), client="
                       << client->GetClientId()
                       << " started scanning for Wifi devices for service_id="

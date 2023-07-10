@@ -181,8 +181,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartBluetoothDiscovery(
-      BluetoothDiscoveredDeviceCallback callback, ClientProxy* client,
-      const std::string& service_id);
+      ClientProxy* client, const std::string& service_id);
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
       ClientProxy* client, BluetoothEndpoint* endpoint);
 
@@ -207,8 +206,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartBleScanning(
-      BleDiscoveredPeripheralCallback callback, ClientProxy* client,
-      const std::string& service_id,
+      ClientProxy* client, const std::string& service_id,
       const std::string& fast_advertisement_service_uuid);
   BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
                                                    BleEndpoint* endpoint);
@@ -237,8 +235,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartBleV2Scanning(
-      BleV2DiscoveredPeripheralCallback callback, ClientProxy* client,
-      const std::string& service_id, const DiscoveryOptions& discovery_options);
+      ClientProxy* client, const std::string& service_id,
+      const DiscoveryOptions& discovery_options);
   BasePcpHandler::ConnectImplResult BleV2ConnectImpl(ClientProxy* client,
                                                      BleV2Endpoint* endpoint);
 
@@ -263,8 +261,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartWifiLanDiscovery(
-      WifiLanDiscoveredServiceCallback callback, ClientProxy* client,
-      const std::string& service_id);
+      ClientProxy* client, const std::string& service_id);
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
       ClientProxy* client, WifiLanEndpoint* endpoint);
 
