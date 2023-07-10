@@ -41,6 +41,7 @@ TEST(FastPairDeviceRepositoryTest, AddDevice) {
 
   ASSERT_NE(device, nullptr);
   EXPECT_EQ(device->GetModelId(), kModelId);
+  executor.Shutdown();
 }
 
 TEST(FastPairDeviceRepositoryTest, FindDeviceByBleAddress) {
@@ -55,6 +56,7 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBleAddress) {
   FastPairDevice* device = opt_device.value();
   ASSERT_NE(device, nullptr);
   EXPECT_EQ(device->GetModelId(), kModelId);
+  executor.Shutdown();
 }
 
 TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
@@ -71,6 +73,7 @@ TEST(FastPairDeviceRepositoryTest, FindDeviceByBtAddress) {
   FastPairDevice* device = opt_device.value();
   ASSERT_NE(device, nullptr);
   EXPECT_EQ(device->GetPublicAddress(), kBtAddress);
+  executor.Shutdown();
 }
 
 TEST(FastPairDeviceRepositoryTest, RemoveDevice) {
@@ -82,6 +85,7 @@ TEST(FastPairDeviceRepositoryTest, RemoveDevice) {
   repo.RemoveDevice(device);
 
   EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
+  executor.Shutdown();
 }
 
 TEST(FastPairDeviceRepositoryTest, RemovingNonRegisteredDeviceIsSafe) {
@@ -98,6 +102,7 @@ TEST(FastPairDeviceRepositoryTest, RemovingNonRegisteredDeviceIsSafe) {
   repo.RemoveDevice(&other_device);
 
   EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
+  executor.Shutdown();
 }
 
 TEST(FastPairDeviceRepositoryTest, RemovingDeviceCallsCallback) {
@@ -111,6 +116,7 @@ TEST(FastPairDeviceRepositoryTest, RemovingDeviceCallsCallback) {
   repo.RemoveDevice(device);
 
   EXPECT_FALSE(repo.FindDevice(kBleAddress).has_value());
+  executor.Shutdown();
 }
 
 }  // namespace
