@@ -34,6 +34,7 @@ class PendingJobRegistry {
   void AddRunningJob(const std::string& name, absl::Time post_time);
   void RemoveRunningJob(const std::string& name, absl::Time post_time);
   void ListJobs();
+  void ListAllJobs();
 
  private:
   PendingJobRegistry();

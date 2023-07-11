@@ -27,6 +27,7 @@
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {

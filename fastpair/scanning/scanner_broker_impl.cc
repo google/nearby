@@ -58,21 +58,6 @@ void ScannerBrokerImpl::RemoveObserver(Observer* observer) {
 
 std::unique_ptr<ScannerBroker::ScanningSession>
 ScannerBrokerImpl::StartScanning(Protocol protocol) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": protocol=" << protocol;
-  executor_->Execute("start-scan",
-                     [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                       StartFastPairScanning();
-                     });
-  return std::make_unique<ScanningSessionImpl>(this, protocol);
-}
-
-void ScannerBrokerImpl::StopScanning(Protocol protocol) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": protocol=" << protocol;
-  executor_->Execute("stop-scan", [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
-                                      *executor_) { StopFastPairScanning(); });
-}
-
-void ScannerBrokerImpl::StartFastPairScanning() {
   DCHECK(!fast_pair_discoverable_scanner_);
   NEARBY_LOGS(VERBOSE) << "Starting Fast Pair Scanning.";
   scanner_ = std::make_unique<FastPairScannerImpl>(mediums_, executor_);
@@ -83,12 +68,14 @@ void ScannerBrokerImpl::StartFastPairScanning() {
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this),
           executor_, device_repository_);
   scanning_session_ = scanner_->StartScanning();
+  return std::make_unique<ScanningSessionImpl>(this, protocol);
 }
 
-void ScannerBrokerImpl::StopFastPairScanning() {
-  NEARBY_LOGS(VERBOSE) << __func__ << "Stopping Fast Pair Scanning.";
+void ScannerBrokerImpl::StopScanning(Protocol protocol) {
+  NEARBY_LOGS(VERBOSE) << __func__ << " Stopping Fast Pair Scanning.";
   scanning_session_.reset();
   observers_.Clear();
+
   DestroyOnExecutor(std::move(fast_pair_discoverable_scanner_), executor_);
   DestroyOnExecutor(std::move(scanner_), executor_);
 }

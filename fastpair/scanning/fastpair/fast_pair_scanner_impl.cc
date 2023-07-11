@@ -35,7 +35,10 @@ class ScanningSessionImpl : public FastPairScanner::ScanningSession {
  public:
   explicit ScanningSessionImpl(FastPairScannerImpl* scanner)
       : scanner_(scanner) {}
-  ~ScanningSessionImpl() override { scanner_->StopScanning(); }
+  ~ScanningSessionImpl() override {
+    NEARBY_LOGS(VERBOSE) << __func__;
+    scanner_->StopScanning();
+  }
 
  private:
   FastPairScannerImpl* scanner_;
@@ -65,6 +68,7 @@ FastPairScannerImpl::StartScanning() {
 }
 
 void FastPairScannerImpl::StartScanningInternal() {
+  NEARBY_LOGS(VERBOSE) << __func__;
   if (mediums_.GetBluetoothRadio().Enable() &&
       mediums_.GetBle().IsAvailable() &&
       mediums_.GetBle().StartScanning(
@@ -104,8 +108,10 @@ void FastPairScannerImpl::StartScanningInternal() {
 }
 
 void FastPairScannerImpl::StopScanning() {
+  NEARBY_LOGS(VERBOSE) << __func__;
   executor_->Execute("stop-scan",
                      [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                       NEARBY_LOGS(VERBOSE) << __func__ << " in background";
                        timer_.reset();
                        mediums_.GetBle().StopScanning(kServiceId);
                      });

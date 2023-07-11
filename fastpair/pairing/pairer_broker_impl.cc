@@ -238,11 +238,6 @@ void PairerBrokerImpl::OnFastPairPairingFailure(FastPairDevice& device,
                     << ", Failure=" << failure << ", Failure Count = "
                     << pair_failure_counts_[device.GetModelId()];
   if (pair_failure_counts_[device.GetModelId()] == kMaxFailureRetryCount) {
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Reached max failure count. Notifying observers.";
-    for (auto& observer : observers_.GetObservers()) {
-      observer->OnPairFailure(device, failure);
-    }
     if (!fast_pair_pairers_[device.GetModelId()]->IsPaired()) {
       fast_pair_pairers_[device.GetModelId()]->CancelPairing();
     }
@@ -250,6 +245,11 @@ void PairerBrokerImpl::OnFastPairPairingFailure(FastPairDevice& device,
                        [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                          EraseHandshakeAndPairers(device);
                        });
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Reached max failure count. Notifying observers.";
+    for (auto& observer : observers_.GetObservers()) {
+      observer->OnPairFailure(device, failure);
+    }
     return;
   }
 
@@ -275,17 +275,21 @@ void PairerBrokerImpl::OnAccountKeyFailure(FastPairDevice& device,
                                            PairFailure failure) {
   NEARBY_LOGS(INFO) << __func__ << ": Device=" << device
                     << ", Failure=" << failure;
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnAccountKeyWrite(device, failure);
-  }
   executor_->Execute("EraseHandshakeAndPairers",
                      [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                        EraseHandshakeAndPairers(device);
                      });
+  for (auto& observer : observers_.GetObservers()) {
+    observer->OnAccountKeyWrite(device, failure);
+  }
 }
 
 void PairerBrokerImpl::OnFastPairProcedureComplete(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": Device=" << device;
+  executor_->Execute("EraseHandshakeAndPairers",
+                     [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                       EraseHandshakeAndPairers(device);
+                     });
   for (auto& observer : observers_.GetObservers()) {
     observer->OnPairingComplete(device);
   }
@@ -300,10 +304,6 @@ void PairerBrokerImpl::OnFastPairProcedureComplete(FastPairDevice& device) {
       observer->OnAccountKeyWrite(device, /*error=*/absl::nullopt);
     }
   }
-  executor_->Execute("EraseHandshakeAndPairers",
-                     [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                       EraseHandshakeAndPairers(device);
-                     });
 }
 
 void PairerBrokerImpl::EraseHandshakeAndPairers(FastPairDevice& device) {

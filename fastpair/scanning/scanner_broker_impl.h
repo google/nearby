@@ -42,16 +42,13 @@ class ScannerBrokerImpl : public ScannerBroker {
   void StopScanning(Protocol protocol);
 
  private:
-  void StartFastPairScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
-  void StopFastPairScanning() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void NotifyDeviceFound(FastPairDevice& device);
   void NotifyDeviceLost(FastPairDevice& device);
 
   Mediums& mediums_;
   SingleThreadExecutor* executor_;
-  std::unique_ptr<FastPairScanner> scanner_ ABSL_GUARDED_BY(*executor_);
-  std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_
-      ABSL_GUARDED_BY(*executor_);
+  std::unique_ptr<FastPairScanner> scanner_;
+  std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_;
   ObserverList<Observer> observers_;
   FastPairDeviceRepository* device_repository_;
   std::unique_ptr<FastPairScanner::ScanningSession> scanning_session_;

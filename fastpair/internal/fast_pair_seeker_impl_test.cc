@@ -30,6 +30,7 @@
 #include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -59,6 +60,7 @@ class MediumEnvironmentStarter {
 class FastPairSeekerImplTest : public testing::Test {
  protected:
   void SetUp() override {
+    NEARBY_LOG_SET_SEVERITY(VERBOSE);
     repository_ = FakeFastPairRepository::Create(
         kModelId, absl::HexStringToBytes(kBobPublicKey));
   }
@@ -185,6 +187,7 @@ TEST_F(FastPairSeekerImplTest, InitialPairing) {
   auto fp_device = devices_.FindDevice(provider.GetMacAddress());
   ASSERT_TRUE(fp_device.has_value());
   EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
+  fast_pair_seeker_.reset();
 }
 
 TEST_F(FastPairSeekerImplTest, RetroactivePairing) {

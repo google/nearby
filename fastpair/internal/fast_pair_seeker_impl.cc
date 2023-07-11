@@ -25,10 +25,16 @@
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/pending_job_registry.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
+
+namespace {
+constexpr absl::Duration kCleanupTimeout = absl::Seconds(3);
+}  // namespace
 
 FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
                                        SingleThreadExecutor* executor,
@@ -43,10 +49,21 @@ FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
 }
 
 FastPairSeekerImpl::~FastPairSeekerImpl() {
+  NEARBY_LOGS(INFO) << "~FastPairSeekerImpl start";
   pairer_broker_->RemoveObserver(this);
   mediums_.GetBluetoothClassic().RemoveObserver(this);
   FinishPairing(absl::AbortedError("Pairing terminated"));
-  DestroyOnExecutor(std::move(pairer_broker_), executor_);
+  auto unused = StopFastPairScan();
+  CountDownLatch latch(1);
+  executor_->Execute("~FastPairSeekerImpl", [this, latch]() mutable {
+    pairer_broker_.reset();
+    executor_->Execute("sync", [latch]() mutable { latch.CountDown(); });
+  });
+  if (!latch.Await(kCleanupTimeout)) {
+    NEARBY_LOGS(WARNING) << "Cleanup didn't finish in " << kCleanupTimeout;
+  }
+  PendingJobRegistry::GetInstance().ListAllJobs();
+  NEARBY_LOGS(INFO) << "~FastPairSeekerImpl done";
 }
 
 absl::Status FastPairSeekerImpl::StartInitialPairing(

@@ -167,12 +167,11 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Store device name, and report it as discovered.
       info.devices.emplace(&device, name);
       if (enable_notifications_) {
-        RunOnMediumEnvironmentThread([&]() {
-          info.callback.device_discovered_cb(device);
-          for (auto& observer : observers_.GetObservers()) {
-            observer->DeviceAdded(device);
-          }
-        });
+        NEARBY_LOGS(VERBOSE) << "Notify about new discovered device";
+        info.callback.device_discovered_cb(device);
+        for (auto& observer : observers_.GetObservers()) {
+          observer->DeviceAdded(device);
+        }
       }
     }
   } else {
@@ -187,19 +186,16 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
         // Store device name, and report it as renamed.
         item->second = name;
         if (enable_notifications_) {
-          RunOnMediumEnvironmentThread([&info, &device]() {
-            info.callback.device_name_changed_cb(device);
-          });
+          info.callback.device_name_changed_cb(device);
         }
       } else {
         // Device is in discovery mode, so we are reporting it anyway.
         if (enable_notifications_) {
-          RunOnMediumEnvironmentThread([&]() {
-            info.callback.device_discovered_cb(device);
-            for (auto& observer : observers_.GetObservers()) {
-              observer->DeviceAdded(device);
-            }
-          });
+          NEARBY_LOGS(VERBOSE) << "Notify about existing discovered device";
+          info.callback.device_discovered_cb(device);
+          for (auto& observer : observers_.GetObservers()) {
+            observer->DeviceAdded(device);
+          }
         }
       }
     }
@@ -207,12 +203,11 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Known device is turned off.
       // Erase it from the map, and report as lost.
       if (enable_notifications_) {
-        RunOnMediumEnvironmentThread([&]() {
-          info.callback.device_lost_cb(device);
-          for (auto& observer : observers_.GetObservers()) {
-            observer->DeviceRemoved(device);
-          }
-        });
+        NEARBY_LOGS(VERBOSE) << "Notify about removed device";
+        info.callback.device_lost_cb(device);
+        for (auto& observer : observers_.GetObservers()) {
+          observer->DeviceRemoved(device);
+        }
       }
       info.devices.erase(item);
     }
@@ -294,19 +289,18 @@ void MediumEnvironment::OnBlePeripheralStateChanged(
                     << "; service_id=" << service_id
                     << "; notify=" << enable_notifications_.load();
   if (!enable_notifications_) return;
-  RunOnMediumEnvironmentThread([&info, enabled, &peripheral, service_id,
-                                fast_advertisement]() {
-    NEARBY_LOGS(INFO) << "G3 [Run] OnBleServiceStateChanged [peripheral impl="
-                      << &peripheral << "]; context=" << &info
-                      << "; service_id=" << service_id
-                      << "; notify=" << enabled;
-    if (enabled) {
+  if (enabled) {
+    RunOnMediumEnvironmentThread([&info, &peripheral, service_id,
+                                  fast_advertisement]() {
+      NEARBY_LOGS(INFO) << "G3 [Run] OnBleServiceStateChanged [peripheral impl="
+                        << &peripheral << "]; context=" << &info
+                        << "; service_id=" << service_id;
       info.discovery_callback.peripheral_discovered_cb(peripheral, service_id,
                                                        fast_advertisement);
-    } else {
-      info.discovery_callback.peripheral_lost_cb(peripheral, service_id);
-    }
-  });
+    });
+  } else {
+    info.discovery_callback.peripheral_lost_cb(peripheral, service_id);
+  }
 }
 
 void MediumEnvironment::OnBleV2PeripheralStateChanged(
@@ -448,11 +442,14 @@ void MediumEnvironment::UpdateBluetoothMedium(
 void MediumEnvironment::UnregisterBluetoothMedium(
     api::BluetoothClassicMedium& medium) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium]() {
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
     auto item = bluetooth_mediums_.extract(&medium);
+    latch.CountDown();
     if (item.empty()) return;
     NEARBY_LOGS(INFO) << "Unregistered Bluetooth medium:" << &medium;
   });
+  latch.Await();
 }
 
 void MediumEnvironment::RegisterBleMedium(api::BleMedium& medium) {
@@ -555,11 +552,14 @@ void MediumEnvironment::UpdateBleMediumForAcceptedConnection(
 
 void MediumEnvironment::UnregisterBleMedium(api::BleMedium& medium) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium]() {
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
     auto item = ble_mediums_.extract(&medium);
+    latch.CountDown();
     if (item.empty()) return;
     NEARBY_LOGS(INFO) << "Unregistered Ble medium";
   });
+  latch.Await();
 }
 
 void MediumEnvironment::CallBleAcceptedConnectionCallback(
