@@ -24,7 +24,7 @@ option optimize_for = LITE_RUNTIME;
 
 // The metadata of a device. Contains confidential data not to be broadcasted
 // directly in OTA.
-// NEXT_ID=5
+// NEXT_ID=6
 message DeviceIdentityMetaData {
   // The type of the device.
   DeviceType device_type = 1;
@@ -38,6 +38,9 @@ message DeviceIdentityMetaData {
 
   // The instance type (user profile) related to the metadata.
   InstanceType instance_type = 4;
+
+  // The OS of the device
+  DeviceOperatingSystem device_os = 5;
 }
 
 // The metadata of a device.
@@ -63,8 +66,12 @@ message Metadata {
 
   // The instance type (user profile) related to the metadata.
   InstanceType instance_type = 7;
+
+  // The OS of the device
+  DeviceOperatingSystem device_os = 8;
 }
 
+// LINT.IfChange(DeviceType)
 // The type of the device.
 enum DeviceType {
   // The type of the device is unknown.
@@ -88,13 +95,27 @@ enum DeviceType {
   // The device is a watch.
   DEVICE_TYPE_WATCH = 6;
 
-  // The device is a ChromeOS device. ChromeOS can be a laptop, desktop, or
-  // convertible (tablet + clamshell).
-  DEVICE_TYPE_CHROMEOS = 7;
-
   // The device is a foldable.
-  DEVICE_TYPE_FOLDABLE = 8;
+  DEVICE_TYPE_FOLDABLE = 7;
+
+  // The device is an automobile.
+  DEVICE_TYPE_AUTOMOTIVE = 8;
+
+  // The device is a speaker
+  DEVICE_TYPE_SPEAKER = 9;
 }
+// LINT.ThenChange(//depot/google3/location/nearby/proto/presence_enums.proto:DeviceType)
+
+// LINT.IfChange(DeviceOperatingSystem)
+enum DeviceOperatingSystem {
+  DEVICE_OPERATING_SYSTEM_UNKNOWN = 0;
+  DEVICE_OPERATING_SYSTEM_ANDROID = 1;
+  DEVICE_OPERATING_SYSTEM_CHROMEOS = 2;
+  DEVICE_OPERATING_SYSTEM_FUSCHIA = 3;
+  DEVICE_OPERATING_SYSTEM_CAST_OS = 4;
+  DEVICE_OPERATING_SYSTEM_WINDOWS = 5;
+}
+// LINT.ThenChange(//depot/google3/location/nearby/proto/presence_enums.proto:DeviceOperatingSystem)
 
 // The instance type of the metadata.
 // LINT.IfChange
