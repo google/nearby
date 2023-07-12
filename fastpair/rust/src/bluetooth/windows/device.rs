@@ -23,7 +23,7 @@ use windows::Devices::Bluetooth::{
     BluetoothLEDevice,
 };
 
-use crate::bluetooth::common::{BluetoothError, Device};
+use crate::bluetooth::common::{BleAddress, BluetoothError, Device};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {
@@ -31,14 +31,14 @@ pub struct BleDevice {
 }
 
 impl BleDevice {
-    /// Create a `BleDevice` instance from the raw bluetooth address information.
-    pub(super) async fn from_addr(
-        addr: u64,
-        kind: BluetoothAddressType,
-    ) -> Result<Self, BluetoothError> {
-        let inner =
-            BluetoothLEDevice::FromBluetoothAddressWithBluetoothAddressTypeAsync(addr, kind)?
-                .await?;
+    pub async fn new(addr: BleAddress) -> Result<Self, BluetoothError> {
+        let kind = BluetoothAddressType::from(addr.get_kind());
+        let addr = u64::from(addr);
+
+        let inner = BluetoothLEDevice::FromBluetoothAddressWithBluetoothAddressTypeAsync(
+            addr, kind,
+        )?
+        .await?;
 
         Ok(BleDevice { inner })
     }
