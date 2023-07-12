@@ -12,27 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use async_trait::async_trait;
-
-/// Concrete types implementing this trait are Bluetooth Central devices.
-/// They provide methods for retrieving nearby connections and device info.
-#[async_trait]
-pub trait Adapter: Sized {
-    type Device: Device;
-
-    /// Retrieve the system-default Bluetooth adapter.
-    async fn default() -> Result<Self, anyhow::Error>;
-
-    /// Begin scanning for nearby devices.
-    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error>;
-
-    /// Stop scanning for nearby devices.
-    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error>;
-
-    /// Poll next discovered device.
-    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error>;
-}
-
 /// Concrete types implementing this trait represent Bluetooth Peripheral devices.
 /// They provide methods for retrieving device info and running device actions,
 /// such as pairing.

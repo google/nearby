@@ -12,24 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Split into separate crate once demo is finished, providing custom error types
-// instead of using anyhow.
-// b/290070686
+/// Module for shared functionality between all Bluetooth platforms.
+mod adapter;
+mod device;
 
-pub mod common;
-
-pub use common::{Adapter, Device};
-
-cfg_if::cfg_if! {
-    if #[cfg(windows)] {
-        mod windows;
-        use self::windows::BleAdapter;
-    } else {
-        mod unsupported;
-        use unsupported::BleAdapter;
-    }
-}
-
-pub async fn default_adapter() -> Result<impl Adapter, anyhow::Error> {
-    BleAdapter::default().await
-}
+pub use adapter::*;
+pub use device::*;
