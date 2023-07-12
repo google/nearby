@@ -56,6 +56,10 @@ class FakeFastPairRepository : public FastPairRepository {
       const AccountKey& account_key,
       OperationToFootprintsCallback callback) override{};
 
+  void CheckIfAssociatedWithCurrentAccount(
+      AccountKeyFilter& account_key_filter,
+      CheckAccountKeysCallback callback) override{};
+
  private:
   absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>> data_;
   SingleThreadExecutor executor_;

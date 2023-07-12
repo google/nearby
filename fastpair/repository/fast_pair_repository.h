@@ -23,6 +23,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
+#include "fastpair/common/account_key_filter.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/proto/data.proto.h"
@@ -32,6 +33,9 @@ namespace nearby {
 namespace fastpair {
 using DeviceMetadataCallback =
     absl::AnyInvocable<void(std::optional<DeviceMetadata> device_metadata)>;
+using CheckAccountKeysCallback =
+    absl::AnyInvocable<void(std::optional<AccountKey> account_key,
+                            std::optional<absl::string_view> model_id)>;
 using OperationToFootprintsCallback =
     absl::AnyInvocable<void(absl::Status status)>;
 
@@ -74,6 +78,12 @@ class FastPairRepository {
   virtual void DeleteAssociatedDeviceByAccountKey(
       const AccountKey& account_key,
       OperationToFootprintsCallback callback) = 0;
+
+  // Checks all account keys associated with current user's account against the
+  // given filter. If a match is found, return the account key.
+  virtual void CheckIfAssociatedWithCurrentAccount(
+      AccountKeyFilter& account_key_filter,
+      CheckAccountKeysCallback callback) = 0;
 
  protected:
   static void SetInstance(FastPairRepository* instance);

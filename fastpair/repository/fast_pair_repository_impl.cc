@@ -188,9 +188,45 @@ void FastPairRepositoryImpl::GetUserSavedDevices() {
     }
     NEARBY_LOGS(INFO) << __func__ << ": Got " << saved_devices.size()
                       << " saved devices.";
+    // TODO(b/289139378) : save device's in local cache.
     for (auto& observer : observers_.GetObservers()) {
       observer->OnGetUserSavedDevices(opt_in_status, saved_devices);
     }
+  });
+}
+
+void FastPairRepositoryImpl::CheckIfAssociatedWithCurrentAccount(
+    AccountKeyFilter& account_key_filter, CheckAccountKeysCallback callback) {
+  executor_.Execute("Check if associated.", [this,
+                                             account_key_filter =
+                                                 std::move(account_key_filter),
+                                             callback = std::move(
+                                                 callback)]() mutable {
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Start to check if associated with current account.";
+    proto::UserReadDevicesRequest request;
+    absl::StatusOr<proto::UserReadDevicesResponse> response =
+        fast_pair_client_->UserReadDevices(request);
+    if (response.ok()) {
+      for (const auto& info : response->fast_pair_info()) {
+        if (!info.has_device()) {
+          continue;
+        }
+        AccountKey account_key(info.device().account_key());
+        if (!account_key_filter.IsPossiblyInSet(account_key)) {
+          continue;
+        }
+        proto::StoredDiscoveryItem device;
+        if (device.ParseFromString(info.device().discovery_item_bytes())) {
+          NEARBY_LOGS(INFO)
+              << "Account key matched with a paired device: " << device.title();
+          std::move(callback)(account_key, device.id());
+          return;
+        }
+      }
+    }
+    NEARBY_LOGS(INFO) << "Account key does not match any paired devices.";
+    std::move(callback)(std::nullopt, std::nullopt);
   });
 }
 

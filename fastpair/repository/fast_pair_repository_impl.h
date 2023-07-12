@@ -51,6 +51,10 @@ class FastPairRepositoryImpl : public FastPairRepository {
       const AccountKey& account_key,
       OperationToFootprintsCallback callback) override;
 
+  void CheckIfAssociatedWithCurrentAccount(
+      AccountKeyFilter& account_key_filter,
+      CheckAccountKeysCallback callback) override;
+
  private:
   // A thread for running blocking tasks.
   SingleThreadExecutor executor_;

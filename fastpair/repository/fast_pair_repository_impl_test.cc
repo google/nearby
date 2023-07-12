@@ -373,6 +373,101 @@ TEST(FastPairRepositoryImplTest, FailedToDeleteAssociatedDeviceWithError) {
       });
   latch.Await();
 }
+
+// Test data comes from:
+// https://developers.google.com/nearby/fast-pair/specifications/appendix/testcases#test_cases
+TEST(FastPairRepositoryImplTest, DeviceAssociatedWithCurrentAccountSuccess) {
+  const std::vector<uint8_t> filter{0x02, 0x0C, 0x80, 0x2A};
+  const std::vector<uint8_t> salt{0xC7, 0xC8};
+  const std::vector<uint8_t> account_key_vec{0x11, 0x22, 0x33, 0x44, 0x55, 0x66,
+                                             0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB,
+                                             0xCC, 0xDD, 0xEE, 0xFF};
+  FakeFastPairClient fake_fast_pair_client;
+  auto fast_pair_repository =
+      std::make_unique<FastPairRepositoryImpl>(&fake_fast_pair_client);
+
+  // Sets up two devices to proto::UserReadDevicesResponse.
+  proto::UserReadDevicesResponse response_proto;
+  // Adds device 1.
+  auto* fast_pair_info_1 = response_proto.add_fast_pair_info();
+  fast_pair_info_1->set_opt_in_status(
+      proto::OptInStatus::OPT_IN_STATUS_OPTED_IN);
+
+  // Adds device 2.
+  FastPairDevice device_2(kHexModelId, kBleAddress,
+                          Protocol::kFastPairInitialPairing);
+  AccountKey account_key(account_key_vec);
+  device_2.SetAccountKey(account_key);
+  device_2.SetPublicAddress(kPublicAddress);
+  device_2.SetDisplayName(kDisplayName);
+  proto::GetObservedDeviceResponse get_observed_device_response_1;
+  auto* observed_device_strings_1 =
+      get_observed_device_response_1.mutable_strings();
+  observed_device_strings_1->set_initial_pairing_description(
+      kInitialPairingdescription);
+  DeviceMetadata device_metadata_1(get_observed_device_response_1);
+  device_2.SetMetadata(device_metadata_1);
+  auto* fast_pair_info_2 = response_proto.add_fast_pair_info();
+  BuildFastPairInfo(fast_pair_info_2, device_2);
+
+  fake_fast_pair_client.SetUserReadDevicesResponse(response_proto);
+
+  AccountKeyFilter account_key_filter(filter, salt);
+
+  CountDownLatch latch(1);
+  // Get user's saved device from footprints.
+  fast_pair_repository->CheckIfAssociatedWithCurrentAccount(
+      account_key_filter, [&](std::optional<AccountKey> cb_account_key,
+                              std::optional<absl::string_view> cb_model_id) {
+        ASSERT_TRUE(cb_account_key.has_value());
+        ASSERT_TRUE(cb_model_id.has_value());
+        EXPECT_EQ(cb_account_key.value(), account_key);
+        EXPECT_EQ(cb_model_id.value(), kHexModelId);
+        latch.CountDown();
+      });
+  latch.Await();
+}
+
+TEST(FastPairRepositoryImplTest, DeviceNotAssociatedWithCurrentAccount) {
+  const std::vector<uint8_t> filter{0x02, 0x0C, 0x80, 0x2A};
+  const std::vector<uint8_t> salt{0xC7, 0xC8};
+  const std::vector<uint8_t> account_key_vec{0x11, 0x11, 0x22, 0x22, 0x33, 0x33,
+                                             0x44, 0x44, 0x55, 0x55, 0x66, 0x66,
+                                             0x77, 0x77, 0x88, 0x88};
+
+  FakeFastPairClient fake_fast_pair_client;
+  auto fast_pair_repository =
+      std::make_unique<FastPairRepositoryImpl>(&fake_fast_pair_client);
+
+  // Sets up two devices to proto::UserReadDevicesResponse.
+  // Adds device 1.
+  proto::UserReadDevicesResponse response_proto;
+  FastPairDevice device(kHexModelId, kBleAddress,
+                        Protocol::kFastPairInitialPairing);
+  AccountKey account_key(account_key_vec);
+  device.SetAccountKey(account_key);
+  device.SetPublicAddress(kPublicAddress);
+  device.SetDisplayName(kDisplayName);
+  proto::GetObservedDeviceResponse get_observed_device_response;
+  DeviceMetadata device_metadata(get_observed_device_response);
+  device.SetMetadata(device_metadata);
+  auto* fast_pair_info = response_proto.add_fast_pair_info();
+  BuildFastPairInfo(fast_pair_info, device);
+  fake_fast_pair_client.SetUserReadDevicesResponse(response_proto);
+
+  AccountKeyFilter account_key_filter(filter, salt);
+
+  CountDownLatch latch(1);
+  // Get user's saved device from footprints.
+  fast_pair_repository->CheckIfAssociatedWithCurrentAccount(
+      account_key_filter, [&](std::optional<AccountKey> cb_account_key,
+                              std::optional<absl::string_view> cb_model_id) {
+        EXPECT_FALSE(cb_account_key.has_value());
+        EXPECT_FALSE(cb_model_id.has_value());
+        latch.CountDown();
+      });
+  latch.Await();
+}
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby
