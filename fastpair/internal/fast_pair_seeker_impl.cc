@@ -52,10 +52,10 @@ FastPairSeekerImpl::~FastPairSeekerImpl() {
   NEARBY_LOGS(INFO) << "~FastPairSeekerImpl start";
   pairer_broker_->RemoveObserver(this);
   mediums_.GetBluetoothClassic().RemoveObserver(this);
-  FinishPairing(absl::AbortedError("Pairing terminated"));
   auto unused = StopFastPairScan();
   CountDownLatch latch(1);
   executor_->Execute("~FastPairSeekerImpl", [this, latch]() mutable {
+    FinishPairing(absl::AbortedError("Pairing terminated"));
     pairer_broker_.reset();
     executor_->Execute("sync", [latch]() mutable { latch.CountDown(); });
   });
