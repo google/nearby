@@ -17,25 +17,24 @@
 
 #include <atomic>
 #include <cstdint>
-#include <future>  //NOLINT
 #include <memory>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/task_runner.h"
+#include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
-#include "internal/test/fake_timer.h"
 
 namespace nearby {
 
 class FakeTaskRunner : public TaskRunner {
  public:
-  enum class Mode { kActive, kPending };
-
   FakeTaskRunner(FakeClock* clock, uint32_t count)
-      : clock_(clock), count_(count) {}
+      : clock_(clock),
+        count_(count),
+        task_executor_(std::make_unique<MultiThreadExecutor>(count)) {}
   ~FakeTaskRunner() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool PostTask(absl::AnyInvocable<void()> task) override
@@ -47,51 +46,25 @@ class FakeTaskRunner : public TaskRunner {
                        absl::AnyInvocable<void()> task) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Mocked methods.
-  void SetMode(Mode mode) ABSL_LOCKS_EXCLUDED(mutex_);
-  Mode GetMode() const ABSL_LOCKS_EXCLUDED(mutex_);
-
-  void RunNextPendingTask() ABSL_LOCKS_EXCLUDED(mutex_);
-  void RunAllPendingTasks() ABSL_LOCKS_EXCLUDED(mutex_);
+  // Wait for all thread completed.
   void Sync();
 
-  const std::vector<absl::AnyInvocable<void()>>& GetAllPendingTasks() const
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  const absl::flat_hash_map<uint32_t, std::unique_ptr<Timer>>&
-  GetAllDelayedTasks() ABSL_LOCKS_EXCLUDED(mutex_);
+  // In some test cases, we only need to wait for a timeout .
+  bool SyncWithTimeout(absl::Duration timeout);
 
-  int GetConcurrentCount() const ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // In some test cases, we needs to make sure all running tasks completion
+  // In some test cases, we need to make sure all running tasks completion
   // before go to next task. This method can be used for the purpose.
   static bool WaitForRunningTasksWithTimeout(absl::Duration timeout);
-  static int GetTotalRunningThreadCount() {
-    return total_running_thread_count_;
-  }
 
  private:
-  uint32_t GenerateId();
-  void CleanThreads() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
-  void Run(absl::AnyInvocable<void()> task) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
-  void InternalRunNextPendingTask() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
-  void RunNextQueueTask() ABSL_LOCKS_EXCLUDED(mutex_);
-
   mutable absl::Mutex mutex_;
-  mutable absl::Mutex thread_mutex_;
-  Mode mode_ ABSL_GUARDED_BY(mutex_) = Mode::kActive;
-  std::atomic_uint current_id_ = 0;
   FakeClock* clock_ = nullptr;
-  uint32_t count_ ABSL_GUARDED_BY(mutex_);
+  uint32_t count_ = 0;
+  std::unique_ptr<MultiThreadExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
+      nullptr;
 
-  // Used for pending mode
-  std::vector<absl::AnyInvocable<void()>> pending_tasks_
-      ABSL_GUARDED_BY(mutex_);
-  std::vector<absl::AnyInvocable<void()>> queued_tasks_ ABSL_GUARDED_BY(mutex_);
-  std::vector<uint32_t> completed_delayed_tasks_ ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<uint32_t, std::unique_ptr<Timer>> queued_delayed_tasks_
-      ABSL_GUARDED_BY(mutex_);
-  std::vector<std::future<void>> threads_ ABSL_GUARDED_BY(mutex_);
-  int running_thread_count_ ABSL_GUARDED_BY(mutex_) = 0;
+  // Tracks delayed tasks.
+  std::vector<std::unique_ptr<Timer>> timers_ ABSL_GUARDED_BY(mutex_);
 
   static std::atomic_uint total_running_thread_count_;
 };

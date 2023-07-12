@@ -32,7 +32,6 @@ TEST(FakeTaskRunner, PostTask) {
   task_runner.PostTask([&count] { ++count; });
   ASSERT_TRUE(
       FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Milliseconds(100)));
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 0);
   EXPECT_EQ(count, 1);
 }
 
@@ -41,58 +40,11 @@ TEST(FakeTaskRunner, PostDelayedTask) {
   int count = 0;
   FakeTaskRunner task_runner{&clock, 1};
   task_runner.PostDelayedTask(absl::Seconds(10), [&count] { ++count; });
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 0);
-  EXPECT_EQ(task_runner.GetAllDelayedTasks().size(), 1);
   EXPECT_EQ(count, 0);
   clock.FastForward(absl::Seconds(10));
   ASSERT_TRUE(
       FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Milliseconds(100)));
   EXPECT_EQ(count, 1);
-  EXPECT_EQ(task_runner.GetAllDelayedTasks().size(), 0);
-}
-
-TEST(FakeTaskRunner, PostTasksInPendingMode) {
-  FakeClock clock;
-  FakeTaskRunner task_runner{&clock, 1};
-  task_runner.SetMode(FakeTaskRunner::Mode::kPending);
-  EXPECT_EQ(task_runner.GetConcurrentCount(), 1);
-  task_runner.PostTask([]() {});
-  task_runner.PostTask([]() {});
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 2);
-  task_runner.RunNextPendingTask();
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 1);
-  task_runner.RunNextPendingTask();
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 0);
-}
-
-TEST(FakeTaskRunner, RunAllPostedTasksInPendingMode) {
-  FakeClock clock;
-  FakeTaskRunner task_runner{&clock, 1};
-  task_runner.SetMode(FakeTaskRunner::Mode::kPending);
-  task_runner.PostTask([]() {});
-  task_runner.PostTask([]() {});
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 2);
-  task_runner.RunAllPendingTasks();
-  ASSERT_TRUE(
-      FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Milliseconds(100)));
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 0);
-}
-
-TEST(FakeTaskRunner, PostDelayedTaskInPendingMode) {
-  FakeClock clock;
-  bool called = false;
-  FakeTaskRunner task_runner{&clock, 1};
-  task_runner.SetMode(FakeTaskRunner::Mode::kPending);
-  task_runner.PostDelayedTask(absl::Seconds(1), [&called]() { called = true; });
-  EXPECT_EQ(task_runner.GetAllDelayedTasks().size(), 1);
-  clock.FastForward(absl::Seconds(1));
-  EXPECT_EQ(task_runner.GetAllDelayedTasks().size(), 0);
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 1);
-  task_runner.RunAllPendingTasks();
-  ASSERT_TRUE(
-      FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Milliseconds(100)));
-  EXPECT_EQ(task_runner.GetAllPendingTasks().size(), 0);
-  EXPECT_TRUE(called);
 }
 
 TEST(FakeTaskRunner, PostTasksRunInSequence) {
