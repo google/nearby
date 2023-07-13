@@ -184,6 +184,10 @@ class AnalyticsRecorder {
 
   bool IsSessionLogged();
 
+  // Waits until all logs are sent to the backend.
+  // For testing only.
+  void Sync();
+
  private:
   // Tracks the chunks and duration of a Payload on a particular medium.
   class PendingPayload {
@@ -290,7 +294,7 @@ class AnalyticsRecorder {
 
   // Callbacks the ConnectionsLog proto byte array data to the EventLogger with
   // ClientSession sub-proto.
-  void LogClientSession();
+  void LogClientSessionLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   // Callbacks the ConnectionsLog proto byte array data to the EventLogger.
   void LogEvent(location::nearby::proto::connections::EventType event_type);
 
@@ -334,7 +338,8 @@ class AnalyticsRecorder {
 
   // Reset the client cession's logging resources (e.g. current_strategy_,
   // current_advertising_phase_, current_discovery_phase_, etc)
-  void ResetClientSessionLoggingResouces();
+  void ResetClientSessionLoggingResoucesLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   location::nearby::proto::connections::ConnectionsStrategy
   StrategyToConnectionStrategy(connections::Strategy strategy);

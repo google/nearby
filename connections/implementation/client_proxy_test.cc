@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -39,12 +40,17 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
+#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::OsInfo;
+using ::location::nearby::proto::connections::CLIENT_SESSION;
+using ::location::nearby::proto::connections::START_CLIENT_SESSION;
+using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::testing::MockFunction;
 using ::testing::StrictMock;
 
@@ -61,7 +67,42 @@ class FakeEventLogger : public ::nearby::analytics::EventLogger {
  public:
   explicit FakeEventLogger() = default;
 
-  void Log(const ::google::protobuf::MessageLite& message) override {}
+  void Log(const ::google::protobuf::MessageLite& message) override {
+    ConnectionsLog log;
+    log.CheckTypeAndMergeFrom(message);
+    MutexLock lock(&mutex_);
+    logs_.push_back(std::move(log));
+  }
+
+  int GetCompleteClientSessionCount() {
+    MutexLock lock(&mutex_);
+    bool has_start_client_session = false;
+    bool has_client_session = false;
+    int session_count = 0;
+    // We expect series of START_CLIENT_SESSION, CLIENT_SESSION and
+    // STOP_CLIENT_SESSION events, possibly interleaved with other events.
+    for (const auto& log : logs_) {
+      if (log.event_type() == START_CLIENT_SESSION) {
+        EXPECT_FALSE(has_start_client_session);
+        EXPECT_FALSE(has_client_session);
+        has_start_client_session = true;
+      } else if (log.event_type() == CLIENT_SESSION) {
+        EXPECT_TRUE(has_start_client_session);
+        EXPECT_FALSE(has_client_session);
+        has_client_session = true;
+      } else if (log.event_type() == STOP_CLIENT_SESSION) {
+        EXPECT_TRUE(has_start_client_session);
+        EXPECT_TRUE(has_client_session);
+        has_start_client_session = false;
+        has_client_session = false;
+        ++session_count;
+      }
+    }
+    return session_count;
+  }
+
+  Mutex mutex_;
+  std::vector<ConnectionsLog> logs_;
 };
 
 class MockDeviceProvider : public nearby::NearbyDeviceProvider {
@@ -802,11 +843,11 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedAdvertisingWithConnection) {
       advertising_endpoint.id));           // Connections are available
   EXPECT_FALSE(client1_.IsDiscovering());  // No Discovery
   EXPECT_TRUE(client1_.IsAdvertising());   // Advertising
-  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
 
   // After
   StopAdvertising(&client1_);  // No Advertising
-  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+  client1_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
@@ -819,11 +860,13 @@ TEST_F(ClientProxyTest,
       advertising_endpoint.id));           // No Connections
   EXPECT_FALSE(client1_.IsDiscovering());  // No Discovery
   EXPECT_TRUE(client1_.IsAdvertising());   // Advertising
-  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+  client1_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 
   // After
   StopAdvertising(&client1_);
-  EXPECT_TRUE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+  client1_.GetAnalyticsRecorder().Sync();
+  EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
@@ -838,11 +881,11 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
       &client2_, advertising_endpoint);    // Connections are available
   EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
   EXPECT_TRUE(client2_.IsDiscovering());   // Discovering
-  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
 
   // After
   StopDiscovery(&client2_);
-  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
@@ -860,7 +903,8 @@ TEST_F(ClientProxyTest,
 
   // After
   StopDiscovery(&client2_);
-  EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
@@ -878,7 +922,8 @@ TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
 
   // After
   OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
-  EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
@@ -894,7 +939,8 @@ TEST_F(ClientProxyTest,
 
   // After
   client2_.OnDisconnected(advertising_endpoint.id, /*notify=*/false);
-  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
@@ -921,7 +967,8 @@ TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
 
   // After
   client2_.OnDisconnected(advertising_endpoint_1.id, /*notify=*/false);
-  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
@@ -940,7 +987,8 @@ TEST_F(ClientProxyTest,
 
   // After
   OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
-  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
@@ -950,13 +998,18 @@ TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
-  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+  client1_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
   client1_.Reset();
-  EXPECT_TRUE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+  client1_.GetAnalyticsRecorder().Sync();
+  // TODO(b/290936886): Why are there more than one complete sessions?
+  EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 
-  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
   client2_.Reset();
-  EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.GetAnalyticsRecorder().Sync();
+  EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, GetLocalInfoCorrect) {
@@ -1092,8 +1145,7 @@ TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedAdvertising) {
 
 TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedListeningWithStrategy) {
   EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
-  StartListeningForIncomingConnections(&client1_,
-                                       {},
+  StartListeningForIncomingConnections(&client1_, {},
                                        {.strategy = Strategy::kP2pCluster,
                                         .enforce_topology_constraints = true});
   EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
@@ -1101,8 +1153,7 @@ TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedListeningWithStrategy) {
 
 TEST_F(ClientProxyTest, DontEnforceTopologyWhenRequestedWithNoStrategy) {
   EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
-  StartListeningForIncomingConnections(&client1_,
-                                       {},
+  StartListeningForIncomingConnections(&client1_, {},
                                        {.strategy = Strategy::kNone});
   EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
 }
@@ -1116,8 +1167,7 @@ TEST_F(ClientProxyTest, TestAutoBwuWhenAdvertisingWithAutoBwu) {
 
 TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
   EXPECT_FALSE(client1_.AutoUpgradeBandwidth());
-  StartListeningForIncomingConnections(&client1_,
-                                       {},
+  StartListeningForIncomingConnections(&client1_, {},
                                        {.auto_upgrade_bandwidth = true});
   EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
 }
