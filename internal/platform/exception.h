@@ -34,6 +34,7 @@ struct Exception {
                              // illegal chars
   };
   bool Ok() const { return value == kSuccess; }
+  explicit operator bool() const { return Ok(); }
   bool Raised() const { return !Ok(); }
   bool Raised(Value val) const { return value == val; }
   Value value{kFailed};
