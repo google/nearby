@@ -31,10 +31,6 @@ namespace nearby_platform_feature {
 constexpr auto kEnableHotspotWin32Socket =
     flags::Flag<bool>(kConfigPackage, "45401992", true);
 
-// Apply platform thread to network library.
-constexpr auto kEnablePlatformThreadToNetwork =
-    flags::Flag<bool>(kConfigPackage, "45412711", true);
-
 // Disable/Enable GATT feature in BLE V2.
 constexpr auto kEnableBleV2Gatt =
     flags::Flag<bool>(kConfigPackage, "45415180", false);

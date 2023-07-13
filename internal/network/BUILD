@@ -55,10 +55,8 @@ cc_library(
     ],
     deps = [
         ":types",
-        "//internal/flags:nearby_flags",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:platform",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",

@@ -16,9 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_IMPL_H_
 
 #include <functional>
-#include <future>  // NOLINT
 #include <memory>
-#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "internal/network/http_client.h"
@@ -52,13 +50,11 @@ class NearbyHttpClient : public HttpClient {
   absl::StatusOr<HttpResponse> GetResponse(const HttpRequest& request) override;
 
  private:
-  void CleanThreads() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   static absl::StatusOr<HttpResponse> InternalGetResponse(
       const HttpRequest& request);
 
   Mutex mutex_;
   SingleThreadExecutor executor_;
-  std::vector<std::future<void>> http_threads_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace network
