@@ -18,12 +18,18 @@
 
 pub mod common;
 
+pub use common::{Adapter, Device};
+
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
         mod windows_ble;
-        pub use windows_ble::*;
+        use windows_ble::BleAdapter;
     } else {
         mod unsupported;
-        pub use unsupported::*;
+        use unsupported::BleAdapter;
     }
+}
+
+pub async fn default_adapter() -> Result<impl Adapter, anyhow::Error> {
+    BleAdapter::default().await
 }

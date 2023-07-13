@@ -54,7 +54,8 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::{common::Adapter, BleDevice};
+use super::BleDevice;
+use crate::bluetooth::common::Adapter;
 
 /// Concrete type implementing `Adapter`, used for Windows BLE.
 pub struct BleAdapter {
@@ -202,7 +203,7 @@ impl Adapter for BleAdapter {
         }
     }
 
-    async fn next_device(&mut self) -> Result<BleDevice, anyhow::Error> {
+    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error> {
         if let Some(stream) = &mut self.device_stream {
             stream
                 .next()

@@ -16,11 +16,11 @@ use futures::executor;
 
 mod bluetooth;
 
-use bluetooth::common::{Adapter, Device};
+use bluetooth::{Adapter, Device};
 
 fn main() -> Result<(), anyhow::Error> {
     let run = async {
-        let mut adapter = bluetooth::BleAdapter::default().await?;
+        let mut adapter = bluetooth::default_adapter().await?;
         adapter.start_scan_devices()?;
 
         while let Ok(device) = adapter.next_device().await {
