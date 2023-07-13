@@ -24,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/platform/implementation/g3/device_info.h"
 #include "internal/platform/implementation/g3/preferences_repository.h"
 #include "internal/platform/logging.h"
 
@@ -35,9 +36,9 @@ using json = ::nlohmann::json;
 
 PreferencesManager::PreferencesManager(absl::string_view file_path)
     : api::PreferencesManager(file_path) {
+  auto device_info = std::make_unique<g3::DeviceInfo>();
   std::optional<std::filesystem::path> path =
-      nearby::api::ImplementationPlatform::CreateDeviceInfo()
-          ->GetLocalAppDataPath();
+      device_info->GetLocalAppDataPath();
   if (!path.has_value()) {
     path = std::filesystem::temp_directory_path();
   }

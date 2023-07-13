@@ -223,6 +223,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//presence:__subpackages__",
+        "//third_party/nearby/sharing:__subpackages__",
     ],
     deps = [
         ":base",
