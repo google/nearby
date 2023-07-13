@@ -325,7 +325,7 @@ TEST_F(BaseSocketTest, TestResetByControlPacket) {
   nearby::Future<absl::Status> status =
       socket_.Write(ByteArray("\x01\x02\x03"));
   // sleep for 10 ms to allow for packet population
-  absl::SleepFor(absl::Milliseconds(10));
+  absl::SleepFor(absl::Milliseconds(20));
   EXPECT_EQ(connection_.PollWrittenPacket(),
             CreateDataPacket(0, true, false, ByteArray("\x01\x02")).GetBytes());
   socket_.WriteControlPacketProxy(Packet::CreateErrorPacket());

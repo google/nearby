@@ -76,6 +76,7 @@ BaseSocket::BaseSocket(const Connection& connection, SocketCallback&& callback)
              }
            },
        .on_disconnected_cb = [this]() { DisconnectQuietly(); }});
+  max_packet_size_ = connection_.GetMaxPacketSize();
 }
 
 BaseSocket::~BaseSocket() {
