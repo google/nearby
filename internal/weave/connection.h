@@ -35,7 +35,7 @@ class Connection {
  public:
   virtual ~Connection() = default;
   virtual void Initialize(ConnectionCallback callback) = 0;
-  virtual int GetMaxPacketSize() = 0;
+  virtual int GetMaxPacketSize() const = 0;
   virtual void Transmit(std::string packet) = 0;
   virtual void Close() = 0;
 };

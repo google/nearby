@@ -398,6 +398,7 @@ let package = Package(
         "internal/crypto/BUILD.gn",
         "internal/interop/BUILD",
         "internal/weave/BUILD",
+        "internal/weave/sockets/BUILD",
         "internal/platform/flags/BUILD",
         "internal/platform/implementation/shared/BUILD",
         "internal/platform/implementation/apple/Mediums/BUILD",
@@ -550,6 +551,7 @@ let package = Package(
         "internal/weave/packet_test.cc",
         "internal/weave/packet_sequence_number_generator_test.cc",
         "internal/weave/packetizer_test.cc",
+        "internal/weave/sockets/client_socket_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",

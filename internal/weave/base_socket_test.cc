@@ -44,7 +44,7 @@ class FakeConnection : public Connection {
     callback_ = std::move(callback);
   }
 
-  int GetMaxPacketSize() override { return max_packet_size_; }
+  int GetMaxPacketSize() const override { return max_packet_size_; }
   void Transmit(std::string packet) override {
     packets_written_.push_back(packet);
     if (instant_transmit_) {

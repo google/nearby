@@ -17,6 +17,9 @@ cc_library(
         "packetizer.h",
         "socket_callback.h",
     ],
+    visibility = [
+        ":__subpackages__",
+    ],
     deps = [
         "//internal/platform:base",
         "//internal/platform:types",
