@@ -21,8 +21,9 @@ package(default_visibility = ["//visibility:public"])
 
 objc_library(
     name = "PlatformTestslib",
-    testonly = 1,
+    testonly = True,
     srcs = [
+        "GNCBLEGATTCharacteristicTest.mm",
         "GNCBleTest.mm",
         "GNCBluetoothAdapterTest.mm",
         "GNCCryptoTest.mm",
@@ -32,7 +33,6 @@ objc_library(
         "GNCSingleThreadExecutorTest.mm",
         "GNCUtilsTest.mm",
     ],
-    features = ["-layering_check"],
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
@@ -40,6 +40,7 @@ objc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",
         "//internal/platform/implementation/apple/Mediums",
+        "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "@com_google_absl//absl/time",
