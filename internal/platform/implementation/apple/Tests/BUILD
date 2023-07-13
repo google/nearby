@@ -24,6 +24,7 @@ objc_library(
     testonly = True,
     srcs = [
         "GNCBLEGATTCharacteristicTest.mm",
+        "GNCBLEUtilsTest.mm",
         "GNCBleTest.mm",
         "GNCBluetoothAdapterTest.mm",
         "GNCCryptoTest.mm",

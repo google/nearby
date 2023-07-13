@@ -24,6 +24,7 @@ objc_library(
     name = "apple",
     srcs = [
         "ble.mm",
+        "ble_utils.mm",
         "bluetooth_adapter.mm",
         "crypto.mm",
         "device_info.mm",
@@ -38,6 +39,7 @@ objc_library(
     ],
     hdrs = [
         "ble.h",
+        "ble_utils.h",
         "bluetooth_adapter.h",
         "device_info.h",
         "log_message.h",
