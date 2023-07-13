@@ -66,6 +66,8 @@ class Mediator final : public ScannerBroker::Observer,
     ui_broker_.reset();
   };
 
+  AccountManager* GetAccountManager() { return account_manager_.get(); }
+
   FastPairNotificationController* GetNotificationController() {
     return notification_controller_.get();
   }
