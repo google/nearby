@@ -246,6 +246,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
   EXPECT_EQ(client_a_.GetIPAddress(client_b_local_endpoint),
             mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
 
+  handler_b.StopDiscovery(&client_b_);
   bwu_a.Shutdown();
   bwu_b.Shutdown();
   env_.Stop();

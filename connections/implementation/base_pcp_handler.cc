@@ -78,6 +78,12 @@ BasePcpHandler::BasePcpHandler(Mediums* mediums,
       bwu_manager_(bwu_manager) {}
 
 BasePcpHandler::~BasePcpHandler() {
+  NEARBY_LOGS(VERBOSE) << __func__;
+  Shutdown();
+}
+
+void BasePcpHandler::Shutdown() {
+  if (stop_) return;
   NEARBY_LOGS(INFO) << "Initiating shutdown of BasePcpHandler("
                     << strategy_.GetName() << ")";
   DisconnectFromEndpointManager();

@@ -56,7 +56,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       EndpointChannelManager* channel_manager, BwuManager* bwu_manager,
       InjectedBluetoothDeviceStore& injected_bluetooth_device_store,
       Pcp pcp = Pcp::kP2pCluster);
-  ~P2pClusterPcpHandler() override = default;
+  ~P2pClusterPcpHandler() override;
 
  protected:
   std::vector<location::nearby::proto::connections::Medium>
@@ -115,8 +115,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       absl::string_view local_endpoint_info,
       const DiscoveryOptions& discovery_options) override {
     // TODO(b/284048592): Implement.
-    return StartOperationResult {
-      .status = {Status::kError},
+    return StartOperationResult{
+        .status = {Status::kError},
     };
   }
 

@@ -25,10 +25,10 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/pcp_manager.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
+#include "internal/platform/medium_environment.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.
@@ -90,6 +90,8 @@ class SimulationUser {
   // If latch is provided, will call latch->CountDown() in the endpoint_found_cb
   // callback.
   void StartDiscovery(const std::string& service_id, CountDownLatch* latch);
+
+  void StopDiscovery();
 
   // Calls PcpManager::UpdateDiscoveryOptions.
   Status UpdateDiscoveryOptions(absl::string_view service_id);

@@ -371,6 +371,7 @@ class BleV2Medium final {
             api::ImplementationPlatform::CreateBleV2Medium(adapter.GetImpl())),
         adapter_(adapter) {}
 
+  ~BleV2Medium();
   // Returns true once the BLE advertising has been initiated.
   // This interface will be deprecated soon.
   // TODO(b/271305977) remove this function.

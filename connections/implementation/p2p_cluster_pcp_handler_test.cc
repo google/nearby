@@ -272,7 +272,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
   EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsAdvertising(service_id_));
-  EXPECT_EQ(enabled.bluetooth,
+  EXPECT_EQ(
+      enabled.bluetooth,
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   EXPECT_EQ(enabled.bluetooth,
             mediums_a.GetBluetoothClassic().TurnOffDiscoverability());

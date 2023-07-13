@@ -75,6 +75,11 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       webrtc_medium_(mediums->GetWebRtc()),
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 
+P2pClusterPcpHandler::~P2pClusterPcpHandler() {
+  NEARBY_LOGS(VERBOSE) << __func__;
+  Shutdown();
+}
+
 // Returns a vector or mediums sorted in order or decreasing priority for
 // all the supported mediums.
 // Example: WiFi_LAN, WEB_RTC, BT, BLE
@@ -957,8 +962,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
 
   if (discovery_options.allowed.bluetooth) {
     location::nearby::proto::connections::Medium bluetooth_medium =
-        StartBluetoothDiscovery(
-            client, service_id);
+        StartBluetoothDiscovery(client, service_id);
     if (bluetooth_medium !=
         location::nearby::proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: BT added");
@@ -971,8 +975,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
       location::nearby::proto::connections::Medium ble_v2_medium =
-          StartBleV2Scanning(
-              client, service_id, discovery_options);
+          StartBleV2Scanning(client, service_id, discovery_options);
       if (ble_v2_medium !=
           location::nearby::proto::connections::UNKNOWN_MEDIUM) {
         NEARBY_LOGS(INFO)
@@ -1534,20 +1537,20 @@ void P2pClusterPcpHandler::BleConnectionAcceptedHandler(
   }
   RunOnPcpHandlerThread(
       "p2p-ble-on-incoming-connection",
-      [this, client, service_id, socket = std::move(socket),
-       device_type]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        std::string remote_peripheral_name =
-            socket.GetRemotePeripheral().GetName();
-        auto channel = std::make_unique<BleEndpointChannel>(
-            service_id,
-            /*channel_name=*/remote_peripheral_name, socket);
-        ByteArray remote_peripheral_info =
-            socket.GetRemotePeripheral().GetAdvertisementBytes(service_id);
+      [this, client, service_id, socket = std::move(socket), device_type]()
+          RUN_ON_PCP_HANDLER_THREAD() mutable {
+            std::string remote_peripheral_name =
+                socket.GetRemotePeripheral().GetName();
+            auto channel = std::make_unique<BleEndpointChannel>(
+                service_id,
+                /*channel_name=*/remote_peripheral_name, socket);
+            ByteArray remote_peripheral_info =
+                socket.GetRemotePeripheral().GetAdvertisementBytes(service_id);
 
-        OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
-                             location::nearby::proto::connections::Medium::BLE,
-                             device_type);
-      });
+            OnIncomingConnection(
+                client, remote_peripheral_info, std::move(channel),
+                location::nearby::proto::connections::Medium::BLE, device_type);
+          });
 }
 
 location::nearby::proto::connections::Medium

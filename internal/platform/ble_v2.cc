@@ -116,6 +116,8 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
   return success;
 }
 
+BleV2Medium::~BleV2Medium() { StopScanning(); }
+
 bool BleV2Medium::StopScanning() {
   MutexLock lock(&mutex_);
   if (!scanning_enabled_) {

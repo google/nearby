@@ -102,6 +102,7 @@ TEST_P(PcpManagerTest, CanDiscover) {
   EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
   EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
+  user_b.StopDiscovery();
   env_.Stop();
 }
 

@@ -251,6 +251,7 @@ class BasePcpHandler : public PcpHandler,
     std::unique_ptr<EndpointChannel> endpoint_channel;
   };
 
+  void Shutdown();
   void RunOnPcpHandlerThread(const std::string& name, Runnable runnable);
 
   BluetoothDevice GetRemoteBluetoothDevice(
