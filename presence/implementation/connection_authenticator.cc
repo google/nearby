@@ -14,7 +14,9 @@
 
 #include "presence/implementation/connection_authenticator.h"
 
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -26,7 +28,6 @@
 #include "internal/crypto/secure_util.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
-#include "presence/proto/presence_frame.pb.h"
 
 namespace nearby {
 namespace presence {
@@ -45,70 +46,62 @@ constexpr char kDiscovererHkdfInfo[] =
     "Nearby Presence Discoverer Credential Hash";
 }  // namespace
 
-absl::StatusOr<std::string> ConnectionAuthenticator::BuildSignedMessage(
+absl::StatusOr<ConnectionAuthenticator::InitiatorData>
+ConnectionAuthenticator::BuildSignedMessageAsInitiator(
     absl::string_view ukey2_secret,
-    const internal::LocalCredential& local_credential,
-    bool is_initiator) const {
+    std::optional<const internal::LocalCredential> local_credential,
+    const internal::SharedCredential& shared_credential) const {
+  auto shared_credential_hash = crypto::HkdfSha256(
+      absl::StrCat(ukey2_secret, shared_credential.key_seed()), kHkdfSalt,
+      kDiscovererHkdfInfo, kPresenceAuthenticatorHkdfKeySize);
+  if (local_credential.has_value()) {
+    // two-way authentication, private identity.
+    auto signer = crypto::Ed25519Signer::Create(
+        (*local_credential).connection_signing_key().key());
+    if (!signer.ok()) {
+      return signer.status();
+    }
+    auto pkey_signature =
+        signer->Sign(absl::StrCat(kDiscovererMessageHeader, ukey2_secret));
+    if (!pkey_signature.has_value()) {
+      return absl::InternalError("Signing using private key failed.");
+    }
+    return ConnectionAuthenticator::TwoWayInitiatorData{
+        .shared_credential_hash = shared_credential_hash,
+        .private_key_signature = *pkey_signature,
+    };
+  }
+  // one-way authentication, trusted identity.
+  return ConnectionAuthenticator::OneWayInitiatorData{
+      .shared_credential_hash = shared_credential_hash,
+  };
+}
+
+absl::StatusOr<ConnectionAuthenticator::ResponderData>
+ConnectionAuthenticator::BuildSignedMessageAsResponder(
+    absl::string_view ukey2_secret,
+    const internal::LocalCredential& local_credential) const {
   auto signer = crypto::Ed25519Signer::Create(
       local_credential.connection_signing_key().key());
   if (!signer.ok()) {
     return signer.status();
   }
-  auto pkey_signature = signer->Sign(absl::StrCat(
-      is_initiator ? kDiscovererMessageHeader : kBroadcasterMessageHeader,
-      ukey2_secret));
+  auto pkey_signature =
+      signer->Sign(absl::StrCat(kBroadcasterMessageHeader, ukey2_secret));
   if (!pkey_signature.has_value()) {
     return absl::InternalError("Signing using private key failed.");
   }
-  auto credential_id_hash = crypto::HkdfSha256(
-      absl::StrCat(ukey2_secret, local_credential.key_seed()), kHkdfSalt,
-      is_initiator ? kDiscovererHkdfInfo : kBroadcasterHkdfInfo,
-      kPresenceAuthenticatorHkdfKeySize);
-  PresenceFrame frame;
-  frame.mutable_v1_frame()->mutable_authentication_frame()->set_version(
-      kPresenceAuthenticatorVersion);
-  frame.mutable_v1_frame()
-      ->mutable_authentication_frame()
-      ->set_private_key_signature(*pkey_signature);
-  frame.mutable_v1_frame()
-      ->mutable_authentication_frame()
-      ->set_credential_id_hash(credential_id_hash);
-  return frame.SerializeAsString();
+  return ConnectionAuthenticator::ResponderData{.private_key_signature =
+                                                    *pkey_signature};
 }
 
-absl::Status ConnectionAuthenticator::VerifyMessage(
-    absl::string_view ukey2_secret, absl::string_view received_frame,
-    const std::vector<internal::SharedCredential>& shared_credentials,
-    bool is_initiator) const {
-  PresenceFrame frame;
-  frame.ParseFromString(std::string(received_frame));
-  if (!frame.has_v1_frame() || !frame.v1_frame().has_authentication_frame()) {
-    return absl::InvalidArgumentError("No presence authentication frame.");
+absl::Status ConnectionAuthenticator::VerifyMessageAsInitiator(
+    ResponderData authentication_data, absl::string_view ukey2_secret,
+    const std::vector<internal::SharedCredential>& shared_credentials) const {
+  if (authentication_data.private_key_signature.empty()) {
+    return absl::InvalidArgumentError("Empty private key signature.");
   }
-  // Now we know we have an AuthenticationFrame
-  PresenceAuthenticationFrame auth_frame =
-      frame.v1_frame().authentication_frame();
-  if (auth_frame.version() != kPresenceAuthenticatorVersion) {
-    return absl::InvalidArgumentError("Presence frame has wrong version.");
-  }
-  if (!auth_frame.has_credential_id_hash() ||
-      (auth_frame.credential_id_hash().size() !=
-       kPresenceAuthenticatorHkdfKeySize)) {
-    return absl::InvalidArgumentError(
-        "Presence frame missing/has bad cid hash");
-  }
-  // We want to check each shared credential to verify using its public key.
   for (const auto& shared_credential : shared_credentials) {
-    // Verify Credential ID hash.
-    auto cid_hash = crypto::HkdfSha256(
-        absl::StrCat(ukey2_secret, shared_credential.key_seed()), kHkdfSalt,
-        is_initiator ? kBroadcasterHkdfInfo : kDiscovererHkdfInfo,
-        kPresenceAuthenticatorHkdfKeySize);
-    if (!crypto::SecureMemEqual(cid_hash.c_str(),
-                                auth_frame.credential_id_hash().c_str(),
-                                kPresenceAuthenticatorHkdfKeySize)) {
-      continue;
-    }
     auto verifier = crypto::Ed25519Verifier::Create(
         shared_credential.connection_signature_verification_key());
     if (!verifier.ok()) {
@@ -116,15 +109,88 @@ absl::Status ConnectionAuthenticator::VerifyMessage(
     }
     // Verify ED25519 signature, returning true if verification succeeded.
     if (verifier
-            ->Verify(absl::StrCat(is_initiator ? kBroadcasterMessageHeader
-                                               : kDiscovererMessageHeader,
-                                  ukey2_secret),
-                     auth_frame.private_key_signature())
+            ->Verify(absl::StrCat(kBroadcasterMessageHeader, ukey2_secret),
+                     authentication_data.private_key_signature)
             .ok()) {
       return absl::OkStatus();
     }
   }
-  return absl::InternalError("Unable to verify presence auth message");
+  return absl::InternalError("Unable to verify responder's private key sig.");
+}
+
+absl::StatusOr<internal::LocalCredential>
+ConnectionAuthenticator::VerifyMessageAsResponder(
+    absl::string_view ukey2_secret, InitiatorData initiator_data,
+    const std::vector<internal::LocalCredential>& local_credentials,
+    const std::vector<internal::SharedCredential>& shared_credentials) const {
+  std::string shared_credential_hash;
+  std::optional<internal::LocalCredential> matched_local_credential;
+  if (std::holds_alternative<OneWayInitiatorData>(initiator_data)) {
+    // one-way. we only need to verify if the hash matches one of our
+    // local credentials.
+    auto auth_data = std::get<OneWayInitiatorData>(initiator_data);
+    if (auth_data.shared_credential_hash.size() !=
+        kPresenceAuthenticatorHkdfKeySize) {
+      return absl::InvalidArgumentError("Invalid shared credential hash size.");
+    }
+    for (const auto& local_credential : local_credentials) {
+      // Verify Credential ID hash.
+      auto cid_hash = crypto::HkdfSha256(
+          absl::StrCat(ukey2_secret, local_credential.key_seed()), kHkdfSalt,
+          kDiscovererHkdfInfo, kPresenceAuthenticatorHkdfKeySize);
+      if (crypto::SecureMemEqual(cid_hash.c_str(),
+                                 auth_data.shared_credential_hash.c_str(),
+                                 kPresenceAuthenticatorHkdfKeySize)) {
+        matched_local_credential = local_credential;
+      }
+    }
+  } else {
+    // two-way. we need to verify if the hash matches one of our local
+    // credentials _and_ make sure it matches one of our shared credentials.
+    // We want to check each shared credential to verify using its public key.
+
+    // Match the local credential.
+    auto auth_data = std::get<TwoWayInitiatorData>(initiator_data);
+    if (auth_data.shared_credential_hash.size() !=
+        kPresenceAuthenticatorHkdfKeySize) {
+      return absl::InvalidArgumentError("Invalid shared credential hash size.");
+    }
+    if (auth_data.private_key_signature.empty()) {
+      return absl::InvalidArgumentError("Empty private key signature.");
+    }
+    for (const auto& local_credential : local_credentials) {
+      // Verify Credential ID hash.
+      auto cid_hash = crypto::HkdfSha256(
+          absl::StrCat(ukey2_secret, local_credential.key_seed()), kHkdfSalt,
+          kDiscovererHkdfInfo, kPresenceAuthenticatorHkdfKeySize);
+      if (crypto::SecureMemEqual(cid_hash.c_str(),
+                                 auth_data.shared_credential_hash.c_str(),
+                                 kPresenceAuthenticatorHkdfKeySize)) {
+        matched_local_credential = local_credential;
+      }
+    }
+    // Now, match our shared credential.
+    std::optional<internal::SharedCredential> matched_shared_credential;
+    for (const auto& shared_credential : shared_credentials) {
+      auto verifier = crypto::Ed25519Verifier::Create(
+          shared_credential.connection_signature_verification_key());
+      if (!verifier.ok() ||
+          verifier
+              ->Verify(absl::StrCat(kDiscovererMessageHeader, ukey2_secret),
+                       auth_data.private_key_signature)
+              .ok()) {
+        matched_shared_credential = shared_credential;
+        break;
+      }
+    }
+    if (!matched_shared_credential.has_value()) {
+      return absl::InternalError("Unable to verify shared credential.");
+    }
+  }
+  if (matched_local_credential.has_value()) {
+    return *matched_local_credential;
+  }
+  return absl::InternalError("Unable to verify local credential.");
 }
 
 }  // namespace presence

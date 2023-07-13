@@ -23,12 +23,12 @@
 #include "internal/crypto/ed25519.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
-#include "presence/proto/presence_frame.pb.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 
+using ::protobuf_matchers::EqualsProto;
 using ::testing::status::StatusIs;
 
 constexpr char kUkey2Secret[] = {0x34, 0x56, 0x78, 0x90};
@@ -53,257 +53,220 @@ internal::SharedCredential BuildSharedCredential(
   return shared_credential;
 }
 
-TEST(PresenceAuthenticatorTest, TestSignHasV1AuthFrame) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  PresenceFrame frame;
-  frame.ParseFromString(auth_msg);
-  EXPECT_TRUE(frame.has_v1_frame());
-  EXPECT_TRUE(frame.v1_frame().has_authentication_frame());
-}
+class PresenceAuthenticatorTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
+    ASSERT_OK_AND_ASSIGN(auto key_pair1, key_pair_or_status);
+    auto key_pair2_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
+    ASSERT_OK_AND_ASSIGN(auto key_pair2, key_pair2_or_status);
+    initiator_local_credential_ = BuildLocalCredential(key_pair1, kKeySeed1);
+    initiator_shared_credential_ = BuildSharedCredential(key_pair1, kKeySeed1);
+    initiator_shared_credential_wrong_key_ =
+        BuildSharedCredential(key_pair2, kKeySeed1);
+    responder_local_credential_ = BuildLocalCredential(key_pair2, kKeySeed2);
+    responder_shared_credential_ = BuildSharedCredential(key_pair2, kKeySeed2);
+    responder_shared_credential_wrong_key_ =
+        BuildSharedCredential(key_pair1, kKeySeed2);
+  }
 
-TEST(PresenceAuthenticatorTest, TestInitiatorSignResponderVerify) {
+  internal::LocalCredential initiator_local_credential_;
+  internal::LocalCredential responder_local_credential_;
+  internal::SharedCredential initiator_shared_credential_;
+  internal::SharedCredential initiator_shared_credential_wrong_key_;
+  internal::SharedCredential responder_shared_credential_;
+  internal::SharedCredential responder_shared_credential_wrong_key_;
+};
+
+TEST_F(PresenceAuthenticatorTest, TestTwoWayInitiatorSignResponderVerify) {
   ConnectionAuthenticator responder_authenticator;
   ConnectionAuthenticator initiator_authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      initiator_authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  EXPECT_OK(responder_authenticator.VerifyMessage(
-      kUkey2Secret, auth_msg, {BuildSharedCredential(key_pair, kKeySeed1)},
-      false));
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
+                       initiator_authenticator.BuildSignedMessageAsInitiator(
+                           kUkey2Secret, initiator_local_credential_,
+                           responder_shared_credential_));
+  auto local_credential = responder_authenticator.VerifyMessageAsResponder(
+      kUkey2Secret, auth_data, {responder_local_credential_},
+      {initiator_shared_credential_});
+  ASSERT_TRUE(local_credential.ok());
+  EXPECT_THAT(*local_credential, EqualsProto(responder_local_credential_));
 }
 
-TEST(PresenceAuthenticatorTest, TestResponderSignInitiatorVerify) {
+TEST_F(PresenceAuthenticatorTest, TestOneWayInitiatorSignResponderVerify) {
   ConnectionAuthenticator responder_authenticator;
   ConnectionAuthenticator initiator_authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
   ASSERT_OK_AND_ASSIGN(
-      std::string auth_msg,
-      responder_authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), false));
-  EXPECT_OK(initiator_authenticator.VerifyMessage(
-      kUkey2Secret, auth_msg, {BuildSharedCredential(key_pair, kKeySeed1)},
-      true));
+      ConnectionAuthenticator::InitiatorData auth_data,
+      initiator_authenticator.BuildSignedMessageAsInitiator(
+          kUkey2Secret, std::nullopt, responder_shared_credential_));
+  auto local_credential = responder_authenticator.VerifyMessageAsResponder(
+      kUkey2Secret, auth_data, {responder_local_credential_},
+      {initiator_shared_credential_});
+  ASSERT_TRUE(local_credential.ok());
+  EXPECT_THAT(*local_credential, EqualsProto(responder_local_credential_));
 }
 
-TEST(PresenceAuthenticatorTest, TestInitiatorSignInitiatorVerifyFails) {
-  ConnectionAuthenticator initiator_authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      initiator_authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  EXPECT_THAT(initiator_authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, true),
-              StatusIs(absl::StatusCode::kInternal));
-}
-
-TEST(PresenceAuthenticatorTest, TestResponderSignResponderVerifyFails) {
+TEST_F(PresenceAuthenticatorTest, TestResponderSignInitiatorVerify) {
   ConnectionAuthenticator responder_authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      responder_authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), false));
-  EXPECT_THAT(responder_authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
+                       responder_authenticator.BuildSignedMessageAsResponder(
+                           kUkey2Secret, responder_local_credential_));
+  EXPECT_OK(initiator_authenticator.VerifyMessageAsInitiator(
+      auth_data, kUkey2Secret, {responder_shared_credential_}));
+}
+
+TEST_F(PresenceAuthenticatorTest,
+       TestTwoWayInitiatorSignResponderVerifyNoSharedCredentialMatchFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
+                       initiator_authenticator.BuildSignedMessageAsInitiator(
+                           kUkey2Secret, initiator_local_credential_,
+                           responder_shared_credential_));
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {}, {initiator_shared_credential_}),
               StatusIs(absl::StatusCode::kInternal));
 }
 
-TEST(PresenceAuthenticatorTest, TestBadKeypairSignVerifyFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  auto key_pair_or_status2 = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair2;
-  ASSERT_OK_AND_ASSIGN(key_pair2, key_pair_or_status2);
-  std::string auth_msg;
+TEST_F(PresenceAuthenticatorTest,
+       TestOneWayInitiatorSignResponderVerifyNoMatchCredentialFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair2, kKeySeed1)}, false),
+      ConnectionAuthenticator::InitiatorData auth_data,
+      initiator_authenticator.BuildSignedMessageAsInitiator(
+          kUkey2Secret, std::nullopt, responder_shared_credential_));
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {}, {initiator_shared_credential_}),
               StatusIs(absl::StatusCode::kInternal));
 }
 
-TEST(PresenceAuthenticatorTest, TestBadKeyseedSignVerifyFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
+TEST_F(PresenceAuthenticatorTest,
+       TestOneWayInitiatorSignResponderVerifyNoCredentialFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair, kKeySeed2)}, false),
+      ConnectionAuthenticator::InitiatorData auth_data,
+      initiator_authenticator.BuildSignedMessageAsInitiator(
+          kUkey2Secret, std::nullopt, responder_shared_credential_));
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {}, {}),
               StatusIs(absl::StatusCode::kInternal));
 }
 
-TEST(PresenceAuthenticatorTest, TestBadSharedCredentialSignVerifyFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  auto key_pair_or_status2 = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair2;
-  ASSERT_OK_AND_ASSIGN(key_pair2, key_pair_or_status2);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair2, kKeySeed2)}, false),
+TEST_F(PresenceAuthenticatorTest,
+       TestTwoWayInitiatorSignResponderVerifyNoMatchCredentialFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
+                       initiator_authenticator.BuildSignedMessageAsInitiator(
+                           kUkey2Secret, initiator_local_credential_,
+                           responder_shared_credential_));
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {}, {initiator_shared_credential_}),
               StatusIs(absl::StatusCode::kInternal));
 }
 
-TEST(PresenceAuthenticatorTest, TestBadPresenceFrameFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg = "\x34\x45";
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
+TEST_F(PresenceAuthenticatorTest,
+       TestTwoWayInitiatorSignResponderVerifyWrongKeyFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
+                       initiator_authenticator.BuildSignedMessageAsInitiator(
+                           kUkey2Secret, initiator_local_credential_,
+                           responder_shared_credential_));
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {responder_local_credential_},
+                  {initiator_shared_credential_wrong_key_}),
+              StatusIs(absl::StatusCode::kInternal));
+}
+
+TEST_F(PresenceAuthenticatorTest,
+       TestResponderSignInitiatorVerifyNoMatchCredentialFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
+                       responder_authenticator.BuildSignedMessageAsResponder(
+                           kUkey2Secret, responder_local_credential_));
+  EXPECT_THAT(initiator_authenticator.VerifyMessageAsInitiator(
+                  auth_data, kUkey2Secret, {}),
+              StatusIs(absl::StatusCode::kInternal));
+}
+
+TEST_F(PresenceAuthenticatorTest,
+       TestResponderSignInitiatorVerifyWrongKeyFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
+                       responder_authenticator.BuildSignedMessageAsResponder(
+                           kUkey2Secret, responder_local_credential_));
+  EXPECT_THAT(
+      initiator_authenticator.VerifyMessageAsInitiator(
+          auth_data, kUkey2Secret, {responder_shared_credential_wrong_key_}),
+      StatusIs(absl::StatusCode::kInternal));
+}
+
+TEST_F(PresenceAuthenticatorTest,
+       TestTwoWayInitiatorSignResponderVerifyNoCidHashFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
+                       initiator_authenticator.BuildSignedMessageAsInitiator(
+                           kUkey2Secret, initiator_local_credential_,
+                           responder_shared_credential_));
+  std::get<ConnectionAuthenticator::TwoWayInitiatorData>(auth_data)
+      .shared_credential_hash.clear();
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {responder_local_credential_},
+                  {initiator_shared_credential_wrong_key_}),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST(PresenceAuthenticatorTest, TestNoV1FrameFails) {
-  PresenceFrame frame;
-  ASSERT_FALSE(frame.has_v1_frame());
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, frame.SerializeAsString(),
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
+TEST_F(PresenceAuthenticatorTest,
+       TestTwoWayInitiatorSignResponderVerifyNoPkeySigFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
+                       initiator_authenticator.BuildSignedMessageAsInitiator(
+                           kUkey2Secret, initiator_local_credential_,
+                           responder_shared_credential_));
+  std::get<ConnectionAuthenticator::TwoWayInitiatorData>(auth_data)
+      .private_key_signature.clear();
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {responder_local_credential_},
+                  {initiator_shared_credential_wrong_key_}),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST(PresenceAuthenticatorTest, TestNoAuthFrameFails) {
-  PresenceFrame frame;
-  frame.mutable_v1_frame()->clear_authentication_frame();
-  ASSERT_TRUE(frame.has_v1_frame());
-  ASSERT_FALSE(frame.v1_frame().has_authentication_frame());
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, frame.SerializeAsString(),
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
+TEST_F(PresenceAuthenticatorTest,
+       TestOneWayInitiatorSignResponderVerifyNoCidHashFails) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(
+      ConnectionAuthenticator::InitiatorData auth_data,
+      initiator_authenticator.BuildSignedMessageAsInitiator(
+          kUkey2Secret, std::nullopt, responder_shared_credential_));
+  std::get<ConnectionAuthenticator::OneWayInitiatorData>(auth_data)
+      .shared_credential_hash.clear();
+  EXPECT_THAT(responder_authenticator.VerifyMessageAsResponder(
+                  kUkey2Secret, auth_data, {responder_local_credential_},
+                  {initiator_shared_credential_}),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST(PresenceAuthenticatorTest, TestBadVersionFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  PresenceFrame frame;
-  frame.ParseFromString(auth_msg);
-  frame.mutable_v1_frame()->mutable_authentication_frame()->set_version(2);
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, frame.SerializeAsString(),
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
+TEST_F(PresenceAuthenticatorTest,
+       TestResponderSignInitiatorVerifyNoPkeySigFail) {
+  ConnectionAuthenticator responder_authenticator;
+  ConnectionAuthenticator initiator_authenticator;
+  ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
+                       responder_authenticator.BuildSignedMessageAsResponder(
+                           kUkey2Secret, responder_local_credential_));
+  auth_data.private_key_signature.clear();
+  EXPECT_THAT(initiator_authenticator.VerifyMessageAsInitiator(
+                  auth_data, kUkey2Secret, {responder_shared_credential_}),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
-
-TEST(PresenceAuthenticatorTest, TestMissingCredentialIdHashFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  PresenceFrame frame;
-  frame.ParseFromString(auth_msg);
-  frame.mutable_v1_frame()
-      ->mutable_authentication_frame()
-      ->clear_credential_id_hash();
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, frame.SerializeAsString(),
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-}
-
-TEST(PresenceAuthenticatorTest, TestMissingPrivateKeySignatureFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  PresenceFrame frame;
-  frame.ParseFromString(auth_msg);
-  frame.mutable_v1_frame()
-      ->mutable_authentication_frame()
-      ->clear_private_key_signature();
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, frame.SerializeAsString(),
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, false),
-              StatusIs(absl::StatusCode::kInternal));
-}
-
-TEST(PresenceAuthenticatorTest, TestMissingPublicKeyVerifyFails) {
-  ConnectionAuthenticator authenticator;
-  auto key_pair_or_status = crypto::Ed25519Signer::CreateNewKeyPair();
-  crypto::Ed25519KeyPair key_pair;
-  ASSERT_OK_AND_ASSIGN(key_pair, key_pair_or_status);
-  std::string auth_msg;
-  ASSERT_OK_AND_ASSIGN(
-      auth_msg,
-      authenticator.BuildSignedMessage(
-          kUkey2Secret, BuildLocalCredential(key_pair, kKeySeed1), true));
-  key_pair.public_key.clear();
-  EXPECT_THAT(authenticator.VerifyMessage(
-                  kUkey2Secret, auth_msg,
-                  {BuildSharedCredential(key_pair, kKeySeed1)}, true),
-              StatusIs(absl::StatusCode::kInternal));
-}
-
 }  // namespace
 }  // namespace presence
 }  // namespace nearby
