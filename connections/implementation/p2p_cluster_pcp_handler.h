@@ -113,12 +113,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, absl::string_view service_id,
       absl::string_view local_endpoint_id,
       absl::string_view local_endpoint_info,
-      const DiscoveryOptions& discovery_options) override {
-    // TODO(b/284048592): Implement.
-    return StartOperationResult{
-        .status = {Status::kError},
-    };
-  }
+      const DiscoveryOptions& discovery_options) override;
 
  private:
   // Holds the state required to re-create a BleEndpoint we see on a

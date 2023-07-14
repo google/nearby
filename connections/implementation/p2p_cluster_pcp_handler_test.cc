@@ -26,6 +26,7 @@
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/medium_selector.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
@@ -415,6 +416,165 @@ TEST_P(P2pClusterPcpHandlerTest, CanBluetoothDiscoverChangeName) {
   EXPECT_TRUE(second_found_latch.Await().Ok());
   EXPECT_TRUE(lost_latch.Await().Ok());
   handler_b.StopDiscovery(&client_b_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptions) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  EXPECT_EQ(
+      handler_a.StartDiscovery(&client_a_, service_id_, discovery_options_, {}),
+      Status{Status::kSuccess});
+  BooleanMediumSelector enabled = std::get<0>(GetParam());
+  bool ble_v2_enabled = std::get<1>(GetParam());
+  if (ble_v2_enabled) {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
+  }
+  EXPECT_EQ(enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  DiscoveryOptions new_options{
+      {
+          Strategy::kP2pCluster,
+          std::get<0>(GetParam()),
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // is_out_of_band_connection
+      "",     // fast_advertisement_service_uuid
+      true,   // low_power
+  };
+  EXPECT_EQ(
+      handler_a.UpdateDiscoveryOptions(&client_a_, service_id_, new_options),
+      Status{Status::kSuccess});
+  if (ble_v2_enabled) {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
+  }
+  EXPECT_FALSE(mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  handler_a.StopDiscovery(&client_a_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptionsNoLowPower) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  BooleanMediumSelector old_enabled = discovery_options_.allowed;
+  BooleanMediumSelector new_enabled = old_enabled;
+  if (!new_enabled.ble) {
+    new_enabled.ble = true;
+  }
+  // Reset medium states.
+  mediums_a.GetBluetoothClassic().TurnOffDiscoverability();
+  ASSERT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  mediums_a.GetWifiLan().StopDiscovery(service_id_);
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  if (std::get<1>(GetParam())) {
+    mediums_a.GetBleV2().StopScanning(service_id_);
+    ASSERT_FALSE(mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    mediums_a.GetBle().StopScanning(service_id_);
+    ASSERT_FALSE(mediums_a.GetBle().IsScanning(service_id_));
+  }
+  DiscoveryOptions old_options = discovery_options_;
+  old_options.low_power = true;
+  old_options.allowed = old_enabled;
+  DiscoveryOptions new_options = discovery_options_;
+  new_options.allowed = new_enabled;
+  // Start discovery
+  EXPECT_EQ(handler_a.StartDiscovery(&client_a_, service_id_, old_options, {}),
+            Status{Status::kSuccess});
+  if (std::get<1>(GetParam())) {
+    EXPECT_EQ(old_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    EXPECT_EQ(old_enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
+  }
+  EXPECT_EQ(old_enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  EXPECT_EQ(old_enabled.bluetooth,
+            mediums_a.GetBluetoothClassic().StopDiscovery());
+  NEARBY_LOGS(INFO) << "started discovery";
+  // Update discovery options
+  EXPECT_TRUE(
+      handler_a.UpdateDiscoveryOptions(&client_a_, service_id_, new_options)
+          .Ok());
+  NEARBY_LOGS(INFO) << "updated discovery options";
+  if (std::get<1>(GetParam())) {
+    EXPECT_EQ(new_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    EXPECT_EQ(new_enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
+  }
+  EXPECT_EQ(new_enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  EXPECT_EQ(new_enabled.bluetooth,
+            mediums_a.GetBluetoothClassic().StopDiscovery());
+  handler_a.StopDiscovery(&client_a_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, UpdateDiscoveryOptionsSkipMediumRestart) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  BooleanMediumSelector enabled = discovery_options_.allowed;
+  // Reset medium states.
+  mediums_a.GetBluetoothClassic().TurnOffDiscoverability();
+  ASSERT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  mediums_a.GetWifiLan().StopDiscovery(service_id_);
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  if (std::get<1>(GetParam())) {
+    mediums_a.GetBleV2().StopScanning(service_id_);
+    ASSERT_FALSE(mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    mediums_a.GetBle().StopScanning(service_id_);
+    ASSERT_FALSE(mediums_a.GetBle().IsScanning(service_id_));
+  }
+  // Start discovery
+  EXPECT_EQ(
+      handler_a.StartDiscovery(&client_a_, service_id_, discovery_options_, {}),
+      Status{Status::kSuccess});
+  if (std::get<1>(GetParam())) {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
+  }
+  EXPECT_EQ(enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  EXPECT_EQ(enabled.bluetooth, mediums_a.GetBluetoothClassic().StopDiscovery());
+  // Update discovery options
+  auto result = handler_a.UpdateDiscoveryOptions(&client_a_, service_id_,
+                                                 discovery_options_);
+  EXPECT_TRUE(result.Ok());
+  NEARBY_LOGS(INFO) << "updated discovery options";
+  if (std::get<1>(GetParam())) {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+  } else {
+    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
+  }
+  EXPECT_EQ(enabled.wifi_lan,
+            mediums_a.GetWifiLan().IsDiscovering(service_id_));
+  // We didn't restart the medium.
+  EXPECT_FALSE(mediums_a.GetBluetoothClassic().StopDiscovery());
+  handler_a.StopDiscovery(&client_a_);
   env_.Stop();
 }
 

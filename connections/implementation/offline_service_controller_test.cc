@@ -450,9 +450,8 @@ TEST_P(OfflineServiceControllerTest, TestUpdateDiscoveryOptions) {
       "",     // fast_advertisement_service_uuid
       true,   // low_power
   };
-  // TODO(b/284048592): Change to kSuccess when implemented.
   EXPECT_THAT(user_a.UpdateDiscoveryOptions(kServiceId, new_options),
-              Eq(Status{Status::kError}));
+              Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(user_a.IsDiscovering());
   user_a.Stop();
   env_.Stop();
