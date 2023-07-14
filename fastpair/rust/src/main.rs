@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+mod message_stream;
+mod types;
 
-mod bluetooth;
-
-use bluetooth::{Adapter, Device};
-
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let mut adapter = bluetooth::default_adapter().await?;
-        adapter.start_scan_devices()?;
-
-        while let Ok(device) = adapter.next_device().await {
-            println!("found {}", device.name()?)
-        }
-
-        unreachable!("Done scanning");
-    };
-
-    executor::block_on(run)
+fn main() {
+    println!("Fastpair Rust!");
 }
