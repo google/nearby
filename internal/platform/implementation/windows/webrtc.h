@@ -15,13 +15,17 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 #define PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 
+#include <memory>
 #include <string>
 
 #include "internal/account/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
+#include "internal/platform/tachyon_messaging_client.h"
 
 namespace nearby {
 namespace windows {
+
+constexpr absl::string_view kApp = "Nearby";
 
 class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  public:
@@ -46,11 +50,11 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
   std::string self_id_;
   location::nearby::connections::LocationHint location_hint_;
   AccountManager* account_manager_;
+  std::unique_ptr<TachyonMessagingClient> client_;
 };
 
 class WebRtcMedium : public api::WebRtcMedium {
  public:
-  // TODO(b/261663238): replace with real implementation.
   ~WebRtcMedium() override = default;
 
   // Gets the default two-letter country code associated with current locale.

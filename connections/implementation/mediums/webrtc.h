@@ -34,6 +34,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/webrtc.h"
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/jsep.h"
@@ -236,8 +237,11 @@ class WebRtc {
 
   std::unique_ptr<WebRtcMedium> medium_;
 
-  // The single thread we throw the potentially blocking work on to.
-  ScheduledExecutor single_thread_executor_;
+  // Scheduled executor for restarting the Tachyon room.
+  ScheduledExecutor scheduled_thread_executor_;
+  // Separate single thread - the scheduled executor blocks during its wait
+  // which prevents processing of Tachyon messages.
+  SingleThreadExecutor single_thread_executor_;
 
   // A map of ServiceID -> State for all services that are listening for
   // incoming connections.
