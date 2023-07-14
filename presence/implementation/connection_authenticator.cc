@@ -16,13 +16,13 @@
 
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/variant.h"
 #include "internal/crypto/ed25519.h"
 #include "internal/crypto/hkdf.h"
 #include "internal/crypto/secure_util.h"
@@ -125,10 +125,10 @@ ConnectionAuthenticator::VerifyMessageAsResponder(
     const std::vector<internal::SharedCredential>& shared_credentials) const {
   std::string shared_credential_hash;
   std::optional<internal::LocalCredential> matched_local_credential;
-  if (std::holds_alternative<OneWayInitiatorData>(initiator_data)) {
+  if (absl::holds_alternative<OneWayInitiatorData>(initiator_data)) {
     // one-way. we only need to verify if the hash matches one of our
     // local credentials.
-    auto auth_data = std::get<OneWayInitiatorData>(initiator_data);
+    auto auth_data = absl::get<OneWayInitiatorData>(initiator_data);
     if (auth_data.shared_credential_hash.size() !=
         kPresenceAuthenticatorHkdfKeySize) {
       return absl::InvalidArgumentError("Invalid shared credential hash size.");
@@ -150,7 +150,7 @@ ConnectionAuthenticator::VerifyMessageAsResponder(
     // We want to check each shared credential to verify using its public key.
 
     // Match the local credential.
-    auto auth_data = std::get<TwoWayInitiatorData>(initiator_data);
+    auto auth_data = absl::get<TwoWayInitiatorData>(initiator_data);
     if (auth_data.shared_credential_hash.size() !=
         kPresenceAuthenticatorHkdfKeySize) {
       return absl::InvalidArgumentError("Invalid shared credential hash size.");
