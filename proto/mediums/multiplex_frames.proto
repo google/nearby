@@ -38,7 +38,8 @@ message MultiplexFrame {
 }
 
 message MultiplexFrameHeader {
-  optional bytes service_id_hash = 1;
+  optional bytes salted_service_id_hash = 1;
+  optional string service_id_hash_salt = 2;
 }
 
 // The control frame to establish, accept, reject or disconnect the virtual
