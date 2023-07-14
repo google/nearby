@@ -12,23 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use futures::executor;
+// Split into separate crate once demo is finished, providing custom error types
+// instead of using anyhow.
+// b/290070686
 
-mod bluetooth;
+pub mod common;
 
-use bluetooth::{Adapter, Device};
+pub use common::{Adapter, Device};
 
-fn main() -> Result<(), anyhow::Error> {
-    let run = async {
-        let mut adapter = bluetooth::default_adapter().await?;
-        adapter.start_scan_devices()?;
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        mod windows_ble;
+        use windows_ble::BleAdapter;
+    } else {
+        mod unsupported;
+        use unsupported::BleAdapter;
+    }
+}
 
-        while let Ok(device) = adapter.next_device().await {
-            println!("found {}", device.name()?)
-        }
-
-        unreachable!("Done scanning");
-    };
-
-    executor::block_on(run)
+pub async fn default_adapter() -> Result<impl Adapter, anyhow::Error> {
+    BleAdapter::default().await
 }
