@@ -15,9 +15,7 @@
 #include "internal/test/fake_timer.h"
 
 #include <functional>
-#include <future>  // NOLINT
 #include <string>
-#include <thread>  // NOLINT
 #include <utility>
 
 #include "absl/time/clock.h"
@@ -62,6 +60,10 @@ void FakeTimer::ClockUpdated() {
   absl::Time now = clock_->Now();
   int64_t duration = absl::ToInt64Milliseconds(now - start_time_);
   FakeClock* clock = clock_;
+  // The timer may be released during callback, save period and delay to avoid
+  // access exception.
+  int period = period_;
+  int delay = delay_;
 
   if (duration >= delay_ && fired_count_ == 0) {
     ++fired_count_;
@@ -70,12 +72,12 @@ void FakeTimer::ClockUpdated() {
     }
   }
 
-  if (period_ == 0 || duration < delay_ ||
+  if (period == 0 || duration < delay ||
       ((clock_ != nullptr) && (clock_ != clock))) {
     return;
   }
 
-  int count = (duration - delay_) / period_;
+  int count = (duration - delay) / period;
   int should_fire_count = count - fired_count_ + 1;
   for (int i = 0; i < should_fire_count; ++i) {
     ++fired_count_;

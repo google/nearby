@@ -39,7 +39,7 @@ class FakeTimer : public Timer {
 
   std::string id_;
   int delay_ = 0;
-  int period_ = false;
+  int period_ = 0;
   int fired_count_ = 0;
   absl::Time start_time_;
   bool is_started_ = false;
