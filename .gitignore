@@ -47,3 +47,9 @@ Carthage/Build
 .UlyssesRoot
 .Ulysses-Settings.plist
 .Ulysses-Group.plist
+
+# IntelliJ
+.idea
+
+# Rust
+Cargo.lock

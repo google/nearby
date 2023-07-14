@@ -47,6 +47,16 @@ jobs:
         submodules: recursive
     - name: Build FPP
       run:  cargo build --manifest-path presence/fpp/fpp/Cargo.toml
-    - name: Build Fairpair
+    - name: Build Fast Pair
       run:  cargo build --manifest-path fastpair/rust/Cargo.toml
-        
+  
+  build-rust-windows:
+    name: Build Rust on Windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: Build Fast Pair
+      run:  cargo build --manifest-path fastpair/rust/Cargo.toml
+  
