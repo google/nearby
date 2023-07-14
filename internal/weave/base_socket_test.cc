@@ -21,7 +21,9 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
@@ -46,6 +48,7 @@ class FakeConnection : public Connection {
 
   int GetMaxPacketSize() const override { return max_packet_size_; }
   void Transmit(std::string packet) override {
+    absl::MutexLock lock(&mutex_);
     packets_written_.push_back(packet);
     if (instant_transmit_) {
       callback_.on_transmit_cb(absl::OkStatus());
@@ -55,6 +58,7 @@ class FakeConnection : public Connection {
   bool IsOpen() { return open_; }
   std::string PollWrittenPacket() {
     if (!NoMorePackets()) {
+      absl::MutexLock lock(&mutex_);
       auto front = packets_written_.front();
       packets_written_.erase(packets_written_.begin());
       return front;
@@ -62,7 +66,10 @@ class FakeConnection : public Connection {
     NEARBY_LOGS(WARNING) << "No more packets";
     return "";
   }
-  bool NoMorePackets() { return packets_written_.empty(); }
+  bool NoMorePackets() {
+    absl::MutexLock lock(&mutex_);
+    return packets_written_.empty();
+  }
   void SetInstantTransmit(bool instant_transmit) {
     instant_transmit_ = instant_transmit;
   }
@@ -76,7 +83,8 @@ class FakeConnection : public Connection {
  protected:
   int max_packet_size_;
   ConnectionCallback callback_;
-  std::vector<std::string> packets_written_;
+  absl::Mutex mutex_;
+  std::vector<std::string> packets_written_ ABSL_GUARDED_BY(mutex_);
   bool instant_transmit_ = true;
   bool open_ = false;
 };
@@ -86,6 +94,9 @@ class FakeSocket : public BaseSocket {
   explicit FakeSocket(const Connection& connection,
                       SocketCallback&& socketCallback)
       : BaseSocket(connection, std::move(socketCallback)) {}
+  ~FakeSocket() override {
+    ShutDown();
+  }
   MOCK_METHOD(void, Connect, (), (override));
   void OnReceiveControlPacket(Packet packet) override {
     control_packets_.push_back(std::move(packet));
@@ -153,7 +164,7 @@ class BaseSocketTest : public ::testing::Test {
   Mutex mutex_;
   FakeConnection connection_;
   FakeSocket socket_;
-  bool connected_ = true;
+  bool connected_ ABSL_GUARDED_BY(mutex_) = true;
   std::vector<std::string> messages_read_;
   absl::Status error_status_;
 };
@@ -179,12 +190,14 @@ TEST_F(BaseSocketTest, TestConnectQueuedWrite) {
 
 TEST_F(BaseSocketTest, TestDisconnect) {
   socket_.OnConnectedProxy(kMaxPacketSize);
+  absl::SleepFor(absl::Milliseconds(10));
   socket_.Disconnect();
   // sleep for 10 ms to allow for executor run to complete
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_EQ(connection_.PollWrittenPacket(),
             Packet::CreateErrorPacket().GetBytes());
   EXPECT_TRUE(connection_.NoMorePackets());
+  MutexLock lock(&mutex_);
   EXPECT_FALSE(connected_);
 }
 
@@ -198,6 +211,7 @@ TEST_F(BaseSocketTest, TestDisconnectTwice) {
   EXPECT_EQ(connection_.PollWrittenPacket(),
             Packet::CreateErrorPacket().GetBytes());
   EXPECT_TRUE(connection_.NoMorePackets());
+  MutexLock lock(&mutex_);
   EXPECT_FALSE(connected_);
 }
 
@@ -353,6 +367,7 @@ TEST_F(BaseSocketTest, TestOnTransmitFailure) {
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_THAT(error_status_,
               testing::status::StatusIs(absl::StatusCode::kInternal));
+  MutexLock lock(&mutex_);
   EXPECT_FALSE(connected_);
 }
 
@@ -470,6 +485,7 @@ TEST_F(BaseSocketTest, TestDisconnectOnBadDataPacketCounter) {
   connection_.OnRemoteTransmitProxy(bad_packet.GetBytes());
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_FALSE(socket_.IsConnected());
+  MutexLock lock(&mutex_);
   EXPECT_FALSE(connected_);
 }
 
