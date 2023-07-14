@@ -76,6 +76,11 @@ class PresenceServiceImpl : public PresenceService {
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
+  AuthenticationStatus AuthenticateConnection(
+      internal::IdentityType identity_type, AuthenticationRole role,
+      absl::string_view shared_secret,
+      const AuthenticationTransport& authentication_transport) const override;
+
  private:
   std::unique_ptr<ServiceController> service_controller_;
   ::nearby::Lender<PresenceService*> lender_{this};
