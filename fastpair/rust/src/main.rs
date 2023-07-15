@@ -23,7 +23,7 @@ use bluetooth::{Adapter, Address, ClassicAddress, Device};
 fn main() -> Result<(), Box<dyn Error>> {
     let run = async {
         let mut adapter = bluetooth::default_adapter().await?;
-        adapter.start_scan_devices()?;
+        adapter.start_scan()?;
 
         while let Ok(ble_device) = adapter.next_device().await {
             let name = ble_device.name()?;

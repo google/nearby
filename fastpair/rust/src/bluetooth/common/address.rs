@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::bluetooth::common::BluetoothError;
+
 /// BLE Addresses can either be the peripheral's public MAC address, or various
 /// types of random addresses.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -68,15 +70,14 @@ impl From<u64> for ClassicAddress {
 }
 
 impl TryFrom<BleAddress> for ClassicAddress {
-    // TODO proper error handling b/291931475
-    type Error = anyhow::Error;
+    type Error = BluetoothError;
 
     fn try_from(addr: BleAddress) -> Result<Self, Self::Error> {
         match addr.kind {
             BleAddressKind::Public => Ok(ClassicAddress(addr.val)),
-            BleAddressKind::Random => Err(anyhow::anyhow!(
-                "Can't convert BLE Random address to Bluetooth Classic address."
-            )),
+            BleAddressKind::Random => Err(BluetoothError::BadTypeConversion(String::from(
+                "can't convert BLE Random address to Bluetooth Classic address."
+            ))),
         }
     }
 }

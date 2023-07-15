@@ -25,11 +25,11 @@ pub trait Adapter: Sized {
     /// Retrieve the system-default Bluetooth adapter.
     async fn default() -> Result<Self, BluetoothError>;
 
-    /// Begin scanning for nearby devices.
-    fn start_scan_devices(&mut self) -> Result<(), BluetoothError>;
+    /// Begin scanning for nearby advertisements.
+    fn start_scan(&mut self) -> Result<(), BluetoothError>;
 
-    /// Stop scanning for nearby devices.
-    fn stop_scan_devices(&mut self) -> Result<(), BluetoothError>;
+    /// Stop scanning for nearby advertisements.
+    fn stop_scan(&mut self) -> Result<(), BluetoothError>;
 
     /// Poll next discovered device.
     async fn next_device(&mut self) -> Result<Self::Device, BluetoothError>;

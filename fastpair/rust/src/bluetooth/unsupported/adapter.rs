@@ -29,11 +29,11 @@ impl Adapter for BleAdapter {
         panic!("Unsupported target platform.");
     }
 
-    fn start_scan_devices(&mut self) -> Result<(), BluetoothError> {
+    fn start_scan(&mut self) -> Result<(), BluetoothError> {
         panic!("Unsupported target platform.");
     }
 
-    fn stop_scan_devices(&mut self) -> Result<(), BluetoothError> {
+    fn stop_scan(&mut self) -> Result<(), BluetoothError> {
         panic!("Unsupported target platform.");
     }
 

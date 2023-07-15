@@ -16,21 +16,23 @@
 //https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothaddresstype?view=winrt-22621
 use windows::Devices::Bluetooth::BluetoothAddressType;
 
-use crate::bluetooth::common::BleAddressKind;
+use crate::bluetooth::common::{BleAddressKind, BluetoothError};
 
 // Convenience for converting from Windows API to crate API.
 impl TryFrom<BluetoothAddressType> for BleAddressKind {
-    type Error = anyhow::Error;
+    type Error = BluetoothError;
 
     fn try_from(kind: BluetoothAddressType) -> Result<Self, Self::Error> {
         match kind {
             BluetoothAddressType::Public => Ok(BleAddressKind::Public),
             BluetoothAddressType::Random => Ok(BleAddressKind::Random),
-            BluetoothAddressType::Unspecified => Err(anyhow::anyhow!(
-                "Attempting to construct `BleAddressKind` with device \
-                advertising Unspecified address type."
-            )),
-            _ => Err(anyhow::anyhow!(format!(
+            BluetoothAddressType::Unspecified => {
+                Err(BluetoothError::BadTypeConversion(String::from(
+                    "Attempting to construct `BleAddressKind` with device \
+                advertising Unspecified address type.",
+                )))
+            }
+            _ => Err(BluetoothError::BadTypeConversion(format!(
                 "Attempting to construct `BleAddressKind` with device \
                 advertising invalid address type {}.",
                 kind.0,

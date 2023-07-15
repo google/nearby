@@ -18,6 +18,10 @@ use thiserror::Error;
 #[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum BluetoothError {
+    /// Reported when the user attempts a bad type conversion, e.g. converting
+    /// a BLE random address to a BT Classic address.
+    #[error("bad type conversion: {0}")]
+    BadTypeConversion(String),
     /// Reported when Bluetooth device pairing fails.
     #[error("pairing error: {0}")]
     PairingFailed(String),
