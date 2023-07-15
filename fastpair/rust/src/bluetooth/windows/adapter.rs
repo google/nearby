@@ -51,11 +51,16 @@ use windows::{
     // (e.g. Received and Stopped events in BluetoothLEAdvertisementWatcher).
     // https://learn.microsoft.com/en-us/uwp/api/windows.foundation.typedeventhandler-2?view=winrt-22621
     Foundation::TypedEventHandler,
+
+    // Struct for reading data from a Windows stream, like an IVectorView.
+    // https://learn.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-22621
+    Storage::Streams::DataReader,
 };
 
 use super::BleDevice;
 use crate::bluetooth::common::{
-    Adapter, BleAddress, BleAddressKind, BluetoothError,
+    Adapter, BleAddress, BleAddressKind, BleDataSection, BluetoothError,
+    ServiceData,
 };
 
 /// Struct holding the necessary fields for listening to and handling incoming
@@ -71,6 +76,39 @@ struct AdvListener {
 pub struct BleAdapter {
     inner: BluetoothAdapter,
     listener: Option<AdvListener>,
+}
+
+/// Parse the advertisement's service data.
+/// Further Reading:
+/// * `BleMedium::AdvertisementReceivedHandler` under
+/// github.com/google/nearby/internal/platform/implementation/windows_ble/ble_medium.cc.
+/// * Bluetooth Core Specification Supplement, Part A, Section 1.11.
+/// * go/fast_pair_windows_data_parse.
+#[inline]
+fn get_service_data_16bit_uuid(
+    event_args: &BluetoothLEAdvertisementReceivedEventArgs,
+) -> Result<Vec<ServiceData<u16>>, BluetoothError> {
+    let advertisement = event_args.Advertisement()?;
+    let mut service_data_vec = Vec::new();
+
+    // Note `service_data` is `!Send` and `!Sync`. This means processing must
+    // occur in a synchronous environment (namely, this function's scope).
+    // The compiler will complain if similar code is written between awaits
+    // in an async function.
+    for service_data in advertisement
+        .GetSectionsByType(BleDataSection::ServiceData16BitUUid as u8)?
+    {
+        let data_reader = DataReader::FromBuffer(&service_data.Data()?)?;
+        let uuid = data_reader.ReadUInt16()?;
+
+        let unconsumed_buffer_len =
+            data_reader.UnconsumedBufferLength()? as usize;
+        let mut data = vec![0u8; unconsumed_buffer_len];
+        data_reader.ReadBytes(&mut data)?;
+
+        service_data_vec.push(ServiceData::new(uuid, data));
+    }
+    Ok(service_data_vec)
 }
 
 #[async_trait]
@@ -202,13 +240,12 @@ impl Adapter for BleAdapter {
 
                         let kind = BleAddressKind::try_from(kind)?;
                         let addr = BleAddress::new(addr, kind);
+                        let service_data =
+                            get_service_data_16bit_uuid(&event_args)?;
 
-                        match BleDevice::new(addr).await {
-                            Ok(device) => break Ok(device),
-                            Err(err) => {
-                                warn!("Error creating device: {:?}", err);
-                            }
-                        }
+                        let device = BleDevice::new(addr, service_data).await?;
+
+                        break Ok(device);
                     }
                 }
             }

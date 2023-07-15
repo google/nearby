@@ -32,4 +32,6 @@ windows = { version = "0.48", features = [
     "Devices_Enumeration",
     "Devices_Bluetooth_Advertisement",
     "Foundation",
+    "Foundation_Collections",
+    "Storage_Streams",
 ] }
