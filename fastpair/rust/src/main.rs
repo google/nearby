@@ -12,56 +12,107 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::error::Error;
+use std::{
+    collections::HashSet,
+    error::Error,
+    io::{self, Write},
+    sync::Arc,
+    thread,
+};
 
-use futures::executor;
+use futures::{
+    executor::{self, block_on},
+    lock::Mutex,
+};
 
 mod bluetooth;
 
-use bluetooth::{Adapter, Address, ClassicAddress, Device};
+use bluetooth::{Adapter, Address, BleAdapter, ClassicAddress, Device};
+
+async fn get_user_input(
+    device_vec: Arc<Mutex<Vec<<BleAdapter as Adapter>::Device>>>,
+) -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    loop {
+        io::stdout().flush()?;
+        buffer.clear();
+        io::stdin().read_line(&mut buffer)?;
+
+        let val = match buffer.trim().parse::<usize>() {
+            Ok(val) => val,
+            Err(_) => {
+                println!("Please enter a valid digit.");
+                continue;
+            }
+        };
+
+        let index_to_device = device_vec.lock().await;
+        match index_to_device.get(val) {
+            Some(device) => {
+                let addr: Address = device.address();
+
+                // Dynamic dispatch is necessary here because `BleDevice` and
+                // `ClassicDevice` share the `Device` trait (and thus must have
+                // the same return type for `address()` method). This can be
+                // changed later if `Device` trait should exclusively define
+                // shared cross-platform behavior.
+                let classic_addr = match addr {
+                    Address::Ble(ble) => ClassicAddress::try_from(ble),
+                    Address::Classic(_) => panic!(
+                        "Address should come from BLE Device, therefore \
+                                    shouldn't be Classic."
+                    ),
+                }?;
+
+                let classic_device =
+                    bluetooth::new_classic_device(classic_addr).await?;
+
+                match classic_device.pair().await {
+                    Ok(_) => {
+                        println!("Pairing success!");
+                    }
+                    Err(err) => println!("Error {}", err),
+                }
+                break Ok(());
+            }
+            None => println!("Please enter a valid digit."),
+        }
+    }
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let run = async {
         let mut adapter = bluetooth::default_adapter().await?;
         adapter.start_scan()?;
 
-        while let Ok(ble_device) = adapter.next_device().await {
-            let name = ble_device.name()?;
+        let mut addr_set = HashSet::new();
+        let device_vec = Arc::new(Mutex::new(Vec::new()));
 
+        {
+            // Process user input in a separate thread.
+            let device_vec = device_vec.clone();
+            thread::spawn(|| block_on(get_user_input(device_vec)).unwrap());
+        }
+
+        let mut counter: u32 = 0;
+
+        // Retrieve incoming device advertisements.
+        while let Ok(ble_device) = adapter.next_device().await {
             for service_data in ble_device.service_data() {
                 let uuid = service_data.uuid();
 
                 // This is a Fast Pair device.
                 if uuid == 0x2cfe {
-                    if name.contains("LE_WF-1000XM3") {
-                        println!("FOUND {} ", name);
+                    let addr: Address = ble_device.address();
+                    let name = ble_device.name()?;
 
-                        let addr: Address = ble_device.address();
-
-                        // Dynamic dispatch is necessary here because `BleDevice` and
-                        // `ClassicDevice` share the `Device` trait (and thus must have
-                        // the same return type for `address()` method). This can be
-                        // changed later if `Device` trait should exclusively define
-                        // shared cross-platform behavior.
-                        let classic_addr = match addr {
-                            Address::Ble(ble) => ClassicAddress::try_from(ble),
-                            Address::Classic(_) => panic!(
-                        "Address should come from BLE Device, therefore \
-                        shouldn't be Classic."
-                    ),
-                        }?;
-
-                        let classic_device =
-                            bluetooth::new_classic_device(classic_addr).await?;
-
-                        match classic_device.pair().await {
-                            Ok(_) => {
-                                println!("Pairing success!");
-                            }
-                            Err(err) => println!("Error {}", err),
-                        }
-                        break;
+                    if addr_set.insert(addr) {
+                        // New FP device discovered.
+                        println!("{}: {}", counter, name);
+                        device_vec.lock().await.push(ble_device);
+                        counter += 1;
                     }
+                    break;
                 }
             }
         }

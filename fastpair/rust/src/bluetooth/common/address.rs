@@ -16,24 +16,25 @@ use crate::bluetooth::common::BluetoothError;
 
 /// BLE Addresses can either be the peripheral's public MAC address, or various
 /// types of random addresses.
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum BleAddressKind {
     Public,
     Random,
 }
 
 /// Struct representing a 48-bit BLE Address and its type.
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct BleAddress {
     val: [u8; 6],
     kind: BleAddressKind,
 }
 
 /// Struct representing a 48-bit BT Classic address.
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct ClassicAddress([u8; 6]);
 
 /// Enum for interfacing with Bluetooth Addresses.
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum Address {
     Ble(BleAddress),
     Classic(ClassicAddress),
