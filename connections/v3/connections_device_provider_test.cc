@@ -54,10 +54,10 @@ TEST(ConnectionsDeviceProviderTest, TestProviderWorksThreeArgs) {
 TEST(ConnectionsDeviceProviderTest, TestUnknownAuthStatus) {
   ConnectionsDeviceProvider provider(kEndpointId, kEndpointInfo, {});
   MockAuthenticationTransport transport;
-  EXPECT_EQ(provider.AuthenticateConnection(/*local_device=*/nullptr,
-                                            /*remote_device=*/nullptr,
-                                            AuthenticationRole::kInitiator,
-                                            /*shared_secret=*/"", transport),
+  EXPECT_EQ(provider.AuthenticateAsInitiator(ConnectionsDevice("", {}),
+                                             /*shared_secret=*/"", transport),
+            AuthenticationStatus::kUnknown);
+  EXPECT_EQ(provider.AuthenticateAsResponder(/*shared_secret=*/"", transport),
             AuthenticationStatus::kUnknown);
 }
 

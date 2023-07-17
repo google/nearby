@@ -20,12 +20,6 @@
 
 namespace nearby {
 
-enum class AuthenticationRole {
-  kUnknown = 0,
-  kInitiator = 1,
-  kReceiver = 2,
-};
-
 enum class AuthenticationStatus {
   kUnknown = 0,
   kSuccess = 1,
@@ -40,9 +34,15 @@ class NearbyDeviceProvider {
   virtual ~NearbyDeviceProvider() = default;
 
   const virtual NearbyDevice* GetLocalDevice() = 0;
-  virtual AuthenticationStatus AuthenticateConnection(
-      NearbyDevice* local_device, NearbyDevice* remote_device,
-      AuthenticationRole role, absl::string_view shared_secret,
+  virtual AuthenticationStatus AuthenticateAsInitiator(
+      const NearbyDevice& remote_device, absl::string_view shared_secret,
+      const AuthenticationTransport& authentication_transport) const {
+    // We want to check out-of-band by default (Show UKEY2 digits to user).
+    return AuthenticationStatus::kUnknown;
+  }
+
+  virtual AuthenticationStatus AuthenticateAsResponder(
+      absl::string_view shared_secret,
       const AuthenticationTransport& authentication_transport) const {
     // We want to check out-of-band by default (Show UKEY2 digits to user).
     return AuthenticationStatus::kUnknown;
