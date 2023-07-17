@@ -137,9 +137,10 @@ cc_test(
     shard_count = 16,
     deps = [
         ":handshake",
+        ":test_support",
         "//fastpair/common",
+        "//fastpair/crypto",
         "//fastpair/proto:fastpair_cc_proto",
-        "//fastpair/repository:test_support",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
@@ -163,6 +164,7 @@ cc_test(
         ":handshake",
         "//fastpair/common",
         "//fastpair/internal/mediums",
+        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

@@ -27,6 +27,7 @@
 #include "fastpair/handshake/fast_pair_gatt_service_client.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/internal/mediums/robust_gatt_client.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -148,9 +149,10 @@ class FastPairGattServiceClientImpl : public FastPairGattServiceClient {
   WriteResponseCallback passkey_write_response_callback_;
   WriteAccountkeyCallback account_key_write_callback_;
 
+  Mutex mutex_;
   bool is_initialized_ = false;
   std::string device_address_;
-  std::unique_ptr<RobustGattClient> gatt_client_;
+  std::unique_ptr<RobustGattClient> gatt_client_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<RobustGattClient> defunct_gatt_client_;
   RobustGattClient::ConnectionParams gatt_connection_params_;
   Mediums& mediums_;

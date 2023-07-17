@@ -124,19 +124,13 @@ void FastPairGattServiceClientImpl::InitializeGattConnection(
 
 void FastPairGattServiceClientImpl::AttemptGattConnection() {
   NEARBY_LOGS(INFO) << __func__ << ": Attempt to connect to the device.";
-
-  if (gatt_client_) {
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Disconnecting previous connections before attempt";
-    gatt_client_->Stop();
-    // Destroying gatt client may block if something went wrong.
-    defunct_gatt_client_ = std::move(gatt_client_);
-  }
+  ClearCurrentState();
   CreateGattConnection();
 }
 
 void FastPairGattServiceClientImpl::CreateGattConnection() {
   NEARBY_LOGS(INFO) << __func__ << " : Create Gatt Connection to the device.";
+  MutexLock lock(&mutex_);
   if (mediums_.GetBluetoothRadio().Enable() &&
       mediums_.GetBleV2().IsAvailable()) {
     gatt_client_ = mediums_.GetBleV2().ConnectToGattServer(
@@ -253,7 +247,7 @@ void FastPairGattServiceClientImpl::WriteRequestAsync(
 void FastPairGattServiceClientImpl::WriteKeyBasedCharacteristic(
     absl::string_view request) {
   NEARBY_LOGS(INFO) << __func__ << " :Start to write keybased characteristic.";
-
+  MutexLock lock(&mutex_);
   gatt_client_->CallRemoteFunction(
       kKeyBasedCharacteristicIndex, request,
       [this](absl::StatusOr<absl::string_view> response) {
@@ -295,6 +289,7 @@ void FastPairGattServiceClientImpl::WritePasskeyAsync(
 
 void FastPairGattServiceClientImpl::WritePasskeyCharacteristic(
     absl::string_view request) {
+    MutexLock lock(&mutex_);
     gatt_client_->CallRemoteFunction(
         kPasskeyCharacteristicIndex, request,
         [this](absl::StatusOr<absl::string_view> response) {
@@ -318,31 +313,32 @@ void FastPairGattServiceClientImpl::WritePasskeyCharacteristic(
 void FastPairGattServiceClientImpl::WriteAccountKey(
     const FastPairDataEncryptor& fast_pair_data_encryptor,
     WriteAccountkeyCallback write_accountkey_callback) {
-  CHECK(is_initialized_);
-  account_key_write_callback_ = std::move(write_accountkey_callback);
-  std::array<uint8_t, kAesBlockByteSize> raw_account_key =
-      CreateAccountKeyBlock();
-  const std::array<uint8_t, kAesBlockByteSize> data_to_write =
-      fast_pair_data_encryptor.EncryptBytes(raw_account_key);
-  gatt_client_->WriteCharacteristic(
-      kAccountKeyCharacteristicIndex,
-      std::string(data_to_write.begin(), data_to_write.end()),
-      api::ble_v2::GattClient::WriteType::kWithResponse,
-      [this, account_key =
-                 std::string(raw_account_key.begin(), raw_account_key.end())](
-          absl::Status status) {
-        if (status.ok()) {
-          NEARBY_LOGS(INFO)
-              << __func__
-              << ": Successfully write the accoutkey characteristic.";
-          NotifyWriteAccountKeyResult(AccountKey(account_key));
-        } else {
-          NEARBY_LOGS(INFO)
-              << __func__ << ": Failed to write the passkey characteristic ";
-          NotifyWriteAccountKeyError(
-              PairFailure::kAccountKeyCharacteristicWrite);
-        }
-      });
+    MutexLock lock(&mutex_);
+    CHECK(is_initialized_);
+    account_key_write_callback_ = std::move(write_accountkey_callback);
+    std::array<uint8_t, kAesBlockByteSize> raw_account_key =
+        CreateAccountKeyBlock();
+    const std::array<uint8_t, kAesBlockByteSize> data_to_write =
+        fast_pair_data_encryptor.EncryptBytes(raw_account_key);
+    gatt_client_->WriteCharacteristic(
+        kAccountKeyCharacteristicIndex,
+        std::string(data_to_write.begin(), data_to_write.end()),
+        api::ble_v2::GattClient::WriteType::kWithResponse,
+        [this, account_key =
+                   std::string(raw_account_key.begin(), raw_account_key.end())](
+            absl::Status status) {
+          if (status.ok()) {
+            NEARBY_LOGS(INFO)
+                << __func__
+                << ": Successfully write the accoutkey characteristic.";
+            NotifyWriteAccountKeyResult(AccountKey(account_key));
+          } else {
+            NEARBY_LOGS(INFO)
+                << __func__ << ": Failed to write the passkey characteristic ";
+            NotifyWriteAccountKeyError(
+                PairFailure::kAccountKeyCharacteristicWrite);
+          }
+        });
 }
 
 void FastPairGattServiceClientImpl::NotifyInitializedError(
@@ -391,10 +387,14 @@ void FastPairGattServiceClientImpl::NotifyWriteAccountKeyResult(
 }
 
 void FastPairGattServiceClientImpl::ClearCurrentState() {
-  if (gatt_client_ != nullptr) {
-    gatt_client_->Stop();
-    defunct_gatt_client_ = std::move(gatt_client_);
-  }
+  MutexLock lock(&mutex_);
+  executor_->Execute("clear-current-state",
+                    [this, gatt_client = std::move(gatt_client_)]() mutable {
+                      if (gatt_client != nullptr) {
+                        gatt_client->Stop();
+                        defunct_gatt_client_ = std::move(gatt_client);
+                      }
+                    });
 }
 
 }  // namespace fastpair
