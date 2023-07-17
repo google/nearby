@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
@@ -59,6 +60,7 @@ class FakeConnection : public Connection {
 
   int GetMaxPacketSize() const override { return max_packet_size_; }
   void Transmit(std::string packet) override {
+    absl::MutexLock lock(&mutex_);
     packets_written_.push_back(packet);
     if (instant_transmit_) {
       callback_.on_transmit_cb(absl::OkStatus());
@@ -69,6 +71,7 @@ class FakeConnection : public Connection {
   bool IsOpen() { return open_; }
   std::string PollWrittenPacket() {
     if (!NoMorePackets()) {
+      absl::MutexLock lock(&mutex_);
       auto front = packets_written_.front();
       packets_written_.erase(packets_written_.begin());
       return front;
@@ -76,7 +79,10 @@ class FakeConnection : public Connection {
     NEARBY_LOGS(WARNING) << "No more packets";
     return "";
   }
-  bool NoMorePackets() { return packets_written_.empty(); }
+  bool NoMorePackets() {
+    absl::MutexLock lock(&mutex_);
+    return packets_written_.empty();
+  }
   void SetInstantTransmit(bool instant_transmit) {
     instant_transmit_ = instant_transmit;
   }
@@ -87,7 +93,8 @@ class FakeConnection : public Connection {
  protected:
   int max_packet_size_;
   ConnectionCallback callback_;
-  std::vector<std::string> packets_written_;
+  absl::Mutex mutex_;
+  std::vector<std::string> packets_written_ ABSL_GUARDED_BY(mutex_);
   bool instant_transmit_ = true;
   bool open_ = false;
 };
