@@ -50,7 +50,10 @@ cc_test(
     deps = [
         ":pairing",
         "//fastpair/common",
+        "//fastpair/crypto",
         "//fastpair/handshake",
+        "//fastpair/handshake:test_support",
+        "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/repository:test_support",
         "//internal/base:bluetooth_address",
         "//internal/platform:comm",
