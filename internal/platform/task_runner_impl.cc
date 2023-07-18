@@ -33,7 +33,13 @@ TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
   }
 }
 
-TaskRunnerImpl::~TaskRunnerImpl() = default;
+TaskRunnerImpl::~TaskRunnerImpl() {
+  {
+    absl::MutexLock lock(&mutex_);
+    timers_map_.clear();
+  }
+  executor_->Shutdown();
+}
 
 bool TaskRunnerImpl::PostTask(absl::AnyInvocable<void()> task) {
   if (task) {

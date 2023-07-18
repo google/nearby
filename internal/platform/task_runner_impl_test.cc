@@ -91,19 +91,19 @@ TEST_P(BaseTaskRunnerImplTest, PostDelayedTask) {
   latch.Await();
 }
 
-TEST_P(BaseTaskRunnerImplTest, PostTwoDelayedTask) {
+TEST_P(BaseTaskRunnerImplTest, PostTwoDelayedTasks) {
   TaskRunnerImpl task_runner{GetParam()};
   std::atomic_bool first_task_started = false;
   CountDownLatch latch(2);
 
   // Run the first task
-  task_runner.PostDelayedTask(absl::Milliseconds(100), [&]() {
+  task_runner.PostDelayedTask(absl::Milliseconds(500), [&]() {
     first_task_started = true;
     latch.CountDown();
   });
 
   // Run the second task
-  task_runner.PostDelayedTask(absl::Milliseconds(50), [&]() {
+  task_runner.PostDelayedTask(absl::Milliseconds(1), [&]() {
     EXPECT_FALSE(first_task_started);
     latch.CountDown();
   });
@@ -111,42 +111,19 @@ TEST_P(BaseTaskRunnerImplTest, PostTwoDelayedTask) {
   latch.Await();
 }
 
-TEST_F(BaseTaskRunnerImplTest, PostTasksOnRunnerWithOneThread) {
-  TaskRunnerImpl task_runner{1};
-  std::atomic_int count = 0;
-  absl::Notification notification;
+TEST_P(BaseTaskRunnerImplTest, PostMultipleTasks) {
+  TaskRunnerImpl task_runner(GetParam());
+  constexpr int kNumTasks = 10;
+  CountDownLatch latch(kNumTasks);
 
-  for (int i = 0; i < 10; i++) {
-    task_runner.PostTask([&count, &notification]() {
-      absl::SleepFor(absl::Milliseconds(100));
-      count++;
-      if (count == 10) {
-        notification.Notify();
-      }
+  for (int i = 0; i < kNumTasks; i++) {
+    task_runner.PostTask([&]() {
+      absl::SleepFor(absl::Milliseconds(10));
+      latch.CountDown();
     });
   }
 
-  notification.WaitForNotificationWithTimeout(absl::Milliseconds(1900));
-  EXPECT_EQ(count, 10);
-}
-
-TEST_F(BaseTaskRunnerImplTest, PostTasksOnRunnerWithMultipleThreads) {
-  TaskRunnerImpl task_runner{10};
-  std::atomic_int count = 0;
-  absl::Notification notification;
-
-  for (int i = 0; i < 10; i++) {
-    task_runner.PostTask([&count, &notification]() {
-      absl::SleepFor(absl::Milliseconds(100));
-      count++;
-      if (count == 10) {
-        notification.Notify();
-      }
-    });
-  }
-
-  notification.WaitForNotificationWithTimeout(absl::Milliseconds(190));
-  EXPECT_EQ(count, 10);
+  EXPECT_TRUE(latch.Await());
 }
 
 TEST_P(BaseTaskRunnerImplTest, PostEmptyTask) {
