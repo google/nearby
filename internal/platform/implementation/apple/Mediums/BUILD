@@ -19,6 +19,9 @@ objc_library(
     name = "Mediums",
     srcs = [
         "BLEv2/GNCBLEGATTCharacteristic.m",
+        "BLEv2/GNCBLEGATTServer.m",
+        "BLEv2/GNCPeripheralManager.m",
+        "BLEv2/NSData+GNCWebSafeBase64.m",
         "Ble/GNCMBleCentral.m",
         "Ble/GNCMBleConnection.m",
         "Ble/GNCMBlePeripheral.m",
@@ -35,6 +38,9 @@ objc_library(
     ],
     hdrs = [
         "BLEv2/GNCBLEGATTCharacteristic.h",
+        "BLEv2/GNCBLEGATTServer.h",
+        "BLEv2/GNCPeripheralManager.h",
+        "BLEv2/NSData+GNCWebSafeBase64.h",
         "Ble/GNCMBleCentral.h",
         "Ble/GNCMBleConnection.h",
         "Ble/GNCMBlePeripheral.h",
@@ -55,6 +61,7 @@ objc_library(
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:Network",
+        "//third_party/apple_frameworks:ObjectiveC",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
