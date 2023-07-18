@@ -15,11 +15,13 @@
 #include "fastpair/repository/fake_fast_pair_repository.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 
@@ -36,13 +38,29 @@ void FakeFastPairRepository::ClearFakeMetadata(absl::string_view hex_model_id) {
   data_.erase(hex_model_id);
 }
 
+void FakeFastPairRepository::SetResultOfCheckIfAssociatedWithCurrentAccount(
+    std::optional<AccountKey> account_key,
+    std::optional<absl::string_view> model_id) {
+  account_key_ = std::move(account_key);
+  model_id_ = std::move(model_id);
+}
+
 void FakeFastPairRepository::GetDeviceMetadata(
     absl::string_view hex_model_id, DeviceMetadataCallback callback) {
-  executor_.Execute([callback = std::move(callback), this,
+  executor_.Execute([this, callback = std::move(callback),
                      hex_model_id = std::string(hex_model_id)]() mutable {
     if (data_.contains(hex_model_id)) {
-      callback(*data_[hex_model_id]);
+      std::move(callback)(*data_[hex_model_id]);
+    } else {
+      std::move(callback)(std::nullopt);
     }
+  });
+}
+
+void FakeFastPairRepository::CheckIfAssociatedWithCurrentAccount(
+    AccountKeyFilter& account_key_filter, CheckAccountKeysCallback callback) {
+  executor_.Execute([this, callback = std::move(callback)]() mutable {
+    std::move(callback)(account_key_, model_id_);
   });
 }
 
@@ -64,6 +82,5 @@ std::unique_ptr<FakeFastPairRepository> FakeFastPairRepository::Create(
   repository->SetFakeMetadata(model_id, metadata);
   return repository;
 }
-
 }  // namespace fastpair
 }  // namespace nearby

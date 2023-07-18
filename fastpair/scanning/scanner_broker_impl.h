@@ -21,6 +21,7 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
+#include "fastpair/scanning/fastpair/fast_pair_non_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "fastpair/scanning/scanner_broker.h"
 #include "internal/base/observer_list.h"
@@ -49,6 +50,8 @@ class ScannerBrokerImpl : public ScannerBroker {
   SingleThreadExecutor* executor_;
   std::unique_ptr<FastPairScanner> scanner_;
   std::unique_ptr<FastPairDiscoverableScanner> fast_pair_discoverable_scanner_;
+  std::unique_ptr<FastPairNonDiscoverableScanner>
+      fast_pair_non_discoverable_scanner_;
   ObserverList<Observer> observers_;
   FastPairDeviceRepository* device_repository_;
   std::unique_ptr<FastPairScanner::ScanningSession> scanning_session_;

@@ -20,6 +20,7 @@
 #include "absl/functional/bind_front.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner_impl.h"
+#include "fastpair/scanning/fastpair/fast_pair_non_discoverable_scanner.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
 #include "internal/platform/logging.h"
 
@@ -59,10 +60,18 @@ void ScannerBrokerImpl::RemoveObserver(Observer* observer) {
 std::unique_ptr<ScannerBroker::ScanningSession>
 ScannerBrokerImpl::StartScanning(Protocol protocol) {
   DCHECK(!fast_pair_discoverable_scanner_);
+  DCHECK(!fast_pair_non_discoverable_scanner_);
   NEARBY_LOGS(VERBOSE) << "Starting Fast Pair Scanning.";
   scanner_ = std::make_unique<FastPairScannerImpl>(mediums_, executor_);
   fast_pair_discoverable_scanner_ =
       FastPairDiscoverableScannerImpl::Factory::Create(
+          *scanner_,
+          absl::bind_front(&ScannerBrokerImpl::NotifyDeviceFound, this),
+          absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this),
+          executor_, device_repository_);
+
+  fast_pair_non_discoverable_scanner_ =
+      FastPairNonDiscoverableScanner::Factory::Create(
           *scanner_,
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceFound, this),
           absl::bind_front(&ScannerBrokerImpl::NotifyDeviceLost, this),
@@ -77,6 +86,7 @@ void ScannerBrokerImpl::StopScanning(Protocol protocol) {
   observers_.Clear();
 
   DestroyOnExecutor(std::move(fast_pair_discoverable_scanner_), executor_);
+  DestroyOnExecutor(std::move(fast_pair_non_discoverable_scanner_), executor_);
   DestroyOnExecutor(std::move(scanner_), executor_);
 }
 

@@ -94,6 +94,10 @@ Mediator::Mediator(
 
 void Mediator::OnDeviceFound(FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__ << ": " << device;
+  if (device.ShouldShowUiNotification().value_or(false)) {
+    NEARBY_LOGS(INFO) << __func__ << ": Ignoring because show UI flag is false";
+    return;
+  }
   if (IsDeviceCurrentlyShowingNotification(device)) {
     NEARBY_LOGS(VERBOSE) << __func__
                          << ": Extending notification for re-discovered device="

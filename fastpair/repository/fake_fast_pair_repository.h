@@ -17,9 +17,11 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/single_thread_executor.h"
@@ -38,6 +40,10 @@ class FakeFastPairRepository : public FastPairRepository {
 
   void SetFakeMetadata(absl::string_view hex_model_id, proto::Device metadata);
   void ClearFakeMetadata(absl::string_view hex_model_id);
+
+  void SetResultOfCheckIfAssociatedWithCurrentAccount(
+      std::optional<AccountKey> account_key,
+      std::optional<absl::string_view> model_id);
 
   // FastPairRepository::
   void AddObserver(Observer* observer) override{};
@@ -58,10 +64,14 @@ class FakeFastPairRepository : public FastPairRepository {
 
   void CheckIfAssociatedWithCurrentAccount(
       AccountKeyFilter& account_key_filter,
-      CheckAccountKeysCallback callback) override{};
+      CheckAccountKeysCallback callback) override;
 
  private:
   absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>> data_;
+
+  // Results of CheckIfAssociatedWithCurrentAccount
+  std::optional<AccountKey> account_key_;
+  std::optional<absl::string_view> model_id_;
   SingleThreadExecutor executor_;
 };
 }  // namespace fastpair

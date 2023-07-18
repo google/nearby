@@ -69,6 +69,7 @@ cc_test(
         "//fastpair/internal/mediums",
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/repository:test_support",
+        "//fastpair/testing",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",

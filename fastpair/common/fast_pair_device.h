@@ -97,6 +97,14 @@ class FastPairDevice {
     return ble_address_;
   }
 
+  void SetShowUiNotification(bool should_show_ui_notification) {
+    should_show_ui_notification_ = should_show_ui_notification;
+  }
+
+  std::optional<bool> ShouldShowUiNotification() const {
+    return should_show_ui_notification_;
+  }
+
  private:
   std::string model_id_;
 
@@ -126,6 +134,7 @@ class FastPairDevice {
   AccountKey account_key_;
 
   std::optional<DeviceMetadata> metadata_;
+  std::optional<bool> should_show_ui_notification_;
 };
 
 std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device);
