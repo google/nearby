@@ -17,13 +17,12 @@ licenses(["notice"])
 cc_library(
     name = "scanning",
     srcs = [
-        "fast_pair_discoverable_scanner_impl.cc",
+        "fast_pair_discoverable_scanner.cc",
         "fast_pair_non_discoverable_scanner.cc",
         "fast_pair_scanner_impl.cc",
     ],
     hdrs = [
         "fast_pair_discoverable_scanner.h",
-        "fast_pair_discoverable_scanner_impl.h",
         "fast_pair_non_discoverable_scanner.h",
         "fast_pair_scanner.h",
         "fast_pair_scanner_impl.h",
@@ -57,7 +56,6 @@ cc_library(
         "fake_fast_pair_scanner.cc",
     ],
     hdrs = [
-        "fake_fast_pair_discoverable_scanner.h",
         "fake_fast_pair_scanner.h",
     ],
     visibility = [
@@ -95,10 +93,10 @@ cc_test(
 )
 
 cc_test(
-    name = "fast_pair_discoverable_scanner_impl_test",
+    name = "fast_pair_discoverable_scanner_test",
     size = "small",
     srcs = [
-        "fast_pair_discoverable_scanner_impl_test.cc",
+        "fast_pair_discoverable_scanner_test.cc",
     ],
     shard_count = 16,
     deps = [

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner_impl.h"
+#include "fastpair/scanning/fastpair/fast_pair_discoverable_scanner.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -61,13 +61,13 @@ bool IsSupportedNotificationType(const proto::Device& device) {
 }  // namespace
 
 // FastPairScannerImpl::Factory
-FastPairDiscoverableScannerImpl::Factory*
-    FastPairDiscoverableScannerImpl::Factory::g_test_factory_ = nullptr;
+FastPairDiscoverableScanner::Factory*
+    FastPairDiscoverableScanner::Factory::g_test_factory_ = nullptr;
 
 std::unique_ptr<FastPairDiscoverableScanner>
-FastPairDiscoverableScannerImpl::Factory::Create(
-    FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback, SingleThreadExecutor* executor,
+FastPairDiscoverableScanner::Factory::Create(
+    FastPairScanner& scanner, DiscoverableScannerCallback found_callback,
+    DiscoverableScannerCallback lost_callback, SingleThreadExecutor* executor,
     FastPairDeviceRepository* device_repository) {
   if (g_test_factory_) {
     return g_test_factory_->CreateInstance(scanner, std::move(found_callback),
@@ -75,22 +75,22 @@ FastPairDiscoverableScannerImpl::Factory::Create(
                                            device_repository);
   }
 
-  return std::make_unique<FastPairDiscoverableScannerImpl>(
+  return std::make_unique<FastPairDiscoverableScanner>(
       scanner, std::move(found_callback), std::move(lost_callback), executor,
       device_repository);
 }
 
-void FastPairDiscoverableScannerImpl::Factory::SetFactoryForTesting(
+void FastPairDiscoverableScanner::Factory::SetFactoryForTesting(
     Factory* g_test_factory) {
   g_test_factory_ = g_test_factory;
 }
 
-FastPairDiscoverableScannerImpl::Factory::~Factory() = default;
+FastPairDiscoverableScanner::Factory::~Factory() = default;
 
 // FastPairScannerImpl
-FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
-    FastPairScanner& scanner, DeviceCallback found_callback,
-    DeviceCallback lost_callback, SingleThreadExecutor* executor,
+FastPairDiscoverableScanner::FastPairDiscoverableScanner(
+    FastPairScanner& scanner, DiscoverableScannerCallback found_callback,
+    DiscoverableScannerCallback lost_callback, SingleThreadExecutor* executor,
     FastPairDeviceRepository* device_repository)
     : scanner_(scanner),
       found_callback_(std::move(found_callback)),
@@ -100,7 +100,11 @@ FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
   scanner_.AddObserver(this);
 }
 
-void FastPairDiscoverableScannerImpl::OnDeviceFound(
+FastPairDiscoverableScanner::~FastPairDiscoverableScanner() {
+  scanner_.RemoveObserver(this);
+}
+
+void FastPairDiscoverableScanner::OnDeviceFound(
     const BlePeripheral& peripheral) {
   std::string fast_pair_service_data =
       peripheral.GetAdvertisementBytes(kServiceId).string_data();
@@ -131,7 +135,7 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
           });
 }
 
-void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
+void FastPairDiscoverableScanner::OnModelIdRetrieved(
     const std::string& address,
     const std::optional<absl::string_view> model_id) {
   if (!model_id.has_value()) {
@@ -152,12 +156,11 @@ void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
   NEARBY_LOGS(INFO) << __func__ << ": Attempting to get device metadata.";
   FastPairRepository::Get()->GetDeviceMetadata(
       model_id.value(),
-      absl::bind_front(
-          &FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved, this,
-          address, std::string(model_id.value())));
+      absl::bind_front(&FastPairDiscoverableScanner::OnDeviceMetadataRetrieved,
+                       this, address, std::string(model_id.value())));
 }
 
-void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
+void FastPairDiscoverableScanner::OnDeviceMetadataRetrieved(
     const std::string address, const std::string model_id,
     std::optional<DeviceMetadata> device_metadata) {
   if (!device_metadata.has_value()) {
@@ -196,15 +199,14 @@ void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
           });
 }
 
-void FastPairDiscoverableScannerImpl::NotifyDeviceFound(
-    FastPairDevice& device) {
+void FastPairDiscoverableScanner::NotifyDeviceFound(FastPairDevice& device) {
   NEARBY_LOGS(VERBOSE) << "Notify Device found:"
                        << "BluetoothAddress = " << device.GetBleAddress()
                        << ", Model id = " << device.GetModelId();
   found_callback_(device);
 }
 
-void FastPairDiscoverableScannerImpl::OnDeviceLost(
+void FastPairDiscoverableScanner::OnDeviceLost(
     const BlePeripheral& peripheral) {
   NEARBY_LOGS(INFO) << __func__ << ": Running lost callback";
   executor_->Execute("device-lost",
