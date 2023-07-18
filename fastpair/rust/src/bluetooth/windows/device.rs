@@ -23,7 +23,7 @@ use windows::Devices::Bluetooth::{
     BluetoothLEDevice,
 };
 
-use crate::bluetooth::common::Device;
+use crate::bluetooth::common::{BluetoothError, Device};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {
@@ -35,7 +35,7 @@ impl BleDevice {
     pub(super) async fn from_addr(
         addr: u64,
         kind: BluetoothAddressType,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> Result<Self, BluetoothError> {
         let inner =
             BluetoothLEDevice::FromBluetoothAddressWithBluetoothAddressTypeAsync(addr, kind)?
                 .await?;
@@ -46,7 +46,7 @@ impl BleDevice {
 
 #[async_trait]
 impl Device for BleDevice {
-    fn name(&self) -> Result<String, anyhow::Error> {
+    fn name(&self) -> Result<String, BluetoothError> {
         Ok(self.inner.Name()?.to_string_lossy())
     }
 }

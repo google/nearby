@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::error::Error;
+
 use futures::executor;
 
 mod bluetooth;
 
 use bluetooth::{Adapter, Device};
 
-fn main() -> Result<(), anyhow::Error> {
+fn main() -> Result<(), Box<dyn Error>> {
     let run = async {
         let mut adapter = bluetooth::default_adapter().await?;
         adapter.start_scan_devices()?;

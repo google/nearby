@@ -15,7 +15,7 @@
 use async_trait::async_trait;
 
 use super::BleDevice;
-use crate::bluetooth::common::Adapter;
+use crate::bluetooth::common::{Adapter, BluetoothError};
 
 /// Concrete type implementing `Adapter`, used for unsupported devices.
 /// Every method should panic.
@@ -25,19 +25,19 @@ pub struct BleAdapter;
 impl Adapter for BleAdapter {
     type Device = BleDevice;
 
-    async fn default() -> Result<Self, anyhow::Error> {
+    async fn default() -> Result<Self, BluetoothError> {
         panic!("Unsupported target platform.");
     }
 
-    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+    fn start_scan_devices(&mut self) -> Result<(), BluetoothError> {
         panic!("Unsupported target platform.");
     }
 
-    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+    fn stop_scan_devices(&mut self) -> Result<(), BluetoothError> {
         panic!("Unsupported target platform.");
     }
 
-    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error> {
+    async fn next_device(&mut self) -> Result<Self::Device, BluetoothError> {
         panic!("Unsupported target platform.");
     }
 }

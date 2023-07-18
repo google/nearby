@@ -18,7 +18,7 @@
 
 pub mod common;
 
-pub use common::{Adapter, Device};
+pub use common::{Adapter, BluetoothError, Device};
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
@@ -30,6 +30,6 @@ cfg_if::cfg_if! {
     }
 }
 
-pub async fn default_adapter() -> Result<impl Adapter, anyhow::Error> {
+pub async fn default_adapter() -> Result<impl Adapter, BluetoothError> {
     BleAdapter::default().await
 }

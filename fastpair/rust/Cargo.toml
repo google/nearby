@@ -20,11 +20,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
 futures = { version = "0.3", features = ["executor"] }
 tracing = "0.1.37"
 cfg-if = "1.0.0"
 async-trait = "0.1"
+thiserror = "1.0.43"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.48", features = [

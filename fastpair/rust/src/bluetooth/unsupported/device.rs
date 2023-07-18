@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bluetooth::common::Device;
+use crate::bluetooth::common::{BluetoothError, Device};
 
 /// Concrete type implementing `Device`, used for unsupported devices.
 /// Every method should panic.
 pub struct BleDevice;
 
 impl Device for BleDevice {
-    fn name(&self) -> Result<String, anyhow::Error> {
+    fn name(&self) -> Result<String, BluetoothError> {
         panic!("Unsupported target platform.")
     }
 }

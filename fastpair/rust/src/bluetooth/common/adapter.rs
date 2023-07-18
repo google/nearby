@@ -14,7 +14,7 @@
 
 use async_trait::async_trait;
 
-use super::Device;
+use super::{BluetoothError, Device};
 
 /// Concrete types implementing this trait are Bluetooth Central devices.
 /// They provide methods for retrieving nearby connections and device info.
@@ -23,14 +23,14 @@ pub trait Adapter: Sized {
     type Device: Device;
 
     /// Retrieve the system-default Bluetooth adapter.
-    async fn default() -> Result<Self, anyhow::Error>;
+    async fn default() -> Result<Self, BluetoothError>;
 
     /// Begin scanning for nearby devices.
-    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error>;
+    fn start_scan_devices(&mut self) -> Result<(), BluetoothError>;
 
     /// Stop scanning for nearby devices.
-    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error>;
+    fn stop_scan_devices(&mut self) -> Result<(), BluetoothError>;
 
     /// Poll next discovered device.
-    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error>;
+    async fn next_device(&mut self) -> Result<Self::Device, BluetoothError>;
 }

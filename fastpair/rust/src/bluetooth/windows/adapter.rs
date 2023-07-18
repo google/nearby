@@ -55,7 +55,7 @@ use windows::{
 };
 
 use super::BleDevice;
-use crate::bluetooth::common::Adapter;
+use crate::bluetooth::common::{Adapter, BluetoothError};
 
 /// Concrete type implementing `Adapter`, used for Windows BLE.
 pub struct BleAdapter {
@@ -71,18 +71,18 @@ pub struct BleAdapter {
 impl Adapter for BleAdapter {
     type Device = BleDevice;
 
-    async fn default() -> Result<Self, anyhow::Error> {
+    async fn default() -> Result<Self, BluetoothError> {
         let inner = BluetoothAdapter::GetDefaultAsync()?.await?;
 
         if !inner.IsLowEnergySupported()? {
-            return Err(anyhow::anyhow!(
-                "This device's Bluetooth Adapter doesn't support Bluetooth LE Transport type."
-            ));
+            return Err(BluetoothError::NotSupported(String::from(
+                "LE transport type",
+            )));
         }
         if !inner.IsCentralRoleSupported()? {
-            return Err(anyhow::anyhow!(
-                "This device's Bluetooth Adapter doesn't support Bluetooth LE central role."
-            ));
+            return Err(BluetoothError::NotSupported(String::from(
+                "central role",
+            )));
         }
 
         Ok(BleAdapter {
@@ -91,7 +91,7 @@ impl Adapter for BleAdapter {
         })
     }
 
-    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+    fn start_scan_devices(&mut self) -> Result<(), BluetoothError> {
         let watcher = BluetoothLEAdvertisementWatcher::new()?;
         match watcher.SetScanningMode(BluetoothLEScanningMode::Active) {
             Ok(_) => (),
@@ -194,23 +194,29 @@ impl Adapter for BleAdapter {
         Ok(())
     }
 
-    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+    fn stop_scan_devices(&mut self) -> Result<(), BluetoothError> {
         if let Some(_) = &self.device_stream {
             self.device_stream.take();
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Device scanning hasn't started."))
+            Err(BluetoothError::FailedPrecondition(String::from(
+                "device scanning hasn't started, please call `start_scan()`",
+            )))
         }
     }
 
-    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error> {
+    async fn next_device(&mut self) -> Result<Self::Device, BluetoothError> {
         if let Some(stream) = &mut self.device_stream {
             stream
                 .next()
                 .await
-                .ok_or(anyhow::anyhow!("Device returned from stream is None."))
+                .ok_or(BluetoothError::Internal(String::from(
+                    "device returned from Stream is None",
+                )))
         } else {
-            Err(anyhow::anyhow!("Device scanning hasn't started."))
+            Err(BluetoothError::FailedPrecondition(String::from(
+                "device scanning hasn't started, please call `start_scan()`",
+            )))
         }
     }
 }

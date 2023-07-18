@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Concrete types implementing this trait represent Bluetooth Peripheral devices.
-/// They provide methods for retrieving device info and running device actions,
-/// such as pairing.
-use super::BluetoothError;
+use crate::bluetooth::common::BluetoothError;
 
-pub trait Device {
-    /// Retrieve the name advertised by this device.
-    fn name(&self) -> Result<String, BluetoothError>;
+impl From<windows::core::Error> for BluetoothError {
+    fn from(err: windows::core::Error) -> Self {
+        BluetoothError::System(err.to_string())
+    }
 }
