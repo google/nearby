@@ -88,6 +88,8 @@ class Packet {
     kControlConnectionConfirm = 1,
     kControlError = 2,
   };
+  // For logging purposes.
+  static std::string ControlPacketTypeToString(ControlPacketType type);
 
   // NOTE: The below Packet builders will take ownership of the bytes passed
   // into them.

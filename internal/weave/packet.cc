@@ -162,5 +162,16 @@ std::string Packet::ToString() {
                          bytes_.front(), bytes_.size() - 1);
 }
 
+std::string Packet::ControlPacketTypeToString(ControlPacketType type) {
+  switch (type) {
+    case ControlPacketType::kControlConnectionRequest:
+      return "[ConnectionRequest]";
+    case ControlPacketType::kControlConnectionConfirm:
+      return "[ConnectionConfirm]";
+    case ControlPacketType::kControlError:
+      return "[Error]";
+  }
+}
+
 }  // namespace weave
 }  // namespace nearby

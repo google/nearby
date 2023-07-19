@@ -552,6 +552,7 @@ let package = Package(
         "internal/weave/packet_sequence_number_generator_test.cc",
         "internal/weave/packetizer_test.cc",
         "internal/weave/sockets/client_socket_test.cc",
+        "internal/weave/sockets/server_socket_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",
