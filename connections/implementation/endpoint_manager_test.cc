@@ -227,7 +227,7 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
 
-  auto read_data = parser::ForConnectionRequest(connection_info);
+  auto read_data = parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
   EXPECT_CALL(*endpoint_channel, Read(_))
@@ -393,7 +393,8 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
       std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
-  ByteArray decrypted_data = parser::ForConnectionRequest(connection_info);
+  ByteArray decrypted_data =
+      parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
   EXPECT_CALL(*endpoint_channel, Read(_))

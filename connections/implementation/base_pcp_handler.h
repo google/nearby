@@ -462,6 +462,7 @@ class BasePcpHandler : public PcpHandler,
                                    EndpointChannel* endpoint_channel);
 
   static Exception WriteConnectionRequestFrame(
+      NearbyDevice::Type device_type, absl::string_view device_proto_bytes,
       const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel);
   static constexpr absl::Duration kConnectionRequestReadTimeout =
       absl::Seconds(2);

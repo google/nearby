@@ -35,7 +35,6 @@
 #include "connections/medium_selector.h"
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
-#include "connections/v3/connections_device.h"
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
@@ -59,8 +58,10 @@ constexpr int kEndpointCancelAlarmTimeout = 10;
 
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
+using ::location::nearby::connections::ConnectionsDevice;
 using ::location::nearby::connections::MediumMetadata;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PresenceDevice;
 using ::location::nearby::connections::V1Frame;
 using ::securegcm::UKey2Handshake;
 
@@ -696,8 +697,10 @@ Status BasePcpHandler::RequestConnection(
         ConnectionInfo connection_info =
             FillConnectionInfo(client, info, connection_options);
 
-        Exception write_exception =
-            WriteConnectionRequestFrame(connection_info, channel.get());
+        const NearbyDevice* local_device = client->GetLocalDevice();
+        Exception write_exception = WriteConnectionRequestFrame(
+            local_device->GetType(), local_device->ToProtoBytes(),
+            connection_info, channel.get());
 
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
@@ -958,8 +961,30 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 }
 
 Exception BasePcpHandler::WriteConnectionRequestFrame(
+    NearbyDevice::Type device_type, absl::string_view device_proto_bytes,
     const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel) {
-  return endpoint_channel->Write(parser::ForConnectionRequest(conection_info));
+  ConnectionsDevice connections_device_frame;
+  PresenceDevice presence_device_frame;
+  switch (device_type) {
+    case NearbyDevice::kConnectionsDevice:
+      if (connections_device_frame.ParseFromString(
+              std::string(device_proto_bytes))) {  // NOLINT
+        return endpoint_channel->Write(parser::ForConnectionRequestConnections(
+            connections_device_frame, conection_info));
+      }
+      return {Exception::kInvalidProtocolBuffer};
+    case NearbyDevice::kPresenceDevice:
+      if (presence_device_frame.ParseFromString(
+              std::string(device_proto_bytes))) {  // NOLINT
+        return endpoint_channel->Write(parser::ForConnectionRequestPresence(
+            presence_device_frame, conection_info));
+      }
+      return {Exception::kInvalidProtocolBuffer};
+    default:
+      // Legacy.
+      return endpoint_channel->Write(
+          parser::ForConnectionRequestConnections({}, conection_info));
+  }
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(

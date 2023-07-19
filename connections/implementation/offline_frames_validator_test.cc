@@ -76,7 +76,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
        ValidatesAsOkWithValidConnectionRequestFrame) {
   OfflineFrame offline_frame;
 
-  ByteArray bytes = ForConnectionRequest(connection_info_);
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -88,7 +88,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
        ValidatesAsFailWithNullConnectionRequestFrame) {
   OfflineFrame offline_frame;
 
-  ByteArray bytes = ForConnectionRequest(connection_info_);
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -104,7 +104,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
   OfflineFrame offline_frame;
 
   connection_info_.local_endpoint_id = "";
-  ByteArray bytes = ForConnectionRequest(connection_info_);
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -117,7 +117,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
   OfflineFrame offline_frame;
 
   connection_info_.local_endpoint_info = ByteArray{""};
-  ByteArray bytes = ForConnectionRequest(connection_info_);
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -130,7 +130,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
   OfflineFrame offline_frame;
 
   connection_info_.bssid = "";
-  ByteArray bytes = ForConnectionRequest(connection_info_);
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -143,7 +143,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
   OfflineFrame offline_frame;
 
   connection_info_.supported_mediums = {};
-  ByteArray bytes = ForConnectionRequest(connection_info_);
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
