@@ -35,6 +35,18 @@ TEST(FakeClock, TestFastForward) {
   EXPECT_EQ(clock.GetObserversCount(), 0);
 }
 
+TEST(FakeClock, TestReset) {
+  FakeClock clock;
+  int count = 0;
+  auto observer = [&count]() { count++; };
+  clock.AddObserver("test", observer);
+  clock.FastForward(absl::Nanoseconds(1500));
+  EXPECT_EQ(count, 1);
+  EXPECT_EQ(clock.GetObserversCount(), 1);
+  clock.Reset();
+  EXPECT_EQ(clock.GetObserversCount(), 0);
+}
+
 TEST(FakeClock, TestObserver) {
   FakeClock clock;
   int count = 0;

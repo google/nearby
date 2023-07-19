@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "internal/platform/mutex.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
 
@@ -35,16 +36,25 @@ class FakeTimer : public Timer {
   bool FireNow() override;
 
  private:
-  void ClockUpdated();
+  struct TimerData {
+    std::string id;
+    int delay;
+    int period;
+    bool is_delay_called = false;
+    absl::Time create_time;
+    absl::Time last_time;
+    std::function<void()> callback;
+  };
 
-  std::string id_;
-  int delay_ = 0;
-  int period_ = 0;
-  int fired_count_ = 0;
-  absl::Time start_time_;
-  bool is_started_ = false;
-  absl::AnyInvocable<void()> callback_;
+  void ClockUpdated();
+  bool InternalStart(int delay, int period,
+                     absl::AnyInvocable<void()> callback);
+  bool InternalStop();
+
+  mutable RecursiveMutex mutex_;
   FakeClock* clock_ = nullptr;
+  TimerData timer_data_;
+  absl::AnyInvocable<void()> callback_ = nullptr;
 };
 
 }  // namespace nearby

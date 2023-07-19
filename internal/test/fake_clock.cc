@@ -76,4 +76,9 @@ int FakeClock::GetObserversCount() {
   return observers_.size();
 }
 
+void FakeClock::Reset() {
+  absl::MutexLock lock(&mutex_);
+  return observers_.clear();
+}
+
 }  // namespace nearby

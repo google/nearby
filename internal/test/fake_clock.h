@@ -45,6 +45,8 @@ class FakeClock : public Clock {
 
   int GetObserversCount() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void Reset() ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   mutable absl::Mutex mutex_;
   absl::Time now_ ABSL_GUARDED_BY(mutex_);

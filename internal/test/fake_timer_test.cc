@@ -14,10 +14,11 @@
 
 #include "internal/test/fake_timer.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/logging.h"
+#include "internal/test/fake_task_runner.h"
 
 namespace nearby {
 namespace {
@@ -105,10 +106,10 @@ TEST(FakeTimer, TestTimerDestructor) {
   FakeClock clock;
   {
     FakeTimer timer(&clock);
-    EXPECT_EQ(clock.GetObserversCount(), 1);
     int count = 0;
     auto callback = [&count]() { ++count; };
     timer.Start(100, 0, callback);
+    EXPECT_EQ(clock.GetObserversCount(), 1);
     EXPECT_TRUE(timer.IsRunning());
     EXPECT_EQ(count, 0);
     EXPECT_TRUE(timer.Stop());
@@ -158,6 +159,26 @@ TEST(FakeTimer, StartTimerInTimerProc) {
   EXPECT_EQ(count, 1);
   clock.FastForward(absl::Milliseconds(1000));
   EXPECT_EQ(count, 2);
+}
+
+TEST(FakeTimer, WaitForRunningTask) {
+  bool finish = false;
+  FakeClock clock;
+  FakeTimer timer1(&clock);
+  FakeTaskRunner task_runner{&clock, 1};
+
+  timer1.Start(50, 0, [&]() {
+    absl::SleepFor(absl::Milliseconds(2000));
+    finish = true;
+  });
+
+  task_runner.PostTask([&]() {
+    absl::SleepFor(absl::Milliseconds(10));
+    timer1.Stop();
+    EXPECT_TRUE(finish);
+  });
+
+  clock.FastForward(absl::Milliseconds(50));
 }
 
 }  // namespace
