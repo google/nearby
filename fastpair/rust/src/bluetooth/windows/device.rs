@@ -13,41 +13,161 @@
 // limitations under the License.
 
 use async_trait::async_trait;
-use windows::Devices::Bluetooth::{
-    // Enum describing the type of address (public, random, unspecified).
-    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothaddresstype?view=winrt-22621
-    BluetoothAddressType,
-
-    // Struct for interacting with and pairing to a discovered BLE device.
-    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothledevice?view=winrt-22621
-    BluetoothLEDevice,
+use tracing::{info, warn};
+use windows::{
+    Devices::{
+        Bluetooth::{
+            // Tuple struct describing the type of address (public, random, unspecified).
+            // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothaddresstype?view=winrt-22621
+            BluetoothAddressType,
+            
+            // Struct for interacting with a discovered BT Classic device.
+            // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-22621
+            BluetoothDevice,
+            
+            // Struct for interacting with a discovered BLE device.
+            // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothledevice?view=winrt-22621
+            BluetoothLEDevice,
+        },
+        Enumeration::{
+            // Struct for custom pairing with a device.
+            // https://learn.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceinformationcustompairing?view=winrt-22621
+            DeviceInformationCustomPairing,
+            
+            // Tuple struct to indicate the kinds of pairing supported by the application.
+            // https://learn.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicepairingkinds?view=winrt-22621
+            DevicePairingKinds,
+            
+            // Struct for retrieving data about a PairingRequested event.
+            // https://learn.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicepairingrequestedeventargs?view=winrt-22621
+            DevicePairingRequestedEventArgs,
+        },
+    },
+    // Wraps a closure for handling events associated with a struct
+    // (e.g. PairingRequested event in `DeviceInformationCustomPairing`).
+    // https://learn.microsoft.com/en-us/uwp/api/windows.foundation.typedeventhandler-2?view=winrt-22621
+    Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::common::{BleAddress, BluetoothError, Device};
+use crate::bluetooth::common::{Address, BleAddress, ClassicAddress, Device, BluetoothError, PairingResult};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {
     inner: BluetoothLEDevice,
+    addr: BleAddress,
+}
+
+/// Concrete type implementing `Device`, used for Windows Bluetooth Classic.
+pub struct ClassicDevice {
+    inner: BluetoothDevice,
+    addr: ClassicAddress,
 }
 
 impl BleDevice {
+    /// `BleDevice` constructor.
     pub async fn new(addr: BleAddress) -> Result<Self, BluetoothError> {
         let kind = BluetoothAddressType::from(addr.get_kind());
-        let addr = u64::from(addr);
+        let raw_addr = u64::from(addr);
 
         let inner = BluetoothLEDevice::FromBluetoothAddressWithBluetoothAddressTypeAsync(
-            addr, kind,
+            raw_addr, kind,
         )?
         .await?;
 
-        Ok(BleDevice { inner })
+        Ok(BleDevice { inner, addr })
     }
 }
 
 #[async_trait]
 impl Device for BleDevice {
     fn name(&self) -> Result<String, BluetoothError> {
+        Ok(self.inner.Name()?.to_string())
+    }
+
+    fn address(&self) -> Address {
+        Address::Ble(self.addr)
+    }
+
+    async fn pair(&self) -> Result<PairingResult, BluetoothError> {
+        // BLE Audio isn't supported on Windows natively, so devices can pair
+        // but don't playback. Might possibly work with UWP. Since the Classic
+        // and BLE APIs are very similar, it might be possible to copy-paste
+        // `ClassicDevice::pair` directly.
+        unimplemented!("BLE Pairing is currently unsupported.")
+    }
+}
+
+
+impl ClassicDevice {
+    /// `ClassicDevice` constructor.
+    pub async fn new(addr: ClassicAddress) -> Result<Self, BluetoothError> {
+        let raw_addr = u64::from(addr);
+
+        let inner = BluetoothDevice::FromBluetoothAddressAsync(
+            raw_addr,
+        )?
+        .await?;
+
+        Ok(ClassicDevice { inner, addr })
+    }
+}
+
+#[async_trait]
+impl Device for ClassicDevice {
+    fn name(&self) -> Result<String, BluetoothError> {
         Ok(self.inner.Name()?.to_string_lossy())
+    }
+
+    fn address(&self) -> Address {
+        Address::Classic(self.addr)
+    }
+
+    async fn pair(&self) -> Result<PairingResult, BluetoothError> {
+        let pair_info = self.inner.DeviceInformation()?.Pairing()?;
+        if pair_info.IsPaired()? {
+            info!("Device already paired");
+            Ok(PairingResult::AlreadyPaired)
+        } else if !pair_info.CanPair()? {
+            info!("Device can't pair");
+            Err(BluetoothError::PairingFailed(String::from("device can't pair")))
+        } else {  
+            let custom = pair_info.Custom()?;
+            custom.PairingRequested(&TypedEventHandler::new(
+                |_custom: &Option<DeviceInformationCustomPairing>, 
+                event_args: &Option<DevicePairingRequestedEventArgs>,
+                |  {
+                    if let Some(event_args) = event_args {
+                        match event_args.PairingKind()? {
+                            DevicePairingKinds::ConfirmOnly => {
+                                event_args.Accept()                            
+                            }
+                            _ => {
+                                warn!("Unsupported pairing kind {:?}", event_args.PairingKind());
+                                Ok(())
+                            }
+                        }
+                    } else {
+                        warn!("Empty pairing event arguments");
+                        Ok(())
+                    }
+
+                },
+            ))?;
+            let res = custom
+                .PairAsync(
+                    DevicePairingKinds::ConfirmOnly
+                        | DevicePairingKinds::ProvidePin
+                        | DevicePairingKinds::ConfirmPinMatch
+                        | DevicePairingKinds::DisplayPin,
+                )?
+                .await?;
+            let status = PairingResult::from(res.Status()?);
+
+            match status {
+                PairingResult::Failure(msg) => Err(BluetoothError::PairingFailed(msg)),
+                _ => Ok(status),
+            }
+        }
     }
 }
 

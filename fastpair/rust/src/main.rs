@@ -18,18 +18,48 @@ use futures::executor;
 
 mod bluetooth;
 
-use bluetooth::{Adapter, Device};
+use bluetooth::{Adapter, Address, ClassicAddress, Device};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let run = async {
         let mut adapter = bluetooth::default_adapter().await?;
         adapter.start_scan_devices()?;
 
-        while let Ok(device) = adapter.next_device().await {
-            println!("found {}", device.name()?)
-        }
+        while let Ok(ble_device) = adapter.next_device().await {
+            let name = ble_device.name()?;
 
-        unreachable!("Done scanning");
+            if name.contains("LE_WF-1000XM3") {
+                println!("FOUND {} ", name);
+
+                let addr: Address = ble_device.address();
+
+                // Dynamic dispatch is necessary here because `BleDevice` and
+                // `ClassicDevice` share the `Device` trait (and thus must have
+                // the same return type for `address()` method). This can be
+                // changed if `Device` trait should exclusively define
+                // cross-platform behavior.
+                let classic_addr = match addr {
+                    Address::Ble(ble) => ClassicAddress::try_from(ble),
+                    Address::Classic(_) => unreachable!(
+                        "Address should come from BLE Device, therefore \
+                        shouldn't be Classic."
+                    ),
+                }?;
+
+                let classic_device =
+                    bluetooth::new_classic_device(classic_addr).await?;
+
+                match classic_device.pair().await {
+                    Ok(_) => {
+                        println!("Pairing success!");
+                    }
+                    Err(err) => println!("Error {}", err),
+                }
+                break;
+            }
+        }
+        println!("Done scanning");
+        Ok(())
     };
 
     executor::block_on(run)

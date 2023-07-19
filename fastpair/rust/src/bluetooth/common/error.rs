@@ -18,10 +18,12 @@ use thiserror::Error;
 #[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum BluetoothError {
+    /// Reported when Bluetooth device pairing fails.
+    #[error("pairing error: {0}")]
+    PairingFailed(String),
     /// Indicates that the operation was rejected because the system is not in
     /// a state required for the operation's execution.
     /// E.g. The user calls `stop_scan()` or polls the advertisement stream
-    /// before calling `start_scan()`.
     #[error("failed precondition: {0}")]
     FailedPrecondition(String),
     /// Reported when the user calls an operation that is supported by their
@@ -39,4 +41,16 @@ pub enum BluetoothError {
     /// return this error instead.
     #[error("internal error: {0}")]
     Internal(String),
+}
+
+/// Abstraction around platform-specific pairing status enums.
+/// `PairingResult::Failure` should eventually be converted to
+/// `BluetoothError::PairingFailed`.
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum PairingResult {
+    Success,
+    AlreadyPaired,
+    AlreadyInProgress,
+    Failure(String),
 }

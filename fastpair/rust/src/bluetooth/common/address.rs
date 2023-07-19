@@ -93,7 +93,7 @@ impl From<BleAddress> for u64 {
 impl From<ClassicAddress> for u64 {
     fn from(addr: ClassicAddress) -> Self {
         let mut bytes = [0u8; 8];
-        bytes.copy_from_slice(&addr.0);
+        bytes[..6].copy_from_slice(&addr.0);
 
         u64::from_le_bytes(bytes)
     }
