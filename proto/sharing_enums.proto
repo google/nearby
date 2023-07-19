@@ -444,7 +444,7 @@ enum ScanType {
 enum ParsingFailedType {
   FAILED_UNKNOWN_TYPE = 0;
   FAILED_PARSE_ADVERTISEMENT = 1;
-  FAILED_COVERT_SHARE_TARGET = 2;
+  FAILED_CONVERT_SHARE_TARGET = 2;
 }
 
 // The Nearby Sharing advertising mode.
