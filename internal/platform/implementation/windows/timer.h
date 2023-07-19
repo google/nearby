@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,10 @@
 #include <memory>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/synchronization/mutex.h"
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/mutex.h"
 
 namespace nearby {
 namespace windows {
@@ -41,10 +42,11 @@ class Timer : public api::Timer {
  private:
   static void CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired);
 
-  mutable absl::Mutex mutex_;
+  mutable RecursiveMutex mutex_;
   int delay_ ABSL_GUARDED_BY(mutex_);
   int interval_ ABSL_GUARDED_BY(mutex_);
   absl::AnyInvocable<void()> callback_;
+  absl::AnyInvocable<void()> timer_callback_ = nullptr;
   HANDLE handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
   HANDLE timer_queue_handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
   std::unique_ptr<SubmittableExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
