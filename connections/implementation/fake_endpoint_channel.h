@@ -77,6 +77,10 @@ class FakeEndpointChannel : public EndpointChannel {
   int GetMaxTransmitPacketSize() const override { return 512; }
   void EnableEncryption(std::shared_ptr<EncryptionContext> context) override {}
   void DisableEncryption() override {}
+  bool IsEncrypted() override { return false; }
+  ExceptionOr<ByteArray> TryDecrypt(const ByteArray& data) override {
+    return Exception::kFailed;
+  }
   bool IsPaused() const override { return is_paused_; }
   void Pause() override { is_paused_ = true; }
   void Resume() override { is_paused_ = false; }

@@ -59,6 +59,9 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(void, EnableEncryption, (std::shared_ptr<EncryptionContext>),
               (override));
   MOCK_METHOD(void, DisableEncryption, (), (override));
+  MOCK_METHOD(bool, IsEncrypted, (), (override));
+  MOCK_METHOD(ExceptionOr<ByteArray>, TryDecrypt, (const ByteArray& data),
+              (override));
   MOCK_METHOD(bool, IsPaused, (), (const override));
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));

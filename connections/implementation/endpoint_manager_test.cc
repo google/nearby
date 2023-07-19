@@ -47,6 +47,7 @@ using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
 using ::testing::_;
+using ::testing::Eq;
 using ::testing::MockFunction;
 using ::testing::Return;
 using ::testing::StrictMock;
@@ -77,6 +78,9 @@ class MockEndpointChannel : public EndpointChannel {
               (std::shared_ptr<EncryptionContext> context), (override));
   MOCK_METHOD(void, DisableEncryption, (), (override));
   MOCK_METHOD(bool, IsPaused, (), (const override));
+  MOCK_METHOD(bool, IsEncrypted, (), (override));
+  MOCK_METHOD(ExceptionOr<ByteArray>, TryDecrypt, (const ByteArray& data),
+              (override));
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
   MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
@@ -299,7 +303,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
   NEARBY_LOG(INFO, "Will call destructors now");
 }
 
-TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
+TEST_F(EndpointManagerTest, SingleReadOnReadError) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
   EXPECT_CALL(*endpoint_channel, Read(_))
       .WillOnce(
@@ -307,6 +311,102 @@ TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
   EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
   EXPECT_CALL(*endpoint_channel, Close(_)).Times(1);
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest, ReadInvalidUnencryptedPayloadIgnoresFrame) {
+  // 1. EndpointChannel is unencrypted.
+  // 2. EndpointManager receives an invalid unencrypted frame.
+  // 3. EndpointManager calls EndpointChannel::TryDecrypt(), which keeps failing
+  // because the channel is not encrypted.
+  // 4. Invalid frame is ignored. No bad side effects.
+  CountDownLatch latch(1);
+  const ByteArray payload("not a valid frame");
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, Read(_))
+      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kFailed)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  EXPECT_CALL(*endpoint_channel, Close(_))
+      .WillOnce([&](DisconnectionReason reason) { latch.CountDown(); });
+  RegisterEndpoint(std::move(endpoint_channel), false);
+  latch.Await();
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+}
+
+TEST_F(EndpointManagerTest, ReadInvalidEncryptedPayloadIgnoresFrame) {
+  // 1. EndpointChannel is unencrypted.
+  // 2. EndpointManager receives an invalid encrypted frame.
+  // 3. EndpointManager calls EndpointChannel::TryDecrypt(), decryption fails
+  // too.
+  // 4. Invalid frame is ignored. No bad side effects.
+  const ByteArray payload("not a valid frame");
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, Read(_))
+      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
+      .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kExecution)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest, ReadInvalidPayloadFromEncryptedChannel) {
+  // 1. EndpointChannel is encrypted.
+  // 2. EndpointManager receives an invalid encrypted frame.
+  // 3. No calls to TryDecrypt.
+  const ByteArray payload("not a valid frame");
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, Read(_))
+      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, IsEncrypted()).WillRepeatedly(Return(true));
+  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload))).Times(0);
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest, TryDecrypt) {
+  // 1. EndpointChannel is unencrypted.
+  // 2. EndpointManager receives a valid encrypted frame alas it's interpreted
+  // as unencrypted at first.
+  // 3. EndpointManager calls EndpointChannel::TryDecrypt(), decryption works.
+  // 4. Frame is processed.
+  const ByteArray payload("valid encrypted frame");
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  auto connect_request = std::make_unique<MockFrameProcessor>();
+  ByteArray endpoint_info{"endpoint_name"};
+  ConnectionInfo connection_info{
+      "endpoint_id",
+      endpoint_info,
+      1234 /*nonce*/,
+      false /*supports_5_ghz*/,
+      "" /*bssid*/,
+      2412 /*ap_frequency*/,
+      "8xqT" /*ip_address in 4 bytes format*/,
+      std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
+      0 /*keep_alive_interval_millis*/,
+      0 /*keep_alive_timeout_millis*/};
+  ByteArray decrypted_data = parser::ForConnectionRequest(connection_info);
+  EXPECT_CALL(*connect_request, OnIncomingFrame);
+  EXPECT_CALL(*connect_request, OnEndpointDisconnect);
+  EXPECT_CALL(*endpoint_channel, Read(_))
+      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
+      .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
+      .WillOnce(Return(ExceptionOr<ByteArray>(decrypted_data)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
+                             connect_request.get());
+  processors_.emplace_back(std::move(connect_request));
   RegisterEndpoint(std::move(endpoint_channel));
 }
 

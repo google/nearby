@@ -49,7 +49,7 @@ ByteArray IntToBytes(std::int32_t value) {
   int_bytes[0] = static_cast<char>((value >> 24) & 0x0FF);
   int_bytes[1] = static_cast<char>((value >> 16) & 0x0FF);
   int_bytes[2] = static_cast<char>((value >> 8) & 0x0FF);
-  int_bytes[3] = static_cast<char>((value)&0x0FF);
+  int_bytes[3] = static_cast<char>((value) & 0x0FF);
 
   return ByteArray(int_bytes, sizeof(int_bytes));
 }
@@ -348,6 +348,24 @@ void BaseEndpointChannel::DisableEncryption() {
   crypto_context_.reset();
 }
 
+bool BaseEndpointChannel::IsEncrypted() {
+  MutexLock crypto_lock(&crypto_mutex_);
+  return IsEncryptionEnabledLocked();
+}
+
+ExceptionOr<ByteArray> BaseEndpointChannel::TryDecrypt(const ByteArray& data) {
+  MutexLock crypto_lock(&crypto_mutex_);
+  if (!IsEncryptionEnabledLocked()) {
+    return Exception::kFailed;
+  }
+  std::unique_ptr<std::string> decrypted_data =
+      crypto_context_->DecodeMessageFromPeer(data.string_data());
+  if (decrypted_data) {
+    return ExceptionOr<ByteArray>(ByteArray(std::move(*decrypted_data)));
+  }
+  return Exception::kExecution;
+}
+
 bool BaseEndpointChannel::IsPaused() const {
   MutexLock lock(&is_paused_mutex_);
   return is_paused_;
@@ -413,6 +431,13 @@ void BaseEndpointChannel::UnblockPausedWriter() {
   // https://docs.oracle.com/javase/tutorial/essential/concurrency/guardmeth.html
   is_paused_ = false;
   is_paused_cond_.Notify();
+}
+
+std::unique_ptr<std::string> BaseEndpointChannel::EncodeMessageForTests(
+    absl::string_view data) {
+  MutexLock lock(&crypto_mutex_);
+  DCHECK(IsEncryptionEnabledLocked());
+  return crypto_context_->EncodeMessageToPeer(std::string(data));
 }
 
 }  // namespace connections

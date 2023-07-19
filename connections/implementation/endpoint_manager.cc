@@ -35,13 +35,21 @@
 namespace nearby {
 namespace connections {
 
+namespace {
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::V1Frame;
 using ::nearby::analytics::PacketMetaData;
-using ::nearby::connections::PayloadDirection;
 
-constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
-constexpr absl::Time EndpointManager::kInvalidTimestamp;
+// We set this to 11s to provide sufficient time for an in-progress WebRTC
+// bandwidth upgrade to resolve. This is chosen to be slightly longer than the
+// 10s timeout in WebRtc::AttemptToConnect().
+constexpr absl::Duration kProcessEndpointDisconnectionTimeout =
+    absl::Seconds(11);
+constexpr absl::Time kInvalidTimestamp = absl::InfinitePast();
+// The maximum time we will wait for the encryption setup during negotiating a
+// connection.
+constexpr absl::Duration kDecryptRetryTimeout = absl::Seconds(3);
+}  // namespace
 
 class EndpointManager::LockedFrameProcessor {
  public:
@@ -168,9 +176,33 @@ void EndpointManager::EndpointChannelLoopRunnable(
                     << "; endpoint_id=" << endpoint_id;
 }
 
+ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
+    const ByteArray& data, EndpointChannel* endpoint_channel) {
+  auto start_time = SystemClock::ElapsedRealtime();
+  while (true) {
+    ExceptionOr<ByteArray> decrypted = endpoint_channel->TryDecrypt(data);
+    if (decrypted.ok()) {
+      NEARBY_LOGS(VERBOSE) << "Message decrypted after "
+                           << SystemClock::ElapsedRealtime() - start_time;
+      return parser::FromBytes(decrypted.result());
+    }
+    if (decrypted.exception() == Exception::kExecution) {
+      return decrypted.exception();
+    }
+    auto elapsed = SystemClock::ElapsedRealtime() - start_time;
+    if (elapsed > kDecryptRetryTimeout) {
+      NEARBY_LOGS(WARNING) << "Can't decrypt the mesage. Timeout after "
+                           << elapsed;
+      return Exception::kTimeout;
+    }
+    SystemClock::Sleep(absl::Milliseconds(1));
+  }
+}
+
 ExceptionOr<bool> EndpointManager::HandleData(
     const std::string& endpoint_id, ClientProxy* client,
     EndpointChannel* endpoint_channel) {
+  bool try_decrypting = !endpoint_channel->IsEncrypted();
   // Read as much as we can from the healthy EndpointChannel - when it is no
   // longer in good shape (i.e. our read from it throws an Exception), our
   // super class will loop back around and try our luck in case there's been
@@ -185,6 +217,23 @@ ExceptionOr<bool> EndpointManager::HandleData(
       return ExceptionOr<bool>(bytes.exception());
     }
     ExceptionOr<OfflineFrame> wrapped_frame = parser::FromBytes(bytes.result());
+    if (!wrapped_frame.ok() && try_decrypting) {
+      // Workaround for a race condition where the remote party has sent an
+      // encrypted message but our end was still configured as unencrypted when
+      // the message was received. The workaround is to wait until the
+      // encryption set-up has completed on another thread. We run this
+      // workaround if:
+      // - the connection was unencrypted when we started reading from the
+      // channel
+      // - the received frame looks wrong (corrupted)
+      // - it's the first invalid frame.
+      try_decrypting = false;
+      ExceptionOr<OfflineFrame> decrypted =
+          TryDecryptFrame(bytes.result(), endpoint_channel);
+      if (decrypted.ok()) {
+        wrapped_frame = std::move(decrypted);
+      }
+    }
     if (!wrapped_frame.ok()) {
       if (wrapped_frame.GetException().Raised(
               Exception::kInvalidProtocolBuffer)) {

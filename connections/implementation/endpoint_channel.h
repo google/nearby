@@ -91,6 +91,14 @@ class EndpointChannel {
   // Disables encryption on the EndpointChannel.
   virtual void DisableEncryption() = 0;
 
+  // Returns true if EndpointChannel is encrypted.
+  virtual bool IsEncrypted() = 0;
+
+  // Decrypts `data` if encryption is enabled.
+  // Returns `kExecution` exception if encryption is enabled but decryption
+  // failed. Returns `kFailed` exception if encryption is not enabled.
+  virtual ExceptionOr<ByteArray> TryDecrypt(const ByteArray& data) = 0;
+
   // True if the EndpointChannel is currently pausing all writes.
   virtual bool IsPaused() const = 0;
 

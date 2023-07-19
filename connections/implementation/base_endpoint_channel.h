@@ -68,6 +68,8 @@ class BaseEndpointChannel : public EndpointChannel {
   int GetMaxTransmitPacketSize() const override;
   void EnableEncryption(std::shared_ptr<EncryptionContext> context) override;
   void DisableEncryption() override;
+  bool IsEncrypted() override;
+  ExceptionOr<ByteArray> TryDecrypt(const ByteArray& data) override;
   bool IsPaused() const ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
   void Pause() ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
   void Resume() ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
@@ -80,6 +82,8 @@ class BaseEndpointChannel : public EndpointChannel {
 
  protected:
   virtual void CloseImpl() = 0;
+  // For tests only.
+  std::unique_ptr<std::string> EncodeMessageForTests(absl::string_view data);
 
  private:
   // Used to sanity check that our frame sizes are reasonable.

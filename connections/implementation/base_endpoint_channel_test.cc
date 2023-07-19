@@ -18,7 +18,6 @@
 #include <string>
 #include <utility>
 
-#include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -28,12 +27,12 @@
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
@@ -50,6 +49,8 @@ class TestEndpointChannel : public BaseEndpointChannel {
  public:
   explicit TestEndpointChannel(InputStream* input, OutputStream* output)
       : BaseEndpointChannel("service_id", "channel", input, output) {}
+
+  using BaseEndpointChannel::EncodeMessageForTests;
 
   MOCK_METHOD(Medium, GetMedium, (), (const override));
   MOCK_METHOD(void, CloseImpl, (), (override));
@@ -178,6 +179,60 @@ TEST(BaseEndpointChannelTest, ReadWrite) {
   EXPECT_EQ(rx_message, tx_message);
 }
 
+TEST(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
+  Pipe pipe;
+  TestEndpointChannel channel(&pipe.GetInputStream(), &pipe.GetOutputStream());
+
+  ExceptionOr<ByteArray> result = channel.TryDecrypt(ByteArray("message"));
+
+  EXPECT_FALSE(channel.IsEncrypted());
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kFailed);
+}
+
+TEST(BaseEndpointChannelTest, TryDecrypt) {
+  absl::string_view kMessage = "message";
+  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
+  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
+                                &pipe_a.GetOutputStream());
+  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
+                                &pipe_b.GetOutputStream());
+  auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
+  ASSERT_NE(context_a, nullptr);
+  ASSERT_NE(context_b, nullptr);
+  channel_a.EnableEncryption(context_a);
+  channel_b.EnableEncryption(context_b);
+  std::unique_ptr<std::string> encrypted_message =
+      channel_a.EncodeMessageForTests(kMessage);
+
+  ExceptionOr<ByteArray> decrypted_message =
+      channel_b.TryDecrypt(ByteArray(*encrypted_message));
+
+  EXPECT_TRUE(channel_b.IsEncrypted());
+  EXPECT_TRUE(decrypted_message.ok());
+  EXPECT_EQ(decrypted_message.result().AsStringView(), kMessage);
+}
+
+TEST(BaseEndpointChannelTest, TryDecryptFailsWhenDecryptionFails) {
+  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
+  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
+                                &pipe_a.GetOutputStream());
+  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
+                                &pipe_b.GetOutputStream());
+  auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
+  ASSERT_NE(context_a, nullptr);
+  channel_a.EnableEncryption(context_a);
+
+  ExceptionOr<ByteArray> result =
+      channel_a.TryDecrypt(ByteArray("invalid message"));
+
+  EXPECT_TRUE(channel_a.IsEncrypted());
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kExecution);
+}
+
 TEST(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
   // Not encrypted IO; MITM scenario.
 
@@ -267,6 +322,8 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
 
   EXPECT_EQ(channel_a.GetType(), "ENCRYPTED_BLUETOOTH");
   EXPECT_EQ(channel_b.GetType(), "ENCRYPTED_BLUETOOTH");
+  EXPECT_TRUE(channel_a.IsEncrypted());
+  EXPECT_TRUE(channel_b.IsEncrypted());
 
   // Start data transfer
   ByteArray tx_message{"data message"};
