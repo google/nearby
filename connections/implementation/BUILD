@@ -126,7 +126,6 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:connection_info",
         "//internal/platform:error_code_recorder",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
         "//internal/platform/implementation:comm",
@@ -236,7 +235,6 @@ cc_test(
         "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:comm",
-        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

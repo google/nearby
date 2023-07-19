@@ -55,7 +55,6 @@ cc_library(
     ],
     deps = [
         ":types",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation:platform",
         "@com_google_absl//absl/base:core_headers",

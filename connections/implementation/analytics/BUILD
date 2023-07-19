@@ -31,7 +31,6 @@ cc_library(
         "//connections:core_types",
         "//internal/analytics:event_logger",
         "//internal/platform:error_code_recorder",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/proto/analytics:connections_log_cc_proto",
@@ -61,7 +60,6 @@ cc_test(
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:error_code_recorder",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto/analytics:connections_log_cc_proto",
