@@ -35,6 +35,7 @@
 #include "fastpair/handshake/fast_pair_handshake_lookup.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/count_down_latch.h"
@@ -427,6 +428,8 @@ TEST_F(PairerBrokerImplTest, SuccessInitialPairingWithDeviceV1) {
 }
 
 TEST_F(PairerBrokerImplTest, SuccessInitialPairingWithDevice) {
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfWriteAccountAssociationToFootprints(absl::OkStatus());
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -546,7 +549,7 @@ TEST_F(PairerBrokerImplTest, FaileToCreateHandshakeRetryThreeTimes) {
             PairFailure::kKeyBasedPairingResponseTimeout);
 }
 
-TEST_F(PairerBrokerImplTest, FaileToWriteAccountkey) {
+TEST_F(PairerBrokerImplTest, FaileToWriteAccountkeyToRemoteDevice) {
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -579,6 +582,43 @@ TEST_F(PairerBrokerImplTest, FaileToWriteAccountkey) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
   EXPECT_EQ(pairer_broker_observer.account_key_failure_,
             PairFailure::kAccountKeyCharacteristicWrite);
+}
+
+TEST_F(PairerBrokerImplTest, FaileToWriteAccountkeyToFootprints) {
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfWriteAccountAssociationToFootprints(
+      absl::InternalError("Failed to write account key to foot prints"));
+  ConfigurePairingContext();
+  SetPairingResult(std::nullopt);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
+  SetupProviderGattServer();
+  SetNotifyResponse(*key_based_characteristic_, kKeyBasedResponse);
+  SetNotifyResponse(*passkey_characteristic_, kPasskeyResponse);
+  SetDecryptedResponse();
+  SetDecryptedPasskey();
+  CreateFastPairHandshakeInstanceForDevice();
+
+  CountDownLatch device_paired_latch(1);
+  CountDownLatch account_key_writed_latch(1);
+  CountDownLatch pairing_completed_latch(1);
+  CountDownLatch pairing_failure_latch(1);
+
+  EXPECT_FALSE(device_->GetAccountKey().Ok());
+
+  pairer_broker_ = std::make_unique<PairerBrokerImpl>(*mediums_, &executor_);
+  PairerBrokerObserver pairer_broker_observer(
+      pairer_broker_.get(), &device_paired_latch, &account_key_writed_latch,
+      &pairing_completed_latch, &pairing_failure_latch);
+  pairer_broker_->PairDevice(*device_);
+
+  device_paired_latch.Await();
+  EXPECT_FALSE(pairing_completed_latch.Await(kWaitTimeout).result());
+  account_key_writed_latch.Await();
+  EXPECT_FALSE(pairing_failure_latch.Await(kWaitTimeout).result());
+  EXPECT_TRUE(device_->GetAccountKey().Ok());
+  EXPECT_EQ(pairer_broker_observer.account_key_failure_,
+            PairFailure::kWriteAccountKeyToFootprints);
 }
 
 TEST_F(PairerBrokerImplTest, FailToPairRetryThreeTimes) {

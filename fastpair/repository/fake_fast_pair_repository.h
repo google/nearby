@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
@@ -40,7 +41,8 @@ class FakeFastPairRepository : public FastPairRepository {
 
   void SetFakeMetadata(absl::string_view hex_model_id, proto::Device metadata);
   void ClearFakeMetadata(absl::string_view hex_model_id);
-
+  void SetResultOfWriteAccountAssociationToFootprints(absl::Status status);
+  void SetResultOfDeleteAssociatedDeviceByAccountKey(absl::Status status);
   void SetResultOfCheckIfAssociatedWithCurrentAccount(
       std::optional<AccountKey> account_key,
       std::optional<absl::string_view> model_id);
@@ -55,12 +57,11 @@ class FakeFastPairRepository : public FastPairRepository {
   void GetUserSavedDevices() override{};
 
   void WriteAccountAssociationToFootprints(
-      FastPairDevice& device,
-      OperationToFootprintsCallback callback) override{};
+      FastPairDevice& device, OperationToFootprintsCallback callback) override;
 
   void DeleteAssociatedDeviceByAccountKey(
       const AccountKey& account_key,
-      OperationToFootprintsCallback callback) override{};
+      OperationToFootprintsCallback callback) override;
 
   void CheckIfAssociatedWithCurrentAccount(
       AccountKeyFilter& account_key_filter,
@@ -72,6 +73,10 @@ class FakeFastPairRepository : public FastPairRepository {
   // Results of CheckIfAssociatedWithCurrentAccount
   std::optional<AccountKey> account_key_;
   std::optional<absl::string_view> model_id_;
+  // Results of WriteAccountAssociationToFootprints
+  absl::Status write_account_association_to_footprints_;
+  // Results of DeleteAssociatedDeviceByAccountKey
+  absl::Status deleted_associated_device_;
   SingleThreadExecutor executor_;
 };
 }  // namespace fastpair

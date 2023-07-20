@@ -27,6 +27,7 @@
 #include "fastpair/crypto/fast_pair_message_type.h"
 #include "fastpair/handshake/fast_pair_handshake_lookup.h"
 #include "fastpair/internal/mediums/mediums.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -302,8 +303,23 @@ void FastPairPairerImpl::OnWriteAccountKey(
     return;
   }
   device_.SetAccountKey(account_key.value());
-  // // TODO(b/281785681): Write account association to footprints
-  NotifyPairingCompleted();
+
+  // Devices in the Retroactive Pair scenario are not written to Footprints
+  // on account key write, but when the user hits 'Save' on the retroactive pair
+  // notification.
+  if (device_.GetProtocol() == Protocol::kFastPairRetroactivePairing) {
+    NotifyPairingCompleted();
+    return;
+  }
+
+  FastPairRepository::Get()->WriteAccountAssociationToFootprints(
+      device_, [&](absl::Status status) {
+        if (status.ok()) {
+          NotifyPairingCompleted();
+        } else {
+          NotifyAccountKeyFailure(PairFailure::kWriteAccountKeyToFootprints);
+        }
+      });
 }
 
 void FastPairPairerImpl::NotifyPaired() {

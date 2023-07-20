@@ -64,6 +64,7 @@ TEST(PairFailureTest, PairFailureValue) {
   EXPECT_EQ(static_cast<int>(PairFailure::kDeviceLostMidPairing), 23);
   EXPECT_EQ(static_cast<int>(PairFailure::kPairingAndConnect), 24);
   EXPECT_EQ(static_cast<int>(PairFailure::kPairingTimeout), 25);
+  EXPECT_EQ(static_cast<int>(PairFailure::kWriteAccountKeyToFootprints), 26);
 }
 }  // namespace
 }  // namespace fastpair

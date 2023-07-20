@@ -105,6 +105,9 @@ std::ostream& operator<<(std::ostream& stream, PairFailure failure) {
     case PairFailure::kPairingTimeout:
       stream << "[Potential pairing failed with timeout.]";
       break;
+    case PairFailure::kWriteAccountKeyToFootprints:
+      stream << "[Failed to write Account Key to Footprints.]";
+      break;
   }
 
   return stream;

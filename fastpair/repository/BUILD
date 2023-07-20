@@ -83,6 +83,7 @@ cc_library(
         "//fastpair/proto:fastpair_cc_proto",
         "//internal/platform:types",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
 )

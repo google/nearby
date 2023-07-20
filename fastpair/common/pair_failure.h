@@ -77,7 +77,8 @@ enum class PairFailure {
   kPairingAndConnect = 24,
   // Potential pairing timeout.
   kPairingTimeout = 25,
-  kMaxValue = kPairingTimeout,
+  kWriteAccountKeyToFootprints = 26,
+  kMaxValue = kWriteAccountKeyToFootprints,
 };
 
 std::ostream& operator<<(std::ostream& stream, PairFailure failure);

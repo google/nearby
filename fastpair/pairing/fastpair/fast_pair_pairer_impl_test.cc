@@ -27,6 +27,7 @@
 #include "gtest/gtest.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "fastpair//handshake/fast_pair_handshake_lookup.h"
@@ -44,6 +45,7 @@
 #include "fastpair/handshake/fast_pair_handshake_impl.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -373,6 +375,8 @@ class FastPairPairerImplTest : public testing::Test {
 
 TEST_F(FastPairPairerImplTest,
        SuccessInitialPairingWithDeviceVersionHigherThanV1) {
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfWriteAccountAssociationToFootprints(absl::OkStatus());
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -386,29 +390,25 @@ TEST_F(FastPairPairerImplTest,
 
   CountDownLatch paired_latch(1);
   CountDownLatch complete_latch(1);
-  CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
-        failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device) {
         EXPECT_TRUE(device.GetAccountKey().Ok());
         complete_latch.CountDown();
       });
   fast_pair_pairer_->StartPairing();
-  paired_latch.Await();
-  EXPECT_FALSE(failure_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
-  complete_latch.Await();
 
+  paired_latch.Await();
+  complete_latch.Await();
   EXPECT_TRUE(fast_pair_pairer_->IsPaired());
   EXPECT_TRUE(device_->GetAccountKey().Ok());
 }
@@ -422,26 +422,23 @@ TEST_F(FastPairPairerImplTest, SuccessInitialPairingWithDeviceV1) {
 
   CountDownLatch paired_latch(1);
   CountDownLatch complete_latch(1);
-  CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
-        failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device) {
         EXPECT_FALSE(device.GetAccountKey().Ok());
         complete_latch.CountDown();
       });
   fast_pair_pairer_->StartPairing();
+
   paired_latch.Await();
-  EXPECT_FALSE(failure_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
   complete_latch.Await();
   EXPECT_TRUE(fast_pair_pairer_->IsPaired());
 }
@@ -460,26 +457,23 @@ TEST_F(FastPairPairerImplTest, SuccessSubsequentPairingWithDevice) {
 
   CountDownLatch paired_latch(1);
   CountDownLatch complete_latch(1);
-  CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
-        failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device) {
         EXPECT_TRUE(device.GetAccountKey().Ok());
         complete_latch.CountDown();
       });
   fast_pair_pairer_->StartPairing();
+
   paired_latch.Await();
-  EXPECT_FALSE(failure_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
   complete_latch.Await();
   EXPECT_TRUE(fast_pair_pairer_->IsPaired());
 }
@@ -494,30 +488,25 @@ TEST_F(FastPairPairerImplTest, SuccessRetroactivePairingWithDevice) {
   SetDecryptedResponse();
   CreateFastPairHandshakeInstanceForDevice();
 
-  CountDownLatch paired_latch(1);
   CountDownLatch complete_latch(1);
-  CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
-        failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device) {
         EXPECT_TRUE(device.GetAccountKey().Ok());
         complete_latch.CountDown();
       });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(failure_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   complete_latch.Await();
   EXPECT_TRUE(device_->GetAccountKey().Ok());
 }
@@ -530,32 +519,27 @@ TEST_F(FastPairPairerImplTest, FailedToUnPair) {
   SetDecryptedResponse();
   CreateFastPairHandshakeInstanceForDevice();
 
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
-
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPairingAndConnect);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
       [&](FastPairDevice& device) {
         EXPECT_TRUE(device.GetAccountKey().Ok());
-        complete_latch.CountDown();
+        FAIL() << "Unexpected callback";
       });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(fast_pair_pairer_->IsPaired());
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
@@ -572,32 +556,25 @@ TEST_F(FastPairPairerImplTest, FailedToPairingWithAuthTimeout) {
   SetDecryptedPasskey();
   CreateFastPairHandshakeInstanceForDevice();
 
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPairingAndConnect);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
-      [&](FastPairDevice& device) {
-        EXPECT_TRUE(device.GetAccountKey().Ok());
-        complete_latch.CountDown();
-      });
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(fast_pair_pairer_->IsPaired());
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
@@ -612,32 +589,25 @@ TEST_F(FastPairPairerImplTest, NoPasskeyResponse) {
   SetDecryptedResponse();
   CreateFastPairHandshakeInstanceForDevice();
 
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPasskeyResponseTimeout);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
-      [&](FastPairDevice& device) {
-        EXPECT_TRUE(device.GetAccountKey().Ok());
-        complete_latch.CountDown();
-      });
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(fast_pair_pairer_->IsPaired());
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
@@ -654,32 +624,25 @@ TEST_F(FastPairPairerImplTest, PasskeyMismatch) {
   SetDecryptedPasskey("654321");
   CreateFastPairHandshakeInstanceForDevice();
 
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPasskeyMismatch);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
-      [&](FastPairDevice& device) {
-        EXPECT_TRUE(device.GetAccountKey().Ok());
-        complete_latch.CountDown();
-      });
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(fast_pair_pairer_->IsPaired());
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
@@ -696,32 +659,26 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyResponse) {
   CreateFastPairHandshakeInstanceForDevice();
 
   SetPairingResult(std::nullopt);
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
+
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPasskeyDecryptFailure);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
-      [&](FastPairDevice& device) {
-        EXPECT_TRUE(device.GetAccountKey().Ok());
-        complete_latch.CountDown();
-      });
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(fast_pair_pairer_->IsPaired());
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
@@ -739,38 +696,32 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyMessageType) {
   CreateFastPairHandshakeInstanceForDevice();
 
   SetPairingResult(std::nullopt);
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
+
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kIncorrectPasskeyResponseType);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
-      [&](FastPairDevice& device) {
-        EXPECT_TRUE(device.GetAccountKey().Ok());
-        complete_latch.CountDown();
-      });
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(fast_pair_pairer_->IsPaired());
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
 
 TEST_F(FastPairPairerImplTest,
-       SuccessPairingWithDeviceButFailedToWriteAccountkey) {
+       SuccessPairingWithDeviceButFailedToWriteAccountkeyToRemoteDevice) {
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -797,6 +748,7 @@ TEST_F(FastPairPairerImplTest,
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
+        EXPECT_EQ(failure, PairFailure::kAccountKeyCharacteristicWrite);
         account_failure_latch.CountDown();
       },
       [&](FastPairDevice& device) {
@@ -812,6 +764,45 @@ TEST_F(FastPairPairerImplTest,
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
 
+TEST_F(FastPairPairerImplTest,
+       SuccessPairingWithDeviceButFailedToWriteAccountkeyToFootprints) {
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfWriteAccountAssociationToFootprints(
+      absl::InternalError("Failed to write account key to foot prints"));
+  ConfigurePairingContext();
+  SetPairingResult(std::nullopt);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
+  SetupProviderGattServer();
+  SetNotifyResponse(*key_based_characteristic_, kKeyBasedResponse);
+  SetNotifyResponse(*passkey_characteristic_, kPasskeyResponse);
+  SetDecryptedResponse();
+  SetDecryptedPasskey();
+  CreateFastPairHandshakeInstanceForDevice();
+
+  CountDownLatch paired_latch(1);
+  CountDownLatch account_failure_latch(1);
+
+  EXPECT_FALSE(device_->GetAccountKey().Ok());
+  fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
+      *device_, *mediums_, &executor_,
+      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& device, PairFailure failure) {
+        FAIL() << "Unexpected pairing failure " << failure;
+      },
+      [&](FastPairDevice& device, PairFailure failure) {
+        EXPECT_EQ(failure, PairFailure::kWriteAccountKeyToFootprints);
+        account_failure_latch.CountDown();
+      },
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
+  fast_pair_pairer_->StartPairing();
+
+  paired_latch.Await();
+  account_failure_latch.Await();
+  EXPECT_TRUE(fast_pair_pairer_->IsPaired());
+  EXPECT_TRUE(device_->GetAccountKey().Ok());
+}
+
 TEST_F(FastPairPairerImplTest, TestCancelPairing) {
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
@@ -823,29 +814,25 @@ TEST_F(FastPairPairerImplTest, TestCancelPairing) {
   CreateFastPairHandshakeInstanceForDevice();
   SetTryToCancelOngoingPairing(true);
 
-  CountDownLatch paired_latch(1);
-  CountDownLatch complete_latch(1);
   CountDownLatch failure_latch(1);
-  CountDownLatch account_failure_latch(1);
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
       *device_, *mediums_, &executor_,
-      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPairingAndConnect);
         failure_latch.CountDown();
       },
       [&](FastPairDevice& device, PairFailure failure) {
-        account_failure_latch.CountDown();
+        FAIL() << "Unexpected pairing failure " << failure;
       },
-      [&](FastPairDevice& device) { complete_latch.CountDown(); });
+      [&](FastPairDevice& device) { FAIL() << "Unexpected callback"; });
   fast_pair_pairer_->StartPairing();
-  EXPECT_FALSE(paired_latch.Await(kWaitTimeout).result());
+
   failure_latch.Await();
-  EXPECT_FALSE(account_failure_latch.Await(kWaitTimeout).result());
-  EXPECT_FALSE(complete_latch.Await(kWaitTimeout).result());
+
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
 }  // namespace fastpair
