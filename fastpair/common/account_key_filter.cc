@@ -22,7 +22,7 @@
 #include "absl/strings/string_view.h"
 #include "fastpair/common/battery_notification.h"
 #include "fastpair/common/non_discoverable_advertisement.h"
-#include "internal/crypto/sha2.h"
+#include "internal/crypto_cros/sha2.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

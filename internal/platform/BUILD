@@ -373,7 +373,7 @@ cc_library(
         ":base",
         ":logging",
         ":util",
-        "//internal/crypto",
+        "//internal/crypto_cros",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",

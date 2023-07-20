@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "internal/crypto/random.h"
+#include "internal/crypto_cros/random.h"
 #include "internal/interop/device.h"
 #include "internal/platform/connection_info.h"
 

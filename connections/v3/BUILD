@@ -19,7 +19,7 @@ cc_library(
     deps = [
         "//connections:core_types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
-        "//internal/crypto",
+        "//internal/crypto_cros",
         "//internal/interop:device",
         "//internal/platform:connection_info",
         "//proto:connections_enums_cc_proto",

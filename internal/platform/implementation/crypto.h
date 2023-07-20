@@ -19,7 +19,7 @@
 #ifdef NEARBY_CHROMIUM
 #include "crypto/random.h"
 #else
-#include "internal/crypto/random.h"
+#include "internal/crypto_cros/random.h"
 #endif
 #include "internal/platform/byte_array.h"
 

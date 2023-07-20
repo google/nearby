@@ -84,6 +84,7 @@ cc_library(
     ],
     deps = [
         "//internal/crypto",
+        "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
@@ -285,6 +286,7 @@ cc_test(
     deps = [
         ":internal",
         "//internal/crypto",
+        "//internal/crypto_cros",
         "//internal/proto:credential_cc_proto",
         "//internal/proto:local_credential_cc_proto",
         "//presence/proto:presence_frame_cc_proto",

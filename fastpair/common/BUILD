@@ -32,7 +32,7 @@ cc_library(
     ],
     deps = [
         "//fastpair/proto:fastpair_cc_proto",
-        "//internal/crypto",
+        "//internal/crypto_cros",
         "//internal/platform:logging",
         "//internal/preferences",
         "@com_google_absl//absl/base:core_headers",

@@ -20,7 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/base/bluetooth_address.h"
-#include "internal/crypto/sha2.h"
+#include "internal/crypto_cros/sha2.h"
 
 namespace nearby {
 namespace fastpair {

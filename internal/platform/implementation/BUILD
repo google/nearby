@@ -41,7 +41,7 @@ cc_library(
     visibility = [
         "//connections/implementation/analytics:__subpackages__",
         "//fastpair:__subpackages__",
-        "//internal/crypto:__pkg__",
+        "//internal/crypto_cros:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/preferences:__subpackages__",
@@ -53,7 +53,7 @@ cc_library(
         "//third_party/nearby/sharing:__subpackages__",
     ],
     deps = [
-        "//internal/crypto",
+        "//internal/crypto_cros",
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",

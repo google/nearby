@@ -22,7 +22,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/constant.h"
-#include "internal/crypto/random.h"
+#include "internal/crypto_cros/random.h"
 
 namespace nearby {
 namespace fastpair {

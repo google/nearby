@@ -24,8 +24,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 #include "internal/crypto/ed25519.h"
-#include "internal/crypto/hkdf.h"
-#include "internal/crypto/secure_util.h"
+#include "internal/crypto_cros/hkdf.h"
+#include "internal/crypto_cros/secure_util.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
 

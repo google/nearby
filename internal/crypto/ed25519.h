@@ -20,7 +20,7 @@
 #include <string>
 
 #include "absl/status/statusor.h"
-#include "internal/crypto/crypto_export.h"
+#include "internal/crypto_cros/crypto_export.h"
 #include <openssl/base.h>
 #include <openssl/digest.h>
 #include <openssl/evp.h>
