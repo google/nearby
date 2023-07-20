@@ -81,6 +81,7 @@ cc_library(
         ":repository",
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
+        "//internal/base",
         "//internal/platform:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
@@ -115,6 +116,7 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )
