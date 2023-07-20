@@ -50,6 +50,9 @@ class WifiUtils {
   static int ConvertFrequencyMhzToChannel(int freq_mhz);
 
   static bool ValidateIPV4(std::string ipv4);
+  // Converts an IP address from binary format for human readable.
+  static std::string GetHumanReadableIpAddress(
+      absl::string_view binary_address);
 };
 
 }  // namespace nearby

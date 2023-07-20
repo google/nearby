@@ -23,6 +23,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
 #include "internal/platform/wifi_lan.h"
+#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 namespace connections {
@@ -60,7 +61,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "WifiLanBwuHandler failed to connect to the WifiLan service ("
-        << ip_address << ":" << port << ") for endpoint " << endpoint_id;
+        << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
+        << ") for endpoint " << endpoint_id;
     return nullptr;
   }
 
@@ -70,7 +72,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
       << endpoint_id;
 
   // Create a new WifiLanEndpointChannel.
-  auto channel = absl::make_unique<WifiLanEndpointChannel>(
+  auto channel = std::make_unique<WifiLanEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket);
   if (channel == nullptr) {
     NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "

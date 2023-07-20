@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 
@@ -167,7 +168,8 @@ WifiLanSocket WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
   NEARBY_LOGS(INFO) << "WifiLanMedium::ConnectToService: ip address="
-                    << ip_address << ", port=" << port;
+                    << WifiUtils::GetHumanReadableIpAddress(ip_address)
+                    << ", port=" << port;
   return WifiLanSocket(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
 }

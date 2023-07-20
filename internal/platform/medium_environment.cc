@@ -921,18 +921,26 @@ void MediumEnvironment::UnregisterWifiLanMedium(api::WifiLanMedium& medium) {
 
 api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
     const std::string& ip_address, int port) {
-  for (auto& medium_info : wifi_lan_mediums_) {
-    auto* medium_found = medium_info.first;
-    auto& info = medium_info.second;
-    for (auto& advertising_service : info.advertising_services) {
-      auto& service_info = advertising_service.second;
-      if (ip_address == service_info.GetIPAddress() &&
-          port == service_info.GetPort()) {
-        return medium_found;
+  api::WifiLanMedium* result = nullptr;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    for (auto& medium_info : wifi_lan_mediums_) {
+      auto* medium_found = medium_info.first;
+      auto& info = medium_info.second;
+      for (auto& advertising_service : info.advertising_services) {
+        auto& service_info = advertising_service.second;
+        if (ip_address == service_info.GetIPAddress() &&
+            port == service_info.GetPort()) {
+          result = medium_found;
+          latch.CountDown();
+          return;
+        }
       }
+      latch.CountDown();
     }
-  }
-  return nullptr;
+  });
+  latch.Await();
+  return result;
 }
 
 void MediumEnvironment::RegisterWifiDirectMedium(

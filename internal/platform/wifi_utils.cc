@@ -18,6 +18,8 @@
 #include <vector>
 
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 
 namespace nearby {
@@ -113,6 +115,15 @@ bool WifiUtils::ValidateIPV4(std::string ipv4) {
   }
 
   return true;
+}
+
+std::string WifiUtils::GetHumanReadableIpAddress(
+    absl::string_view binary_address) {
+  std::vector<std::string> parts;
+  for (unsigned int b : binary_address) {
+    parts.push_back(absl::StrFormat("%d", b));
+  }
+  return absl::StrJoin(parts, ".");
 }
 
 }  // namespace nearby
