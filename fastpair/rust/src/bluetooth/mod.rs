@@ -18,24 +18,17 @@
 
 pub mod common;
 
-pub use common::{Adapter, Address, BluetoothError, ClassicAddress, Device};
+pub use common::{Adapter, BluetoothError, ClassicAddress, Device};
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
         mod windows;
-        pub use self::windows::{ClassicDevice, BleAdapter};
+        use self::windows as platform;
     } else {
         mod unsupported;
-        use unsupported::{ClassicDevice, BleAdapter};
+        use unsupported as platform;
     }
 }
 
-pub async fn default_adapter() -> Result<BleAdapter, BluetoothError> {
-    BleAdapter::default().await
-}
-
-pub async fn new_classic_device(
-    addr: ClassicAddress,
-) -> Result<impl Device, BluetoothError> {
-    ClassicDevice::new(addr).await
-}
+pub type BleAdapter = platform::BleAdapter;
+pub type ClassicDevice = platform::ClassicDevice;

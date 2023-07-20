@@ -33,13 +33,6 @@ pub struct BleAddress {
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct ClassicAddress([u8; 6]);
 
-/// Enum for interfacing with Bluetooth Addresses.
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
-pub enum Address {
-    Ble(BleAddress),
-    Classic(ClassicAddress),
-}
-
 impl BleAddress {
     /// `BleAddress` constructor.
     pub fn new(addr: u64, kind: BleAddressKind) -> Self {

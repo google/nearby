@@ -49,7 +49,7 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::common::{Address, BleAddress, ClassicAddress, Device, ServiceData, BluetoothError, PairingResult};
+use crate::bluetooth::{common::{BleAddress, ClassicAddress, Device, ServiceData, BluetoothError, PairingResult}, BleAdapter};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {
@@ -81,12 +81,14 @@ impl BleDevice {
 
 #[async_trait]
 impl Device for BleDevice {
+    type Address = BleAddress;
+
     fn name(&self) -> Result<String, BluetoothError> {
         Ok(self.inner.Name()?.to_string())
     }
 
-    fn address(&self) -> Address {
-        Address::Ble(self.addr)
+    fn address(&self) -> Self::Address {
+        self.addr
     }
 
     async fn pair(&self) -> Result<PairingResult, BluetoothError> {
@@ -119,12 +121,14 @@ impl ClassicDevice {
 
 #[async_trait]
 impl Device for ClassicDevice {
+    type Address = ClassicAddress;
+
     fn name(&self) -> Result<String, BluetoothError> {
         Ok(self.inner.Name()?.to_string_lossy())
     }
 
-    fn address(&self) -> Address {
-        Address::Classic(self.addr)
+    fn address(&self) -> Self::Address {
+        self.addr
     }
 
     async fn pair(&self) -> Result<PairingResult, BluetoothError> {

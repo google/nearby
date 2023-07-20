@@ -27,7 +27,7 @@ use futures::{
 
 mod bluetooth;
 
-use bluetooth::{Adapter, Address, BleAdapter, ClassicAddress, Device};
+use bluetooth::{Adapter, BleAdapter, ClassicAddress, Device};
 
 async fn get_user_input(
     device_vec: Arc<Mutex<Vec<<BleAdapter as Adapter>::Device>>>,
@@ -49,23 +49,11 @@ async fn get_user_input(
         let index_to_device = device_vec.lock().await;
         match index_to_device.get(val) {
             Some(device) => {
-                let addr: Address = device.address();
-
-                // Dynamic dispatch is necessary here because `BleDevice` and
-                // `ClassicDevice` share the `Device` trait (and thus must have
-                // the same return type for `address()` method). This can be
-                // changed later if `Device` trait should exclusively define
-                // shared cross-platform behavior.
-                let classic_addr = match addr {
-                    Address::Ble(ble) => ClassicAddress::try_from(ble),
-                    Address::Classic(_) => panic!(
-                        "Address should come from BLE Device, therefore \
-                                    shouldn't be Classic."
-                    ),
-                }?;
+                let addr = device.address();
+                let classic_addr = ClassicAddress::try_from(addr)?;
 
                 let classic_device =
-                    bluetooth::new_classic_device(classic_addr).await?;
+                    bluetooth::ClassicDevice::new(classic_addr).await?;
 
                 match classic_device.pair().await {
                     Ok(_) => {
@@ -82,7 +70,7 @@ async fn get_user_input(
 
 fn main() -> Result<(), Box<dyn Error>> {
     let run = async {
-        let mut adapter = bluetooth::default_adapter().await?;
+        let mut adapter = bluetooth::BleAdapter::default().await?;
         adapter.start_scan()?;
 
         let mut addr_set = HashSet::new();
@@ -103,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 // This is a Fast Pair device.
                 if uuid == 0x2cfe {
-                    let addr: Address = ble_device.address();
+                    let addr = ble_device.address();
                     let name = ble_device.name()?;
 
                     if addr_set.insert(addr) {
