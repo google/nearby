@@ -69,6 +69,12 @@ class FastPairService {
   // same lifetime as this `FastPairService` instance.
   AccountManager* GetAccountManager() { return account_manager_.get(); }
 
+  // Returns a `FastPairRepository` implementation. The returned object has the
+  // same lifetime as this `FastPairService` instance.
+  FastPairRepository* GetFastPairRepository() {
+    return fast_pair_repository_.get();
+  }
+
  private:
   struct PluginState {
     // Gets the plugin for `device`. Creates the plugin if it does not exist.

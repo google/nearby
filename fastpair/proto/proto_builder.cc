@@ -75,6 +75,8 @@ void BuildFastPairInfo(::nearby::fastpair::proto::FastPairInfo* fast_pair_info,
   discovery_item.set_first_observation_timestamp_millis(
       absl::ToInt64Milliseconds(absl::Now() - absl::UnixEpoch()));
   discovery_item.set_state(proto::StoredDiscoveryItem::STATE_ENABLED);
+  discovery_item.set_icon_fife_url(
+      metadata->GetResponse().device().image_url());
   discovery_item.set_icon_png(metadata->GetResponse().image());
   discovery_item.add_stored_relevances()->mutable_relevance()->set_evaluation(
       proto::Evaluation::EVALUATION_GREAT);

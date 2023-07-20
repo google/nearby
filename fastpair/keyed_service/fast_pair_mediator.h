@@ -72,6 +72,10 @@ class Mediator final : public ScannerBroker::Observer,
     return notification_controller_.get();
   }
 
+  FastPairRepository* GetFastPairRepository() {
+    return fast_pair_repository_.get();
+  }
+
   void StartScanning();
   void StopScanning();
 
