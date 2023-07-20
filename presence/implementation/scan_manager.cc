@@ -115,6 +115,10 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     internal::Metadata metadata;
     metadata.set_bluetooth_mac_address(std::string(remote_address));
     PresenceDevice device(DeviceMotion(), metadata, advert->identity_type);
+    // Ok if the advertisement is for trusted/private identity.
+    if (advert->public_credential.ok()) {
+      device.SetDecryptSharedCredential(*(advert->public_credential));
+    }
     device.AddExtendedProperties(advert->data_elements);
     for (const auto& data_element : advert->data_elements) {
       if (data_element.GetType() == DataElement::kActionFieldType) {

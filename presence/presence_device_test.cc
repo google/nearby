@@ -15,13 +15,12 @@
 #include "presence/presence_device.h"
 
 #include <string>
+#include <variant>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/types/variant.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "connections/implementation/proto/offline_wire_formats.proto.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/metadata.pb.h"
@@ -63,12 +62,16 @@ TEST(PresenceDeviceTest, DefaultMotionEquals) {
 
 TEST(PresenceDeviceTest, ExplicitInitEquals) {
   Metadata metadata = CreateTestMetadata();
+  internal::SharedCredential shared_credential;
+  shared_credential.set_credential_type(internal::CREDENTIAL_TYPE_GAIA);
   PresenceDevice device1 =
       PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
                      internal::IDENTITY_TYPE_PUBLIC);
+  device1.SetDecryptSharedCredential(shared_credential);
   PresenceDevice device2 =
       PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
                      internal::IDENTITY_TYPE_PUBLIC);
+  device2.SetDecryptSharedCredential(shared_credential);
   EXPECT_EQ(device1, device2);
 }
 
@@ -87,8 +90,8 @@ TEST(PresenceDeviceTest, TestGetBleConnectionInfo) {
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   device.AddAction(PresenceAction(kTestAction));
   auto info = (device.GetConnectionInfos().at(0));
-  ASSERT_TRUE(absl::holds_alternative<nearby::BleConnectionInfo>(info));
-  auto ble_info = absl::get<nearby::BleConnectionInfo>(info);
+  ASSERT_TRUE(std::holds_alternative<nearby::BleConnectionInfo>(info));
+  auto ble_info = std::get<nearby::BleConnectionInfo>(info);
   EXPECT_EQ(ble_info.GetMacAddress(),
             kMacAddr);
   EXPECT_EQ(ble_info.GetActions(), std::vector<uint8_t>{kTestAction});
@@ -139,6 +142,18 @@ TEST(PresenceDeviceTest, TestGetIdentityType) {
   PresenceDevice device =
       PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
   EXPECT_EQ(device.GetIdentityType(), internal::IDENTITY_TYPE_PUBLIC);
+}
+
+TEST(PresenceDeviceTest, TestGetDecryptSharedCredential) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device =
+      PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
+  EXPECT_EQ(device.GetDecryptSharedCredential(), std::nullopt);
+  internal::SharedCredential shared_credential;
+  shared_credential.set_credential_type(internal::CREDENTIAL_TYPE_GAIA);
+  device.SetDecryptSharedCredential(shared_credential);
+  EXPECT_EQ(device.GetDecryptSharedCredential()->SerializeAsString(),
+            shared_credential.SerializeAsString());
 }
 
 TEST(PresenceDeviceTest, TestToProtoBytes) {
