@@ -53,9 +53,9 @@ bool BluetoothSocket::IsClosed() const {
 bool BluetoothSocket::IsConnectedLocked() const { return input_ != nullptr; }
 
 InputStream& BluetoothSocket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
-  if (remote_socket != nullptr) {
-    return remote_socket->GetLocalInputStream();
+  absl::MutexLock lock(&mutex_);
+  if (IsConnectedLocked()) {
+    return input_->GetInputStream();
   } else {
     return invalid_input_stream_;
   }
@@ -88,13 +88,9 @@ void BluetoothSocket::DoClose() {
     output_->GetInputStream().Close();
     input_->GetOutputStream().Close();
     input_->GetInputStream().Close();
+    input_.reset();
     closed_ = true;
   }
-}
-
-BluetoothSocket* BluetoothSocket::GetRemoteSocket() {
-  absl::MutexLock lock(&mutex_);
-  return remote_socket_;
 }
 
 BluetoothDevice* BluetoothSocket::GetRemoteDevice() {

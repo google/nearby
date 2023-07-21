@@ -58,9 +58,6 @@ class BluetoothSocket : public api::BluetoothSocket {
   // This stream is for local side to write.
   OutputStream& GetOutputStream() override;
 
-  // Returns address of a remote BluetoothSocket or nullptr.
-  BluetoothSocket* GetRemoteSocket() ABSL_LOCKS_EXCLUDED(mutex_);
-
   // Returns true if connection exists to the (possibly closed) remote socket.
   bool IsConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
 
