@@ -130,6 +130,7 @@ class BaseEndpointChannel : public EndpointChannel {
   ConditionVariable is_paused_cond_{&is_paused_mutex_};
   // If true, writes should block until this has been set to false.
   bool is_paused_ ABSL_GUARDED_BY(is_paused_mutex_) = false;
+  bool is_closed_ ABSL_GUARDED_BY(is_paused_mutex_) = false;
 
   // The medium technology information of this endpoint channel.
   location::nearby::proto::connections::ConnectionTechnology technology_;
