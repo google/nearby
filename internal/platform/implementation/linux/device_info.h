@@ -32,16 +32,20 @@ public:
 
   std::optional<std::filesystem::path> GetDownloadPath() const override;
   std::optional<std::filesystem::path> GetLocalAppDataPath() const override;
-  std::optional<std::filesystem::path> GetCommonAppDataPath() const override;
+  std::optional<std::filesystem::path> GetCommonAppDataPath() const override {
+    return std::nullopt;
+  };
   std::optional<std::filesystem::path> GetTemporaryPath() const override;
   std::optional<std::filesystem::path> GetLogPath() const override;
   std::optional<std::filesystem::path> GetCrashDumpPath() const override;
 
   bool IsScreenLocked() const override;
+  // TODO: Implement listening to logind for changes to LockedState.
   void RegisterScreenLockedListener(
       absl::string_view listener_name,
-      std::function<void(api::DeviceInfo::ScreenStatus)> callback) override;
-  void UnregisterScreenLockedListener(absl::string_view listener_name) override;
+      std::function<void(api::DeviceInfo::ScreenStatus)> callback) override{};
+  void
+  UnregisterScreenLockedListener(absl::string_view listener_name) override{};
 
   sd_bus *system_bus;
 };
