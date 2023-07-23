@@ -26,13 +26,14 @@ const char *LOGIN_PATH = "/org/freedesktop/login1/session/_";
 const char *LOGIN_INTERFACE = "org.freedesktop.login1.Session";
 
 std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
-  sd_bus *bus = nullptr;
+  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *bus = nullptr;
   if (sd_bus_default_system(&bus) < 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to systemd bus.";
     return std::nullopt;
   }
 
-  sd_bus_error err = SD_BUS_ERROR_NULL;
+  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
+      SD_BUS_ERROR_NULL;
 
   char *hostname = nullptr;
   if (sd_bus_get_property_string(bus, HOSTNAME_DEST, HOSTNAME_PATH,
@@ -52,14 +53,9 @@ std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
           << __func__
           << ": Error getting Hostname from org.freedesktop.hostname1: "
           << err.message;
-      sd_bus_error_free(&err);
-      sd_bus_unref(bus);
       return std::nullopt;
     }
   }
-
-  sd_bus_error_free(&err);
-  sd_bus_unref(bus);
 
   std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
 
@@ -69,12 +65,14 @@ std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
 }
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
-  sd_bus *bus;
+  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *bus;
   if (sd_bus_default_system(&bus) < 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to systemd bus.";
     return api::DeviceInfo::DeviceType::kUnknown;
   }
-  sd_bus_error err = SD_BUS_ERROR_NULL;
+
+  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
+      SD_BUS_ERROR_NULL;
   char *chasis = nullptr;
 
   if (sd_bus_get_property_string(bus, HOSTNAME_DEST, HOSTNAME_PATH,
@@ -83,12 +81,8 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Error getting Chasis from org.freedesktop.hostname1: "
         << err.message;
-    sd_bus_error_free(&err);
-    sd_bus_unref(bus);
     return api::DeviceInfo::DeviceType::kUnknown;
   }
-
-  sd_bus_unref(bus);
 
   api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;
 
@@ -165,7 +159,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
     return std::filesystem::path("/tmp");
   }
   return std::filesystem::path(std::string(dir)) / "com.github.google.nearby" /
-         "crash";
+         "crashes";
 }
 
 bool DeviceInfo::IsScreenLocked() const {
@@ -176,7 +170,7 @@ bool DeviceInfo::IsScreenLocked() const {
     return false;
   }
 
-  sd_bus *bus;
+  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *bus;
   if (sd_bus_default_system(&bus) < 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to systemd bus.";
     free(session);
@@ -188,7 +182,8 @@ bool DeviceInfo::IsScreenLocked() const {
 
   free(session);
 
-  sd_bus_error err = SD_BUS_ERROR_NULL;
+  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
+      SD_BUS_ERROR_NULL;
   bool locked;
 
   if (sd_bus_get_property_trivial(bus, LOGIN_DEST, session_path.c_str(),
@@ -201,9 +196,6 @@ bool DeviceInfo::IsScreenLocked() const {
         << err.message;
     locked = false;
   }
-
-  sd_bus_error_free(&err);
-  sd_bus_unref(bus);
 
   return locked;
 }
