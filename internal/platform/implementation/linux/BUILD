@@ -16,3 +16,17 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "linux",
+    hdrs = [
+        "bluetooth_adapter.h",
+        "bluez.h"
+    ],
+    srcs = ["bluetooth_adapter.cc"],
+    deps = [
+        "//internal/platform/implementation:types",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
+        "@libsystemd//:lib",
+    ]
+)
