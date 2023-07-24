@@ -15,12 +15,12 @@
 /// Module for shared functionality between all Bluetooth platforms.
 mod adapter;
 mod address;
-mod data;
+mod advertisement;
 mod device;
 mod error;
 
 pub use adapter::*;
 pub use address::*;
-pub use data::*;
+pub use advertisement::*;
 pub use device::*;
 pub use error::*;

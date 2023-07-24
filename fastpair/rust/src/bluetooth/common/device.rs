@@ -14,7 +14,7 @@
 
 use async_trait::async_trait;
 
-use super::{BluetoothError, PairingResult, ServiceData};
+use super::{BluetoothError, PairingResult};
 
 /// Concrete types implementing this trait represent Bluetooth Peripheral devices.
 /// They provide methods for retrieving device info and running device actions,
@@ -31,6 +31,4 @@ pub trait Device: Sized {
 
     /// Attempt pairing with the peripheral device.
     async fn pair(&self) -> Result<PairingResult, BluetoothError>;
-
-    fn service_data(&self) -> &Vec<ServiceData<u16>>;
 }

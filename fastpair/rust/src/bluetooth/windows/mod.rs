@@ -15,9 +15,11 @@
 /// Bluetooth LE module for Windows devices.
 mod adapter;
 mod address;
+mod advertisement;
 mod device;
 mod error;
 
 pub use adapter::*;
 pub use address::*;
+pub use advertisement::*;
 pub use device::*;

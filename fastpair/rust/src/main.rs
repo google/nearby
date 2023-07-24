@@ -27,10 +27,12 @@ use futures::{
 
 mod bluetooth;
 
-use bluetooth::{Adapter, BleAdapter, ClassicAddress, Device};
+use bluetooth::{Adapter, BleDevice, ClassicAddress, Device};
+
+use crate::bluetooth::BleDataTypeId;
 
 async fn get_user_input(
-    device_vec: Arc<Mutex<Vec<<BleAdapter as Adapter>::Device>>>,
+    device_vec: Arc<Mutex<Vec<BleDevice>>>,
 ) -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
     loop {
@@ -83,15 +85,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         let mut counter: u32 = 0;
-
+        let datatype_selector = vec![BleDataTypeId::ServiceData16BitUuid];
         // Retrieve incoming device advertisements.
-        while let Ok(ble_device) = adapter.next_device().await {
-            for service_data in ble_device.service_data() {
+        while let Ok(advertisement) =
+            adapter.next_advertisement(Some(&datatype_selector)).await
+        {
+            for service_data in advertisement.service_data_16bit_uuid()? {
                 let uuid = service_data.uuid();
 
                 // This is a Fast Pair device.
                 if uuid == 0x2cfe {
-                    let addr = ble_device.address();
+                    let addr = advertisement.address();
+                    let ble_device = BleDevice::new(addr).await?;
                     let name = ble_device.name()?;
 
                     if addr_set.insert(addr) {

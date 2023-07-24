@@ -14,14 +14,12 @@
 
 use async_trait::async_trait;
 
-use super::{BluetoothError, Device};
+use super::{BleAdvertisement, BleDataTypeId, BluetoothError};
 
 /// Concrete types implementing this trait are Bluetooth Central devices.
 /// They provide methods for retrieving nearby connections and device info.
 #[async_trait]
 pub trait Adapter: Sized {
-    type Device: Device;
-
     /// Retrieve the system-default Bluetooth adapter.
     async fn default() -> Result<Self, BluetoothError>;
 
@@ -32,5 +30,8 @@ pub trait Adapter: Sized {
     fn stop_scan(&mut self) -> Result<(), BluetoothError>;
 
     /// Poll next discovered device.
-    async fn next_device(&mut self) -> Result<Self::Device, BluetoothError>;
+    async fn next_advertisement(
+        &mut self,
+        data_selector: Option<&Vec<BleDataTypeId>>,
+    ) -> Result<BleAdvertisement, BluetoothError>;
 }

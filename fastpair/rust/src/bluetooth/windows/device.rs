@@ -49,13 +49,12 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::{common::{BleAddress, ClassicAddress, Device, ServiceData, BluetoothError, PairingResult}, BleAdapter};
+use crate::bluetooth::common::{BleAddress, ClassicAddress, Device, BluetoothError, PairingResult};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {
     inner: BluetoothLEDevice,
     addr: BleAddress,
-    service_data: Vec<ServiceData<u16>>
 }
 
 /// Concrete type implementing `Device`, used for Windows Bluetooth Classic.
@@ -66,7 +65,7 @@ pub struct ClassicDevice {
 
 impl BleDevice {
     /// `BleDevice` constructor.
-    pub async fn new(addr: BleAddress, service_data: Vec<ServiceData<u16>>) -> Result<Self, BluetoothError> {
+    pub async fn new(addr: BleAddress) -> Result<Self, BluetoothError> {
         let kind = BluetoothAddressType::from(addr.get_kind());
         let raw_addr = u64::from(addr);
 
@@ -75,7 +74,7 @@ impl BleDevice {
         )?
         .await?;
 
-        Ok(BleDevice { inner, addr, service_data })
+        Ok(BleDevice { inner, addr })
     }
 }
 
@@ -97,10 +96,6 @@ impl Device for BleDevice {
         // and BLE APIs are very similar, it might be possible to copy-paste
         // `ClassicDevice::pair` directly.
         unimplemented!("BLE Pairing is currently unsupported.")
-    }
-
-    fn service_data(&self) -> &Vec<ServiceData<u16>> {
-        &self.service_data
     }
 }
 
@@ -177,10 +172,6 @@ impl Device for ClassicDevice {
                 _ => Ok(status),
             }
         }
-    }
-
-    fn service_data(&self) -> &Vec<ServiceData<u16>> {
-        unimplemented!("Service data is currently unsupported for Classic devices.")
     }
 }
 

@@ -18,7 +18,10 @@
 
 pub mod common;
 
-pub use common::{Adapter, BluetoothError, ClassicAddress, Device};
+pub use common::{
+    Adapter, BleAdvertisement, BleDataTypeId, BluetoothError, ClassicAddress,
+    Device,
+};
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
@@ -31,4 +34,5 @@ cfg_if::cfg_if! {
 }
 
 pub type BleAdapter = platform::BleAdapter;
+pub type BleDevice = platform::BleDevice;
 pub type ClassicDevice = platform::ClassicDevice;
