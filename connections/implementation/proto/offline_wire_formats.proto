@@ -310,6 +310,8 @@ message BandwidthUpgradeNegotiationFrame {
 message KeepAliveFrame {
   // And ack will be sent after receiving KEEP_ALIVE frame.
   optional bool ack = 1;
+  // The sequence number
+  optional uint32 seq_num = 2;
 }
 
 // Informs the remote side to immediately severe the socket connection.
