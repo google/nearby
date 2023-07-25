@@ -54,5 +54,12 @@ void FastPairPresenterImpl::ShowDiscovery(
   notification_controller.ShowGuestDiscoveryNotification(*device.GetMetadata(),
                                                          std::move(callback));
 }
+
+void FastPairPresenterImpl::ShowPairingResult(
+    FastPairDevice& device,
+    FastPairNotificationController& notification_controller, bool success) {
+  notification_controller.ShowPairingResultNotification(*device.GetMetadata(),
+                                                        success);
+}
 }  // namespace fastpair
 }  // namespace nearby

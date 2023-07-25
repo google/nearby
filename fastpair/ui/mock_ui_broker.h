@@ -29,6 +29,10 @@ class MockUIBroker : public UIBroker {
   MOCK_METHOD(void, ShowDiscovery,
               (FastPairDevice&, FastPairNotificationController&), (override));
 
+  MOCK_METHOD(void, ShowPairingResult,
+              (FastPairDevice&, FastPairNotificationController&, bool),
+              (override));
+
   void AddObserver(Observer* observer) override {
     observers_.AddObserver(observer);
   }

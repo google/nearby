@@ -43,6 +43,11 @@ class UIBroker {
   virtual void ShowDiscovery(
       FastPairDevice& device,
       FastPairNotificationController& notification_controller) = 0;
+
+  virtual void ShowPairingResult(
+      FastPairDevice& device,
+      FastPairNotificationController& notification_controller,
+      bool success) = 0;
 };
 
 }  // namespace fastpair

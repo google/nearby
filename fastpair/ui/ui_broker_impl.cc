@@ -60,6 +60,23 @@ void UIBrokerImpl::ShowDiscovery(
   }
 }
 
+void UIBrokerImpl::ShowPairingResult(
+    FastPairDevice& device,
+    FastPairNotificationController& notification_controller, bool success) {
+  NEARBY_LOGS(VERBOSE) << __func__;
+  switch (device.GetProtocol()) {
+    case Protocol::kFastPairInitialPairing:
+    case Protocol::kFastPairSubsequentPairing:
+      fast_pair_presenter_->ShowPairingResult(device, notification_controller,
+                                              success);
+      break;
+    case Protocol::kFastPairRetroactivePairing:
+      // In this scenario, we don't show the error UI because it would be
+      // misleading, since a pair failure is a retroactive pair failure.
+      break;
+  }
+}
+
 void UIBrokerImpl::NotifyDiscoveryAction(FastPairDevice& device,
                                          DiscoveryAction action) {
   for (auto& observer : observers_.GetObservers())

@@ -102,9 +102,7 @@ class Mediator final : public ScannerBroker::Observer,
   void InvalidateScanningState() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   bool IsDeviceCurrentlyShowingNotification(const FastPairDevice& device);
 
-  // |device_currently_showing_notification_| can be null if there is no
-  // notification currently displayed to the user.
-  FastPairDevice* device_currently_showing_notification_ = nullptr;
+  bool foreground_currently_showing_notification_ = false;
   FastPairHttpNotifier fast_pair_http_notifier_;
   std::unique_ptr<SingleThreadExecutor> executor_;
   std::unique_ptr<Mediums> mediums_;

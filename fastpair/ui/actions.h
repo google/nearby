@@ -24,7 +24,8 @@ enum class DiscoveryAction {
   kDismissedByUser = 2,
   kDismissedByOs = 3,
   kLearnMore = 4,
-  kDismissedByTimeout = 5,
+  kDone = 5,
+  kDismissedByTimeout = 6,
 };
 
 }  // namespace fastpair

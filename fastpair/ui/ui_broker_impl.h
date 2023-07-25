@@ -37,6 +37,10 @@ class UIBrokerImpl : public UIBroker {
   void ShowDiscovery(
       FastPairDevice &device,
       FastPairNotificationController &notification_controller) override;
+  void ShowPairingResult(
+      FastPairDevice &device,
+      FastPairNotificationController &notification_controller,
+      bool success) override;
 
  private:
   void NotifyDiscoveryAction(FastPairDevice &device, DiscoveryAction action);

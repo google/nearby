@@ -39,6 +39,8 @@ class FastPairNotificationController {
    public:
     virtual ~Observer() = default;
     virtual void OnUpdateDevice(const DeviceMetadata& device) = 0;
+    virtual void OnPairingResult(const DeviceMetadata& device,
+                                 bool success) = 0;
   };
 
   FastPairNotificationController() = default;
@@ -52,10 +54,14 @@ class FastPairNotificationController {
   void AddObserver(Observer* observer);
   void RemoveObserver(Observer* observer);
   void NotifyShowDiscovery(const DeviceMetadata& device);
+  void NotifyShowPairingResult(const DeviceMetadata& device, bool success);
 
   // Creates and displays corresponding notification.
   void ShowGuestDiscoveryNotification(const DeviceMetadata& device_metadata,
                                       DiscoveryCallback callback);
+
+  void ShowPairingResultNotification(const DeviceMetadata& device_metadata,
+                                     bool success);
 
   // Triggers callback when the related action is clicked.
   void OnDiscoveryClicked(DiscoveryAction action);
