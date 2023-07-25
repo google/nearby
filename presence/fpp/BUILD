@@ -40,6 +40,7 @@ cc_test(
     srcs = ["fpp_manager_test.cc"],
     deps = [
         ":fpp_manager",
+        "//presence/implementation:sensor_fusion",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",

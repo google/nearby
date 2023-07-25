@@ -19,6 +19,7 @@
 #include <functional>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
 #include "presence/device_motion.h"
 #include "presence/presence_zone.h"
@@ -58,15 +59,20 @@ struct RangingData {
   std::vector<DeviceMotion> device_motions;
 };
 
+struct ZoneTransitionCallback {
+  absl::AnyInvocable<void(
+      uint64_t device_id,
+      PresenceZone::DistanceBoundary::RangeType proximity_zone)>
+      on_proximity_zone_changed =
+          [](uint64_t device_id,
+             PresenceZone::DistanceBoundary::RangeType proximity_zone) {};
+  absl::AnyInvocable<void(uint64_t callback_id)> on_callback_id_generated =
+      [](uint64_t callback_id) {};
+};
+
 class SensorFusion {
  public:
   virtual ~SensorFusion() = default;
-
-  // Called when the proximity zone to a nearby peer device has changed.
-  typedef std::function<void(
-      uint64_t device_id,
-      PresenceZone::DistanceBoundary::RangeType proximity_zone)>
-      ZoneTransitionCallback;
 
   // Called when a device motion gesture is detected.
   typedef std::function<void(DeviceMotion::MotionType detected_device_motion)>

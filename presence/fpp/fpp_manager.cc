@@ -17,10 +17,12 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "absl/status/status.h"
 #include "internal/platform/logging.h"
 #include "presence/fpp/fpp_c_ffi/include/presence_detector.h"
+#include "presence/implementation/sensor_fusion.h"
 #include "presence/presence_zone.h"
 
 namespace nearby {
@@ -110,7 +112,7 @@ absl::Status FppManager::UpdateBleScanResult(uint64_t device_id,
 
 void FppManager::RegisterZoneTransitionListener(
     uint64_t callback_id, ZoneTransitionCallback callback) {
-  zone_transition_callbacks_[callback_id] = callback;
+  zone_transition_callbacks_[callback_id] = std::move(callback);
 }
 
 void FppManager::UnregisterZoneTransitionListener(uint64_t callback_id) {
@@ -147,9 +149,10 @@ void FppManager::CheckPresenceZoneChanged(uint64_t device_id,
     NEARBY_LOG(WARNING,
                "Updating zone transition callbacks with new zone. Zone=%p",
                new_estimate.proximity_state);
-    for (const auto& pair : zone_transition_callbacks_) {
-      pair.second(device_id, ConvertProximityStateToRangeType(
-                                 new_estimate.proximity_state));
+    for (auto& pair : zone_transition_callbacks_) {
+      pair.second.on_proximity_zone_changed(
+          device_id,
+          ConvertProximityStateToRangeType(new_estimate.proximity_state));
     }
   }
 }

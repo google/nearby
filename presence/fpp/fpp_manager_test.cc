@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "presence/implementation/sensor_fusion.h"
 
 namespace nearby {
 namespace presence {
@@ -33,10 +34,12 @@ TEST(FppManager, UpdateBleScanResultSuccess) {
   bool callback_called = false;
   manager.RegisterZoneTransitionListener(
       kCallbackId,
-      [&callback_called](uint64_t device_id,
-                         PresenceZone::DistanceBoundary::RangeType range_type) {
-        callback_called = true;
-      });
+      {.on_proximity_zone_changed =
+           [&callback_called](
+               uint64_t device_id,
+               PresenceZone::DistanceBoundary::RangeType range_type) {
+             callback_called = true;
+           }});
   EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/0));
@@ -56,10 +59,12 @@ TEST(FppManager, ZoneTransitionDetected) {
   bool callback_called = false;
   manager.RegisterZoneTransitionListener(
       kCallbackId,
-      [&callback_called](uint64_t device_id,
-                         PresenceZone::DistanceBoundary::RangeType range_type) {
-        callback_called = true;
-      });
+      {.on_proximity_zone_changed =
+           [&callback_called](
+               uint64_t device_id,
+               PresenceZone::DistanceBoundary::RangeType range_type) {
+             callback_called = true;
+           }});
   // ProximityEstimate is only computed after consecutive scans is fulfilled
   EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
                                         kReachRssi,
@@ -139,10 +144,12 @@ TEST(FppManager, UpdateBleScanResultWithTxPowerSuccess) {
   bool callback_called = false;
   manager.RegisterZoneTransitionListener(
       kCallbackId,
-      [&callback_called](uint64_t device_id,
-                         PresenceZone::DistanceBoundary::RangeType range_type) {
-        callback_called = true;
-      });
+      {.on_proximity_zone_changed =
+           [&callback_called](
+               uint64_t device_id,
+               PresenceZone::DistanceBoundary::RangeType range_type) {
+             callback_called = true;
+           }});
   EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/20, kReachRssi,
                                         /*elapsed_real_time_millis=*/0));
   EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/20, kReachRssi,
@@ -159,10 +166,12 @@ TEST(FppManager, UnregisterZoneTransitionListener) {
   bool callback_called = false;
   manager.RegisterZoneTransitionListener(
       kCallbackId,
-      [&callback_called](uint64_t device_id,
-                         PresenceZone::DistanceBoundary::RangeType range_type) {
-        callback_called = true;
-      });
+      {.on_proximity_zone_changed =
+           [&callback_called](
+               uint64_t device_id,
+               PresenceZone::DistanceBoundary::RangeType range_type) {
+             callback_called = true;
+           }});
   EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/0));

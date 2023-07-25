@@ -31,7 +31,6 @@ namespace presence {
 // between fpp and NP sensor fusion
 class FppManager {
  public:
-  using ZoneTransitionCallback = SensorFusion::ZoneTransitionCallback;
   using RangeType = PresenceZone::DistanceBoundary::RangeType;
 
   FppManager() { presence_detector_handle_ = presence_detector_create(); }
