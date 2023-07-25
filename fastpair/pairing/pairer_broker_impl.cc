@@ -36,8 +36,9 @@ constexpr absl::Duration kRetryHandshakeDelay = absl::Seconds(1);
 }  // namespace
 
 PairerBrokerImpl::PairerBrokerImpl(Mediums& medium,
-                                   SingleThreadExecutor* executor)
-    : medium_(medium), executor_(executor) {}
+                                   SingleThreadExecutor* executor,
+                                   AccountManager* account_manager)
+    : medium_(medium), executor_(executor), account_manager_(account_manager) {}
 
 void PairerBrokerImpl::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);
@@ -191,7 +192,7 @@ void PairerBrokerImpl::StartPairingAttempt(FastPairDevice& device) {
   MutexLock lock(&mutex_);
   // Create FastPairPairer instance and start pairing.
   fast_pair_pairers_[device.GetModelId()] = FastPairPairerImpl::Factory::Create(
-      device, medium_, executor_,
+      device, medium_, executor_, account_manager_,
       [&](FastPairDevice& cb_device) {
         executor_->Execute("OnFastPairDevicePaired",
                            [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
@@ -298,10 +299,11 @@ void PairerBrokerImpl::OnFastPairProcedureComplete(FastPairDevice& device) {
   // been written for devices with a version of V2 or higher.
   if (device.GetVersion().has_value() &&
       device.GetVersion().value() == DeviceFastPairVersion::kHigherThanV1 &&
+      device.GetAccountKey().Ok() &&
       (device.GetProtocol() == Protocol::kFastPairInitialPairing ||
        device.GetProtocol() == Protocol::kFastPairRetroactivePairing)) {
     for (auto& observer : observers_.GetObservers()) {
-      observer->OnAccountKeyWrite(device, /*error=*/absl::nullopt);
+      observer->OnAccountKeyWrite(device, /*error=*/std::nullopt);
     }
   }
 }

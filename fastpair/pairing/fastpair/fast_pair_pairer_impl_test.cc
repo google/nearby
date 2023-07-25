@@ -34,6 +34,7 @@
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/common/fast_pair_version.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/crypto/decrypted_passkey.h"
@@ -46,12 +47,15 @@
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
+#include "internal/account/fake_account_manager.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/task_runner_impl.h"
+#include "internal/test/google3_only/fake_authentication_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -62,6 +66,9 @@ using ::nearby::api::ble_v2::GattCharacteristic;
 using DiscoveryCallback = BluetoothClassicMedium::DiscoveryCallback;
 
 constexpr absl::Duration kWaitTimeout = absl::Milliseconds(200);
+constexpr absl::string_view kFastPairPreferencesFilePath =
+    "Google/Nearby/FastPair";
+constexpr absl::string_view kTestAccountId = "test_account_id";
 constexpr absl::string_view kMetadataId("718c17");
 constexpr absl::string_view kPublicAntiSpoof =
     "Wuyr48lD3txnUhGiMF1IfzlTwRxxe+wMB1HLzP+"
@@ -130,11 +137,18 @@ class FastPairPairerImplTest : public testing::Test {
   FastPairPairerImplTest() {
     FastPairDataEncryptorImpl::Factory::SetFactoryForTesting(
         &fake_data_encryptor_factory_);
+    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
+    preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
+        kFastPairPreferencesFilePath);
+    authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
   }
   void SetUp() override {
     env_.Start();
     // Setups seeker device.
     mediums_ = std::make_unique<Mediums>();
+    account_manager_ = std::make_unique<FakeAccountManager>(
+        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
+        authentication_manager_.get(), task_runner_.get());
 
     // Setups provider device.
     adapter_provider_ = std::make_unique<BluetoothAdapter>();
@@ -162,6 +176,7 @@ class FastPairPairerImplTest : public testing::Test {
     fast_pair_pairer_.reset();
     FastPairHandshakeLookup::GetInstance()->Clear();
     mediums_.reset();
+    account_manager_.reset();
     device_.reset();
     remote_device_ = nullptr;
     key_based_characteristic_ = std::nullopt;
@@ -176,6 +191,12 @@ class FastPairPairerImplTest : public testing::Test {
     env_.Sync(false);
     adapter_provider_.reset();
     env_.Stop();
+  }
+
+  void LogInAccount() {
+    AccountManager::Account account;
+    account.id = kTestAccountId;
+    account_manager_->SetAccount(account);
   }
 
   void CreateMockDevice(DeviceFastPairVersion version, Protocol protocol) {
@@ -354,6 +375,7 @@ class FastPairPairerImplTest : public testing::Test {
   std::unique_ptr<FastPairPairer> fast_pair_pairer_;
   FastPairFakeDataEncryptorImplFactory fake_data_encryptor_factory_;
   SingleThreadExecutor executor_;
+  std::unique_ptr<FakeAccountManager> account_manager_;
   std::optional<GattCharacteristic> key_based_characteristic_;
   std::optional<GattCharacteristic> passkey_characteristic_;
   std::optional<GattCharacteristic> accountkey_characteristic_;
@@ -362,6 +384,9 @@ class FastPairPairerImplTest : public testing::Test {
  private:
   MediumEnvironment& env_{MediumEnvironment::Instance()};
   Mutex mutex_;
+  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
+  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
+  std::unique_ptr<TaskRunner> task_runner_;
   std::unique_ptr<BluetoothClassicMedium> bt_provider_;
   std::unique_ptr<BluetoothAdapter> adapter_provider_;
   std::unique_ptr<GattServer> gatt_server_;
@@ -375,6 +400,7 @@ class FastPairPairerImplTest : public testing::Test {
 
 TEST_F(FastPairPairerImplTest,
        SuccessInitialPairingWithDeviceVersionHigherThanV1) {
+  LogInAccount();
   auto repository = std::make_unique<FakeFastPairRepository>();
   repository->SetResultOfWriteAccountAssociationToFootprints(absl::OkStatus());
   ConfigurePairingContext();
@@ -393,7 +419,7 @@ TEST_F(FastPairPairerImplTest,
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
         FAIL() << "Unexpected pairing failure " << failure;
@@ -414,6 +440,7 @@ TEST_F(FastPairPairerImplTest,
 }
 
 TEST_F(FastPairPairerImplTest, SuccessInitialPairingWithDeviceV1) {
+  LogInAccount();
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kV1,
@@ -424,7 +451,7 @@ TEST_F(FastPairPairerImplTest, SuccessInitialPairingWithDeviceV1) {
   CountDownLatch complete_latch(1);
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
         FAIL() << "Unexpected pairing failure " << failure;
@@ -444,6 +471,7 @@ TEST_F(FastPairPairerImplTest, SuccessInitialPairingWithDeviceV1) {
 }
 
 TEST_F(FastPairPairerImplTest, SuccessSubsequentPairingWithDevice) {
+  LogInAccount();
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -459,7 +487,7 @@ TEST_F(FastPairPairerImplTest, SuccessSubsequentPairingWithDevice) {
   CountDownLatch complete_latch(1);
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
         FAIL() << "Unexpected pairing failure " << failure;
@@ -479,6 +507,7 @@ TEST_F(FastPairPairerImplTest, SuccessSubsequentPairingWithDevice) {
 }
 
 TEST_F(FastPairPairerImplTest, SuccessRetroactivePairingWithDevice) {
+  LogInAccount();
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -493,7 +522,7 @@ TEST_F(FastPairPairerImplTest, SuccessRetroactivePairingWithDevice) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         FAIL() << "Unexpected pairing failure " << failure;
@@ -523,7 +552,7 @@ TEST_F(FastPairPairerImplTest, FailedToUnPair) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPairingAndConnect);
@@ -561,7 +590,7 @@ TEST_F(FastPairPairerImplTest, FailedToPairingWithAuthTimeout) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPairingAndConnect);
@@ -594,7 +623,7 @@ TEST_F(FastPairPairerImplTest, NoPasskeyResponse) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPasskeyResponseTimeout);
@@ -629,7 +658,7 @@ TEST_F(FastPairPairerImplTest, PasskeyMismatch) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPasskeyMismatch);
@@ -665,7 +694,7 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyResponse) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPasskeyDecryptFailure);
@@ -702,7 +731,7 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyMessageType) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kIncorrectPasskeyResponseType);
@@ -720,8 +749,46 @@ TEST_F(FastPairPairerImplTest, ReceiveWithWrongPasskeyMessageType) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 }
 
+TEST_F(FastPairPairerImplTest, SkipWriteAccountKeyBecauseNoLoggedInUser) {
+  ConfigurePairingContext();
+  SetPairingResult(std::nullopt);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
+  SetupProviderGattServer();
+  SetNotifyResponse(*key_based_characteristic_, kKeyBasedResponse);
+  SetNotifyResponse(*passkey_characteristic_, kPasskeyResponse);
+  SetDecryptedResponse();
+  SetDecryptedPasskey();
+  CreateFastPairHandshakeInstanceForDevice();
+
+  CountDownLatch paired_latch(1);
+  CountDownLatch complete_latch(1);
+
+  EXPECT_FALSE(device_->GetAccountKey().Ok());
+
+  fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
+      *device_, *mediums_, &executor_, account_manager_.get(),
+      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& device, PairFailure failure) {
+        FAIL() << "Unexpected pairing failure " << failure;
+      },
+      [&](FastPairDevice& device, PairFailure failure) {
+        FAIL() << "Unexpected pairing failure " << failure;
+      },
+      [&](FastPairDevice& device) {
+        EXPECT_FALSE(device.GetAccountKey().Ok());
+        complete_latch.CountDown();
+      });
+  fast_pair_pairer_->StartPairing();
+  paired_latch.Await();
+  complete_latch.Await(kWaitTimeout).result();
+  EXPECT_TRUE(fast_pair_pairer_->IsPaired());
+  EXPECT_FALSE(device_->GetAccountKey().Ok());
+}
+
 TEST_F(FastPairPairerImplTest,
        SuccessPairingWithDeviceButFailedToWriteAccountkeyToRemoteDevice) {
+  LogInAccount();
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -742,7 +809,7 @@ TEST_F(FastPairPairerImplTest,
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
         failure_latch.CountDown();
@@ -766,6 +833,7 @@ TEST_F(FastPairPairerImplTest,
 
 TEST_F(FastPairPairerImplTest,
        SuccessPairingWithDeviceButFailedToWriteAccountkeyToFootprints) {
+  LogInAccount();
   auto repository = std::make_unique<FakeFastPairRepository>();
   repository->SetResultOfWriteAccountAssociationToFootprints(
       absl::InternalError("Failed to write account key to foot prints"));
@@ -785,7 +853,7 @@ TEST_F(FastPairPairerImplTest,
 
   EXPECT_FALSE(device_->GetAccountKey().Ok());
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
       [&](FastPairDevice& device, PairFailure failure) {
         FAIL() << "Unexpected pairing failure " << failure;
@@ -819,7 +887,7 @@ TEST_F(FastPairPairerImplTest, TestCancelPairing) {
   EXPECT_FALSE(device_->GetAccountKey().Ok());
 
   fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
-      *device_, *mediums_, &executor_,
+      *device_, *mediums_, &executor_, account_manager_.get(),
       [&](FastPairDevice& cb_device) { FAIL() << "Unexpected callback"; },
       [&](FastPairDevice& device, PairFailure failure) {
         EXPECT_EQ(failure, PairFailure::kPairingAndConnect);

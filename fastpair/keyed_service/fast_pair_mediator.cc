@@ -75,8 +75,6 @@ Mediator::Mediator(
   devices_ = std::make_unique<FastPairDeviceRepository>(executor_.get());
   scanner_broker_ = std::make_unique<ScannerBrokerImpl>(
       *mediums_, executor_.get(), devices_.get());
-  pairer_broker_ =
-      std::make_unique<PairerBrokerImpl>(*mediums_, executor_.get());
   task_runner_ = std::make_unique<TaskRunnerImpl>(1);
   preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
       kFastPairPreferencesFilePath);
@@ -88,6 +86,8 @@ Mediator::Mediator(
       &fast_pair_http_notifier_, device_info_.get());
   fast_pair_repository_ =
       std::make_unique<FastPairRepositoryImpl>(fast_pair_client_.get());
+  pairer_broker_ = std::make_unique<PairerBrokerImpl>(
+      *mediums_, executor_.get(), account_manager_.get());
   scanner_broker_->AddObserver(this);
   ui_broker_->AddObserver(this);
   pairer_broker_->AddObserver(this);

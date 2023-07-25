@@ -24,6 +24,7 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
 #include "fastpair/pairing/pairer_broker.h"
+#include "internal/account/account_manager.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/timer_impl.h"
@@ -33,7 +34,8 @@ namespace fastpair {
 
 class PairerBrokerImpl : public PairerBroker {
  public:
-  explicit PairerBrokerImpl(Mediums& medium, SingleThreadExecutor* executor);
+  explicit PairerBrokerImpl(Mediums& medium, SingleThreadExecutor* executor,
+                            AccountManager* account_manager);
   PairerBrokerImpl(const PairerBrokerImpl&) = delete;
   PairerBrokerImpl& operator=(const PairerBrokerImpl&) = delete;
 
@@ -74,6 +76,7 @@ class PairerBrokerImpl : public PairerBroker {
 
   Mediums& medium_;
   SingleThreadExecutor* executor_;
+  AccountManager* account_manager_;
 
   // The key for all the following maps is a device model id.
   absl::flat_hash_map<std::string, std::unique_ptr<FastPairPairer>>

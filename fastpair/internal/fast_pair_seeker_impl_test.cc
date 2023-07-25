@@ -24,13 +24,17 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
+#include "internal/account/fake_account_manager.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/task_runner_impl.h"
+#include "internal/test/google3_only/fake_authentication_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -46,8 +50,9 @@ constexpr absl::string_view kBobPublicKey =
     "F7D496A62ECA416351540AA343BC690A6109F551500666B83B1251FB84FA2860795EBD63D3"
     "B8836F44A9A3E28BB34017E015F5979305D849FDF8DE10123B61D2";
 constexpr absl::string_view kPasskey = "123456";
-
-constexpr absl::Duration kTaskWaitTimeout = absl::Milliseconds(100);
+constexpr absl::string_view kFastPairPreferencesFilePath =
+    "Google/Nearby/FastPair";
+constexpr absl::string_view kTestAccountId = "test_account_id";
 
 using ::testing::status::StatusIs;
 
@@ -59,16 +64,33 @@ class MediumEnvironmentStarter {
 
 class FastPairSeekerImplTest : public testing::Test {
  protected:
+  FastPairSeekerImplTest() {
+    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
+    preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
+        kFastPairPreferencesFilePath);
+    authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
+  }
+
   void SetUp() override {
     NEARBY_LOG_SET_SEVERITY(VERBOSE);
     repository_ = FakeFastPairRepository::Create(
         kModelId, absl::HexStringToBytes(kBobPublicKey));
+    account_manager_ = std::make_unique<FakeAccountManager>(
+        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
+        authentication_manager_.get(), task_runner_.get());
+    AccountManager::Account account;
+    account.id = kTestAccountId;
+    account_manager_->SetAccount(account);
   }
 
   void TearDown() override { executor_.Shutdown(); }
 
   MediumEnvironmentStarter env_;
   SingleThreadExecutor executor_;
+  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
+  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
+  std::unique_ptr<TaskRunner> task_runner_;
+  std::unique_ptr<FakeAccountManager> account_manager_;
   FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<FakeFastPairRepository> repository_;
   std::unique_ptr<FastPairSeekerImpl> fast_pair_seeker_;
@@ -77,7 +99,8 @@ class FastPairSeekerImplTest : public testing::Test {
 
 TEST_F(FastPairSeekerImplTest, StartAndStopFastPairScan) {
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
-      FastPairSeekerImpl::ServiceCallbacks{}, &executor_, &devices_);
+      FastPairSeekerImpl::ServiceCallbacks{}, &executor_,
+      account_manager_.get(), &devices_);
 
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
   EXPECT_OK(fast_pair_seeker_->StopFastPairScan());
@@ -93,7 +116,7 @@ TEST_F(FastPairSeekerImplTest, DiscoverDevice) {
                 EXPECT_EQ(device.GetModelId(), kModelId);
                 latch.CountDown();
               }},
-      &executor_, &devices_);
+      &executor_, account_manager_.get(), &devices_);
 
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
   provider.StartDiscoverableAdvertisement(kModelId);
@@ -104,7 +127,8 @@ TEST_F(FastPairSeekerImplTest, DiscoverDevice) {
 
 TEST_F(FastPairSeekerImplTest, StartFastPairScanTwiceFails) {
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
-      FastPairSeekerImpl::ServiceCallbacks{}, &executor_, &devices_);
+      FastPairSeekerImpl::ServiceCallbacks{}, &executor_,
+      account_manager_.get(), &devices_);
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
 
   EXPECT_THAT(fast_pair_seeker_->StartFastPairScan(),
@@ -113,7 +137,8 @@ TEST_F(FastPairSeekerImplTest, StartFastPairScanTwiceFails) {
 
 TEST_F(FastPairSeekerImplTest, StopFastPairScanTwiceFails) {
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
-      FastPairSeekerImpl::ServiceCallbacks{}, &executor_, &devices_);
+      FastPairSeekerImpl::ServiceCallbacks{}, &executor_,
+      account_manager_.get(), &devices_);
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
 
   EXPECT_OK(fast_pair_seeker_->StopFastPairScan());
@@ -134,7 +159,7 @@ TEST_F(FastPairSeekerImplTest, ScreenLocksDuringAdvertising) {
                 EXPECT_TRUE(event.is_locked);
                 latch.CountDown();
               }},
-      &executor_, &devices_);
+      &executor_, account_manager_.get(), &devices_);
   // Create Advertiser and startAdvertising
   Mediums mediums_2;
   std::string service_id(kServiceID);
@@ -170,7 +195,7 @@ TEST_F(FastPairSeekerImplTest, InitialPairing) {
                     }}));
                 discover_latch.CountDown();
               }},
-      &executor_, &devices_);
+      &executor_, account_manager_.get(), &devices_);
 
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
   provider.PrepareForInitialPairing(
@@ -209,7 +234,7 @@ TEST_F(FastPairSeekerImplTest, RetroactivePairing) {
                       retro_latch.CountDown();
                     }}));
               }},
-      &executor_, &devices_);
+      &executor_, account_manager_.get(), &devices_);
 
   provider.PrepareForRetroactivePairing(
       {.private_key = absl::HexStringToBytes(kBobPrivateKey),

@@ -106,7 +106,7 @@ FastPairService::FastPairService(
               [this](const FastPairDevice& device, RingEvent event) {
                 OnRingEvent(device, std::move(event));
               }},
-      &executor_, &devices_);
+      &executor_, account_manager_.get(), &devices_);
 }
 
 FastPairService::~FastPairService() { executor_.Shutdown(); }

@@ -63,6 +63,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   };
 
   FastPairSeekerImpl(ServiceCallbacks callbacks, SingleThreadExecutor* executor,
+                     AccountManager* account_manager,
                      FastPairDeviceRepository* devices);
 
   ~FastPairSeekerImpl() override;
@@ -117,6 +118,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
 
   ServiceCallbacks callbacks_;
   SingleThreadExecutor* executor_;
+  AccountManager* account_manager_;
   FastPairDeviceRepository* devices_;
   Mediums mediums_;
   std::unique_ptr<ScannerBrokerImpl> scanner_;

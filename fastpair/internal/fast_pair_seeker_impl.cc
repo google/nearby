@@ -38,9 +38,14 @@ constexpr absl::Duration kCleanupTimeout = absl::Seconds(3);
 
 FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
                                        SingleThreadExecutor* executor,
+                                       AccountManager* account_manager,
                                        FastPairDeviceRepository* devices)
-    : callbacks_(std::move(callbacks)), executor_(executor), devices_(devices) {
-  pairer_broker_ = std::make_unique<PairerBrokerImpl>(mediums_, executor_);
+    : callbacks_(std::move(callbacks)),
+      executor_(executor),
+      account_manager_(account_manager),
+      devices_(devices) {
+  pairer_broker_ =
+      std::make_unique<PairerBrokerImpl>(mediums_, executor_, account_manager_);
   pairer_broker_->AddObserver(this);
   mediums_.GetBluetoothClassic().AddObserver(this);
   retro_detector_ = std::make_unique<RetroactivePairingDetectorImpl>(
