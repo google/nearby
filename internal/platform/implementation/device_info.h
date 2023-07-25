@@ -29,7 +29,16 @@ class DeviceInfo {
  public:
   enum class ScreenStatus { kUndetermined = 0, kLocked, kUnlocked };
   enum class DeviceType { kUnknown = 0, kPhone, kTablet, kLaptop };
-  enum class OsType { kUnknown = 0, kAndroid, kChromeOs, kIos, kWindows };
+  enum class OsType {
+    kUnknown = 0,
+    kAndroid,
+    kChromeOs,
+    kWindows,
+    kIos,
+    kTvOs,
+    kWatchOs,
+    kMacOs
+  };
 
   virtual ~DeviceInfo() = default;
 
@@ -37,6 +46,7 @@ class DeviceInfo {
   virtual std::optional<std::u16string> GetOsDeviceName() const = 0;
   virtual DeviceType GetDeviceType() const = 0;
   virtual OsType GetOsType() const = 0;
+  virtual absl::string_view GetOsTypeString() const = 0;
 
   // Gets basic information of current user.
   virtual std::optional<std::u16string> GetFullName() const = 0;

@@ -57,21 +57,6 @@ constexpr absl::string_view kUserDeleteDevicePath = "user/device";
 const char* GetObservedDeviceMode[3] = {"MODE_UNKNOWN", "MODE_RELEASE",
                                         "MODE_DEBUG"};
 
-absl::string_view GetPlatformTypeString(api::DeviceInfo::OsType os_type) {
-  switch (os_type) {
-    case api::DeviceInfo::OsType::kAndroid:
-      return "OSType.ANDROID";
-    case api::DeviceInfo::OsType::kChromeOs:
-      return "OSType.CHROME_OS";
-    case api::DeviceInfo::OsType::kIos:
-      return "OSType.IOS";
-    case api::DeviceInfo::OsType::kWindows:
-      return "OSType.WINDOWS";
-    default:
-      return "OSType.UNKNOWN";
-  }
-}
-
 // Creates the full Nearby V1 URL with |request_path|.
 Url CreateV1RequestUrl(absl::string_view request_path) {
   std::string host = std::string(kDefaultNearbyDevicesHttpHost);
@@ -318,7 +303,7 @@ HttpRequest FastPairClientImpl::CreateHttpRequest(
                       absl::StrCat("Bearer ", access_token.value()));
   }
   request.AddHeader(kPlatformTypeHeaderName,
-                    GetPlatformTypeString(device_info_->GetOsType()));
+                    device_info_->GetOsTypeString()));
   request.AddHeader("Content-Type",
                     body ? kProtobufContentType : std::string());
 

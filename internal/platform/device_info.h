@@ -33,6 +33,7 @@ class DeviceInfo {
   virtual std::u16string GetOsDeviceName() const = 0;
   virtual api::DeviceInfo::DeviceType GetDeviceType() const = 0;
   virtual api::DeviceInfo::OsType GetOsType() const = 0;
+  virtual absl::string_view GetOsTypeString() const = 0;
   virtual std::optional<std::u16string> GetFullName() const = 0;
   virtual std::optional<std::u16string> GetGivenName() const = 0;
   virtual std::optional<std::u16string> GetLastName() const = 0;
@@ -67,7 +68,6 @@ class DeviceInfo {
     }
   }
 };
-
 }  // namespace nearby
 
 #endif  // PLATFORM_PUBLIC_DEVICE_INFO_H_

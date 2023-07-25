@@ -163,6 +163,10 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
+absl::string_view  DeviceInfo::GetOsTypeString() const {
+  return "OSType.WINDOWS";
+}
+
 std::optional<std::u16string> DeviceInfo::GetFullName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all

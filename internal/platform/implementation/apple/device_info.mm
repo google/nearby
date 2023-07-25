@@ -15,6 +15,7 @@
 #import "internal/platform/implementation/apple/device_info.h"
 
 #import <Foundation/Foundation.h>
+#import <TargetConditionals.h>
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #endif
@@ -68,7 +69,34 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
 #endif
 }
 
-api::DeviceInfo::OsType DeviceInfo::GetOsType() const { return api::DeviceInfo::OsType::kIos; }
+api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+  return api::DeviceInfo::OsType::kMacOs;
+#elif TARGET_OS_IOS
+  return api::DeviceInfo::OsType::kIos;
+#elif TARGET_OS_WATCH
+  return api::DeviceInfo::OsType::kWatchOs;
+#elif TARGET_OS_TV
+  return api::DeviceInfo::OsType::kTvOs;
+#else
+  return api::DeviceInfo::OsType::kUnknown;
+#endif
+}
+
+absl::string_view DeviceInfo::GetOsTypeString() const {
+  switch (GetOsType()) {
+    case api::DeviceInfo::OsType::kMacOs:
+      return "OSType.MACOS";
+    case api::DeviceInfo::OsType::kIos:
+      return "OSType.IOS";
+    case api::DeviceInfo::OsType::kTvOs:
+      return "OSType.TVOS";
+    case api::DeviceInfo::OsType::kWatchOs:
+      return "OSType.WATCHOS";
+    default:
+      return "OSType.UNKNOWN";
+  }
+}
 
 std::optional<std::u16string> DeviceInfo::GetFullName() const { return std::nullopt; }
 std::optional<std::u16string> DeviceInfo::GetGivenName() const { return std::nullopt; }

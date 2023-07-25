@@ -39,6 +39,10 @@ api::DeviceInfo::OsType DeviceInfoImpl::GetOsType() const {
   return device_info_impl_->GetOsType();
 }
 
+absl::string_view DeviceInfoImpl::GetOsTypeString() const {
+  return device_info_impl_->GetOsTypeString();
+}
+
 std::optional<std::u16string> DeviceInfoImpl::GetFullName() const {
   return device_info_impl_->GetFullName();
 }

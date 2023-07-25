@@ -34,6 +34,7 @@ class DeviceInfoImpl : public DeviceInfo {
   std::u16string GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
+  absl::string_view GetOsTypeString() const override;
 
   std::optional<std::u16string> GetFullName() const override;
   std::optional<std::u16string> GetGivenName() const override;
