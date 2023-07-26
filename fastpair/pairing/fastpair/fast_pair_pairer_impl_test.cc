@@ -402,6 +402,8 @@ TEST_F(FastPairPairerImplTest,
        SuccessInitialPairingWithDeviceVersionHigherThanV1) {
   LogInAccount();
   auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfIsDeviceSavedToAccount(
+      absl::NotFoundError("not found"));
   repository->SetResultOfWriteAccountAssociationToFootprints(absl::OkStatus());
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
@@ -787,8 +789,50 @@ TEST_F(FastPairPairerImplTest, SkipWriteAccountKeyBecauseNoLoggedInUser) {
 }
 
 TEST_F(FastPairPairerImplTest,
+       SkipWriteAccountKeyBecauseDeviceAlreadySavedToAccount) {
+  LogInAccount();
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfIsDeviceSavedToAccount(absl::OkStatus());
+  ConfigurePairingContext();
+  SetPairingResult(std::nullopt);
+  CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
+                   Protocol::kFastPairInitialPairing);
+  SetupProviderGattServer();
+  SetNotifyResponse(*key_based_characteristic_, kKeyBasedResponse);
+  SetNotifyResponse(*passkey_characteristic_, kPasskeyResponse);
+  SetDecryptedResponse();
+  SetDecryptedPasskey();
+  CreateFastPairHandshakeInstanceForDevice();
+
+  CountDownLatch paired_latch(1);
+  CountDownLatch complete_latch(1);
+
+  fast_pair_pairer_ = FastPairPairerImpl::Factory::Create(
+      *device_, *mediums_, &executor_, account_manager_.get(),
+      [&](FastPairDevice& cb_device) { paired_latch.CountDown(); },
+      [&](FastPairDevice& device, PairFailure failure) {
+        FAIL() << "Unexpected pairing failure " << failure;
+      },
+      [&](FastPairDevice& device, PairFailure failure) {
+        FAIL() << "Unexpected pairing failure " << failure;
+      },
+      [&](FastPairDevice& device) {
+        EXPECT_FALSE(device.GetAccountKey().Ok());
+        complete_latch.CountDown();
+      });
+  fast_pair_pairer_->StartPairing();
+  paired_latch.Await();
+  complete_latch.Await();
+  EXPECT_TRUE(fast_pair_pairer_->IsPaired());
+  EXPECT_FALSE(device_->GetAccountKey().Ok());
+}
+
+TEST_F(FastPairPairerImplTest,
        SuccessPairingWithDeviceButFailedToWriteAccountkeyToRemoteDevice) {
   LogInAccount();
+  auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfIsDeviceSavedToAccount(
+      absl::NotFoundError("not found"));
   ConfigurePairingContext();
   SetPairingResult(std::nullopt);
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
@@ -835,6 +879,8 @@ TEST_F(FastPairPairerImplTest,
        SuccessPairingWithDeviceButFailedToWriteAccountkeyToFootprints) {
   LogInAccount();
   auto repository = std::make_unique<FakeFastPairRepository>();
+  repository->SetResultOfIsDeviceSavedToAccount(
+      absl::NotFoundError("not found"));
   repository->SetResultOfWriteAccountAssociationToFootprints(
       absl::InternalError("Failed to write account key to foot prints"));
   ConfigurePairingContext();

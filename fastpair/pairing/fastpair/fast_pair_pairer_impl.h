@@ -88,6 +88,7 @@ class FastPairPairerImpl : public FastPairPairer {
 
   // Attempts to write account key to remote device
   void AttemptSendAccountKey() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void WriteAccountKey();
   // FastPairDataEncryptor::WriteAccountKey callback
   void OnWriteAccountKey(std::optional<AccountKey> account_key,
                          std::optional<PairFailure> failure);

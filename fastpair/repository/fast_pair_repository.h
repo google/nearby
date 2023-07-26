@@ -36,8 +36,7 @@ using DeviceMetadataCallback =
 using CheckAccountKeysCallback =
     absl::AnyInvocable<void(std::optional<AccountKey> account_key,
                             std::optional<absl::string_view> model_id)>;
-using OperationToFootprintsCallback =
-    absl::AnyInvocable<void(absl::Status status)>;
+using OperationCallback = absl::AnyInvocable<void(absl::Status status)>;
 
 class FastPairRepository {
  public:
@@ -72,18 +71,23 @@ class FastPairRepository {
 
   // Stores the given |account_key| for a |device| on the Footprints server.
   virtual void WriteAccountAssociationToFootprints(
-      FastPairDevice& device, OperationToFootprintsCallback callback) = 0;
+      FastPairDevice& device, OperationCallback callback) = 0;
 
   // Deletes the associated data for a given |account_key|.
   virtual void DeleteAssociatedDeviceByAccountKey(
-      const AccountKey& account_key,
-      OperationToFootprintsCallback callback) = 0;
+      const AccountKey& account_key, OperationCallback callback) = 0;
 
   // Checks all account keys associated with current user's account against the
   // given filter. If a match is found, return the account key.
   virtual void CheckIfAssociatedWithCurrentAccount(
       AccountKeyFilter& account_key_filter,
       CheckAccountKeysCallback callback) = 0;
+
+  // Checks if a device with an address |mac_address| is already saved to
+  // the user's account by cross referencing the |mac_address| with any
+  // associated account keys.
+  virtual void IsDeviceSavedToAccount(absl::string_view mac_address,
+                                      OperationCallback callback) = 0;
 
  protected:
   static void SetInstance(FastPairRepository* instance);

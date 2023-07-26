@@ -56,6 +56,20 @@ bool DoesDeviceHaveForgetPattern(const proto::FastPairDevice& device) {
   return (device.sha256_account_key_public_address().compare(
               0, kForgetPattern.length(), kForgetPattern) == 0);
 }
+
+// Checks if the mac address of a FastPairDevice is the same as the given
+// |mac_address| by checking if the SHA256 from the given |device| equals to
+// SHA256(concat(account_key of |device|, |mac_address|)).
+bool IsDeviceSha256Matched(const proto::FastPairDevice& device,
+                           absl::string_view mac_address) {
+  if (DoesDeviceHaveForgetPattern(device)) {
+    return false;
+  }
+
+  return device.sha256_account_key_public_address() ==
+         FastPairRepository::GenerateSha256OfAccountKeyAndMacAddress(
+             AccountKey(device.account_key()), mac_address);
+}
 }  // namespace
 
 FastPairRepositoryImpl::FastPairRepositoryImpl(FastPairClient* fast_pair_client)
@@ -98,7 +112,7 @@ void FastPairRepositoryImpl::GetDeviceMetadata(
 }
 
 void FastPairRepositoryImpl::WriteAccountAssociationToFootprints(
-    FastPairDevice& device, OperationToFootprintsCallback callback) {
+    FastPairDevice& device, OperationCallback callback) {
   proto::UserWriteDeviceRequest request;
   auto* fast_pair_info = request.mutable_fast_pair_info();
   BuildFastPairInfo(fast_pair_info, device);
@@ -124,7 +138,7 @@ void FastPairRepositoryImpl::WriteAccountAssociationToFootprints(
 }
 
 void FastPairRepositoryImpl::DeleteAssociatedDeviceByAccountKey(
-    const AccountKey& account_key, OperationToFootprintsCallback callback) {
+    const AccountKey& account_key, OperationCallback callback) {
   std::string hex_string = absl::BytesToHexString(account_key.GetAsBytes());
   absl::AsciiStrToUpper(&hex_string);
   executor_.Execute(
@@ -228,6 +242,39 @@ void FastPairRepositoryImpl::CheckIfAssociatedWithCurrentAccount(
     NEARBY_LOGS(INFO) << "Account key does not match any paired devices.";
     std::move(callback)(std::nullopt, std::nullopt);
   });
+}
+
+void FastPairRepositoryImpl::IsDeviceSavedToAccount(
+    absl::string_view mac_address, OperationCallback callback) {
+  executor_.Execute(
+      "Check is device saved to account.",
+      [this, mac_address = std::string(mac_address),
+       callback = std::move(callback)]() mutable {
+        NEARBY_LOGS(INFO) << __func__
+                          << ": Start to check is device saved to account.";
+        proto::UserReadDevicesRequest request;
+        absl::StatusOr<proto::UserReadDevicesResponse> response =
+            fast_pair_client_->UserReadDevices(request);
+        if (!response.ok()) {
+          NEARBY_LOGS(WARNING)
+              << __func__
+              << "Failed to get UserDeleteDeviceResponse from backend.";
+          std::move(callback)(response.status());
+          return;
+        }
+        for (const auto& info : response->fast_pair_info()) {
+          if (info.has_device() &&
+              IsDeviceSha256Matched(info.device(), mac_address)) {
+            NEARBY_LOGS(VERBOSE)
+                << __func__ << ": found a SHA256 match for device at address = "
+                << mac_address;
+            std::move(callback)(absl::OkStatus());
+            return;
+          }
+        }
+        std::move(callback)(absl::NotFoundError("Device " + mac_address +
+                                                " is not saved to account."));
+      });
 }
 
 }  // namespace fastpair

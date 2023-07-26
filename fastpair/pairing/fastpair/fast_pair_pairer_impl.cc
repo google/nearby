@@ -289,7 +289,30 @@ void FastPairPairerImpl::AttemptSendAccountKey() {
     NotifyPairingCompleted();
     return;
   }
-  // TODO(b/281782018) : Handle BLE address rotation
+
+  // It's possible that the user has opted to initial pair to a device that
+  // already has an account key saved. We check to see if this is the case
+  // before writing a new account key.
+  if (device_.GetProtocol() == Protocol::kFastPairInitialPairing) {
+    FastPairRepository::Get()->IsDeviceSavedToAccount(
+        device_.GetPublicAddress().value(), [this](absl::Status status) {
+          if (status.ok()) {
+            NEARBY_LOGS(VERBOSE)
+                << __func__
+                << ": Device is already saved, skipping write account key. "
+                   "Pairing procedure complete.";
+            NotifyPairingCompleted();
+            return;
+          }
+          WriteAccountKey();
+        });
+  } else {
+    // TODO(b/281782018) : Handle BLE address rotation
+    WriteAccountKey();
+  }
+}
+
+void FastPairPairerImpl::WriteAccountKey() {
   fast_pair_gatt_service_client_->WriteAccountKey(
       *fast_pair_handshake_->fast_pair_data_encryptor(),
       [&](const std::optional<AccountKey> account_key,

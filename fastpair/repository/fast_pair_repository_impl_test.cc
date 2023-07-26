@@ -468,6 +468,81 @@ TEST(FastPairRepositoryImplTest, DeviceNotAssociatedWithCurrentAccount) {
       });
   latch.Await();
 }
+
+TEST(FastPairRepositoryImplTest, DeviceIsSavedToCurrentAccount) {
+  FakeFastPairClient fake_fast_pair_client;
+  auto fast_pair_repository =
+      std::make_unique<FastPairRepositoryImpl>(&fake_fast_pair_client);
+
+  // Sets up two devices to proto::UserReadDevicesResponse.
+  proto::UserReadDevicesResponse response_proto;
+  // Device 1
+  FastPairDevice device_1(kHexModelId, kBleAddress,
+                          Protocol::kFastPairInitialPairing);
+  AccountKey account_key_1(absl::HexStringToBytes(kAccountKey));
+  device_1.SetAccountKey(account_key_1);
+  device_1.SetPublicAddress(kPublicAddress);
+  proto::GetObservedDeviceResponse get_observed_device_response;
+  DeviceMetadata device_metadata_1(get_observed_device_response);
+  device_1.SetMetadata(device_metadata_1);
+  auto* fast_pair_info_1 = response_proto.add_fast_pair_info();
+  BuildFastPairInfo(fast_pair_info_1, device_1);
+  // Device 2
+  auto* fast_pair_info_2 = response_proto.add_fast_pair_info();
+  fast_pair_info_2->set_opt_in_status(
+      proto::OptInStatus::OPT_IN_STATUS_OPTED_IN);
+  fake_fast_pair_client.SetUserReadDevicesResponse(response_proto);
+
+  CountDownLatch latch(1);
+  fast_pair_repository->IsDeviceSavedToAccount(kPublicAddress,
+                                               [&](absl::Status status) {
+                                                 EXPECT_OK(status);
+                                                 latch.CountDown();
+                                               });
+  latch.Await();
+}
+
+TEST(FastPairRepositoryImplTest, DeviceIsNotSavedToCurrentAccount) {
+  FakeFastPairClient fake_fast_pair_client;
+  auto fast_pair_repository =
+      std::make_unique<FastPairRepositoryImpl>(&fake_fast_pair_client);
+
+  // Sets up two devices to proto::UserReadDevicesResponse.
+  proto::UserReadDevicesResponse response_proto;
+  FastPairDevice device(kHexModelId, kBleAddress,
+                        Protocol::kFastPairInitialPairing);
+  AccountKey account_key(absl::HexStringToBytes(kAccountKey));
+  device.SetAccountKey(account_key);
+  device.SetPublicAddress(kPublicAddress);
+  proto::GetObservedDeviceResponse get_observed_device_response;
+  DeviceMetadata device_metadata(get_observed_device_response);
+  device.SetMetadata(device_metadata);
+  auto* fast_pair_info = response_proto.add_fast_pair_info();
+  BuildFastPairInfo(fast_pair_info, device);
+  fake_fast_pair_client.SetUserReadDevicesResponse(response_proto);
+
+  CountDownLatch latch(1);
+  fast_pair_repository->IsDeviceSavedToAccount(
+      "11:22:33:44:55:66", [&](absl::Status status) {
+        EXPECT_EQ(status.code(), absl::StatusCode::kNotFound);
+        latch.CountDown();
+      });
+  latch.Await();
+}
+
+TEST(FastPairRepositoryImplTest, FailedToCheckDeviceIsSavedToCurrentAccount) {
+  FakeFastPairClient fake_fast_pair_client;
+  auto fast_pair_repository =
+      std::make_unique<FastPairRepositoryImpl>(&fake_fast_pair_client);
+
+  CountDownLatch latch(1);
+  fast_pair_repository->IsDeviceSavedToAccount(kPublicAddress,
+                                               [&](absl::Status status) {
+                                                 EXPECT_FALSE(status.ok());
+                                                 latch.CountDown();
+                                               });
+  latch.Await();
+}
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

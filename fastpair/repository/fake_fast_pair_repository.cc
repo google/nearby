@@ -56,6 +56,11 @@ void FakeFastPairRepository::SetResultOfDeleteAssociatedDeviceByAccountKey(
   deleted_associated_device_ = status;
 }
 
+void FakeFastPairRepository::SetResultOfIsDeviceSavedToAccount(
+    absl::Status status) {
+  is_device_saved_to_account_ = status;
+}
+
 void FakeFastPairRepository::GetDeviceMetadata(
     absl::string_view hex_model_id, DeviceMetadataCallback callback) {
   executor_.Execute([this, callback = std::move(callback),
@@ -69,14 +74,14 @@ void FakeFastPairRepository::GetDeviceMetadata(
 }
 
 void FakeFastPairRepository::WriteAccountAssociationToFootprints(
-    FastPairDevice& device, OperationToFootprintsCallback callback) {
+    FastPairDevice& device, OperationCallback callback) {
   executor_.Execute([callback = std::move(callback), this]() mutable {
     callback(write_account_association_to_footprints_);
   });
 }
 
 void FakeFastPairRepository::DeleteAssociatedDeviceByAccountKey(
-    const AccountKey& account_key, OperationToFootprintsCallback callback) {
+    const AccountKey& account_key, OperationCallback callback) {
   executor_.Execute([callback = std::move(callback), this]() mutable {
     callback(deleted_associated_device_);
   });
@@ -86,6 +91,13 @@ void FakeFastPairRepository::CheckIfAssociatedWithCurrentAccount(
     AccountKeyFilter& account_key_filter, CheckAccountKeysCallback callback) {
   executor_.Execute([this, callback = std::move(callback)]() mutable {
     std::move(callback)(account_key_, model_id_);
+  });
+}
+
+void FakeFastPairRepository::IsDeviceSavedToAccount(
+    absl::string_view mac_address, OperationCallback callback) {
+  executor_.Execute([callback = std::move(callback), this]() mutable {
+    callback(is_device_saved_to_account_);
   });
 }
 

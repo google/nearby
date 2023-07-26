@@ -44,16 +44,18 @@ class FastPairRepositoryImpl : public FastPairRepository {
 
   void GetUserSavedDevices() override;
 
-  void WriteAccountAssociationToFootprints(
-      FastPairDevice& device, OperationToFootprintsCallback callback) override;
+  void WriteAccountAssociationToFootprints(FastPairDevice& device,
+                                           OperationCallback callback) override;
 
-  void DeleteAssociatedDeviceByAccountKey(
-      const AccountKey& account_key,
-      OperationToFootprintsCallback callback) override;
+  void DeleteAssociatedDeviceByAccountKey(const AccountKey& account_key,
+                                          OperationCallback callback) override;
 
   void CheckIfAssociatedWithCurrentAccount(
       AccountKeyFilter& account_key_filter,
       CheckAccountKeysCallback callback) override;
+
+  void IsDeviceSavedToAccount(absl::string_view mac_address,
+                              OperationCallback callback) override;
 
  private:
   // A thread for running blocking tasks.
