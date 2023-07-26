@@ -310,7 +310,7 @@ void PayloadManager::CancelAllPayloads() {
 
     if (pending_outgoing_payloads) {
       shutdown_barrier_ =
-          absl::make_unique<CountDownLatch>(pending_outgoing_payloads);
+          std::make_unique<CountDownLatch>(pending_outgoing_payloads);
     }
   }
   if (shutdown_barrier_) {
@@ -457,8 +457,6 @@ void PayloadManager::SendPayload(ClientProxy* client,
                               next_chunk_offset, resume_offset);
         }
 
-        ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-            payload_id, PayloadDirection::OUTGOING_PAYLOAD);
         RunOnStatusUpdateThread("destroy-payload",
                                 [this, payload_id]()
                                     RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
@@ -706,6 +704,10 @@ PayloadManager::PendingPayloadHandle PayloadManager::CreateIncomingPayload(
 void PayloadManager::OnPendingPayloadDestroy(const PendingPayload* payload) {
   NEARBY_LOGS(INFO) << "PayloadManager: destroying " << payload->ToString()
                     << " self=" << this;
+  ThroughputRecorderContainer::GetInstance().StopTPRecorder(
+      payload->GetId(), payload->IsIncoming()
+                            ? PayloadDirection::INCOMING_PAYLOAD
+                            : PayloadDirection::OUTGOING_PAYLOAD);
   if (payload->IsIncoming()) return;
   RunOnStatusUpdateThread(
       "~PendingPayload",
@@ -853,8 +855,6 @@ void PayloadManager::HandleFinishedIncomingPayload(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes,
     location::nearby::proto::connections::PayloadStatus status) {
-  ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-      payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
   SendClientCallbacksForFinishedIncomingPayload(
       client, endpoint_id, payload_header, offset_bytes, status);
 
@@ -1147,9 +1147,6 @@ void PayloadManager::ProcessDataPacket(
     ThroughputRecorderContainer::GetInstance()
         .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
         ->MarkAsSuccess();
-
-    ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-        payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
   }
 }
 
