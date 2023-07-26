@@ -284,10 +284,10 @@ TEST_P(OfflineServiceControllerTest, CanSendBytePayload) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
+  user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
   user_a.SendPayload(Payload(message));
-  user_b.ExpectPayload(payload_latch_);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   EXPECT_EQ(user_b.GetPayload().AsBytes(), message);
   user_a.Stop();
@@ -299,6 +299,7 @@ TEST_P(OfflineServiceControllerTest, CanSendStreamPayload) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
+  user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
   auto pipe = std::make_shared<Pipe>();
@@ -306,7 +307,6 @@ TEST_P(OfflineServiceControllerTest, CanSendStreamPayload) {
   user_a.SendPayload(Payload([pipe]() -> InputStream& {
     return pipe->GetInputStream();  // NOLINT
   }));
-  user_b.ExpectPayload(payload_latch_);
   tx.Write(message);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
@@ -326,6 +326,7 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
+  user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
   auto pipe = std::make_shared<Pipe>();
@@ -333,7 +334,6 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
   user_a.SendPayload(Payload([pipe]() -> InputStream& {
     return pipe->GetInputStream();  // NOLINT
   }));
-  user_b.ExpectPayload(payload_latch_);
   tx.Write(message);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
