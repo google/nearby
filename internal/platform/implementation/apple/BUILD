@@ -32,7 +32,6 @@ objc_library(
         "preferences_manager.mm",
         "scheduled_executor.mm",
         "timer.mm",
-        "utils.mm",
         "wifi_lan.mm",
     ],
     hdrs = [
@@ -44,7 +43,6 @@ objc_library(
         "scheduled_executor.h",
         "single_thread_executor.h",
         "timer.h",
-        "utils.h",
         "wifi_lan.h",
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
