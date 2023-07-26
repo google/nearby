@@ -10,6 +10,7 @@ cc_library(
         "connection_result.h",
         "connections_device.h",
         "connections_device_provider.h",
+        "discovery_options.h",
         "listeners.h",
         "listening_result.h",
         "params.h",
