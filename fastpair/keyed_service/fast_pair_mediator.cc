@@ -130,7 +130,7 @@ void Mediator::OnDiscoveryAction(FastPairDevice& device,
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kDismissedByUser";
       foreground_currently_showing_notification_ = false;
       // TODO(b/285453663): update discovery block list
-      [[fallthrough]];
+      break;
     case DiscoveryAction::kDismissedByTimeout:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kDismissedByTimeout";
       foreground_currently_showing_notification_ = false;

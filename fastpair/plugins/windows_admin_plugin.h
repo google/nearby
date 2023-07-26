@@ -37,7 +37,9 @@ class WindowsAdminPlugin : public FastPairPlugin {
     ObserverList<FastPairNotificationController::Observer> observers;
     const FastPairDevice* device = nullptr;
     std::unique_ptr<FastPairService> fast_pair_service;
+    bool foreground_currently_showing_notification = false;
   };
+
   class Provider : public FastPairPluginProvider {
    public:
     explicit Provider(PluginState* state) : state_(state) {}
