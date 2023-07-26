@@ -127,7 +127,6 @@ cc_library(
     deps = [
         "//presence:types",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/types:optional",
     ],
 )
 

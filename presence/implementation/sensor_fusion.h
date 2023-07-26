@@ -17,10 +17,10 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "presence/device_motion.h"
 #include "presence/presence_zone.h"
 
@@ -42,8 +42,8 @@ struct RangingMeasurement {
 
 struct RangingPosition {
   RangingMeasurement distance;
-  absl::optional<RangingMeasurement> azimuth;
-  absl::optional<RangingMeasurement> elevation;
+  std::optional<RangingMeasurement> azimuth;
+  std::optional<RangingMeasurement> elevation;
   uint64_t elapsed_realtime_millis;
 };
 
@@ -55,7 +55,7 @@ struct ZoneTransition {
 struct RangingData {
   DataSource data_source;
   RangingPosition position;
-  absl::optional<ZoneTransition> zone_transition;
+  std::optional<ZoneTransition> zone_transition;
   std::vector<DeviceMotion> device_motions;
 };
 
@@ -99,13 +99,13 @@ class SensorFusion {
    *
    * @param device_id A unique device id of the peer device.
    * @param txPower Calibrated TX power of the scan result, {@code
-   * absl::nullopt} if the calibrated TX power is not available.
+   * std::nullopt} if the calibrated TX power is not available.
    * @param rssi Received signal strength indicator for the scan result.
    * @param elapsed_realtime_millis Elapsed timestamp since boot when the
    * scan result is discovered.
    */
   virtual void updateBleScanResult(uint64_t device_id,
-                                   absl::optional<int8_t> txPower, int rssi,
+                                   std::optional<int8_t> txPower, int rssi,
                                    uint64_t elapsed_realtime_millis);
 
   /**
@@ -139,13 +139,14 @@ class SensorFusion {
 
   /**
    * Returns the best ranging estimate to a given device. Returns {@code
-   * absl::nullopt} if the sensor fusion cannot produce a ranging estimate.
+   * std::nullopt} if the sensor fusion cannot produce a ranging estimate.
    *
    * @param device_id Id of the peer device.
    */
-  virtual absl::optional<RangingData> getRangingData(uint64_t device_id);
+  virtual std::optional<RangingData> getRangingData(uint64_t device_id);
 };
 
 }  // namespace presence
 }  // namespace nearby
 #endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SENSOR_FUSION_H_
+
