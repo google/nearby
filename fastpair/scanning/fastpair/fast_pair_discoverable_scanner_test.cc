@@ -309,8 +309,6 @@ TEST_F(FastPairDiscoverableScannerTest,
       std::make_unique<FakeBlePeripheral>(kTestBleDeviceAddress, kValidModelId);
   scanner_->NotifyDeviceLost(BlePeripheral(ble_peripheral.get()));
   EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  scanner_->NotifyDeviceLost(BlePeripheral(ble_peripheral.get()));
-  EXPECT_FALSE(lost_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
 }  // namespace

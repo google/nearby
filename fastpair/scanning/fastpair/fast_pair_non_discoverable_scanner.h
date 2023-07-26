@@ -24,6 +24,7 @@
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -90,10 +91,13 @@ class FastPairNonDiscoverableScanner : public FastPairScanner::Observer {
   void NotifyDeviceFound(FastPairDevice& device)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
 
+  Mutex mutex_;
   FastPairScanner& scanner_;
   NonDiscoverableScannerCallback found_callback_ ABSL_GUARDED_BY(*executor_);
   NonDiscoverableScannerCallback lost_callback_ ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
+  absl::flat_hash_map<std::string, FastPairDevice*> notified_devices_
+      ABSL_GUARDED_BY(mutex_);
   FastPairDeviceRepository* device_repository_ ABSL_GUARDED_BY(*executor_);
   ObserverList<FastPairScanner::Observer> observer_list_;
 };
