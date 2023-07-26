@@ -54,8 +54,8 @@ TEST(CoreTest, ConstructorDestructorWorks) {
   MockServiceControllerRouter mock;
   // Called when Core is destroyed.
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
-        callback.result_cb({Status::kSuccess});
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
       });
   Core core{&mock};
 }
@@ -69,6 +69,42 @@ TEST(CoreTest, DestructorReportsFatalFailure) {
         Core core{&mock};
       },
       "Unable to shutdown");
+}
+
+TEST(CoreTest, RequestConnectionCallsScRouter) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, RequestConnection);
+  Core core{&mock};
+  core.RequestConnection("TEST", {}, {}, {});
+}
+
+TEST(CoreTest, AcceptConnectionCallsScRouter) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, AcceptConnection);
+  Core core{&mock};
+  core.AcceptConnection("TEST", {}, {});
+}
+
+TEST(CoreTest, SendPayloadCallsScRouter) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, SendPayload);
+  Core core{&mock};
+  core.SendPayload({"TEST"}, Payload(ByteArray("Hello world")), {});
 }
 
 TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
@@ -86,9 +122,9 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
@@ -132,7 +168,7 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
   MockServiceControllerRouter mock;
   EXPECT_CALL(mock, StartAdvertising)
       .WillOnce([&](ClientProxy*, absl::string_view, const AdvertisingOptions&,
-                    const ConnectionRequestInfo& info, const ResultCallback&) {
+                    const ConnectionRequestInfo& info, ResultCallback) {
         NEARBY_LOGS(INFO) << "StartAdvertising called";
         ASSERT_TRUE(info.endpoint_info.Empty());
         // call all callbacks to make sure it all gets called correctly.
@@ -143,9 +179,9 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
@@ -202,9 +238,9 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
@@ -260,9 +296,9 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
@@ -315,9 +351,9 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartDiscoveryV3) {
         info.endpoint_lost_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   DiscoveryOptions options;
   options.strategy = Strategy::kP2pCluster;

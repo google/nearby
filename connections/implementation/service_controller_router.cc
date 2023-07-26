@@ -98,101 +98,103 @@ ServiceControllerRouter::~ServiceControllerRouter() {
 void ServiceControllerRouter::StartAdvertising(
     ClientProxy* client, absl::string_view service_id,
     const AdvertisingOptions& advertising_options,
-    const ConnectionRequestInfo& info, const ResultCallback& callback) {
+    const ConnectionRequestInfo& info, ResultCallback callback) {
   RouteToServiceController(
       "scr-start-advertising",
       [this, client, service_id = std::string(service_id), advertising_options,
-       info, callback]() {
+       info, callback = std::move(callback)]() mutable {
         if (client->IsAdvertising()) {
-          callback.result_cb({Status::kAlreadyAdvertising});
+          callback({Status::kAlreadyAdvertising});
           return;
         }
 
-        callback.result_cb(GetServiceController()->StartAdvertising(
+        callback(GetServiceController()->StartAdvertising(
             client, service_id, advertising_options, info));
       });
 }
 
 void ServiceControllerRouter::StopAdvertising(ClientProxy* client,
-                                              const ResultCallback& callback) {
-  RouteToServiceController("scr-stop-advertising", [this, client, callback]() {
-    if (client->IsAdvertising()) {
-      GetServiceController()->StopAdvertising(client);
-    }
-    callback.result_cb({Status::kSuccess});
-  });
+                                              ResultCallback callback) {
+  RouteToServiceController(
+      "scr-stop-advertising",
+      [this, client, callback = std::move(callback)]() mutable {
+        if (client->IsAdvertising()) {
+          GetServiceController()->StopAdvertising(client);
+        }
+        callback({Status::kSuccess});
+      });
 }
 
 void ServiceControllerRouter::StartDiscovery(
     ClientProxy* client, absl::string_view service_id,
     const DiscoveryOptions& discovery_options,
-    const DiscoveryListener& listener, const ResultCallback& callback) {
+    const DiscoveryListener& listener, ResultCallback callback) {
   RouteToServiceController(
       "scr-start-discovery",
       [this, client, service_id = std::string(service_id), discovery_options,
-       listener, callback]() {
+       listener, callback = std::move(callback)]() mutable {
         if (client->IsDiscovering()) {
-          callback.result_cb({Status::kAlreadyDiscovering});
+          callback({Status::kAlreadyDiscovering});
           return;
         }
 
-        callback.result_cb(GetServiceController()->StartDiscovery(
+        callback(GetServiceController()->StartDiscovery(
             client, service_id, discovery_options, listener));
       });
 }
 
 void ServiceControllerRouter::StopDiscovery(ClientProxy* client,
-                                            const ResultCallback& callback) {
-  RouteToServiceController("scr-stop-discovery", [this, client, callback]() {
-    if (client->IsDiscovering()) {
-      GetServiceController()->StopDiscovery(client);
-    }
-    callback.result_cb({Status::kSuccess});
-  });
+                                            ResultCallback callback) {
+  RouteToServiceController(
+      "scr-stop-discovery",
+      [this, client, callback = std::move(callback)]() mutable {
+        if (client->IsDiscovering()) {
+          GetServiceController()->StopDiscovery(client);
+        }
+        callback({Status::kSuccess});
+      });
 }
 
 void ServiceControllerRouter::InjectEndpoint(
     ClientProxy* client, absl::string_view service_id,
-    const OutOfBandConnectionMetadata& metadata,
-    const ResultCallback& callback) {
+    const OutOfBandConnectionMetadata& metadata, ResultCallback callback) {
   RouteToServiceController(
       "scr-inject-endpoint",
       [this, client, service_id = std::string(service_id), metadata,
-       callback]() {
+       callback = std::move(callback)]() mutable {
         // Currently, Bluetooth is the only supported medium for endpoint
         // injection.
         if (metadata.medium != Medium::BLUETOOTH ||
             metadata.remote_bluetooth_mac_address.size() != kMacAddressLength) {
-          callback.result_cb({Status::kError});
+          callback({Status::kError});
           return;
         }
 
         if (metadata.endpoint_id.size() != kEndpointIdLength) {
-          callback.result_cb({Status::kError});
+          callback({Status::kError});
           return;
         }
 
         if (metadata.endpoint_info.Empty() ||
             metadata.endpoint_info.size() > kMaxEndpointInfoLength) {
-          callback.result_cb({Status::kError});
+          callback({Status::kError});
           return;
         }
 
         if (!client->IsDiscovering()) {
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
         GetServiceController()->InjectEndpoint(client, service_id, metadata);
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::RequestConnection(
     ClientProxy* client, absl::string_view endpoint_id,
     const ConnectionRequestInfo& info,
-    const ConnectionOptions& connection_options,
-    const ResultCallback& callback) {
+    const ConnectionOptions& connection_options, ResultCallback callback) {
   // Cancellations can be fired from clients anytime, need to add the
   // CancellationListener as soon as possible.
   client->AddCancellationFlag(std::string(endpoint_id));
@@ -200,10 +202,10 @@ void ServiceControllerRouter::RequestConnection(
   RouteToServiceController(
       "scr-request-connection",
       [this, client, endpoint_id = std::string(endpoint_id), info,
-       connection_options, callback]() {
+       connection_options, callback = std::move(callback)]() mutable {
         if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
             client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
@@ -212,20 +214,21 @@ void ServiceControllerRouter::RequestConnection(
         if (!status.Ok()) {
           client->CancelEndpoint(endpoint_id);
         }
-        callback.result_cb(status);
+        callback(status);
       });
 }
 
 void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
                                                absl::string_view endpoint_id,
                                                PayloadListener listener,
-                                               const ResultCallback& callback) {
+                                               ResultCallback callback) {
   RouteToServiceController(
       "scr-accept-connection",
       [this, client, endpoint_id = std::string(endpoint_id),
-       listener = std::move(listener), callback]() mutable {
+       listener = std::move(listener),
+       callback = std::move(callback)]() mutable {
         if (client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
@@ -235,25 +238,26 @@ void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
               << " invoked acceptConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
-        callback.result_cb(GetServiceController()->AcceptConnection(
-            client, endpoint_id, std::move(listener)));
+        callback(GetServiceController()->AcceptConnection(client, endpoint_id,
+                                                          std::move(listener)));
       });
 }
 
 void ServiceControllerRouter::RejectConnection(ClientProxy* client,
                                                absl::string_view endpoint_id,
-                                               const ResultCallback& callback) {
+                                               ResultCallback callback) {
   client->CancelEndpoint(std::string(endpoint_id));
 
   RouteToServiceController(
       "scr-reject-connection",
-      [this, client, endpoint_id = std::string(endpoint_id), callback]() {
+      [this, client, endpoint_id = std::string(endpoint_id),
+       callback = std::move(callback)]() mutable {
         if (client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
@@ -263,23 +267,22 @@ void ServiceControllerRouter::RejectConnection(ClientProxy* client,
               << " invoked rejectConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
-        callback.result_cb(
-            GetServiceController()->RejectConnection(client, endpoint_id));
+        callback(GetServiceController()->RejectConnection(client, endpoint_id));
       });
 }
 
 void ServiceControllerRouter::InitiateBandwidthUpgrade(
     ClientProxy* client, absl::string_view endpoint_id,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   RouteToServiceController(
-      "scr-init-bwu",
-      [this, client, endpoint_id = std::string(endpoint_id), callback]() {
+      "scr-init-bwu", [this, client, endpoint_id = std::string(endpoint_id),
+                       callback = std::move(callback)]() mutable {
         if (!client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
@@ -287,62 +290,65 @@ void ServiceControllerRouter::InitiateBandwidthUpgrade(
 
         // Operation is triggered; the caller can listen to
         // ConnectionListener::OnBandwidthChanged() to determine its success.
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::SendPayload(
     ClientProxy* client, absl::Span<const std::string> endpoint_ids,
-    Payload payload, const ResultCallback& callback) {
+    Payload payload, ResultCallback callback) {
   const std::vector<std::string> endpoints =
       std::vector<std::string>(endpoint_ids.begin(), endpoint_ids.end());
 
-  RouteToServiceController("scr-send-payload", [this, client,
-                                                payload = std::move(payload),
-                                                endpoints, callback]() mutable {
-    if (!ClientHasConnectionToAtLeastOneEndpoint(client, endpoints)) {
-      callback.result_cb({Status::kEndpointUnknown});
-      return;
-    }
+  RouteToServiceController(
+      "scr-send-payload",
+      [this, client, payload = std::move(payload), endpoints,
+       callback = std::move(callback)]() mutable {
+        if (!ClientHasConnectionToAtLeastOneEndpoint(client, endpoints)) {
+          callback({Status::kEndpointUnknown});
+          return;
+        }
 
-    GetServiceController()->SendPayload(client, endpoints, std::move(payload));
+        GetServiceController()->SendPayload(client, endpoints,
+                                            std::move(payload));
 
-    // At this point, we've queued up the send Payload request with the
-    // ServiceController; any further failures (e.g. one of the endpoints is
-    // unknown, goes away, or otherwise fails) will be returned to the
-    // client as a PayloadTransferUpdate.
-    callback.result_cb({Status::kSuccess});
-  });
+        // At this point, we've queued up the send Payload request with the
+        // ServiceController; any further failures (e.g. one of the endpoints is
+        // unknown, goes away, or otherwise fails) will be returned to the
+        // client as a PayloadTransferUpdate.
+        callback({Status::kSuccess});
+      });
 }
 
 void ServiceControllerRouter::CancelPayload(ClientProxy* client,
                                             std::uint64_t payload_id,
-                                            const ResultCallback& callback) {
+                                            ResultCallback callback) {
   RouteToServiceController(
-      "scr-cancel-payload", [this, client, payload_id, callback]() {
-        callback.result_cb(
-            GetServiceController()->CancelPayload(client, payload_id));
+      "scr-cancel-payload",
+      [this, client, payload_id, callback = std::move(callback)]() mutable {
+        callback(GetServiceController()->CancelPayload(client, payload_id));
       });
 }
 
 void ServiceControllerRouter::DisconnectFromEndpoint(
     ClientProxy* client, absl::string_view endpoint_id,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   // Client can emit the cancellation at anytime, we need to execute the request
   // without further posting it.
   client->CancelEndpoint(std::string(endpoint_id));
 
   RouteToServiceController(
       "scr-disconnect-endpoint",
-      [this, client, endpoint_id = std::string(endpoint_id), callback]() {
+      [this, client, endpoint_id = std::string(endpoint_id),
+       callback = std::move(callback)]() mutable {
         if (!client->IsConnectedToEndpoint(endpoint_id) &&
             !client->HasPendingConnectionToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
         GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
@@ -388,7 +394,7 @@ void ServiceControllerRouter::StopListeningForIncomingConnectionsV3(
 void ServiceControllerRouter::RequestConnectionV3(
     ClientProxy* client, const NearbyDevice& remote_device,
     v3::ConnectionRequestInfo info, const ConnectionOptions& connection_options,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   // Cancellations can be fired from clients anytime, need to add the
   // CancellationListener as soon as possible.
   client->AddCancellationFlag(remote_device.GetEndpointId());
@@ -396,10 +402,11 @@ void ServiceControllerRouter::RequestConnectionV3(
   RouteToServiceController(
       "scr-request-connection",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
-       v3_info = std::move(info), connection_options, callback]() mutable {
+       v3_info = std::move(info), connection_options,
+       callback = std::move(callback)]() mutable {
         if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
             client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
@@ -473,19 +480,20 @@ void ServiceControllerRouter::RequestConnectionV3(
                                << endpoint_id << ": " << status.ToString();
           client->CancelEndpoint(endpoint_id);
         }
-        callback.result_cb(status);
+        callback(status);
       });
 }
 
 void ServiceControllerRouter::AcceptConnectionV3(
     ClientProxy* client, const NearbyDevice& remote_device,
-    v3::PayloadListener listener, const ResultCallback& callback) {
+    v3::PayloadListener listener, ResultCallback callback) {
   RouteToServiceController(
       "scr-accept-connection",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
-       v3_listener = std::move(listener), callback]() mutable {
+       v3_listener = std::move(listener),
+       callback = std::move(callback)]() mutable {
         if (client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
@@ -495,7 +503,7 @@ void ServiceControllerRouter::AcceptConnectionV3(
               << " invoked acceptConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
@@ -513,21 +521,22 @@ void ServiceControllerRouter::AcceptConnectionV3(
                   v3_cb(v3::ConnectionsDevice(endpoint_id, "", {}), info);
                 }};
 
-        callback.result_cb(GetServiceController()->AcceptConnection(
+        callback(GetServiceController()->AcceptConnection(
             client, endpoint_id, std::move(old_listener)));
       });
 }
 
 void ServiceControllerRouter::RejectConnectionV3(
     ClientProxy* client, const NearbyDevice& remote_device,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   client->CancelEndpoint(remote_device.GetEndpointId());
 
   RouteToServiceController(
       "scr-reject-connection",
-      [this, client, endpoint_id = remote_device.GetEndpointId(), callback]() {
+      [this, client, endpoint_id = remote_device.GetEndpointId(),
+       callback = std::move(callback)]() mutable {
         if (client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+          callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
@@ -537,23 +546,23 @@ void ServiceControllerRouter::RejectConnectionV3(
               << " invoked rejectConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
-        callback.result_cb(
-            GetServiceController()->RejectConnection(client, endpoint_id));
+        callback(GetServiceController()->RejectConnection(client, endpoint_id));
       });
 }
 
 void ServiceControllerRouter::InitiateBandwidthUpgradeV3(
     ClientProxy* client, const NearbyDevice& remote_device,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-init-bwu",
-      [this, client, endpoint_id = remote_device.GetEndpointId(), callback]() {
+      [this, client, endpoint_id = remote_device.GetEndpointId(),
+       callback = std::move(callback)]() mutable {
         if (!client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
@@ -561,19 +570,19 @@ void ServiceControllerRouter::InitiateBandwidthUpgradeV3(
 
         // Operation is triggered; the caller can listen to
         // ConnectionListener::OnBandwidthChanged() to determine its success.
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::SendPayloadV3(
     ClientProxy* client, const NearbyDevice& recipient_device, Payload payload,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   RouteToServiceController(
-      "scr-send-payload",
-      [this, client, payload = std::move(payload),
-       endpoint_id = recipient_device.GetEndpointId(), callback]() mutable {
+      "scr-send-payload", [this, client, payload = std::move(payload),
+                           endpoint_id = recipient_device.GetEndpointId(),
+                           callback = std::move(callback)]() mutable {
         if (!client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kEndpointUnknown});
+          callback({Status::kEndpointUnknown});
           return;
         }
 
@@ -584,90 +593,94 @@ void ServiceControllerRouter::SendPayloadV3(
         // ServiceController; any further failures (e.g. one of the endpoints is
         // unknown, goes away, or otherwise fails) will be returned to the
         // client as a PayloadTransferUpdate.
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::CancelPayloadV3(
     ClientProxy* client, const NearbyDevice& recipient_device,
-    uint64_t payload_id, const ResultCallback& callback) {
+    uint64_t payload_id, ResultCallback callback) {
   RouteToServiceController(
-      "scr-cancel-payload", [this, client, payload_id, callback]() {
-        callback.result_cb(
-            GetServiceController()->CancelPayload(client, payload_id));
+      "scr-cancel-payload",
+      [this, client, payload_id, callback = std::move(callback)]() mutable {
+        callback(GetServiceController()->CancelPayload(client, payload_id));
       });
 }
 
 void ServiceControllerRouter::DisconnectFromDeviceV3(
     ClientProxy* client, const NearbyDevice& remote_device,
-    const ResultCallback& callback) {
+    ResultCallback callback) {
   // Client can emit the cancellation at anytime, we need to execute the request
   // without further posting it.
   client->CancelEndpoint(remote_device.GetEndpointId());
 
   RouteToServiceController(
       "scr-disconnect-endpoint",
-      [this, client, endpoint_id = remote_device.GetEndpointId(), callback]() {
+      [this, client, endpoint_id = remote_device.GetEndpointId(),
+       callback = std::move(callback)]() mutable {
         if (!client->IsConnectedToEndpoint(endpoint_id) &&
             !client->HasPendingConnectionToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kOutOfOrderApiCall});
+          callback({Status::kOutOfOrderApiCall});
           return;
         }
 
         GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::UpdateAdvertisingOptionsV3(
     ClientProxy* client, absl::string_view service_id,
-    const AdvertisingOptions& options, const ResultCallback& callback) {
+    const AdvertisingOptions& options, ResultCallback callback) {
   RouteToServiceController(
       "scr-update-advertising-options",
-      [this, client, options, callback, service_id]() {
-        callback.result_cb(GetServiceController()->UpdateAdvertisingOptions(
+      [this, client, options, callback = std::move(callback),
+       service_id]() mutable {
+        callback(GetServiceController()->UpdateAdvertisingOptions(
             client, service_id, options));
       });
 }
 
 void ServiceControllerRouter::UpdateDiscoveryOptionsV3(
     ClientProxy* client, absl::string_view service_id,
-    const DiscoveryOptions& options, const ResultCallback& callback) {
+    const DiscoveryOptions& options, ResultCallback callback) {
   RouteToServiceController(
       "scr-update-discovery-options",
-      [this, client, options, callback, service_id]() {
-        callback.result_cb(GetServiceController()->UpdateDiscoveryOptions(
+      [this, client, options, callback = std::move(callback),
+       service_id]() mutable {
+        callback(GetServiceController()->UpdateDiscoveryOptions(
             client, service_id, options));
       });
 }
 
 void ServiceControllerRouter::StopAllEndpoints(ClientProxy* client,
-                                               const ResultCallback& callback) {
+                                               ResultCallback callback) {
   // Client can emit the cancellation at anytime, we need to execute the request
   // without further posting it.
   client->CancelAllEndpoints();
 
   RouteToServiceController(
-      "scr-stop-all-endpoints", [this, client, callback]() {
+      "scr-stop-all-endpoints",
+      [this, client, callback = std::move(callback)]() mutable {
         NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                           << " has requested us to stop all endpoints. We will "
                              "now reset the client.";
         FinishClientSession(client);
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 
-void ServiceControllerRouter::SetCustomSavePath(
-    ClientProxy* client, absl::string_view path,
-    const ResultCallback& callback) {
+void ServiceControllerRouter::SetCustomSavePath(ClientProxy* client,
+                                                absl::string_view path,
+                                                ResultCallback callback) {
   RouteToServiceController(
-      "scr-set-custom-save-path",
-      [this, client, path = std::string(path), callback]() {
+      "scr-set-custom-save-path", [this, client, path = std::string(path),
+                                   callback = std::move(callback)]() mutable {
         NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                           << " has requested us to set custom save path to "
                           << path;
         GetServiceController()->SetCustomSavePath(client, path);
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
 }
 

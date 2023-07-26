@@ -54,10 +54,7 @@ Core::Core(ServiceControllerRouter* router) : router_(router) {}
 
 Core::~Core() {
   CountDownLatch latch(1);
-  router_->StopAllEndpoints(
-      &client_, {
-                    .result_cb = [&latch](Status) { latch.CountDown(); },
-                });
+  router_->StopAllEndpoints(&client_, [&latch](Status) { latch.CountDown(); });
   if (!latch.Await(kWaitForDisconnect).result()) {
     NEARBY_LOG(FATAL, "Unable to shutdown");
   }
@@ -75,11 +72,11 @@ void Core::StartAdvertising(absl::string_view service_id,
   CHECK(advertising_options.strategy.IsValid());
 
   router_->StartAdvertising(&client_, service_id, advertising_options, info,
-                            callback);
+                            std::move(callback));
 }
 
-void Core::StopAdvertising(const ResultCallback callback) {
-  router_->StopAdvertising(&client_, callback);
+void Core::StopAdvertising(ResultCallback callback) {
+  router_->StopAdvertising(&client_, std::move(callback));
 }
 
 void Core::StartDiscovery(absl::string_view service_id,
@@ -89,18 +86,18 @@ void Core::StartDiscovery(absl::string_view service_id,
   CHECK(discovery_options.strategy.IsValid());
 
   router_->StartDiscovery(&client_, service_id, discovery_options, listener,
-                          callback);
+                          std::move(callback));
 }
 
 void Core::InjectEndpoint(absl::string_view service_id,
                           OutOfBandConnectionMetadata metadata,
                           ResultCallback callback) {
   CheckServiceId(service_id);
-  router_->InjectEndpoint(&client_, service_id, metadata, callback);
+  router_->InjectEndpoint(&client_, service_id, metadata, std::move(callback));
 }
 
 void Core::StopDiscovery(ResultCallback callback) {
-  router_->StopDiscovery(&client_, callback);
+  router_->StopDiscovery(&client_, std::move(callback));
 }
 
 void Core::RequestConnection(absl::string_view endpoint_id,
@@ -128,7 +125,7 @@ void Core::RequestConnection(absl::string_view endpoint_id,
   }
 
   router_->RequestConnection(&client_, endpoint_id, info, connection_options,
-                             callback);
+                             std::move(callback));
 }
 
 void Core::AcceptConnection(absl::string_view endpoint_id,
@@ -136,19 +133,19 @@ void Core::AcceptConnection(absl::string_view endpoint_id,
   CHECK(!endpoint_id.empty());
 
   router_->AcceptConnection(&client_, endpoint_id, std::move(listener),
-                            callback);
+                            std::move(callback));
 }
 
 void Core::RejectConnection(absl::string_view endpoint_id,
                             ResultCallback callback) {
   CHECK(!endpoint_id.empty());
 
-  router_->RejectConnection(&client_, endpoint_id, callback);
+  router_->RejectConnection(&client_, endpoint_id, std::move(callback));
 }
 
 void Core::InitiateBandwidthUpgrade(absl::string_view endpoint_id,
                                     ResultCallback callback) {
-  router_->InitiateBandwidthUpgrade(&client_, endpoint_id, callback);
+  router_->InitiateBandwidthUpgrade(&client_, endpoint_id, std::move(callback));
 }
 
 void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
@@ -156,28 +153,29 @@ void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
   CHECK(payload.GetType() != PayloadType::kUnknown);
   CHECK(!endpoint_ids.empty());
 
-  router_->SendPayload(&client_, endpoint_ids, std::move(payload), callback);
+  router_->SendPayload(&client_, endpoint_ids, std::move(payload),
+                       std::move(callback));
 }
 
 void Core::CancelPayload(std::int64_t payload_id, ResultCallback callback) {
   CHECK_NE(payload_id, 0);
 
-  router_->CancelPayload(&client_, payload_id, callback);
+  router_->CancelPayload(&client_, payload_id, std::move(callback));
 }
 
 void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
                                   ResultCallback callback) {
   CHECK(!endpoint_id.empty());
 
-  router_->DisconnectFromEndpoint(&client_, endpoint_id, callback);
+  router_->DisconnectFromEndpoint(&client_, endpoint_id, std::move(callback));
 }
 
 void Core::StopAllEndpoints(ResultCallback callback) {
-  router_->StopAllEndpoints(&client_, callback);
+  router_->StopAllEndpoints(&client_, std::move(callback));
 }
 
 void Core::SetCustomSavePath(absl::string_view path, ResultCallback callback) {
-  router_->SetCustomSavePath(&client_, path, callback);
+  router_->SetCustomSavePath(&client_, path, std::move(callback));
 }
 
 std::string Core::Dump() { return client_.Dump(); }
@@ -240,7 +238,8 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
       .endpoint_info = local_endpoint_info,
       .listener = old_listener,
   };
-  StartAdvertising(service_id, advertising_options, old_info, callback);
+  StartAdvertising(service_id, advertising_options, old_info,
+                   std::move(callback));
 }
 
 void Core::StartAdvertisingV3(absl::string_view service_id,
@@ -300,11 +299,12 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
       .endpoint_info = local_endpoint_info,
       .listener = old_listener,
   };
-  StartAdvertising(service_id, advertising_options, old_info, callback);
+  StartAdvertising(service_id, advertising_options, old_info,
+                   std::move(callback));
 }
 
 void Core::StopAdvertisingV3(ResultCallback result_cb) {
-  StopAdvertising(result_cb);
+  StopAdvertising(std::move(result_cb));
 }
 
 void Core::StartDiscoveryV3(absl::string_view service_id,
@@ -332,11 +332,12 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
             listener.endpoint_distance_changed_cb(remote, distance_info);
           },
   };
-  StartDiscovery(service_id, discovery_options, old_listener, callback);
+  StartDiscovery(service_id, discovery_options, old_listener,
+                 std::move(callback));
 }
 
 void Core::StopDiscoveryV3(ResultCallback result_cb) {
-  router_->StopDiscovery(&client_, result_cb);
+  router_->StopDiscovery(&client_, std::move(result_cb));
 }
 
 void Core::StartListeningForIncomingConnectionsV3(
@@ -383,7 +384,7 @@ void Core::RequestConnectionV3(const NearbyDevice& local_device,
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
   router_->RequestConnectionV3(&client_, remote_device, std::move(info),
-                               connection_options, result_cb);
+                               connection_options, std::move(result_cb));
 }
 
 void Core::RequestConnectionV3(const NearbyDevice& remote_device,
@@ -414,7 +415,7 @@ void Core::RequestConnectionV3(const NearbyDevice& remote_device,
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
   router_->RequestConnectionV3(&client_, remote_device, std::move(info),
-                               connection_options, result_cb);
+                               connection_options, std::move(result_cb));
 }
 
 void Core::AcceptConnectionV3(const NearbyDevice& remote_device,
@@ -423,14 +424,14 @@ void Core::AcceptConnectionV3(const NearbyDevice& remote_device,
   CHECK(!remote_device.GetEndpointId().empty());
 
   router_->AcceptConnectionV3(&client_, remote_device, std::move(listener_cb),
-                              result_cb);
+                              std::move(result_cb));
 }
 
 void Core::RejectConnectionV3(const NearbyDevice& remote_device,
                               ResultCallback result_cb) {
   CHECK(!remote_device.GetEndpointId().empty());
 
-  router_->RejectConnectionV3(&client_, remote_device, result_cb);
+  router_->RejectConnectionV3(&client_, remote_device, std::move(result_cb));
 }
 
 void Core::SendPayloadV3(const NearbyDevice& remote_device, Payload payload,
@@ -439,44 +440,47 @@ void Core::SendPayloadV3(const NearbyDevice& remote_device, Payload payload,
   CHECK(!remote_device.GetEndpointId().empty());
 
   router_->SendPayloadV3(&client_, remote_device, std::move(payload),
-                         result_cb);
+                         std::move(result_cb));
 }
 
 void Core::CancelPayloadV3(const NearbyDevice& remote_device,
                            int64_t payload_id, ResultCallback result_cb) {
   CHECK_NE(payload_id, 0);
 
-  router_->CancelPayloadV3(&client_, remote_device, payload_id, result_cb);
+  router_->CancelPayloadV3(&client_, remote_device, payload_id,
+                           std::move(result_cb));
 }
 
 void Core::DisconnectFromDeviceV3(const NearbyDevice& remote_device,
                                   ResultCallback result_cb) {
   CHECK(!remote_device.GetEndpointId().empty());
 
-  router_->DisconnectFromDeviceV3(&client_, remote_device, result_cb);
+  router_->DisconnectFromDeviceV3(&client_, remote_device,
+                                  std::move(result_cb));
 }
 
 void Core::StopAllDevicesV3(ResultCallback result_cb) {
-  router_->StopAllEndpoints(&client_, result_cb);
+  router_->StopAllEndpoints(&client_, std::move(result_cb));
 }
 
 void Core::InitiateBandwidthUpgradeV3(const NearbyDevice& remote_device,
                                       ResultCallback result_cb) {
-  router_->InitiateBandwidthUpgradeV3(&client_, remote_device, result_cb);
+  router_->InitiateBandwidthUpgradeV3(&client_, remote_device,
+                                      std::move(result_cb));
 }
 
 void Core::UpdateAdvertisingOptionsV3(absl::string_view service_id,
                                       AdvertisingOptions advertising_options,
                                       ResultCallback result_cb) {
   router_->UpdateAdvertisingOptionsV3(&client_, service_id, advertising_options,
-                                      result_cb);
+                                      std::move(result_cb));
 }
 
 void Core::UpdateDiscoveryOptionsV3(absl::string_view service_id,
                                     DiscoveryOptions discovery_options,
                                     ResultCallback result_cb) {
   router_->UpdateDiscoveryOptionsV3(&client_, service_id, discovery_options,
-                                    result_cb);
+                                    std::move(result_cb));
 }
 
 }  // namespace connections

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+#include <utility>
+
 #include "connections/c/listeners_w.h"
 
 #include "connections/listeners.h"
@@ -20,9 +23,6 @@ namespace nearby {
 // Must implement Deleters, since the connections classes weren't
 // fully defined in the header
 namespace connections {
-void ResultCallbackDeleter::operator()(connections::ResultCallback *p) {
-  delete p;
-}
 void ConnectionListenerDeleter::operator()(connections::ConnectionListener *p) {
   delete p;
 }
@@ -41,21 +41,18 @@ static ResultCallbackW *ResultCallbackImpl;
 void ResultCB(Status status) { ResultCallbackImpl->result_cb(status); }
 
 ResultCallbackW::ResultCallbackW()
-    : impl_(std::unique_ptr<connections::ResultCallback,
-                            connections::ResultCallbackDeleter>(
-          new connections::ResultCallback())) {
+    : impl(std::make_unique<connections::ResultCallback>(ResultCB)) {
   ResultCallbackImpl = this;
-  impl_->result_cb = ResultCB;
 }
 
 ResultCallbackW::~ResultCallbackW() {}
 
 ResultCallbackW::ResultCallbackW(ResultCallbackW &other) {
-  impl_ = std::move(other.impl_);
+  impl = std::move(other.impl);
 }
 
 ResultCallbackW::ResultCallbackW(ResultCallbackW &&other) noexcept {
-  impl_ = std::move(other.impl_);
+  impl = std::move(other.impl);
 }
 
 ConnectionListenerW::ConnectionListenerW(InitiatedCB initiatedCB,

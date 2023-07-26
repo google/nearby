@@ -15,10 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_C_LISTENERS_W_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_C_LISTENERS_W_H_
 
-#include <cstdint>
-#include <functional>
 #include <memory>
-#include <string>
+#include <utility>
 
 // This file defines all the protocol listeners and their parameter structures.
 // Listeners are defined as collections of std::function<T> instances, which is
@@ -50,10 +48,7 @@ struct DLL_API PayloadListenerDeleter {
   void operator()(connections::PayloadListener* p);
 };
 
-struct ResultCallback;
-struct ResultCallbackDeleter {
-  void operator()(connections::ResultCallback* p);
-};
+using ResultCallback = absl::AnyInvocable<void(Status)>;
 
 struct ConnectionResponseInfo;
 struct PayloadProgressInfo;
@@ -92,16 +87,12 @@ struct DLL_API ResultCallbackW {
 
   void (*result_cb)(Status status) = DefaultConstructor;
 
-  std::unique_ptr<connections::ResultCallback,
-                  connections::ResultCallbackDeleter>
-  GetImpl() {
-    return std::move(impl_);
+  std::unique_ptr<connections::ResultCallback> GetImpl() {
+    return std::move(impl);
   }
 
  private:
-  std::unique_ptr<connections::ResultCallback,
-                  connections::ResultCallbackDeleter>
-      impl_;
+  std::unique_ptr<connections::ResultCallback> impl;
 };
 
 struct DLL_API ConnectionResponseInfoW {
