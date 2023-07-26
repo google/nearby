@@ -105,6 +105,36 @@ objc_library(
 )
 
 objc_library(
+    name = "ble_v2",
+    srcs = [
+        "ble_peripheral.mm",
+        "ble_server_socket.mm",
+        "ble_socket.mm",
+        "ble_utils.mm",
+        "utils.mm",
+    ],
+    hdrs = [
+        "ble_peripheral.h",
+        "ble_server_socket.h",
+        "ble_socket.h",
+        "ble_utils.h",
+        "utils.h",
+    ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple/Mediums",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+objc_library(
     name = "Shared",
     srcs = [
         "GNCUtils.m",

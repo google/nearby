@@ -570,6 +570,11 @@ let package = Package(
         "connections/implementation/mediums/webrtc",
         // This breaks the build, but seems to work fine without it?
         "internal/platform/medium_environment.cc",
+        // Temporarily ignore BLEv2 source files.
+        // TODO(b/293283024): Stop ignoring these files when BLEv2 migration is complete.
+        "internal/platform/implementation/apple/ble_peripheral.mm",
+        "internal/platform/implementation/apple/ble_server_socket.mm",
+        "internal/platform/implementation/apple/ble_socket.mm",
       ],
       sources: [
         "compiled_proto",
