@@ -936,8 +936,8 @@ api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
           return;
         }
       }
-      latch.CountDown();
     }
+    latch.CountDown();
   });
   latch.Await();
   return result;
