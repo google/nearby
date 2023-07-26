@@ -23,9 +23,7 @@ package(default_visibility = [
 objc_library(
     name = "apple",
     srcs = [
-        "ble.mm",
         "ble_utils.mm",
-        "bluetooth_adapter.mm",
         "crypto.mm",
         "device_info.mm",
         "log_message.mm",
@@ -38,9 +36,7 @@ objc_library(
         "wifi_lan.mm",
     ],
     hdrs = [
-        "ble.h",
         "ble_utils.h",
-        "bluetooth_adapter.h",
         "device_info.h",
         "log_message.h",
         "multi_thread_executor.h",
@@ -57,8 +53,8 @@ objc_library(
     deps = [
         ":Platform_cc",
         ":Shared",
+        ":ble",
         "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
@@ -73,7 +69,6 @@ objc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@nlohmann_json//:json",
     ] + select({
@@ -82,6 +77,33 @@ objc_library(
         ],
         "//conditions:default": [],
     }),
+)
+
+objc_library(
+    name = "ble",
+    srcs = [
+        "ble.mm",
+        "bluetooth_adapter.mm",
+        "utils.mm",
+    ],
+    hdrs = [
+        "ble.h",
+        "bluetooth_adapter.h",
+        "utils.h",
+    ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple/Mediums",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
+    ],
 )
 
 objc_library(

@@ -45,6 +45,7 @@ objc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",
+        "//internal/platform/implementation/apple:ble",
         "//internal/platform/implementation/apple/Mediums",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
