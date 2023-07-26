@@ -84,7 +84,7 @@ BasePcpHandler::~BasePcpHandler() {
 }
 
 void BasePcpHandler::Shutdown() {
-  if (stop_) return;
+  if (closed_.Set(true)) return;
   NEARBY_LOGS(INFO) << "Initiating shutdown of BasePcpHandler("
                     << strategy_.GetName() << ")";
   DisconnectFromEndpointManager();

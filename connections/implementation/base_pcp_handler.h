@@ -609,6 +609,7 @@ class BasePcpHandler : public PcpHandler,
   Strategy strategy_{PcpToStrategy(pcp_)};
   EncryptionRunner encryption_runner_;
   BwuManager* bwu_manager_;
+  AtomicBoolean closed_{false};
 };
 
 }  // namespace connections
