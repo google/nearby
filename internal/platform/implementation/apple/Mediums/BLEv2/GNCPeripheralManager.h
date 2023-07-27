@@ -111,6 +111,13 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result;
 
+/**
+ * Stops advertising peripheral manager data.
+ *
+ * Call this method when you no longer want to advertise peripheral manager data.
+ */
+- (void)stopAdvertising;
+
 @end
 
 /**

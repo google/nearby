@@ -17,167 +17,186 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-// An arbitrary timeout that should be pretty lenient.
-static NSTimeInterval const GNCBLEGATTServerTimeoutInSeconds = 2;
+static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
 
 @interface GNCBLEGATTServer () <GNCPeripheralManagerDelegate, CBPeripheralManagerDelegate>
 @end
 
 @implementation GNCBLEGATTServer {
+  dispatch_queue_t _queue;
   id<GNCPeripheralManager> _peripheralManager;
 
   // A map of service UUIDs to the service. This is used to keep track of all services and
-  // characteristics that should be in the GATT database. This also keeps track of a characteristics
-  // dynamic read value. This is the value returned when a remote device attempts to read the
-  // characteristic.
+  // characteristics that have been requested to be added to the GATT database. This may not match
+  // the "real" services that remote devices can see.
   NSMutableDictionary<CBUUID *, CBMutableService *> *_services;
 
-  // A list of services that have been requested to be added to the GATT database, but have not yet
-  // completed. This is used by the create characteristic method to block until the characteristic
-  // has been added to the database.
-  NSMutableArray<CBUUID *> *_pendingServiceAdditions;
+  // A list of characteristics that will be added to the GATT database once the peripheral
+  // transitions into a valid state. If a characteristic is in this list it means that a
+  // CoreBluetooth request to add to the characteristic to the GATT database has not yet been made.
+  NSMutableDictionary<CBUUID *, NSMutableArray<CBMutableCharacteristic *> *>
+      *_pendingCharacteristics;
 
-  // A map of service UUIDs to its associated error if the service had failed to be added to the
-  // GATT database. This is used by the create characteristic method to determine if the service was
-  // successfully added.
-  NSMutableDictionary<CBUUID *, NSError *> *_serviceErrors;
+  // This keeps track of a characteristic's dynamic read value. This is the value returned when a
+  // remote device attempts to read the characteristic.
+  NSMutableDictionary<CBUUID *, NSMutableDictionary<CBUUID *, NSData *> *> *_characteristicValues;
 
-  // Guards access to @c _services, @c _pendingServiceAdditions and @c _serviceErrors. The condition
-  // is also used to block method execution until its async action completes.
-  NSCondition *_condition;
+  // The data that should be advertised. This value is cached until the caller explicitly stops
+  // advertising, because we will do our best to restart the advertisement if BT turns off then back
+  // on.
+  NSDictionary<NSString *, id> *_advertisementData;
 }
 
 - (instancetype)init {
-  dispatch_queue_t queue =
-      dispatch_queue_create("com.nearby.GNCBLEGATTServer", DISPATCH_QUEUE_SERIAL);
-  return [self initWithPeripheralManager:[[CBPeripheralManager alloc] initWithDelegate:nil
-                                                                                 queue:queue]];
-}
-
-- (instancetype)initWithPeripheralManager:(id<GNCPeripheralManager>)peripheralManager {
   self = [super init];
   if (self) {
+    _queue = dispatch_queue_create(kGNCBLEGATTServerQueueLabel, DISPATCH_QUEUE_SERIAL);
+    _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:nil queue:_queue];
+    // Set for @c GNCPeripheralManager to be able to forward callbacks.
+    _peripheralManager.peripheralDelegate = self;
+    _services = [[NSMutableDictionary alloc] init];
+    _pendingCharacteristics = [[NSMutableDictionary alloc] init];
+    _characteristicValues = [[NSMutableDictionary alloc] init];
+    _advertisementData = nil;
+  }
+  return self;
+}
+
+// This is private and should only be used for tests. The provided peripheral manager must call
+// delegate methods on the main queue.
+- (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager {
+  self = [super init];
+  if (self) {
+    _queue = dispatch_get_main_queue();
     _peripheralManager = peripheralManager;
     // Set for @c GNCPeripheralManager to be able to forward callbacks.
     _peripheralManager.peripheralDelegate = self;
     _services = [[NSMutableDictionary alloc] init];
-    _pendingServiceAdditions = [[NSMutableArray alloc] init];
-    _serviceErrors = [[NSMutableDictionary alloc] init];
-    _condition = [[NSCondition alloc] init];
+    _pendingCharacteristics = [[NSMutableDictionary alloc] init];
+    _characteristicValues = [[NSMutableDictionary alloc] init];
+    _advertisementData = nil;
   }
   return self;
-};
-
-- (nullable GNCBLEGATTCharacteristic *)
-    createCharacteristicWithServiceID:(CBUUID *)serviceUUID
-                   characteristicUUID:(CBUUID *)characteristicUUID
-                          permissions:(CBAttributePermissions)permissions
-                           properties:(CBCharacteristicProperties)properties {
-  // Ensure we are in a powered on state.
-  if (![self waitUntilPoweredOn]) {
-    return nil;
-  }
-
-  NSDate *timeLimit = [NSDate dateWithTimeIntervalSinceNow:GNCBLEGATTServerTimeoutInSeconds];
-  BOOL wasSignaled = YES;
-  [_condition lock];
-
-  // If a service with the specified UUID exists, we are modifying it, which requires us to remove
-  // the service and then re-add it after the new characteristic has been added. Otherwise, create
-  // the service for the specified UUID and keep track of it.
-  CBMutableService *service = _services[serviceUUID];
-  if (service != nil) {
-    [_peripheralManager removeService:service];
-  } else {
-    service = [[CBMutableService alloc] initWithType:serviceUUID primary:YES];
-    _services[serviceUUID] = service;
-  }
-
-  // Create a characteristic with the specified permissions and properties.
-  CBMutableCharacteristic *characteristic =
-      [[CBMutableCharacteristic alloc] initWithType:characteristicUUID
-                                         properties:properties
-                                              value:nil
-                                        permissions:permissions];
-
-  // Add the characteristic to the service's list of characteristics
-  NSMutableArray<CBMutableCharacteristic *> *characteristics =
-      [service.characteristics mutableCopy];
-  if (characteristics == nil) {
-    characteristics = [[NSMutableArray alloc] init];
-  }
-  [characteristics addObject:characteristic];
-  service.characteristics = characteristics;
-
-  // Publish the service and wait until complete.
-  [_pendingServiceAdditions addObject:service.UUID];
-  [_peripheralManager addService:service];
-  while ([_pendingServiceAdditions containsObject:service.UUID] && wasSignaled) {
-    wasSignaled = [_condition waitUntilDate:timeLimit];
-  }
-  NSError *serviceError = [_serviceErrors objectForKey:service.UUID];
-  [_serviceErrors removeObjectForKey:service.UUID];
-  [_condition unlock];
-  if (serviceError) {
-    return nil;
-  }
-  return [[GNCBLEGATTCharacteristic alloc] initWithUUID:characteristicUUID
-                                            serviceUUID:serviceUUID
-                                            permissions:permissions
-                                             properties:properties];
 }
 
-- (BOOL)updateCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
-                       value:(nullable NSData *)value {
-  // Ensure we are in a powered on state.
-  if (![self waitUntilPoweredOn]) {
-    return NO;
-  }
-
-  [_condition lock];
-  // Find and update the specified characteristic's value.
-  CBMutableService *service = _services[characteristic.serviceUUID];
-  if (!service) {
-    [_condition unlock];
-    return NO;
-  }
-  for (CBMutableCharacteristic *c in service.characteristics) {
-    if ([c.UUID isEqual:characteristic.characteristicUUID]) {
-      c.value = value;
-      [_condition unlock];
-      return YES;
+- (void)createCharacteristicWithServiceID:(CBUUID *)serviceUUID
+                       characteristicUUID:(CBUUID *)characteristicUUID
+                              permissions:(CBAttributePermissions)permissions
+                               properties:(CBCharacteristicProperties)properties
+                        completionHandler:
+                            (nullable GNCCreateCharacteristicCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    // Check if the characteristic exists in the pending additions or existing services.
+    for (CBCharacteristic *c in _pendingCharacteristics[serviceUUID]) {
+      if ([c.UUID isEqual:characteristicUUID]) {
+        if (completionHandler) {
+          completionHandler(nil, [NSError errorWithDomain:GNCBLEErrorDomain
+                                                     code:GNCBLEErrorDuplicateCharacteristic
+                                                 userInfo:nil]);
+        }
+        return;
+      }
     }
-  }
-  [_condition unlock];
-  return NO;
+    for (CBCharacteristic *c in _services[serviceUUID].characteristics) {
+      if ([c.UUID isEqual:characteristicUUID]) {
+        if (completionHandler) {
+          completionHandler(nil, [NSError errorWithDomain:GNCBLEErrorDomain
+                                                     code:GNCBLEErrorDuplicateCharacteristic
+                                                 userInfo:nil]);
+        }
+        return;
+      }
+    }
+
+    // Create a characteristic with the specified permissions and properties.
+    CBMutableCharacteristic *characteristic =
+        [[CBMutableCharacteristic alloc] initWithType:characteristicUUID
+                                           properties:properties
+                                                value:nil
+                                          permissions:permissions];
+    // Track characteristics that need to be added to the GATT database. These will either be added
+    // immediately or as soon as the peripheral manager is in a valid state.
+    if (!_pendingCharacteristics[serviceUUID]) {
+      _pendingCharacteristics[serviceUUID] = [[NSMutableArray alloc] init];
+    }
+    [_pendingCharacteristics[serviceUUID] addObject:characteristic];
+
+    GNCBLEGATTCharacteristic *gncCharacteristic =
+        [[GNCBLEGATTCharacteristic alloc] initWithUUID:characteristicUUID
+                                           serviceUUID:serviceUUID
+                                           permissions:permissions
+                                            properties:properties];
+    [self internalAddPendingServicesIfPoweredOn];
+    if (completionHandler) {
+      completionHandler(gncCharacteristic, nil);
+    }
+  });
+}
+
+- (void)updateCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
+                       value:(nullable NSData *)value
+           completionHandler:(nullable GNCUpdateCharacteristicCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    // Keep track of the characteristics value, because we will need to retreive it during a read
+    // request.
+    if (_characteristicValues[characteristic.serviceUUID] == nil) {
+      _characteristicValues[characteristic.serviceUUID] = [[NSMutableDictionary alloc] init];
+    }
+    _characteristicValues[characteristic.serviceUUID][characteristic.characteristicUUID] = value;
+    if (completionHandler) {
+      completionHandler(nil);
+    }
+  });
 }
 
 - (void)stop {
-  [_condition lock];
-  [_services removeAllObjects];
-  [_condition unlock];
-  [_peripheralManager removeAllServices];
+  dispatch_async(_queue, ^{
+    // Note: Do not clear/stop advertisements here, since there is a separate method for that.
+    [_peripheralManager removeAllServices];
+    [_services removeAllObjects];
+    [_pendingCharacteristics removeAllObjects];
+    [_characteristicValues removeAllObjects];
+  });
 }
 
-- (BOOL)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData {
-  // We can only handle advertising a single service data item, so return early if there is more
-  // than one service incuded.
-  if (serviceData.count > 1) {
-    return NO;
-  }
+- (void)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData
+           completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    // We can only handle advertising a single service data item, so return early if there is more
+    // than one service incuded.
+    if (serviceData.count != 1) {
+      if (completionHandler) {
+        completionHandler([NSError
+            errorWithDomain:GNCBLEErrorDomain
+                       code:GNCBLEErrorInvalidServiceData
+                   userInfo:@{
+                     NSLocalizedDescriptionKey :
+                         @"Failed to start advertising, because Nearby for Apple platforms only "
+                         @"supports a single service data item."
+                   }]);
+      }
+      return;
+    }
 
-  // Ensure we are in a powered on state.
-  if (![self waitUntilPoweredOn]) {
-    return NO;
-  }
+    // If we have advertisement data set, that means we are already advertising and should return
+    // early. Advertising must be stopped before being started again.
+    if (_advertisementData) {
+      if (completionHandler) {
+        completionHandler([NSError errorWithDomain:GNCBLEErrorDomain
+                                              code:GNCBLEErrorAlreadyAdvertising
+                                          userInfo:nil]);
+      }
+      return;
+    }
 
-  if (serviceData.count == 1) {
     // Apple doesn't support setting service data, so we must convert it to a "local name". We do
     // this by assuming there will only ever be one service and then base64 encoding its associated
     // data. Other platforms are aware of this behavior and always check the local name if service
@@ -192,107 +211,140 @@ static NSTimeInterval const GNCBLEGATTServerTimeoutInSeconds = 2;
       encoded = [encoded substringToIndex:22];
     }
 
-    [_peripheralManager startAdvertising:@{
+    _advertisementData = @{
       CBAdvertisementDataLocalNameKey : encoded,
       CBAdvertisementDataServiceUUIDsKey : @[ serviceUUID ]
-    }];
-  } else {
-    [_peripheralManager startAdvertising:nil];
-  }
+    };
 
-  // Wait until advertisement has started.
-  NSDate *timeLimit = [NSDate dateWithTimeIntervalSinceNow:GNCBLEGATTServerTimeoutInSeconds];
-  BOOL wasSignaled = YES;
-  [_condition lock];
-  while (!_peripheralManager.isAdvertising && wasSignaled) {
-    wasSignaled = [_condition waitUntilDate:timeLimit];
-  }
-  [_condition unlock];
-  return _peripheralManager.isAdvertising;
+    [self internalStartAdvertisingIfPoweredOn];
+    if (completionHandler) {
+      completionHandler(nil);
+    }
+  });
 }
 
-#pragma mark - Helpers
+#pragma mark - Internal
 
-- (BOOL)waitUntilPoweredOn {
-  NSDate *timeLimit = [NSDate dateWithTimeIntervalSinceNow:GNCBLEGATTServerTimeoutInSeconds];
-  BOOL timedOut = NO;
-  [_condition lock];
-  while (_peripheralManager.state != CBManagerStatePoweredOn && !timedOut) {
-    timedOut = ![_condition waitUntilDate:timeLimit];
+- (void)internalAddPendingServicesIfPoweredOn {
+  dispatch_assert_queue(_queue);
+  // Services can only be added while bluetooth is on or off. Since this method will be called
+  // anytime the peripheral manager's state changes and turning bluetooth on/off does not reset
+  // the GATT database, we can add all pending services when we transition to the on or off state.
+  // However, other state transitions may behave differently, so we may need to modify this
+  // functionality in this future to re-add services if they disapear.
+  if (_peripheralManager.state == CBManagerStatePoweredOn ||
+      _peripheralManager.state == CBManagerStatePoweredOff) {
+    for (CBUUID *serviceUUID in _pendingCharacteristics.allKeys) {
+      // If a service with the specified UUID exists, we are modifying it, which requires us to
+      // remove the service and then re-add it after the new characteristic has been added.
+      // Otherwise, create the service for the specified UUID and keep track of it.
+      CBMutableService *service = _services[serviceUUID];
+      if (service != nil) {
+        [_peripheralManager removeService:service];
+      } else {
+        service = [[CBMutableService alloc] initWithType:serviceUUID primary:YES];
+        _services[serviceUUID] = service;
+      }
+
+      // Add the pending characteristics to the current service's list of characteristics.
+      NSMutableArray<CBMutableCharacteristic *> *characteristics =
+          [service.characteristics mutableCopy];
+      if (characteristics == nil) {
+        characteristics = [[NSMutableArray alloc] init];
+      }
+      // This makes the assumption that _pendingCharacteristics does not contain any duplicate
+      // characteristics within itself or the current service characteristics. This is only
+      // enforced on characteristic creation.
+      [characteristics addObjectsFromArray:_pendingCharacteristics[serviceUUID]];
+      service.characteristics = characteristics;
+
+      // Publish the service.
+      [_peripheralManager addService:service];
+    }
+    // Clean up pending characteristics so we don't try to re-add them any time the power state
+    // changes.
+    [_pendingCharacteristics removeAllObjects];
   }
-  [_condition unlock];
-  return _peripheralManager.state == CBManagerStatePoweredOn;
+}
+
+- (void)internalStartAdvertisingIfPoweredOn {
+  dispatch_assert_queue(_queue);
+  // Advertising can only be done when powered on and must be restarted if bluetooth is turned off
+  // then back on. This will be called anytime the peripheral manager's state changes, so
+  // @c startAdvertising: will be called anytime state transitions back to powered on.
+  if (_peripheralManager.state == CBManagerStatePoweredOn && _advertisementData != nil) {
+    // Stop advertising just in case something outside of this class is advertising (like weave).
+    [_peripheralManager stopAdvertising];
+    [_peripheralManager startAdvertising:_advertisementData];
+  }
 }
 
 #pragma mark - GNCPeripheralManagerDelegate
 
 - (void)gnc_peripheralManagerDidUpdateState:(id<GNCPeripheralManager>)peripheral {
-  [_condition lock];
-  [_condition signal];
-  [_condition unlock];
+  dispatch_assert_queue(_queue);
+  [self internalAddPendingServicesIfPoweredOn];
+  [self internalStartAdvertisingIfPoweredOn];
 }
 
 - (void)gnc_peripheralManagerDidStartAdvertising:(id<GNCPeripheralManager>)peripheral
                                            error:(nullable NSError *)error {
-  [_condition lock];
-  [_condition signal];
-  [_condition unlock];
+  dispatch_assert_queue(_queue);
+  if (error) {
+    GTMLoggerError(@"Failed to start advertising: %@", error);
+  }
 }
 
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
                 didAddService:(CBService *)service
                         error:(nullable NSError *)error {
-  [_condition lock];
-  [_pendingServiceAdditions removeObject:service.UUID];
+  dispatch_assert_queue(_queue);
   if (error) {
-    [_serviceErrors setObject:error forKey:service.UUID];
+    GTMLoggerError(@"Failed to add service %@: %@", service, error);
   }
-  [_condition signal];
-  [_condition unlock];
 }
 
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
         didReceiveReadRequest:(CBATTRequest *)request {
-  [_condition lock];
-  // Find the requested charactertic and respond with its value if it exists.
-  CBMutableService *service = _services[request.characteristic.service.UUID];
-  if (!service) {
-    [_condition unlock];
+  dispatch_assert_queue(_queue);
+  NSData *value =
+      _characteristicValues[request.characteristic.service.UUID][request.characteristic.UUID];
+  if (!value) {
     [_peripheralManager respondToRequest:request withResult:CBATTErrorAttributeNotFound];
     return;
   }
-  for (CBMutableCharacteristic *c in service.characteristics) {
-    if ([c.UUID isEqual:request.characteristic.UUID]) {
-      request.value = c.value;
-      [_condition unlock];
-      [_peripheralManager respondToRequest:request withResult:CBATTErrorSuccess];
-      return;
-    }
-  }
-  [_condition unlock];
-  [_peripheralManager respondToRequest:request withResult:CBATTErrorAttributeNotFound];
+  request.value = value;
+  [_peripheralManager respondToRequest:request withResult:CBATTErrorSuccess];
 }
 
 #pragma mark - CBPeripheralManagerDelegate
 
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral {
-  [self gnc_peripheralManagerDidUpdateState:peripheral];
+  dispatch_async(_queue, ^{
+    [self gnc_peripheralManagerDidUpdateState:peripheral];
+  });
 }
 
 - (void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral
                                        error:(nullable NSError *)error {
-  [self gnc_peripheralManagerDidStartAdvertising:peripheral error:error];
+  dispatch_async(_queue, ^{
+    [self gnc_peripheralManagerDidStartAdvertising:peripheral error:error];
+  });
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
             didAddService:(CBService *)service
                     error:(nullable NSError *)error {
-  [self gnc_peripheralManager:peripheral didAddService:service error:error];
+  dispatch_async(_queue, ^{
+    [self gnc_peripheralManager:peripheral didAddService:service error:error];
+  });
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
     didReceiveReadRequest:(CBATTRequest *)request {
-  [self gnc_peripheralManager:peripheral didReceiveReadRequest:request];
+  dispatch_async(_queue, ^{
+    [self gnc_peripheralManager:peripheral didReceiveReadRequest:request];
+  });
 }
 
 @end

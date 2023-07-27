@@ -19,11 +19,15 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef void (^GNCCreateCharacteristicCompletionHandler)(
+    GNCBLEGATTCharacteristic *_Nullable characteristic, NSError *_Nullable error);
+typedef void (^GNCUpdateCharacteristicCompletionHandler)(NSError *_Nullable error);
+typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
+
 /**
  * An object that manages and advertises GATT characteritics.
  *
- * @note The public APIs of this class are NOT thread safe. All methods in this class should be
- *       invoked from the same thread or serially.
+ * @note The public APIs of this class are thread safe.
  */
 @interface GNCBLEGATTServer : NSObject
 
@@ -33,30 +37,31 @@ NS_ASSUME_NONNULL_BEGIN
  * Characteristics of the same service UUID will cause the service to be unpublished and republished
  * with the new characteristic appended.
  *
- * This method blocks until the characteristic has successfully been added to the GATT server or an
- * error occurs.
- *
  * @param serviceUUID A 128-bit UUID that identifies the service that the characteristic belongs to.
  * @param characteristicUUID A 128-bit UUID that identifies the characteristic.
  * @param permissions The permissions of the characteristic value.
  * @param properties The properties of the characteristic.
- * @return Returns the characteristic or nil if an error has occured.
+ * @param completionHandler Called on the main queue with the characteristic if successfully created
+ *                          or an error if one has occured.
  */
-- (nullable GNCBLEGATTCharacteristic *)
-    createCharacteristicWithServiceID:(CBUUID *)serviceUUID
-                   characteristicUUID:(CBUUID *)characteristicUUID
-                          permissions:(CBAttributePermissions)permissions
-                           properties:(CBCharacteristicProperties)properties;
+- (void)createCharacteristicWithServiceID:(CBUUID *)serviceUUID
+                       characteristicUUID:(CBUUID *)characteristicUUID
+                              permissions:(CBAttributePermissions)permissions
+                               properties:(CBCharacteristicProperties)properties
+                        completionHandler:
+                            (nullable GNCCreateCharacteristicCompletionHandler)completionHandler;
 
 /**
  * Updates a local characteristic with the provided value.
  *
  * @param characteristic The characteristic to update.
  * @param value The new value for the characteristic.
- * @return Returns @c YES if successfully updated or @c NO if an error has occured.
+ * @param completionHandler Called on the main queue with @c nil if successfully updated or an error
+ *                          if one has occured.
  */
-- (BOOL)updateCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
-                       value:(nullable NSData *)value;
+- (void)updateCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
+                       value:(nullable NSData *)value
+           completionHandler:(nullable GNCUpdateCharacteristicCompletionHandler)completionHandler;
 
 /** Removes all published services from the local GATT database. */
 - (void)stop;
@@ -68,14 +73,14 @@ NS_ASSUME_NONNULL_BEGIN
  * service list is advertised using @c CBAdvertisementDataServiceUUIDsKey and the associated data is
  * advertised using @c CBAdvertisementDataLocalNameKey. Since @c CBAdvertisementDataLocalNameKey
  * does not support binary data, the value is base64 encoded and truncated if the resulting value is
- * longer than 22 bytes.
- *
- * This method blocks until the service data is being advertised or an error occurs.
+ * longer than 22 bytes. This also means we can only support advertising a single service.
  *
  * @param serviceData A dictionary that contains service-specific advertisement data.
- * @return Returns @c YES if successfully updated or @c NO if an error has occured.
+ * @param completionHandler Called on the main queue with @c nil if successfully started advertising
+ *                          or an error if one has occured.
  */
-- (BOOL)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData;
+- (void)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData
+           completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler;
 
 @end
 

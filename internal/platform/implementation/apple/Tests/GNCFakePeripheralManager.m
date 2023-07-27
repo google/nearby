@@ -61,9 +61,6 @@
   BOOL _isAdvertising;
   NSDictionary<NSString *, id> *_advertisementData;
   NSMutableArray<CBService *> *_services;
-
-  // Used to deliver delegate callbacks.
-  dispatch_queue_t _queue;
 }
 
 @synthesize peripheralDelegate;
@@ -79,7 +76,6 @@
     _state = CBManagerStateUnknown;
     _advertisementData = nil;
     _services = [[NSMutableArray alloc] init];
-    _queue = dispatch_queue_create("com.nearby.GNCFakePeripheralManager", DISPATCH_QUEUE_SERIAL);
   }
   return self;
 }
@@ -96,9 +92,7 @@
   if (!_didAddServiceError) {
     [_services addObject:service];
   }
-  dispatch_async(_queue, ^{
-    [peripheralDelegate gnc_peripheralManager:self didAddService:service error:_didAddServiceError];
-  });
+  [peripheralDelegate gnc_peripheralManager:self didAddService:service error:_didAddServiceError];
 }
 
 - (void)removeService:(CBMutableService *)service {
@@ -112,10 +106,8 @@
 - (void)startAdvertising:(NSDictionary<NSString *, id> *)advertisementData {
   _isAdvertising = _didStartAdvertisingError == nil;
   _advertisementData = advertisementData;
-  dispatch_async(_queue, ^{
-    [peripheralDelegate gnc_peripheralManagerDidStartAdvertising:self
-                                                           error:_didStartAdvertisingError];
-  });
+  [peripheralDelegate gnc_peripheralManagerDidStartAdvertising:self
+                                                         error:_didStartAdvertisingError];
 }
 
 - (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result {
@@ -124,6 +116,9 @@
     return;
   }
   [_respondToRequestErrorExpectation fulfill];
+}
+
+- (void)stopAdvertising {
 }
 
 #pragma mark - Testing Helpers
@@ -138,18 +133,14 @@
 
 - (void)simulatePeripheralManagerDidUpdateState:(CBManagerState)fakeState {
   _state = fakeState;
-  dispatch_async(_queue, ^{
-    [peripheralDelegate gnc_peripheralManagerDidUpdateState:self];
-  });
+  [peripheralDelegate gnc_peripheralManagerDidUpdateState:self];
 }
 
 - (void)simulatePeripheralManagerDidReceiveReadRequestForService:(CBUUID *)service
                                                   characteristic:(CBUUID *)characteristic {
   CBATTRequest *request = [[CBATTRequest alloc] initWithService:service
                                                  characteristic:characteristic];
-  dispatch_async(_queue, ^{
-    [peripheralDelegate gnc_peripheralManager:self didReceiveReadRequest:request];
-  });
+  [peripheralDelegate gnc_peripheralManager:self didReceiveReadRequest:request];
 }
 
 @end

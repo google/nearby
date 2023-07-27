@@ -18,6 +18,7 @@ package(default_visibility = ["//internal/platform/implementation/apple:__subpac
 objc_library(
     name = "Mediums",
     srcs = [
+        "BLEv2/GNCBLEError.m",
         "BLEv2/GNCBLEGATTCharacteristic.m",
         "BLEv2/GNCBLEGATTServer.m",
         "BLEv2/GNCPeripheralManager.m",
@@ -37,6 +38,7 @@ objc_library(
         "WiFiLAN/GNCWiFiLANSocket.m",
     ],
     hdrs = [
+        "BLEv2/GNCBLEError.h",
         "BLEv2/GNCBLEGATTCharacteristic.h",
         "BLEv2/GNCBLEGATTServer.h",
         "BLEv2/GNCPeripheralManager.h",
