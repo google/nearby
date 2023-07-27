@@ -87,7 +87,7 @@ class ThroughputRecorder {
   int64_t GetDurationMillis();
   void OnFrameSent(Medium medium, PacketMetaData& packetMetaData);
   void OnFrameReceived(Medium medium, PacketMetaData& packetMetaData);
-  void MarkAsSuccess() { success_ = true; }
+  void MarkAsSuccess();
 
  private:
   void CalculateDurationTimes(PacketMetaData packetMetaData);
