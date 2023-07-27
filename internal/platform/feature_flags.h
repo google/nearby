@@ -56,6 +56,10 @@ class FeatureFlags {
     // Controls enable or disable BLE scan advertisement for fast pair
     // service uuid 0x2cfe
     bool enable_scan_for_fast_pair_advertisement = false;
+    // Skip Service Discovery Protocol check if the remote party supports the
+    // requested service id before attempting to connect over rfcomm. SDP fails
+    // on Windows when connecting to FP service id but the rfcomm is successful.
+    bool skip_service_discovery_before_connecting_to_rfcomm = false;
   };
 
   static const FeatureFlags& GetInstance() {

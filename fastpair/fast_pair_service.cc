@@ -43,6 +43,7 @@ namespace {
 constexpr char kFastPairPreferencesFilePath[] = "Google/Nearby/FastPair";
 constexpr FeatureFlags::Flags fast_pair_feature_flags = FeatureFlags::Flags{
     .enable_scan_for_fast_pair_advertisement = true,
+    .skip_service_discovery_before_connecting_to_rfcomm = true,
 };
 constexpr absl::Duration kTimeout = absl::Seconds(3);
 }  // namespace
