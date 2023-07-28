@@ -26,6 +26,7 @@
 #include "absl/time/time.h"
 #include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_events.h"
+#include "fastpair/fast_pair_seeker.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
@@ -85,6 +86,12 @@ class FastPairSeekerImplTest : public testing::Test {
 
   void TearDown() override { executor_.Shutdown(); }
 
+  void WaitForBackgroundTasks() {
+    CountDownLatch latch(1);
+    executor_.Execute([&]() { latch.CountDown(); });
+    latch.Await();
+  }
+
   MediumEnvironmentStarter env_;
   SingleThreadExecutor executor_;
   std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
@@ -100,7 +107,7 @@ class FastPairSeekerImplTest : public testing::Test {
 TEST_F(FastPairSeekerImplTest, StartAndStopFastPairScan) {
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{}, &executor_,
-      account_manager_.get(), &devices_);
+      account_manager_.get(), &devices_, repository_.get());
 
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
   EXPECT_OK(fast_pair_seeker_->StopFastPairScan());
@@ -116,7 +123,7 @@ TEST_F(FastPairSeekerImplTest, DiscoverDevice) {
                 EXPECT_EQ(device.GetModelId(), kModelId);
                 latch.CountDown();
               }},
-      &executor_, account_manager_.get(), &devices_);
+      &executor_, account_manager_.get(), &devices_, repository_.get());
 
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
   provider.StartDiscoverableAdvertisement(kModelId);
@@ -128,7 +135,7 @@ TEST_F(FastPairSeekerImplTest, DiscoverDevice) {
 TEST_F(FastPairSeekerImplTest, StartFastPairScanTwiceFails) {
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{}, &executor_,
-      account_manager_.get(), &devices_);
+      account_manager_.get(), &devices_, repository_.get());
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
 
   EXPECT_THAT(fast_pair_seeker_->StartFastPairScan(),
@@ -138,7 +145,7 @@ TEST_F(FastPairSeekerImplTest, StartFastPairScanTwiceFails) {
 TEST_F(FastPairSeekerImplTest, StopFastPairScanTwiceFails) {
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
       FastPairSeekerImpl::ServiceCallbacks{}, &executor_,
-      account_manager_.get(), &devices_);
+      account_manager_.get(), &devices_, repository_.get());
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
 
   EXPECT_OK(fast_pair_seeker_->StopFastPairScan());
@@ -159,7 +166,7 @@ TEST_F(FastPairSeekerImplTest, ScreenLocksDuringAdvertising) {
                 EXPECT_TRUE(event.is_locked);
                 latch.CountDown();
               }},
-      &executor_, account_manager_.get(), &devices_);
+      &executor_, account_manager_.get(), &devices_, repository_.get());
   // Create Advertiser and startAdvertising
   Mediums mediums_2;
   std::string service_id(kServiceID);
@@ -195,7 +202,7 @@ TEST_F(FastPairSeekerImplTest, InitialPairing) {
                     }}));
                 discover_latch.CountDown();
               }},
-      &executor_, account_manager_.get(), &devices_);
+      &executor_, account_manager_.get(), &devices_, repository_.get());
 
   EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
   provider.PrepareForInitialPairing(
@@ -215,7 +222,7 @@ TEST_F(FastPairSeekerImplTest, InitialPairing) {
   fast_pair_seeker_.reset();
 }
 
-TEST_F(FastPairSeekerImplTest, RetroactivePairing) {
+TEST_F(FastPairSeekerImplTest, RetroactivePairingWithUserConsent) {
   NEARBY_LOG_SET_SEVERITY(VERBOSE);
   FakeProvider provider;
   CountDownLatch pair_latch(1);
@@ -234,7 +241,7 @@ TEST_F(FastPairSeekerImplTest, RetroactivePairing) {
                       retro_latch.CountDown();
                     }}));
               }},
-      &executor_, account_manager_.get(), &devices_);
+      &executor_, account_manager_.get(), &devices_, repository_.get());
 
   provider.PrepareForRetroactivePairing(
       {.private_key = absl::HexStringToBytes(kBobPrivateKey),
@@ -247,6 +254,63 @@ TEST_F(FastPairSeekerImplTest, RetroactivePairing) {
   auto fp_device = devices_.FindDevice(provider.GetMacAddress());
   ASSERT_TRUE(fp_device.has_value());
   EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
+
+  // The client asks the user for consent, the user grants it.
+  CountDownLatch finish_latch(1);
+  EXPECT_OK(fast_pair_seeker_->FinishRetroactivePairing(
+      **fp_device, FinishRetroactivePairingParam{.save_account_key = true},
+      {.on_pairing_result = [&](const FastPairDevice&, absl::Status status) {
+        EXPECT_OK(status);
+        finish_latch.CountDown();
+      }}));
+  EXPECT_TRUE(finish_latch.Await());
+}
+
+TEST_F(FastPairSeekerImplTest, RetroactivePairingNoUserConsent) {
+  NEARBY_LOG_SET_SEVERITY(VERBOSE);
+  FakeProvider provider;
+  CountDownLatch pair_latch(1);
+  CountDownLatch retro_latch(1);
+  fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
+      FastPairSeekerImpl::ServiceCallbacks{
+          .on_pair_event =
+              [&](const FastPairDevice& device, PairEvent event) {
+                NEARBY_LOGS(INFO) << "Pair callback";
+                pair_latch.CountDown();
+                EXPECT_OK(fast_pair_seeker_->StartRetroactivePairing(
+                    device, RetroactivePairingParam{},
+                    {.on_pairing_result = [&](const FastPairDevice&,
+                                              absl::Status status) {
+                      EXPECT_OK(status);
+                      retro_latch.CountDown();
+                    }}));
+              }},
+      &executor_, account_manager_.get(), &devices_, repository_.get());
+
+  provider.PrepareForRetroactivePairing(
+      {.private_key = absl::HexStringToBytes(kBobPrivateKey),
+       .public_key = absl::HexStringToBytes(kBobPublicKey),
+       .model_id = std::string(kModelId)},
+      &fake_gatt_callbacks_);
+
+  EXPECT_TRUE(pair_latch.Await().Ok());
+  EXPECT_TRUE(retro_latch.Await().Ok());
+  auto fp_device = devices_.FindDevice(provider.GetMacAddress());
+  ASSERT_TRUE(fp_device.has_value());
+  EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
+
+  // The client asks the user for consent, the user rejects it.
+  CountDownLatch finish_latch(1);
+  EXPECT_OK(fast_pair_seeker_->FinishRetroactivePairing(
+      **fp_device, FinishRetroactivePairingParam{.save_account_key = false},
+      {.on_pairing_result = [&](const FastPairDevice&, absl::Status status) {
+        EXPECT_OK(status);
+        finish_latch.CountDown();
+      }}));
+  EXPECT_TRUE(finish_latch.Await());
+  // The device should be deleted.
+  WaitForBackgroundTasks();
+  EXPECT_FALSE(devices_.FindDevice(provider.GetMacAddress()).has_value());
 }
 
 }  // namespace

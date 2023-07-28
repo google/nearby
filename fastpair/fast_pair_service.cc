@@ -23,9 +23,9 @@
 #include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_plugin.h"
 #include "fastpair/internal/fast_pair_seeker_impl.h"
+#include "fastpair/repository/fast_pair_repository_impl.h"
 #include "fastpair/server_access/fast_pair_client_impl.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "fastpair/repository/fast_pair_repository_impl.h"
 #include "internal/account/account_manager_impl.h"
 #include "internal/auth/authentication_manager_impl.h"
 #include "internal/flags/nearby_flags.h"
@@ -107,7 +107,8 @@ FastPairService::FastPairService(
               [this](const FastPairDevice& device, RingEvent event) {
                 OnRingEvent(device, std::move(event));
               }},
-      &executor_, account_manager_.get(), &devices_);
+      &executor_, account_manager_.get(), &devices_,
+      fast_pair_repository_.get());
 }
 
 FastPairService::~FastPairService() { executor_.Shutdown(); }

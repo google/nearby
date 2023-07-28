@@ -39,11 +39,13 @@ constexpr absl::Duration kCleanupTimeout = absl::Seconds(3);
 FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
                                        SingleThreadExecutor* executor,
                                        AccountManager* account_manager,
-                                       FastPairDeviceRepository* devices)
+                                       FastPairDeviceRepository* devices,
+                                       FastPairRepository* repository)
     : callbacks_(std::move(callbacks)),
       executor_(executor),
       account_manager_(account_manager),
-      devices_(devices) {
+      devices_(devices),
+      repository_(repository) {
   pairer_broker_ =
       std::make_unique<PairerBrokerImpl>(mediums_, executor_, account_manager_);
   pairer_broker_->AddObserver(this);
@@ -104,11 +106,50 @@ absl::Status FastPairSeekerImpl::StartRetroactivePairing(
   pairing_callback_ = std::make_unique<PairingCallback>(std::move(callback));
   retroactive_pair_->Pair().AddListener(
       [this](ExceptionOr<absl::Status> result) {
+        // TODO(jsobczak): We could/should keep controller_ alive until the
+        // client calls FinishRetroactivePairing(), verify that they called
+        // Finish for the correct device, and if the user has given consent, we
+        // should keep the MessageStream connection open.
         retroactive_pair_.reset();
         controller_.reset();
         FinishPairing(result.result());
       },
       executor_);
+  return absl::OkStatus();
+}
+
+absl::Status FastPairSeekerImpl::FinishRetroactivePairing(
+    const FastPairDevice& device, const FinishRetroactivePairingParam& param,
+    PairingCallback callback) {
+  if (device.GetProtocol() != Protocol::kFastPairRetroactivePairing) {
+    return absl::InvalidArgumentError(
+        "Fast Pair Device is not a retroactive pairing device");
+  }
+  if (!device.GetAccountKey()) {
+    return absl::InvalidArgumentError(
+        "Fast Pair Device does not have an account key");
+  }
+  if (!param.save_account_key) {
+    executor_->Execute(
+        "abandon retro device",
+        [this, &device, callback = std::move(callback)]() mutable {
+          NEARBY_LOGS(INFO) << "Abandon device on retroactive pairing path";
+          callback.on_pairing_result(device, absl::OkStatus());
+          devices_->RemoveDevice(&device);
+        });
+  } else {
+    executor_->Execute(
+        "save account key",
+        [this, &device, callback = std::move(callback)]() mutable {
+          NEARBY_LOGS(INFO) << "Save account key for " << device;
+          repository_->WriteAccountAssociationToFootprints(
+              const_cast<FastPairDevice&>(device),
+              [&device,
+               callback = std::move(callback)](absl::Status status) mutable {
+                callback.on_pairing_result(device, status);
+              });
+        });
+  }
   return absl::OkStatus();
 }
 
