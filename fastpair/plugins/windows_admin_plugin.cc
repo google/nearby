@@ -28,7 +28,7 @@ void WindowsAdminPlugin::PluginState::DiscoveryClicked(DiscoveryAction action) {
       absl::Status status = fast_pair_service->GetSeeker()->StartInitialPairing(
           *device, InitialPairingParam{},
           {.on_pairing_result = [this](const FastPairDevice& device,
-                                    absl::Status status) {
+                                       absl::Status status) {
             NEARBY_LOGS(INFO) << "Pairing result: " << status;
             for (auto* observer : observers.GetObservers()) {
               observer->OnPairingResult(device.GetMetadata().value(),
@@ -98,11 +98,20 @@ void WindowsAdminPlugin::OnPairEvent(const PairEvent& event) {
   NEARBY_LOGS(INFO) << "Received on pair event";
   absl::Status status = seeker_->StartRetroactivePairing(
       *device_, RetroactivePairingParam{},
-      {.on_pairing_result = [](const FastPairDevice& device,
-                               absl::Status status) {
+      {.on_pairing_result = [this](const FastPairDevice& device,
+                                   absl::Status status) {
         NEARBY_LOGS(INFO) << "Pairing result: " << status;
         // TODO(jsobczak): Ask for user consent and save the Account Key to
         // user's account.
+        if (status.ok()) {
+          absl::Status finish_status = seeker_->FinishRetroactivePairing(
+              device, FinishRetroactivePairingParam{.save_account_key = true},
+              {.on_pairing_result = [](const FastPairDevice& device,
+                                       absl::Status status) {
+                NEARBY_LOGS(INFO) << "Finish retro result: " << status;
+              }});
+          NEARBY_LOGS(INFO) << "FinishRetroactivePairing: " << finish_status;
+        }
       }});
   NEARBY_LOGS(INFO) << "StartRetroactivePairing: " << status;
 }
