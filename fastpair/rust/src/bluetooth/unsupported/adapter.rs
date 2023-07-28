@@ -15,16 +15,16 @@
 use async_trait::async_trait;
 
 use super::BleDevice;
-use crate::bluetooth::common::{Adapter, BluetoothError};
+use crate::bluetooth::{
+    api, common::BluetoothError, BleAdvertisement, BleDataTypeId,
+};
 
 /// Concrete type implementing `Adapter`, used for unsupported devices.
 /// Every method should panic.
 pub struct BleAdapter;
 
 #[async_trait]
-impl Adapter for BleAdapter {
-    type Device = BleDevice;
-
+impl api::BleAdapter for BleAdapter {
     async fn default() -> Result<Self, BluetoothError> {
         panic!("Unsupported target platform.");
     }
@@ -37,8 +37,11 @@ impl Adapter for BleAdapter {
         panic!("Unsupported target platform.");
     }
 
-    async fn next_device(&mut self) -> Result<Self::Device, BluetoothError> {
-        panic!("Unsupported target platform.");
+    async fn next_advertisement(
+        &mut self,
+        datatype_selector: Option<&Vec<BleDataTypeId>>,
+    ) -> Result<BleAdvertisement, BluetoothError> {
+        panic!("Unsupported target platform");
     }
 }
 

@@ -13,14 +13,10 @@
 // limitations under the License.
 
 /// Module for shared functionality between all Bluetooth platforms.
-mod adapter;
 mod address;
 mod advertisement;
-mod device;
 mod error;
 
-pub use adapter::*;
 pub use address::*;
 pub use advertisement::*;
-pub use device::*;
 pub use error::*;

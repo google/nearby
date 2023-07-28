@@ -53,8 +53,9 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::common::{
-    Adapter, BleAdvertisement, BleDataTypeId, BluetoothError,
+use crate::bluetooth::{
+    api,
+    common::{BleAdvertisement, BleDataTypeId, BluetoothError},
 };
 
 /// Struct holding the necessary fields for listening to and handling incoming
@@ -66,14 +67,14 @@ struct AdvListener {
     receiver: Receiver<BluetoothLEAdvertisementReceivedEventArgs>,
 }
 
-/// Concrete type implementing `Adapter`, used for Windows BLE.
+/// Concrete type implementing `api::BleAdapter`, used for Windows BLE.
 pub struct BleAdapter {
     inner: BluetoothAdapter,
     listener: Option<AdvListener>,
 }
 
 #[async_trait]
-impl Adapter for BleAdapter {
+impl api::BleAdapter for BleAdapter {
     async fn default() -> Result<Self, BluetoothError> {
         let inner = BluetoothAdapter::GetDefaultAsync()?.await?;
 

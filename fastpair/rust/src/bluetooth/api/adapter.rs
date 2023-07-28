@@ -14,12 +14,14 @@
 
 use async_trait::async_trait;
 
-use super::{BleAdvertisement, BleDataTypeId, BluetoothError};
+use crate::bluetooth::common::{
+    BleAdvertisement, BleDataTypeId, BluetoothError,
+};
 
 /// Concrete types implementing this trait are Bluetooth Central devices.
 /// They provide methods for retrieving nearby connections and device info.
 #[async_trait]
-pub trait Adapter: Sized {
+pub trait BleAdapter: Sized {
     /// Retrieve the system-default Bluetooth adapter.
     async fn default() -> Result<Self, BluetoothError>;
 

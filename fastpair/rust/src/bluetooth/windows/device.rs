@@ -49,7 +49,7 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::common::{BleAddress, ClassicAddress, Device, BluetoothError, PairingResult};
+use crate::bluetooth::{api, common::{BleAddress, ClassicAddress, BluetoothError, PairingResult}};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {
@@ -63,9 +63,9 @@ pub struct ClassicDevice {
     addr: ClassicAddress,
 }
 
-impl BleDevice {
-    /// `BleDevice` constructor.
-    pub async fn new(addr: BleAddress) -> Result<Self, BluetoothError> {
+#[async_trait]
+impl api::BleDevice for BleDevice {
+    async fn new(addr: BleAddress) -> Result<Self, BluetoothError> {
         let kind = BluetoothAddressType::from(addr.get_kind());
         let raw_addr = u64::from(addr);
 
@@ -76,33 +76,19 @@ impl BleDevice {
 
         Ok(BleDevice { inner, addr })
     }
-}
-
-#[async_trait]
-impl Device for BleDevice {
-    type Address = BleAddress;
 
     fn name(&self) -> Result<String, BluetoothError> {
         Ok(self.inner.Name()?.to_string())
     }
 
-    fn address(&self) -> Self::Address {
+    fn address(&self) -> BleAddress {
         self.addr
-    }
-
-    async fn pair(&self) -> Result<PairingResult, BluetoothError> {
-        // BLE Audio isn't supported on Windows natively, so devices can pair
-        // but don't playback. Might possibly work with UWP. Since the Classic
-        // and BLE APIs are very similar, it might be possible to copy-paste
-        // `ClassicDevice::pair` directly.
-        unimplemented!("BLE Pairing is currently unsupported.")
     }
 }
 
-
-impl ClassicDevice {
-    /// `ClassicDevice` constructor.
-    pub async fn new(addr: ClassicAddress) -> Result<Self, BluetoothError> {
+#[async_trait]
+impl api::ClassicDevice for ClassicDevice {
+    async fn new(addr: ClassicAddress) -> Result<Self, BluetoothError> {
         let raw_addr = u64::from(addr);
 
         let inner = BluetoothDevice::FromBluetoothAddressAsync(
@@ -112,17 +98,12 @@ impl ClassicDevice {
 
         Ok(ClassicDevice { inner, addr })
     }
-}
-
-#[async_trait]
-impl Device for ClassicDevice {
-    type Address = ClassicAddress;
 
     fn name(&self) -> Result<String, BluetoothError> {
         Ok(self.inner.Name()?.to_string_lossy())
     }
 
-    fn address(&self) -> Self::Address {
+    fn address(&self) -> ClassicAddress {
         self.addr
     }
 

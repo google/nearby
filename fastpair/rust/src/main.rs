@@ -27,12 +27,13 @@ use futures::{
 
 mod bluetooth;
 
-use bluetooth::{Adapter, BleDevice, ClassicAddress, Device};
-
-use crate::bluetooth::BleDataTypeId;
+use crate::bluetooth::{
+    BleAdapter, BleDataTypeId, BleDevice, ClassicAddress, ClassicDevice,
+    Platform,
+};
 
 async fn get_user_input(
-    device_vec: Arc<Mutex<Vec<BleDevice>>>,
+    device_vec: Arc<Mutex<Vec<impl BleDevice>>>,
 ) -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
     loop {
@@ -55,7 +56,7 @@ async fn get_user_input(
                 let classic_addr = ClassicAddress::try_from(addr)?;
 
                 let classic_device =
-                    bluetooth::ClassicDevice::new(classic_addr).await?;
+                    Platform::new_classic_device(classic_addr).await?;
 
                 match classic_device.pair().await {
                     Ok(_) => {
@@ -72,7 +73,7 @@ async fn get_user_input(
 
 fn main() -> Result<(), Box<dyn Error>> {
     let run = async {
-        let mut adapter = bluetooth::BleAdapter::default().await?;
+        let mut adapter = Platform::default_adapter().await?;
         adapter.start_scan()?;
 
         let mut addr_set = HashSet::new();
@@ -96,7 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // This is a Fast Pair device.
                 if uuid == 0x2cfe {
                     let addr = advertisement.address();
-                    let ble_device = BleDevice::new(addr).await?;
+                    let ble_device = Platform::new_ble_device(addr).await?;
                     let name = ble_device.name()?;
 
                     if addr_set.insert(addr) {

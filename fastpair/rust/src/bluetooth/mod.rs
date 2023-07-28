@@ -16,11 +16,12 @@
 // instead of using anyhow.
 // b/290070686
 
+pub mod api;
 pub mod common;
 
+pub use api::{BleAdapter, BleDevice, ClassicDevice};
 pub use common::{
-    Adapter, BleAdvertisement, BleDataTypeId, BluetoothError, ClassicAddress,
-    Device,
+    BleAddress, BleAdvertisement, BleDataTypeId, BluetoothError, ClassicAddress,
 };
 
 cfg_if::cfg_if! {
@@ -33,6 +34,23 @@ cfg_if::cfg_if! {
     }
 }
 
-pub type BleAdapter = platform::BleAdapter;
-pub type BleDevice = platform::BleDevice;
-pub type ClassicDevice = platform::ClassicDevice;
+pub struct Platform;
+
+impl Platform {
+    pub async fn default_adapter(
+    ) -> Result<impl api::BleAdapter, BluetoothError> {
+        platform::BleAdapter::default().await
+    }
+
+    pub async fn new_ble_device(
+        addr: BleAddress,
+    ) -> Result<impl api::BleDevice, BluetoothError> {
+        platform::BleDevice::new(addr).await
+    }
+
+    pub async fn new_classic_device(
+        addr: ClassicAddress,
+    ) -> Result<impl api::ClassicDevice, BluetoothError> {
+        platform::ClassicDevice::new(addr).await
+    }
+}
