@@ -111,6 +111,7 @@ objc_library(
         "ble_server_socket.mm",
         "ble_socket.mm",
         "ble_utils.mm",
+        "bluetooth_adapter_v2.mm",
         "utils.mm",
     ],
     hdrs = [
@@ -118,6 +119,7 @@ objc_library(
         "ble_server_socket.h",
         "ble_socket.h",
         "ble_utils.h",
+        "bluetooth_adapter_v2.h",
         "utils.h",
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
