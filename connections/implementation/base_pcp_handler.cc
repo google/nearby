@@ -694,6 +694,9 @@ Status BasePcpHandler::RequestConnection(
                "to endpoint_id="
             << endpoint_id;
 
+        client->OnRequestConnection(GetStrategy(), endpoint_id,
+                                    connection_options);
+
         ConnectionInfo connection_info =
             FillConnectionInfo(client, info, connection_options);
 

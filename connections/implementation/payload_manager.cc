@@ -911,6 +911,8 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             if (!is_last_chunk && payload_chunk_offset != 0) {
               NEARBY_LOGS(INFO) << "Skip the outgoing chunk update with offset="
                                 << payload_chunk_offset;
+              client->GetAnalyticsRecorder().OnPayloadChunkSent(
+                  endpoint_id, payload_header.id(), payload_chunk_body_size);
               return;
             }
           }
@@ -993,6 +995,8 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
             if (!is_last_chunk && payload_chunk_offset != 0) {
               NEARBY_LOGS(INFO) << "Skip the incoming chunk update with offset="
                                 << payload_chunk_offset;
+              client->GetAnalyticsRecorder().OnPayloadChunkReceived(
+                  endpoint_id, payload_header.id(), payload_chunk_body_size);
               return;
             }
           }

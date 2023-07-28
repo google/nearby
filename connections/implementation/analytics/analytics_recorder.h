@@ -74,6 +74,10 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connection request
+  void OnRequestConnection(const connections::Strategy &strategy,
+                           const std::string &endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   void OnConnectionRequestReceived(const std::string &remote_endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnConnectionRequestSent(const std::string &remote_endpoint_id)
@@ -374,13 +378,13 @@ class AnalyticsRecorder {
   std::unique_ptr<
       location::nearby::analytics::proto::ConnectionsLog::AdvertisingPhase>
       current_advertising_phase_;
-  absl::Time started_advertising_phase_time_;
+  absl::Time started_advertising_phase_time_ = absl::InfinitePast();
 
   // Current DiscoveryPhase
   std::unique_ptr<
       location::nearby::analytics::proto::ConnectionsLog::DiscoveryPhase>
       current_discovery_phase_;
-  absl::Time started_discovery_phase_time_;
+  absl::Time started_discovery_phase_time_ = absl::InfinitePast();
 
   absl::btree_map<std::string,
                   std::unique_ptr<location::nearby::analytics::proto::

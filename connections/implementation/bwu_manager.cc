@@ -700,8 +700,8 @@ void BwuManager::ProcessBwuPathAvailableEvent(
 
     return;
   }
-  Medium current_medium = GetBwuMediumForEndpoint(endpoint_id);
-  if (current_medium == Medium::UNKNOWN_MEDIUM) {
+  Medium current_bwu_medium = GetBwuMediumForEndpoint(endpoint_id);
+  if (current_bwu_medium == Medium::UNKNOWN_MEDIUM) {
     SetBwuMediumForEndpoint(endpoint_id, upgrade_medium);
   }
   // Check for the correct medium so we don't process an incorrect OfflineFrame.
@@ -711,6 +711,9 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
+  auto current_channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
+  Medium current_medium =
+      current_channel ? current_channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
   client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
       endpoint_id, current_medium, upgrade_medium,
       location::nearby::proto::connections::OUTGOING,

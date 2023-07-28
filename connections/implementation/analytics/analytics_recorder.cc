@@ -220,7 +220,7 @@ void AnalyticsRecorder::OnStartedIncomingConnectionListening(
     return;
   }
   UpdateStrategySessionLocked(strategy, ADVERTISER);
-  if (started_advertising_phase_time_ == absl::Now()) {
+  if (started_advertising_phase_time_ == absl::InfinitePast()) {
     started_advertising_phase_time_ = SystemClock::ElapsedRealtime();
   }
 }
@@ -248,6 +248,19 @@ void AnalyticsRecorder::OnEndpointFound(Medium medium) {
   discovered_endpoint->set_medium(medium);
   discovered_endpoint->set_latency_millis(absl::ToInt64Milliseconds(
       SystemClock::ElapsedRealtime() - started_discovery_phase_time_));
+}
+
+void AnalyticsRecorder::OnRequestConnection(
+    const connections::Strategy &strategy, const std::string &endpoint_id) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("onRequestConnection")) {
+    return;
+  }
+
+  UpdateStrategySessionLocked(strategy, DISCOVERER);
+  if (started_discovery_phase_time_ == absl::InfinitePast()) {
+    started_discovery_phase_time_ = SystemClock::ElapsedRealtime();
+  }
 }
 
 void AnalyticsRecorder::OnConnectionRequestReceived(
@@ -1034,10 +1047,15 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
     bandwidth_upgrade_attempts_.clear();
 
     // Add the StrategySession in ClientSession
-    current_strategy_session_->set_duration_millis(absl::ToInt64Milliseconds(
-        started_strategy_session_time_ - SystemClock::ElapsedRealtime()));
-    *client_session_->add_strategy_session() =
-        *std::move(current_strategy_session_);
+    if (current_strategy_session_ != nullptr) {
+      current_strategy_session_->set_duration_millis(absl::ToInt64Milliseconds(
+          SystemClock::ElapsedRealtime() - started_strategy_session_time_));
+      *client_session_->add_strategy_session() =
+          *std::move(current_strategy_session_);
+    }
+
+    current_strategy_session_ = nullptr;
+    current_strategy_ = connections::Strategy::kNone;
     LogEvent(STOP_STRATEGY_SESSION);
   }
 }

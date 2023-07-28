@@ -143,11 +143,17 @@ class ClientProxy final {
   void OnEndpointLost(const std::string& service_id,
                       const std::string& endpoint_id);
 
+  // Triggered when client request connection to remote device.
+  void OnRequestConnection(const Strategy& strategy,
+                           const std::string& endpoint_id,
+                           const ConnectionOptions& connection_options);
+
   // Proxies to the client's ConnectionListener::OnInitiated() callback.
-  void OnConnectionInitiated(
-      const std::string& endpoint_id, const ConnectionResponseInfo& info,
-      const ConnectionOptions& connection_options,
-      const ConnectionListener& listener, const std::string& connection_token);
+  void OnConnectionInitiated(const std::string& endpoint_id,
+                             const ConnectionResponseInfo& info,
+                             const ConnectionOptions& connection_options,
+                             const ConnectionListener& listener,
+                             const std::string& connection_token);
 
   // Proxies to the client's ConnectionListener::OnAccepted() callback.
   void OnConnectionAccepted(const std::string& endpoint_id);

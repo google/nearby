@@ -366,6 +366,12 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
   discovery_info_.listener.endpoint_lost_cb(endpoint_id);
 }
 
+void ClientProxy::OnRequestConnection(
+    const Strategy& strategy, const std::string& endpoint_id,
+    const ConnectionOptions& connection_options) {
+  analytics_recorder_->OnRequestConnection(strategy, endpoint_id);
+}
+
 void ClientProxy::OnConnectionInitiated(
     const std::string& endpoint_id, const ConnectionResponseInfo& info,
     const ConnectionOptions& connection_options,
@@ -779,9 +785,7 @@ void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
   }
 }
 
-const OsInfo& ClientProxy::GetLocalOsInfo() const {
-  return local_os_info_;
-}
+const OsInfo& ClientProxy::GetLocalOsInfo() const { return local_os_info_; }
 
 std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
     absl::string_view endpoint_id) const {
