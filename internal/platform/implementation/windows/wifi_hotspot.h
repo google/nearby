@@ -16,8 +16,8 @@
 #define PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_
 
 // Windows headers
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #include <wlanapi.h>
 
 // Standard C/C++ headers
@@ -27,6 +27,7 @@
 #include <string>
 
 // Nearby connections headers
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
@@ -123,7 +124,7 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   Exception Close() override;
 
  private:
-  enum class SocketType {kWinRTSocket = 0, kWin32Socket};
+  enum class SocketType { kWinRTSocket = 0, kWin32Socket };
   // A simple wrapper to handle input stream of socket
   class SocketInputStream : public InputStream {
    public:
@@ -204,6 +205,10 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   bool listen();
 
  private:
+  static constexpr int kSocketEventsCount = 2;
+  static constexpr int kSocketEventListen = 0;
+  static constexpr int kSocketEventClose = 1;
+
   // The listener is accepting incoming connections
   fire_and_forget Listener_ConnectionReceived(
       StreamSocketListener listener,
@@ -213,6 +218,8 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 
   // Retrieves hotspot IP address from local machine
   std::string GetHotspotIpAddress() const;
+
+  void SocketErrorNotice(absl::string_view reason);
 
   mutable absl::Mutex mutex_;
   absl::CondVar cond_;
@@ -225,6 +232,13 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   std::deque<SOCKET> pending_client_sockets_ ABSL_GUARDED_BY(mutex_);
   SOCKET listen_socket_ = INVALID_SOCKET;
   SOCKET client_socket_ = INVALID_SOCKET;
+
+  // closesocket cannot trigger FD_CLOSE on listener socket. In order to avoid
+  // blocking in WSAWaitForMultipleEvents, we use a socket event to trigger
+  // WSAWaitForMultipleEvents safely.
+  // The socket_events_ has 2 events, the first one is to handle normal socket
+  // event, and the second one is to handle event to close the socket manually.
+  WSAEVENT socket_events_[kSocketEventsCount];
   // Close notifier
   absl::AnyInvocable<void()> close_notifier_ = nullptr;
 
