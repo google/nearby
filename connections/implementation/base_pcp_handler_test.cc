@@ -233,19 +233,36 @@ class MockPcpHandler : public BasePcpHandler {
     return BasePcpHandler::GetDiscoveredEndpoints(medium);
   }
 
-  absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>&
-  GetEndpointLostByMediumAlarms() {
-    return BasePcpHandler::GetEndpointLostByMediumAlarms();
+  int GetEndpointLostByMediumAlarmsCount() {
+    Future<int> alarms_count;
+    RunOnPcpHandlerThread(
+        "GetEndpointLostByMediumAlarmsCount",
+        [this, alarms_count]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+          alarms_count.Set(
+              BasePcpHandler::GetEndpointLostByMediumAlarmsCount());
+        });
+    return alarms_count.Get().result();
   }
 
   void StartEndpointLostByMediumAlarms(
-    ClientProxy* client, location::nearby::proto::connections::Medium medium) {
-    BasePcpHandler::StartEndpointLostByMediumAlarms(client, medium);
+      ClientProxy* client,
+      location::nearby::proto::connections::Medium medium) {
+    RunOnPcpHandlerThread("StartEndpointLostByMediumAlarms",
+                          [this, client, medium]() RUN_ON_PCP_HANDLER_THREAD() {
+                            BasePcpHandler::StartEndpointLostByMediumAlarms(
+                                client, medium);
+                          });
   }
 
-  void StopEndpointLostByMediumAlarm(absl::string_view endpoint_id,
-    location::nearby::proto::connections::Medium medium) {
-    BasePcpHandler::StopEndpointLostByMediumAlarm(endpoint_id, medium);
+  void StopEndpointLostByMediumAlarm(
+      absl::string_view endpoint_id,
+      location::nearby::proto::connections::Medium medium) {
+    RunOnPcpHandlerThread("StopEndpointLostByMediumAlarm",
+                          [this, endpoint_id = std::string(endpoint_id),
+                           medium]() RUN_ON_PCP_HANDLER_THREAD() {
+                            BasePcpHandler::StopEndpointLostByMediumAlarm(
+                                endpoint_id, medium);
+                          });
   }
 
   std::vector<location::nearby::proto::connections::Medium> GetDiscoveryMediums(
@@ -553,8 +570,7 @@ class BasePcpHandlerTest
       const std::string& endpoint_id,
       std::unique_ptr<MockEndpointChannel> channel_a,
       MockEndpointChannel* channel_b, ClientProxy* client,
-      MockPcpHandler* pcp_handler,
-      std::atomic_int* flag = nullptr,
+      MockPcpHandler* pcp_handler, std::atomic_int* flag = nullptr,
       Status expected_result = {Status::kSuccess}) {
     ConnectionRequestInfo info{
         .endpoint_info = ByteArray{"ABCD"},
@@ -581,29 +597,29 @@ class BasePcpHandlerTest
     auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
 
     EXPECT_CALL(*pcp_handler, ConnectImpl)
-        .WillRepeatedly(Invoke([&channel_a](
-                             ClientProxy* client,
-                             MockPcpHandler::DiscoveredEndpoint* endpoint) {
-          if (endpoint->medium ==
-              location::nearby::proto::connections::WIFI_LAN) {
-            NEARBY_LOGS(INFO) << "Connect with Medium WIFI_LAN failed.";
-            return MockPcpHandler::ConnectImplResult{
-                .medium = endpoint->medium,
-                .status = {Status::kError},
-                .endpoint_channel = nullptr,
-            };
-          } else {
-            NEARBY_LOGS(INFO)
-                << "Connect with Medium: "
-                << location::nearby::proto::connections::Medium_Name(
-                       endpoint->medium);
-            return MockPcpHandler::ConnectImplResult{
-                .medium = endpoint->medium,
-                .status = {Status::kSuccess},
-                .endpoint_channel = std::move(channel_a),
-            };
-          }
-        }));
+        .WillRepeatedly(
+            Invoke([&channel_a](ClientProxy* client,
+                                MockPcpHandler::DiscoveredEndpoint* endpoint) {
+              if (endpoint->medium ==
+                  location::nearby::proto::connections::WIFI_LAN) {
+                NEARBY_LOGS(INFO) << "Connect with Medium WIFI_LAN failed.";
+                return MockPcpHandler::ConnectImplResult{
+                    .medium = endpoint->medium,
+                    .status = {Status::kError},
+                    .endpoint_channel = nullptr,
+                };
+              } else {
+                NEARBY_LOGS(INFO)
+                    << "Connect with Medium: "
+                    << location::nearby::proto::connections::Medium_Name(
+                           endpoint->medium);
+                return MockPcpHandler::ConnectImplResult{
+                    .medium = endpoint->medium,
+                    .status = {Status::kSuccess},
+                    .endpoint_channel = std::move(channel_a),
+                };
+              }
+            }));
 
     for (const auto& discovered_medium : allowed_mediums) {
       pcp_handler->OnEndpointFound(
@@ -1247,9 +1263,9 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       {}),
-            Status{Status::kSuccess});
+  EXPECT_EQ(
+      pcp_handler.StartDiscovery(&client, service_id, discovery_options, {}),
+      Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
@@ -1277,11 +1293,11 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 1);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   pcp_handler.StartEndpointLostByMediumAlarms(&client, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 1);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 1);
   pcp_handler.StopEndpointLostByMediumAlarm(endpoint_id, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   env_.Stop();
 }
 
@@ -1311,9 +1327,9 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       {}),
-            Status{Status::kSuccess});
+  EXPECT_EQ(
+      pcp_handler.StartDiscovery(&client, service_id, discovery_options, {}),
+      Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
@@ -1341,12 +1357,12 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 1);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   pcp_handler.StartEndpointLostByMediumAlarms(&client, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 1);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 1);
   absl::SleepFor(absl::Seconds(11));
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 0);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   env_.Stop();
 }
 
@@ -1376,37 +1392,39 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       {}),
-            Status{Status::kSuccess});
+  EXPECT_EQ(
+      pcp_handler.StartDiscovery(&client, service_id, discovery_options, {}),
+      Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
   bool first_call = true;
-  EXPECT_CALL(pcp_handler, InjectEndpointImpl).Times(2)
-      .WillRepeatedly(Invoke([&pcp_handler, &endpoint_id, &first_call](
-                           ClientProxy* client, const std::string& service_id,
-                           const OutOfBandConnectionMetadata& metadata) {
-        ByteArray endpoint_info;
-        if (first_call) {
-          endpoint_info = ByteArray("ABCD");
-        } else {
-          endpoint_info = ByteArray("ABCDE");
-        }
-        first_call = false;
-        pcp_handler.OnEndpointFound(
-            client,
-            std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
-                {
-                    endpoint_id,
-                    endpoint_info,
-                    service_id,
-                    Medium::BLUETOOTH,
-                    WebRtcState::kUndefined,
-                },
-                MockContext{nullptr},
-            }));
-        return Status{Status::kSuccess};
-      }));
+  EXPECT_CALL(pcp_handler, InjectEndpointImpl)
+      .Times(2)
+      .WillRepeatedly(
+          Invoke([&pcp_handler, &endpoint_id, &first_call](
+                     ClientProxy* client, const std::string& service_id,
+                     const OutOfBandConnectionMetadata& metadata) {
+            ByteArray endpoint_info;
+            if (first_call) {
+              endpoint_info = ByteArray("ABCD");
+            } else {
+              endpoint_info = ByteArray("ABCDE");
+            }
+            first_call = false;
+            pcp_handler.OnEndpointFound(
+                client,
+                std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                    {
+                        endpoint_id,
+                        endpoint_info,
+                        service_id,
+                        Medium::BLUETOOTH,
+                        WebRtcState::kUndefined,
+                    },
+                    MockContext{nullptr},
+                }));
+            return Status{Status::kSuccess};
+          }));
   pcp_handler.InjectEndpoint(
       &client, service_id,
       OutOfBandConnectionMetadata{
@@ -1414,16 +1432,16 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 1);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   pcp_handler.StartEndpointLostByMediumAlarms(&client, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 1);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 1);
   pcp_handler.InjectEndpoint(
       &client, service_id,
       OutOfBandConnectionMetadata{
           .medium = Medium::BLUETOOTH,
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   env_.Stop();
 }
 

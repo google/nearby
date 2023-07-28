@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "securegcm/ukey2_handshake.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
@@ -359,11 +360,13 @@ class BasePcpHandler : public PcpHandler,
   // Start alarms for endpoints lost by their mediums. Used when updating
   // discovery options.
   void StartEndpointLostByMediumAlarms(
-      ClientProxy* client, location::nearby::proto::connections::Medium medium);
+      ClientProxy* client, location::nearby::proto::connections::Medium medium)
+      RUN_ON_PCP_HANDLER_THREAD();
 
   void StopEndpointLostByMediumAlarm(
       absl::string_view endpoint_id,
-      location::nearby::proto::connections::Medium medium);
+      location::nearby::proto::connections::Medium medium)
+      RUN_ON_PCP_HANDLER_THREAD();
 
   // Returns a vector of ConnectionInfos generated from a StartOperationResult.
   std::vector<ConnectionInfoVariant> GetConnectionInfoFromResult(
@@ -379,9 +382,8 @@ class BasePcpHandler : public PcpHandler,
   }
 
   // Test only.
-  absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>&
-  GetEndpointLostByMediumAlarms() {
-    return endpoint_lost_by_medium_alarms_;
+  int GetEndpointLostByMediumAlarmsCount() RUN_ON_PCP_HANDLER_THREAD() {
+    return endpoint_lost_by_medium_alarms_.size();
   }
 
   Mediums* mediums_;
@@ -603,7 +605,7 @@ class BasePcpHandler : public PcpHandler,
   // Mapping from endpoint_id -> CancelableAlarm for triggering endpoint loss
   // while discovery options are updated.
   absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>
-      endpoint_lost_by_medium_alarms_;
+      endpoint_lost_by_medium_alarms_ ABSL_GUARDED_BY(GetPcpHandlerThread());
 
   Pcp pcp_;
   Strategy strategy_{PcpToStrategy(pcp_)};
