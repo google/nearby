@@ -14,13 +14,12 @@
 
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_RETROACTIVE_RETROACTIVE_PAIRING_DETECTOR_IMPL_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_RETROACTIVE_RETROACTIVE_PAIRING_DETECTOR_IMPL_H_
-#include <string>
 
-#include "absl/container/flat_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "fastpair/internal/mediums/mediums.h"
-#include "fastpair/pairing/pairer_broker.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/retroactive/retroactive_pairing_detector.h"
+#include "internal/account/account_manager.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/single_thread_executor.h"
@@ -34,6 +33,7 @@ class RetroactivePairingDetectorImpl
  public:
   RetroactivePairingDetectorImpl(Mediums& mediums,
                                  FastPairDeviceRepository* repository,
+                                 AccountManager* account_manager,
                                  SingleThreadExecutor* executor);
   RetroactivePairingDetectorImpl(const RetroactivePairingDetectorImpl&) =
       delete;
@@ -50,9 +50,11 @@ class RetroactivePairingDetectorImpl
                            bool new_paired_status) override;
 
  private:
+  void NotifyRetroactiveDeviceFound(absl::string_view mac_address);
   Mediums& mediums_;
   ObserverList<RetroactivePairingDetector::Observer> observers_;
   FastPairDeviceRepository* repository_;
+  AccountManager* account_manager_;
   SingleThreadExecutor* executor_;
 };
 

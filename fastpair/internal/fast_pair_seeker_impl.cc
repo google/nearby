@@ -51,7 +51,7 @@ FastPairSeekerImpl::FastPairSeekerImpl(ServiceCallbacks callbacks,
   pairer_broker_->AddObserver(this);
   mediums_.GetBluetoothClassic().AddObserver(this);
   retro_detector_ = std::make_unique<RetroactivePairingDetectorImpl>(
-      mediums_, devices, executor);
+      mediums_, devices, account_manager_, executor);
   retro_detector_->AddObserver(this);
 }
 

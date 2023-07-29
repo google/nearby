@@ -22,8 +22,6 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
@@ -76,6 +74,8 @@ class FastPairSeekerImplTest : public testing::Test {
     NEARBY_LOG_SET_SEVERITY(VERBOSE);
     repository_ = FakeFastPairRepository::Create(
         kModelId, absl::HexStringToBytes(kBobPublicKey));
+    repository_->SetResultOfIsDeviceSavedToAccount(
+        absl::NotFoundError("not found"));
     account_manager_ = std::make_unique<FakeAccountManager>(
         preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
         authentication_manager_.get(), task_runner_.get());
