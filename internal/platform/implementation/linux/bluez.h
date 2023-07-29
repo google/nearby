@@ -4,7 +4,6 @@
 namespace nearby {
 namespace linux {
 const char *BLUEZ_SERVICE = "org.bluez";
-
 const char *BLUEZ_ADAPTER_INTERFACE = "org.bluez.Adapter1";
 
 } // namespace linux
