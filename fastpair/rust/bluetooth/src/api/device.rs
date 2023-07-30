@@ -14,7 +14,7 @@
 
 use async_trait::async_trait;
 
-use crate::bluetooth::common::{
+use crate::common::{
     BleAddress, BluetoothError, ClassicAddress, PairingResult,
 };
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bluetooth::common::BluetoothError;
+use super::BluetoothError;
 
 /// BLE Addresses can either be the peripheral's public MAC address, or various
 /// types of random addresses.

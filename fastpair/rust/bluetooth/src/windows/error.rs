@@ -14,7 +14,7 @@
 
 use windows::Devices::Enumeration::DevicePairingResultStatus;
 
-use crate::bluetooth::common::{BluetoothError, PairingResult};
+use crate::common::{BluetoothError, PairingResult};
 
 impl From<windows::core::Error> for BluetoothError {
     fn from(err: windows::core::Error) -> Self {

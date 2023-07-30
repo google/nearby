@@ -29,7 +29,7 @@ use windows::{
     Storage::Streams::DataReader,
 };
 
-use crate::bluetooth::common::{
+use crate::common::{
     BleAddress, BleAddressKind, BleAdvertisement, BleDataTypeId,
     BluetoothError, ServiceData,
 };

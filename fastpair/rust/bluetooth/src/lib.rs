@@ -12,5 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Library file, exports modules for use in integration tests and external crates.
-pub mod bluetooth;
+pub mod api;
+mod common;
+
+use api::{BleAdapter, BleDevice, ClassicDevice};
+pub use common::{
+    BleAddress, BleAdvertisement, BleDataTypeId, BluetoothError, ClassicAddress,
+};
+
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        mod windows;
+        use self::windows as platform;
+    } else {
+        mod unsupported;
+        use unsupported as platform;
+    }
+}
+
+pub struct Platform;
+
+impl Platform {
+    pub async fn default_adapter(
+    ) -> Result<impl api::BleAdapter, BluetoothError> {
+        platform::BleAdapter::default().await
+    }
+
+    pub async fn new_ble_device(
+        addr: BleAddress,
+    ) -> Result<impl api::BleDevice, BluetoothError> {
+        platform::BleDevice::new(addr).await
+    }
+
+    pub async fn new_classic_device(
+        addr: ClassicAddress,
+    ) -> Result<impl api::ClassicDevice, BluetoothError> {
+        platform::ClassicDevice::new(addr).await
+    }
+}

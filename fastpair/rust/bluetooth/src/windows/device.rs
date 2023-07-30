@@ -49,7 +49,7 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::{api, common::{BleAddress, ClassicAddress, BluetoothError, PairingResult}};
+use crate::{api, common::{BleAddress, ClassicAddress, BluetoothError, PairingResult}};
 
 /// Concrete type implementing `Device`, used for Windows BLE.
 pub struct BleDevice {

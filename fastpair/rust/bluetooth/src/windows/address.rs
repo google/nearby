@@ -16,7 +16,7 @@
 //https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothaddresstype?view=winrt-22621
 use windows::Devices::Bluetooth::BluetoothAddressType;
 
-use crate::bluetooth::common::{BleAddressKind, BluetoothError};
+use crate::common::{BleAddressKind, BluetoothError};
 
 // Convenience for converting from Windows API to crate API.
 impl TryFrom<BluetoothAddressType> for BleAddressKind {

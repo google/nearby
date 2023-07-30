@@ -15,9 +15,7 @@
 use async_trait::async_trait;
 
 use super::BleDevice;
-use crate::bluetooth::{
-    api, common::BluetoothError, BleAdvertisement, BleDataTypeId,
-};
+use crate::{api, common::BluetoothError, BleAdvertisement, BleDataTypeId};
 
 /// Concrete type implementing `Adapter`, used for unsupported devices.
 /// Every method should panic.

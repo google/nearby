@@ -14,9 +14,7 @@
 
 use async_trait::async_trait;
 
-use crate::bluetooth::common::{
-    BleAdvertisement, BleDataTypeId, BluetoothError,
-};
+use crate::common::{BleAdvertisement, BleDataTypeId, BluetoothError};
 
 /// Concrete types implementing this trait are Bluetooth Central devices.
 /// They provide methods for retrieving nearby connections and device info.

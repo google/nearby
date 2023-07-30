@@ -53,7 +53,7 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use crate::bluetooth::{
+use crate::{
     api,
     common::{BleAdvertisement, BleDataTypeId, BluetoothError},
 };

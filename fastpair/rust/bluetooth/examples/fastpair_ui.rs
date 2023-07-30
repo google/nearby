@@ -25,11 +25,11 @@ use futures::{
     lock::Mutex,
 };
 
-mod bluetooth;
+extern crate bluetooth;
 
-use crate::bluetooth::{
-    BleAdapter, BleDataTypeId, BleDevice, ClassicAddress, ClassicDevice,
-    Platform,
+use bluetooth::{
+    api::{BleAdapter, BleDevice, ClassicDevice},
+    BleDataTypeId, ClassicAddress, Platform,
 };
 
 async fn get_user_input(
