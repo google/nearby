@@ -25,19 +25,35 @@ class RustImpl implements Rust {
   factory RustImpl.wasm(FutureOr<WasmModule> module) =>
       RustImpl(module as ExternalLibrary);
   RustImpl.raw(this._platform);
-  Future<String> hello({dynamic hint}) {
+  Future<void> init({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_hello(port_),
-      parseSuccessData: _wire2api_String,
-      constMeta: kHelloConstMeta,
+      callFfi: (port_) => _platform.inner.wire_init(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kInitConstMeta,
       argValues: [],
       hint: hint,
     ));
   }
 
-  FlutterRustBridgeTaskConstMeta get kHelloConstMeta =>
+  FlutterRustBridgeTaskConstMeta get kInitConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
-        debugName: "hello",
+        debugName: "init",
+        argNames: [],
+      );
+
+  Stream<String> eventStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_event_stream(port_),
+      parseSuccessData: _wire2api_String,
+      constMeta: kEventStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kEventStreamConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "event_stream",
         argNames: [],
       );
 
@@ -56,6 +72,10 @@ class RustImpl implements Rust {
 
   Uint8List _wire2api_uint_8_list(dynamic raw) {
     return raw as Uint8List;
+  }
+
+  void _wire2api_unit(dynamic raw) {
+    return;
   }
 }
 
@@ -168,17 +188,31 @@ class RustWire implements FlutterRustBridgeWireBase {
   late final _init_frb_dart_api_dl = _init_frb_dart_api_dlPtr
       .asFunction<int Function(ffi.Pointer<ffi.Void>)>();
 
-  void wire_hello(
+  void wire_init(
     int port_,
   ) {
-    return _wire_hello(
+    return _wire_init(
       port_,
     );
   }
 
-  late final _wire_helloPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_hello');
-  late final _wire_hello = _wire_helloPtr.asFunction<void Function(int)>();
+  late final _wire_initPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_init');
+  late final _wire_init = _wire_initPtr.asFunction<void Function(int)>();
+
+  void wire_event_stream(
+    int port_,
+  ) {
+    return _wire_event_stream(
+      port_,
+    );
+  }
+
+  late final _wire_event_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'wire_event_stream');
+  late final _wire_event_stream =
+      _wire_event_streamPtr.asFunction<void Function(int)>();
 
   void free_WireSyncReturn(
     WireSyncReturn ptr,

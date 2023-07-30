@@ -22,14 +22,24 @@ use std::sync::Arc;
 
 // Section: wire functions
 
-fn wire_hello_impl(port_: MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, String>(
+fn wire_init_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, ()>(
         WrapInfo {
-            debug_name: "hello",
+            debug_name: "init",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| Ok(hello()),
+        move || move |task_callback| Ok(init()),
+    )
+}
+fn wire_event_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, ()>(
+        WrapInfo {
+            debug_name: "event_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| event_stream(task_callback.stream_sink::<_, String>()),
     )
 }
 // Section: wrapper structs

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:demo/rust.dart';
 
 void main() {
+  api.init();
   runApp(const FastPairApp());
 }
 
@@ -23,22 +24,19 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text("Fast Pair"),
+      appBar: AppBar(title: const Text("Fast Pair")),
+      body: Center(
+        child: StreamBuilder(
+          // All Rust functions are called as Future's
+          stream: api.eventStream(), // The Rust function we are calling.
+          builder: (context, data) {
+            if (data.hasData) {
+              return Text(data.data!); // The string to display
+            }
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          },
         ),
-        body: Center(
-          child: FutureBuilder(
-            // All Rust functions are called as Future's
-            future: api.hello(), // The Rust function we are calling.
-            builder: (context, data) {
-              if (data.hasData) {
-                return Text(data.data!); // The string to display
-              }
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            },
-          ),
-        ),
-      );
+      ));
 }
