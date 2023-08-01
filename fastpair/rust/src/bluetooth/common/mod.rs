@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Bluetooth LE module for Windows devices.
-mod adapter;
-mod device;
+/// Module for shared functionality between all Bluetooth platforms.
+mod address;
+mod advertisement;
+mod error;
 
-pub use adapter::*;
-pub use device::*;
+pub use address::*;
+pub use advertisement::*;
+pub use error::*;

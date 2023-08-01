@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::{stream::Stream, StreamExt};
-use tracing::{error, warn};
+use futures::{channel::mpsc::Receiver, StreamExt};
+use tracing::{error, info, warn};
 use windows::{
     Devices::Bluetooth::{
         Advertisement::{
@@ -54,44 +53,49 @@ use windows::{
     Foundation::TypedEventHandler,
 };
 
-use super::BleDevice;
-use crate::bluetooth::common::Adapter;
+use crate::bluetooth::{
+    api,
+    common::{BleAdvertisement, BleDataTypeId, BluetoothError},
+};
 
-/// Concrete type implementing `Adapter`, used for Windows BLE.
+/// Struct holding the necessary fields for listening to and handling incoming
+/// BLE advertisements.
+struct AdvListener {
+    /// Holds callback for sending received advertisement events to `receiver`.
+    watcher: BluetoothLEAdvertisementWatcher,
+    /// Can be polled to consume incoming advertisement events.
+    receiver: Receiver<BluetoothLEAdvertisementReceivedEventArgs>,
+}
+
+/// Concrete type implementing `api::BleAdapter`, used for Windows BLE.
 pub struct BleAdapter {
     inner: BluetoothAdapter,
-    // NOTE: Using Boxed dyn here is silly because only one concrete type ever
-    // used. Change this to `impl Stream` once impl trait return types
-    // stabilized for existential types.
-    // b/289224233.
-    device_stream: Option<Pin<Box<dyn Stream<Item = BleDevice> + Send + Sync>>>,
+    listener: Option<AdvListener>,
 }
 
 #[async_trait]
-impl Adapter for BleAdapter {
-    type Device = BleDevice;
-
-    async fn default() -> Result<Self, anyhow::Error> {
+impl api::BleAdapter for BleAdapter {
+    async fn default() -> Result<Self, BluetoothError> {
         let inner = BluetoothAdapter::GetDefaultAsync()?.await?;
 
         if !inner.IsLowEnergySupported()? {
-            return Err(anyhow::anyhow!(
-                "This device's Bluetooth Adapter doesn't support Bluetooth LE Transport type."
-            ));
+            return Err(BluetoothError::NotSupported(String::from(
+                "LE transport type",
+            )));
         }
         if !inner.IsCentralRoleSupported()? {
-            return Err(anyhow::anyhow!(
-                "This device's Bluetooth Adapter doesn't support Bluetooth LE central role."
-            ));
+            return Err(BluetoothError::NotSupported(String::from(
+                "central role",
+            )));
         }
 
         Ok(BleAdapter {
             inner,
-            device_stream: None,
+            listener: None,
         })
     }
 
-    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error> {
+    fn start_scan(&mut self) -> Result<(), BluetoothError> {
         let watcher = BluetoothLEAdvertisementWatcher::new()?;
         match watcher.SetScanningMode(BluetoothLEScanningMode::Active) {
             Ok(_) => (),
@@ -149,7 +153,7 @@ impl Adapter for BleAdapter {
             >| {
                 // Drop `sender`, closing the channel.
                 let _sender = sender.take();
-                println!("Watcher stopped receiving BLE advertisements.");
+                info!("Watcher stopped receiving BLE advertisements.");
                 Ok(())
             },
         );
@@ -158,59 +162,58 @@ impl Adapter for BleAdapter {
         watcher.Stopped(&stopped_handler)?;
         watcher.Start()?;
 
-        // `receiver` is a `futures::channel::mpsc::Receiver`, which implements
-        // `futures::stream::Stream`. This is essentially an async Iterator.
-        // We apply a FilterMap to map from advertisement packet to a future
-        // returning `BleDevice` and filter out undesired connections. We need a
-        // pinned box to satisfy trait bounds for `Stream`.
-        self.device_stream =
-            Some(Box::pin(receiver.filter_map(move |event_args| {
-                //  Move `watcher` into `FilterMap` closure. This ensures `watcher`
-                // is only dropped when the stream is closed.
-                let _watcher = &watcher;
-
-                // Move `event_args` into async block.
-                async move {
-                    match event_args.AdvertisementType().ok()? {
-                    BluetoothLEAdvertisementType::NonConnectableUndirected => {
-                        None
-                    }
-                    _ => {
-                        let addr = event_args.BluetoothAddress().ok()?;
-                        let kind = event_args.BluetoothAddressType().ok()?;
-
-                        match BleDevice::from_addr(addr, kind).await {
-                            Ok(device) => Some(device),
-                            Err(err) => {
-                                warn!("Error creating device: {:?}", err);
-                                None
-                            }
-                        }
-                    }
-                }
-                }
-            })));
+        self.listener = Some(AdvListener { watcher, receiver });
 
         Ok(())
     }
 
-    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error> {
-        if let Some(_) = &self.device_stream {
-            self.device_stream.take();
+    fn stop_scan(&mut self) -> Result<(), BluetoothError> {
+        if let Some(listener) = self.listener.take() {
+            listener.watcher.Stop()?;
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Device scanning hasn't started."))
+            Err(BluetoothError::FailedPrecondition(String::from(
+                "device scanning hasn't started, please call `start_scan()`",
+            )))
         }
     }
 
-    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error> {
-        if let Some(stream) = &mut self.device_stream {
-            stream
-                .next()
-                .await
-                .ok_or(anyhow::anyhow!("Device returned from stream is None."))
+    async fn next_advertisement(
+        &mut self,
+        datatype_selector: Option<&Vec<BleDataTypeId>>,
+    ) -> Result<BleAdvertisement, BluetoothError> {
+        if let Some(listener) = &mut self.listener {
+            let stream = &mut listener.receiver;
+            // We don't want the end-user to receive empty devices, so this is a
+            // loop to catch and skip trivial errors from advertisements that
+            // can't be turned into devices.
+            loop {
+                let event_args =
+                    stream.next().await.ok_or(BluetoothError::Internal(
+                        String::from("Event returned from stream is None."),
+                    ))?;
+
+                match event_args.AdvertisementType()? {
+                    BluetoothLEAdvertisementType::NonConnectableUndirected => {
+                        ()
+                    }
+                    _ => {
+                        let mut advertisement =
+                            BleAdvertisement::try_from(&event_args)?;
+
+                        if let Some(datatype_selector) = datatype_selector {
+                            advertisement
+                                .load_data(&event_args, datatype_selector)?;
+                        }
+
+                        break Ok(advertisement);
+                    }
+                }
+            }
         } else {
-            Err(anyhow::anyhow!("Device scanning hasn't started."))
+            Err(BluetoothError::FailedPrecondition(String::from(
+                "device scanning hasn't started, please call `start_scan()`",
+            )))
         }
     }
 }

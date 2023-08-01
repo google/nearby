@@ -12,15 +12,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bluetooth::common::Device;
+use async_trait::async_trait;
 
-/// Concrete type implementing `Device`, used for unsupported devices.
+use crate::bluetooth::{
+    api,
+    common::{BleAddress, BluetoothError, ClassicAddress, PairingResult},
+};
+
+/// Concrete type implementing `api::BleDevice` for unsupported platforms.
 /// Every method should panic.
 pub struct BleDevice;
 
-impl Device for BleDevice {
-    fn name(&self) -> Result<String, anyhow::Error> {
-        panic!("Unsupported target platform.")
+#[async_trait]
+impl api::BleDevice for BleDevice {
+    async fn new(addr: BleAddress) -> Result<Self, BluetoothError> {
+        panic!("Unsupported target platform.");
+    }
+
+    fn name(&self) -> Result<String, BluetoothError> {
+        panic!("Unsupported target platform.");
+    }
+
+    fn address(&self) -> BleAddress {
+        panic!("Unsupported target platform.");
+    }
+}
+
+/// Concrete type implementing `api::ClassicDevice` for unsupported platforms.
+/// Every method should panic.
+pub struct ClassicDevice;
+
+#[async_trait]
+impl api::ClassicDevice for ClassicDevice {
+    async fn new(addr: ClassicAddress) -> Result<Self, BluetoothError> {
+        panic!("Unsupported target platform.");
+    }
+
+    fn name(&self) -> Result<String, BluetoothError> {
+        panic!("Unsupported target platform.");
+    }
+
+    fn address(&self) -> ClassicAddress {
+        panic!("Unsupported target platform.");
+    }
+
+    async fn pair(&self) -> Result<PairingResult, BluetoothError> {
+        panic!("Unsupported target platform.");
     }
 }
 

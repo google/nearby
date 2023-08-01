@@ -16,20 +16,41 @@
 // instead of using anyhow.
 // b/290070686
 
+pub mod api;
 pub mod common;
 
-pub use common::{Adapter, Device};
+pub use api::{BleAdapter, BleDevice, ClassicDevice};
+pub use common::{
+    BleAddress, BleAdvertisement, BleDataTypeId, BluetoothError, ClassicAddress,
+};
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
-        mod windows_ble;
-        use windows_ble::BleAdapter;
+        mod windows;
+        use self::windows as platform;
     } else {
         mod unsupported;
-        use unsupported::BleAdapter;
+        use unsupported as platform;
     }
 }
 
-pub async fn default_adapter() -> Result<impl Adapter, anyhow::Error> {
-    BleAdapter::default().await
+pub struct Platform;
+
+impl Platform {
+    pub async fn default_adapter(
+    ) -> Result<impl api::BleAdapter, BluetoothError> {
+        platform::BleAdapter::default().await
+    }
+
+    pub async fn new_ble_device(
+        addr: BleAddress,
+    ) -> Result<impl api::BleDevice, BluetoothError> {
+        platform::BleDevice::new(addr).await
+    }
+
+    pub async fn new_classic_device(
+        addr: ClassicAddress,
+    ) -> Result<impl api::ClassicDevice, BluetoothError> {
+        platform::ClassicDevice::new(addr).await
+    }
 }

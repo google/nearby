@@ -14,29 +14,26 @@
 
 use async_trait::async_trait;
 
+use crate::bluetooth::common::{
+    BleAdvertisement, BleDataTypeId, BluetoothError,
+};
+
 /// Concrete types implementing this trait are Bluetooth Central devices.
 /// They provide methods for retrieving nearby connections and device info.
 #[async_trait]
-pub trait Adapter: Sized {
-    type Device: Device;
-
+pub trait BleAdapter: Sized {
     /// Retrieve the system-default Bluetooth adapter.
-    async fn default() -> Result<Self, anyhow::Error>;
+    async fn default() -> Result<Self, BluetoothError>;
 
-    /// Begin scanning for nearby devices.
-    fn start_scan_devices(&mut self) -> Result<(), anyhow::Error>;
+    /// Begin scanning for nearby advertisements.
+    fn start_scan(&mut self) -> Result<(), BluetoothError>;
 
-    /// Stop scanning for nearby devices.
-    fn stop_scan_devices(&mut self) -> Result<(), anyhow::Error>;
+    /// Stop scanning for nearby advertisements.
+    fn stop_scan(&mut self) -> Result<(), BluetoothError>;
 
     /// Poll next discovered device.
-    async fn next_device(&mut self) -> Result<Self::Device, anyhow::Error>;
-}
-
-/// Concrete types implementing this trait represent Bluetooth Peripheral devices.
-/// They provide methods for retrieving device info and running device actions,
-/// such as pairing.
-pub trait Device {
-    /// Retrieve the name advertised by this device.
-    fn name(&self) -> Result<String, anyhow::Error>;
+    async fn next_advertisement(
+        &mut self,
+        data_selector: Option<&Vec<BleDataTypeId>>,
+    ) -> Result<BleAdvertisement, BluetoothError>;
 }
