@@ -13,7 +13,10 @@ namespace nearby {
 namespace linux {
 class BluetoothPairing : public api::BluetoothPairing {
 public:
-  BluetoothPairing(absl::string_view object_path);
+  BluetoothPairing(sd_bus *system_bus, absl::string_view device_object_path) {
+    system_bus_ = system_bus;
+    device_object_path_ = device_object_path;
+  }
   ~BluetoothPairing() { sd_bus_unref(system_bus_); }
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
@@ -23,7 +26,7 @@ public:
   bool IsPaired() override;
 
 private:
-  std::string object_path_;
+  std::string device_object_path_;
   sd_bus *system_bus_;
   api::BluetoothPairingCallback pairing_cb_;
 };

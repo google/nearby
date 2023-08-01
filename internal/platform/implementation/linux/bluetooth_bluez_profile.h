@@ -1,11 +1,13 @@
 #ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_BLUEZ_PROFILE_H_
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_BLUEZ_PROFILE_H_
 
+#include <atomic>
 #include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #include <systemd/sd-bus.h>
 
@@ -16,41 +18,40 @@
 namespace nearby {
 namespace linux {
 
+struct RegisteredService {
+public:
+  sd_bus_slot *slot;
+  absl::Mutex connections_lock;
+  // Maps mac addresses to unclaimed FDs. Probably an awful way to do this, but
+  // whatever.
+  std::map<std::string, int> connections;
+  std::string &uuid;
+  RegisteredService(std::string &uuid) : uuid(uuid) {}
+};
+
 class ProfileManager {
 public:
-  ProfileManager(sd_bus *system_bus, sd_bus_slot *slot) {
-    system_bus_ = system_bus;
-    slot_ = slot;
-  }  
+  ProfileManager(sd_bus *system_bus) { system_bus_ = system_bus; }
   ~ProfileManager() { sd_bus_unref(system_bus_); }
 
   bool ProfileRegistered(absl::string_view service_uuid);
-  bool RegisterProfile(absl::string_view sevice_uuid);
+  bool RegisterProfile(absl::string_view service_name,
+                       absl::string_view service_uuid);
+  bool RegisterProfile(absl::string_view service_uuid) {
+    return RegisterProfile("", service_uuid);
+  }
 
   std::optional<int> GetServiceRecordFD(api::BluetoothDevice &remote_device,
                                         absl::string_view service_uuid);
-
-struct MethodData {
-    std::map<std::tuple<std::tuple<std::string, std::string>>, int> &connections_;
-    absl::Mutex &connections_lock_;
-  };
-  struct MethodData *GetMethodData() { return &data_; }
+  std::optional<std::pair<std::string, int>>
+  GetServiceRecordFD(absl::string_view service_uuid);
 
 private:
-  bool InitManagerObj();
-  
-  // Maps (mac address, service uuid) tuples to FDs. Probably
-  // an awful way to do this, but whatever.
-  std::map<std::tuple<std::tuple<std::string, std::string>>, int> connections_;
-  absl::Mutex connections_lock_;
-
-  MethodData data_{connections_, connections_lock_};
-
-  std::set<std::string> registered_service_uuids_;
+  // Maps service UUIDs to RegisteredService
+  std::map<std::string, struct RegisteredService *> registered_services_;
   absl::Mutex registered_service_uuids_lock_;
 
   sd_bus *system_bus_;
-  sd_bus_slot *slot_;
 };
 
 } // namespace linux

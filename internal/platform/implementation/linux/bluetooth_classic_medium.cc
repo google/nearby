@@ -3,12 +3,16 @@
 #include <memory>
 #include <systemd/sd-bus.h>
 
+#include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
-#include "absl/strings/str_replace.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
+#include "internal/platform/implementation/linux/bluetooth_classic_server_socket.h"
+#include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
+#include "internal/platform/implementation/linux/bluetooth_pairing.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
 
@@ -65,9 +69,12 @@ int bluez_interfaces_added_signal_handler(sd_bus_message *m, void *userdata,
 
     if (strcmp(interface_name, "org.bluez.Device1") == 0) {
       NEARBY_LOGS(INFO) << __func__ << "Encountered new device at "
-                        << c_object_path;
-      auto bluetoothDevice =
-          std::make_unique<BluetoothDevice>(BluetoothDevice(object_path));
+                        << object_path;
+      sd_bus *system_bus = nullptr;
+      sd_bus_default_system(&system_bus);
+
+      auto bluetoothDevice = std::make_unique<BluetoothDevice>(
+          BluetoothDevice(system_bus, object_path));
       params->devices_by_path[object_path] = std::move(bluetoothDevice);
 
       if (params->cb.device_discovered_cb != nullptr) {
@@ -83,16 +90,15 @@ int bluez_interfaces_added_signal_handler(sd_bus_message *m, void *userdata,
   return 0;
 }
 
-BluetoothClassicMedium::BluetoothClassicMedium(absl::string_view adapter) {
-  if (sd_bus_default_system(&system_bus_) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error connecting to system bus";
-  }
+BluetoothClassicMedium::BluetoothClassicMedium(sd_bus *system_bus,
+                                               absl::string_view adapter)
+    : profile_manager_(sd_bus_ref(system_bus)) {
+  system_bus_ = system_bus;
   adapter_object_path_ = absl::Substitute("/org/bluez/$0/", adapter);
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {
-  if (system_bus_)
-    sd_bus_unref(system_bus_);
+  sd_bus_unref(system_bus_);
   if (system_bus_slot_)
     sd_bus_slot_unref(system_bus_slot_);
 }
@@ -159,12 +165,70 @@ BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
                                          const std::string &service_uuid,
                                          CancellationFlag *cancellation_flag) {
   auto device_object_path = GetDeviceObjectPath(remote_device.GetMacAddress());
-  
+  if (!profile_manager_.ProfileRegistered(service_uuid)) {
+    if (!profile_manager_.RegisterProfile(service_uuid)) {
+      NEARBY_LOGS(ERROR) << __func__ << "Could not register profile "
+                         << service_uuid << " with Bluez";
+      return nullptr;
+    }
+  }
+  auto fd = profile_manager_.GetServiceRecordFD(remote_device, service_uuid);
+  if (!fd.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << "Failed to get a new connection for profile "
+                       << service_uuid << " for device " << device_object_path;
+    return nullptr;
+  }
+
+  return std::unique_ptr<api::BluetoothSocket>(new BluetoothSocket(
+      remote_device, device_object_path, service_uuid, fd.value()));
+}
+
+std::unique_ptr<api::BluetoothServerSocket>
+BluetoothClassicMedium::ListenForService(const std::string &service_name,
+                                         const std::string &service_uuid) {
+  if (!profile_manager_.ProfileRegistered(service_uuid)) {
+    if (!profile_manager_.RegisterProfile(service_name, service_uuid)) {
+      NEARBY_LOGS(ERROR) << __func__ << "Could not register profile "
+                         << service_name << " " << service_uuid
+                         << " with Bluez";
+      return nullptr;
+    }
+  }
+
+  auto pair = profile_manager_.GetServiceRecordFD(service_uuid);
+  if (!pair.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << "Failed to get a new connection for profile "
+                       << service_uuid << " for device ";
+    return nullptr;
+  }
+
+  auto device_object_path = GetDeviceObjectPath(pair->first);
+  auto device = BluetoothDevice(sd_bus_ref(system_bus_), device_object_path);
+
+  return std::unique_ptr<api::BluetoothServerSocket>(
+      new BluetoothServerSocket(sd_bus_ref(system_bus_), profile_manager_,
+                                adapter_object_path_, service_uuid));
+}
+
+api::BluetoothDevice *
+BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
+  return new BluetoothDevice(sd_bus_ref(system_bus_),
+                             GetDeviceObjectPath(mac_address));
+}
+
+std::unique_ptr<api::BluetoothPairing>
+BluetoothClassicMedium::CreatePairing(api::BluetoothDevice &remote_device) {
+  auto device_object_path = GetDeviceObjectPath(remote_device.GetMacAddress());
+  return std::unique_ptr<api::BluetoothPairing>(
+      new BluetoothPairing(sd_bus_ref(system_bus_), device_object_path));
 }
 
 std::string
 BluetoothClassicMedium::GetDeviceObjectPath(absl::string_view mac_address) {
-  return absl::Substitute("$0/dev_$1", adapter_object_path_, absl::StrReplaceAll(mac_address, {{":", "_"}}));
+  return absl::Substitute("$0/dev_$1", adapter_object_path_,
+                          absl::StrReplaceAll(mac_address, {{":", "_"}}));
 }
 
 } // namespace linux

@@ -8,6 +8,7 @@
 
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 
 namespace nearby {
@@ -16,7 +17,7 @@ namespace linux {
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 public:
-  BluetoothClassicMedium(absl::string_view adapter);
+  BluetoothClassicMedium(sd_bus *system_bus, absl::string_view adapter);
   ~BluetoothClassicMedium();
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
@@ -72,8 +73,12 @@ public:
   api::BluetoothDevice *
   GetRemoteDevice(const std::string &mac_address) override;
 
-  void AddObserver(Observer *observer) override;
-  void RemoveObserver(Observer *observer) override;
+  void AddObserver(Observer *observer) override {
+    observers_.AddObserver(observer);
+  };
+  void RemoveObserver(Observer *observer) override {
+    observers_.RemoveObserver(observer);
+  };
 
   struct DiscoveryParams {
     std::string &adapter_object_path;
@@ -83,15 +88,18 @@ public:
   };
 
 private:
+  ProfileManager profile_manager_;
+
   std::string GetDeviceObjectPath(absl::string_view mac_address);
-  
+
   sd_bus *system_bus_ = nullptr;
   sd_bus_slot *system_bus_slot_ = nullptr;
   std::string adapter_object_path_ = std::string();
   std::map<std::string, std::unique_ptr<BluetoothDevice>> devices_by_id_;
   ObserverList<Observer> observers_;
 
-  DiscoveryParams discovery_params_ = {adapter_object_path_, devices_by_id_, observers_};
+  DiscoveryParams discovery_params_ = {adapter_object_path_, devices_by_id_,
+                                       observers_};
 };
 } // namespace linux
 } // namespace nearby
