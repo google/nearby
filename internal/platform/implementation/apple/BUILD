@@ -107,6 +107,7 @@ objc_library(
 objc_library(
     name = "ble_v2",
     srcs = [
+        "ble_gatt_server.mm",
         "ble_peripheral.mm",
         "ble_server_socket.mm",
         "ble_socket.mm",
@@ -115,6 +116,7 @@ objc_library(
         "utils.mm",
     ],
     hdrs = [
+        "ble_gatt_server.h",
         "ble_peripheral.h",
         "ble_server_socket.h",
         "ble_socket.h",
@@ -126,10 +128,12 @@ objc_library(
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
         "//internal/platform:base",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Mediums",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
+        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",

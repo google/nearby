@@ -33,6 +33,7 @@ namespace apple {
 // identify a peripheral and connect to its GATT server.
 class BlePeripheral : public api::ble_v2::BlePeripheral {
  public:
+  BlePeripheral() = default;
   explicit BlePeripheral(CBPeripheral *peripheral);
   ~BlePeripheral() override = default;
 
