@@ -11,6 +11,11 @@ pub extern "C" fn wire_event_stream(port_: i64) {
     wire_event_stream_impl(port_)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_pair(port_: i64) {
+    wire_pair_impl(port_)
+}
+
 // Section: allocate functions
 
 // Section: related functions

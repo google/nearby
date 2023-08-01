@@ -57,6 +57,22 @@ class RustImpl implements Rust {
         argNames: [],
       );
 
+  Future<String> pair({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_pair(port_),
+      parseSuccessData: _wire2api_String,
+      constMeta: kPairConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kPairConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "pair",
+        argNames: [],
+      );
+
   void dispose() {
     _platform.dispose();
   }
@@ -213,6 +229,18 @@ class RustWire implements FlutterRustBridgeWireBase {
           'wire_event_stream');
   late final _wire_event_stream =
       _wire_event_streamPtr.asFunction<void Function(int)>();
+
+  void wire_pair(
+    int port_,
+  ) {
+    return _wire_pair(
+      port_,
+    );
+  }
+
+  late final _wire_pairPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_pair');
+  late final _wire_pair = _wire_pairPtr.asFunction<void Function(int)>();
 
   void free_WireSyncReturn(
     WireSyncReturn ptr,

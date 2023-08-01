@@ -42,6 +42,16 @@ fn wire_event_stream_impl(port_: MessagePort) {
         move || move |task_callback| event_stream(task_callback.stream_sink::<_, String>()),
     )
 }
+fn wire_pair_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, String>(
+        WrapInfo {
+            debug_name: "pair",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Ok(pair()),
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks

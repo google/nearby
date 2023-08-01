@@ -1,8 +1,8 @@
 use std::sync::RwLock;
 
 use bluetooth::{
-    api::{BleAdapter, BleDevice},
-    BleDataTypeId, Platform,
+    api::{BleAdapter, BleDevice, ClassicDevice},
+    BleAddress, BleDataTypeId, ClassicAddress, PairingResult, Platform,
 };
 use flutter_rust_bridge::StreamSink;
 use futures::executor;
@@ -10,6 +10,9 @@ use tracing::info;
 
 // Sends a device name to Flutter via `StreamSink` FFI layer.
 static NAME_STREAM: RwLock<Option<StreamSink<String>>> = RwLock::new(None);
+
+// Saves the currently displayed device's address, to be used for pairing.
+static CURR_ADDRESS: RwLock<Option<BleAddress>> = RwLock::new(None);
 
 /// Sets up initial constructs and infinitely polls for advertisements.
 pub fn init() {
@@ -34,12 +37,15 @@ pub fn init() {
                     let ble_device = Platform::new_ble_device(addr).await.unwrap();
                     let name = ble_device.name().unwrap();
                     info!("device: {}", name);
-
-                    match NAME_STREAM.read().unwrap().as_ref() {
-                        Some(s) => {
-                            s.add(name);
+                    if name.contains("LE_WH-1000XM3") {
+                        match NAME_STREAM.read().unwrap().as_ref() {
+                            Some(stream) => {
+                                stream.add(name);
+                                let mut curr_addr = CURR_ADDRESS.write().unwrap();
+                                *curr_addr = Some(addr);
+                            }
+                            None => info!("Stream is None"),
                         }
-                        None => info!("Stream is None"),
                     }
                 }
             }
@@ -54,4 +60,38 @@ pub fn event_stream(s: StreamSink<String>) -> Result<(), anyhow::Error> {
     let mut stream = NAME_STREAM.write().unwrap();
     *stream = Some(s);
     Ok(())
+}
+
+/// Attempt classic pairing with device of address `CURR_ADDRESS`.
+pub fn pair() -> String {
+    let result = match CURR_ADDRESS.read().unwrap().as_ref() {
+        Some(addr) => {
+            let run = async {
+                let classic_addr = ClassicAddress::try_from(*addr).unwrap();
+
+                let classic_device = Platform::new_classic_device(classic_addr).await.unwrap();
+
+                match classic_device.pair().await {
+                    Ok(result) => match result {
+                        PairingResult::Success => String::from("Pairing success!"),
+                        PairingResult::AlreadyPaired => {
+                            String::from("This device is already paired.")
+                        }
+                        PairingResult::AlreadyInProgress => {
+                            String::from("Pairing already in progress.")
+                        }
+                        _ => String::from("Unknown result."),
+                    },
+                    Err(err) => {
+                        format!("Error {}", err)
+                    }
+                }
+            };
+
+            executor::block_on(run)
+        }
+        None => String::from("No device available to pair."),
+    };
+    info!(result);
+    result
 }

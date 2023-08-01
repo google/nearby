@@ -16,4 +16,8 @@ abstract class Rust {
   Stream<String> eventStream({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kEventStreamConstMeta;
+
+  Future<String> pair({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kPairConstMeta;
 }
