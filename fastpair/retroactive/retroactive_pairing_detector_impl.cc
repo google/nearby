@@ -70,9 +70,11 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
 
   std::optional<FastPairDevice*> existing_device =
       repository_->FindDevice(device.GetMacAddress());
-  if (existing_device.has_value()) {
+  if (existing_device.has_value() &&
+      existing_device.value()->HasStartedPairing()) {
     // Both classic paired and Fast paired devices call this function, so we
-    // have to filter out pairing events for devices that we already know.
+    // have to filter out pairing events for device that paired from Fast Pair.
+    NEARBY_LOGS(INFO) << __func__ << ": Ignoring Fast paired devices.";
     return;
   }
 

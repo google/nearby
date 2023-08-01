@@ -21,11 +21,12 @@ namespace fastpair {
 enum class DiscoveryAction {
   kUnknown = 0,
   kPairToDevice = 1,
-  kDismissedByUser = 2,
-  kDismissedByOs = 3,
-  kLearnMore = 4,
-  kDone = 5,
-  kDismissedByTimeout = 6,
+  kSaveDeviceToAccount = 2,
+  kDismissedByUser = 3,
+  kDismissedByOs = 4,
+  kLearnMore = 5,
+  kDone = 6,
+  kDismissedByTimeout = 7,
 };
 
 }  // namespace fastpair

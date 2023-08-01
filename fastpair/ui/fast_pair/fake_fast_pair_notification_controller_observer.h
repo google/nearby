@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "fastpair/common/device_metadata.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex_lock.h"
@@ -37,24 +38,24 @@ class FakeFastPairNotificationControllerObserver
     on_pairing_result_latch_ = on_pairing_result_latch;
   }
 
-  void OnUpdateDevice(const DeviceMetadata& device) override {
+  void OnUpdateDevice(FastPairDevice& device) override {
     MutexLock lock(&mutex_);
-    device_ = &const_cast<DeviceMetadata&>(device);
+    device_ = &const_cast<FastPairDevice&>(device);
     if (on_device_updated_latch_) {
       on_device_updated_latch_->CountDown();
     }
   }
 
-  void OnPairingResult(const DeviceMetadata& device, bool success) override {
+  void OnPairingResult(FastPairDevice& device, bool success) override {
     MutexLock lock(&mutex_);
     pairing_result_ = success;
-    device_ = &const_cast<DeviceMetadata&>(device);
+    device_ = &const_cast<FastPairDevice&>(device);
     if (on_pairing_result_latch_) {
       on_pairing_result_latch_->CountDown();
     }
   }
 
-  DeviceMetadata* GetDevice() {
+  FastPairDevice* GetDevice() {
     MutexLock lock(&mutex_);
     return device_;
   }
@@ -68,7 +69,7 @@ class FakeFastPairNotificationControllerObserver
   Mutex mutex_;
   CountDownLatch* on_device_updated_latch_;
   CountDownLatch* on_pairing_result_latch_;
-  DeviceMetadata* device_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  FastPairDevice* device_ ABSL_GUARDED_BY(mutex_) = nullptr;
   std::optional<bool> pairing_result_ ABSL_GUARDED_BY(mutex_);
 };
 }  // namespace fastpair

@@ -105,6 +105,12 @@ class FastPairDevice {
     return should_show_ui_notification_;
   }
 
+  void StartedPairing(bool started_pairing) {
+    has_started_pairing_ = started_pairing;
+  }
+
+  bool HasStartedPairing() const { return has_started_pairing_; }
+
  private:
   std::string model_id_;
 
@@ -135,6 +141,7 @@ class FastPairDevice {
 
   std::optional<DeviceMetadata> metadata_;
   std::optional<bool> should_show_ui_notification_;
+  bool has_started_pairing_ = false;
 };
 
 std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device);

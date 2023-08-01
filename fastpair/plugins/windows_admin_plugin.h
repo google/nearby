@@ -60,6 +60,7 @@ class WindowsAdminPlugin : public FastPairPlugin {
   void OnPairEvent(const PairEvent& event) override;
 
  private:
+  void NotifyShowNotification(const FastPairDevice& device);
   FastPairSeeker* seeker_;
   const FastPairDevice* device_;
   PluginState* state_;

@@ -27,15 +27,27 @@ void WindowsAdminPlugin::PluginState::DiscoveryClicked(DiscoveryAction action) {
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kPairToDevice";
       absl::Status status = fast_pair_service->GetSeeker()->StartInitialPairing(
           *device, InitialPairingParam{},
-          {.on_pairing_result = [this](const FastPairDevice& device,
-                                    absl::Status status) {
-            NEARBY_LOGS(INFO) << "Pairing result: " << status;
+          {.on_pairing_result = [this](const FastPairDevice& callback_device,
+                                       absl::Status status) {
+            NEARBY_LOGS(INFO) << "Show pairing result: " << status;
             for (auto* observer : observers.GetObservers()) {
-              observer->OnPairingResult(device.GetMetadata().value(),
-                                        status.ok());
+              observer->OnPairingResult(
+                  const_cast<FastPairDevice&>(callback_device), status.ok());
             }
           }});
       NEARBY_LOGS(INFO) << "StartInitialPairing: " << status;
+    } break;
+    case DiscoveryAction::kSaveDeviceToAccount: {
+      NEARBY_LOGS(INFO) << __func__ << ": Action = kSaveDeviceToAccount";
+      absl::Status status =
+          fast_pair_service->GetSeeker()->FinishRetroactivePairing(
+              *device, FinishRetroactivePairingParam{.save_account_key = true},
+              {.on_pairing_result = [](const FastPairDevice& device,
+                                       absl::Status status) {
+                NEARBY_LOGS(INFO) << "Finish retro result: " << status;
+              }});
+      foreground_currently_showing_notification = false;
+      NEARBY_LOGS(INFO) << "FinishRetroactivePairing: " << status;
     } break;
     case DiscoveryAction::kDismissedByOs:
       NEARBY_LOGS(INFO) << __func__ << ": Action =  kDismissedByOs";
@@ -80,32 +92,39 @@ void WindowsAdminPlugin::OnInitialDiscoveryEvent(
         << "Ignoring initial discovery event because metadata is missing";
     return;
   }
+  if (device_->ShouldShowUiNotification().has_value() &&
+      !device_->ShouldShowUiNotification().value()) {
+    NEARBY_LOGS(INFO) << __func__ << ": Ignoring because show UI flag is false";
+    return;
+  }
   if (state_->foreground_currently_showing_notification) {
     NEARBY_LOGS(VERBOSE) << __func__
                          << ": Already showing a notification for a device";
     return;
   }
-  // Show discovery notification
-  state_->foreground_currently_showing_notification = true;
-
-  state_->device = device_;
-  for (auto* observer : state_->observers.GetObservers()) {
-    observer->OnUpdateDevice(*metadata);
-  }
+  NotifyShowNotification(*device_);
 }
 
 void WindowsAdminPlugin::OnPairEvent(const PairEvent& event) {
   NEARBY_LOGS(INFO) << "Received on pair event";
   absl::Status status = seeker_->StartRetroactivePairing(
       *device_, RetroactivePairingParam{},
-      {.on_pairing_result = [](const FastPairDevice& device,
-                               absl::Status status) {
-        NEARBY_LOGS(INFO) << "Pairing result: " << status;
-        // TODO(jsobczak): Ask for user consent and save the Account Key to
-        // user's account.
+      {.on_pairing_result = [this](const FastPairDevice& device,
+                                   absl::Status status) {
+        NEARBY_LOGS(INFO) << "Retroactive Pairing result: " << status;
+        if (!status.ok()) return;
+        NotifyShowNotification(device);
       }});
   NEARBY_LOGS(INFO) << "StartRetroactivePairing: " << status;
 }
 
+void WindowsAdminPlugin::NotifyShowNotification(const FastPairDevice& device) {
+  NEARBY_LOGS(INFO) << __func__;
+  state_->foreground_currently_showing_notification = true;
+  state_->device = &device;
+  for (auto* observer : state_->observers.GetObservers()) {
+    observer->OnUpdateDevice(const_cast<FastPairDevice&>(device));
+  }
+}
 }  // namespace fastpair
 }  // namespace nearby

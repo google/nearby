@@ -82,6 +82,7 @@ absl::Status FastPairSeekerImpl::StartInitialPairing(
 
   pairing_callback_ = std::make_unique<PairingCallback>(std::move(callback));
   device_under_pairing_ = &const_cast<FastPairDevice&>(device);
+  device_under_pairing_->StartedPairing(true);
   pairer_broker_->PairDevice(*device_under_pairing_);
   return absl::OkStatus();
 }
@@ -100,6 +101,7 @@ absl::Status FastPairSeekerImpl::StartRetroactivePairing(
   }
 
   device_under_pairing_ = &const_cast<FastPairDevice&>(device);
+  device_under_pairing_->StartedPairing(true);
   controller_ = std::make_unique<FastPairController>(
       &mediums_, device_under_pairing_, executor_);
   retroactive_pair_ = std::make_unique<Retroactive>(controller_.get());

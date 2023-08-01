@@ -72,9 +72,9 @@ TEST(FastPairPresenterImplTest, ShowDiscovery) {
                                       discovery_action = action;
                                     });
   on_update_device_latch.Await();
-  EXPECT_EQ(observer.GetDevice()->GetFastPairVersion(),
+  EXPECT_EQ(observer.GetDevice()->GetMetadata()->GetFastPairVersion(),
             DeviceFastPairVersion::kV1);
-  EXPECT_THAT(observer.GetDevice()->GetResponse(),
+  EXPECT_THAT(observer.GetDevice()->GetMetadata()->GetResponse(),
               MatchesProto(response_proto));
 }
 
@@ -101,9 +101,9 @@ TEST(FastPairPresenterImplTest, ShowPairingResult) {
   fast_pair_presenter.ShowPairingResult(fast_pair_device,
                                         notification_controller, true);
   on_pairing_result_latch.Await();
-  EXPECT_EQ(observer.GetDevice()->GetFastPairVersion(),
+  EXPECT_EQ(observer.GetDevice()->GetMetadata()->GetFastPairVersion(),
             DeviceFastPairVersion::kV1);
-  EXPECT_THAT(observer.GetDevice()->GetResponse(),
+  EXPECT_THAT(observer.GetDevice()->GetMetadata()->GetResponse(),
               MatchesProto(response_proto));
   EXPECT_TRUE(observer.GetPairingResult().has_value());
   EXPECT_TRUE(observer.GetPairingResult().value());

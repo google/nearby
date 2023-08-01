@@ -26,12 +26,12 @@ class MockFastPairNotificationController
     : public FastPairNotificationController {
  public:
   MOCK_METHOD(void, ShowGuestDiscoveryNotification,
-              (const DeviceMetadata&, DiscoveryCallback));
+              (FastPairDevice & device, DiscoveryCallback));
   MOCK_METHOD(void, OnDiscoveryClicked, (DiscoveryAction));
   MOCK_METHOD(void, AddObserver, (Observer*));
   MOCK_METHOD(void, RemoveObserver, (Observer*));
 
-  void NotifyShowDiscovery(const DeviceMetadata& device) {
+  void NotifyShowDiscovery(FastPairDevice& device) {
     for (Observer* observer : observers_.GetObservers()) {
       observer->OnUpdateDevice(device);
     }
