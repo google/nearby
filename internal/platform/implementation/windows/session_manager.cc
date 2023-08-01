@@ -167,6 +167,27 @@ bool SessionManager::IsScreenLocked() const {
   return (session_state == WTS_SESSIONSTATE_LOCK);
 }
 
+bool SessionManager::PreventSleep() const {
+  EXECUTION_STATE execution_state =
+      SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
+  if (execution_state == 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to set execution state of the thread.";
+    return false;
+  }
+  return true;
+}
+
+bool SessionManager::AllowSleep() const {
+  EXECUTION_STATE execution_state = SetThreadExecutionState(ES_CONTINUOUS);
+  if (execution_state == 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to set execution state of the thread.";
+    return false;
+  }
+  return true;
+}
+
 void SessionManager::StartSession(absl::Notification& notification) {
   kSessionHwnd = CreateNearbyWindow();
   if (kSessionHwnd == nullptr) {

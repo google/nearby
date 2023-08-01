@@ -43,6 +43,12 @@ class SessionManager {
 
   bool IsScreenLocked() const;
 
+  // Prevents the Windows device from sleeping state.
+  bool PreventSleep() const;
+
+  // Allows the Windows device to sleep state.
+  bool AllowSleep() const;
+
  private:
   void StartSession(absl::Notification& notification);
   void StopSession();
