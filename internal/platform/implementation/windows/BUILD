@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 licenses(["notice"])
 
 cc_library(
@@ -95,6 +96,7 @@ cc_library(
         "mutex.h",
         "scheduled_executor.h",
         "server_sync.h",
+        "session_manager.h",
         "submittable_executor.h",
         "thread_pool.h",
         "webrtc.h",
@@ -166,6 +168,7 @@ cc_library(
         "preferences_repository.cc",
         "preferences_repository.h",
         "scheduled_executor.cc",
+        "session_manager.cc",
         "submittable_executor.cc",
         "system_clock.cc",
         "thread_pool.cc",
