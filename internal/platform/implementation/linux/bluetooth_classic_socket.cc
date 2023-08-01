@@ -3,9 +3,14 @@
 #include <cstdint>
 #include <unistd.h>
 
+#include <systemd/sd-bus.h>
+
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
+#include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
@@ -64,5 +69,32 @@ Exception BluetoothOutputStream::Close() {
   return close(fd_) < 0 ? Exception{Exception::kIo}
                         : Exception{Exception::kSuccess};
 }
+
+Exception BluetoothSocket::Close() {
+  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *system_bus = NULL;
+  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
+      SD_BUS_ERROR_NULL;
+
+  if (auto ret = sd_bus_default_system(&system_bus); ret < 0) {
+    sd_bus_error_set_errno(&err, ret);
+    NEARBY_LOGS(ERROR) << __func__
+                       << "Error connecting to system bus: " << err.name << ": "
+                       << err.message;
+    return Exception{Exception::kFailed};
+  }
+
+  if (sd_bus_call_method(system_bus, BLUEZ_SERVICE, device_object_path_.c_str(),
+                         BLUEZ_DEVICE_INTERFACE, "DisconnectProfile", &err,
+                         nullptr, "s", connected_profile_uuid_.c_str()) < 0) {
+    NEARBY_LOGS(ERROR) << __func__ << "Error disconnecting from profile "
+                       << connected_profile_uuid_ << " on device "
+                       << device_object_path_ << ": " << err.name << ": "
+                       << err.message;
+    return Exception{Exception::kFailed};
+  }
+
+  return Exception{Exception::kSuccess};
+}
+
 } // namespace linux
 } // namespace nearby

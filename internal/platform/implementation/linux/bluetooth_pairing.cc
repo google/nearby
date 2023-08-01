@@ -46,13 +46,6 @@ int pairing_reply_handler(sd_bus_message *m, void *userdata,
   return 0;
 }
 
-BluetoothPairing::BluetoothPairing(absl::string_view object_path) {
-  object_path_ = object_path;
-  if (sd_bus_default_system(&system_bus_) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error connecting to system bus";
-  }
-}
-
 bool BluetoothPairing::InitiatePairing(
     api::BluetoothPairingCallback pairing_cb) {
   if (!system_bus_)
@@ -60,12 +53,12 @@ bool BluetoothPairing::InitiatePairing(
 
   pairing_cb_ = std::move(pairing_cb);
 
-  if (sd_bus_call_method_async(system_bus_, nullptr, BLUEZ_SERVICE,
-                               object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
-                               "Pair", &pairing_reply_handler, &pairing_cb_,
-                               nullptr) < 0) {
+  if (sd_bus_call_method_async(
+          system_bus_, nullptr, BLUEZ_SERVICE, device_object_path_.c_str(),
+          BLUEZ_DEVICE_INTERFACE, "Pair", &pairing_reply_handler, &pairing_cb_,
+          nullptr) < 0) {
     NEARBY_LOGS(ERROR) << __func__ << "Error calling method Pair on device "
-                       << object_path_;
+                       << device_object_path_;
     return false;
   }
   pairing_cb.on_pairing_initiated_cb(api::PairingParams{
@@ -84,12 +77,12 @@ bool BluetoothPairing::CancelPairing() {
 
   __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
       SD_BUS_ERROR_NULL;
-  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE, object_path_.c_str(),
-                         BLUEZ_DEVICE_INTERFACE, "CancelPairing", &err, nullptr,
-                         nullptr)) {
+  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE,
+                         device_object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
+                         "CancelPairing", &err, nullptr, nullptr)) {
     NEARBY_LOGS(ERROR) << __func__
                        << "Error calling method CancelPairing on device "
-                       << object_path_ << ": " << err.message;
+                       << device_object_path_ << ": " << err.message;
     return false;
   }
   return true;
@@ -103,10 +96,10 @@ bool BluetoothPairing::Unpair() {
       SD_BUS_ERROR_NULL;
   if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                          BLUEZ_ADAPTER_INTERFACE, "RemoveDevice", &err, nullptr,
-                         "o", object_path_.c_str())) {
+                         "o", device_object_path_.c_str())) {
     NEARBY_LOGS(ERROR) << __func__
                        << "Error calling method CancelPairing on device "
-                       << object_path_ << ": " << err.message;
+                       << device_object_path_ << ": " << err.message;
     return false;
   }
   return true;
@@ -119,12 +112,12 @@ bool BluetoothPairing::IsPaired() {
   __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
       SD_BUS_ERROR_NULL;
   int paired = 0;
-  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE,
-                                  object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
-                                  "Bonded", &err, 'b', &paired) < 0) {
+  if (sd_bus_get_property_trivial(
+          system_bus_, BLUEZ_SERVICE, device_object_path_.c_str(),
+          BLUEZ_DEVICE_INTERFACE, "Bonded", &err, 'b', &paired) < 0) {
     NEARBY_LOGS(ERROR) << __func__
                        << "Error getting Bonded property for device "
-                       << object_path_ << ": " << err.message;
+                       << device_object_path_ << ": " << err.message;
   }
   return paired;
 }
