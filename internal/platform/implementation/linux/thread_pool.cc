@@ -56,7 +56,7 @@ ThreadPool::ThreadPool(std::unique_ptr<std::vector<std::thread>> &thread_pool, i
         RunNextTask();
         // Possibly don't need but here to prevent 100% usage for loop
         sleep(300);
-      } 
+      }
     });
   }
 }
