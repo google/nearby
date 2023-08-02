@@ -18,16 +18,30 @@ use super::{BleAddress, BluetoothError};
 /// information about the advertisement (e.g. address of sender) as well as
 /// data sections extracted from the advertisement. Platform-specific methods
 /// should be written to load in data sections from incoming advertisements.
+#[derive(Clone)]
 pub struct BleAdvertisement {
     address: BleAddress,
+    rssi: Option<DecibelMilliwatts>,
+    tx_power: Option<DecibelMilliwatts>,
     service_data_16bit_uuid: Option<Vec<ServiceData<u16>>>,
 }
 
+/// Decibel-milliwatt or dBm is a dimensionless absolute unit expressing the
+/// power of a signal relative to one milliwatt (mW). The unit is in log10, i.e.
+/// 1 mW is 0 dBm and a 10 dBm increase represents a ten-fold increase in power.
+type DecibelMilliwatts = i16;
+
 impl BleAdvertisement {
     /// Construct a new `BleAdvertisement` instance.
-    pub(crate) fn new(address: BleAddress) -> Self {
+    pub(crate) fn new(
+        address: BleAddress,
+        rssi: Option<DecibelMilliwatts>,
+        tx_power: Option<DecibelMilliwatts>,
+    ) -> Self {
         BleAdvertisement {
             address,
+            rssi,
+            tx_power,
             service_data_16bit_uuid: None,
         }
     }
@@ -35,6 +49,19 @@ impl BleAdvertisement {
     /// Retrieve the `BleAddress` that emitted this advertisement.
     pub fn address(&self) -> BleAddress {
         self.address
+    }
+
+    /// Retrieve the Received Signal Strength Indicator (RSSI) value for this
+    /// advertisement, expressed in dBm. The RSSI might be the raw value or the
+    /// filtered RSSI, depending on the configured signal strength filter.
+    pub fn rssi(&self) -> Option<DecibelMilliwatts> {
+        self.rssi
+    }
+
+    /// Retrieve the transmit power advertised by this device, if any.
+    /// For BLE communication, values will range from -127 dBm to 20 dBm.
+    pub fn tx_power(&self) -> Option<DecibelMilliwatts> {
+        self.tx_power
     }
 
     /// Setter for `ServiceData` field with 16bit UUID.
@@ -69,6 +96,7 @@ pub enum BleDataTypeId {
 /// Struct representing the Bluetooth Service Data common data type. `U` should
 /// be one of the valid uuid sizes, specified in:
 /// Bluetooth Supplement to the Core Specification, Part A, Section 1.11.
+#[derive(Clone)]
 pub struct ServiceData<U: Copy> {
     uuid: U,
     data: Vec<u8>,

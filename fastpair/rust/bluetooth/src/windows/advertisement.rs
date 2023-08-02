@@ -44,8 +44,15 @@ impl TryFrom<&BluetoothLEAdvertisementReceivedEventArgs> for BleAdvertisement {
         let kind = BleAddressKind::try_from(adv.BluetoothAddressType()?)?;
 
         let addr = BleAddress::new(addr, kind);
+        // `rssi` and tx_power` aren't always advertised, so convert to None if
+        // can't extract value.
+        let rssi = adv.RawSignalStrengthInDBm().ok();
+        let tx_power = match adv.TransmitPowerLevelInDBm() {
+            Ok(val_ref) => val_ref.GetInt16().ok(),
+            Err(_) => None,
+        };
 
-        Ok(BleAdvertisement::new(addr))
+        Ok(BleAdvertisement::new(addr, rssi, tx_power))
     }
 }
 
