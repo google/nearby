@@ -54,6 +54,9 @@ class FastPairDeviceRepository {
   // or BLE.
   std::optional<FastPairDevice*> FindDevice(absl::string_view mac_address);
 
+  // Finds a device matching the account key.
+  std::optional<FastPairDevice*> FindDevice(const AccountKey& account_key);
+
   void AddObserver(RemoveDeviceCallback* observer) {
     observers_.AddObserver(observer);
   }
