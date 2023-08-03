@@ -501,7 +501,12 @@ enum ScanType {
 // The type of parsing endpoint id failed type.
 enum ParsingFailedType {
   FAILED_UNKNOWN_TYPE = 0;
+  // NULL advertisement is returned due to sender failing to parse advertisement
+  // from endpointInfo byte stream from receiver advertisement.
   FAILED_PARSE_ADVERTISEMENT = 1;
+  // NULL shareTarget is returned due to sender failing to create shareTarget
+  // from a valid parsed advertisement stemming from issues in certificates, QR
+  // code tokens or device names.
   FAILED_CONVERT_SHARE_TARGET = 2;
 }
 
