@@ -496,6 +496,49 @@ enum ServerResponseState {
   SERVER_RESPONSE_NOT_CONNECTED_TO_INTERNET = 10;
 }
 
+// The purpose of requesting the server request.
+enum SyncPurpose {
+  SYNC_PURPOSE_UNKNOWN = 0;
+  // When NearbySharingChimeraService#sync() is called.
+  SYNC_PURPOSE_ON_DEMAND_SYNC = 1;
+  // Requested by chime notification.
+  SYNC_PURPOSE_CHIME_NOTIFICATION = 2;
+  // For reqular daily sync.
+  SYNC_PURPOSE_DAILY_SYNC = 3;
+  // Wen a device opts into Nearby Share.
+  SYNC_PURPOSE_OPT_IN_FIRST_SYNC = 4;
+  // Requested when Nearby Share automatically enables a device that shares
+  // a single account that has already opted in on another device.
+  SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN = 5;
+  // When a device enables Nearby Share.
+  SYNC_PURPOSE_NEARBY_SHARE_ENABLED = 6;
+  // When a device is in fast init advertising.
+  SYNC_PURPOSE_SYNC_AT_FAST_INIT = 7;
+  // When device start discovery.
+  SYNC_PURPOSE_SYNC_AT_DISCOVERY = 8;
+  // When device tries to load valid private certificate.
+  SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE = 9;
+  // When device start advertiseement.
+  SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT = 10;
+  // When device contacts list changes.
+  SYNC_PURPOSE_CONTACT_LIST_CHANGE = 11;
+  // When showing the C11 banner in Neary Share setting.
+  SYNC_PURPOSE_SHOW_C11N_VIEW = 12;
+  // For regular check contact reachability.
+  SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY = 13;
+  // When selected contacts list changes in visibility setting.
+  SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE = 14;
+  // When switching account.
+  SYNC_PURPOSE_ACCOUNT_CHANGE = 15;
+}
+
+// The device role to trigger the server request.
+enum ClientRole {
+  CLIENT_ROLE_UNKNOWN = 0;
+  CLIENT_ROLE_SENDER = 1;
+  CLIENT_ROLE_RECEIVER = 2;
+}
+
 // The type of Nearby Sharing scanning.
 enum ScanType {
   UNKNOWN_SCAN_TYPE = 0;
