@@ -11,11 +11,8 @@ namespace nearby {
 namespace linux {
 class BluetoothAdapter : public api::BluetoothAdapter {
 public:
-  ~BluetoothAdapter() override {
-    if (system_bus) {
-      sd_bus_unrefp(&system_bus);
-    }
-  };
+  BluetoothAdapter(sd_bus *bus) { system_bus_ = bus; }
+  ~BluetoothAdapter() override { sd_bus_unref(system_bus_); };
 
   bool SetStatus(Status status) override;
   bool IsEnabled() const override;
@@ -30,7 +27,7 @@ public:
   std::string GetMacAddress() const override;
 
 private:
-  sd_bus *system_bus;
+  sd_bus *system_bus_;
 };
 } // namespace linux
 } // namespace nearby

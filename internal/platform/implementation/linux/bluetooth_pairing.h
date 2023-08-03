@@ -7,7 +7,6 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
