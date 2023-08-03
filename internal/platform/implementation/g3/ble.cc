@@ -17,10 +17,18 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/log/check.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
+#include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -28,74 +36,9 @@
 namespace nearby {
 namespace g3 {
 
-BleSocket::~BleSocket() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-}
-
-void BleSocket::Connect(BleSocket& other) {
-  absl::MutexLock lock(&mutex_);
-  remote_socket_ = &other;
-  input_ = other.output_;
-}
-
-InputStream& BleSocket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
-  CHECK(remote_socket != nullptr);
-  return remote_socket->GetLocalInputStream();
-}
-
-OutputStream& BleSocket::GetOutputStream() { return GetLocalOutputStream(); }
-
-BleSocket* BleSocket::GetRemoteSocket() {
-  absl::MutexLock lock(&mutex_);
-  return remote_socket_;
-}
-
-bool BleSocket::IsConnected() const {
-  absl::MutexLock lock(&mutex_);
-  return IsConnectedLocked();
-}
-
-bool BleSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
-  return closed_;
-}
-
-Exception BleSocket::Close() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-  return {Exception::kSuccess};
-}
-
 BlePeripheral* BleSocket::GetRemotePeripheral() {
   absl::MutexLock lock(&mutex_);
   return peripheral_;
-}
-
-void BleSocket::DoClose() {
-  if (!closed_) {
-    remote_socket_ = nullptr;
-    output_->GetOutputStream().Close();
-    output_->GetInputStream().Close();
-    if (IsConnectedLocked()) {
-      input_->GetOutputStream().Close();
-      input_->GetInputStream().Close();
-    }
-    closed_ = true;
-  }
-}
-
-bool BleSocket::IsConnectedLocked() const { return input_ != nullptr; }
-
-InputStream& BleSocket::GetLocalInputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetInputStream();
-}
-
-OutputStream& BleSocket::GetLocalOutputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetOutputStream();
 }
 
 std::unique_ptr<api::BleSocket> BleServerSocket::Accept(

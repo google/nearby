@@ -16,85 +16,25 @@
 
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
-
-// Code for WifiHotspotSocket
-WifiHotspotSocket::~WifiHotspotSocket() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-}
-
-void WifiHotspotSocket::Connect(WifiHotspotSocket& other) {
-  absl::MutexLock lock(&mutex_);
-  remote_socket_ = &other;
-  input_ = other.output_;
-}
-
-InputStream& WifiHotspotSocket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
-  CHECK(remote_socket != nullptr);
-  return remote_socket->GetLocalInputStream();
-}
-
-OutputStream& WifiHotspotSocket::GetOutputStream() {
-  return GetLocalOutputStream();
-}
-
-WifiHotspotSocket* WifiHotspotSocket::GetRemoteSocket() {
-  absl::MutexLock lock(&mutex_);
-  return remote_socket_;
-}
-
-bool WifiHotspotSocket::IsConnected() const {
-  absl::MutexLock lock(&mutex_);
-  return IsConnectedLocked();
-}
-
-bool WifiHotspotSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
-  return closed_;
-}
-
-Exception WifiHotspotSocket::Close() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-  return {Exception::kSuccess};
-}
-
-void WifiHotspotSocket::DoClose() {
-  if (!closed_) {
-    remote_socket_ = nullptr;
-    output_->GetOutputStream().Close();
-    output_->GetInputStream().Close();
-    input_->GetOutputStream().Close();
-    input_->GetInputStream().Close();
-    closed_ = true;
-  }
-}
-
-bool WifiHotspotSocket::IsConnectedLocked() const { return input_ != nullptr; }
-
-InputStream& WifiHotspotSocket::GetLocalInputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetInputStream();
-}
-
-OutputStream& WifiHotspotSocket::GetLocalOutputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetOutputStream();
-}
 
 // Code for WifiHotspotServerSocket
 std::string WifiHotspotServerSocket::GetName(absl::string_view ip_address,

@@ -20,13 +20,12 @@
 
 #include "connections/payload.h"
 
-#import "connections/swift/NearbyCoreAdapter/Sources/CPPInputStreamBinding.h"
+#import "connections/swift/NearbyCoreAdapter/Sources/CPPInputStream.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCInputStream.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCPayload+CppConversions.h"
 
 using ::nearby::ByteArray;
 using ::nearby::InputFile;
-using ::nearby::InputStream;
 using ::nearby::connections::Payload;
 
 @implementation GNCPayload (CppConversions)
@@ -51,7 +50,7 @@ using ::nearby::connections::Payload;
                                           identifier:payloadId];
     }
     case nearby::connections::PayloadType::kStream: {
-      GNCInputStream *stream = [[GNCInputStream alloc] initWithCppInputStream:payload.AsStream()];
+      GNCInputStream *stream = [[GNCInputStream alloc] initWithPayload:std::move(payload)];
       return [[GNCStreamPayload alloc] initWithStream:stream identifier:payloadId];
     }
     case nearby::connections::PayloadType::kUnknown:
@@ -76,14 +75,7 @@ using ::nearby::connections::Payload;
 @implementation GNCStreamPayload (CppConversions)
 
 - (Payload)toCpp {
-  // GNCStreamPayload will most likely be destroyed almost immediately, so a weak self would be
-  // useless and a strong self will cause a retain cycle. This is why we are keeping a weak
-  // reference of the stream instead. The input stream should be kept alive by a strong reference
-  // on the user end.
-  __weak NSInputStream *stream = self.stream;
-  return Payload(self.identifier, [stream]() -> InputStream & {
-    return [CPPInputStreamBinding getRefFromStream:stream];
-  });
+  return Payload(self.identifier, std::make_unique<CPPInputStream>(self.stream));
 }
 
 @end

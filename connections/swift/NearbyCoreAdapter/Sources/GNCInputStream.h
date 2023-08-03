@@ -17,7 +17,9 @@
 #ifdef __cplusplus
 
 namespace nearby {
-class InputStream;
+namespace connections {
+class Payload;
+}
 }
 
 #endif
@@ -29,7 +31,7 @@ class InputStream;
 - (nonnull instancetype)initWithURL:(nonnull NSURL *)url NS_UNAVAILABLE;
 
 #ifdef __cplusplus
-- (nonnull instancetype)initWithCppInputStream:(nonnull nearby::InputStream *)stream
+- (nonnull instancetype)initWithPayload:(nearby::connections::Payload)stream
     NS_DESIGNATED_INITIALIZER;
 #endif
 

@@ -18,12 +18,16 @@
 #include <optional>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -270,7 +274,7 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
   server_socket.Close();
 }
 
-TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsError) {
+TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsEmpty) {
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
   CountDownLatch found_latch(1);
   BluetoothDevice* discovered_device = nullptr;
@@ -308,7 +312,7 @@ TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsError) {
       BluetoothSocket socket_b = server_socket.Accept();
       ASSERT_TRUE(socket_b.IsValid());
       socket_b.Close();
-      EXPECT_FALSE(socket_b.GetInputStream().Read(data.size()).ok());
+      EXPECT_TRUE(socket_b.GetInputStream().Read(data.size()).result().Empty());
     });
   }
   server_socket.Close();

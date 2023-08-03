@@ -36,7 +36,6 @@ objc_library(
         "//internal/platform:base",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//third_party/apple_frameworks:Foundation",
-        "//third_party/apple_frameworks:ObjectiveC",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )

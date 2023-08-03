@@ -24,7 +24,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
-#include "internal/platform/implementation/g3/pipe.h"
+#include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/nsd_service_info.h"
@@ -35,58 +35,26 @@ namespace g3 {
 
 class WifiLanMedium;
 
-class WifiLanSocket : public api::WifiLanSocket {
+class WifiLanSocket : public api::WifiLanSocket, public SocketBase {
  public:
-  WifiLanSocket() = default;
-  ~WifiLanSocket() override;
-
-  // Connect to another WifiLanSocket, to form a functional low-level channel.
-  // from this point on, and until Close is called, connection exists.
-  void Connect(WifiLanSocket& other) ABSL_LOCKS_EXCLUDED(mutex_);
-
   // Returns the InputStream of this connected WifiLanSocket.
-  InputStream& GetInputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  InputStream& GetInputStream() override {
+    return SocketBase::GetInputStream();
+  }
 
   // Returns the OutputStream of this connected WifiLanSocket.
   // This stream is for local side to write.
-  OutputStream& GetOutputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  OutputStream& GetOutputStream() override {
+    return SocketBase::GetOutputStream();
+  }
 
   // Returns address of a remote WifiLanSocket or nullptr.
-  WifiLanSocket* GetRemoteSocket() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns true if connection exists to the (possibly closed) remote socket.
-  bool IsConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns true if socket is closed.
-  bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
+  WifiLanSocket* GetRemoteSocket() {
+    return static_cast<WifiLanSocket*>(SocketBase::GetRemoteSocket());
+  }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
-
- private:
-  void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Returns true if connection exists to the (possibly closed) remote socket.
-  bool IsConnectedLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Returns InputStream of our side of a connection.
-  // This is what the remote side is supposed to read from.
-  // This is a helper for GetInputStream() method.
-  InputStream& GetLocalInputStream() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns OutputStream of our side of a connection.
-  // This is what the local size is supposed to write to.
-  // This is a helper for GetOutputStream() method.
-  OutputStream& GetLocalOutputStream() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Output pipe is initialized by constructor, it remains always valid, until
-  // it is closed. it represents output part of a local socket. Input part of a
-  // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_{new Pipe};
-  std::shared_ptr<Pipe> input_;
-  mutable absl::Mutex mutex_;
-  WifiLanSocket* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
+  Exception Close() override { return SocketBase::Close(); }
 };
 
 class WifiLanServerSocket : public api::WifiLanServerSocket {
