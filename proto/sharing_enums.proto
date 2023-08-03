@@ -312,6 +312,61 @@ enum AttachmentTransmissionStatus {
   FAILED_NULL_CONNECTION_DISCONNECTED = 19;
 }
 
+// Generic result status of NearbyConnections API calls.
+enum ConnectionLayerStatus {
+  // No status is available
+  CONNECTION_LAYER_STATUS_UNKNOWN = 0;
+  // The operation was successful.
+  CONNECTION_LAYER_STATUS_SUCCESS = 1;
+  // The operation failed, without any more information.
+  CONNECTION_LAYER_STATUS_ERROR = 2;
+  // The app called an API method out of order (i.e. another method is expected
+  // to be called first).
+  CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL = 3;
+  // The app already has active operations (advertising, discovering, or
+  // connected to other devices) with another Strategy. Stop these operations on
+  // the current Strategy before trying to advertise or discover with a new
+  // Strategy.
+  CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY = 4;
+  // The app is already advertising; call StopAdvertising() before trying to
+  // advertise again.
+  CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING = 5;
+  // The app is already discovering; call StopDiscovery() before trying to
+  // discover again.
+  CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING = 6;
+  // NC is already listening for incoming connections from remote endpoints.
+  CONNECTION_LAYER_STATUS_ALREADY_LISTENING = 7;
+  // An attempt to read from/write to a connected remote endpoint failed. If
+  // this occurs repeatedly, consider invoking DisconnectFromEndpoint().
+  CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR = 8;
+  // An attempt to interact with a remote endpoint failed because it's unknown
+  // to us -- it's either an endpoint that was never discovered, or an endpoint
+  // that never connected to us (both of which are indicative of bad input from
+  // the client app).
+  CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN = 9;
+  // The remote endpoint rejected the connection request.
+  CONNECTION_LAYER_STATUS_CONNECTION_REJECTED = 10;
+  // The app is already connected to the specified endpoint. Multiple
+  // connections to a remote endpoint cannot be maintained simultaneously.
+  CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT = 11;
+  // The remote endpoint is not connected; messages cannot be sent to it.
+  CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT = 12;
+  // There was an error trying to use the device's Bluetooth capabilities.
+  CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR = 13;
+  // There was an error trying to use the device's Bluetooth Low Energy
+  // capabilities.
+  CONNECTION_LAYER_STATUS_BLE_ERROR = 14;
+  // There was an error trying to use the device's Wi-Fi capabilities.
+  CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR = 15;
+  // An attempt to interact with an in-flight Payload failed because it's
+  // unknown to us.
+  CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN = 16;
+  // The connection was reset
+  CONNECTION_LAYER_STATUS_RESET = 17;
+  // The connection timed out
+  CONNECTION_LAYER_STATUS_TIMEOUT = 18;
+}
+
 // The status of processing attachments after receiver received payloads
 // successfully.
 enum ProcessReceivedAttachmentsStatus {
