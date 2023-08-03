@@ -310,6 +310,13 @@ enum AttachmentTransmissionStatus {
   // Breakdowns of FAILED_NULL_CONNECTION (Desktop side)
   FAILED_NULL_CONNECTION_INIT_OUTGOING = 18;
   FAILED_NULL_CONNECTION_DISCONNECTED = 19;
+
+  // Breakdowns of FAILED_NULL_CONNECTION (android side)
+  // Connection failed due to Wifi is disconnected or Bluetooth setting is off
+  // or user turn on airplane mode.
+  FAILED_NULL_CONNECTION_LOST_CONNECTIVITY = 20;
+  // Unexpected connection failure.
+  FAILED_NULL_CONNECTION_FAILURE = 21;
 }
 
 // Generic result status of NearbyConnections API calls.
