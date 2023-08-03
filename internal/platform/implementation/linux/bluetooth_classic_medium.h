@@ -95,10 +95,10 @@ private:
   sd_bus *system_bus_ = nullptr;
   sd_bus_slot *system_bus_slot_ = nullptr;
   std::string adapter_object_path_ = std::string();
-  std::map<std::string, std::unique_ptr<BluetoothDevice>> devices_by_id_;
+  std::map<std::string, std::unique_ptr<BluetoothDevice>> devices_by_path_;
   ObserverList<Observer> observers_;
 
-  DiscoveryParams discovery_params_ = {adapter_object_path_, devices_by_id_,
+  DiscoveryParams discovery_params_ = {adapter_object_path_, devices_by_path_,
                                        observers_};
 };
 } // namespace linux

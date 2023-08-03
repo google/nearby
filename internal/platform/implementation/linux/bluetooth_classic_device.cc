@@ -24,6 +24,14 @@ BluetoothDevice::BluetoothDevice(sd_bus *system_bus,
   object_path_ = device_object_path;
 }
 
+BluetoothDevice::BluetoothDevice(const BluetoothDevice &device) {
+  if (!device.mac_addr_.empty()) {
+    mac_addr_ = device.mac_addr_;
+  }
+  object_path_ = device.object_path_;
+  system_bus_ = sd_bus_ref(device.system_bus_);
+}
+
 std::string BluetoothDevice::GetName() const {
   __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
       SD_BUS_ERROR_NULL;

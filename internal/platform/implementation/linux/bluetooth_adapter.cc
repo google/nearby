@@ -15,8 +15,8 @@ bool BluetoothAdapter::SetStatus(Status status) {
       SD_BUS_ERROR_NULL;
 
   if (sd_bus_set_property(
-          system_bus, BLUEZ_SERVICE, "/org/bluez/hci0", BLUEZ_ADAPTER_INTERFACE,
-          "Powered", &err, "b",
+          system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
+          BLUEZ_ADAPTER_INTERFACE, "Powered", &err, "b",
           status == api::BluetoothAdapter::Status::kEnabled ? 1 : 0) < 0) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Error setting adaptor status: " << err.message;
@@ -30,7 +30,7 @@ bool BluetoothAdapter::IsEnabled() const {
       SD_BUS_ERROR_NULL;
   int enabled = 0;
 
-  if (sd_bus_get_property_trivial(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                                   BLUEZ_ADAPTER_INTERFACE, "Powered", &err, 'b',
                                   &enabled) < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -45,7 +45,7 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
   int powered = 0;
   int discoverable = 0;
 
-  if (sd_bus_get_property_trivial(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                                   BLUEZ_ADAPTER_INTERFACE, "Powered", &err, 'b',
                                   &powered) < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -56,7 +56,7 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
     return ScanMode::kNone;
   }
 
-  if (sd_bus_get_property_trivial(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                                   BLUEZ_ADAPTER_INTERFACE, "Discoverable", &err,
                                   'b', &powered) < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -78,7 +78,7 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
     }
     __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
         SD_BUS_ERROR_NULL;
-    if (sd_bus_set_property(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+    if (sd_bus_set_property(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                             BLUEZ_ADAPTER_INTERFACE, "Discoverable", &err, "b",
                             1) < 0) {
       NEARBY_LOGS(ERROR) << __func__
@@ -99,7 +99,7 @@ std::string BluetoothAdapter::GetName() const {
   __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
       SD_BUS_ERROR_NULL;
   char *cname = nullptr;
-  if (sd_bus_get_property_string(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+  if (sd_bus_get_property_string(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                                  BLUEZ_ADAPTER_INTERFACE, "Alias", &err,
                                  &cname) < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -116,7 +116,7 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
     __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
         SD_BUS_ERROR_NULL;
     std::string pretty_hostname(name);
-    if (sd_bus_set_property(system_bus, "org.freedesktop.hostname1",
+    if (sd_bus_set_property(system_bus_, "org.freedesktop.hostname1",
                             "/org/freedesktop/hostname1",
                             "org.freedesktop.hostname1", "PrettyHostname", &err,
                             "s", pretty_hostname.c_str()) < 0) {
@@ -131,7 +131,7 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   std::string alias(name);
   __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
       SD_BUS_ERROR_NULL;
-  if (sd_bus_set_property(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+  if (sd_bus_set_property(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                           BLUEZ_ADAPTER_INTERFACE, "Alias", &err, "s",
                           alias.c_str()) < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -145,7 +145,7 @@ std::string BluetoothAdapter::GetMacAddress() const {
   __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
       SD_BUS_ERROR_NULL;
   char *caddr = nullptr;
-  if (sd_bus_get_property_string(system_bus, BLUEZ_SERVICE, "/org/bluez/hci0",
+  if (sd_bus_get_property_string(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                                  BLUEZ_ADAPTER_INTERFACE, "Address", &err,
                                  &caddr) < 0) {
     NEARBY_LOGS(ERROR) << __func__

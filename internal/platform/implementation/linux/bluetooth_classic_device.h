@@ -15,6 +15,7 @@ public:
   BluetoothDevice(sd_bus *system_bus, absl::string_view adapter,
                   absl::string_view address);
   BluetoothDevice(sd_bus *system_bus, absl::string_view device_object_path);
+  BluetoothDevice(const BluetoothDevice &device);
 
   ~BluetoothDevice() override { sd_bus_unref(system_bus_); };
 

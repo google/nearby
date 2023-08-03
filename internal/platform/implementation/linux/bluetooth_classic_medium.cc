@@ -55,7 +55,7 @@ int bluez_interfaces_added_signal_handler(sd_bus_message *m, void *userdata,
   ret = sd_bus_message_enter_container(m, 'a', "{sa{sv}}");
   if (ret < 0) {
     NEARBY_LOGS(ERROR) << __func__ << "Error entering container: " << ret;
-    return 0;
+    return ret;
   }
 
   while (true) {
@@ -63,6 +63,7 @@ int bluez_interfaces_added_signal_handler(sd_bus_message *m, void *userdata,
     ret = sd_bus_message_read(m, "s", &interface_name);
     if (ret < 0) {
       NEARBY_LOGS(ERROR) << __func__ << "Error reading dict entry: " << ret;
+      return ret;
     }
     if (ret == 0)
       break;
@@ -149,13 +150,6 @@ bool BluetoothClassicMedium::StopDiscovery() {
                        << adapter_object_path_ << ": " << err.message;
     return false;
   }
-  const sd_bus_error *m_err = sd_bus_message_get_error(reply);
-
-  if (m_err) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error calling StopDiscovery on "
-                       << adapter_object_path_ << ": " << err.message;
-    return false;
-  }
 
   return true;
 }
@@ -214,8 +208,11 @@ BluetoothClassicMedium::ListenForService(const std::string &service_name,
 
 api::BluetoothDevice *
 BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
-  return new BluetoothDevice(sd_bus_ref(system_bus_),
-                             GetDeviceObjectPath(mac_address));
+  if (devices_by_path_.count(mac_address) == 1) {
+    return devices_by_path_[mac_address].get();
+  }
+
+  return nullptr;
 }
 
 std::unique_ptr<api::BluetoothPairing>

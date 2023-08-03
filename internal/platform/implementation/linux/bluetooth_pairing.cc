@@ -5,6 +5,7 @@
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_pairing.h"
 #include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
@@ -79,7 +80,7 @@ bool BluetoothPairing::CancelPairing() {
       SD_BUS_ERROR_NULL;
   if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE,
                          device_object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
-                         "CancelPairing", &err, nullptr, nullptr)) {
+                         "CancelPairing", &err, nullptr, nullptr) < 0) {
     NEARBY_LOGS(ERROR) << __func__
                        << "Error calling method CancelPairing on device "
                        << device_object_path_ << ": " << err.message;
@@ -96,7 +97,7 @@ bool BluetoothPairing::Unpair() {
       SD_BUS_ERROR_NULL;
   if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
                          BLUEZ_ADAPTER_INTERFACE, "RemoveDevice", &err, nullptr,
-                         "o", device_object_path_.c_str())) {
+                         "o", device_object_path_.c_str()) < 0) {
     NEARBY_LOGS(ERROR) << __func__
                        << "Error calling method CancelPairing on device "
                        << device_object_path_ << ": " << err.message;
