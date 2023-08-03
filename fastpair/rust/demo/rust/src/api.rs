@@ -2,8 +2,7 @@ use std::{collections::HashMap, sync::RwLock};
 
 use bluetooth::{
     api::{BleAdapter, BleDevice, ClassicDevice},
-    BleAddress, BleAdvertisement, BleDataTypeId, ClassicAddress, PairingResult, Platform,
-    ServiceData,
+    BleAdvertisement, BleDataTypeId, ClassicAddress, PairingResult, Platform, ServiceData,
 };
 use flutter_rust_bridge::StreamSink;
 use futures::executor;
@@ -42,7 +41,7 @@ async fn update_best_device(best_adv: FpPairingAdvertisement) {
 fn new_best_fp_advertisement(
     advertisement: BleAdvertisement,
     service_data: &ServiceData<u16>,
-    latest_advertisement_map: &mut HashMap<BleAddress, FpPairingAdvertisement>,
+    latest_advertisement_map: &mut HashMap<String, FpPairingAdvertisement>,
 ) -> Option<FpPairingAdvertisement> {
     // Analyze service data sections.
     let uuid = service_data.uuid();
@@ -52,7 +51,7 @@ fn new_best_fp_advertisement(
         return None;
     }
 
-    let fp_adv = match FpPairingAdvertisement::try_from(advertisement) {
+    let fp_adv = match FpPairingAdvertisement::new(advertisement, service_data) {
         Ok(fp_adv) => fp_adv,
         Err(err) => {
             // If error during construction (e.g. non-discoverable
@@ -64,13 +63,13 @@ fn new_best_fp_advertisement(
         }
     };
 
-    latest_advertisement_map.insert(fp_adv.address(), fp_adv.clone());
+    latest_advertisement_map.insert(fp_adv.model_id().to_owned(), fp_adv.clone());
 
     if let Some(best_adv) = CURR_DEVICE_ADV.read().unwrap().as_ref() {
         if best_adv.distance() >= fp_adv.distance() {
             // New advertised distance is closer.
             Some(fp_adv)
-        } else if best_adv.address() == fp_adv.address() {
+        } else if best_adv.model_id() == fp_adv.model_id() {
             // New advertised distance by the previous best device has
             // increased, so select new closest device.
             let next_best_adv_ref =

@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bluetooth::{BleAddress, BleAdvertisement};
+use bluetooth::{BleAddress, BleAdvertisement, ServiceData};
+
+use crate::decoder::FpDecoder;
+
+/// Represents a FP device model ID.
+pub(crate) type ModelId = String;
 
 /// Holds information required to make decisions about an incoming Fast Pair
 /// advertisement.
@@ -21,9 +26,59 @@ pub(crate) struct FpPairingAdvertisement {
     inner: BleAdvertisement,
     /// Estimated distance in meters of device from BLE adapter.
     distance: f64,
+    model_id: ModelId,
 }
 
 impl FpPairingAdvertisement {
+    /// Create a new Fast Pair advertisement instance.
+    pub(crate) fn new(
+        adv: BleAdvertisement,
+        service_data: &ServiceData<u16>,
+    ) -> Result<Self, anyhow::Error> {
+        let rssi = adv.rssi().ok_or(anyhow::anyhow!(
+            "Windows advertisements should contain RSSI information."
+        ))?;
+        let tx_power = adv.tx_power().ok_or(anyhow::anyhow!(
+            "Fast Pair advertisements should advertise their transmit power."
+        ))?;
+
+        let distance = distance_from_rssi_and_tx_power(rssi, tx_power);
+
+        // Extract model ID from service data. We don't need to store service
+        // data in the `FpPairingAdvertisement` since it's easily accessible from
+        // `FpPairingAdvertisement.inner`, but it's convenient to save the parsed
+        // model ID.
+        let mut model_id =
+            FpDecoder::get_model_id_from_service_data(service_data).or_else(|err| {
+                // Some FP advertisements can be GATT non-discoverable
+                // advertisements containing service data that isn't
+                // the device model ID. In this case, simply ignore
+                // advertisements with errors extracting the model ID.
+                // See: developers.google.com/nearby/fast-pair/specifications/service/provider
+                Err(anyhow::anyhow!("error extracting model ID: {}", err))
+            })?;
+
+        if model_id.len() != 3 {
+            // In this demo of Fast Pair Rust, only model ID's
+            // of length 3 bytes are supported. Therefore, if a
+            // larger model ID makes it this far, log an error.
+            // TODO b/294453912
+            return Err(anyhow::anyhow!("Error: model ID of unsupported length"));
+        }
+
+        // Pad with 0 at the beginning to successfully call `from_be_bytes`.
+        // Assumes `model_id.len() == 3` before the call to `insert`, otherwise
+        // this will panic.
+        model_id.insert(0, 0);
+        let model_id = format!("{}", u32::from_be_bytes(model_id.try_into().unwrap()));
+
+        Ok(FpPairingAdvertisement {
+            inner: adv,
+            distance,
+            model_id,
+        })
+    }
+
     /// Retrieve estimated distance the BLE advertisement travelled between
     /// the sending device and this receiver.
     pub(crate) fn distance(&self) -> f64 {
@@ -34,25 +89,11 @@ impl FpPairingAdvertisement {
     pub(crate) fn address(&self) -> BleAddress {
         self.inner.address()
     }
-}
 
-impl TryFrom<BleAdvertisement> for FpPairingAdvertisement {
-    type Error = anyhow::Error;
-
-    fn try_from(adv: BleAdvertisement) -> Result<Self, Self::Error> {
-        let rssi = adv.rssi().ok_or(anyhow::anyhow!(
-            "Windows advertisements should contain RSSI information."
-        ))?;
-        let tx_power = adv.tx_power().ok_or(anyhow::anyhow!(
-            "Fast Pair advertisements should advertise their transmit power."
-        ))?;
-
-        let distance = distance_from_rssi_and_tx_power(rssi, tx_power);
-
-        Ok(FpPairingAdvertisement {
-            inner: adv,
-            distance,
-        })
+    /// Retrieve the Model ID advertised by this device, parsed from the
+    /// 16-bit UUID service data.
+    pub(crate) fn model_id(&self) -> &ModelId {
+        &self.model_id
     }
 }
 
