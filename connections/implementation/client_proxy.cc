@@ -318,8 +318,11 @@ void ClientProxy::OnEndpointFound(
   MutexLock lock(&mutex_);
 
   NEARBY_LOGS(INFO) << "ClientProxy [Endpoint Found]: [enter] id="
-                    << endpoint_id << "; service=" << service_id << "; info="
-                    << absl::BytesToHexString(endpoint_info.data());
+                    << endpoint_id << "; service=" << service_id
+                    << "; info=" << absl::BytesToHexString(endpoint_info.data())
+                    << "; medium="
+                    << location::nearby::proto::connections::Medium_Name(
+                           medium);
   if (!IsDiscoveringServiceId(service_id)) {
     NEARBY_LOGS(INFO) << "ClientProxy [Endpoint Found]: Ignoring event for id="
                       << endpoint_id
