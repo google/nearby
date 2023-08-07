@@ -39,7 +39,7 @@ fn wire_event_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| event_stream(task_callback.stream_sink::<_, String>()),
+        move || move |task_callback| event_stream(task_callback.stream_sink::<_, [String; 2]>()),
     )
 }
 fn wire_pair_impl(port_: MessagePort) {

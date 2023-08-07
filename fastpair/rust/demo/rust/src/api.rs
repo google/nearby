@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::RwLock};
 
 use bluetooth::{
-    api::{BleAdapter, BleDevice, ClassicDevice},
+    api::{BleAdapter, ClassicDevice},
     BleAdvertisement, BleDataTypeId, ClassicAddress, PairingResult, Platform, ServiceData,
 };
 use flutter_rust_bridge::StreamSink;
@@ -11,7 +11,7 @@ use tracing::{info, warn};
 use crate::advertisement::FpPairingAdvertisement;
 
 // Sends a device name to Flutter via `StreamSink` FFI layer.
-static NAME_STREAM: RwLock<Option<StreamSink<String>>> = RwLock::new(None);
+static DEVICE_STREAM: RwLock<Option<StreamSink<[String; 2]>>> = RwLock::new(None);
 
 // Saves the currently displayed device's advertisement, to be used for pairing.
 static CURR_DEVICE_ADV: RwLock<Option<FpPairingAdvertisement>> = RwLock::new(None);
@@ -19,15 +19,14 @@ static CURR_DEVICE_ADV: RwLock<Option<FpPairingAdvertisement>> = RwLock::new(Non
 /// Updates the device name as displayed by Flutter.
 #[inline]
 async fn update_best_device(best_adv: FpPairingAdvertisement) {
-    let addr = best_adv.address();
-    let ble_device = Platform::new_ble_device(addr).await.unwrap();
-    let name = ble_device.name().unwrap();
-
-    match NAME_STREAM.read().unwrap().as_ref() {
+    match DEVICE_STREAM.read().unwrap().as_ref() {
         Some(stream) => {
-            stream.add(name);
+            stream.add([
+                best_adv.name().to_string(),
+                best_adv.image_url().to_string(),
+            ]);
         }
-        None => info!("Stream is None"),
+        None => info!("Name stream is None"),
     }
     let mut curr_adv = CURR_DEVICE_ADV.write().unwrap();
     *curr_adv = Some(best_adv);
@@ -129,8 +128,8 @@ pub fn init() {
 }
 
 /// Sets up `StreamSink` for Dart-Rust FFI.
-pub fn event_stream(s: StreamSink<String>) -> Result<(), anyhow::Error> {
-    let mut stream = NAME_STREAM.write().unwrap();
+pub fn event_stream(s: StreamSink<[String; 2]>) -> Result<(), anyhow::Error> {
+    let mut stream = DEVICE_STREAM.write().unwrap();
     *stream = Some(s);
     Ok(())
 }

@@ -35,19 +35,33 @@ struct JsonData {
 /// Types that can fetch Fast Pair data from external storage (e.g. filesystem,
 /// remote server).
 pub(crate) trait FpFetcher {
-    fn get_device_info_from_model_id(model_id: &ModelId) -> Result<DeviceInfo, anyhow::Error>;
+    fn get_device_info_from_model_id(
+        &self,
+        model_id: &ModelId,
+    ) -> Result<DeviceInfo, anyhow::Error>;
 }
 
 /// A unit struct for retrieving Fast Pair information from the local filesystem.
-pub(crate) struct FpFetcherLocal;
+pub(crate) struct FpFetcherLocal {
+    path: String,
+}
+
+impl FpFetcherLocal {
+    pub(crate) fn new(path: String) -> Self {
+        FpFetcherLocal { path }
+    }
+}
 
 impl FpFetcher for FpFetcherLocal {
     /// Retrieve device information for the provided Model ID. Currently,
     /// this information is saved locally. In the future, this should instead
     /// be retrieved from a remote server and cached.
     /// b/294456411
-    fn get_device_info_from_model_id(model_id: &ModelId) -> Result<DeviceInfo, anyhow::Error> {
-        let file_path = format!("./local/{model_id}.json");
+    fn get_device_info_from_model_id(
+        &self,
+        model_id: &ModelId,
+    ) -> Result<DeviceInfo, anyhow::Error> {
+        let file_path = format!("{}/{}.json", self.path, model_id);
         let contents = fs::read_to_string(file_path).expect("Couldn't find or open file.");
 
         let model_info: JsonData = serde_json::from_str(&contents)?;

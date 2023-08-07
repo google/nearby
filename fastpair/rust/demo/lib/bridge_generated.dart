@@ -41,10 +41,10 @@ class RustImpl implements Rust {
         argNames: [],
       );
 
-  Stream<String> eventStream({dynamic hint}) {
+  Stream<StringArray2> eventStream({dynamic hint}) {
     return _platform.executeStream(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_event_stream(port_),
-      parseSuccessData: _wire2api_String,
+      parseSuccessData: _wire2api_String_array_2,
       constMeta: kEventStreamConstMeta,
       argValues: [],
       hint: hint,
@@ -80,6 +80,14 @@ class RustImpl implements Rust {
 
   String _wire2api_String(dynamic raw) {
     return raw as String;
+  }
+
+  StringArray2 _wire2api_String_array_2(dynamic raw) {
+    return StringArray2((raw as List<dynamic>).map(_wire2api_String).toList());
+  }
+
+  List<String> _wire2api_list_String(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_String).toList();
   }
 
   int _wire2api_u8(dynamic raw) {

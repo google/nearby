@@ -27,16 +27,22 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(title: const Text("Fast Pair")),
       body: Center(
         child: StreamBuilder(
-          // Retrieve device stream from Rust side.
+          // Retrieve device info stream from Rust side.
           stream: api.eventStream(),
-          builder: (context, deviceName) {
-            if (deviceName.hasData) {
+          builder: (context, deviceInfo) {
+            if (deviceInfo.hasData) {
               return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Text(deviceName.data!),
+                  children: [
+                    // `deviceInfo.data[0]` holds device name.
+                    // `deviceInfo.data[1]` holds image URL.
+                    Expanded(
+                        child: Image.network(deviceInfo.data![1],
+                            fit: BoxFit.contain)),
+                    Text(deviceInfo.data![0]),
                     OutlinedButton(
+                      // Invoke pairing dialog.
                       onPressed: () => showDialog<String>(
                           context: context,
                           // Rust functions are invoked as futures.

@@ -8,16 +8,30 @@ import 'package:meta/meta.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:collection/collection.dart';
+
 abstract class Rust {
+  /// Sets up initial constructs and infinitely polls for advertisements.
   Future<void> init({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
-  Stream<String> eventStream({dynamic hint});
+  /// Sets up `StreamSink` for Dart-Rust FFI.
+  Stream<StringArray2> eventStream({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kEventStreamConstMeta;
 
+  /// Attempt classic pairing with device of address `CURR_ADDRESS`.
   Future<String> pair({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kPairConstMeta;
+}
+
+class StringArray2 extends NonGrowableListView<String> {
+  static const arraySize = 2;
+  StringArray2(List<String> inner)
+      : assert(inner.length == arraySize),
+        super(inner);
+  StringArray2.unchecked(List<String> inner) : super(inner);
+  StringArray2.init(String fill) : super(List<String>.filled(arraySize, fill));
 }

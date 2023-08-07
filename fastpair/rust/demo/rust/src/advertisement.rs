@@ -14,7 +14,10 @@
 
 use bluetooth::{BleAddress, BleAdvertisement, ServiceData};
 
-use crate::decoder::FpDecoder;
+use crate::{
+    decoder::FpDecoder,
+    fetcher::{FpFetcher, FpFetcherLocal},
+};
 
 /// Represents a FP device model ID.
 pub(crate) type ModelId = String;
@@ -27,6 +30,8 @@ pub(crate) struct FpPairingAdvertisement {
     /// Estimated distance in meters of device from BLE adapter.
     distance: f64,
     model_id: ModelId,
+    name: String,
+    image_url: String,
 }
 
 impl FpPairingAdvertisement {
@@ -72,10 +77,18 @@ impl FpPairingAdvertisement {
         model_id.insert(0, 0);
         let model_id = format!("{}", u32::from_be_bytes(model_id.try_into().unwrap()));
 
+        // Retrieve device info of the device corresponding to this model ID.
+        let fetcher = FpFetcherLocal::new(String::from("./local"));
+        let device_info = fetcher
+            .get_device_info_from_model_id(&model_id)
+            .expect("Failed to create device info from model ID.");
+
         Ok(FpPairingAdvertisement {
             inner: adv,
             distance,
             model_id,
+            name: device_info.name().to_string(),
+            image_url: device_info.image_url().to_string(),
         })
     }
 
@@ -94,6 +107,14 @@ impl FpPairingAdvertisement {
     /// 16-bit UUID service data.
     pub(crate) fn model_id(&self) -> &ModelId {
         &self.model_id
+    }
+
+    pub(crate) fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub(crate) fn image_url(&self) -> &String {
+        &self.image_url
     }
 }
 
