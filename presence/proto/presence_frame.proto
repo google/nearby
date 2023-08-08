@@ -117,7 +117,7 @@ message UwbControleeCapabilities {
   optional bool is_ranging_interval_reconfigure_supported = 14
       [default = false];
   repeated int32 supported_slot_durations = 15 [packed = true];
-  repeated int32 supported_ranging_intervals = 16 [packed = true];
+  repeated int32 supported_ranging_update_rates = 16 [packed = true];
 }
 
 /**
