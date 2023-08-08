@@ -87,6 +87,12 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
       return GNCStatusWifiLanError;
     case Status::kPayloadUnknown:
       return GNCStatusPayloadUnknown;
+    case Status::kReset:
+      return GNCStatusReset;
+    case Status::kTimeout:
+      return GNCStatusTimeout;
+    case Status::kUnknown:
+      return GNCStatusUnknown;
     case Status::kNextValue:
       return GNCStatusUnknown;
   }
