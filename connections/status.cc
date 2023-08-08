@@ -53,6 +53,12 @@ std::string Status::ToString() const {
       return "kWifiLanError";
     case Status::kPayloadUnknown:
       return "kPayloadUnknown";
+    case Status::kReset:
+      return "kReset";
+    case Status::kTimeout:
+      return "kTimeout";
+    case Status::kUnknown:
+      // fall through
     default:
       return "Unknown";
   }

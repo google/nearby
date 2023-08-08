@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
@@ -26,6 +27,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace fastpair {
@@ -61,18 +63,16 @@ class FastPairScannerObserver : public FastPairScanner::Observer {
 };
 
 class FastPairScannerImplTest : public testing::Test {
- protected:
-  MediumEnvironment& env_{MediumEnvironment::Instance()};
-
-  SingleThreadExecutor executor_;
+ public:
+  void SetUp() override { MediumEnvironment::Instance().Start(); }
+  void TearDown() override { MediumEnvironment::Instance().Stop(); }
 };
 
 TEST_F(FastPairScannerImplTest, StartScanning) {
-  env_.Start();
-
   // Create Fast Pair Scanner and add its observer
   Mediums mediums_1;
-  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1, &executor_);
+  SingleThreadExecutor executor;
+  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1, &executor);
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
   FastPairScannerObserver observer(scanner.get(), &accept_latch, &lost_latch);
@@ -95,14 +95,14 @@ TEST_F(FastPairScannerImplTest, StartScanning) {
   // Notify device lost
   EXPECT_TRUE(lost_latch.Await(kTaskWaitTimeout).result());
   scan_session.reset();
-  env_.Stop();
+  DestroyOnExecutor(std::move(scanner), &executor);
 }
 
 TEST_F(FastPairScannerImplTest, StopScanning) {
-  env_.Start();
   // Create Fast Pair Scanner and add its observer
   Mediums mediums_1;
-  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1, &executor_);
+  SingleThreadExecutor executor;
+  auto scanner = std::make_unique<FastPairScannerImpl>(mediums_1, &executor);
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
   FastPairScannerObserver observer(scanner.get(), &accept_latch, &lost_latch);
@@ -120,7 +120,7 @@ TEST_F(FastPairScannerImplTest, StopScanning) {
   mediums_2.GetBle().GetMedium().StopAdvertising(service_id);
   // Device lost event should not be delivered when scan session has terminated.
   EXPECT_FALSE(lost_latch.Await(kShortTimeout).result());
-  env_.Stop();
+  DestroyOnExecutor(std::move(scanner), &executor);
 }
 
 }  // namespace

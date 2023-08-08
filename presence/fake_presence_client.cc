@@ -23,17 +23,6 @@
 #include "presence/presence_device.h"
 #include "presence/scan_request.h"
 
-namespace {
-
-::nearby::internal::Metadata BuildTestMetadata() {
-  ::nearby::internal::Metadata metadata;
-  metadata.set_bluetooth_mac_address("01234567");
-  metadata.set_device_name("Pepper's device");
-  return metadata;
-}
-
-}  // namespace
-
 namespace nearby {
 namespace presence {
 
@@ -62,19 +51,16 @@ void FakePresenceClient::CallStartScanCallback(absl::Status status) {
   callback_.start_scan_cb(status);
 }
 
-void FakePresenceClient::CallOnDiscovered() {
-  PresenceDevice device{BuildTestMetadata()};
-  callback_.on_discovered_cb(std::move(device));
+void FakePresenceClient::CallOnDiscovered(PresenceDevice device) {
+  callback_.on_discovered_cb(device);
 }
 
-void FakePresenceClient::CallOnUpdated() {
-  PresenceDevice device{BuildTestMetadata()};
-  callback_.on_updated_cb(std::move(device));
+void FakePresenceClient::CallOnUpdated(PresenceDevice device) {
+  callback_.on_updated_cb(device);
 }
 
-void FakePresenceClient::CallOnLost() {
-  PresenceDevice device{BuildTestMetadata()};
-  callback_.on_lost_cb(std::move(device));
+void FakePresenceClient::CallOnLost(PresenceDevice device) {
+  callback_.on_lost_cb(device);
 }
 
 }  // namespace presence

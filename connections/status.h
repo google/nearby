@@ -22,7 +22,7 @@ namespace connections {
 
 // Protocol operation result: kSuccess, if operation was successful;
 // descriptive error code otherwise.
-// LINT.IfChange
+// LINT.IfChange(status_enum)
 struct Status {
   // Status is a struct, so it is possible to pass some context about failure,
   // by adding extra fields to it when necessary, and not change any of the
@@ -44,6 +44,9 @@ struct Status {
     kBleError,
     kWifiLanError,
     kPayloadUnknown,
+    kReset,
+    kTimeout,
+    kUnknown,
     kNextValue,
   };
   Value value{kError};
@@ -53,9 +56,9 @@ struct Status {
   std::string ToString() const;
 };
 // LINT.ThenChange(
-//   //depot/google3/location/nearby/cpp/sharing/implementation/nearby_connections_manager.cc:24
-//   //depot/google3/location/nearby/cpp/sharing/implementation/nearby_connections_types.h:46
-//   //depot/google3/location/nearby/cpp/sharing/implementation/nearby_connections_types_test.cc
+//     ../sharing/nearby_connections_manager.cc:status_enum,
+//     ../sharing/nearby_connections_types.h:status_enum,
+//     ../sharing/nearby_connections_types_test.cc:status_enum
 // )
 
 inline bool operator==(const Status& a, const Status& b) {

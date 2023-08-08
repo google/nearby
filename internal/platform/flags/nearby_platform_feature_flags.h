@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_FLAGS_NEARBY_PLATFORM_FEATURE_FLAGS_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_FLAGS_NEARBY_PLATFORM_FEATURE_FLAGS_H_
 
+#include <cstdint>
+
 #include "absl/strings/string_view.h"
 #include "internal/flags/flag.h"
 
@@ -57,7 +59,7 @@ constexpr auto kWifiHotspotConnectionMaxRetries =
 
 // The interval between 2 connectin attempts.
 constexpr auto kWifiHotspotConnectionIntervalMillis =
-    flags::Flag<int64_t>(kConfigPackage, "45415887", 500);
+    flags::Flag<int64_t>(kConfigPackage, "45415887", 2000);
 
 // The connection timeout to remote Wi-Fi hotspot.
 constexpr auto kWifiHotspotConnectionTimeoutMillis =
