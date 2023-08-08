@@ -8,7 +8,6 @@ void main() {
 
 class FastPairApp extends StatelessWidget {
   const FastPairApp({super.key});
-
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'Fast Pair',
@@ -24,70 +23,94 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text("Fast Pair")),
-      body: Center(
-        child: StreamBuilder(
-          // Retrieve device info stream from Rust side.
-          stream: api.eventStream(),
-          builder: (context, deviceInfo) {
-            if (deviceInfo.hasData) {
-              return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // `deviceInfo.data[0]` holds device name.
-                    // `deviceInfo.data[1]` holds image URL.
-                    Expanded(
-                        child: Image.network(deviceInfo.data![1],
-                            fit: BoxFit.contain)),
-                    Text(deviceInfo.data![0]),
-                    OutlinedButton(
-                      // Invoke pairing dialog.
-                      onPressed: () => showDialog<String>(
-                          context: context,
-                          // Rust functions are invoked as futures.
-                          builder: (context) => FutureBuilder(
-                              future: api.pair(),
-                              builder: (context, pairResult) {
-                                return pairResult.hasData
-                                    ? AlertDialog(
-                                        title: const Text('Pairing result'),
-                                        content: Text(pairResult.data!),
-                                        actions: <Widget>[
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, 'OK'),
-                                            child: const Text('OK'),
-                                          )
-                                        ],
-                                      )
-                                    : const AlertDialog(
-                                        title: Text('Pairing...'),
-                                        // Ensures the progress indicator has sensible dimensions,
-                                        // otherwise it follows the height/width of the alert dialog.
-                                        content: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            SizedBox(
-                                              width: 50,
-                                              height: 50,
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                              })),
-                      child: const Text('Pair'),
-                    ),
-                  ]);
-            }
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          },
+        appBar: AppBar(
+          title: const Text("Fast Pair"),
         ),
-      ));
+        body: Center(
+          child: StreamBuilder(
+            // Retrieve device info stream from Rust side.
+            stream: api.eventStream(),
+            builder: (context, deviceInfo) {
+              var deviceName = deviceInfo.data?[0];
+              var deviceImageUrl = deviceInfo.data?[1];
+
+              if (deviceInfo.hasData &&
+                  deviceName != null &&
+                  deviceImageUrl != null) {
+                return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                          child: Image.network(deviceImageUrl,
+                              fit: BoxFit.contain)),
+                      Text(deviceName),
+                      // Spacing between device name text and buttons.
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          // Spacing between left edge of screen and first button.
+                          const SizedBox(width: 20),
+                          OutlinedButton(
+                            // Invoke pairing dialog.
+                            onPressed: () => pairing(context),
+                            child: const Text('Pair'),
+                          ),
+                          // Spacing between buttons.
+                          const SizedBox(width: 20),
+                          OutlinedButton(
+                              onPressed: () => api.dismiss(),
+                              child: const Text('Dismiss'))
+                        ],
+                      ),
+                      // Spacing between buttons and bottom of screen.
+                      const SizedBox(height: 20),
+                    ]);
+              }
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            },
+          ),
+        ),
+      );
 }
+
+// Displays pairing dialog box.
+Future<String?> pairing(BuildContext context) => showDialog<String>(
+    context: context,
+    // Rust functions are invoked as futures.
+    builder: (context) => FutureBuilder(
+        future: api.pair(),
+        builder: (context, pairResult) {
+          var pairResultValue = pairResult.data;
+
+          return pairResult.hasData && pairResultValue != null
+              ? AlertDialog(
+                  title: const Text('Pairing result'),
+                  content: Text(pairResultValue),
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'OK'),
+                      child: const Text('OK'),
+                    )
+                  ],
+                )
+              : const AlertDialog(
+                  title: Text('Pairing...'),
+                  // Ensures the progress indicator has sensible dimensions,
+                  // otherwise it follows the height/width of the alert dialog.
+                  content: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CircularProgressIndicator(),
+                      ),
+                    ],
+                  ),
+                );
+        }));

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::RwLock};
+use std::{collections::HashMap, sync::RwLock, time::Duration};
 
 use bluetooth::{
     api::{BleAdapter, ClassicDevice},
@@ -7,24 +7,31 @@ use bluetooth::{
 use flutter_rust_bridge::StreamSink;
 use futures::executor;
 use tracing::{info, warn};
+use ttl_cache::TtlCache;
 
-use crate::advertisement::FpPairingAdvertisement;
+use crate::advertisement::{FpPairingAdvertisement, ModelId};
 
 // Sends a device name to Flutter via `StreamSink` FFI layer.
-static DEVICE_STREAM: RwLock<Option<StreamSink<[String; 2]>>> = RwLock::new(None);
+static DEVICE_STREAM: RwLock<Option<StreamSink<Option<[String; 2]>>>> = RwLock::new(None);
 
 // Saves the currently displayed device's advertisement, to be used for pairing.
 static CURR_DEVICE_ADV: RwLock<Option<FpPairingAdvertisement>> = RwLock::new(None);
+
+// Temporarily restricts which model IDs can be displayed.
+static MODEL_ID_BLACKLIST: RwLock<Option<TtlCache<ModelId, ()>>> = RwLock::new(None);
+
+// How long entries should blacklisted for for.
+const TTL_BLACKLIST: Duration = Duration::from_secs(10);
 
 /// Updates the device name as displayed by Flutter.
 #[inline]
 async fn update_best_device(best_adv: FpPairingAdvertisement) {
     match DEVICE_STREAM.read().unwrap().as_ref() {
         Some(stream) => {
-            stream.add([
+            stream.add(Some([
                 best_adv.name().to_string(),
                 best_adv.image_url().to_string(),
-            ]);
+            ]));
         }
         None => info!("Name stream is None"),
     }
@@ -62,6 +69,16 @@ fn new_best_fp_advertisement(
         }
     };
 
+    // If blacklisted in TTL cache, skip this advertisement.
+    let blacklisted = match MODEL_ID_BLACKLIST.read().unwrap().as_ref() {
+        Some(cache) => cache.get(fp_adv.model_id()).is_some(),
+        None => false,
+    };
+    if blacklisted {
+        latest_advertisement_map.remove(fp_adv.model_id());
+        return None;
+    }
+
     latest_advertisement_map.insert(fp_adv.model_id().to_owned(), fp_adv.clone());
 
     if let Some(best_adv) = CURR_DEVICE_ADV.read().unwrap().as_ref() {
@@ -94,6 +111,13 @@ fn new_best_fp_advertisement(
     }
 }
 
+/// Sets up necessary constructs to maintain a TTL blacklist of model IDs.
+#[inline]
+fn init_cache() {
+    let mut cache = MODEL_ID_BLACKLIST.write().unwrap();
+    *cache = Some(TtlCache::new(16));
+}
+
 /// Sets up initial constructs and infinitely polls for advertisements.
 pub fn init() {
     let run = async {
@@ -101,6 +125,8 @@ pub fn init() {
 
         let mut adapter = Platform::default_adapter().await.unwrap();
         adapter.start_scan().unwrap();
+
+        init_cache();
 
         let mut latest_advertisement_map = HashMap::new();
         let datatype_selector = vec![BleDataTypeId::ServiceData16BitUuid];
@@ -128,19 +154,18 @@ pub fn init() {
 }
 
 /// Sets up `StreamSink` for Dart-Rust FFI.
-pub fn event_stream(s: StreamSink<[String; 2]>) -> Result<(), anyhow::Error> {
+pub fn event_stream(s: StreamSink<Option<[String; 2]>>) -> Result<(), anyhow::Error> {
     let mut stream = DEVICE_STREAM.write().unwrap();
     *stream = Some(s);
     Ok(())
 }
 
-/// Attempt classic pairing with device of address `CURR_ADDRESS`.
+/// Attempt classic pairing with currently displayed device.
 pub fn pair() -> String {
     let result = match CURR_DEVICE_ADV.read().unwrap().as_ref() {
         Some(adv) => {
             let run = async {
                 let classic_addr = ClassicAddress::try_from(adv.address()).unwrap();
-
                 let classic_device = Platform::new_classic_device(classic_addr).await.unwrap();
 
                 match classic_device.pair().await {
@@ -166,4 +191,32 @@ pub fn pair() -> String {
     };
     info!(result);
     result
+}
+
+/// Remove this device from display and add it to the TTL cache blacklist.
+pub fn dismiss() {
+    let run = async {
+        let mut adv = CURR_DEVICE_ADV.write().unwrap();
+        match MODEL_ID_BLACKLIST.write().unwrap().as_mut() {
+            Some(cache) => {
+                let adv = adv.take();
+                match adv {
+                    Some(adv) => {
+                        cache.insert(adv.model_id().to_string(), (), TTL_BLACKLIST);
+                    }
+                    None => (),
+                }
+
+                match DEVICE_STREAM.read().unwrap().as_ref() {
+                    Some(stream) => {
+                        stream.add(None);
+                    }
+                    None => (),
+                }
+            }
+            None => (),
+        }
+    };
+
+    executor::block_on(run);
 }

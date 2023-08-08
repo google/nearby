@@ -41,10 +41,10 @@ class RustImpl implements Rust {
         argNames: [],
       );
 
-  Stream<StringArray2> eventStream({dynamic hint}) {
+  Stream<StringArray2?> eventStream({dynamic hint}) {
     return _platform.executeStream(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_event_stream(port_),
-      parseSuccessData: _wire2api_String_array_2,
+      parseSuccessData: _wire2api_opt_String_array_2,
       constMeta: kEventStreamConstMeta,
       argValues: [],
       hint: hint,
@@ -73,6 +73,22 @@ class RustImpl implements Rust {
         argNames: [],
       );
 
+  Future<void> dismiss({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_dismiss(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kDismissConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kDismissConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "dismiss",
+        argNames: [],
+      );
+
   void dispose() {
     _platform.dispose();
   }
@@ -88,6 +104,10 @@ class RustImpl implements Rust {
 
   List<String> _wire2api_list_String(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_String).toList();
+  }
+
+  StringArray2? _wire2api_opt_String_array_2(dynamic raw) {
+    return raw == null ? null : _wire2api_String_array_2(raw);
   }
 
   int _wire2api_u8(dynamic raw) {
@@ -249,6 +269,18 @@ class RustWire implements FlutterRustBridgeWireBase {
   late final _wire_pairPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_pair');
   late final _wire_pair = _wire_pairPtr.asFunction<void Function(int)>();
+
+  void wire_dismiss(
+    int port_,
+  ) {
+    return _wire_dismiss(
+      port_,
+    );
+  }
+
+  late final _wire_dismissPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_dismiss');
+  late final _wire_dismiss = _wire_dismissPtr.asFunction<void Function(int)>();
 
   void free_WireSyncReturn(
     WireSyncReturn ptr,

@@ -17,7 +17,7 @@ abstract class Rust {
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
   /// Sets up `StreamSink` for Dart-Rust FFI.
-  Stream<StringArray2> eventStream({dynamic hint});
+  Stream<StringArray2?> eventStream({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kEventStreamConstMeta;
 
@@ -25,6 +25,10 @@ abstract class Rust {
   Future<String> pair({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kPairConstMeta;
+
+  Future<void> dismiss({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kDismissConstMeta;
 }
 
 class StringArray2 extends NonGrowableListView<String> {

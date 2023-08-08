@@ -39,7 +39,9 @@ fn wire_event_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| event_stream(task_callback.stream_sink::<_, [String; 2]>()),
+        move || {
+            move |task_callback| event_stream(task_callback.stream_sink::<_, Option<[String; 2]>>())
+        },
     )
 }
 fn wire_pair_impl(port_: MessagePort) {
@@ -50,6 +52,16 @@ fn wire_pair_impl(port_: MessagePort) {
             mode: FfiCallMode::Normal,
         },
         move || move |task_callback| Ok(pair()),
+    )
+}
+fn wire_dismiss_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, ()>(
+        WrapInfo {
+            debug_name: "dismiss",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Ok(dismiss()),
     )
 }
 // Section: wrapper structs
