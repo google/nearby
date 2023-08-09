@@ -45,7 +45,6 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
         "//internal/platform:uuid",

@@ -15,7 +15,7 @@ cc_library(
         "memory_data_set.h",
     ],
     deps = [
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "//third_party/leveldb:db",
         "//third_party/leveldb:table",
         "//third_party/leveldb:util",

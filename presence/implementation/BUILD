@@ -87,7 +87,6 @@ cc_library(
         "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform:comm",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",

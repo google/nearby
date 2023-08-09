@@ -134,7 +134,6 @@ cc_test(
         "//fastpair/plugins:fake_fast_pair_plugin",
         "//internal/account:test_support",
         "//internal/network:types",
-        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

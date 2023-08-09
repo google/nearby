@@ -119,7 +119,7 @@ cc_test(
     ],
     deps = [
         "//connections:core",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "//internal/platform/implementation/windows",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
