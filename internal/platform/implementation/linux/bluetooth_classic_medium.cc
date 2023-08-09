@@ -1,6 +1,6 @@
 #include <cstring>
-
 #include <memory>
+
 #include <systemd/sd-bus.h>
 
 #include "absl/strings/str_replace.h"
@@ -85,6 +85,11 @@ int bluez_interfaces_added_signal_handler(sd_bus_message *m, void *userdata,
         observer->DeviceAdded(*params->devices_by_path[object_path]);
       }
       return 0;
+    }
+    ret = sd_bus_message_skip(m, "a{sv}");
+    if (ret < 0) {
+      NEARBY_LOGS(ERROR) << __func__ << "Error skipping dict entry: " << ret;
+      return -1;
     }
   }
 
