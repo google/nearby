@@ -21,11 +21,13 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/fast_pair_controller.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/pending_job_registry.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -303,5 +305,23 @@ void FastPairSeekerImpl::OnRetroactivePairFound(FastPairDevice& device) {
   callbacks_.on_pair_event(device, PairEvent{.is_paired = true});
 }
 
+void FastPairSeekerImpl::ForgetDeviceByAccountKey(
+    const AccountKey& account_key) {
+  NEARBY_LOGS(VERBOSE) << __func__;
+  auto opt_device = devices_->FindDevice(account_key);
+  if (!opt_device.has_value()) {
+    NEARBY_LOGS(INFO) << __func__ << "No FP device matching the account key.";
+  } else {
+    devices_->RemoveDevice(opt_device.value());
+  }
+
+  repository_->DeleteAssociatedDeviceByAccountKey(
+      account_key, [&](absl::Status success) {
+        if (!success.ok()) return;
+        NEARBY_LOGS(VERBOSE) << "Deleted associated devcie by account key";
+        // Temporary solution to refresh the saved_devices_sheet.
+        repository_->GetUserSavedDevices();
+      });
+}
 }  // namespace fastpair
 }  // namespace nearby

@@ -43,6 +43,7 @@ class FastPairSeekerExt : public FastPairSeeker {
 
   // Handle the state changes of screen lock.
   virtual void SetIsScreenLocked(bool is_locked) = 0;
+  virtual void ForgetDeviceByAccountKey(const AccountKey& account_key) = 0;
 };
 
 class FastPairSeekerImpl : public FastPairSeekerExt,
@@ -91,6 +92,7 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
   void SetIsScreenLocked(bool is_locked) override;
+  void ForgetDeviceByAccountKey(const AccountKey& account_key) override;
 
   // From BluetoothClassicMedium::Observer.
   void DeviceAdded(BluetoothDevice& device) override;

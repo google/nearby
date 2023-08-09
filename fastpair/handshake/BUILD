@@ -43,7 +43,6 @@ cc_library(
         "//fastpair/repository",
         "//internal/base:bluetooth_address",
         "//internal/platform:comm",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "@boringssl//:crypto",
@@ -89,7 +88,6 @@ cc_test(
         "//fastpair/internal/mediums",
         "//fastpair/repository:test_support",
         "//fastpair/testing",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -164,7 +162,6 @@ cc_test(
         ":handshake",
         "//fastpair/common",
         "//fastpair/internal/mediums",
-        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

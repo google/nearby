@@ -19,6 +19,8 @@
 #include <optional>
 #include <utility>
 
+#include "fastpair/common/account_key.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -51,7 +53,7 @@ void FastPairDeviceRepository::RemoveDevice(const FastPairDevice* device) {
     for (auto* callback : observers_.GetObservers()) {
       (*callback)(*fast_pair_device);
     }
-    NEARBY_LOGS(VERBOSE) << "Destroyed FP device: " << fast_pair_device;
+    NEARBY_LOGS(VERBOSE) << "Destroyed FP device: " << *fast_pair_device;
   });
 }
 
@@ -62,6 +64,20 @@ std::optional<FastPairDevice*> FastPairDeviceRepository::FindDevice(
                          [&](const std::unique_ptr<FastPairDevice>& device) {
                            return device->GetBleAddress() == mac_address ||
                                   device->GetPublicAddress() == mac_address;
+                         });
+  if (it != devices_.end()) {
+    return it->get();
+  } else {
+    return std::nullopt;
+  }
+}
+
+std::optional<FastPairDevice*> FastPairDeviceRepository::FindDevice(
+    const AccountKey& account_key) {
+  MutexLock lock(&mutex_);
+  auto it = std::find_if(devices_.begin(), devices_.end(),
+                         [&](const std::unique_ptr<FastPairDevice>& device) {
+                           return device->GetAccountKey() == account_key;
                          });
   if (it != devices_.end()) {
     return it->get();

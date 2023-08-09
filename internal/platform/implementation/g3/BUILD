@@ -44,8 +44,8 @@ cc_library(
     deps = [
         ":preferences_repository",
         "//internal/platform:base",
-        "//internal/platform:logging",
         "//internal/platform:test_util",
+        "//internal/platform:types",
         "//internal/platform:util",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
@@ -103,7 +103,6 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
-        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform:uuid",

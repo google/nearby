@@ -18,18 +18,27 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/strings/escaping.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
 #include "fastpair/message_stream/fake_provider.h"
+#include "fastpair/proto/data.proto.h"
+#include "fastpair/proto/enum.proto.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
+#include "fastpair/repository/fast_pair_device_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "internal/account/fake_account_manager.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/task_runner_impl.h"
@@ -59,6 +68,19 @@ class MediumEnvironmentStarter {
  public:
   MediumEnvironmentStarter() { MediumEnvironment::Instance().Start(); }
   ~MediumEnvironmentStarter() { MediumEnvironment::Instance().Stop(); }
+};
+
+class FastPairRepositoryObserver : public FastPairRepository::Observer {
+ public:
+  explicit FastPairRepositoryObserver(CountDownLatch* latch) { latch_ = latch; }
+
+  void OnGetUserSavedDevices(
+      const proto::OptInStatus& opt_in_status,
+      const std::vector<proto::FastPairDevice>& devices) override {
+    latch_->CountDown();
+  }
+
+  CountDownLatch* latch_ = nullptr;
 };
 
 class FastPairSeekerImplTest : public testing::Test {
@@ -219,6 +241,63 @@ TEST_F(FastPairSeekerImplTest, InitialPairing) {
   auto fp_device = devices_.FindDevice(provider.GetMacAddress());
   ASSERT_TRUE(fp_device.has_value());
   EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
+  fast_pair_seeker_.reset();
+}
+
+TEST_F(FastPairSeekerImplTest, ForgetDeviceByAccountKey) {
+  NEARBY_LOG_SET_SEVERITY(VERBOSE);
+  FakeProvider provider;
+  CountDownLatch discover_latch(1);
+  CountDownLatch pair_latch(1);
+  fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
+      FastPairSeekerImpl::ServiceCallbacks{
+          .on_initial_discovery =
+              [&](const FastPairDevice& device, InitialDiscoveryEvent event) {
+                EXPECT_EQ(device.GetModelId(), kModelId);
+                EXPECT_OK(fast_pair_seeker_->StartInitialPairing(
+                    device, {},
+                    {.on_pairing_result = [&](const FastPairDevice& device,
+                                              absl::Status status) {
+                      EXPECT_EQ(device.GetBleAddress(),
+                                provider.GetMacAddress());
+                      EXPECT_OK(status);
+                      pair_latch.CountDown();
+                    }}));
+                discover_latch.CountDown();
+              }},
+      &executor_, account_manager_.get(), &devices_, repository_.get());
+
+  EXPECT_OK(fast_pair_seeker_->StartFastPairScan());
+  provider.PrepareForInitialPairing(
+      {
+          .private_key = absl::HexStringToBytes(kBobPrivateKey),
+          .public_key = absl::HexStringToBytes(kBobPublicKey),
+          .model_id = std::string(kModelId),
+          .pass_key = std::string(kPasskey),
+      },
+      &fake_gatt_callbacks_);
+
+  discover_latch.Await();
+  pair_latch.Await();
+  auto fp_device = devices_.FindDevice(provider.GetMacAddress());
+  ASSERT_TRUE(fp_device.has_value());
+  EXPECT_EQ(provider.GetAccountKey(), fp_device.value()->GetAccountKey());
+
+  // Adds FastPairRepository observer.
+  CountDownLatch repository_latch(1);
+  FastPairRepositoryObserver observer(&repository_latch);
+  repository_->AddObserver(&observer);
+  // Adds FastPairDeviceRepository observer.
+  CountDownLatch devices_latch(1);
+  FastPairDeviceRepository::RemoveDeviceCallback callback =
+      [&](const FastPairDevice& device) { devices_latch.CountDown(); };
+  devices_.AddObserver(&callback);
+
+  fast_pair_seeker_->ForgetDeviceByAccountKey(
+      fp_device.value()->GetAccountKey());
+  repository_latch.Await();
+  devices_latch.Await();
+  EXPECT_FALSE(devices_.FindDevice(provider.GetMacAddress()).has_value());
   fast_pair_seeker_.reset();
 }
 

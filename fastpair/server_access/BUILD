@@ -36,7 +36,6 @@ cc_library(
         "//internal/auth:types",
         "//internal/base",
         "//internal/network:types",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

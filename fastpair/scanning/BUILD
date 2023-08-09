@@ -33,7 +33,6 @@ cc_library(
         "//fastpair/repository:device_repository",
         "//fastpair/scanning/fastpair:scanning",
         "//internal/base",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "@com_google_absl//absl/functional:bind_front",
     ],

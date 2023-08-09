@@ -64,7 +64,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":connections_log_cc_proto",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
