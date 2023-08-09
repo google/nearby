@@ -17,7 +17,7 @@ cc_library(
         "//fastpair/crypto",
         "//internal/base:bluetooth_address",
         "//internal/platform:base",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
     ],

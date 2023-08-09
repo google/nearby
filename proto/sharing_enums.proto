@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 64
+// Next id: 65
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -235,6 +235,9 @@ enum EventType {
   // User sets account preference
   SET_ACCOUNT = 63;
 
+  // Decrypt certificate failure
+  DECRYPT_CERTIFICATE_FAILURE = 64;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
@@ -310,6 +313,68 @@ enum AttachmentTransmissionStatus {
   // Breakdowns of FAILED_NULL_CONNECTION (Desktop side)
   FAILED_NULL_CONNECTION_INIT_OUTGOING = 18;
   FAILED_NULL_CONNECTION_DISCONNECTED = 19;
+
+  // Breakdowns of FAILED_NULL_CONNECTION (android side)
+  // Connection failed due to Wifi is disconnected or Bluetooth setting is off
+  // or user turn on airplane mode.
+  FAILED_NULL_CONNECTION_LOST_CONNECTIVITY = 20;
+  // Unexpected connection failure.
+  FAILED_NULL_CONNECTION_FAILURE = 21;
+}
+
+// Generic result status of NearbyConnections API calls.
+enum ConnectionLayerStatus {
+  // No status is available
+  CONNECTION_LAYER_STATUS_UNKNOWN = 0;
+  // The operation was successful.
+  CONNECTION_LAYER_STATUS_SUCCESS = 1;
+  // The operation failed, without any more information.
+  CONNECTION_LAYER_STATUS_ERROR = 2;
+  // The app called an API method out of order (i.e. another method is expected
+  // to be called first).
+  CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL = 3;
+  // The app already has active operations (advertising, discovering, or
+  // connected to other devices) with another Strategy. Stop these operations on
+  // the current Strategy before trying to advertise or discover with a new
+  // Strategy.
+  CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY = 4;
+  // The app is already advertising; call StopAdvertising() before trying to
+  // advertise again.
+  CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING = 5;
+  // The app is already discovering; call StopDiscovery() before trying to
+  // discover again.
+  CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING = 6;
+  // NC is already listening for incoming connections from remote endpoints.
+  CONNECTION_LAYER_STATUS_ALREADY_LISTENING = 7;
+  // An attempt to read from/write to a connected remote endpoint failed. If
+  // this occurs repeatedly, consider invoking DisconnectFromEndpoint().
+  CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR = 8;
+  // An attempt to interact with a remote endpoint failed because it's unknown
+  // to us -- it's either an endpoint that was never discovered, or an endpoint
+  // that never connected to us (both of which are indicative of bad input from
+  // the client app).
+  CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN = 9;
+  // The remote endpoint rejected the connection request.
+  CONNECTION_LAYER_STATUS_CONNECTION_REJECTED = 10;
+  // The app is already connected to the specified endpoint. Multiple
+  // connections to a remote endpoint cannot be maintained simultaneously.
+  CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT = 11;
+  // The remote endpoint is not connected; messages cannot be sent to it.
+  CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT = 12;
+  // There was an error trying to use the device's Bluetooth capabilities.
+  CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR = 13;
+  // There was an error trying to use the device's Bluetooth Low Energy
+  // capabilities.
+  CONNECTION_LAYER_STATUS_BLE_ERROR = 14;
+  // There was an error trying to use the device's Wi-Fi capabilities.
+  CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR = 15;
+  // An attempt to interact with an in-flight Payload failed because it's
+  // unknown to us.
+  CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN = 16;
+  // The connection was reset
+  CONNECTION_LAYER_STATUS_RESET = 17;
+  // The connection timed out
+  CONNECTION_LAYER_STATUS_TIMEOUT = 18;
 }
 
 // The status of processing attachments after receiver received payloads
@@ -434,6 +499,49 @@ enum ServerResponseState {
   SERVER_RESPONSE_NOT_CONNECTED_TO_INTERNET = 10;
 }
 
+// The purpose of requesting the server request.
+enum SyncPurpose {
+  SYNC_PURPOSE_UNKNOWN = 0;
+  // When NearbySharingChimeraService#sync() is called.
+  SYNC_PURPOSE_ON_DEMAND_SYNC = 1;
+  // Requested by chime notification.
+  SYNC_PURPOSE_CHIME_NOTIFICATION = 2;
+  // For reqular daily sync.
+  SYNC_PURPOSE_DAILY_SYNC = 3;
+  // Wen a device opts into Nearby Share.
+  SYNC_PURPOSE_OPT_IN_FIRST_SYNC = 4;
+  // Requested when Nearby Share automatically enables a device that shares
+  // a single account that has already opted in on another device.
+  SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN = 5;
+  // When a device enables Nearby Share.
+  SYNC_PURPOSE_NEARBY_SHARE_ENABLED = 6;
+  // When a device is in fast init advertising.
+  SYNC_PURPOSE_SYNC_AT_FAST_INIT = 7;
+  // When device start discovery.
+  SYNC_PURPOSE_SYNC_AT_DISCOVERY = 8;
+  // When device tries to load valid private certificate.
+  SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE = 9;
+  // When device start advertiseement.
+  SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT = 10;
+  // When device contacts list changes.
+  SYNC_PURPOSE_CONTACT_LIST_CHANGE = 11;
+  // When showing the C11 banner in Neary Share setting.
+  SYNC_PURPOSE_SHOW_C11N_VIEW = 12;
+  // For regular check contact reachability.
+  SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY = 13;
+  // When selected contacts list changes in visibility setting.
+  SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE = 14;
+  // When switching account.
+  SYNC_PURPOSE_ACCOUNT_CHANGE = 15;
+}
+
+// The device role to trigger the server request.
+enum ClientRole {
+  CLIENT_ROLE_UNKNOWN = 0;
+  CLIENT_ROLE_SENDER = 1;
+  CLIENT_ROLE_RECEIVER = 2;
+}
+
 // The type of Nearby Sharing scanning.
 enum ScanType {
   UNKNOWN_SCAN_TYPE = 0;
@@ -446,7 +554,12 @@ enum ScanType {
 // The type of parsing endpoint id failed type.
 enum ParsingFailedType {
   FAILED_UNKNOWN_TYPE = 0;
+  // NULL advertisement is returned due to sender failing to parse advertisement
+  // from endpointInfo byte stream from receiver advertisement.
   FAILED_PARSE_ADVERTISEMENT = 1;
+  // NULL shareTarget is returned due to sender failing to create shareTarget
+  // from a valid parsed advertisement stemming from issues in certificates, QR
+  // code tokens or device names.
   FAILED_CONVERT_SHARE_TARGET = 2;
 }
 
@@ -651,6 +764,16 @@ enum DesktopTransferEventType {
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_PROGRESS = 7;
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT = 8;
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR = 9;
+}
+
+enum DecryptCertificateFailureStatus {
+  DECRYPT_CERT_UNKNOWN_FAILURE = 0;
+  DECRYPT_CERT_NO_SUCH_ALGORITHM_FAILURE = 1;
+  DECRYPT_CERT_NO_SUCH_PADDING_FAILURE = 2;
+  DECRYPT_CERT_INVALID_KEY_FAILURE = 3;
+  DECRYPT_CERT_INVALID_ALGORITHM_PARAMETER_FAILURE = 4;
+  DECRYPT_CERT_ILLEGAL_BLOCK_SIZE_FAILURE = 5;
+  DECRYPT_CERT_BAD_PADDING_FAILURE = 6;
 }
 // LINT.ThenChange(
 //   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart

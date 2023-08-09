@@ -21,7 +21,7 @@ cc_library(
         "//fastpair/common",
         "//internal/base:bluetooth_address",
         "//internal/platform:base",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "@boringssl//:crypto",
         "@com_google_absl//absl/log:check",
     ],
