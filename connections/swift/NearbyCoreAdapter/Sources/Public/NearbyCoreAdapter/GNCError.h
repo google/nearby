@@ -38,4 +38,6 @@ typedef NS_ERROR_ENUM(GNCErrorDomain, GNCErrorCode){
     GNCErrorBleError,
     GNCErrorWifiLanError,
     GNCErrorPayloadUnknown,
+    GNCErrorReset,
+    GNCErrorTimeout,
 } NS_SWIFT_NAME(NearbyError);

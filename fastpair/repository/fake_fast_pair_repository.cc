@@ -18,16 +18,31 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
+#include "fastpair/common/account_key_filter.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/proto/data.proto.h"
+#include "fastpair/proto/enum.proto.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/repository/fast_pair_repository.h"
 
 namespace nearby {
 namespace fastpair {
+void FakeFastPairRepository::AddObserver(Observer* observer) {
+  observers_.AddObserver(observer);
+}
+
+void FakeFastPairRepository::RemoveObserver(Observer* observer) {
+  observers_.RemoveObserver(observer);
+}
+
 void FakeFastPairRepository::SetFakeMetadata(absl::string_view hex_model_id,
                                              proto::Device metadata) {
   proto::GetObservedDeviceResponse response;
@@ -71,6 +86,14 @@ void FakeFastPairRepository::GetDeviceMetadata(
       std::move(callback)(std::nullopt);
     }
   });
+}
+
+void FakeFastPairRepository::GetUserSavedDevices() {
+  proto::OptInStatus opt_in_status = proto::OptInStatus::OPT_IN_STATUS_UNKNOWN;
+  std::vector<proto::FastPairDevice> saved_devices;
+  for (auto& observer : observers_.GetObservers()) {
+    observer->OnGetUserSavedDevices(opt_in_status, saved_devices);
+  }
 }
 
 void FakeFastPairRepository::WriteAccountAssociationToFootprints(
