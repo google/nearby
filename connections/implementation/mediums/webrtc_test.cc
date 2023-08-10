@@ -80,11 +80,11 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   CancellationFlag flag;
   sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
@@ -119,11 +119,11 @@ TEST_P(WebRtcTest, CanCancelConnect) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   CancellationFlag flag(true);
   sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
@@ -173,10 +173,10 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {mock_accepted_callback_.AsStdFunction()}));
+      mock_accepted_callback_.AsStdFunction()));
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {mock_accepted_callback_.AsStdFunction()}));
+      mock_accepted_callback_.AsStdFunction()));
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
   env_.Stop();
@@ -197,8 +197,8 @@ TEST_F(WebRtcTest, Connect_NoPeer) {
       webrtc.Connect(service_id, peer_id, location_hint, &flag);
   EXPECT_FALSE(wrapper_1.IsValid());
 
-  EXPECT_TRUE(webrtc.StartAcceptingConnections(
-      service_id, peer_id, location_hint, AcceptedConnectionCallback()));
+  EXPECT_TRUE(webrtc.StartAcceptingConnections(service_id, peer_id,
+                                               location_hint, nullptr));
   env_.Stop();
 }
 
@@ -215,7 +215,7 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {mock_accepted_callback_.AsStdFunction()}));
+      mock_accepted_callback_.AsStdFunction()));
   CancellationFlag flag;
   WebRtcSocketWrapper wrapper = webrtc.Connect(
       service_id, WebrtcPeerId("random_peer_id"), location_hint, &flag);
@@ -223,7 +223,7 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
   EXPECT_FALSE(wrapper.IsValid());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {mock_accepted_callback_.AsStdFunction()}));
+      mock_accepted_callback_.AsStdFunction()));
   env_.Stop();
 }
 
@@ -240,7 +240,7 @@ TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {mock_accepted_callback_.AsStdFunction()}));
+      mock_accepted_callback_.AsStdFunction()));
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   webrtc.StopAcceptingConnections(service_id);
   EXPECT_FALSE(webrtc.IsAcceptingConnections(service_id));
@@ -261,15 +261,15 @@ TEST_F(WebRtcTest, ConnectTwice) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   device_c.StartAcceptingConnections(
       service_id, other_id, location_hint,
-      {[](const std::string& service_id, WebRtcSocketWrapper wrapper) {}});
+      [](const std::string& service_id, WebRtcSocketWrapper wrapper) {});
 
   CancellationFlag flag;
   sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
@@ -311,11 +311,11 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   CancellationFlag flag;
   sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
@@ -343,11 +343,11 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   CancellationFlag flag;
   sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
@@ -399,7 +399,7 @@ TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {mock_accepted_callback_.AsStdFunction()}));
+      mock_accepted_callback_.AsStdFunction()));
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
 
   // Simulate a failure in receiving messages stream, WebRtc should restart
@@ -450,11 +450,11 @@ TEST_F(WebRtcTest, CancelDuringConnect) {
 
   receiver->StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   sender_socket =
       sender->Connect(service_id, self_id, location_hint, &sender_flag);
@@ -496,11 +496,11 @@ TEST_F(WebRtcTest, CancelBeforeConnect) {
 
   receiver->StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   sender_socket =
       sender->Connect(service_id, self_id, location_hint, &sender_flag);
@@ -541,11 +541,11 @@ TEST_F(WebRtcTest, CancelDuringConnect_MultipleConnect) {
 
   receiver->StartAcceptingConnections(
       ns_service_id, self_id, location_hint,
-      {[&receiver_socket, connected](const std::string& ns_service_id,
-                                     WebRtcSocketWrapper wrapper) mutable {
+      [&receiver_socket, connected](const std::string& ns_service_id,
+                                    WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
-      }});
+      });
 
   // Simulate a successful connect for the endpoint of NearbySharing.
   sender_socket = sender->Connect(ns_service_id, self_id, location_hint, &flag);

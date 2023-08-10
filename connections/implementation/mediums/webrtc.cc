@@ -107,7 +107,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   // who may be also using WebRTC.
   AcceptingConnectionsInfo info = AcceptingConnectionsInfo();
   info.self_peer_id = self_peer_id;
-  info.accepted_connection_callback = callback;
+  info.accepted_connection_callback = std::move(callback);
 
   // Create a new SignalingMessenger so that we can communicate w/ Tachyon.
   info.signaling_messenger =
@@ -688,8 +688,9 @@ void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
 
   const auto& accepting_connection_entry =
       accepting_connections_info_.find(service_id);
-  if (accepting_connection_entry != accepting_connections_info_.end()) {
-    accepting_connection_entry->second.accepted_connection_callback.accepted_cb(
+  if (accepting_connection_entry != accepting_connections_info_.end() &&
+      accepting_connection_entry->second.accepted_connection_callback) {
+    accepting_connection_entry->second.accepted_connection_callback(
         service_id, socket_wrapper);
     return;
   }
