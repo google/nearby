@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "presence/implementation/sensor_fusion.h"
 
 namespace nearby {
@@ -40,11 +41,11 @@ TEST(FppManager, UpdateBleScanResultSuccess) {
                PresenceZone::DistanceBoundary::RangeType range_type) {
              callback_called = true;
            }});
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/0));
   // State is only computed after second consecutive scan is fulfilled
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/2000));
   EXPECT_EQ(manager.GetRangingData(kDeviceId)
@@ -66,10 +67,10 @@ TEST(FppManager, ZoneTransitionDetected) {
              callback_called = true;
            }});
   // ProximityEstimate is only computed after consecutive scans is fulfilled
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/0));
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/2000));
   EXPECT_EQ(manager.GetRangingData(kDeviceId)
@@ -80,7 +81,7 @@ TEST(FppManager, ZoneTransitionDetected) {
   callback_called = false;
 
   // Update with new zone
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kShortRangeRssi,
                                         /*elapsed_real_time_millis=*/0));
   EXPECT_EQ(manager.GetRangingData(kDeviceId)
@@ -89,7 +90,7 @@ TEST(FppManager, ZoneTransitionDetected) {
             PresenceZone::DistanceBoundary::RangeType::kWithinReach);
   EXPECT_FALSE(callback_called);
   // Update with consecutive scan of new zone
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kShortRangeRssi,
                                         /*elapsed_real_time_millis=*/0));
   EXPECT_EQ(manager.GetRangingData(kDeviceId)
@@ -172,10 +173,10 @@ TEST(FppManager, UnregisterZoneTransitionListener) {
                PresenceZone::DistanceBoundary::RangeType range_type) {
              callback_called = true;
            }});
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/0));
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
+  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
                                         kReachRssi,
                                         /*elapsed_real_time_millis=*/2000));
   EXPECT_TRUE(callback_called);
@@ -183,13 +184,58 @@ TEST(FppManager, UnregisterZoneTransitionListener) {
 
   // Unregister listener and update with new zone
   manager.UnregisterZoneTransitionListener(kCallbackId);
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
-                                        kShortRangeRssi,
-                                        /*elapsed_real_time_millis=*/0));
-  EXPECT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/absl::nullopt,
-                                        kShortRangeRssi,
-                                        /*elapsed_real_time_millis=*/0));
+  EXPECT_EQ(manager
+                .UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
+                                     kShortRangeRssi,
+                                     /*elapsed_real_time_millis=*/0)
+                .code(),
+            absl::StatusCode::kInternal);
+  EXPECT_EQ(manager
+                .UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
+                                     kShortRangeRssi,
+                                     /*elapsed_real_time_millis=*/0)
+                .code(),
+            absl::StatusCode::kInternal);
   EXPECT_FALSE(callback_called);
+}
+
+TEST(FppManager, ResetProximityStateData) {
+  FppManager manager;
+  bool callback_called = false;
+  manager.RegisterZoneTransitionListener(
+      kCallbackId,
+      {.on_proximity_zone_changed =
+           [&callback_called](
+               uint64_t device_id,
+               PresenceZone::DistanceBoundary::RangeType range_type) {
+             callback_called = true;
+           }});
+  ASSERT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
+                                        kReachRssi,
+                                        /*elapsed_real_time_millis=*/0));
+  // State is only computed after second consecutive scan is fulfilled
+  ASSERT_OK(manager.UpdateBleScanResult(kDeviceId, /*txPower=*/std::nullopt,
+                                        kReachRssi,
+                                        /*elapsed_real_time_millis=*/2000));
+  EXPECT_EQ(manager.GetRangingData(kDeviceId)
+                ->zone_transition.value()
+                .distance_range_type,
+            PresenceZone::DistanceBoundary::RangeType::kWithinReach);
+  EXPECT_TRUE(callback_called);
+
+  // Reset proximity state data
+  manager.ResetProximityStateData();
+  EXPECT_EQ(manager.GetRangingData(kDeviceId)
+                ->zone_transition.value()
+                .distance_range_type,
+            PresenceZone::DistanceBoundary::RangeType::kRangeUnknown);
+}
+
+TEST(FppManager, GetStatusStringFromCode) {
+  FppManager manager;
+  EXPECT_EQ(manager.GetStatusStringFromCode(101),
+            "INVALID_PRESENCE_DETECTOR_HANDLE");
+  EXPECT_EQ(manager.GetStatusStringFromCode(102), "NULL_OUTPUT_PARAMETER");
 }
 
 }  // namespace

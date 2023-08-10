@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
 #include "presence/device_motion.h"
 #include "presence/presence_zone.h"
 
@@ -92,7 +93,7 @@ class SensorFusion {
    */
   virtual std::vector<DataSource> GetDataSources(
       uint64_t elapsed_realtime_millis,
-      const std::vector<DataSource>& available_sources);
+      const std::vector<DataSource>& available_sources) = 0;
 
   /**
    * Updates BLE scanned results to Sensor Fusion.
@@ -104,10 +105,9 @@ class SensorFusion {
    * @param elapsed_realtime_millis Elapsed timestamp since boot when the
    * scan result is discovered.
    */
-  virtual void UpdateBleScanResult(uint64_t device_id,
-                                   std::optional<int8_t> txPower, int rssi,
-                                   uint64_t elapsed_realtime_millis);
-
+  virtual absl::Status UpdateBleScanResult(
+      uint64_t device_id, std::optional<int8_t> txPower, int rssi,
+      uint64_t elapsed_realtime_millis) = 0;
   /**
    * Updates UWB ranging results to Sensor Fusion.
    *
@@ -115,27 +115,28 @@ class SensorFusion {
    * @param position UWB ranging result (distance and optionally angle)
    */
   virtual void UpdateUwbRangingResult(uint64_t device_id,
-                                      RangingPosition position);
+                                      RangingPosition position) = 0;
 
   /**
    * Adds callback for updates of proximity zone transitions.
    */
-  virtual void RequestZoneTransitionUpdates(ZoneTransitionCallback callback);
+  virtual void RequestZoneTransitionUpdates(
+      ZoneTransitionCallback callback) = 0;
 
   /**
    * Removes callback for updates of proximity zone transitions.
    */
-  virtual void RemoveZoneTransitionUpdates(ZoneTransitionCallback callback);
+  virtual void RemoveZoneTransitionUpdates(uint64_t callback_id) = 0;
 
   /**
    * Adds callback for updates of device motion events.
    */
-  virtual void RequestDeviceMotionUpdates(DeviceMotionCallback callback);
+  virtual void RequestDeviceMotionUpdates(DeviceMotionCallback callback) = 0;
 
   /**
    * Remove callback for updates of device motion events.
    */
-  virtual void RemoveDeviceMotionUpdates(DeviceMotionCallback callback);
+  virtual void RemoveDeviceMotionUpdates(DeviceMotionCallback callback) = 0;
 
   /**
    * Returns the best ranging estimate to a given device. Returns {@code
@@ -143,7 +144,7 @@ class SensorFusion {
    *
    * @param device_id Id of the peer device.
    */
-  virtual std::optional<RangingData> GetRangingData(uint64_t device_id);
+  virtual std::optional<RangingData> GetRangingData(uint64_t device_id) = 0;
 };
 
 }  // namespace presence

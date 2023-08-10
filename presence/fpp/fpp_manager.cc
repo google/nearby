@@ -29,28 +29,20 @@ namespace nearby {
 namespace presence {
 
 namespace {
-constexpr int kSuccess = 0;
-constexpr int kInvalidPresenceDetectorHandle = -1;
-constexpr int kNullOutputParameter = -2;
-constexpr int kNoComputedProximityEstimate = -3;
+// See
+// https://source.corp.google.com/piper///depot/google3/third_party/nearby/presence/fpp/fpp_c_ffi/src/lib.rs;l=49
+// for constants definition
+constexpr int kSuccess = 1;
+constexpr int kNoComputedProximityEstimate = 2;
+constexpr int kInvalidPresenceDetectorHandleError = 101;
+constexpr int kNullOutputParameterError = 102;
 
 // Converts optional tx power to the rust api compatible equivalent
-MaybeTxPower ConvertTxPower(absl::optional<int8_t> txPower) {
+MaybeTxPower ConvertTxPower(std::optional<int8_t> txPower) {
   if (txPower.has_value()) {
     return {MaybeTxPower::Tag::Valid, {txPower.value()}};
   }
   return {MaybeTxPower::Tag::Invalid, {}};
-}
-
-std::string GetStatusStringFromCode(int status_code) {
-  switch (status_code) {
-    case kInvalidPresenceDetectorHandle:
-      return "INVALID_PRESENCE_DETECTOR_HANDLE";
-    case kNullOutputParameter:
-      return "NULL_OUTPUT_PARAMETER";
-    default:
-      return "UNKNOWN_ERROR";
-  }
 }
 
 // Converts FPP ProximityState struct to NP RangeType struct
@@ -67,6 +59,7 @@ PresenceZone::DistanceBoundary::RangeType ConvertProximityStateToRangeType(
       return PresenceZone::DistanceBoundary::RangeType::kFar;
     case ProximityState::Unknown:
     default:
+      NEARBY_LOGS(WARNING) << "Proximity state is unknown";
       return PresenceZone::DistanceBoundary::RangeType::kRangeUnknown;
   }
 }
@@ -76,13 +69,16 @@ absl::Status FppManager::UpdateBleScanResult(uint64_t device_id,
                                              std::optional<int8_t> txPower,
                                              int rssi,
                                              uint64_t elapsed_realtime_millis) {
+  if (zone_transition_callbacks_.empty()) {
+    return absl::InternalError("No callback registered");
+  }
   BleScanResult ble_scan_result = {device_id, ConvertTxPower(txPower), rssi,
                                    elapsed_realtime_millis};
   ProximityEstimate default_proximity_estimate =
       ProximityEstimate{device_id,
-                        0.0,
+                        /*distanceMeters=*/0.0,
                         MeasurementConfidence::Unknown,
-                        0,
+                        /*elapsedRealtime=*/0,
                         ProximityState::Unknown,
                         PresenceDataSource::Ble};
   ProximityEstimate old_proximity_estimate =
@@ -106,8 +102,7 @@ absl::Status FppManager::UpdateBleScanResult(uint64_t device_id,
   NEARBY_LOGS(WARNING)
       << "Could not successfully update FPP with new scan result: Error code="
       << status_code;
-  return absl::Status(absl::StatusCode::kInternal,
-                      GetStatusStringFromCode(status_code));
+  return absl::InternalError(GetStatusStringFromCode(status_code));
 }
 
 void FppManager::RegisterZoneTransitionListener(
@@ -132,12 +127,13 @@ std::optional<RangingData> FppManager::GetRangingData(uint64_t device_id) {
 RangingData FppManager::ConvertProximityEstimateToRangingData(
     ProximityEstimate estimate) {
   RangingMeasurement ranging_measurement = {
-      0.0, static_cast<float>(estimate.distance_meters)};
-  RangingPosition ranging_position = {ranging_measurement, absl::nullopt,
-                                      absl::nullopt,
-                                      estimate.elapsed_real_time_millis};
+      /*confidenceLevel=*/0.0, static_cast<float>(estimate.distance_meters)};
+  RangingPosition ranging_position = {
+      ranging_measurement, /*azimuth=*/std::nullopt,
+      /*elevation=*/std::nullopt, estimate.elapsed_real_time_millis};
   ZoneTransition zone_transition = {
-      ConvertProximityStateToRangeType(estimate.proximity_state), 0.0};
+      ConvertProximityStateToRangeType(estimate.proximity_state),
+      /*confidenceLevel=*/0.0};
   return {DataSource::kBle, ranging_position, zone_transition,
           std::vector<DeviceMotion>()};
 }
@@ -154,6 +150,18 @@ void FppManager::CheckPresenceZoneChanged(uint64_t device_id,
           device_id,
           ConvertProximityStateToRangeType(new_estimate.proximity_state));
     }
+  }
+}
+
+std::string FppManager::GetStatusStringFromCode(int status_code) {
+  switch (status_code) {
+    case kInvalidPresenceDetectorHandleError:
+      return "INVALID_PRESENCE_DETECTOR_HANDLE";
+    case kNullOutputParameterError:
+      return "NULL_OUTPUT_PARAMETER";
+    default:
+      NEARBY_LOGS(WARNING) << "Error code is unknown";
+      return "UNKNOWN_ERROR";
   }
 }
 

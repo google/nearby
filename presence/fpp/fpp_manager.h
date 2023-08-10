@@ -66,6 +66,11 @@ class FppManager {
    */
   std::optional<RangingData> GetRangingData(uint64_t device_id);
 
+  /*
+   * Converts a status code to a string representation
+   */
+  std::string GetStatusStringFromCode(int status_code);
+
  private:
   void CheckPresenceZoneChanged(uint64_t device_id,
                                 ProximityEstimate old_estimate,
