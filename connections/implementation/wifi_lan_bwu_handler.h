@@ -29,7 +29,9 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class WifiLanBwuHandler : public BaseBwuHandler {
  public:
-  explicit WifiLanBwuHandler(Mediums& mediums, BwuNotifications notifications);
+  explicit WifiLanBwuHandler(
+      Mediums& mediums,
+      IncomingConnectionCallback incoming_connection_callback);
 
  private:
   class WifiLanIncomingSocket : public BwuHandler::IncomingSocket {

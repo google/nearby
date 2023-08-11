@@ -40,9 +40,10 @@ void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_.Close(); }
 
 std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
 
-WebrtcBwuHandler::WebrtcBwuHandler(Mediums& mediums,
-                                   BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+WebrtcBwuHandler::WebrtcBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WebRTC using this info.
@@ -146,7 +147,7 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
       new IncomingSocketConnection{std::move(webrtc_socket),
                                    std::move(channel)});
 
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections

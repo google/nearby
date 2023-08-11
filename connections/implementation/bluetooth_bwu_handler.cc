@@ -28,9 +28,10 @@
 namespace nearby {
 namespace connections {
 
-BluetoothBwuHandler::BluetoothBwuHandler(Mediums& mediums,
-                                         BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+BluetoothBwuHandler::BluetoothBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over BT using this info.
@@ -153,7 +154,7 @@ void BluetoothBwuHandler::OnIncomingBluetoothConnection(
               upgrade_service_id, socket),
           .channel = std::move(channel),
       }};
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections

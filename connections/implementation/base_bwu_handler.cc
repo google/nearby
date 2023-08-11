@@ -23,8 +23,9 @@
 namespace nearby {
 namespace connections {
 
-BaseBwuHandler::BaseBwuHandler(BwuNotifications bwu_notifications)
-    : bwu_notifications_(std::move(bwu_notifications)) {}
+BaseBwuHandler::BaseBwuHandler(
+    IncomingConnectionCallback incoming_connection_callback)
+    : incoming_connection_callback_(std::move(incoming_connection_callback)) {}
 
 ByteArray BaseBwuHandler::InitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& service_id,
@@ -78,5 +79,14 @@ void BaseBwuHandler::RevertResponderState(const std::string& service_id) {
   HandleRevertInitiatorStateForService(service_id);
 }
 
+void BaseBwuHandler::NotifyOnIncomingConnection(
+    ClientProxy* client, std::unique_ptr<IncomingSocketConnection> connection) {
+  if (!incoming_connection_callback_) {
+    NEARBY_LOGS(WARNING)
+        << "Ignoring incoming connection, no callback registered";
+    return;
+  }
+  incoming_connection_callback_(client, std::move(connection));
+}
 }  // namespace connections
 }  // namespace nearby

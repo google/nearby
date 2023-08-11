@@ -28,9 +28,10 @@
 namespace nearby {
 namespace connections {
 
-WifiDirectBwuHandler::WifiDirectBwuHandler(Mediums& mediums,
-                                           BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+WifiDirectBwuHandler::WifiDirectBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
@@ -149,7 +150,7 @@ void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
               upgrade_service_id, socket),
           .channel = std::move(channel),
       });
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections

@@ -29,14 +29,15 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class WifiDirectBwuHandler : public BaseBwuHandler {
  public:
-  explicit WifiDirectBwuHandler(Mediums& mediums,
-                                BwuNotifications notifications);
+  explicit WifiDirectBwuHandler(
+      Mediums& mediums,
+      IncomingConnectionCallback incoming_connection_callback);
 
  private:
   class WifiDirectIncomingSocket : public BwuHandler::IncomingSocket {
    public:
     explicit WifiDirectIncomingSocket(const std::string& name,
-                                   WifiDirectSocket socket)
+                                      WifiDirectSocket socket)
         : name_(name), socket_(socket) {}
 
     std::string ToString() override { return name_; }
@@ -73,8 +74,8 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
 
   // Accept Connection Callback.
   void OnIncomingWifiDirectConnection(ClientProxy* client,
-                                   const std::string& upgrade_service_id,
-                                   WifiDirectSocket socket);
+                                      const std::string& upgrade_service_id,
+                                      WifiDirectSocket socket);
 
   Mediums& mediums_;
   Wifi& wifi_medium_ = mediums_.GetWifi();

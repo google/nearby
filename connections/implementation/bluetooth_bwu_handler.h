@@ -31,8 +31,9 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class BluetoothBwuHandler : public BaseBwuHandler {
  public:
-  explicit BluetoothBwuHandler(Mediums& mediums,
-                               BwuNotifications notifications);
+  explicit BluetoothBwuHandler(
+      Mediums& mediums,
+      IncomingConnectionCallback incoming_connection_callback);
 
  private:
   class BluetoothIncomingSocket : public IncomingSocket {

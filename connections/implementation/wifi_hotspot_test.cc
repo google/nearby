@@ -37,12 +37,10 @@ class WifiHotspotTest : public testing::Test {
 };
 
 TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
-  BwuHandler::BwuNotifications notifications{.incoming_connection_cb = {}};
   ClientProxy client;
   Mediums mediums;
 
-  auto handler =
-      std::make_unique<WifiHotspotBwuHandler>(mediums, notifications);
+  auto handler = std::make_unique<WifiHotspotBwuHandler>(mediums, nullptr);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
                                                /*endpoint_id=*/"2");
@@ -56,48 +54,40 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   CountDownLatch accept_latch(1);
   CountDownLatch end_latch(1);
 
-  BwuHandler::BwuNotifications notifications_1{
-      .incoming_connection_cb =
-          [&accept_latch, &end_latch](
-              ClientProxy* client,
-              std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                  mutable_connection) {
-            NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
-            accept_latch.CountDown();
-            EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
-          },
-  };
-  BwuHandler::BwuNotifications notifications_2{.incoming_connection_cb = {}};
   ClientProxy client_1, client_2;
   Mediums mediums_1, mediums_2;
   ExceptionOr<OfflineFrame> upgrade_frame;
 
-  auto handler_1 =
-      std::make_unique<WifiHotspotBwuHandler>(mediums_1, notifications_1);
+  auto handler_1 = std::make_unique<WifiHotspotBwuHandler>(
+      mediums_1, [&](ClientProxy* client,
+                     std::unique_ptr<BwuHandler::IncomingSocketConnection>
+                         mutable_connection) {
+        NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
+        accept_latch.CountDown();
+        EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+      });
 
   // client_1 works as Hotspot SoftAP
   SingleThreadExecutor server_executor;
-  server_executor.Execute(
-      [&handler_1, &client_1, &upgrade_frame, &start_latch]() {
-        ByteArray upgrade_path_available_frame =
-            handler_1->InitializeUpgradedMediumForEndpoint(&client_1,
-                                                           /*service_id=*/"A",
-                                                           /*endpoint_id=*/"1");
-        EXPECT_FALSE(upgrade_path_available_frame.Empty());
+  server_executor.Execute([&]() {
+    ByteArray upgrade_path_available_frame =
+        handler_1->InitializeUpgradedMediumForEndpoint(&client_1,
+                                                       /*service_id=*/"A",
+                                                       /*endpoint_id=*/"1");
+    EXPECT_FALSE(upgrade_path_available_frame.Empty());
 
-        upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
-        start_latch.CountDown();
-      });
+    upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
+    start_latch.CountDown();
+  });
 
   // client_2 works as Hotspot STA which will connect to client_1
   SingleThreadExecutor client_executor;
   // Wait till client_1 started as hotspot and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   std::unique_ptr<BwuHandler> handler_2 =
-      std::make_unique<WifiHotspotBwuHandler>(mediums_2, notifications_2);
+      std::make_unique<WifiHotspotBwuHandler>(mediums_2, nullptr);
 
-  client_executor.Execute([&handler_2, &client_2, &upgrade_frame, &accept_latch,
-                           &end_latch, &mediums_2]() {
+  client_executor.Execute([&]() {
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 

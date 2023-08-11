@@ -38,11 +38,10 @@ class WifiDirectTest : public testing::Test {
 };
 
 TEST_F(WifiDirectTest, CanCreateBwuHandler) {
-  BwuHandler::BwuNotifications notifications = {.incoming_connection_cb = {}};
   ClientProxy client;
   Mediums mediums;
 
-  auto handler = std::make_unique<WifiDirectBwuHandler>(mediums, notifications);
+  auto handler = std::make_unique<WifiDirectBwuHandler>(mediums, nullptr);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
                                                /*endpoint_id=*/"2");
@@ -56,29 +55,23 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   CountDownLatch accept_latch(1);
   CountDownLatch end_latch(1);
 
-  BwuHandler::BwuNotifications notifications_1{
-      .incoming_connection_cb =
-          [&accept_latch, &end_latch](
-              ClientProxy* client,
-              std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                  mutable_connection) {
-            NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
-            std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
-                mutable_connection.release());
-            accept_latch.CountDown();
-            EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
-            NEARBY_LOGS(WARNING) << "Test is done. Close the socket";
-            connection->channel->Close();
-            connection->socket->Close();
-          },
-  };
-  BwuHandler::BwuNotifications notifications_2 = {.incoming_connection_cb = {}};
   ClientProxy wifi_direct_go, wifi_direct_gc;
   Mediums mediums_1, mediums_2;
   ExceptionOr<OfflineFrame> upgrade_frame;
 
-  auto handler_1 =
-      std::make_unique<WifiDirectBwuHandler>(mediums_1, notifications_1);
+  auto handler_1 = std::make_unique<WifiDirectBwuHandler>(
+      mediums_1, [&](ClientProxy* client,
+                     std::unique_ptr<BwuHandler::IncomingSocketConnection>
+                         mutable_connection) {
+        NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
+        std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
+            mutable_connection.release());
+        accept_latch.CountDown();
+        EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+        NEARBY_LOGS(WARNING) << "Test is done. Close the socket";
+        connection->channel->Close();
+        connection->socket->Close();
+      });
 
   SingleThreadExecutor server_executor;
   server_executor.Execute(
@@ -98,10 +91,9 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   EXPECT_FALSE(mediums_2.GetWifiDirect().IsConnectedToGO());
   std::unique_ptr<BwuHandler> handler_2 =
-      std::make_unique<WifiDirectBwuHandler>(mediums_2, notifications_2);
+      std::make_unique<WifiDirectBwuHandler>(mediums_2, nullptr);
 
-  client_executor.Execute([&handler_2, &wifi_direct_gc, &upgrade_frame,
-                           &accept_latch, &end_latch, &mediums_2]() {
+  client_executor.Execute([&]() {
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 

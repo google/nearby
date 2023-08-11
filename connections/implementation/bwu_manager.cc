@@ -103,31 +103,40 @@ BwuManager::~BwuManager() {
 
 void BwuManager::InitBwuHandlers() {
   // Register the supported concrete BwuMedium implementations.
-  BwuHandler::BwuNotifications notifications{
-      .incoming_connection_cb =
-          absl::bind_front(&BwuManager::OnIncomingConnection, this),
-  };
   if (config_.allow_upgrade_to.wifi_hotspot) {
     handlers_.emplace(
         Medium::WIFI_HOTSPOT,
-        std::make_unique<WifiHotspotBwuHandler>(*mediums_, notifications));
+        std::make_unique<WifiHotspotBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_direct) {
     handlers_.emplace(
         Medium::WIFI_DIRECT,
-        std::make_unique<WifiDirectBwuHandler>(*mediums_, notifications));
+        std::make_unique<WifiDirectBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_lan) {
-    handlers_.emplace(Medium::WIFI_LAN, std::make_unique<WifiLanBwuHandler>(
-                                            *mediums_, notifications));
+    handlers_.emplace(
+        Medium::WIFI_LAN,
+        std::make_unique<WifiLanBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.web_rtc) {
-    handlers_.emplace(Medium::WEB_RTC, std::make_unique<WebrtcBwuHandler>(
-                                           *mediums_, notifications));
+    handlers_.emplace(
+        Medium::WEB_RTC,
+        std::make_unique<WebrtcBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.bluetooth) {
-    handlers_.emplace(Medium::BLUETOOTH, std::make_unique<BluetoothBwuHandler>(
-                                             *mediums_, notifications));
+    handlers_.emplace(
+        Medium::BLUETOOTH,
+        std::make_unique<BluetoothBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
 }
 

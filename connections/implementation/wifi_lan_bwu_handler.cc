@@ -28,9 +28,10 @@
 namespace nearby {
 namespace connections {
 
-WifiLanBwuHandler::WifiLanBwuHandler(Mediums& mediums,
-                                     BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+WifiLanBwuHandler::WifiLanBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WifiLan using this info.
@@ -153,7 +154,7 @@ void WifiLanBwuHandler::OnIncomingWifiLanConnection(
                                                              socket),
           .channel = std::move(channel),
       });
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections

@@ -38,7 +38,7 @@ class BwuHandlerImpl : public BaseBwuHandler {
     absl::optional<std::string> endpoint_id;
   };
 
-  BwuHandlerImpl() : BaseBwuHandler(BwuNotifications{}) {}
+  BwuHandlerImpl() : BaseBwuHandler(nullptr) {}
 
   const std::vector<InputData>& handle_initialize_calls() const {
     return handle_initialize_calls_;

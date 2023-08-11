@@ -29,9 +29,10 @@
 namespace nearby {
 namespace connections {
 
-WifiHotspotBwuHandler::WifiHotspotBwuHandler(Mediums& mediums,
-                                             BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+WifiHotspotBwuHandler::WifiHotspotBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 // Called by BWU initiator. Set up WifiHotspot upgraded medium for this
 // endpoint, and returns a upgrade path info (SSID, Password, Gateway used as
@@ -157,7 +158,7 @@ void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
               upgrade_service_id, socket),
           .channel = std::move(channel),
       });
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections
