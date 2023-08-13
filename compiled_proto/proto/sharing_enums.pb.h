@@ -117,11 +117,16 @@ enum EventType : int {
   DEFAULT_OPT_IN = 56,
   SETUP_WIZARD = 57,
   TAP_QR_CODE = 58,
-  QR_CODE_LINK_SHOWN = 59
+  QR_CODE_LINK_SHOWN = 59,
+  PARSING_FAILED_ENDPOINT_ID = 60,
+  FAST_INIT_DISCOVER_DEVICE = 61,
+  SEND_DESKTOP_NOTIFICATION = 62,
+  SET_ACCOUNT = 63,
+  DECRYPT_CERTIFICATE_FAILURE = 64
 };
 bool EventType_IsValid(int value);
 constexpr EventType EventType_MIN = UNKNOWN_EVENT_TYPE;
-constexpr EventType EventType_MAX = QR_CODE_LINK_SHOWN;
+constexpr EventType EventType_MAX = DECRYPT_CERTIFICATE_FAILURE;
 constexpr int EventType_ARRAYSIZE = EventType_MAX + 1;
 
 const std::string& EventType_Name(EventType value);
@@ -258,11 +263,15 @@ enum AttachmentTransmissionStatus : int {
   FAILED_NULL_CONNECTION = 14,
   FAILED_NO_PAYLOAD = 15,
   FAILED_WRITE_INTRODUCTION = 16,
-  FAILED_UNKNOWN_REMOTE_RESPONSE = 17
+  FAILED_UNKNOWN_REMOTE_RESPONSE = 17,
+  FAILED_NULL_CONNECTION_INIT_OUTGOING = 18,
+  FAILED_NULL_CONNECTION_DISCONNECTED = 19,
+  FAILED_NULL_CONNECTION_LOST_CONNECTIVITY = 20,
+  FAILED_NULL_CONNECTION_FAILURE = 21
 };
 bool AttachmentTransmissionStatus_IsValid(int value);
 constexpr AttachmentTransmissionStatus AttachmentTransmissionStatus_MIN = UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
-constexpr AttachmentTransmissionStatus AttachmentTransmissionStatus_MAX = FAILED_UNKNOWN_REMOTE_RESPONSE;
+constexpr AttachmentTransmissionStatus AttachmentTransmissionStatus_MAX = FAILED_NULL_CONNECTION_FAILURE;
 constexpr int AttachmentTransmissionStatus_ARRAYSIZE = AttachmentTransmissionStatus_MAX + 1;
 
 const std::string& AttachmentTransmissionStatus_Name(AttachmentTransmissionStatus value);
@@ -275,6 +284,42 @@ inline const std::string& AttachmentTransmissionStatus_Name(T enum_t_value) {
 }
 bool AttachmentTransmissionStatus_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AttachmentTransmissionStatus* value);
+enum ConnectionLayerStatus : int {
+  CONNECTION_LAYER_STATUS_UNKNOWN = 0,
+  CONNECTION_LAYER_STATUS_SUCCESS = 1,
+  CONNECTION_LAYER_STATUS_ERROR = 2,
+  CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL = 3,
+  CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY = 4,
+  CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING = 5,
+  CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING = 6,
+  CONNECTION_LAYER_STATUS_ALREADY_LISTENING = 7,
+  CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR = 8,
+  CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN = 9,
+  CONNECTION_LAYER_STATUS_CONNECTION_REJECTED = 10,
+  CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT = 11,
+  CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT = 12,
+  CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR = 13,
+  CONNECTION_LAYER_STATUS_BLE_ERROR = 14,
+  CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR = 15,
+  CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN = 16,
+  CONNECTION_LAYER_STATUS_RESET = 17,
+  CONNECTION_LAYER_STATUS_TIMEOUT = 18
+};
+bool ConnectionLayerStatus_IsValid(int value);
+constexpr ConnectionLayerStatus ConnectionLayerStatus_MIN = CONNECTION_LAYER_STATUS_UNKNOWN;
+constexpr ConnectionLayerStatus ConnectionLayerStatus_MAX = CONNECTION_LAYER_STATUS_TIMEOUT;
+constexpr int ConnectionLayerStatus_ARRAYSIZE = ConnectionLayerStatus_MAX + 1;
+
+const std::string& ConnectionLayerStatus_Name(ConnectionLayerStatus value);
+template<typename T>
+inline const std::string& ConnectionLayerStatus_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ConnectionLayerStatus>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ConnectionLayerStatus_Name.");
+  return ConnectionLayerStatus_Name(static_cast<ConnectionLayerStatus>(enum_t_value));
+}
+bool ConnectionLayerStatus_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionLayerStatus* value);
 enum ProcessReceivedAttachmentsStatus : int {
   PROCESSING_STATUS_UNKNOWN = 0,
   PROCESSING_STATUS_COMPLETE_PROCESSING_ATTACHMENTS = 1,
@@ -483,6 +528,59 @@ inline const std::string& ServerResponseState_Name(T enum_t_value) {
 }
 bool ServerResponseState_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ServerResponseState* value);
+enum SyncPurpose : int {
+  SYNC_PURPOSE_UNKNOWN = 0,
+  SYNC_PURPOSE_ON_DEMAND_SYNC = 1,
+  SYNC_PURPOSE_CHIME_NOTIFICATION = 2,
+  SYNC_PURPOSE_DAILY_SYNC = 3,
+  SYNC_PURPOSE_OPT_IN_FIRST_SYNC = 4,
+  SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN = 5,
+  SYNC_PURPOSE_NEARBY_SHARE_ENABLED = 6,
+  SYNC_PURPOSE_SYNC_AT_FAST_INIT = 7,
+  SYNC_PURPOSE_SYNC_AT_DISCOVERY = 8,
+  SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE = 9,
+  SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT = 10,
+  SYNC_PURPOSE_CONTACT_LIST_CHANGE = 11,
+  SYNC_PURPOSE_SHOW_C11N_VIEW = 12,
+  SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY = 13,
+  SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE = 14,
+  SYNC_PURPOSE_ACCOUNT_CHANGE = 15
+};
+bool SyncPurpose_IsValid(int value);
+constexpr SyncPurpose SyncPurpose_MIN = SYNC_PURPOSE_UNKNOWN;
+constexpr SyncPurpose SyncPurpose_MAX = SYNC_PURPOSE_ACCOUNT_CHANGE;
+constexpr int SyncPurpose_ARRAYSIZE = SyncPurpose_MAX + 1;
+
+const std::string& SyncPurpose_Name(SyncPurpose value);
+template<typename T>
+inline const std::string& SyncPurpose_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, SyncPurpose>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function SyncPurpose_Name.");
+  return SyncPurpose_Name(static_cast<SyncPurpose>(enum_t_value));
+}
+bool SyncPurpose_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SyncPurpose* value);
+enum ClientRole : int {
+  CLIENT_ROLE_UNKNOWN = 0,
+  CLIENT_ROLE_SENDER = 1,
+  CLIENT_ROLE_RECEIVER = 2
+};
+bool ClientRole_IsValid(int value);
+constexpr ClientRole ClientRole_MIN = CLIENT_ROLE_UNKNOWN;
+constexpr ClientRole ClientRole_MAX = CLIENT_ROLE_RECEIVER;
+constexpr int ClientRole_ARRAYSIZE = ClientRole_MAX + 1;
+
+const std::string& ClientRole_Name(ClientRole value);
+template<typename T>
+inline const std::string& ClientRole_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ClientRole>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ClientRole_Name.");
+  return ClientRole_Name(static_cast<ClientRole>(enum_t_value));
+}
+bool ClientRole_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ClientRole* value);
 enum ScanType : int {
   UNKNOWN_SCAN_TYPE = 0,
   FOREGROUND_SCAN = 1,
@@ -505,6 +603,26 @@ inline const std::string& ScanType_Name(T enum_t_value) {
 }
 bool ScanType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ScanType* value);
+enum ParsingFailedType : int {
+  FAILED_UNKNOWN_TYPE = 0,
+  FAILED_PARSE_ADVERTISEMENT = 1,
+  FAILED_CONVERT_SHARE_TARGET = 2
+};
+bool ParsingFailedType_IsValid(int value);
+constexpr ParsingFailedType ParsingFailedType_MIN = FAILED_UNKNOWN_TYPE;
+constexpr ParsingFailedType ParsingFailedType_MAX = FAILED_CONVERT_SHARE_TARGET;
+constexpr int ParsingFailedType_ARRAYSIZE = ParsingFailedType_MAX + 1;
+
+const std::string& ParsingFailedType_Name(ParsingFailedType value);
+template<typename T>
+inline const std::string& ParsingFailedType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ParsingFailedType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ParsingFailedType_Name.");
+  return ParsingFailedType_Name(static_cast<ParsingFailedType>(enum_t_value));
+}
+bool ParsingFailedType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ParsingFailedType* value);
 enum AdvertisingMode : int {
   UNKNOWN_ADVERTISING_MODE = 0,
   SCREEN_OFF_ADVERTISING_MODE = 1,
@@ -838,6 +956,121 @@ inline const std::string& PreferencesActionStatus_Name(T enum_t_value) {
 }
 bool PreferencesActionStatus_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PreferencesActionStatus* value);
+enum FastInitState : int {
+  FAST_INIT_UNKNOWN_STATE = 0,
+  FAST_INIT_CLOSE_STATE = 1,
+  FAST_INIT_FAR_STATE = 2,
+  FAST_INIT_LOST_STATE = 3
+};
+bool FastInitState_IsValid(int value);
+constexpr FastInitState FastInitState_MIN = FAST_INIT_UNKNOWN_STATE;
+constexpr FastInitState FastInitState_MAX = FAST_INIT_LOST_STATE;
+constexpr int FastInitState_ARRAYSIZE = FastInitState_MAX + 1;
+
+const std::string& FastInitState_Name(FastInitState value);
+template<typename T>
+inline const std::string& FastInitState_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, FastInitState>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function FastInitState_Name.");
+  return FastInitState_Name(static_cast<FastInitState>(enum_t_value));
+}
+bool FastInitState_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, FastInitState* value);
+enum FastInitType : int {
+  FAST_INIT_UNKNOWN_TYPE = 0,
+  FAST_INIT_NOTIFY_TYPE = 1,
+  FAST_INIT_SILENT_TYPE = 2
+};
+bool FastInitType_IsValid(int value);
+constexpr FastInitType FastInitType_MIN = FAST_INIT_UNKNOWN_TYPE;
+constexpr FastInitType FastInitType_MAX = FAST_INIT_SILENT_TYPE;
+constexpr int FastInitType_ARRAYSIZE = FastInitType_MAX + 1;
+
+const std::string& FastInitType_Name(FastInitType value);
+template<typename T>
+inline const std::string& FastInitType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, FastInitType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function FastInitType_Name.");
+  return FastInitType_Name(static_cast<FastInitType>(enum_t_value));
+}
+bool FastInitType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, FastInitType* value);
+enum DesktopNotification : int {
+  DESKTOP_NOTIFICATION_UNKNOWN = 0,
+  DESKTOP_NOTIFICATION_CONNECTING = 1,
+  DESKTOP_NOTIFICATION_PROGRESS = 2,
+  DESKTOP_NOTIFICATION_ACCEPT = 3,
+  DESKTOP_NOTIFICATION_RECEIVED = 4,
+  DESKTOP_NOTIFICATION_ERROR = 5
+};
+bool DesktopNotification_IsValid(int value);
+constexpr DesktopNotification DesktopNotification_MIN = DESKTOP_NOTIFICATION_UNKNOWN;
+constexpr DesktopNotification DesktopNotification_MAX = DESKTOP_NOTIFICATION_ERROR;
+constexpr int DesktopNotification_ARRAYSIZE = DesktopNotification_MAX + 1;
+
+const std::string& DesktopNotification_Name(DesktopNotification value);
+template<typename T>
+inline const std::string& DesktopNotification_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DesktopNotification>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DesktopNotification_Name.");
+  return DesktopNotification_Name(static_cast<DesktopNotification>(enum_t_value));
+}
+bool DesktopNotification_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DesktopNotification* value);
+enum DesktopTransferEventType : int {
+  DESKTOP_TRANSFER_EVENT_TYPE_UNKNOWN = 0,
+  DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ACCEPT = 1,
+  DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_PROGRESS = 2,
+  DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_RECEIVED = 3,
+  DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ERROR = 4,
+  DESKTOP_TRANSFER_EVENT_SEND_TYPE_START = 5,
+  DESKTOP_TRANSFER_EVENT_SEND_TYPE_SELECT_A_DEVICE = 6,
+  DESKTOP_TRANSFER_EVENT_SEND_TYPE_PROGRESS = 7,
+  DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT = 8,
+  DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR = 9
+};
+bool DesktopTransferEventType_IsValid(int value);
+constexpr DesktopTransferEventType DesktopTransferEventType_MIN = DESKTOP_TRANSFER_EVENT_TYPE_UNKNOWN;
+constexpr DesktopTransferEventType DesktopTransferEventType_MAX = DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR;
+constexpr int DesktopTransferEventType_ARRAYSIZE = DesktopTransferEventType_MAX + 1;
+
+const std::string& DesktopTransferEventType_Name(DesktopTransferEventType value);
+template<typename T>
+inline const std::string& DesktopTransferEventType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DesktopTransferEventType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DesktopTransferEventType_Name.");
+  return DesktopTransferEventType_Name(static_cast<DesktopTransferEventType>(enum_t_value));
+}
+bool DesktopTransferEventType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DesktopTransferEventType* value);
+enum DecryptCertificateFailureStatus : int {
+  DECRYPT_CERT_UNKNOWN_FAILURE = 0,
+  DECRYPT_CERT_NO_SUCH_ALGORITHM_FAILURE = 1,
+  DECRYPT_CERT_NO_SUCH_PADDING_FAILURE = 2,
+  DECRYPT_CERT_INVALID_KEY_FAILURE = 3,
+  DECRYPT_CERT_INVALID_ALGORITHM_PARAMETER_FAILURE = 4,
+  DECRYPT_CERT_ILLEGAL_BLOCK_SIZE_FAILURE = 5,
+  DECRYPT_CERT_BAD_PADDING_FAILURE = 6
+};
+bool DecryptCertificateFailureStatus_IsValid(int value);
+constexpr DecryptCertificateFailureStatus DecryptCertificateFailureStatus_MIN = DECRYPT_CERT_UNKNOWN_FAILURE;
+constexpr DecryptCertificateFailureStatus DecryptCertificateFailureStatus_MAX = DECRYPT_CERT_BAD_PADDING_FAILURE;
+constexpr int DecryptCertificateFailureStatus_ARRAYSIZE = DecryptCertificateFailureStatus_MAX + 1;
+
+const std::string& DecryptCertificateFailureStatus_Name(DecryptCertificateFailureStatus value);
+template<typename T>
+inline const std::string& DecryptCertificateFailureStatus_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DecryptCertificateFailureStatus>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DecryptCertificateFailureStatus_Name.");
+  return DecryptCertificateFailureStatus_Name(static_cast<DecryptCertificateFailureStatus>(enum_t_value));
+}
+bool DecryptCertificateFailureStatus_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DecryptCertificateFailureStatus* value);
 // ===================================================================
 
 
@@ -870,6 +1103,7 @@ template <> struct is_proto_enum< ::location::nearby::proto::sharing::Visibility
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::DataUsage> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::EstablishConnectionStatus> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::AttachmentTransmissionStatus> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::ConnectionLayerStatus> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ProcessReceivedAttachmentsStatus> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::SessionStatus> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ResponseToIntroduction> : ::std::true_type {};
@@ -879,7 +1113,10 @@ template <> struct is_proto_enum< ::location::nearby::proto::sharing::DeviceRela
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::LogSource> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ServerActionName> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ServerResponseState> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::SyncPurpose> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::ClientRole> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ScanType> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::ParsingFailedType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::AdvertisingMode> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ActivityName> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ConsentType> : ::std::true_type {};
@@ -895,6 +1132,11 @@ template <> struct is_proto_enum< ::location::nearby::proto::sharing::AppCrashRe
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::AttachmentSourceType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::PreferencesAction> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::PreferencesActionStatus> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::FastInitState> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::FastInitType> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::DesktopNotification> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::DesktopTransferEventType> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::DecryptCertificateFailureStatus> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 
