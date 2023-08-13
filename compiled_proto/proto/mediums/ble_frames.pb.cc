@@ -35,6 +35,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SocketControlFrameDefaultTypeIn
 constexpr IntroductionFrame::IntroductionFrame(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : service_id_hash_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , service_id_hash_salt_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , socket_version_(0)
 {}
 struct IntroductionFrameDefaultTypeInternal {
@@ -552,6 +553,9 @@ class IntroductionFrame::_Internal {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_socket_version(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_service_id_hash_salt(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
   }
 };
@@ -577,6 +581,14 @@ IntroductionFrame::IntroductionFrame(const IntroductionFrame& from)
     service_id_hash_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_service_id_hash(), 
       GetArenaForAllocation());
   }
+  service_id_hash_salt_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    service_id_hash_salt_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_service_id_hash_salt()) {
+    service_id_hash_salt_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_service_id_hash_salt(), 
+      GetArenaForAllocation());
+  }
   socket_version_ = from.socket_version_;
   // @@protoc_insertion_point(copy_constructor:location.nearby.mediums.IntroductionFrame)
 }
@@ -585,6 +597,10 @@ inline void IntroductionFrame::SharedCtor() {
 service_id_hash_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   service_id_hash_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+service_id_hash_salt_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  service_id_hash_salt_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 socket_version_ = 0;
 }
@@ -599,6 +615,7 @@ IntroductionFrame::~IntroductionFrame() {
 inline void IntroductionFrame::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   service_id_hash_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  service_id_hash_salt_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void IntroductionFrame::ArenaDtor(void* object) {
@@ -618,8 +635,13 @@ void IntroductionFrame::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    service_id_hash_.ClearNonDefaultToEmpty();
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      service_id_hash_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      service_id_hash_salt_.ClearNonDefaultToEmpty();
+    }
   }
   socket_version_ = 0;
   _has_bits_.Clear();
@@ -652,6 +674,15 @@ const char* IntroductionFrame::_InternalParse(const char* ptr, ::PROTOBUF_NAMESP
           } else {
             ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
           }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string service_id_hash_salt = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_service_id_hash_salt();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
@@ -693,10 +724,16 @@ uint8_t* IntroductionFrame::_InternalSerialize(
   }
 
   // optional .location.nearby.mediums.SocketVersion socket_version = 2;
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       2, this->_internal_socket_version(), target);
+  }
+
+  // optional string service_id_hash_salt = 3;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_service_id_hash_salt(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -716,7 +753,7 @@ size_t IntroductionFrame::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     // optional bytes service_id_hash = 1;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -724,8 +761,15 @@ size_t IntroductionFrame::ByteSizeLong() const {
           this->_internal_service_id_hash());
     }
 
-    // optional .location.nearby.mediums.SocketVersion socket_version = 2;
+    // optional string service_id_hash_salt = 3;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_service_id_hash_salt());
+    }
+
+    // optional .location.nearby.mediums.SocketVersion socket_version = 2;
+    if (cached_has_bits & 0x00000004u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_socket_version());
     }
@@ -752,11 +796,14 @@ void IntroductionFrame::MergeFrom(const IntroductionFrame& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_service_id_hash(from._internal_service_id_hash());
     }
     if (cached_has_bits & 0x00000002u) {
+      _internal_set_service_id_hash_salt(from._internal_service_id_hash_salt());
+    }
+    if (cached_has_bits & 0x00000004u) {
       socket_version_ = from.socket_version_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -785,6 +832,11 @@ void IntroductionFrame::InternalSwap(IntroductionFrame* other) {
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &service_id_hash_, lhs_arena,
       &other->service_id_hash_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &service_id_hash_salt_, lhs_arena,
+      &other->service_id_hash_salt_, rhs_arena
   );
   swap(socket_version_, other->socket_version_);
 }
