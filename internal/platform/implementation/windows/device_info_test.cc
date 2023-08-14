@@ -77,6 +77,14 @@ TEST(DeviceInfo, DISABLED_IsScreenLocked) {
   EXPECT_FALSE(DeviceInfo().IsScreenLocked());
 }
 
+TEST(DeviceInfo, DISABLED_PreventSleep) {
+  EXPECT_TRUE(DeviceInfo().PreventSleep());
+}
+
+TEST(DeviceInfo, DISABLED_AllowSleep) {
+  EXPECT_TRUE(DeviceInfo().AllowSleep());
+}
+
 }  // namespace
 }  // namespace windows
 }  // namespace nearby

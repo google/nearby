@@ -52,6 +52,9 @@ class DeviceInfo : public api::DeviceInfo {
       std::function<void(api::DeviceInfo::ScreenStatus)> callback) override;
   void UnregisterScreenLockedListener(absl::string_view listener_name) override;
 
+  bool PreventSleep() override;
+  bool AllowSleep() override;
+
  private:
   mutable absl::Mutex mutex_;
   SessionManager session_manager_ ABSL_GUARDED_BY(mutex_);

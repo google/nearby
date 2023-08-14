@@ -353,5 +353,15 @@ void DeviceInfo::UnregisterScreenLockedListener(
   session_manager_.UnregisterSessionListener(listener_name);
 }
 
+bool DeviceInfo::PreventSleep() {
+  absl::MutexLock lock(&mutex_);
+  return session_manager_.PreventSleep();
+}
+
+bool DeviceInfo::AllowSleep() {
+  absl::MutexLock lock(&mutex_);
+  return session_manager_.AllowSleep();
+}
+
 }  // namespace windows
 }  // namespace nearby

@@ -38,7 +38,7 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::DeviceType::kLaptop;
   }
 
-  api::DeviceInfo::OsType GetOsType() const override{
+  api::DeviceInfo::OsType GetOsType() const override {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
@@ -91,6 +91,10 @@ class DeviceInfo : public api::DeviceInfo {
       absl::string_view listener_name) override {
     screen_locked_listeners_.erase(listener_name);
   }
+
+  bool PreventSleep() override { return true; }
+
+  bool AllowSleep() override { return true; }
 
  private:
   absl::flat_hash_map<std::string,

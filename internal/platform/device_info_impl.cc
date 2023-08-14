@@ -108,4 +108,10 @@ void DeviceInfoImpl::UnregisterScreenLockedListener(
   device_info_impl_->UnregisterScreenLockedListener(listener_name);
 }
 
+bool DeviceInfoImpl::PreventSleep() {
+  return device_info_impl_->PreventSleep();
+}
+
+bool DeviceInfoImpl::AllowSleep() { return device_info_impl_->AllowSleep(); }
+
 }  // namespace nearby

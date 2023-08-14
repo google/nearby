@@ -59,6 +59,10 @@ class DeviceInfo {
       std::function<void(ScreenStatus)> callback) = 0;
   virtual void UnregisterScreenLockedListener(
       absl::string_view listener_name) = 0;
+
+  // Control device sleep
+  virtual bool PreventSleep() = 0;
+  virtual bool AllowSleep() = 0;
 };
 
 }  // namespace api

@@ -168,5 +168,9 @@ void DeviceInfo::RegisterScreenLockedListener(
 
 void DeviceInfo::UnregisterScreenLockedListener(absl::string_view listener_name) {}
 
+bool DeviceInfo::PreventSleep() { return true; }
+
+bool DeviceInfo::AllowSleep() { return true; }
+
 }  // namespace apple
 }  // namespace nearby
