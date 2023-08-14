@@ -47,3 +47,38 @@ impl FpDecoder {
         }
     }
 }
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_model_id_valid() {
+        // Valid scenario: Length == 3
+        let uuid: u16 = 0x1234;
+        let data = vec![0xAA, 0xBB, 0xCC];
+        let service_data = ServiceData::new(uuid, data.clone());
+        let result = FpDecoder::get_model_id_from_service_data(&service_data);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), data);
+    }
+
+    #[test]
+    fn test_get_model_id_invalid() {
+        // Invalid scenario: Length < 3
+        let uuid: u16 = 0x1234;
+        let data = vec![0xAA, 0xBB];
+        let service_data = ServiceData::new(uuid, data);
+        let result = FpDecoder::get_model_id_from_service_data(&service_data);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_model_id_unsupported() {
+        // Unsupported scenario: Length > 3
+        let uuid: u16 = 0x1234;
+        let data = vec![0xAA, 0xBB, 0xCC, 0xDD];
+        let service_data = ServiceData::new(uuid, data);
+        let result = FpDecoder::get_model_id_from_service_data(&service_data);
+        assert!(result.is_err());
+    }
+}
