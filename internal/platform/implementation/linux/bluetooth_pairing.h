@@ -1,22 +1,26 @@
 #ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_PROFILE_H_
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_PAIRING_H_
 
+#include <memory>
 #include <string>
 
+#include <sdbus-c++/Error.h>
+#include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/IProxy.h>
 #include <systemd/sd-bus.h>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/linux/bluetooth_adapter.h"
+#include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 
 namespace nearby {
 namespace linux {
 class BluetoothPairing : public api::BluetoothPairing {
 public:
-  BluetoothPairing(sd_bus *system_bus, absl::string_view device_object_path) {
-    system_bus_ = system_bus;
-    device_object_path_ = device_object_path;
-  }
-  ~BluetoothPairing() { sd_bus_unref(system_bus_); }
+  BluetoothPairing(const sdbus::ObjectPath &adapter_object_path,
+                   BluetoothDevice &remote_device, BluetoothAdapter &adapter,
+                   sdbus::IConnection &system_bus);
+  ~BluetoothPairing() override = default;
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
   bool FinishPairing(std::optional<absl::string_view> pin_code) override;
@@ -25,8 +29,14 @@ public:
   bool IsPaired() override;
 
 private:
-  std::string device_object_path_;
-  sd_bus *system_bus_;
+  void pairing_reply_handler(const sdbus::Error *e);
+
+  sdbus::PendingAsyncCall pair_async_call_;
+
+  BluetoothDevice &device_;
+  BluetoothAdapter &adapter_;
+
+  std::unique_ptr<sdbus::IProxy> bluez_adapter_proxy_;
   api::BluetoothPairingCallback pairing_cb_;
 };
 } // namespace linux

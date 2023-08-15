@@ -1,10 +1,11 @@
 #ifndef PLATFORM_IMPL_LINUX_DEVICE_INFO_H_
 #define PLATFORM_IMPL_LINUX_DEVICE_INFO_H_
 
-#include <systemd/sd-bus.h>
-
 #include <optional>
 #include <string>
+
+#include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/IProxy.h>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/device_info.h"
@@ -14,7 +15,8 @@ namespace linux {
 
 class DeviceInfo : public api::DeviceInfo {
 public:
-  ~DeviceInfo() override;
+  DeviceInfo(sdbus::IConnection &system_bus);
+  ~DeviceInfo() override = default;
 
   std::optional<std::u16string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
@@ -47,7 +49,9 @@ public:
   void
   UnregisterScreenLockedListener(absl::string_view listener_name) override{};
 
-  sd_bus *system_bus;
+private:
+  std::unique_ptr<sdbus::IProxy> hostname_proxy_;
+  std::unique_ptr<sdbus::IProxy> login_proxy_;
 };
 } // namespace linux
 } // namespace nearby

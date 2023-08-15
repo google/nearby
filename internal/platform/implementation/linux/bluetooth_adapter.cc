@@ -1,71 +1,68 @@
-#include <systemd/sd-bus.h>
+#include <sdbus-c++/ProxyInterfaces.h>
+#include <sdbus-c++/Types.h>
 
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/implementation/linux/bluez_adapter_client_glue.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
 
-using namespace api;
-
 bool BluetoothAdapter::SetStatus(Status status) {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-
-  if (sd_bus_set_property(
-          system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-          BLUEZ_ADAPTER_INTERFACE, "Powered", &err, "b",
-          status == api::BluetoothAdapter::Status::kEnabled ? 1 : 0) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error setting adaptor status: " << err.message;
+  try {
+    bool val = status == api::BluetoothAdapter::Status::kEnabled;
+    Powered(val);
+    return true;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to set Powered status for adapter "
+                       << getObjectPath();
     return false;
   }
-  return true;
 }
 
 bool BluetoothAdapter::IsEnabled() const {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  int enabled = 0;
+  auto proxy = sdbus::createProxy(getProxy().getConnection(),
+                                  bluez::SERVICE_DEST, getObjectPath());
+  proxy->finishRegistration();
 
-  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                                  BLUEZ_ADAPTER_INTERFACE, "Powered", &err, 'b',
-                                  &enabled) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error getting adaptor status: " << err.message;
+  try {
+    return proxy->getProperty("Powered").onInterface(INTERFACE_NAME);
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get Powered status for adapter "
+                       << getObjectPath();
+    return false;
   }
-  return enabled;
 }
 
 BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  int powered = 0;
-  int discoverable = 0;
-
-  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                                  BLUEZ_ADAPTER_INTERFACE, "Powered", &err, 'b',
-                                  &powered) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error getting adaptor status: " << err.message;
-    return ScanMode::kUnknown;
-  }
+  bool powered = IsEnabled();
   if (!powered) {
     return ScanMode::kNone;
   }
 
-  if (sd_bus_get_property_trivial(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                                  BLUEZ_ADAPTER_INTERFACE, "Discoverable", &err,
-                                  'b', &powered) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error getting adaptor's discoverable status: "
-                       << err.message;
+  try {
+    auto proxy = sdbus::createProxy(getProxy().getConnection(),
+                                    bluez::SERVICE_DEST, getObjectPath());
+    proxy->finishRegistration();
+
+    bool discoverable =
+        proxy->getProperty("Discoverable").onInterface(INTERFACE_NAME);
+    return discoverable ? ScanMode::kConnectableDiscoverable
+                        : ScanMode::kConnectable;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": Got error '" << e.getName() << "' with message '"
+        << e.getMessage()
+        << "' while trying to get Discoverable status for adapter "
+        << getObjectPath();
     return ScanMode::kUnknown;
   }
-  return discoverable ? ScanMode::kConnectableDiscoverable
-                      : ScanMode::kConnectable;
 }
 
 bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
@@ -76,16 +73,18 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
     if (!SetStatus(Status::kEnabled)) {
       return false;
     }
-    __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-        SD_BUS_ERROR_NULL;
-    if (sd_bus_set_property(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                            BLUEZ_ADAPTER_INTERFACE, "Discoverable", &err, "b",
-                            1) < 0) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Error setting adapter's discoverable status: "
-                         << err.message;
+
+    try {
+      Discoverable(true);
+    } catch (const sdbus::Error &e) {
+      NEARBY_LOGS(ERROR)
+          << __func__ << ": Got error '" << e.getName() << "' with message '"
+          << e.getMessage()
+          << "' while trying to set Discoverable status for adapter "
+          << getObjectPath();
       return false;
     }
+
     return true;
   }
   case ScanMode::kNone:
@@ -96,65 +95,52 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
 }
 
 std::string BluetoothAdapter::GetName() const {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  char *cname = nullptr;
-  if (sd_bus_get_property_string(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                                 BLUEZ_ADAPTER_INTERFACE, "Alias", &err,
-                                 &cname) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error getting adapter's name: " << err.message;
+  auto proxy = sdbus::createProxy(getProxy().getConnection(),
+                                  bluez::SERVICE_DEST, getObjectPath());
+  proxy->finishRegistration();
+
+  try {
+    return proxy->getProperty("Alias").onInterface(INTERFACE_NAME);
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get Alias for adapter "
+                       << getObjectPath();
     return std::string();
   }
-  std::string name(cname);
-  free(cname);
-  return name;
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
-  if (persist) {
-    __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-        SD_BUS_ERROR_NULL;
-    std::string pretty_hostname(name);
-    if (sd_bus_set_property(system_bus_, "org.freedesktop.hostname1",
-                            "/org/freedesktop/hostname1",
-                            "org.freedesktop.hostname1", "PrettyHostname", &err,
-                            "s", pretty_hostname.c_str()) < 0) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Error setting PrettyHostname: " << err.message;
-    }
-  }
   return SetName(name);
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name) {
-  std::string alias(name);
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  if (sd_bus_set_property(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                          BLUEZ_ADAPTER_INTERFACE, "Alias", &err, "s",
-                          alias.c_str()) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error setting adapter's name: " << err.message;
+  try {
+    Alias(std::string(name));
+    return true;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to set Alias for adapter "
+                       << getObjectPath();
     return false;
   }
-  return true;
 }
 
 std::string BluetoothAdapter::GetMacAddress() const {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  char *caddr = nullptr;
-  if (sd_bus_get_property_string(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                                 BLUEZ_ADAPTER_INTERFACE, "Address", &err,
-                                 &caddr) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error getting adapter's name: " << err.message;
+  auto proxy = sdbus::createProxy(getProxy().getConnection(),
+                                  bluez::SERVICE_DEST, getObjectPath());
+  proxy->finishRegistration();
+
+  try {
+    return proxy->getProperty("Address").onInterface(INTERFACE_NAME);
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get Address for adapter "
+                       << getObjectPath();
     return std::string();
   }
-  std::string addr(caddr);
-  free(caddr);
-  return addr;
 }
 
 } // namespace linux

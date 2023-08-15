@@ -1,12 +1,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <optional>
-#include <string>
-
 #include <pwd.h>
+#include <string>
 #include <sys/types.h>
 
-#include <systemd/sd-bus.h>
+#include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/IProxy.h>
 #include <systemd/sd-login.h>
 
 #include "internal/platform/implementation/device_info.h"
@@ -14,7 +14,6 @@
 #include "internal/platform/logging.h"
 
 namespace nearby {
-
 namespace linux {
 
 const char *HOSTNAME_DEST = "org.freedesktop.hostname1";
@@ -25,78 +24,49 @@ const char *LOGIN_DEST = "org.freedesktop.login1";
 const char *LOGIN_PATH = "/org/freedesktop/login1/session/_";
 const char *LOGIN_INTERFACE = "org.freedesktop.login1.Session";
 
+DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus) {
+  hostname_proxy_ =
+      sdbus::createProxy(system_bus, HOSTNAME_DEST, HOSTNAME_PATH);
+  hostname_proxy_->finishRegistration();
+  login_proxy_ = sdbus::createProxy(system_bus, LOGIN_PATH, LOGIN_PATH);
+  login_proxy_->finishRegistration();
+}
+
 std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
-  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *bus = nullptr;
-  if (sd_bus_default_system(&bus) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to systemd bus.";
+  try {
+    std::string hostname = hostname_proxy_->getProperty("PrettyHostname")
+                               .onInterface(HOSTNAME_INTERFACE);
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+    return convert.from_bytes(hostname);
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get PrettyHostname";
     return std::nullopt;
   }
-
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-
-  char *hostname = nullptr;
-  if (sd_bus_get_property_string(bus, HOSTNAME_DEST, HOSTNAME_PATH,
-                                 HOSTNAME_INTERFACE, "PrettyHostname", &err,
-                                 &hostname) < 0) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Error getting PrettyHostname from org.freedesktop.hostname1: "
-        << err.message;
-  }
-  if (!hostname || hostname[0] == '\0') {
-    int ret = sd_bus_get_property_string(bus, HOSTNAME_DEST, HOSTNAME_PATH,
-                                         HOSTNAME_INTERFACE, "Hostname", &err,
-                                         &hostname);
-    if (ret < 0) {
-      NEARBY_LOGS(ERROR)
-          << __func__
-          << ": Error getting Hostname from org.freedesktop.hostname1: "
-          << err.message;
-      return std::nullopt;
-    }
-  }
-
-  std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-
-  std::u16string name = convert.from_bytes(hostname);
-  free(hostname);
-  return name;
 }
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
-  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *bus;
-  if (sd_bus_default_system(&bus) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to systemd bus.";
+  try {
+    std::string chasis = hostname_proxy_->getProperty("PrettyHostname")
+                             .onInterface(HOSTNAME_INTERFACE);
+    api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;
+    if (chasis == "phone") {
+      device = api::DeviceInfo::DeviceType::kPhone;
+    } else if (chasis == "laptop" || chasis == "desktop") {
+      device = api::DeviceInfo::DeviceType::kLaptop;
+    } else if (chasis == "tablet") {
+      device = api::DeviceInfo::DeviceType::kTablet;
+    } else if (chasis == "handset") {
+      device = api::DeviceInfo::DeviceType::kPhone;
+    }
+    return device;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get PrettyHostname";
     return api::DeviceInfo::DeviceType::kUnknown;
   }
-
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  char *chasis = nullptr;
-
-  if (sd_bus_get_property_string(bus, HOSTNAME_DEST, HOSTNAME_PATH,
-                                 HOSTNAME_INTERFACE, "Chasis", &err,
-                                 &chasis) < 0) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error getting Chasis from org.freedesktop.hostname1: "
-        << err.message;
-    return api::DeviceInfo::DeviceType::kUnknown;
-  }
-
-  api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;
-
-  if (strcmp(chasis, "phone") == 0) {
-    device = api::DeviceInfo::DeviceType::kPhone;
-  } else if (strcmp(chasis, "laptop") == 0 || strcmp(chasis, "desktop") == 0) {
-    device = api::DeviceInfo::DeviceType::kLaptop;
-  } else if (strcmp(chasis, "tablet") == 0) {
-    device = api::DeviceInfo::DeviceType::kTablet;
-  } else if (strcmp(chasis, "handset") == 0) {
-    device = api::DeviceInfo::DeviceType::kPhone;
-  }
-  free(chasis);
-  return device;
 }
 
 std::optional<std::u16string> DeviceInfo::GetFullName() const {
@@ -170,34 +140,21 @@ bool DeviceInfo::IsScreenLocked() const {
     return false;
   }
 
-  __attribute__((cleanup(sd_bus_unrefp))) sd_bus *bus;
-  if (sd_bus_default_system(&bus) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to systemd bus.";
-    free(session);
-    return false;
-  }
-
   std::string session_path(LOGIN_PATH);
   session_path += session;
-
   free(session);
 
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  bool locked;
-
-  if (sd_bus_get_property_trivial(bus, LOGIN_DEST, session_path.c_str(),
-                                  LOGIN_INTERFACE, "LockedHint", &err, 'b',
-                                  &locked) < 0) {
-
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Error getting LockedState from org.freedesktop.login1: "
-        << err.message;
-    locked = false;
+  try {
+    bool locked =
+        login_proxy_->getProperty("LockedHint").onInterface(LOGIN_INTERFACE);
+    return locked;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get LockedHint for session "
+                       << session_path;
+    return false;
   }
-
-  return locked;
 }
 } // namespace linux
 } // namespace nearby

@@ -1,73 +1,124 @@
+#include <sdbus-c++/IObject.h>
+#include <sdbus-c++/ProxyInterfaces.h>
 #include <systemd/sd-bus.h>
 
-#include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
-#include "absl/strings/substitute.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-
-BluetoothDevice::BluetoothDevice(sd_bus *system_bus, absl::string_view adapter,
-                                 absl::string_view address) {
-  mac_addr_ = std::string(address);
-  object_path_ = absl::Substitute("/org/bluez/$0/dev_$1", adapter,
-                                  absl::StrReplaceAll(address, {{":", "_"}}));
-  system_bus_ = system_bus;
-}
-
-BluetoothDevice::BluetoothDevice(sd_bus *system_bus,
-                                 absl::string_view device_object_path) {
-  system_bus_ = system_bus;
-  object_path_ = device_object_path;
-}
-
-BluetoothDevice::BluetoothDevice(const BluetoothDevice &device) {
-  if (!device.mac_addr_.empty()) {
-    mac_addr_ = device.mac_addr_;
-  }
-  object_path_ = device.object_path_;
-  system_bus_ = sd_bus_ref(device.system_bus_);
+BluetoothDevice::BluetoothDevice(sdbus::IConnection &system_bus,
+                                 const sdbus::ObjectPath &device_object_path)
+    : ProxyInterfaces(system_bus, bluez::SERVICE_DEST,
+                      std::string(device_object_path)) {
+  registerProxy();
 }
 
 std::string BluetoothDevice::GetName() const {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  char *cname = nullptr;
-  if (sd_bus_get_property_string(system_bus_, BLUEZ_SERVICE,
-                                 object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
-                                 "Alias", &err, &cname) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error getting alias for device "
-                       << object_path_ << " :" << err.message;
+  auto bluez_device =
+      sdbus::createProxy(getProxy().getConnection(), bluez::SERVICE_DEST,
+                         getProxy().getObjectPath());
+
+  try {
+    std::string alias =
+        bluez_device->getProperty("Alias").onInterface(bluez::DEVICE_INTERFACE);
+    return alias;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get Alias for device "
+                       << bluez_device->getObjectPath();
     return std::string();
   }
-
-  std::string name(cname);
-  free(cname);
-  return name;
 }
 
 std::string BluetoothDevice::GetMacAddress() const {
-  if (!mac_addr_.empty()) {
-    return mac_addr_;
-  }
+  auto bluez_device =
+      sdbus::createProxy(getProxy().getConnection(), bluez::SERVICE_DEST,
+                         getProxy().getObjectPath());
 
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  char *c_addr = nullptr;
-  if (sd_bus_get_property_string(system_bus_, BLUEZ_SERVICE,
-                                 object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
-                                 "Address", &err, &c_addr) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error getting address for device "
-                       << object_path_ << " :" << err.message;
+  try {
+    std::string addr = bluez_device->getProperty("Address").onInterface(
+        bluez::DEVICE_INTERFACE);
+    return addr;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get Address for device "
+                       << bluez_device->getObjectPath();
     return std::string();
   }
+}
 
-  std::string addr(c_addr);
-  free(c_addr);
-  return addr;
+void BluetoothDevice::onConnectProfileReply(const sdbus::Error *error) {
+  if (error != nullptr && error->getName() != "org.bluez.Error.InProgress") {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << error->getName()
+                       << "' with message '" << error->getMessage()
+                       << " while connecting to profile.";
+  }
+}
+
+bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
+  try {
+    ConnectProfile(std::string(service_uuid));
+    return true;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to asynchronously connect to profile "
+                       << service_uuid << " on device " << getObjectPath();
+    return false;
+  }
+}
+
+MonitoredBluetoothDevice::MonitoredBluetoothDevice(
+    sdbus::IConnection &system_bus, const sdbus::ObjectPath &device_object_path,
+    ObserverList<api::BluetoothClassicMedium::Observer> &observers)
+    : BluetoothDevice(system_bus, device_object_path),
+      ProxyInterfaces<sdbus::Properties_proxy>(system_bus, bluez::SERVICE_DEST,
+                                               std::string(device_object_path)),
+      observers_(observers) {
+  registerProxy();
+}
+
+void MonitoredBluetoothDevice::onPropertiesChanged(
+    const std::string &interfaceName,
+    const std::map<std::string, sdbus::Variant> &changedProperties,
+    const std::vector<std::string> &invalidatedProperties) {
+  if (interfaceName != bluez::DEVICE_INTERFACE) {
+    return;
+  }
+
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+                       << ": Received PropertiesChanged signal for interface "
+                       << interfaceName;
+
+  for (auto it = changedProperties.begin(); it != changedProperties.end();
+       it++) {
+    if (it->first == bluez::DEVICE_PROP_ADDRESS) {
+      NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+                           << ": Notifying observers about address change";
+      std::string address = it->second;
+      for (auto &observer : observers_.GetObservers()) {
+        observer->DeviceAddressChanged(*this, address);
+      }
+    } else if (it->first == bluez::DEVICE_PROP_PAIRED) {
+      NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+                           << "Notifying observers about paired status change.";
+      for (auto &observer : observers_.GetObservers()) {
+        observer->DevicePairedChanged(*this, it->second);
+      }
+    } else if (it->first == bluez::DEVICE_PROP_CONNECTED) {
+      NEARBY_LOGS(VERBOSE)
+          << __func__ << ": " << getObjectPath()
+          << "Notifying observers about connected status change";
+      for (auto &observer : observers_.GetObservers()) {
+        observer->DeviceConnectedStateChanged(*this, it->second);
+      }
+    }
+  }
 }
 
 } // namespace linux
