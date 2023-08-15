@@ -85,6 +85,7 @@ cc_library(
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "credential_storage_impl.h",
+        "socket_base.h",
         "webrtc.h",
         "wifi.h",
         "wifi_direct.h",

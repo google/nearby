@@ -27,6 +27,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/pipe.h"
+#include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
@@ -35,83 +36,34 @@ namespace nearby {
 namespace g3 {
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
-class BluetoothSocket : public api::BluetoothSocket {
+class BluetoothSocket : public api::BluetoothSocket, public SocketBase {
  public:
   BluetoothSocket() = default;
   explicit BluetoothSocket(BluetoothAdapter* adapter) : adapter_(adapter) {}
-  ~BluetoothSocket() override;
-
-  // Connects to another BluetoothSocket, to form a functional low-level
-  // channel. From this point on, and until Close is called, connection exists.
-  void Connect(BluetoothSocket& other);
-
-  // NOTE:
-  // It is an undefined behavior if GetInputStream() or GetOutputStream() is
-  // called for a not-connected BluetoothSocket, i.e. any object that is not
-  // returned by BluetoothClassicMedium::ConnectToService() for client side or
-  // BluetoothServerSocket::Accept() for server side of connection.
 
   // Returns the InputStream of this connected BluetoothSocket.
-  InputStream& GetInputStream() override;
+  InputStream& GetInputStream() override {
+    return SocketBase::GetInputStream();
+  }
 
   // Returns the OutputStream of this connected BluetoothSocket.
   // This stream is for local side to write.
-  OutputStream& GetOutputStream() override;
-
-  // Returns true if connection exists to the (possibly closed) remote socket.
-  bool IsConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns true if socket is closed.
-  bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
+  OutputStream& GetOutputStream() override {
+    return SocketBase::GetOutputStream();
+  }
 
   // Closes both input and output streams, marks Socket as closed.
   // After this call object should be treated as not connected.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+  Exception Close() override { return SocketBase::Close(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#getRemoteDevice()
   // Returns valid BluetoothDevice pointer if there is a connection, and
   // nullptr otherwise.
-  BluetoothDevice* GetRemoteDevice() override ABSL_LOCKS_EXCLUDED(mutex_);
+  BluetoothDevice* GetRemoteDevice() override;
 
  private:
-  void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Returns true if connection exists to the (possibly closed) remote socket.
-  bool IsConnectedLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Returns InputStream of our side of a connection.
-  // This is what the remote side is supposed to read from.
-  // This is a helper for GetInputStream() method.
-  InputStream& GetLocalInputStream() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns OutputStream of our side of a connection.
-  // This is what the local size is supposed to write to.
-  // This is a helper for GetOutputStream() method.
-  OutputStream& GetLocalOutputStream() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  class InvalidInputStream : public InputStream {
-   public:
-    ExceptionOr<ByteArray> Read(std::int64_t size) override {
-      return ExceptionOr<ByteArray>(Exception::kIo);
-    }
-    ExceptionOr<size_t> Skip(size_t offset) override {
-      return ExceptionOr<size_t>(Exception::kIo);
-    }
-    Exception Close() override { return {Exception::kIo}; }
-  };
-  // Returned to the caller if the remote socket is destroyed.
-  InvalidInputStream invalid_input_stream_;
-
-  // Output pipe is initialized by constructor, it remains always valid, until
-  // it is closed. it represents output part of a local socket. Input part of a
-  // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_{new Pipe};
-  std::shared_ptr<Pipe> input_;
-  mutable absl::Mutex mutex_;
   BluetoothAdapter* adapter_ = nullptr;  // Our Adapter. Read only.
-  BluetoothSocket* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.

@@ -69,82 +69,14 @@ api::ble_v2::BlePeripheral::UniqueId BleV2Peripheral::GetUniqueId() const {
   return adapter_.GetUniqueId();
 }
 
-BleV2Socket::~BleV2Socket() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-}
-
-void BleV2Socket::Connect(BleV2Socket& other) {
-  absl::MutexLock lock(&mutex_);
-  remote_socket_ = &other;
-  input_ = other.output_;
-}
-
-InputStream& BleV2Socket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
-  CHECK(remote_socket != nullptr);
-  return remote_socket->GetLocalInputStream();
-}
-
-OutputStream& BleV2Socket::GetOutputStream() { return GetLocalOutputStream(); }
-
-BleV2Socket* BleV2Socket::GetRemoteSocket() {
-  absl::MutexLock lock(&mutex_);
-  return remote_socket_;
-}
-
-bool BleV2Socket::IsConnected() const {
-  absl::MutexLock lock(&mutex_);
-  return IsConnectedLocked();
-}
-
-bool BleV2Socket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
-  return closed_;
-}
-
-Exception BleV2Socket::Close() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-  return {Exception::kSuccess};
-}
-
 BleV2Peripheral* BleV2Socket::GetRemotePeripheral() {
-  BluetoothAdapter* remote_adapter = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (remote_socket_ == nullptr || remote_socket_->adapter_ == nullptr) {
-      return nullptr;
-    }
-    remote_adapter = remote_socket_->adapter_;
-  }
-  if (remote_adapter == nullptr || remote_adapter->GetBleV2Medium() == nullptr)
+  BleV2Socket* remote_socket = GetRemoteSocket();
+  if (remote_socket == nullptr || remote_socket->adapter_ == nullptr ||
+      remote_socket->adapter_->GetBleV2Medium() == nullptr) {
     return nullptr;
-  return &(static_cast<BleV2Medium*>(remote_adapter->GetBleV2Medium())
-               ->GetPeripheral());
-}
-
-void BleV2Socket::DoClose() {
-  if (!closed_) {
-    remote_socket_ = nullptr;
-    output_->GetOutputStream().Close();
-    output_->GetInputStream().Close();
-    input_->GetOutputStream().Close();
-    input_->GetInputStream().Close();
-    closed_ = true;
   }
-}
-
-bool BleV2Socket::IsConnectedLocked() const { return input_ != nullptr; }
-
-InputStream& BleV2Socket::GetLocalInputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetInputStream();
-}
-
-OutputStream& BleV2Socket::GetLocalOutputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetOutputStream();
+  return &(static_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium())
+               ->GetPeripheral());
 }
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {

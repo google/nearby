@@ -29,67 +29,6 @@
 namespace nearby {
 namespace g3 {
 
-// Code for WifiDirectSocket
-WifiDirectSocket::~WifiDirectSocket() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-}
-
-void WifiDirectSocket::Connect(WifiDirectSocket& other) {
-  absl::MutexLock lock(&mutex_);
-  remote_socket_ = &other;
-  input_ = other.output_;
-}
-
-InputStream& WifiDirectSocket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
-  CHECK(remote_socket != nullptr);
-  return remote_socket->GetLocalInputStream();
-}
-
-OutputStream& WifiDirectSocket::GetOutputStream() {
-  return GetLocalOutputStream();
-}
-
-WifiDirectSocket* WifiDirectSocket::GetRemoteSocket() {
-  absl::MutexLock lock(&mutex_);
-  return remote_socket_;
-}
-
-bool WifiDirectSocket::IsConnected() const {
-  absl::MutexLock lock(&mutex_);
-  return IsConnectedLocked();
-}
-
-Exception WifiDirectSocket::Close() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-  return {Exception::kSuccess};
-}
-
-void WifiDirectSocket::DoClose() {
-  if (!closed_) {
-    remote_socket_ = nullptr;
-    output_->GetOutputStream().Close();
-    output_->GetInputStream().Close();
-    input_->GetOutputStream().Close();
-    input_->GetInputStream().Close();
-    closed_ = true;
-  }
-}
-
-bool WifiDirectSocket::IsConnectedLocked() const { return input_ != nullptr; }
-
-InputStream& WifiDirectSocket::GetLocalInputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetInputStream();
-}
-
-OutputStream& WifiDirectSocket::GetLocalOutputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetOutputStream();
-}
-
 // Code for WifiDirectServerSocket
 std::string WifiDirectServerSocket::GetName(absl::string_view ip_address,
                                             int port) {
