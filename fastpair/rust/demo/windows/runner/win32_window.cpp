@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "win32_window.h"
+#include "./win32_window.h"
 
 #include <dwmapi.h>
 #include <flutter_windows.h>
 
-#include "resource.h"
+#include "./resource.h"
 
 namespace {
 
@@ -38,7 +38,8 @@ constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
 /// value indicates apps should use light mode.
 constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
-constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
+constexpr const wchar_t kGetPreferredBrightnessRegValue[] =
+  L"AppsUseLightTheme";
 
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;

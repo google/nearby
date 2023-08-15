@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//{{NO_DEPENDENCIES}}
+// {{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by Runner.rc
 //
+#ifndef RUNNER_RESOURCE_H_
+#define RUNNER_RESOURCE_H_
 #define IDI_APP_ICON                    101
 
 // Next default values for new objects
@@ -28,3 +30,4 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
+#endif  // RUNNER_RESOURCE_H_

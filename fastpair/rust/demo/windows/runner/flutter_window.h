@@ -20,7 +20,7 @@
 
 #include <memory>
 
-#include "win32_window.h"
+#include "./win32_window.h"
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {

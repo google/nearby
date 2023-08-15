@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "utils.h"
+#include "./utils.h"
 
 #include <flutter_windows.h>
 #include <io.h>
@@ -62,7 +62,7 @@ std::string Utf8FromUtf16(const wchar_t* utf16_string) {
   int target_length = ::WideCharToMultiByte(
       CP_UTF8, WC_ERR_INVALID_CHARS, utf16_string,
       -1, nullptr, 0, nullptr, nullptr)
-    -1; // remove the trailing null character
+    -1;  // remove the trailing null character
   int input_length = (int)wcslen(utf16_string);
   std::string utf8_string;
   if (target_length <= 0 || target_length > utf8_string.max_size()) {
