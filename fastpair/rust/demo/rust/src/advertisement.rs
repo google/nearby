@@ -16,7 +16,7 @@ use bluetooth::{BleAddress, BleAdvertisement, ServiceData};
 
 use crate::{
     decoder::FpDecoder,
-    fetcher::{FpFetcher, FpFetcherLocal},
+    fetcher::{DeviceInfo, FpFetcher, FpFetcherFs},
 };
 
 /// Represents a FP device model ID.
@@ -78,7 +78,7 @@ impl FpPairingAdvertisement {
         let model_id = format!("{}", u32::from_be_bytes(model_id.try_into().unwrap()));
 
         // Retrieve device info of the device corresponding to this model ID.
-        let fetcher = FpFetcherLocal::new(String::from("./local"));
+        let fetcher = FpFetcherFs::new(String::from("./local"));
         let device_info = fetcher
             .get_device_info_from_model_id(&model_id)
             .expect("Failed to create device info from model ID.");
