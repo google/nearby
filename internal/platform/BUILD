@@ -344,6 +344,7 @@ cc_library(
         "//internal/test:__subpackages__",
         "//internal/weave:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
+        "//location/nearby/apps:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",
         "//presence:__subpackages__",
