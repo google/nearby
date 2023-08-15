@@ -15,7 +15,6 @@
 #include "internal/platform/implementation/g3/ble_v2.h"
 
 #include <algorithm>
-#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -23,15 +22,26 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/borrowable.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace g3 {

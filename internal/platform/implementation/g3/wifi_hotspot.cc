@@ -16,16 +16,22 @@
 
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {

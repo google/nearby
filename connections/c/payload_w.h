@@ -60,19 +60,18 @@ class DLL_API PayloadW {
   ~PayloadW();
 
   // Constructors for outgoing payloads.
-  explicit PayloadW(const char* bytes, const size_t size);
+  explicit PayloadW(const char* bytes, size_t size);
 
   explicit PayloadW(InputFileW& file);
-  explicit PayloadW(std::function<InputStream&()> stream);
+  explicit PayloadW(std::unique_ptr<InputStream> stream);
 
   // Constructors for incoming payloads.
-  PayloadW(PayloadId id, const char* bytes, const size_t size);
+  PayloadW(PayloadId id, const char* bytes, size_t size);
   PayloadW(PayloadId id, InputFileW file);
   explicit PayloadW(const char* parent_folder, const char* file_name,
                     InputFileW file);
 
-  // TODO(jfcarroll): Convert std::function to function pointer
-  PayloadW(PayloadId id, std::function<InputStream&()> stream);
+  PayloadW(PayloadId id, std::unique_ptr<InputStream> stream);
   // Returns ByteArray payload, if it has
   // been defined, or empty ByteArray.
   bool AsBytes(const char*& bytes, size_t& bytes_size) const&;

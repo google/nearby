@@ -100,8 +100,8 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
   std::string name_;
   rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel_;
 
-  Pipe pipe_;
-
+  std::unique_ptr<InputStream> pipe_input_;
+  std::unique_ptr<OutputStream> pipe_output_;
   OutputStreamImpl output_stream_{this};
 
   AtomicBoolean closed_{false};

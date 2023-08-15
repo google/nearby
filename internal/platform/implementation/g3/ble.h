@@ -27,7 +27,6 @@
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
-#include "internal/platform/implementation/g3/pipe.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"

@@ -18,31 +18,30 @@
 
 #include <algorithm>
 
-// TODO(b/239758418): Change this to the non-internal version when available.
-#include "internal/platform/input_stream.h"
+#include "connections/payload.h"
 
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCException+Internal.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCException.h"
 
 using ::nearby::ByteArray;
 using ::nearby::ExceptionOr;
-using ::nearby::InputStream;
 using ::nearby::connections::NSErrorFromCppException;
+using ::nearby::connections::Payload;
 
 @implementation GNCInputStream {
   NSStreamStatus _streamStatus;
   NSError *_streamError;
   id<NSStreamDelegate> _delegate;
-  InputStream *_stream;
+  Payload _payload;
 }
 
-- (instancetype)initWithCppInputStream:(InputStream *)stream {
+- (instancetype)initWithPayload:(Payload)payload {
   // Init with empty data because init is not a designated initializer.
   self = [super initWithData:[[NSData alloc] init]];
   if (self) {
     _streamStatus = NSStreamStatusNotOpen;
     _delegate = self;
-    _stream = stream;
+    _payload = std::move(payload);
   }
 
   return self;
@@ -53,7 +52,7 @@ using ::nearby::connections::NSErrorFromCppException;
 }
 
 - (NSInteger)read:(uint8_t *)buffer maxLength:(NSUInteger)maxLen {
-  ExceptionOr<ByteArray> readResult = _stream->Read(maxLen);
+  ExceptionOr<ByteArray> readResult = _payload.AsStream()->Read(maxLen);
 
   if (!readResult.ok()) {
     _streamError = NSErrorFromCppException(readResult.GetException());
@@ -87,7 +86,7 @@ using ::nearby::connections::NSErrorFromCppException;
 
 - (void)close {
   _streamStatus = NSStreamStatusClosed;
-  _stream->Close();
+  _payload.AsStream()->Close();
 }
 
 - (NSStreamStatus)streamStatus {

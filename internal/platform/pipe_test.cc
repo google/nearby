@@ -17,141 +17,137 @@
 #include <pthread.h>
 
 #include <atomic>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
 
+namespace {
+constexpr size_t kChunkSize = 64 * 1024;
+}
+
 TEST(PipeTest, ConstructorDestructorWorks) {
-  Pipe pipe;
+  auto [input_stream, output_stream] = CreatePipe();
   SUCCEED();
 }
 
 TEST(PipeTest, SimpleWriteRead) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
-  OutputStream& output_stream{pipe.GetOutputStream()};
-
+  auto [input_stream, output_stream] = CreatePipe();
   std::string data("ABCD");
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
 
-  ExceptionOr<ByteArray> read_data = input_stream.Read(Pipe::kChunkSize);
+  ExceptionOr<ByteArray> read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
   EXPECT_EQ(data, std::string(read_data.result()));
 }
 
 TEST(PipeTest, WriteEndClosedBeforeRead) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
-  OutputStream& output_stream{pipe.GetOutputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
   std::string data("ABCD");
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
 
   // Close the write end before the read end has even begun reading.
-  EXPECT_TRUE(output_stream.Close().Ok());
+  EXPECT_TRUE(output_stream->Close().Ok());
 
   // We should still be able to read what was written.
-  ExceptionOr<ByteArray> read_data = input_stream.Read(Pipe::kChunkSize);
+  ExceptionOr<ByteArray> read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
   EXPECT_EQ(data, std::string(read_data.result()));
 
   // And after that, we should get our indication that all the data that could
   // ever be read, has already been read.
-  read_data = input_stream.Read(Pipe::kChunkSize);
+  read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
   EXPECT_TRUE(read_data.result().Empty());
 }
 
 TEST(PipeTest, ReadEndClosedBeforeWrite) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
-  OutputStream& output_stream{pipe.GetOutputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
   // Close the read end before the write end has even begun writing.
-  EXPECT_TRUE(input_stream.Close().Ok());
+  EXPECT_TRUE(input_stream->Close().Ok());
 
   std::string data("ABCD");
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Raised(Exception::kIo));
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Raised(Exception::kIo));
 }
 
 TEST(PipeTest, SizedReadMoreThanFirstChunkSize) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
-  OutputStream& output_stream{pipe.GetOutputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
   std::string data("ABCD");
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
 
   // Even though we ask for double of what's there in the first chunk, we should
   // get back only what's there in that first chunk, and that's alright.
-  ExceptionOr<ByteArray> read_data = input_stream.Read(data.size() * 2);
+  ExceptionOr<ByteArray> read_data = input_stream->Read(data.size() * 2);
   EXPECT_TRUE(read_data.ok());
   EXPECT_EQ(data, std::string(read_data.result()));
 }
 
 TEST(PipeTest, SizedReadLessThanFirstChunkSize) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
-  OutputStream& output_stream{pipe.GetOutputStream()};
-
+  auto [input_stream, output_stream] = CreatePipe();
   std::string data_first_part("ABCD");
   std::string data_second_part("EFGHIJ");
   std::string data = data_first_part + data_second_part;
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
 
   // When we ask for less than what's there in the first chunk, we should get
   // back exactly what we asked for, with the remainder still being available
   // for the next read.
   std::int64_t desired_size = data_first_part.size();
-  ExceptionOr<ByteArray> first_read_data = input_stream.Read(desired_size);
+  ExceptionOr<ByteArray> first_read_data = input_stream->Read(desired_size);
   EXPECT_TRUE(first_read_data.ok());
   EXPECT_EQ(data_first_part, std::string(first_read_data.result()));
 
   // Now read the remainder, and get everything that ought to have been left.
-  ExceptionOr<ByteArray> second_read_data = input_stream.Read(Pipe::kChunkSize);
+  ExceptionOr<ByteArray> second_read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(second_read_data.ok());
   EXPECT_EQ(data_second_part, std::string(second_read_data.result()));
 }
 
 TEST(PipeTest, ReadAfterInputStreamClosed) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
-  input_stream.Close();
+  input_stream->Close();
 
-  ExceptionOr<ByteArray> read_data = input_stream.Read(Pipe::kChunkSize);
+  ExceptionOr<ByteArray> read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
   EXPECT_TRUE(read_data.GetResult().Empty());
 }
 
 TEST(PipeTest, WriteAfterOutputStreamClosed) {
-  Pipe pipe;
-  OutputStream& output_stream{pipe.GetOutputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
-  output_stream.Close();
+  output_stream->Close();
 
   std::string data("ABCD");
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Raised(Exception::kIo));
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Raised(Exception::kIo));
 }
 
 TEST(PipeTest, RepeatedClose) {
-  Pipe pipe;
-  InputStream& input_stream{pipe.GetInputStream()};
-  OutputStream& output_stream{pipe.GetOutputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
-  EXPECT_TRUE(output_stream.Close().Ok());
-  EXPECT_TRUE(output_stream.Close().Ok());
-  EXPECT_TRUE(output_stream.Close().Ok());
+  EXPECT_TRUE(output_stream->Close().Ok());
+  EXPECT_TRUE(output_stream->Close().Ok());
+  EXPECT_TRUE(output_stream->Close().Ok());
 
-  EXPECT_TRUE(input_stream.Close().Ok());
-  EXPECT_TRUE(input_stream.Close().Ok());
-  EXPECT_TRUE(input_stream.Close().Ok());
+  EXPECT_TRUE(input_stream->Close().Ok());
+  EXPECT_TRUE(input_stream->Close().Ok());
+  EXPECT_TRUE(input_stream->Close().Ok());
 }
 
 class Thread {
@@ -186,17 +182,18 @@ TEST(PipeTest, ReadBlockedUntilWrite) {
 
   class ReaderRunnable {
    public:
-    ReaderRunnable(InputStream* input_stream,
+    ReaderRunnable(std::unique_ptr<InputStream> input_stream,
                    absl::string_view expected_read_data,
                    CrossThreadBool* ok_for_read_to_unblock)
-        : input_stream_(input_stream),
+        : input_stream_(std::move(input_stream)),
           expected_read_data_(expected_read_data),
           ok_for_read_to_unblock_(ok_for_read_to_unblock) {}
+    ReaderRunnable(ReaderRunnable&&) = default;
     ~ReaderRunnable() = default;
 
     // Signature "void()" satisfies Runnable.
     void operator()() {
-      ExceptionOr<ByteArray> read_data = input_stream_->Read(Pipe::kChunkSize);
+      ExceptionOr<ByteArray> read_data = input_stream_->Read(kChunkSize);
 
       // Make sure read() doesn't return before it's appropriate.
       if (!*ok_for_read_to_unblock_) {
@@ -210,13 +207,12 @@ TEST(PipeTest, ReadBlockedUntilWrite) {
     }
 
    private:
-    InputStream* input_stream_;
+    std::unique_ptr<InputStream> input_stream_;
     const std::string expected_read_data_;
     CrossThreadBool* ok_for_read_to_unblock_;
   };
 
-  Pipe pipe;
-  OutputStream& output_stream{pipe.GetOutputStream()};
+  auto [input_stream, output_stream] = CreatePipe();
 
   // State shared between this thread (the writer) and reader_thread.
   CrossThreadBool ok_for_read_to_unblock = false;
@@ -225,7 +221,7 @@ TEST(PipeTest, ReadBlockedUntilWrite) {
   // Kick off reader_thread.
   Thread reader_thread;
   reader_thread.Start(
-      ReaderRunnable(&pipe.GetInputStream(), data, &ok_for_read_to_unblock));
+      ReaderRunnable(std::move(input_stream), data, &ok_for_read_to_unblock));
 
   // Introduce a delay before we actually write anything.
   absl::SleepFor(absl::Seconds(5));
@@ -236,7 +232,7 @@ TEST(PipeTest, ReadBlockedUntilWrite) {
   ok_for_read_to_unblock = true;
 
   // Perform the actual write.
-  EXPECT_TRUE(output_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
 
   // And wait for reader_thread to finish.
   reader_thread.Join();
@@ -247,6 +243,7 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
    protected:
     explicit BaseRunnable(const std::vector<std::string>& chunks)
         : chunks_(chunks) {}
+    BaseRunnable(BaseRunnable&&) = default;
     virtual ~BaseRunnable() = default;
 
     void RandomSleep() {
@@ -267,9 +264,10 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
 
   class WriterRunnable : public BaseRunnable {
    public:
-    WriterRunnable(OutputStream* output_stream,
+    WriterRunnable(std::unique_ptr<OutputStream> output_stream,
                    const std::vector<std::string>& chunks)
-        : BaseRunnable(chunks), output_stream_(output_stream) {}
+        : BaseRunnable(chunks), output_stream_(std::move(output_stream)) {}
+    WriterRunnable(WriterRunnable&&) = default;
     ~WriterRunnable() override = default;
 
     void operator()() {
@@ -283,14 +281,15 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
     }
 
    private:
-    OutputStream* output_stream_;
+    std::unique_ptr<OutputStream> output_stream_;
   };
 
   class ReaderRunnable : public BaseRunnable {
    public:
-    ReaderRunnable(InputStream* input_stream,
+    ReaderRunnable(std::unique_ptr<InputStream> input_stream,
                    const std::vector<std::string>& chunks)
-        : BaseRunnable(chunks), input_stream_(input_stream) {}
+        : BaseRunnable(chunks), input_stream_(std::move(input_stream)) {}
+    ReaderRunnable(ReaderRunnable&&) = default;
     ~ReaderRunnable() override = default;
 
     void operator()() {
@@ -304,8 +303,7 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
       std::string actual_data;
       while (true) {
         RandomSleep();  // Random pauses before each read.
-        ExceptionOr<ByteArray> read_data =
-            input_stream_->Read(Pipe::kChunkSize);
+        ExceptionOr<ByteArray> read_data = input_stream_->Read(kChunkSize);
         if (read_data.ok()) {
           ByteArray result = read_data.result();
           if (result.Empty()) {
@@ -322,11 +320,10 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
     }
 
    private:
-    InputStream* input_stream_;
+    std::unique_ptr<InputStream> input_stream_;
   };
 
-  Pipe pipe;
-
+  auto [input_stream, output_stream] = CreatePipe();
   std::vector<std::string> chunks;
   chunks.push_back("ABCD");
   chunks.push_back("EFGH");
@@ -334,8 +331,8 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
 
   Thread writer_thread;
   Thread reader_thread;
-  writer_thread.Start(WriterRunnable(&pipe.GetOutputStream(), chunks));
-  reader_thread.Start(ReaderRunnable(&pipe.GetInputStream(), chunks));
+  writer_thread.Start(WriterRunnable(std::move(output_stream), chunks));
+  reader_thread.Start(ReaderRunnable(std::move(input_stream), chunks));
   writer_thread.Join();
   reader_thread.Join();
 }

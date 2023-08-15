@@ -20,8 +20,6 @@
 
 #include "connections/payload.h"
 
-#import "connections/swift/NearbyCoreAdapter/Sources/CPPInputStreamBinding.h"
-
 using ::nearby::connections::Payload;
 
 @implementation GNCPayload
@@ -62,7 +60,6 @@ using ::nearby::connections::Payload;
   self = [super initWithIdentifier:identifier];
   if (self) {
     _stream = stream;
-    [CPPInputStreamBinding bindToStream:stream];
   }
   return self;
 }

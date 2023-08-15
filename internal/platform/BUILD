@@ -73,13 +73,11 @@ cc_library(
     name = "util",
     srcs = [
         "base_input_stream.cc",
-        "base_pipe.cc",
         "byte_utils.cc",
     ],
     hdrs = [
         "base_input_stream.h",
         "base_mutex_lock.h",
-        "base_pipe.h",
         "byte_utils.h",
     ],
     visibility = [
@@ -465,6 +463,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":base",
+        ":cancellation_flag",
         ":comm",
         ":connection_info",
         ":test_util",

@@ -14,7 +14,9 @@
 
 #include "connections/implementation/base_endpoint_channel.h"
 
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -22,9 +24,13 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
@@ -34,7 +40,6 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -44,6 +49,7 @@ namespace {
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
+constexpr size_t kChunkSize = 64 * 1024;
 
 class TestEndpointChannel : public BaseEndpointChannel {
  public:
@@ -62,7 +68,7 @@ std::function<void()> MakeDataPump(
   return [label, input, output, monitor]() {
     NEARBY_LOGS(INFO) << "streaming data through '" << label << "'";
     while (true) {
-      auto read_response = input->Read(Pipe::kChunkSize);
+      auto read_response = input->Read(kChunkSize);
       if (!read_response.ok()) {
         NEARBY_LOGS(INFO) << "Peer reader closed on '" << label << "'";
         output->Close();
@@ -158,21 +164,17 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
 }
 
 TEST(BaseEndpointChannelTest, ConstructorDestructorWorks) {
-  Pipe pipe;
-  InputStream& input_stream = pipe.GetInputStream();
-  OutputStream& output_stream = pipe.GetOutputStream();
+  auto [input, output] = CreatePipe();
 
-  TestEndpointChannel test_channel(&input_stream, &output_stream);
+  TestEndpointChannel test_channel(input.get(), output.get());
 }
 
 TEST(BaseEndpointChannelTest, ReadWrite) {
   // Direct not-encrypted IO.
-  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
-  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
-                                &pipe_a.GetOutputStream());
-  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
-                                &pipe_b.GetOutputStream());
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
   ByteArray tx_message{"data message"};
   channel_a.Write(tx_message);
   ByteArray rx_message = std::move(channel_b.Read().result());
@@ -180,8 +182,8 @@ TEST(BaseEndpointChannelTest, ReadWrite) {
 }
 
 TEST(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
-  Pipe pipe;
-  TestEndpointChannel channel(&pipe.GetInputStream(), &pipe.GetOutputStream());
+  auto pipe = CreatePipe();
+  TestEndpointChannel channel(pipe.first.get(), pipe.second.get());
 
   ExceptionOr<ByteArray> result = channel.TryDecrypt(ByteArray("message"));
 
@@ -192,12 +194,10 @@ TEST(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
 
 TEST(BaseEndpointChannelTest, TryDecrypt) {
   absl::string_view kMessage = "message";
-  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
-  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
-                                &pipe_a.GetOutputStream());
-  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
-                                &pipe_b.GetOutputStream());
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
   auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
   ASSERT_NE(context_a, nullptr);
   ASSERT_NE(context_b, nullptr);
@@ -215,12 +215,10 @@ TEST(BaseEndpointChannelTest, TryDecrypt) {
 }
 
 TEST(BaseEndpointChannelTest, TryDecryptFailsWhenDecryptionFails) {
-  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
-  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
-                                &pipe_a.GetOutputStream());
-  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
-                                &pipe_b.GetOutputStream());
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
   auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
   ASSERT_NE(context_a, nullptr);
   channel_a.EnableEncryption(context_a);
@@ -240,25 +238,27 @@ TEST(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
   absl::Mutex mutex;
   std::string capture_a;
   std::string capture_b;
-  Pipe client_a;  // Channel "a" writes to client "a", reads from server "a".
-  Pipe client_b;  // Channel "b" writes to client "b", reads from server "b".
-  Pipe server_a;  // Data pump "a" reads from client "a", writes to server "b".
-  Pipe server_b;  // Data pump "b" reads from client "b", writes to server "a".
-  TestEndpointChannel channel_a(&server_a.GetInputStream(),
-                                &client_a.GetOutputStream());
-  TestEndpointChannel channel_b(&server_b.GetInputStream(),
-                                &client_b.GetOutputStream());
+  auto client_a =
+      CreatePipe();  // Channel "a" writes to client "a", reads from server "a".
+  auto client_b =
+      CreatePipe();  // Channel "b" writes to client "b", reads from server "b".
+  auto server_a = CreatePipe();  // Data pump "a" reads from client "a", writes
+                                 // to server "b".
+  auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
+                                 // to server "a".
+  TestEndpointChannel channel_a(server_a.first.get(), client_a.second.get());
+  TestEndpointChannel channel_b(server_b.first.get(), client_b.second.get());
 
   ON_CALL(channel_a, GetMedium).WillByDefault([]() { return Medium::BLE; });
   ON_CALL(channel_b, GetMedium).WillByDefault([]() { return Medium::BLE; });
 
   MultiThreadExecutor executor(2);
-  executor.Execute(MakeDataPump(
-      "pump_a", &client_a.GetInputStream(), &server_b.GetOutputStream(),
-      MakeDataMonitor("monitor_a", &capture_a, &mutex)));
-  executor.Execute(MakeDataPump(
-      "pump_b", &client_b.GetInputStream(), &server_a.GetOutputStream(),
-      MakeDataMonitor("monitor_b", &capture_b, &mutex)));
+  executor.Execute(
+      MakeDataPump("pump_a", client_a.first.get(), server_b.second.get(),
+                   MakeDataMonitor("monitor_a", &capture_a, &mutex)));
+  executor.Execute(
+      MakeDataPump("pump_b", client_b.first.get(), server_a.second.get(),
+                   MakeDataMonitor("monitor_b", &capture_b, &mutex)));
 
   EXPECT_EQ(channel_a.GetType(), "BLE");
   EXPECT_EQ(channel_b.GetType(), "BLE");
@@ -289,14 +289,16 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   absl::Mutex mutex;
   std::string capture_a;
   std::string capture_b;
-  Pipe client_a;  // Channel "a" writes to client "a", reads from server "a".
-  Pipe client_b;  // Channel "b" writes to client "b", reads from server "b".
-  Pipe server_a;  // Data pump "a" reads from client "a", writes to server "b".
-  Pipe server_b;  // Data pump "b" reads from client "b", writes to server "a".
-  TestEndpointChannel channel_a(&server_a.GetInputStream(),
-                                &client_a.GetOutputStream());
-  TestEndpointChannel channel_b(&server_b.GetInputStream(),
-                                &client_b.GetOutputStream());
+  auto client_a =
+      CreatePipe();  // Channel "a" writes to client "a", reads from server "a".
+  auto client_b =
+      CreatePipe();  // Channel "b" writes to client "b", reads from server "b".
+  auto server_a = CreatePipe();  // Data pump "a" reads from client "a", writes
+                                 // to server "b".
+  auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
+                                 // to server "a".
+  TestEndpointChannel channel_a(server_a.first.get(), client_a.second.get());
+  TestEndpointChannel channel_b(server_b.first.get(), client_b.second.get());
 
   ON_CALL(channel_a, GetMedium).WillByDefault([]() {
     return Medium::BLUETOOTH;
@@ -306,12 +308,12 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   });
 
   MultiThreadExecutor executor(2);
-  executor.Execute(MakeDataPump(
-      "pump_a", &client_a.GetInputStream(), &server_b.GetOutputStream(),
-      MakeDataMonitor("monitor_a", &capture_a, &mutex)));
-  executor.Execute(MakeDataPump(
-      "pump_b", &client_b.GetInputStream(), &server_a.GetOutputStream(),
-      MakeDataMonitor("monitor_b", &capture_b, &mutex)));
+  executor.Execute(
+      MakeDataPump("pump_a", client_a.first.get(), server_b.second.get(),
+                   MakeDataMonitor("monitor_a", &capture_a, &mutex)));
+  executor.Execute(
+      MakeDataPump("pump_b", client_b.first.get(), server_a.second.get(),
+                   MakeDataMonitor("monitor_b", &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
   auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
@@ -346,12 +348,10 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
 
 TEST(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
   // Setup test communication environment.
-  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
-  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
-                                &pipe_a.GetOutputStream());
-  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
-                                &pipe_b.GetOutputStream());
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
 
   ON_CALL(channel_a, GetMedium).WillByDefault([]() {
     return Medium::WIFI_LAN;
@@ -399,14 +399,12 @@ TEST(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
 }
 
 TEST(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
-  Pipe pipe;
-  InputStream& input_stream = pipe.GetInputStream();
-  OutputStream& output_stream = pipe.GetOutputStream();
+  auto [input, output] = CreatePipe();
 
-  TestEndpointChannel test_channel(&input_stream, &output_stream);
+  TestEndpointChannel test_channel(input.get(), output.get());
 
   // Close the output stream before trying to read from the input.
-  output_stream.Close();
+  output->Close();
 
   // Trying to read should fail gracefully with an IO error.
   ExceptionOr<ByteArray> read_data = test_channel.Read();
@@ -417,12 +415,10 @@ TEST(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
 
 TEST(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
   // Setup test communication environment.
-  Pipe pipe_a;  // channel_a writes to pipe_a, reads from pipe_b.
-  Pipe pipe_b;  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(&pipe_b.GetInputStream(),
-                                &pipe_a.GetOutputStream());
-  TestEndpointChannel channel_b(&pipe_a.GetInputStream(),
-                                &pipe_b.GetOutputStream());
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
 
   ON_CALL(channel_a, GetMedium).WillByDefault([]() {
     return Medium::BLUETOOTH;

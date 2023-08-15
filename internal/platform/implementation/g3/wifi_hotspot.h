@@ -23,7 +23,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
-#include "internal/platform/implementation/g3/pipe.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/input_stream.h"

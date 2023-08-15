@@ -18,14 +18,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <tuple>
+#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/g3/pipe.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/pipe.h"
 
 namespace nearby {
 namespace g3 {
@@ -33,6 +35,7 @@ namespace g3 {
 // Common base for BT, BLE and Wifi socket implementations.
 class SocketBase {
  public:
+  SocketBase() { std::tie(input_for_remote_, output_) = CreatePipe(); }
   virtual ~SocketBase() {
     absl::MutexLock lock(&mutex_);
     DoClose();
@@ -43,23 +46,17 @@ class SocketBase {
   void Connect(SocketBase& other) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
     remote_socket_ = &other;
-    input_ = other.output_;
+    input_ = std::move(other.input_for_remote_);
   }
 
   // Returns the InputStream of this connected socket.
-  InputStream& GetInputStream() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
-    if (IsConnectedLocked()) {
-      return input_->GetInputStream();
-    }
-    return invalid_input_stream_;
-  }
+  InputStream& GetInputStream() { return input_proxy_; }
 
   // Returns the OutputStream of this connected socket.
   // This stream is for local side to write.
   OutputStream& GetOutputStream() ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
-    return output_->GetOutputStream();
+    return *output_;
   }
 
   // Returns true if connection exists to the (possibly closed) remote socket.
@@ -95,13 +92,15 @@ class SocketBase {
   void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
     if (!closed_) {
       remote_socket_ = nullptr;
-      output_->GetOutputStream().Close();
-      output_->GetInputStream().Close();
-      if (IsConnectedLocked()) {
-        input_->GetOutputStream().Close();
-        input_->GetInputStream().Close();
-        input_.reset();
+      // The client can hold references to `output_` and `input_` streams. We
+      // can close them but we cannot destroy them.
+      output_->Close();
+      if (input_) {
+        input_->Close();
       }
+      // The client does not hold a reference to `input_for_remote_`, so we can
+      // destroy it. Connecting to this socket will fail after that.
+      input_for_remote_.reset();
       closed_ = true;
     }
   }
@@ -111,24 +110,42 @@ class SocketBase {
     return input_ != nullptr;
   }
 
-  class InvalidInputStream : public InputStream {
+  class InputProxyStream : public InputStream {
    public:
+    explicit InputProxyStream(SocketBase* socket) : socket_(socket) {}
     ExceptionOr<ByteArray> Read(std::int64_t size) override {
-      return ExceptionOr<ByteArray>(Exception::kIo);
+      if (!socket_->IsConnected()) {
+        return ExceptionOr<ByteArray>(Exception::kIo);
+      }
+      return socket_->input_->Read(size);
     }
     ExceptionOr<size_t> Skip(size_t offset) override {
-      return ExceptionOr<size_t>(Exception::kIo);
+      if (!socket_->IsConnected()) {
+        return ExceptionOr<size_t>(Exception::kIo);
+      }
+      return socket_->input_->Skip(offset);
     }
-    Exception Close() override { return {Exception::kIo}; }
-  };
-  // Returned to the caller if the remote socket is destroyed.
-  InvalidInputStream invalid_input_stream_;
+    Exception Close() override {
+      if (!socket_->IsConnected()) {
+        return {Exception::kIo};
+      }
+      return socket_->input_->Close();
+    }
 
-  // Output pipe is initialized by constructor, it remains always valid, until
-  // it is closed. it represents output part of a local socket. Input part of a
-  // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_{new Pipe};
-  std::shared_ptr<Pipe> input_;
+   private:
+    SocketBase* socket_;
+  };
+  InputProxyStream input_proxy_{this};
+
+  // Output stream is initialized by constructor, it remains always valid. It
+  // represents output part of a local socket. Input stream of a local socket
+  // comes from the peer socket, after connection.
+  std::unique_ptr<OutputStream> output_;
+  std::unique_ptr<InputStream> input_;
+  // `input_for_remote_` is the other end of the pipe formed with `output_`. We
+  // give this stream to the remote socket when they connect to us, and it
+  // becomes their `input_` stream.
+  std::unique_ptr<InputStream> input_for_remote_;
   SocketBase* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };

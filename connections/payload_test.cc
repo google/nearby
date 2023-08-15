@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -95,19 +96,14 @@ TEST(PayloadTest,
 
 TEST(PayloadTest, SupportsStreamType) {
   constexpr size_t kOffset = 1234456;
-  auto pipe = std::make_shared<Pipe>();
+  auto [input, output] = CreatePipe();
+  InputStream* input_stream = input.get();
 
-  Payload payload([streamable = pipe]() -> InputStream& {
-    // For some reason, linter warns us that we return a dangling reference.
-    // This is not true: we return a reference to internal variable of a
-    // shared_ptr<Pipe> which remains valid while Payload is valid, since
-    // shared_ptr<Pipe> is captured by value.
-    return streamable->GetInputStream();  // NOLINT
-  });
+  Payload payload(std::move(input));
   payload.SetOffset(kOffset);
 
   EXPECT_EQ(payload.GetType(), PayloadType::kStream);
-  EXPECT_EQ(payload.AsStream(), &pipe->GetInputStream());
+  EXPECT_EQ(payload.AsStream(), input_stream);
   EXPECT_EQ(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
   EXPECT_EQ(payload.GetOffset(), kOffset);

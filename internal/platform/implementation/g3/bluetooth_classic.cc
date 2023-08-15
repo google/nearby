@@ -17,12 +17,18 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/log/check.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
-#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 

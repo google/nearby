@@ -15,19 +15,23 @@
 #ifndef PLATFORM_PUBLIC_PIPE_H_
 #define PLATFORM_PUBLIC_PIPE_H_
 
-#include "internal/platform/base_pipe.h"
+#include <memory>
+#include <utility>
+
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 
-// See for details:
-// http://google3/platform/base/base_pipe.h
-class Pipe final : public BasePipe {
- public:
-  Pipe();
-  ~Pipe() override = default;
-  Pipe(Pipe&&) = delete;
-  Pipe& operator=(Pipe&&) = delete;
-};
+// Creates a pipe for streaming data between threads.
+// ```
+//  auto [input, output] = CreatePipe();
+//  ReaderThread(std::move(input));
+//  WriterThread(std::move(output));
+//  ```
+//  Pipe stays valid as long as either `input` or `output` exist.
+std::pair<std::unique_ptr<InputStream>, std::unique_ptr<OutputStream>>
+CreatePipe();
 
 }  // namespace nearby
 

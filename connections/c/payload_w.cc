@@ -13,9 +13,16 @@
 // limitations under the License.
 #include "connections/c/payload_w.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <utility>
+
 #include "connections/c/file_w.h"
 #include "connections/payload.h"
+#include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/payload_id.h"
 
 namespace nearby {
@@ -32,7 +39,7 @@ PayloadW::PayloadW()
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
           new connections::Payload())) {}
 
-PayloadW::~PayloadW() {}
+PayloadW::~PayloadW() = default;
 PayloadW::PayloadW(PayloadW &&other) noexcept : impl_(std::move(other.impl_)) {}
 
 PayloadW &PayloadW::operator=(PayloadW &&other) noexcept {
@@ -49,10 +56,9 @@ PayloadW::PayloadW(InputFileW &file)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
           new connections::Payload(InputFile(std::move(*file.GetImpl()))))) {}
 
-// TODO(jfcarroll): Convert std::function to function pointer
-PayloadW::PayloadW(std::function<InputStream &()> stream)
+PayloadW::PayloadW(std::unique_ptr<InputStream> stream)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
-          new connections::Payload(stream))) {}
+          new connections::Payload(std::move(stream)))) {}
 
 // Constructors for incoming payloads.
 PayloadW::PayloadW(PayloadId id, const char *bytes, const size_t bytes_size)
@@ -69,9 +75,9 @@ PayloadW::PayloadW(const char *parent_folder, const char *file_name,
           new connections::Payload(parent_folder, file_name,
                                    std::move(*file.GetImpl())))) {}
 
-PayloadW::PayloadW(PayloadId id, std::function<InputStream &()> stream)
+PayloadW::PayloadW(PayloadId id, std::unique_ptr<InputStream> stream)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
-          new connections::Payload(id, stream))) {}
+          new connections::Payload(id, std::move(stream)))) {}
 
 // Returns ByteArray payload, if it has been defined, or empty ByteArray.
 bool PayloadW::AsBytes(const char *&bytes, size_t &bytes_size) const & {
