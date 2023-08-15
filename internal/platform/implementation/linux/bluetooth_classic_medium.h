@@ -1,15 +1,22 @@
 #ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_MEDIUM_H_
 
+#include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 
+#include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/Types.h>
 #include <systemd/sd-bus.h>
 
+#include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
+#include "internal/platform/implementation/linux/bluetooth_devices.h"
 
 namespace nearby {
 namespace linux {
@@ -17,8 +24,9 @@ namespace linux {
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 public:
-  BluetoothClassicMedium(sd_bus *system_bus, absl::string_view adapter);
-  ~BluetoothClassicMedium();
+  BluetoothClassicMedium(sdbus::IConnection &system_bus,
+                         absl::string_view adapter);
+  ~BluetoothClassicMedium() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
   //
@@ -80,27 +88,28 @@ public:
     observers_.RemoveObserver(observer);
   };
 
-  struct DiscoveryParams {
-    std::string &adapter_object_path;
-    std::map<std::string, std::unique_ptr<BluetoothDevice>> &devices_by_path;
-    ObserverList<Observer> &observers_;
-    BluetoothClassicMedium::DiscoveryCallback cb;
-  };
+  std::optional<std::reference_wrapper<BluetoothDevice>>
+  get_device_by_path(const sdbus::ObjectPath &);
+  std::optional<std::reference_wrapper<BluetoothDevice>>
+  get_device_by_address(const std::string &);
+  void remove_device_by_path(const sdbus::ObjectPath &);
 
 private:
+  void onInterfacesAdded(sdbus::Signal &signal);
+  void onInterfacesRemoved(sdbus::Signal &signal);
+
+  BluetoothDevices devices_;
+
+  absl::Mutex discovery_cb_lock_;
+  std::optional<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
+
   ProfileManager profile_manager_;
-
-  std::string GetDeviceObjectPath(absl::string_view mac_address);
-
-  sd_bus *system_bus_ = nullptr;
-  sd_bus_slot *system_bus_slot_ = nullptr;
-  std::string adapter_object_path_ = std::string();
-  std::map<std::string, std::unique_ptr<BluetoothDevice>> devices_by_path_;
   ObserverList<Observer> observers_;
 
-  DiscoveryParams discovery_params_ = {adapter_object_path_, devices_by_path_,
-                                       observers_};
+  std::unique_ptr<sdbus::IProxy> bluez_adapter_proxy_;
+  std::unique_ptr<sdbus::IProxy> bluez_proxy_;
 };
+
 } // namespace linux
 } // namespace nearby
 

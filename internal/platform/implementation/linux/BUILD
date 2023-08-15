@@ -16,6 +16,7 @@ cc_library(
         "//internal/platform:logging",
         "@com_google_absl//absl/strings",
         "@libsystemd//:lib",
+        "@sdbus_cpp//:lib",
     ],
 )
 

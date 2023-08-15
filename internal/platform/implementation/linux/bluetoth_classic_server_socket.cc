@@ -19,27 +19,16 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
                        << service_uuid_ << " for device ";
     return nullptr;
   }
-  auto device_object_path =
-      absl::Substitute("$0/dev_$1", adapter_object_path_,
-                       absl::StrReplaceAll(pair->first, {{":", "_"}}));
-  auto device = BluetoothDevice(sd_bus_ref(system_bus_), device_object_path);
-  return std::unique_ptr<api::BluetoothSocket>(new BluetoothSocket(
-      device, device_object_path, service_uuid_, pair->second));
+
+  auto [device, fd] = *pair;
+  return std::unique_ptr<api::BluetoothSocket>(new BluetoothSocket(device, fd));
 }
 
 Exception BluetoothServerSocket::Close() {
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
   auto profile_object_path =
       absl::Substitute("/com/github/google/nearby/profiles/$0", service_uuid_);
 
-  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE, "/org/bluez",
-                         "org.bluez.ProfileManager1", "UnregisterProfile", &err,
-                         nullptr, "o", profile_object_path.c_str()) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error unregistering profile object "
-                       << profile_object_path << ": " << err.message;
-    return {Exception::kFailed};
-  }
+  profile_manager_.Unregister(service_uuid_);
 
   return {Exception::kSuccess};
 }

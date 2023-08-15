@@ -1,8 +1,11 @@
+#include <sdbus-c++/Error.h>
+#include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/IProxy.h>
 #include <systemd/sd-bus.h>
 #include <utility>
 
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/linux/bluetooth_classic_device.h"
+#include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_pairing.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
@@ -10,117 +13,119 @@
 namespace nearby {
 namespace linux {
 
-int pairing_reply_handler(sd_bus_message *m, void *userdata,
-                          sd_bus_error *err) {
-  auto pairing_cb = static_cast<api::BluetoothPairingCallback *>(userdata);
-  if (sd_bus_message_is_method_error(m, nullptr)) {
-    if (sd_bus_message_is_method_error(
-            m, "org.bluez.Error.AuthenticationCanceled")) {
-      pairing_cb->on_pairing_error_cb(
-          api::BluetoothPairingCallback::PairingError::kAuthCanceled);
-    } else if (sd_bus_message_is_method_error(
-                   m, "org.bluez.Error.AuthenticationFailed")) {
-      pairing_cb->on_pairing_error_cb(
-          api::BluetoothPairingCallback::PairingError::kAuthFailed);
-    } else if (sd_bus_message_is_method_error(
-                   m, "org.bluez.Error.AuthenticationRejected")) {
-      pairing_cb->on_pairing_error_cb(
-          api::BluetoothPairingCallback::PairingError::kAuthRejected);
-    } else if (sd_bus_message_is_method_error(
-                   m, "org.bluez.Error.AuthenticationTimeout")) {
-      pairing_cb->on_pairing_error_cb(
-          api::BluetoothPairingCallback::PairingError::kAuthTimeout);
+void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
+  if (error != nullptr && error->isValid()) {
+    auto name = error->getName();
+    api::BluetoothPairingCallback::PairingError err;
+
+    NEARBY_LOGS(ERROR) << __func__ << ": "
+                       << "Got error '" << error->getName()
+                       << "' with message '" << error->getMessage()
+                       << "' while pairing with device "
+                       << device_.getObjectPath();
+
+    if (name == "org.bluez.Error.AuthenticationCanceled") {
+      err = api::BluetoothPairingCallback::PairingError::kAuthCanceled;
+    } else if (name == "org.bluez.Error.AuthenticationFailed") {
+      err = api::BluetoothPairingCallback::PairingError::kAuthFailed;
+    } else if (name == "org.bluez.Error.AuthenticationRejected") {
+      err = api::BluetoothPairingCallback::PairingError::kAuthRejected;
+    } else if (name == "org.bluez.Error.AuthenticationTimeout") {
+      err = api::BluetoothPairingCallback::PairingError::kAuthTimeout;
     } else {
-      pairing_cb->on_pairing_error_cb(
-          api::BluetoothPairingCallback::PairingError::kAuthFailed);
+      err = api::BluetoothPairingCallback::PairingError::kAuthFailed;
     }
-    return 0;
+
+    if (pairing_cb_.on_pairing_error_cb != nullptr) {
+      pairing_cb_.on_pairing_error_cb(err);
+    }
+
+    return;
   }
-  if (err) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Error pairing with device: " << err->message;
-    pairing_cb->on_pairing_error_cb(
-        api::BluetoothPairingCallback::PairingError::kUnknown);
-  } else {
-    pairing_cb->on_paired_cb();
+  if (pairing_cb_.on_paired_cb != nullptr) {
+    pairing_cb_.on_paired_cb();
   }
-  return 0;
+  return;
 }
+
+BluetoothPairing::BluetoothPairing(const sdbus::ObjectPath &adapter_object_path,
+                                   BluetoothDevice &remote_device,
+                                   BluetoothAdapter &adapter,
+                                   sdbus::IConnection &system_bus)
+    : device_(remote_device), adapter_(adapter) {}
 
 bool BluetoothPairing::InitiatePairing(
     api::BluetoothPairingCallback pairing_cb) {
-  if (!system_bus_)
-    return false;
-
   pairing_cb_ = std::move(pairing_cb);
+  if (pairing_cb_.on_pairing_initiated_cb != nullptr)
+    pairing_cb_.on_pairing_initiated_cb(api::PairingParams{
+        api::PairingParams::PairingType::kConsent, std::string()});
 
-  if (sd_bus_call_method_async(
-          system_bus_, nullptr, BLUEZ_SERVICE, device_object_path_.c_str(),
-          BLUEZ_DEVICE_INTERFACE, "Pair", &pairing_reply_handler, &pairing_cb_,
-          nullptr) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error calling method Pair on device "
-                       << device_object_path_;
-    return false;
-  }
-  pairing_cb.on_pairing_initiated_cb(api::PairingParams{
-      api::PairingParams::PairingType::kConsent, std::string()});
   return true;
 }
 
 bool BluetoothPairing::FinishPairing(
     std::optional<absl::string_view> pin_code) {
+  device_.set_pair_reply_callback([this](const sdbus::Error *error) {
+    this->pairing_reply_handler(error);
+  });
+
+  try {
+    pair_async_call_ = device_.Pair();
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to initiate pairing for device "
+                       << device_.getObjectPath();
+    return false;
+  }
+
   return true;
 }
 
 bool BluetoothPairing::CancelPairing() {
-  if (!system_bus_)
-    return false;
+  try {
+    if (pair_async_call_.isPending()) {
+      pair_async_call_.cancel();
+    }
 
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE,
-                         device_object_path_.c_str(), BLUEZ_DEVICE_INTERFACE,
-                         "CancelPairing", &err, nullptr, nullptr) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Error calling method CancelPairing on device "
-                       << device_object_path_ << ": " << err.message;
+    device_.CancelPairing();
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to cancel pairing for device "
+                       << device_.getObjectPath();
     return false;
   }
+
   return true;
 }
 
 bool BluetoothPairing::Unpair() {
-  if (!system_bus_)
-    return false;
-
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE, "/org/bluez/hci0",
-                         BLUEZ_ADAPTER_INTERFACE, "RemoveDevice", &err, nullptr,
-                         "o", device_object_path_.c_str()) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Error calling method CancelPairing on device "
-                       << device_object_path_ << ": " << err.message;
+  try {
+    adapter_.RemoveDevice(device_.getObjectPath());
+    return true;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to unpair device "
+                       << device_.getObjectPath() << " on adapter "
+                       << adapter_.getObjectPath();
     return false;
   }
-  return true;
 }
 
 bool BluetoothPairing::IsPaired() {
-  if (!system_bus_)
+  try {
+    bool bonded = device_.Bonded();
+    return bonded;
+  } catch (const sdbus::Error &e) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
+                       << "' with message '" << e.getMessage()
+                       << "' while trying to get Bonded state for device "
+                       << device_.getObjectPath();
     return false;
-
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  int paired = 0;
-  if (sd_bus_get_property_trivial(
-          system_bus_, BLUEZ_SERVICE, device_object_path_.c_str(),
-          BLUEZ_DEVICE_INTERFACE, "Bonded", &err, 'b', &paired) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Error getting Bonded property for device "
-                       << device_object_path_ << ": " << err.message;
   }
-  return paired;
 }
 } // namespace linux
 } // namespace nearby

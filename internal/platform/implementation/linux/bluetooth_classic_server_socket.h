@@ -9,14 +9,9 @@ namespace nearby {
 namespace linux {
 class BluetoothServerSocket : public api::BluetoothServerSocket {
 public:
-  BluetoothServerSocket(sd_bus *system_bus, ProfileManager &profile_manager,
-                        absl::string_view adapter_object_path,
-                        absl::string_view service_uuid)
-      : profile_manager_(profile_manager) {
-    system_bus_ = system_bus;
-    adapter_object_path_ = adapter_object_path;
-    service_uuid_ = service_uuid;
-  }
+  BluetoothServerSocket(ProfileManager &profile_manager,
+                        const std::string &service_uuid)
+      : profile_manager_(profile_manager), service_uuid_(service_uuid) {}
   ~BluetoothServerSocket() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()
@@ -36,10 +31,8 @@ public:
   Exception Close() override;
 
 private:
-  sd_bus *system_bus_;
   ProfileManager &profile_manager_;
-  std::string adapter_object_path_;
-  std::string service_uuid_;
+  const std::string &service_uuid_;
 };
 } // namespace linux
 } // namespace nearby

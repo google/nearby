@@ -1,80 +1,26 @@
-#include <fcntl.h>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <sdbus-c++/Error.h>
 #include <string>
 #include <tuple>
 
-#include <systemd/sd-bus-protocol.h>
-#include <systemd/sd-bus-vtable.h>
-#include <systemd/sd-bus.h>
+#include <sdbus-c++/AdaptorInterfaces.h>
+#include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/IObject.h>
+#include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/Types.h>
 
-#include "absl/strings/substitute.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
+#include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
 
-const char *BLUEZ_PROFILEMANAGER_INTERFACE = "org.bluez.ProfileManager1";
-
 namespace nearby {
 namespace linux {
-static int profile_release(sd_bus_message *m, void *userdata,
-                           sd_bus_error *error) {
-  return 0;
-}
-static int profile_new_connection(sd_bus_message *m, void *userdata,
-                                  sd_bus_error *error) {
-  char *c_device_object = nullptr;
-  int fd = 0, ret;
-
-  ret = sd_bus_message_read(m, "oh", &c_device_object, &fd);
-  if (ret < 0) {
-    return ret;
-  }
-
-  std::string device_object(c_device_object);
-  fd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
-  if (fd < 0) {
-    return sd_bus_error_set_errno(error, errno);
-  }
-
-  sd_bus *bus;
-  sd_bus_default_system(&bus);
-
-  BluetoothDevice device(bus, device_object);
-  auto mac_addr = device.GetMacAddress();
-  if (mac_addr.empty()) {
-    return -1;
-  }
-
-  struct RegisteredService *service =
-      static_cast<struct RegisteredService *>(userdata);
-  service->connections_lock.Lock();
-  service->connections[mac_addr] = fd;
-  service->connections_lock.Unlock();
-
-  return 0;
-}
-
-static int profile_request_disconnection(sd_bus_message *m, void *userdata,
-                                         sd_bus_error *error) {
-  // TODO
-  return 0;
-}
-
-static const sd_bus_vtable vtable[] = {
-    SD_BUS_VTABLE_START(0),
-    SD_BUS_METHOD_WITH_ARGS("Release", SD_BUS_NO_ARGS, SD_BUS_NO_RESULT,
-                            profile_release, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD_WITH_ARGS(
-        "NewConnection", SD_BUS_ARGS("o", path, "h", fd, "a{sq}", properties),
-        SD_BUS_NO_RESULT, profile_new_connection, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD_WITH_ARGS("RequestDisconnection", SD_BUS_ARGS("o", object),
-                            SD_BUS_NO_RESULT, profile_request_disconnection,
-                            SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_VTABLE_END};
 
 bool ProfileManager::ProfileRegistered(absl::string_view service_uuid) {
   registered_service_uuids_lock_.ReaderLock();
@@ -83,99 +29,209 @@ bool ProfileManager::ProfileRegistered(absl::string_view service_uuid) {
   return registered;
 }
 
-bool ProfileManager::RegisterProfile(absl::string_view name,
-                                     absl::string_view service_uuid) {
+void Profile::Release() {
+  released_ = true;
+  NEARBY_LOGS(VERBOSE) << __func__ << "Profile object " << getObjectPath()
+                       << " has been released";
+}
+
+void Profile::NewConnection(
+    const sdbus::ObjectPath &device_object_path, const sdbus::UnixFd &fd,
+    const std::map<std::string, sdbus::Variant> &fd_props) {
+  if (released_) {
+    NEARBY_LOGS(ERROR) << __func__ << "NewConnection called on released object "
+                       << getObjectPath();
+    throw sdbus::Error("org.bluez.Error.Rejected",
+                       "NewConnection called on released object");
+  }
+
+  auto device = devices_.get_device_by_path(device_object_path);
+
+  if (!device.has_value()) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << "NewConection called with a device object we don't know about: "
+        << device_object_path;
+    throw sdbus::Error("org.bluez.Error.Rejected", "Unknown object");
+  }
+
+  auto alias = device->get().Alias();
+  auto mac_addr = device->get().Address();
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+                       << ": Connected to " << device->get().getObjectPath();
+
+  FDProperties props(fd_props);
+
+  absl::MutexLock l(&connections_lock_);
+  if (connections_.count(mac_addr) != 0) {
+    connections_[mac_addr].push_back(std::pair(fd, std::move(props)));
+  } else {
+    connections_[mac_addr] = std::vector{std::pair(fd, std::move(props))};
+  }
+}
+
+void Profile::RequestDisconnection(
+    const sdbus::ObjectPath &device_object_path) {
+  auto device = devices_.get_device_by_path(device_object_path);
+  if (!device.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
+                       << ": RequestDisconnection called with a device object "
+                          "we don't know about: "
+                       << device_object_path;
+    throw sdbus::Error("org.bluez.Error.Rejected", "Unknown object");
+  }
+
+  auto mac_addr = device->get().Address();
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Disconnection requested for device "
+                       << device_object_path;
+
+  absl::MutexLock l(&connections_lock_);
+  if (connections_.count(mac_addr) == 0) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << "Disconnection requested, but we are not connected to this device";
+    return;
+  }
+
+  connections_.erase(mac_addr);
+}
+
+bool ProfileManager::Register(std::optional<absl::string_view> name,
+                              absl::string_view service_uuid) {
   if (ProfileRegistered(service_uuid)) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Trying to register profile "
+                         << service_uuid << " which was already registered.";
     return true;
   }
 
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  std::string uuid(service_uuid);
-
-  auto profile_object_path =
-      absl::Substitute("/com/github/google/nearby/profiles/$0", uuid);
-  struct RegisteredService *service = new struct RegisteredService(uuid);
-  service->slot = nullptr;
-
-  registered_service_uuids_lock_.Lock();
-  auto ret = sd_bus_add_object_vtable(system_bus_, &service->slot,
-                                      profile_object_path.c_str(),
-                                      "org.bluez.Profile1", vtable, service);
-  if (ret < 0) {
-    sd_bus_error_set_errno(&err, ret);
-
-    NEARBY_LOGS(ERROR) << __func__ << "Error adding object "
-                       << profile_object_path << ": " << err.message;
-    registered_service_uuids_lock_.Unlock();
+  auto profile_object_path = bluez::profile_object_path(service_uuid);
+  try {
+    std::map<std::string, sdbus::Variant> options;
+    if (name.has_value()) {
+      options["Name"] = std::string(*name);
+    }
+    RegisterProfile(profile_object_path, std::string(service_uuid), options);
+  } catch (const sdbus::Error &e) {
+    BLUEZ_LOG_METHOD_CALL_ERROR(&getProxy(), "RegisterProfile", e);
     return false;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__
-                       << "Registered a ProfileManager for service UUID "
-                       << uuid << " at " << profile_object_path;
-
-  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE, "/org/bluez",
-                         BLUEZ_PROFILEMANAGER_INTERFACE, "RegisterProfile",
-                         &err, nullptr, "osa{sq}", "/com/github/google/nearby",
-                         uuid.c_str(), 1, "Name",
-                         std::string(name).c_str()) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Error calling RegisterProfile: " << err.name << ": "
-                       << err.message;
-    registered_service_uuids_lock_.Unlock();
-    return false;
+  {
+    absl::MutexLock l(&registered_service_uuids_lock_);
+    registered_services_.emplace(
+        std::string(service_uuid),
+        std::make_shared<Profile>(getProxy().getConnection(),
+                                  profile_object_path, devices_));
   }
 
-  registered_services_[uuid] = service;
-  registered_service_uuids_lock_.Unlock();
+  NEARBY_LOGS(INFO) << __func__
+                    << ": Registered profile instancefor service uuid "
+                    << service_uuid;
+
   return true;
 }
 
-std::optional<int>
-ProfileManager::GetServiceRecordFD(api::BluetoothDevice &remote_device,
-                                   absl::string_view service_uuid) {
+void ProfileManager::Unregister(absl::string_view service_uuid) {
   if (!ProfileRegistered(service_uuid)) {
+    NEARBY_LOGS(WARNING)
+        << __func__
+        << ": attempted to unregister a profile that is not registered";
+    return;
+  }
+
+  auto profile_object_path = bluez::profile_object_path(service_uuid);
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Unregistering profile "
+                       << profile_object_path;
+
+  try {
+    UnregisterProfile(profile_object_path);
+  } catch (const sdbus::Error &e) {
+    BLUEZ_LOG_METHOD_CALL_ERROR(&getProxy(), "UnregisterProfile", e);
+  }
+
+  {
+    absl::MutexLock l(&registered_service_uuids_lock_);
+    registered_services_.erase(std::string(service_uuid));
+  }
+}
+
+// Get a service record FD for a connected profile (identified by service_uuid)
+// to the given device.
+std::optional<sdbus::UnixFd>
+ProfileManager::GetServiceRecordFD(api::BluetoothDevice &remote_device,
+                                   absl::string_view service_uuid,
+                                   CancellationFlag *cancellation_flag) {
+  if (!ProfileRegistered(service_uuid)) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Service " << service_uuid
+                       << " is not registered";
     return std::nullopt;
   }
 
   auto mac_addr = remote_device.GetMacAddress();
 
   registered_service_uuids_lock_.ReaderLock();
-  auto service = registered_services_[std::string(service_uuid)];
+  auto profile = registered_services_[std::string(service_uuid)];
   registered_service_uuids_lock_.ReaderUnlock();
 
-  service->connections_lock.Lock();
-  auto cond = [mac_addr, service]() {
-    return service->connections.count(mac_addr) == 1;
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << profile->getObjectPath()
+                       << ": Attempting to get a FD for service "
+                       << service_uuid << " on device " << mac_addr;
+
+  auto cond = [mac_addr, profile, cancellation_flag]() {
+    return profile->connections_.count(mac_addr) != 0 ||
+           (cancellation_flag != nullptr && cancellation_flag->Cancelled());
   };
-  service->connections_lock.Await(absl::Condition(&cond));
-  int fd = service->connections[mac_addr];
-  service->connections.erase(mac_addr);
-  service->connections_lock.Unlock();
+  profile->connections_lock_.Lock();
+  profile->connections_lock_.Await(absl::Condition(&cond));
+
+  if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(WARNING)
+        << __func__ << ": " << profile->getObjectPath() << ": "
+        << remote_device.GetMacAddress()
+        << ": Cancelled waiting for a service record for profile "
+        << service_uuid;
+    profile->connections_lock_.Unlock();
+    return std::nullopt;
+  }
+
+  auto [fd, properties] = profile->connections_[mac_addr].back();
+  profile->connections_[mac_addr].pop_back();
+  if (profile->connections_[mac_addr].empty())
+    profile->connections_.erase(mac_addr);
+  profile->connections_lock_.Unlock();
 
   return fd;
 }
 
-std::optional<std::pair<std::string, int>>
+// Listen for a connected profile on any device, returning the connected device
+// with its FD.
+std::optional<std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
 ProfileManager::GetServiceRecordFD(absl::string_view service_uuid) {
   if (!ProfileRegistered(service_uuid)) {
     return std::nullopt;
   }
 
   registered_service_uuids_lock_.ReaderLock();
-  auto service = registered_services_[std::string(service_uuid)];
+  auto profile = registered_services_[std::string(service_uuid)];
   registered_service_uuids_lock_.ReaderUnlock();
-  service->connections_lock.Lock();
-  auto cond = [service]() { return !service->connections.empty(); };
-  service->connections_lock.Await(absl::Condition(&cond));
-  auto it = service->connections.begin();
-  auto mac_addr = it->first;
-  auto fd = it->second;
-  service->connections.erase(it);
-  service->connections_lock.Unlock();
 
-  return std::pair<std::string, int>(mac_addr, fd);
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << profile->getObjectPath()
+                       << ": Attempting to get a FD for service "
+                       << profile->getObjectPath();
+
+  profile->connections_lock_.Lock();
+  auto cond = [profile]() { return !profile->connections_.empty(); };
+  profile->connections_lock_.Await(absl::Condition(&cond));
+
+  auto it = profile->connections_.begin();
+  auto mac_addr = it->first;
+  auto [fd, properties] = it->second.back();
+  it->second.pop_back();
+  if (it->second.empty())
+    profile->connections_.erase(it);
+  profile->connections_lock_.Unlock();
+
+  return std::pair(devices_.get_device_by_address(mac_addr).value(), fd);
 }
 
 } // namespace linux

@@ -1,9 +1,9 @@
 #include <cstring>
 #include <memory>
 
-#include <systemd/sd-bus.h>
+#include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/Types.h>
 
-#include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -18,120 +18,127 @@
 
 namespace nearby {
 namespace linux {
-
-int bluez_interfaces_added_signal_handler(sd_bus_message *m, void *userdata,
-                                          sd_bus_error *ret_error) {
-  const sd_bus_error *reply_err = sd_bus_message_get_error(m);
-  if (reply_err) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Received error while listening for InterfacesAdded: "
-                       << reply_err->message;
-    return 0;
-  }
-
-  struct BluetoothClassicMedium::DiscoveryParams *params =
-      static_cast<BluetoothClassicMedium::DiscoveryParams *>(userdata);
-  char *c_object_path = nullptr;
-  int ret = sd_bus_message_read(m, "o", &c_object_path);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Error reading object path from message: " << ret;
-    return ret;
-  }
-
-  std::string object_path(c_object_path);
-
-  if (!absl::StrContains(object_path, absl::StrCat(params->adapter_object_path,
-                                                   "/", "dev_"))) {
-    // Interface added for an object we dont care about.
-    return 0;
-  }
-
-  if (params->devices_by_path.count(object_path) != 0) {
-    // Object already exists
-    return 0;
-  }
-
-  ret = sd_bus_message_enter_container(m, 'a', "{sa{sv}}");
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error entering container: " << ret;
-    return ret;
-  }
-
-  while (true) {
-    const char *interface_name = nullptr;
-    ret = sd_bus_message_read(m, "s", &interface_name);
-    if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__ << "Error reading dict entry: " << ret;
-      return ret;
-    }
-    if (ret == 0)
-      break;
-
-    if (strcmp(interface_name, "org.bluez.Device1") == 0) {
-      NEARBY_LOGS(INFO) << __func__ << "Encountered new device at "
-                        << object_path;
-      sd_bus *system_bus = nullptr;
-      sd_bus_default_system(&system_bus);
-
-      auto bluetoothDevice = std::make_unique<BluetoothDevice>(
-          BluetoothDevice(system_bus, object_path));
-      params->devices_by_path[object_path] = std::move(bluetoothDevice);
-
-      if (params->cb.device_discovered_cb != nullptr) {
-        params->cb.device_discovered_cb(*params->devices_by_path[object_path]);
-      }
-      for (auto &observer : params->observers_.GetObservers()) {
-        observer->DeviceAdded(*params->devices_by_path[object_path]);
-      }
-      return 0;
-    }
-    ret = sd_bus_message_skip(m, "a{sv}");
-    if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__ << "Error skipping dict entry: " << ret;
-      return -1;
-    }
-  }
-
-  return 0;
-}
-
-BluetoothClassicMedium::BluetoothClassicMedium(sd_bus *system_bus,
+BluetoothClassicMedium::BluetoothClassicMedium(sdbus::IConnection &system_bus,
                                                absl::string_view adapter)
-    : profile_manager_(sd_bus_ref(system_bus)) {
-  system_bus_ = system_bus;
-  adapter_object_path_ = absl::Substitute("/org/bluez/$0/", adapter);
+    : devices_(system_bus, absl::Substitute("/org/bluez/$0/", adapter),
+               observers_),
+      profile_manager_(system_bus) {
+  bluez_adapter_proxy_ = sdbus::createProxy(
+      "org.bluez", absl::Substitute("/org/bluez/$0/", adapter));
+  bluez_adapter_proxy_->finishRegistration();
+  bluez_proxy_ = sdbus::createProxy("org.bluez", "/");
+  bluez_proxy_->finishRegistration();
 }
 
-BluetoothClassicMedium::~BluetoothClassicMedium() {
-  sd_bus_unref(system_bus_);
-  if (system_bus_slot_)
-    sd_bus_slot_unref(system_bus_slot_);
+void BluetoothClassicMedium::onInterfacesAdded(sdbus::Signal &signal) {
+  sdbus::ObjectPath object;
+  signal >> object;
+
+  NEARBY_LOGS(VERBOSE) << __func__ << "New intefaces added at " << object;
+
+  auto path_prefix =
+      absl::Substitute("$0/dev_", bluez_adapter_proxy_->getObjectPath());
+  if (object.find(path_prefix) != 0) {
+    return;
+  }
+
+  if (devices_.get_device_by_path(object).has_value()) {
+    // Device already exists.
+    return;
+  }
+
+  std::map<std::string, std::map<std::string, sdbus::Variant>> interfaces;
+  signal >> interfaces;
+
+  for (auto it = interfaces.begin(); it != interfaces.end(); it++) {
+    auto interface = it->first;
+
+    if (interface == "org.bluez.Device1") {
+      NEARBY_LOGS(INFO) << __func__ << "Encountered new device at " << object;
+
+      auto &device = devices_.add_new_device(object);
+
+      discovery_cb_lock_.ReaderLock();
+      if (discovery_cb_.has_value() &&
+          discovery_cb_->device_discovered_cb != nullptr) {
+        discovery_cb_->device_discovered_cb(device);
+      }
+      discovery_cb_lock_.ReaderUnlock();
+
+      for (auto &observer : observers_.GetObservers()) {
+        observer->DeviceAdded(device);
+      }
+    }
+  }
+}
+
+void BluetoothClassicMedium::onInterfacesRemoved(sdbus::Signal &signal) {
+  sdbus::ObjectPath object;
+  signal >> object;
+
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Intefaces removed at " << object;
+
+  auto path_prefix =
+      absl::Substitute("$0/dev_", bluez_adapter_proxy_->getObjectPath());
+  if (object.find(path_prefix) != 0) {
+    return;
+  }
+
+  std::vector<std::string> interfaces;
+  signal >> interfaces;
+
+  for (auto &interface : interfaces) {
+    if (interface == bluez::DEVICE_INTERFACE) {
+
+      {
+        auto device = get_device_by_path(object);
+        if (!device.has_value()) {
+          NEARBY_LOGS(WARNING) << __func__
+                               << ": received InterfacesRemoved for a device "
+                                  "we don't know about: "
+                               << object;
+          return;
+        }
+
+        NEARBY_LOGS(INFO) << __func__ << ": " << object << " has been removed";
+        for (auto &observer : observers_.GetObservers()) {
+          observer->DeviceRemoved(*device);
+        }
+        discovery_cb_lock_.ReaderLock();
+        if (discovery_cb_.has_value() &&
+            discovery_cb_->device_lost_cb != nullptr) {
+          discovery_cb_->device_lost_cb(*device);
+        }
+        discovery_cb_lock_.ReaderUnlock();
+      }
+      remove_device_by_path(object);
+    }
+  }
 }
 
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
-  if (!system_bus_)
-    return false;
+  discovery_cb_lock_.Lock();
+  discovery_cb_ = std::move(discovery_callback);
+  discovery_cb_lock_.Unlock();
 
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  __attribute__((cleanup(sd_bus_message_unrefp))) sd_bus_message *reply =
-      nullptr;
+  NEARBY_LOGS(VERBOSE) << __func__
+                       << ": Subscribing to InterfacesAdded on / at org.bluez";
 
-  discovery_params_.cb = std::move(discovery_callback);
-  discovery_params_.adapter_object_path = adapter_object_path_;
+  bluez_proxy_->registerSignalHandler(
+      "org.freedesktop.DBus.ObjectManager", "InterfacesAdded",
+      [this](sdbus::Signal &signal) { this->onInterfacesAdded(signal); });
+  bluez_proxy_->registerSignalHandler(
+      "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved",
+      [this](sdbus::Signal &signal) { this->onInterfacesRemoved(signal); });
 
-  sd_bus_match_signal(system_bus_, &system_bus_slot_, BLUEZ_SERVICE, "/",
-                      "org.freedesktop.DBus.ObjectManager", "InterfacesAdded",
-                      bluez_interfaces_added_signal_handler,
-                      &discovery_params_);
-
-  if (sd_bus_call_method(system_bus_, BLUEZ_SERVICE,
-                         adapter_object_path_.c_str(), BLUEZ_ADAPTER_INTERFACE,
-                         "StartDiscovery", &err, &reply, nullptr) < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error calling StartDiscovery on adapter "
-                       << adapter_object_path_ << ": " << err.message;
+  try {
+    NEARBY_LOGS(INFO) << __func__ << ": Starting discovery on "
+                      << bluez_adapter_proxy_->getObjectPath();
+    bluez_adapter_proxy_->callMethod("StartDiscovery")
+        .onInterface(bluez::ADAPTER_INTERFACE);
+  } catch (const sdbus::Error &e) {
+    BLUEZ_LOG_METHOD_CALL_ERROR(bluez_adapter_proxy_, "StartDiscovery", e);
     return false;
   }
 
@@ -139,20 +146,24 @@ bool BluetoothClassicMedium::StartDiscovery(
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
-  if (!system_bus_)
-    return false;
-
-  __attribute__((cleanup(sd_bus_error_free))) sd_bus_error err =
-      SD_BUS_ERROR_NULL;
-  __attribute__((cleanup(sd_bus_message_unrefp))) sd_bus_message *reply =
-      nullptr;
-
-  int ret = sd_bus_call_method(
-      system_bus_, BLUEZ_SERVICE, adapter_object_path_.c_str(),
-      BLUEZ_ADAPTER_INTERFACE, "StopDiscovery", &err, &reply, nullptr);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << "Error calling StopDiscovery on "
-                       << adapter_object_path_ << ": " << err.message;
+  NEARBY_LOGS(VERBOSE)
+      << __func__ << ": Unsubscribing to InterfacesAdded on / at org.bluez";
+  bluez_proxy_->unregisterSignalHandler("org.freedesktop.DBus.ObjectManager",
+                                        "InterfacesAdded");
+  bluez_proxy_->unregisterSignalHandler("org.freedesktop.DBus.ObjectManager",
+                                        "InterfacesRemoved");
+  try {
+    NEARBY_LOGS(INFO) << __func__ << "Stopping discovery on "
+                      << bluez_adapter_proxy_->getObjectPath();
+    bluez_adapter_proxy_->callMethodAsync("StopDiscovery")
+        .onInterface(bluez::ADAPTER_INTERFACE)
+        .uponReplyInvoke([this](const sdbus::Error *err) {
+          this->discovery_cb_lock_.Lock();
+          this->discovery_cb_.reset();
+          this->discovery_cb_lock_.Unlock();
+        });
+  } catch (const sdbus::Error &e) {
+    BLUEZ_LOG_METHOD_CALL_ERROR(bluez_adapter_proxy_, "StopDiscovery", e);
     return false;
   }
 
@@ -163,24 +174,31 @@ std::unique_ptr<api::BluetoothSocket>
 BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
                                          const std::string &service_uuid,
                                          CancellationFlag *cancellation_flag) {
-  auto device_object_path = GetDeviceObjectPath(remote_device.GetMacAddress());
+  auto device_object_path = bluez::device_object_path(
+      bluez_adapter_proxy_->getObjectPath(), remote_device.GetMacAddress());
   if (!profile_manager_.ProfileRegistered(service_uuid)) {
-    if (!profile_manager_.RegisterProfile(service_uuid)) {
-      NEARBY_LOGS(ERROR) << __func__ << "Could not register profile "
+    if (!profile_manager_.Register("", service_uuid)) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Could not register profile "
                          << service_uuid << " with Bluez";
       return nullptr;
     }
   }
-  auto fd = profile_manager_.GetServiceRecordFD(remote_device, service_uuid);
+
+  auto &device = devices_.get_device_by_path(device_object_path).value().get();
+  device.ConnectToProfile(service_uuid);
+
+  auto fd = profile_manager_.GetServiceRecordFD(remote_device, service_uuid,
+                                                cancellation_flag);
   if (!fd.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Failed to get a new connection for profile "
-                       << service_uuid << " for device " << device_object_path;
+    NEARBY_LOGS(WARNING) << __func__
+                         << ": Failed to get a new connection for profile "
+                         << service_uuid << " for device "
+                         << device_object_path;
     return nullptr;
   }
 
-  return std::unique_ptr<api::BluetoothSocket>(new BluetoothSocket(
-      remote_device, device_object_path, service_uuid, fd.value()));
+  return std::unique_ptr<api::BluetoothSocket>(
+      new BluetoothSocket(remote_device, fd.value()));
 }
 
 std::unique_ptr<api::BluetoothServerSocket>
@@ -188,49 +206,33 @@ BluetoothClassicMedium::ListenForService(const std::string &service_name,
                                          const std::string &service_uuid) {
   if (!profile_manager_.ProfileRegistered(service_uuid)) {
     if (!profile_manager_.RegisterProfile(service_name, service_uuid)) {
-      NEARBY_LOGS(ERROR) << __func__ << "Could not register profile "
+      NEARBY_LOGS(ERROR) << __func__ << ": Could not register profile "
                          << service_name << " " << service_uuid
                          << " with Bluez";
       return nullptr;
     }
   }
 
-  auto pair = profile_manager_.GetServiceRecordFD(service_uuid);
-  if (!pair.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Failed to get a new connection for profile "
-                       << service_uuid << " for device ";
-    return nullptr;
-  }
-
-  auto device_object_path = GetDeviceObjectPath(pair->first);
-  auto device = BluetoothDevice(sd_bus_ref(system_bus_), device_object_path);
-
   return std::unique_ptr<api::BluetoothServerSocket>(
-      new BluetoothServerSocket(sd_bus_ref(system_bus_), profile_manager_,
-                                adapter_object_path_, service_uuid));
+      new BluetoothServerSocket(profile_manager_, service_uuid));
 }
 
 api::BluetoothDevice *
 BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
-  if (devices_by_path_.count(mac_address) == 1) {
-    return devices_by_path_[mac_address].get();
-  }
+  auto device = get_device_by_address(mac_address);
+  if (device.has_value())
+    return nullptr;
 
-  return nullptr;
+  return &(device->get());
 }
 
 std::unique_ptr<api::BluetoothPairing>
 BluetoothClassicMedium::CreatePairing(api::BluetoothDevice &remote_device) {
-  auto device_object_path = GetDeviceObjectPath(remote_device.GetMacAddress());
+  auto device_object_path = bluez::device_object_path(
+      bluez_adapter_proxy_->getObjectPath(), remote_device.GetMacAddress());
   return std::unique_ptr<api::BluetoothPairing>(
-      new BluetoothPairing(sd_bus_ref(system_bus_), device_object_path));
-}
-
-std::string
-BluetoothClassicMedium::GetDeviceObjectPath(absl::string_view mac_address) {
-  return absl::Substitute("$0/dev_$1", adapter_object_path_,
-                          absl::StrReplaceAll(mac_address, {{":", "_"}}));
+      new BluetoothPairing(bluez_adapter_proxy_->getObjectPath(), remote_device,
+                           bluez_adapter_proxy_->getConnection()));
 }
 
 } // namespace linux
