@@ -17,8 +17,8 @@ mod common;
 
 use api::{BleAdapter, BleDevice, ClassicDevice};
 pub use common::{
-    BleAddress, BleAdvertisement, BleDataTypeId, BluetoothError,
-    ClassicAddress, PairingResult, ServiceData,
+    BleAddress, BleAddressKind, BleAdvertisement, BleDataTypeId,
+    BluetoothError, ClassicAddress, PairingResult, ServiceData,
 };
 
 cfg_if::cfg_if! {

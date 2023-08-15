@@ -33,7 +33,7 @@ type DecibelMilliwatts = i16;
 
 impl BleAdvertisement {
     /// Construct a new `BleAdvertisement` instance.
-    pub(crate) fn new(
+    pub fn new(
         address: BleAddress,
         rssi: Option<DecibelMilliwatts>,
         tx_power: Option<DecibelMilliwatts>,
