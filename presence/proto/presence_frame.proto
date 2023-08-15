@@ -118,6 +118,14 @@ message UwbControleeCapabilities {
       [default = false];
   repeated int32 supported_slot_durations = 15 [packed = true];
   repeated int32 supported_ranging_update_rates = 16 [packed = true];
+  optional int32 chip_count = 17 [default = 1];
+  repeated UwbMultiChipInfo multi_chip_info = 18;
+}
+
+/* A frame containing info needed per chip in a multi-chip environment. */
+message UwbMultiChipInfo {
+  optional bytes controlee_address = 1;
+  optional string chip_id = 2;
 }
 
 /**
