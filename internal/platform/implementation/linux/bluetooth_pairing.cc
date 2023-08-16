@@ -1,13 +1,13 @@
+#include <utility>
+
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
 #include <systemd/sd-bus.h>
-#include <utility>
 
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_pairing.h"
-#include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -48,10 +48,8 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
   return;
 }
 
-BluetoothPairing::BluetoothPairing(const sdbus::ObjectPath &adapter_object_path,
-                                   BluetoothDevice &remote_device,
-                                   BluetoothAdapter &adapter,
-                                   sdbus::IConnection &system_bus)
+BluetoothPairing::BluetoothPairing(BluetoothAdapter &adapter,
+				   BluetoothDevice &remote_device)
     : device_(remote_device), adapter_(adapter) {}
 
 bool BluetoothPairing::InitiatePairing(

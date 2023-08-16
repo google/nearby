@@ -17,9 +17,8 @@ namespace nearby {
 namespace linux {
 class BluetoothPairing : public api::BluetoothPairing {
 public:
-  BluetoothPairing(const sdbus::ObjectPath &adapter_object_path,
-                   BluetoothDevice &remote_device, BluetoothAdapter &adapter,
-                   sdbus::IConnection &system_bus);
+  BluetoothPairing(BluetoothAdapter &adapter,
+                   BluetoothDevice &remote_device);
   ~BluetoothPairing() override = default;
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
@@ -36,7 +35,6 @@ private:
   BluetoothDevice &device_;
   BluetoothAdapter &adapter_;
 
-  std::unique_ptr<sdbus::IProxy> bluez_adapter_proxy_;
   api::BluetoothPairingCallback pairing_cb_;
 };
 } // namespace linux

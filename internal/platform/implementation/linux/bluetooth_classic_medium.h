@@ -8,12 +8,15 @@
 
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/ProxyInterfaces.h>
+#include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Types.h>
 #include <systemd/sd-bus.h>
 
 #include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
@@ -22,11 +25,13 @@ namespace nearby {
 namespace linux {
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
-class BluetoothClassicMedium : public api::BluetoothClassicMedium {
+class BluetoothClassicMedium
+    : public api::BluetoothClassicMedium,
+      sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
 public:
   BluetoothClassicMedium(sdbus::IConnection &system_bus,
-                         absl::string_view adapter);
-  ~BluetoothClassicMedium() = default;
+                         const sdbus::ObjectPath &adapter_object_path);
+  ~BluetoothClassicMedium() override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
   //
@@ -94,20 +99,23 @@ public:
   get_device_by_address(const std::string &);
   void remove_device_by_path(const sdbus::ObjectPath &);
 
-private:
-  void onInterfacesAdded(sdbus::Signal &signal);
-  void onInterfacesRemoved(sdbus::Signal &signal);
+protected:
+  void onInterfacesAdded(
+      const sdbus::ObjectPath &objectPath,
+      const std::map<std::string, std::map<std::string, sdbus::Variant>>
+          &interfacesAndProperties) override;
+  void onInterfacesRemoved(const sdbus::ObjectPath &objectPath,
+                           const std::vector<std::string> &interfaces) override;
 
-  BluetoothDevices devices_;
+private:
+  std::unique_ptr<BluetoothAdapter> adapter_;
+  std::unique_ptr<BluetoothDevices> devices_;
 
   absl::Mutex discovery_cb_lock_;
   std::optional<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
 
-  ProfileManager profile_manager_;
+  std::unique_ptr<ProfileManager> profile_manager_;
   ObserverList<Observer> observers_;
-
-  std::unique_ptr<sdbus::IProxy> bluez_adapter_proxy_;
-  std::unique_ptr<sdbus::IProxy> bluez_proxy_;
 };
 
 } // namespace linux
