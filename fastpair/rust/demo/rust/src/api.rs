@@ -9,7 +9,10 @@ use futures::executor;
 use tracing::{info, warn};
 use ttl_cache::TtlCache;
 
-use crate::advertisement::{FpPairingAdvertisement, ModelId};
+use crate::{
+    advertisement::{FpPairingAdvertisement, ModelId},
+    fetcher::{FpFetcher, FpFetcherFs},
+};
 
 // Sends a device name to Flutter via `StreamSink` FFI layer.
 static DEVICE_STREAM: RwLock<Option<StreamSink<Option<[String; 2]>>>> = RwLock::new(None);
@@ -29,7 +32,7 @@ async fn update_best_device(best_adv: FpPairingAdvertisement) {
     match DEVICE_STREAM.read().unwrap().as_ref() {
         Some(stream) => {
             stream.add(Some([
-                best_adv.name().to_string(),
+                best_adv.device_name().to_string(),
                 best_adv.image_url().to_string(),
             ]));
         }
@@ -47,6 +50,7 @@ async fn update_best_device(best_adv: FpPairingAdvertisement) {
 fn new_best_fp_advertisement(
     advertisement: BleAdvertisement,
     service_data: &ServiceData<u16>,
+    fetcher: &Box<dyn FpFetcher>,
     latest_advertisement_map: &mut HashMap<String, FpPairingAdvertisement>,
 ) -> Option<FpPairingAdvertisement> {
     // Analyze service data sections.
@@ -57,7 +61,7 @@ fn new_best_fp_advertisement(
         return None;
     }
 
-    let fp_adv = match FpPairingAdvertisement::new(advertisement, service_data) {
+    let fp_adv = match FpPairingAdvertisement::new(advertisement, service_data, fetcher) {
         Ok(fp_adv) => fp_adv,
         Err(err) => {
             // If error during construction (e.g. non-discoverable
@@ -130,6 +134,7 @@ pub fn init() {
 
         let mut latest_advertisement_map = HashMap::new();
         let datatype_selector = vec![BleDataTypeId::ServiceData16BitUuid];
+        let fetcher: Box<dyn FpFetcher> = Box::new(FpFetcherFs::new(String::from("./local")));
 
         loop {
             // Retrieve the next received advertisement.
@@ -142,6 +147,7 @@ pub fn init() {
                 if let Some(best_adv) = new_best_fp_advertisement(
                     advertisement.clone(),
                     service_data,
+                    &fetcher,
                     &mut latest_advertisement_map,
                 ) {
                     update_best_device(best_adv).await;

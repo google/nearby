@@ -11,48 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 use std::fs;
 
-use serde::Deserialize;
+use crate::{
+    advertisement::ModelId,
+    fetcher::{DeviceInfo, FpFetcher, JsonData},
+};
 
-use crate::advertisement::ModelId;
-
-/// Holds Fast Pair device information parsed from JSON.
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DeviceInfo {
-    image_url: String,
-    name: String,
-}
-
-/// Holds top-level Fast Pair information parsed from JSON. See `local`
-/// directory for format.
-#[derive(Deserialize)]
-struct JsonData {
-    device: DeviceInfo,
-}
-
-/// Types that can fetch Fast Pair data from external storage (e.g. filesystem,
-/// remote server).
-pub(crate) trait FpFetcher {
-    fn get_device_info_from_model_id(
-        &self,
-        model_id: &ModelId,
-    ) -> Result<DeviceInfo, anyhow::Error>;
-}
-
-/// A unit struct for retrieving Fast Pair information from the local filesystem.
-pub(crate) struct FpFetcherLocal {
+/// A struct for retrieving Fast Pair information from the local filesystem.
+pub(crate) struct FpFetcherFs {
     path: String,
 }
 
-impl FpFetcherLocal {
+impl FpFetcherFs {
     pub(crate) fn new(path: String) -> Self {
-        FpFetcherLocal { path }
+        FpFetcherFs { path }
     }
 }
 
-impl FpFetcher for FpFetcherLocal {
+impl FpFetcher for FpFetcherFs {
     /// Retrieve device information for the provided Model ID. Currently,
     /// this information is saved locally. In the future, this should instead
     /// be retrieved from a remote server and cached.
@@ -66,16 +44,6 @@ impl FpFetcher for FpFetcherLocal {
 
         let model_info: JsonData = serde_json::from_str(&contents)?;
 
-        Ok(model_info.device)
-    }
-}
-
-impl DeviceInfo {
-    pub(crate) fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub(crate) fn image_url(&self) -> &String {
-        &self.image_url
+        Ok(model_info.device())
     }
 }

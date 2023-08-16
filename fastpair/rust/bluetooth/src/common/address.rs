@@ -93,3 +93,87 @@ impl From<ClassicAddress> for u64 {
         u64::from_le_bytes(bytes)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ble_address_new() {
+        let addr = BleAddress::new(0x112233445566, BleAddressKind::Public);
+        assert_eq!(addr.val, [0x66, 0x55, 0x44, 0x33, 0x22, 0x11]);
+        assert_eq!(addr.kind, BleAddressKind::Public);
+    }
+
+    #[test]
+    fn ble_address_get_kind() {
+        let addr_public =
+            BleAddress::new(0x112233445566, BleAddressKind::Public);
+        assert_eq!(addr_public.get_kind(), BleAddressKind::Public);
+
+        let addr_random =
+            BleAddress::new(0xAABBCCDDEEFF, BleAddressKind::Random);
+        assert_eq!(addr_random.get_kind(), BleAddressKind::Random);
+    }
+
+    #[test]
+    fn ble_address_into_u64() {
+        let ble_addr = BleAddress::new(0x112233445566, BleAddressKind::Public);
+        let u64_addr: u64 = ble_addr.into();
+        assert_eq!(u64_addr, 0x112233445566);
+    }
+
+    #[test]
+    fn classic_address_from_u64() {
+        let u64_addr = 0x112233445566;
+        let classic_addr: ClassicAddress = u64_addr.into();
+        assert_eq!(classic_addr.0, [0x66, 0x55, 0x44, 0x33, 0x22, 0x11]);
+    }
+
+    #[test]
+    fn try_from_ble_address_to_classic() {
+        let ble_addr = BleAddress::new(0x112233445566, BleAddressKind::Public);
+        let result: Result<ClassicAddress, BluetoothError> =
+            TryFrom::try_from(ble_addr);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().0, [0x66, 0x55, 0x44, 0x33, 0x22, 0x11]);
+
+        let ble_addr_random =
+            BleAddress::new(0xAABBCCDDEEFF, BleAddressKind::Random);
+        let result: Result<ClassicAddress, BluetoothError> =
+            TryFrom::try_from(ble_addr_random);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            BluetoothError::BadTypeConversion(_),
+        ));
+    }
+
+    #[test]
+    fn test_u64_to_6lsb() {
+        // Test a case where the input number is smaller than 6 bytes
+        let num = 0x123456;
+        let expected_result = [0x56, 0x34, 0x12, 0, 0, 0];
+        let result = u64_to_6lsb(num);
+        assert_eq!(result, expected_result);
+
+        // Test a case where the input number is exactly 6 bytes
+        let num = 0xAABBCCDDEEFF;
+        let expected_result = [0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA];
+        let result = u64_to_6lsb(num);
+        assert_eq!(result, expected_result);
+
+        // Test a case where the number is too large so the two most significant
+        // bytes get dropped.
+        let num = 0x1122334455667788;
+        let expected_result = [0x88, 0x77, 0x66, 0x55, 0x44, 0x33];
+        let result = u64_to_6lsb(num);
+        assert_eq!(result, expected_result);
+
+        // Test a case where the input number is 0
+        let num = 0;
+        let expected_result = [0, 0, 0, 0, 0, 0];
+        let result = u64_to_6lsb(num);
+        assert_eq!(result, expected_result);
+    }
+}

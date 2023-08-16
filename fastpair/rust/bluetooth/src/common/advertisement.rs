@@ -33,7 +33,7 @@ type DecibelMilliwatts = i16;
 
 impl BleAdvertisement {
     /// Construct a new `BleAdvertisement` instance.
-    pub(crate) fn new(
+    pub fn new(
         address: BleAddress,
         rssi: Option<DecibelMilliwatts>,
         tx_power: Option<DecibelMilliwatts>,
@@ -96,7 +96,7 @@ pub enum BleDataTypeId {
 /// Struct representing the Bluetooth Service Data common data type. `U` should
 /// be one of the valid uuid sizes, specified in:
 /// Bluetooth Supplement to the Core Specification, Part A, Section 1.11.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ServiceData<U: Copy> {
     uuid: U,
     data: Vec<u8>,
@@ -113,5 +113,60 @@ impl<U: Copy> ServiceData<U> {
 
     pub fn data(&self) -> &Vec<u8> {
         &self.data
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::BleAddressKind;
+
+    #[test]
+    fn ble_advertisement_new() {
+        let address = BleAddress::new(0x112233445566, BleAddressKind::Public);
+        let ad = BleAdvertisement::new(address, Some(-60), Some(10));
+        assert_eq!(ad.address(), address);
+        assert_eq!(ad.rssi(), Some(-60));
+        assert_eq!(ad.tx_power(), Some(10));
+        assert!(ad.service_data_16bit_uuid.is_none());
+    }
+
+    #[test]
+    fn ble_advertisement_set_and_get_service_data() {
+        let address = BleAddress::new(0x112233445566, BleAddressKind::Public);
+        let mut ad = BleAdvertisement::new(address, Some(-60), Some(10));
+
+        let service_data = vec![
+            ServiceData::new(0x1234, vec![0x01, 0x02, 0x03]),
+            ServiceData::new(0x5678, vec![0x04, 0x05]),
+        ];
+
+        ad.set_service_data_16bit_uuid(service_data.clone());
+
+        let retrieved_service_data = ad.service_data_16bit_uuid().unwrap();
+        assert_eq!(*retrieved_service_data, service_data);
+    }
+
+    #[test]
+    fn ble_advertisement_missing_service_data() {
+        let address = BleAddress::new(0x112233445566, BleAddressKind::Public);
+        let ad = BleAdvertisement::new(address, Some(-60), Some(10));
+
+        let result = ad.service_data_16bit_uuid();
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            BluetoothError::FailedPrecondition(_)
+        ));
+    }
+
+    #[test]
+    fn service_data_new() {
+        let uuid = 0x1234;
+        let data = vec![0x01, 0x02, 0x03];
+
+        let service_data = ServiceData::new(uuid, data.clone());
+        assert_eq!(service_data.uuid(), uuid);
+        assert_eq!(*service_data.data(), data);
     }
 }

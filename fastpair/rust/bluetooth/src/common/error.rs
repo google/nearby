@@ -16,7 +16,7 @@ use thiserror::Error;
 
 /// Library error type.
 #[non_exhaustive]
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum BluetoothError {
     /// Reported when the user attempts a bad type conversion, e.g. converting
     /// a BLE random address to a BT Classic address.
