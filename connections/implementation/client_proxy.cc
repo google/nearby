@@ -26,6 +26,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "connections/v3/bandwidth_info.h"
@@ -554,7 +555,7 @@ bool ClientProxy::IsConnectedToEndpoint(const std::string& endpoint_id) const {
 }
 
 std::vector<std::string> ClientProxy::GetMatchingEndpoints(
-    std::function<bool(const Connection&)> pred) const {
+    absl::AnyInvocable<bool(const Connection&)> pred) const {
   MutexLock lock(&mutex_);
 
   std::vector<std::string> connected_endpoints;

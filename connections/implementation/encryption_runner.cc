@@ -17,15 +17,19 @@
 #include <cinttypes>
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "securegcm/ukey2_handshake.h"
 #include "absl/strings/ascii.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -49,7 +53,7 @@ std::string ToHumanReadableString(const ByteArray& token) {
 
 bool HandleEncryptionSuccess(const std::string& endpoint_id,
                              std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                             const EncryptionRunner::ResultListener& listener) {
+                             EncryptionRunner::ResultListener& listener) {
   std::unique_ptr<std::string> verification_string =
       ukey2->GetVerificationString(kMaxUkey2VerificationStringLength);
   if (verification_string == nullptr) {
@@ -58,9 +62,9 @@ bool HandleEncryptionSuccess(const std::string& endpoint_id,
 
   ByteArray raw_authentication_token(*verification_string);
 
-  listener.on_success_cb(endpoint_id, std::move(ukey2),
-                         ToHumanReadableString(raw_authentication_token),
-                         raw_authentication_token);
+  listener.CallSuccessCallback(endpoint_id, std::move(ukey2),
+                               ToHumanReadableString(raw_authentication_token),
+                               raw_authentication_token);
 
   return true;
 }
@@ -79,14 +83,14 @@ class ServerRunnable final {
  public:
   ServerRunnable(ClientProxy* client, ScheduledExecutor* alarm_executor,
                  const std::string& endpoint_id, EndpointChannel* channel,
-                 EncryptionRunner::ResultListener&& listener)
+                 EncryptionRunner::ResultListener listener)
       : client_(client),
         alarm_executor_(alarm_executor),
         endpoint_id_(endpoint_id),
         channel_(channel),
         listener_(std::move(listener)) {}
 
-  void operator()() const {
+  void operator()() {
     CancelableAlarm timeout_alarm(
         "EncryptionRunner.StartServer() timeout",
         [this]() { CancelableAlarmRunnable(client_, endpoint_id_, channel_); },
@@ -189,9 +193,9 @@ class ServerRunnable final {
                        << endpoint_id_ << ").";
   }
 
-  void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) const {
+  void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) {
     timeout_alarm->Cancel();
-    listener_.on_failure_cb(endpoint_id_, channel_);
+    listener_.CallFailureCallback(endpoint_id_, channel_);
   }
 
   void HandleAlertException(
@@ -217,14 +221,14 @@ class ClientRunnable final {
  public:
   ClientRunnable(ClientProxy* client, ScheduledExecutor* alarm_executor,
                  const std::string& endpoint_id, EndpointChannel* channel,
-                 EncryptionRunner::ResultListener&& listener)
+                 EncryptionRunner::ResultListener listener)
       : client_(client),
         alarm_executor_(alarm_executor),
         endpoint_id_(endpoint_id),
         channel_(channel),
         listener_(std::move(listener)) {}
 
-  void operator()() const {
+  void operator()() {
     CancelableAlarm timeout_alarm(
         "EncryptionRunner.StartClient() timeout",
         [this]() { CancelableAlarmRunnable(client_, endpoint_id_, channel_); },
@@ -326,9 +330,9 @@ class ClientRunnable final {
                        << endpoint_id_ << ").";
   }
 
-  void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) const {
+  void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) {
     timeout_alarm->Cancel();
-    listener_.on_failure_cb(endpoint_id_, channel_);
+    listener_.CallFailureCallback(endpoint_id_, channel_);
   }
 
   void HandleAlertException(
@@ -359,28 +363,46 @@ EncryptionRunner::~EncryptionRunner() {
   alarm_executor_.Shutdown();
 }
 
-void EncryptionRunner::StartServer(
-    ClientProxy* client, const std::string& endpoint_id,
-    EndpointChannel* endpoint_channel,
-    EncryptionRunner::ResultListener&& listener) {
-  server_executor_.Execute(
-      "encryption-server",
-      [runnable{ServerRunnable(client, &alarm_executor_, endpoint_id,
-                               endpoint_channel, std::move(listener))}]() {
-        runnable();
-      });
+void EncryptionRunner::StartServer(ClientProxy* client,
+                                   const std::string& endpoint_id,
+                                   EndpointChannel* endpoint_channel,
+                                   EncryptionRunner::ResultListener listener) {
+  ServerRunnable runnable(client, &alarm_executor_, endpoint_id,
+                          endpoint_channel, std::move(listener));
+  server_executor_.Execute("encryption-server", std::move(runnable));
 }
 
-void EncryptionRunner::StartClient(
-    ClientProxy* client, const std::string& endpoint_id,
-    EndpointChannel* endpoint_channel,
-    EncryptionRunner::ResultListener&& listener) {
-  client_executor_.Execute(
-      "encryption-client",
-      [runnable{ClientRunnable(client, &alarm_executor_, endpoint_id,
-                               endpoint_channel, std::move(listener))}]() {
-        runnable();
-      });
+void EncryptionRunner::StartClient(ClientProxy* client,
+                                   const std::string& endpoint_id,
+                                   EndpointChannel* endpoint_channel,
+                                   EncryptionRunner::ResultListener listener) {
+  ClientRunnable runnable(client, &alarm_executor_, endpoint_id,
+                          endpoint_channel, std::move(listener));
+  client_executor_.Execute("encryption-client", std::move(runnable));
+}
+
+void EncryptionRunner::ResultListener::CallSuccessCallback(
+    const std::string& endpoint_id,
+    std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+    const std::string& auth_token, const ByteArray& raw_auth_token) {
+  if (on_success_cb) {
+    std::move(on_success_cb)(endpoint_id, std::move(ukey2), auth_token,
+                             raw_auth_token);
+  }
+  Reset();
+}
+
+void EncryptionRunner::ResultListener::CallFailureCallback(
+    const std::string& endpoint_id, EndpointChannel* channel) {
+  if (on_failure_cb) {
+    std::move(on_failure_cb)(endpoint_id, channel);
+  }
+  Reset();
+}
+
+void EncryptionRunner::ResultListener::Reset() {
+  on_success_cb = nullptr;
+  on_failure_cb = nullptr;
 }
 
 }  // namespace connections

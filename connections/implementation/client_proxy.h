@@ -16,13 +16,13 @@
 #define CORE_INTERNAL_CLIENT_PROXY_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -338,7 +338,7 @@ class ClientProxy final {
   bool ConnectionStatusMatches(const std::string& endpoint_id,
                                Connection::Status status) const;
   std::vector<std::string> GetMatchingEndpoints(
-      std::function<bool(const Connection&)> pred) const;
+      absl::AnyInvocable<bool(const Connection&)> pred) const;
   std::string GenerateLocalEndpointId();
 
   void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
