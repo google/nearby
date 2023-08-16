@@ -27,6 +27,10 @@ sdbus::ObjectPath profile_object_path(absl::string_view service_uuid) {
   return absl::Substitute("/com/github/google/nearby/profiles/$0", service_uuid);
 }
 
+sdbus::ObjectPath adapter_object_path(absl::string_view name) {
+  return absl::Substitute("/org/bluez/$0", name);
+}
+
 } // namespace bluez
 } // namespace linux
 } // namespace nearby

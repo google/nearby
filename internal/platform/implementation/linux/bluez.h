@@ -34,6 +34,8 @@ device_object_path(const sdbus::ObjectPath &adapter_object_path,
 
 extern sdbus::ObjectPath profile_object_path(absl::string_view service_uuid);
 
+extern sdbus::ObjectPath adapter_object_path(absl::string_view name);
+
 } // namespace bluez
 } // namespace linux
 } // namespace nearby
