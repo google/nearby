@@ -127,23 +127,25 @@ void NetworkManagerWifiMedium::onPropertiesChanged(
 
 bool NetworkManagerWifiMedium::Scan(
     const api::WifiMedium::ScanResultCallback &scan_result_callback) {
-  absl::MutexLock l(&scan_result_callback_lock_);
-  scan_result_callback_ = scan_result_callback;
+  // absl::MutexLock l(&scan_result_callback_lock_);
+  // scan_result_callback_ = scan_result_callback;
 
-  try {
-    RequestScan(std::map<std::string, sdbus::Variant>());
-  } catch (const sdbus::Error &e) {
-    scan_result_callback_ = std::nullopt;
-    DBUS_LOG_METHOD_CALL_ERROR(&getProxy(), "RequestScan", e);
-    return false;
-  }
-  return true;
+  // try {
+  //   RequestScan(std::map<std::string, sdbus::Variant>());
+  // } catch (const sdbus::Error &e) {
+  //   scan_result_callback_ = std::nullopt;
+  //   DBUS_LOG_METHOD_CALL_ERROR(&getProxy(), "RequestScan", e);
+  //   return false;
+  // }
+  return false;
 }
 
 api::WifiConnectionStatus
 NetworkManagerWifiMedium::ConnectToNetwork(absl::string_view ssid,
                                            absl::string_view password,
-                                           api::WifiAuthType auth_type) {}
+                                           api::WifiAuthType auth_type) {
+  return api::WifiConnectionStatus::kUnknown;
+}
 
 bool NetworkManagerWifiMedium::VerifyInternetConnectivity() {
   auto network_manager_proxy_ = sdbus::createProxy(
@@ -151,10 +153,7 @@ bool NetworkManagerWifiMedium::VerifyInternetConnectivity() {
   network_manager_proxy_->finishRegistration();
 
   try {
-    std::uint32_t connectivity;
-    network_manager_proxy_->callMethod("CheckConnectivity")
-        .onInterface("org.freedesktop.NetworkManager")
-        .storeResultsTo(connectivity);
+    std::uint32_t connectivity = network_manager_.CheckConnectivity();
     return connectivity == 4; // NM_CONNECTIVITY_FULL
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(network_manager_proxy_, "CheckConnectivity", e);

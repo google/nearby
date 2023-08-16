@@ -12,12 +12,30 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/networkmanager_accesspoint_client_glue.h"
+#include "internal/platform/implementation/linux/networkmanager_client_glue.h"
 #include "internal/platform/implementation/linux/networkmanager_device_wireless_client_glue.h"
 #include "internal/platform/implementation/linux/networkmanager_ip4config_client_glue.h"
 #include "internal/platform/implementation/wifi.h"
 
 namespace nearby {
 namespace linux {
+class NetworkManager
+    : public sdbus::ProxyInterfaces<org::freedesktop::NetworkManager_proxy> {
+public:
+  NetworkManager(sdbus::IConnection &system_bus)
+      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
+                        "/org/freedesktop/NetworkManager") {
+    registerProxy();
+  }
+  ~NetworkManager() { unregisterProxy(); }
+
+protected:
+  void onCheckPermissions() override {}
+  void onStateChanged(const uint32_t &state) override {}
+  void onDeviceAdded(const sdbus::ObjectPath &device_path) override {}
+  void onDeviceRemoved(const sdbus::ObjectPath &device_path) override {}
+};
+
 class NetworkManagerIP4Config
     : public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::IP4Config_proxy> {
@@ -73,10 +91,12 @@ class NetworkManagerWifiMedium
           org::freedesktop::NetworkManager::Device::Wireless_proxy,
           sdbus::Properties_proxy> {
 public:
-  NetworkManagerWifiMedium(sdbus::IConnection &system_bus,
+  NetworkManagerWifiMedium(NetworkManager &network_manager,
+                           sdbus::IConnection &system_bus,
                            const sdbus::ObjectPath &wireless_device_object_path)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        wireless_device_object_path) {
+                        wireless_device_object_path),
+        network_manager_(network_manager) {
     active_access_point_ = std::nullopt;
     registerProxy();
   }
@@ -89,14 +109,15 @@ public:
     void OnScanResults(
         const std::vector<api::WifiScanResult> &scan_results) override {
       // TODO: Add implementation at some point
-    }    
+    }
   };
 
   bool IsInterfaceValid() const override { return true; };
   api::WifiCapability &GetCapability() override;
   api::WifiInformation &GetInformation() override;
 
-  bool Scan(const api::WifiMedium::ScanResultCallback &scan_result_callback) override;
+  bool Scan(
+      const api::WifiMedium::ScanResultCallback &scan_result_callback) override;
 
   api::WifiConnectionStatus
   ConnectToNetwork(absl::string_view ssid, absl::string_view password,
@@ -112,6 +133,8 @@ protected:
       const std::vector<std::string> &invalidatedProperties) override;
 
 private:
+  NetworkManager &network_manager_;
+
   api::WifiCapability capability_;
   api::WifiInformation information_{false};
 
@@ -120,7 +143,7 @@ private:
 
   absl::Mutex scan_result_callback_lock_;
   std::optional<
-      std::reference_wrapper<const api::WifiMedium::ScanResultCallback>>      
+      std::reference_wrapper<const api::WifiMedium::ScanResultCallback>>
       scan_result_callback_;
 };
 
