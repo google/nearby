@@ -77,14 +77,10 @@ TEST_P(BleV2Test, CanConnect) {
 
   BleV2Socket socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
-      service_id, {
-                      .accepted_cb =
-                          [&socket_for_server, &accept_latch](
-                              BleV2Socket socket, const std::string&) {
-                            socket_for_server = std::move(socket);
-                            accept_latch.CountDown();
-                          },
-                  }));
+      service_id, [&](BleV2Socket socket, const std::string&) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
+      }));
 
   ble_server.StartAdvertising(service_id, advertisement_bytes,
                               PowerLevel::kHighPower,
@@ -139,14 +135,10 @@ TEST_P(BleV2Test, CanCancelConnect) {
 
   BleV2Socket socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
-      service_id, {
-                      .accepted_cb =
-                          [&socket_for_server, &accept_latch](
-                              BleV2Socket socket, const std::string&) {
-                            socket_for_server = std::move(socket);
-                            accept_latch.CountDown();
-                          },
-                  }));
+      service_id, [&](BleV2Socket socket, const std::string&) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
+      }));
 
   ble_server.StartAdvertising(service_id, advertisement_bytes,
                               PowerLevel::kHighPower,

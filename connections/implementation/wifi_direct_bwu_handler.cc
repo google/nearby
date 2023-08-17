@@ -45,11 +45,9 @@ ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (!wifi_direct_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_direct_medium_.StartAcceptingConnections(
             upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WifiDirectBwuHandler::OnIncomingWifiDirectConnection, this,
-                    client),
-            })) {
+            absl::bind_front(
+                &WifiDirectBwuHandler::OnIncomingWifiDirectConnection, this,
+                client))) {
       NEARBY_LOGS(ERROR)
           << "WifiDirectBwuHandler couldn't initiate WifiDirect upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id

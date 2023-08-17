@@ -1087,10 +1087,10 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       !bluetooth_medium_.IsAcceptingConnections(std::string(service_id))) {
     if (!bluetooth_medium_.StartAcceptingConnections(
             std::string(service_id),
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
-                 this, client_proxy, local_endpoint_id,
-                 options.listening_endpoint_type)})) {
+            absl::bind_front(
+                &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler, this,
+                client_proxy, local_endpoint_id,
+                options.listening_endpoint_type))) {
       NEARBY_LOGS(WARNING)
           << "Failed to start listening for incoming connections on Bluetooth";
     } else {
@@ -1106,10 +1106,10 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
         !ble_v2_medium_.IsAcceptingConnections(std::string(service_id))) {
       if (!ble_v2_medium_.StartAcceptingConnections(
               std::string(service_id),
-              {.accepted_cb = absl::bind_front(
-                   &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
-                   client_proxy, local_endpoint_id,
-                   options.listening_endpoint_type)})) {
+              absl::bind_front(
+                  &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
+                  client_proxy, local_endpoint_id,
+                  options.listening_endpoint_type))) {
         NEARBY_LOGS(WARNING)
             << "Failed to start listening for incoming connections on ble_v2";
       } else {
@@ -1122,10 +1122,10 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
         !ble_medium_.IsAcceptingConnections(std::string(service_id))) {
       if (!ble_medium_.StartAcceptingConnections(
               std::string(service_id),
-              {.accepted_cb = absl::bind_front(
-                   &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
-                   client_proxy, local_endpoint_id,
-                   options.listening_endpoint_type)})) {
+              absl::bind_front(
+                  &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
+                  client_proxy, local_endpoint_id,
+                  options.listening_endpoint_type))) {
         NEARBY_LOGS(WARNING)
             << "Failed to start listening for incoming connections on ble";
       } else {
@@ -1137,10 +1137,10 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             std::string(service_id),
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
-                 client_proxy, local_endpoint_id, "",
-                 options.listening_endpoint_type)})) {
+            absl::bind_front(
+                &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
+                client_proxy, local_endpoint_id, "",
+                options.listening_endpoint_type))) {
       NEARBY_LOGS(WARNING)
           << "Failed to start listening for incoming connections on wifi_lan";
     } else {
@@ -1458,10 +1458,10 @@ Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
     if (!bluetooth_radio_.Enable() ||
         !bluetooth_medium_.StartAcceptingConnections(
             service_id,
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
-                 this, client, local_endpoint_info.AsStringView(),
-                 NearbyDevice::Type::kConnectionsDevice)})) {
+            absl::bind_front(
+                &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler, this,
+                client, local_endpoint_info.AsStringView(),
+                NearbyDevice::Type::kConnectionsDevice))) {
       NEARBY_LOGS(WARNING)
           << "In StartBluetoothAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())
@@ -1635,11 +1635,10 @@ Medium P2pClusterPcpHandler::StartBleAdvertising(
   if (!ble_medium_.IsAcceptingConnections(service_id)) {
     if (!bluetooth_radio_.Enable() ||
         !ble_medium_.StartAcceptingConnections(
-            service_id,
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
-                 client, local_endpoint_info.AsStringView(),
-                 NearbyDevice::Type::kConnectionsDevice)})) {
+            service_id, absl::bind_front(
+                            &P2pClusterPcpHandler::BleConnectionAcceptedHandler,
+                            this, client, local_endpoint_info.AsStringView(),
+                            NearbyDevice::Type::kConnectionsDevice))) {
       NEARBY_LOGS(WARNING)
           << "In StartBleAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())
@@ -1664,10 +1663,10 @@ Medium P2pClusterPcpHandler::StartBleAdvertising(
       if (!bluetooth_radio_.Enable() ||
           !bluetooth_medium_.StartAcceptingConnections(
               service_id,
-              {.accepted_cb = absl::bind_front(
-                   &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
-                   this, client, local_endpoint_info.AsStringView(),
-                   NearbyDevice::Type::kConnectionsDevice)})) {
+              absl::bind_front(
+                  &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
+                  this, client, local_endpoint_info.AsStringView(),
+                  NearbyDevice::Type::kConnectionsDevice))) {
         NEARBY_LOGS(WARNING)
             << "In BT StartBleAdvertising("
             << absl::BytesToHexString(local_endpoint_info.data())
@@ -1845,10 +1844,10 @@ Medium P2pClusterPcpHandler::StartBleV2Advertising(
     if (!bluetooth_radio_.Enable() ||
         !ble_v2_medium_.StartAcceptingConnections(
             service_id,
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
-                 client, local_endpoint_info.AsStringView(),
-                 NearbyDevice::Type::kConnectionsDevice)})) {
+            absl::bind_front(
+                &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
+                client, local_endpoint_info.AsStringView(),
+                NearbyDevice::Type::kConnectionsDevice))) {
       NEARBY_LOGS(WARNING)
           << "In StartBleAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())
@@ -1876,10 +1875,10 @@ Medium P2pClusterPcpHandler::StartBleV2Advertising(
       if (!bluetooth_radio_.Enable() ||
           !bluetooth_medium_.StartAcceptingConnections(
               service_id,
-              {.accepted_cb = absl::bind_front(
-                   &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
-                   this, client, local_endpoint_info.AsStringView(),
-                   NearbyDevice::Type::kConnectionsDevice)})) {
+              absl::bind_front(
+                  &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler,
+                  this, client, local_endpoint_info.AsStringView(),
+                  NearbyDevice::Type::kConnectionsDevice))) {
         NEARBY_LOGS(WARNING)
             << "In BT StartBleAdvertising("
             << absl::BytesToHexString(local_endpoint_info.data())
@@ -2057,10 +2056,10 @@ Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
   if (!wifi_lan_medium_.IsAcceptingConnections(service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             service_id,
-            {.accepted_cb = absl::bind_front(
-                 &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
-                 client, local_endpoint_id, local_endpoint_info.AsStringView(),
-                 NearbyDevice::Type::kConnectionsDevice)})) {
+            absl::bind_front(
+                &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
+                client, local_endpoint_id, local_endpoint_info.AsStringView(),
+                NearbyDevice::Type::kConnectionsDevice))) {
       NEARBY_LOGS(WARNING)
           << "In StartWifiLanAdvertising("
           << absl::BytesToHexString(local_endpoint_info.data())

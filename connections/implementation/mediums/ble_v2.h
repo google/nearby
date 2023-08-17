@@ -48,10 +48,8 @@ class BleV2 final {
   using DiscoveredPeripheralCallback = mediums::DiscoveredPeripheralCallback;
 
   // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    absl::AnyInvocable<void(BleV2Socket socket, const std::string& service_id)>
-        accepted_cb = DefaultCallback<BleV2Socket, const std::string&>();
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      BleV2Socket socket, const std::string& service_id)>;
 
   explicit BleV2(BluetoothRadio& bluetooth_radio);
   ~BleV2();

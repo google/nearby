@@ -14,8 +14,8 @@
 
 #include "connections/implementation/mediums/wifi_hotspot.h"
 
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -188,7 +188,9 @@ bool WifiHotspot::StartAcceptingConnections(
             server_socket.Close();
             break;
           }
-          callback.accepted_cb(service_id, std::move(client_socket));
+          if (callback) {
+            callback(service_id, std::move(client_socket));
+          }
         }
       });
 

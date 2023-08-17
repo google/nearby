@@ -49,11 +49,9 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (!wifi_hotspot_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_hotspot_medium_.StartAcceptingConnections(
             upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection,
-                    this, client),
-            })) {
+            absl::bind_front(
+                &WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection, this,
+                client))) {
       NEARBY_LOGS(ERROR)
           << "WifiHotspotBwuHandler couldn't initiate WifiHotspot upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id

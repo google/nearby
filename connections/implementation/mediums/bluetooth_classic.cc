@@ -298,8 +298,9 @@ bool BluetoothClassic::StartAcceptingConnections(
             server_socket.Close();
             break;
           }
-
-          callback.accepted_cb(service_id, std::move(client_socket));
+          if (callback) {
+            callback(service_id, std::move(client_socket));
+          }
         }
       });
 

@@ -95,11 +95,8 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WifiLanBwuHandler::OnIncomingWifiLanConnection, this,
-                    client),
-            })) {
+            absl::bind_front(&WifiLanBwuHandler::OnIncomingWifiLanConnection,
+                             this, client))) {
       NEARBY_LOGS(ERROR)
           << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id

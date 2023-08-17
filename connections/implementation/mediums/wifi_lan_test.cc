@@ -68,14 +68,9 @@ TEST_P(WifiLanTest, CanConnect) {
 
   WifiLanSocket socket_for_server;
   EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
-      service_id,
-      {
-          .accepted_cb =
-              [&socket_for_server, &accept_latch](const std::string& service_id,
-                                                  WifiLanSocket socket) {
-                socket_for_server = std::move(socket);
-                accept_latch.CountDown();
-              },
+      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
       }));
 
   NsdServiceInfo nsd_service_info;
@@ -125,14 +120,9 @@ TEST_P(WifiLanTest, CanCancelConnect) {
 
   WifiLanSocket socket_for_server;
   EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
-      service_id,
-      {
-          .accepted_cb =
-              [&socket_for_server, &accept_latch](const std::string& service_id,
-                                                  WifiLanSocket socket) {
-                socket_for_server = std::move(socket);
-                accept_latch.CountDown();
-              },
+      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
       }));
 
   NsdServiceInfo nsd_service_info;

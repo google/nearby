@@ -72,11 +72,7 @@ TEST_P(BleTest, CanStartAcceptingConnectionsAndConnect) {
                          fast_advertisement_service_uuid);
   ble_a.StartAcceptingConnections(
       service_id,
-      {
-          .accepted_cb = [&accept_latch](
-                             BleSocket socket,
-                             const std::string&) { accept_latch.CountDown(); },
-      });
+      [&](BleSocket socket, const std::string&) { accept_latch.CountDown(); });
   BlePeripheral discovered_peripheral;
   ble_b.StartScanning(
       service_id, fast_advertisement_service_uuid,
@@ -126,11 +122,7 @@ TEST_P(BleTest, CanCancelConnect) {
                          fast_advertisement_service_uuid);
   ble_a.StartAcceptingConnections(
       service_id,
-      {
-          .accepted_cb = [&accept_latch](
-                             BleSocket socket,
-                             const std::string&) { accept_latch.CountDown(); },
-      });
+      [&](BleSocket socket, const std::string&) { accept_latch.CountDown(); });
   BlePeripheral discovered_peripheral;
   ble_b.StartScanning(
       service_id, fast_advertisement_service_uuid,

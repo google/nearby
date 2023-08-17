@@ -36,10 +36,8 @@ class WifiLan {
   using DiscoveredServiceCallback = WifiLanMedium::DiscoveredServiceCallback;
 
   // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    std::function<void(const std::string& service_id, WifiLanSocket socket)>
-        accepted_cb = [](const std::string&, WifiLanSocket) {};
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      const std::string& service_id, WifiLanSocket socket)>;
 
   WifiLan() = default;
   ~WifiLan();

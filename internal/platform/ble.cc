@@ -90,31 +90,29 @@ bool BleMedium::StartAcceptingConnections(const std::string& service_id,
   }
   return impl_->StartAcceptingConnections(
       service_id,
-      {
-          .accepted_cb =
-              [this](api::BleSocket& socket, const std::string& service_id) {
-                MutexLock lock(&mutex_);
-                auto pair = sockets_.emplace(
-                    &socket, absl::make_unique<AcceptedConnectionInfo>());
-                auto& context = *pair.first->second;
-                if (!pair.second) {
-                  NEARBY_LOG(INFO, "Accepting (again) socket=%p, impl=%p",
-                             &context.socket, &socket);
-                } else {
-                  context.socket = BleSocket(&socket);
-                  NEARBY_LOG(INFO, "Accepting socket=%p, impl=%p",
-                             &context.socket, &socket);
-                }
-                accepted_connection_callback_.accepted_cb(context.socket,
-                                                          service_id);
-              },
+      [this](api::BleSocket& socket, const std::string& service_id) {
+        MutexLock lock(&mutex_);
+        auto pair = sockets_.emplace(
+            &socket, std::make_unique<AcceptedConnectionInfo>());
+        auto& context = *pair.first->second;
+        if (!pair.second) {
+          NEARBY_LOG(INFO, "Accepting (again) socket=%p, impl=%p",
+                     &context.socket, &socket);
+        } else {
+          context.socket = BleSocket(&socket);
+          NEARBY_LOG(INFO, "Accepting socket=%p, impl=%p", &context.socket,
+                     &socket);
+        }
+        if (accepted_connection_callback_) {
+          accepted_connection_callback_(context.socket, service_id);
+        }
       });
 }
 
 bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
   {
     MutexLock lock(&mutex_);
-    accepted_connection_callback_ = {};
+    accepted_connection_callback_ = nullptr;
     sockets_.clear();
     NEARBY_LOG(INFO, "Ble accepted connection disabled: impl=%p", &GetImpl());
   }

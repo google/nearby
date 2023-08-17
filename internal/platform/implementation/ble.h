@@ -99,10 +99,8 @@ class BleMedium {
   virtual bool StopScanning(const std::string& service_id) = 0;
 
   // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    absl::AnyInvocable<void(BleSocket& socket, const std::string& service_id)>
-        accepted_cb = DefaultCallback<BleSocket&, const std::string&>();
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      BleSocket& socket, const std::string& service_id)>;
 
   // Returns true once BLE socket connection requests to service_id can be
   // accepted.

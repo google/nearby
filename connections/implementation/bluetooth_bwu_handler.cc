@@ -111,11 +111,9 @@ ByteArray BluetoothBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (!bluetooth_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!bluetooth_medium_.StartAcceptingConnections(
             upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &BluetoothBwuHandler::OnIncomingBluetoothConnection, this,
-                    client),
-            })) {
+            absl::bind_front(
+                &BluetoothBwuHandler::OnIncomingBluetoothConnection, this,
+                client))) {
       NEARBY_LOGS(ERROR) << "BluetoothBwuHandler couldn't initiate the "
                             "BLUETOOTH upgrade for endpoint "
                          << endpoint_id
