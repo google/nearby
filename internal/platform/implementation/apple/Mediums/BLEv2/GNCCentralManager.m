@@ -12,23 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
+
+#import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface NSData (GNCWebSafeBase64)
+@implementation CBCentralManager (GNCCentralManagerAdditions)
 
-/** Creates a Base64 encoded string from the data using websafe characters and no padding. */
-- (NSString *)webSafeBase64EncodedString;
+- (void)setCentralDelegate:(nullable id<GNCCentralManagerDelegate>)centralDelegate {
+  NSAssert([centralDelegate conformsToProtocol:@protocol(CBCentralManagerDelegate)],
+           @"centralDelegate must conform to protocol CBCentralManagerDelegate");
+  self.delegate = (id<CBCentralManagerDelegate>)centralDelegate;
+}
 
-/**
- * Initializes a data object with the given Base64 encoded string.
- *
- * @param base64String A Base64 encoded string.
- * @return A data object built by Base64 decoding the provided string. Returns @c nil if the data
- *         object could not be decoded.
- */
-- (nullable instancetype)initWithWebSafeBase64EncodedString:(NSString *)base64String;
+- (nullable id<GNCCentralManagerDelegate>)centralDelegate {
+  return (id<GNCCentralManagerDelegate>)self.delegate;
+}
 
 @end
 

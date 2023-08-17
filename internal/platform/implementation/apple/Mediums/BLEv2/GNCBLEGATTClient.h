@@ -65,7 +65,7 @@ typedef void (^GNCReadCharacteristicValueCompletionHandler)(NSData *_Nullable va
  *
  * @param peripheral The peripheral instance.
  */
-- (instancetype)initWithPeripheral:(CBPeripheral *)peripheral;
+- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral;
 
 /**
  * Discovers the specified characteristics of a service.

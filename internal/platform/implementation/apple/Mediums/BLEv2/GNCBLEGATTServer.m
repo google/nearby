@@ -203,7 +203,7 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     // data is unavailable.
     CBUUID *serviceUUID = [serviceData.allKeys objectAtIndex:0];
     NSData *value = [serviceData objectForKey:serviceUUID];
-    NSString *encoded = [value webSafebase64EncodedString];
+    NSString *encoded = [value webSafeBase64EncodedString];
 
     // Base64 encoding increases the size of the data so we must truncate it to 22 bytes to ensure
     // it fits in the advertisement alongside an assumed 16-bit serviceUUID.

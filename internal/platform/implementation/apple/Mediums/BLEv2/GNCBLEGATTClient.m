@@ -70,7 +70,7 @@ static NSError *AlreadyReadingCharacteristicError() {
       *_readCharacteristicValueCompletionHandlers;
 }
 
-- (instancetype)initWithPeripheral:(CBPeripheral *)peripheral {
+- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral {
   return [self
       initWithPeripheral:peripheral
                    queue:dispatch_queue_create(kGNCBLEGATTClientQueueLabel, DISPATCH_QUEUE_SERIAL)];

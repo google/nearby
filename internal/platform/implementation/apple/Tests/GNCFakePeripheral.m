@@ -38,6 +38,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation GNCFakePeripheral {
   NSMutableArray<CBService *> *_services;
+  NSUUID *_identifier;
 }
 
 @synthesize peripheralDelegate;
@@ -46,8 +47,13 @@ NS_ASSUME_NONNULL_BEGIN
   self = [super init];
   if (self) {
     _services = [[NSMutableArray alloc] init];
+    _identifier = [[NSUUID alloc] init];
   }
   return self;
+}
+
+- (NSUUID *)identifier {
+  return _identifier;
 }
 
 - (nullable NSArray<CBService *> *)services {

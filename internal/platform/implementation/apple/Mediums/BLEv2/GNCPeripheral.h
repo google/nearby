@@ -44,6 +44,16 @@ NS_ASSUME_NONNULL_BEGIN
 @property(retain, readonly, nullable) NSArray<CBService *> *services;
 
 /**
+ * The UUID associated with the peer.
+ *
+ * The value of this property represents the unique identifier of the peer. The first time a local
+ * manager encounters a peer, the system assigns the peer a UUID, represented by a new @c NSUUID
+ * object. Peers use @c NSUUID instances to identify themselves, instead of by the @c CBUUID objects
+ * that identify a peripheral’s services, characteristics, and descriptors.
+ */
+@property(readonly, nonatomic) NSUUID *identifier;
+
+/**
  * Discovers the specified services of the peripheral.
  *
  * You can provide an array of CBUUID objects, representing service UUIDs, in the @c serviceUUIDs

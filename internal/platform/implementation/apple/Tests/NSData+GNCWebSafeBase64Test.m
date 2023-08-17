@@ -25,7 +25,7 @@
 - (void)testEncodingWithPadding {
   NSString *expected = @"AQ";
   NSData *data = [[NSData alloc] initWithBase64EncodedString:@"AQ==" options:0];
-  NSString *actual = [data webSafebase64EncodedString];
+  NSString *actual = [data webSafeBase64EncodedString];
   XCTAssertEqualObjects(expected, actual);
 }
 
@@ -35,8 +35,58 @@
       [[NSData alloc] initWithBase64EncodedString:
                           @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
                                           options:0];
-  NSString *actual = [data webSafebase64EncodedString];
+  NSString *actual = [data webSafeBase64EncodedString];
   XCTAssertEqualObjects(expected, actual);
+}
+
+- (void)testDecodingWithoutPadding {
+  NSData *expected = [[NSData alloc] initWithBase64EncodedString:@"AQ==" options:0];
+  NSData *actual = [[NSData alloc] initWithWebSafeBase64EncodedString:@"AQ"];
+  XCTAssertNotNil(actual);
+  XCTAssertEqualObjects(expected, actual);
+}
+
+- (void)testDecodingNoPad {
+  NSData *expected = [[NSData alloc] initWithBase64EncodedString:@"aaaa" options:0];
+  NSData *actual = [[NSData alloc] initWithWebSafeBase64EncodedString:@"aaaa"];
+  XCTAssertNotNil(actual);
+  XCTAssertEqualObjects(expected, actual);
+}
+
+- (void)testDecoding1Pad {
+  NSData *expected = [[NSData alloc] initWithBase64EncodedString:@"aaa=" options:0];
+  NSData *actual = [[NSData alloc] initWithWebSafeBase64EncodedString:@"aaa"];
+  XCTAssertNotNil(actual);
+  XCTAssertEqualObjects(expected, actual);
+}
+
+- (void)testDecoding2Pad {
+  NSData *expected = [[NSData alloc] initWithBase64EncodedString:@"aa==" options:0];
+  NSData *actual = [[NSData alloc] initWithWebSafeBase64EncodedString:@"aa"];
+  XCTAssertNotNil(actual);
+  XCTAssertEqualObjects(expected, actual);
+}
+
+- (void)testDecodingSingleCharacterInLastQuadruple {
+  NSData *actual = [[NSData alloc] initWithWebSafeBase64EncodedString:@"aaaab"];
+  XCTAssertNil(actual);
+}
+
+- (void)testDecodingWithAllValidCharacters {
+  NSData *expected =
+      [[NSData alloc] initWithBase64EncodedString:
+                          @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+                                          options:0];
+  NSData *actual =
+      [[NSData alloc] initWithWebSafeBase64EncodedString:
+                          @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"];
+  XCTAssertNotNil(actual);
+  XCTAssertEqualObjects(expected, actual);
+}
+
+- (void)testDecodingWithIllegalCharacters {
+  NSData *actual = [[NSData alloc] initWithWebSafeBase64EncodedString:@"@#$^&*()"];
+  XCTAssertNil(actual);
 }
 
 @end

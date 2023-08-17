@@ -24,13 +24,18 @@ objc_library(
     testonly = True,
     srcs = [
         "GNCBLEGATTCharacteristicTest.mm",
+        "GNCBLEGATTClient+Testing.h",
         "GNCBLEGATTClientTest.m",
         "GNCBLEGATTServer+Testing.h",
         "GNCBLEGATTServerTest.m",
+        "GNCBLEMedium+Testing.h",
+        "GNCBLEMediumTest.m",
         "GNCBLEUtilsTest.mm",
         "GNCBleTest.mm",
         "GNCBluetoothAdapterTest.mm",
         "GNCCryptoTest.mm",
+        "GNCFakeCentralManager.h",
+        "GNCFakeCentralManager.m",
         "GNCFakePeripheral.h",
         "GNCFakePeripheral.m",
         "GNCFakePeripheralManager.h",
@@ -43,7 +48,6 @@ objc_library(
         "NSData+GNCWebSafeBase64Test.m",
     ],
     deps = [
-        ":GNCBLEGATTClient_Testing",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
@@ -55,15 +59,6 @@ objc_library(
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "@com_google_absl//absl/time",
-    ],
-)
-
-objc_library(
-    name = "GNCBLEGATTClient_Testing",
-    hdrs = ["GNCBLEGATTClient+Testing.h"],
-    deps = [
-        "//internal/platform/implementation/apple/Mediums",
-        "//third_party/apple_frameworks:Foundation",
     ],
 )
 
