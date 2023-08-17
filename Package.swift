@@ -573,6 +573,7 @@ let package = Package(
         // Temporarily ignore BLEv2 source files.
         // TODO(b/293283024): Stop ignoring these files when BLEv2 migration is complete.
         "internal/platform/implementation/apple/ble_gatt_server.mm",
+        "internal/platform/implementation/apple/ble_gatt_client.mm",
         "internal/platform/implementation/apple/ble_peripheral.mm",
         "internal/platform/implementation/apple/ble_server_socket.mm",
         "internal/platform/implementation/apple/ble_socket.mm",

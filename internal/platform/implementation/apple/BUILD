@@ -107,6 +107,7 @@ objc_library(
 objc_library(
     name = "ble_v2",
     srcs = [
+        "ble_gatt_client.mm",
         "ble_gatt_server.mm",
         "ble_peripheral.mm",
         "ble_server_socket.mm",
@@ -116,6 +117,7 @@ objc_library(
         "utils.mm",
     ],
     hdrs = [
+        "ble_gatt_client.h",
         "ble_gatt_server.h",
         "ble_peripheral.h",
         "ble_server_socket.h",
