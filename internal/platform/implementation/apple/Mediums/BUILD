@@ -20,7 +20,9 @@ objc_library(
     srcs = [
         "BLEv2/GNCBLEError.m",
         "BLEv2/GNCBLEGATTCharacteristic.m",
+        "BLEv2/GNCBLEGATTClient.m",
         "BLEv2/GNCBLEGATTServer.m",
+        "BLEv2/GNCPeripheral.m",
         "BLEv2/GNCPeripheralManager.m",
         "BLEv2/NSData+GNCWebSafeBase64.m",
         "Ble/GNCMBleCentral.m",
@@ -40,7 +42,9 @@ objc_library(
     hdrs = [
         "BLEv2/GNCBLEError.h",
         "BLEv2/GNCBLEGATTCharacteristic.h",
+        "BLEv2/GNCBLEGATTClient.h",
         "BLEv2/GNCBLEGATTServer.h",
+        "BLEv2/GNCPeripheral.h",
         "BLEv2/GNCPeripheralManager.h",
         "BLEv2/NSData+GNCWebSafeBase64.h",
         "Ble/GNCMBleCentral.h",

@@ -41,8 +41,8 @@ typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
  * @param characteristicUUID A 128-bit UUID that identifies the characteristic.
  * @param permissions The permissions of the characteristic value.
  * @param properties The properties of the characteristic.
- * @param completionHandler Called on the main queue with the characteristic if successfully created
- *                          or an error if one has occured.
+ * @param completionHandler Called on a private queue with the characteristic if successfully
+ *                          created or an error if one has occured.
  */
 - (void)createCharacteristicWithServiceID:(CBUUID *)serviceUUID
                        characteristicUUID:(CBUUID *)characteristicUUID
@@ -56,8 +56,8 @@ typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
  *
  * @param characteristic The characteristic to update.
  * @param value The new value for the characteristic.
- * @param completionHandler Called on the main queue with @c nil if successfully updated or an error
- *                          if one has occured.
+ * @param completionHandler Called on a private queue with @c nil if successfully updated or an
+ *                          error if one has occured.
  */
 - (void)updateCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
                        value:(nullable NSData *)value
@@ -76,8 +76,8 @@ typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
  * longer than 22 bytes. This also means we can only support advertising a single service.
  *
  * @param serviceData A dictionary that contains service-specific advertisement data.
- * @param completionHandler Called on the main queue with @c nil if successfully started advertising
- *                          or an error if one has occured.
+ * @param completionHandler Called on a private queue with @c nil if successfully started
+ *                          advertising or an error if one has occured.
  */
 - (void)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData
            completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler;

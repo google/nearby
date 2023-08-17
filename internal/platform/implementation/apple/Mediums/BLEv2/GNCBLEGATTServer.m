@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
 
-@interface GNCBLEGATTServer () <GNCPeripheralManagerDelegate, CBPeripheralManagerDelegate>
+@interface GNCBLEGATTServer () <GNCPeripheralManagerDelegate>
 @end
 
 @implementation GNCBLEGATTServer {

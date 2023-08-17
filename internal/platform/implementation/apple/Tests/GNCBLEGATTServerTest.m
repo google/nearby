@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Tests/GNCBLEGATTServer+Testing.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakePeripheralManager.h"
 

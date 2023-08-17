@@ -23,4 +23,7 @@ typedef NS_ERROR_ENUM(GNCBLEErrorDomain, GNCBLEError){
     GNCBLEErrorDuplicateCharacteristic,
     GNCBLEErrorInvalidServiceData,
     GNCBLEErrorAlreadyAdvertising,
+    GNCBLEErrorInvalidCharacteristic,
+    GNCBLEErrorAlreadyDiscoveringSpecifiedCharacteristics,
+    GNCBLEErrorAlreadyReadingCharacteristic,
 };

@@ -12,22 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
-#import <objc/NSObject.h>
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@implementation CBPeripheralManager (GNCPeripheralManagerAdditions)
+@implementation CBPeripheral (GNCPeripheralAdditions)
 
-- (void)setPeripheralDelegate:(nullable id<GNCPeripheralManagerDelegate>)peripheralDelegate {
+- (void)setPeripheralDelegate:(nullable id<GNCPeripheralDelegate>)peripheralDelegate {
   self.delegate = peripheralDelegate;
 }
 
-- (nullable id<GNCPeripheralManagerDelegate>)peripheralDelegate {
-  return (id<GNCPeripheralManagerDelegate>)self.delegate;
+- (nullable id<GNCPeripheralDelegate>)peripheralDelegate {
+  return (id<GNCPeripheralDelegate>)self.delegate;
 }
 
 @end
