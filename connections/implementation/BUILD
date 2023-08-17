@@ -186,6 +186,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_for_library_testonly",

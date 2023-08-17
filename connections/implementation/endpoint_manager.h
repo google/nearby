@@ -25,6 +25,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
@@ -189,7 +190,7 @@ class EndpointManager {
 
     void StartEndpointReader(Runnable&& runnable);
     void StartEndpointKeepAliveManager(
-        std::function<void(Mutex*, ConditionVariable*)> runnable);
+        absl::AnyInvocable<void(Mutex*, ConditionVariable*)> runnable);
 
    private:
     const std::string endpoint_id_;
@@ -245,7 +246,7 @@ class EndpointManager {
   void EndpointChannelLoopRunnable(
       const std::string& runnable_name, ClientProxy* client_proxy,
       const std::string& endpoint_id,
-      std::function<ExceptionOr<bool>(EndpointChannel*)> handler);
+      absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler);
 
   static void WaitForLatch(const std::string& method_name,
                            CountDownLatch* latch);

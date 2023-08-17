@@ -134,8 +134,9 @@ class SimulationUser {
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
   ByteArray GetInfo() const { return info_; }
 
-  bool WaitForProgress(std::function<bool(const PayloadProgressInfo&)> pred,
-                       absl::Duration timeout);
+  bool WaitForProgress(
+      absl::AnyInvocable<bool(const PayloadProgressInfo&)> pred,
+      absl::Duration timeout);
 
  protected:
   // ConnectionListener callbacks
@@ -169,7 +170,7 @@ class SimulationUser {
   CountDownLatch* lost_latch_ = nullptr;
   CountDownLatch* payload_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
-  std::function<bool(const PayloadProgressInfo&)> predicate_;
+  absl::AnyInvocable<bool(const PayloadProgressInfo&)> predicate_;
   ByteArray info_;
   Mediums mediums_;
   AdvertisingOptions advertising_options_;

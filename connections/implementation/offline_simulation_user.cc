@@ -14,6 +14,7 @@
 
 #include "connections/implementation/offline_simulation_user.h"
 
+#include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
@@ -86,7 +87,7 @@ void OfflineSimulationUser::OnPayloadProgress(absl::string_view endpoint_id,
 }
 
 bool OfflineSimulationUser::WaitForProgress(
-    std::function<bool(const PayloadProgressInfo&)> predicate,
+    absl::AnyInvocable<bool(const PayloadProgressInfo&)> predicate,
     absl::Duration timeout) {
   Future<bool> future;
   {

@@ -97,7 +97,7 @@ class EndpointManager::LockedFrameProcessor {
 void EndpointManager::EndpointChannelLoopRunnable(
     const std::string& runnable_name, ClientProxy* client,
     const std::string& endpoint_id,
-    std::function<ExceptionOr<bool>(EndpointChannel*)> handler) {
+    absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler) {
   // EndpointChannelManager will not let multiple channels exist simultaneously
   // for the same endpoint_id; it will be closing "old" channels as new ones
   // come.
@@ -786,11 +786,11 @@ void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
 }
 
 void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
-    std::function<void(Mutex*, ConditionVariable*)> runnable) {
+    absl::AnyInvocable<void(Mutex*, ConditionVariable*)> runnable) {
   keep_alive_thread_.Execute(
-      "keep-alive",
-      [runnable, keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),
-       keep_alive_waiter = keep_alive_waiter_.get()]() {
+      "keep-alive", [runnable = std::move(runnable),
+                     keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),
+                     keep_alive_waiter = keep_alive_waiter_.get()]() mutable {
         runnable(keep_alive_waiter_mutex, keep_alive_waiter);
       });
 }

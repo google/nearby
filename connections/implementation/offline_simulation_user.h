@@ -18,6 +18,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_service_controller.h"
@@ -131,8 +132,9 @@ class OfflineSimulationUser {
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
   ByteArray GetInfo() const { return info_; }
 
-  bool WaitForProgress(std::function<bool(const PayloadProgressInfo&)> pred,
-                       absl::Duration timeout);
+  bool WaitForProgress(
+      absl::AnyInvocable<bool(const PayloadProgressInfo&)> pred,
+      absl::Duration timeout);
 
   Payload& GetPayload() { return payload_; }
   void SendPayload(Payload payload) {
@@ -203,7 +205,7 @@ class OfflineSimulationUser {
   CountDownLatch* payload_latch_ = nullptr;
   CountDownLatch* disconnect_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
-  std::function<bool(const PayloadProgressInfo&)> predicate_;
+  absl::AnyInvocable<bool(const PayloadProgressInfo&)> predicate_;
   ClientProxy client_;
   OfflineServiceController ctrl_;
 };

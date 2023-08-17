@@ -76,7 +76,7 @@ void SimulationUser::OnPayloadProgress(absl::string_view endpoint_id,
 }
 
 bool SimulationUser::WaitForProgress(
-    std::function<bool(const PayloadProgressInfo&)> predicate,
+    absl::AnyInvocable<bool(const PayloadProgressInfo&)> predicate,
     absl::Duration timeout) {
   Future<bool> future;
   {
