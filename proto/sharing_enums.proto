@@ -288,6 +288,7 @@ enum EstablishConnectionStatus {
   CONNECTION_STATUS_FAILED_WRITE_INTRODUCTION = 6;
   CONNECTION_STATUS_FAILED_NULL_CONNECTION = 7;
   CONNECTION_STATUS_FAILED_NO_TRANSFER_UPDATE_CALLBACK = 8;
+  CONNECTION_STATUS_LOST_CONNECTIVITY = 9;
 }
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
@@ -333,10 +334,13 @@ enum AttachmentTransmissionStatus {
   FAILED_UNKNOWN_REMOTE_RESPONSE_TRANSMISSION_STATUS = 26;
   // Connection failed due to Wifi is disconnected or Bluetooth setting is off
   // or user turn on airplane mode.
-  NO_RESPONSE_FRAME_CONNECTION_CLOSED_LOST_CONNECTIVITY_TRANSMISSION_STATUS =
-      27;
+  NO_RESPONSE_FRAME_CONNECTION_CLOSED_LOST_CONNECTIVITY_TRANSMISSION_STATUS = 27
+      [deprecated = true];
   // Unexpected connection failure due to no response frame.
   NO_RESPONSE_FRAME_CONNECTION_CLOSED_TRANSMISSION_STATUS = 28;
+  // Connection failed due to Wifi is disconnected or Bluetooth setting is off
+  // or user turn on airplane mode.
+  LOST_CONNECTIVITY_TRANSMISSION_STATUS = 29;
 }
 
 // Generic result status of NearbyConnections API calls.
