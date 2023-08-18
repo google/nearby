@@ -177,7 +177,12 @@ Exception BleOutputStream::Close() {
 
 #pragma mark - BleSocket
 
-BleSocket::BleSocket(id<GNCMConnection> connection, BlePeripheral *peripheral)
+BleSocket::BleSocket(id<GNCMConnection> connection)
+    : input_stream_(new BleInputStream()),
+      output_stream_(new BleOutputStream(connection)),
+      peripheral_(new EmptyBlePeripheral()) {}
+
+BleSocket::BleSocket(id<GNCMConnection> connection, api::ble_v2::BlePeripheral *peripheral)
     : input_stream_(new BleInputStream()),
       output_stream_(new BleOutputStream(connection)),
       peripheral_(peripheral) {}

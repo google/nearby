@@ -22,17 +22,29 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/prng.h"
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
+
 namespace nearby {
 namespace apple {
 
-BlePeripheral::BlePeripheral(CBPeripheral *peripheral)
-    : peripheral_(peripheral), unique_id_(Prng().NextInt64()) {}
+#pragma mark - EmptyBlePeripheral
 
-std::string BlePeripheral::GetAddress() const {
-  return peripheral_.identifier.UUIDString.UTF8String;
-}
+EmptyBlePeripheral::EmptyBlePeripheral() : unique_id_(Prng().NextInt64()) {}
+
+std::string EmptyBlePeripheral::GetAddress() const { return ""; }
+
+api::ble_v2::BlePeripheral::UniqueId EmptyBlePeripheral::GetUniqueId() const { return unique_id_; }
+
+#pragma mark - BlePeripheral
+
+BlePeripheral::BlePeripheral(id<GNCPeripheral> peripheral)
+    : peripheral_(peripheral), unique_id_(peripheral.identifier.hash) {}
+
+std::string BlePeripheral::GetAddress() const { return ""; }
 
 api::ble_v2::BlePeripheral::UniqueId BlePeripheral::GetUniqueId() const { return unique_id_; }
+
+id<GNCPeripheral> BlePeripheral::GetPeripheral() const { return peripheral_; }
 
 }  // namespace apple
 }  // namespace nearby

@@ -109,6 +109,7 @@ objc_library(
     srcs = [
         "ble_gatt_client.mm",
         "ble_gatt_server.mm",
+        "ble_medium.mm",
         "ble_peripheral.mm",
         "ble_server_socket.mm",
         "ble_socket.mm",
@@ -119,6 +120,7 @@ objc_library(
     hdrs = [
         "ble_gatt_client.h",
         "ble_gatt_server.h",
+        "ble_medium.h",
         "ble_peripheral.h",
         "ble_server_socket.h",
         "ble_socket.h",
@@ -130,9 +132,12 @@ objc_library(
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Central",
+        "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Peripheral",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",

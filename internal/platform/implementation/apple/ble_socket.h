@@ -90,7 +90,11 @@ class BleOutputStream : public OutputStream {
 // A BLE Weave socket.
 class BleSocket : public api::ble_v2::BleSocket {
  public:
-  BleSocket(id<GNCMConnection> connection, BlePeripheral *peripheral);
+  explicit BleSocket(id<GNCMConnection> connection);
+
+  // The peripheral used to create the socket must outlive the socket or undefined behavior will
+  // occur.
+  BleSocket(id<GNCMConnection> connection, api::ble_v2::BlePeripheral *peripheral);
   ~BleSocket() override;
 
   // Returns the InputStream of the BleSocket.
@@ -98,21 +102,21 @@ class BleSocket : public api::ble_v2::BleSocket {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the BleSocket object is destroyed.
-  InputStream &GetInputStream() override { return *input_stream_; }
+  BleInputStream &GetInputStream() override { return *input_stream_; }
 
   // Returns the OutputStream of the BleSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the BleSocket object is destroyed.
-  OutputStream &GetOutputStream() override { return *output_stream_; }
+  BleOutputStream &GetOutputStream() override { return *output_stream_; }
 
   // Returns Exception::kIo on error, otherwise Exception::kSuccess.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  BlePeripheral *GetRemotePeripheral() override { return peripheral_; }
+  api::ble_v2::BlePeripheral *GetRemotePeripheral() override { return peripheral_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -123,7 +127,7 @@ class BleSocket : public api::ble_v2::BleSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleInputStream> input_stream_;
   std::unique_ptr<BleOutputStream> output_stream_;
-  BlePeripheral *peripheral_;
+  api::ble_v2::BlePeripheral *peripheral_;
 };
 
 }  // namespace apple

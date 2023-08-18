@@ -92,6 +92,8 @@ class BlePeripheral {
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getAddress()
   //
   // Returns the current address.
+  //
+  // This will always be an empty string on Apple platforms.
   virtual std::string GetAddress() const = 0;
 
   // Returns an immutable unique identifier. The identifier must not change when
@@ -510,6 +512,9 @@ class BleMedium {
 
   // Calls `callback` and returns true if `mac_address` is a valid BLE address.
   // Otherwise, does not call the callback and returns false.
+  //
+  // This method is not available on Apple platforms and will always return
+  // false, ignoring the callback.
   virtual bool GetRemotePeripheral(const std::string& mac_address,
                                    GetRemotePeripheralCallback callback) = 0;
 

@@ -26,20 +26,24 @@
 
 #include "internal/platform/implementation/ble_v2.h"
 
+@protocol GNCPeripheral;
+
 namespace nearby {
 namespace apple {
 
-// Opaque wrapper over a CoreBluetooth peripheral. This can be used to uniquely
-// identify a peripheral and connect to its GATT server.
-class BlePeripheral : public api::ble_v2::BlePeripheral {
+// An empty peripheral.
+//
+// Apple APIs do not expose a peripheral's MAC address and does not provide a
+// way to directly connect to a given MAC address. Instead a connection can only
+// be made using a CoreBluetooth peripheral object. Many times a CoreBluetooth
+// peripheral is not available, namely, when the remote device is a central. For
+// these cases, an EmptyBlePeripheral should be used.
+class EmptyBlePeripheral : public api::ble_v2::BlePeripheral {
  public:
-  BlePeripheral() = default;
-  explicit BlePeripheral(CBPeripheral *peripheral);
-  ~BlePeripheral() override = default;
+  EmptyBlePeripheral();
+  ~EmptyBlePeripheral() override = default;
 
-  // Returns the hardware address of this peripheral.
-  //
-  // For example, "00:11:22:AA:BB:CC".
+  // Returns an empty string.
   std::string GetAddress() const override;
 
   // Returns an immutable unique identifier. The identifier does not change when
@@ -47,7 +51,32 @@ class BlePeripheral : public api::ble_v2::BlePeripheral {
   api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override;
 
  private:
-  CBPeripheral *peripheral_;
+  api::ble_v2::BlePeripheral::UniqueId unique_id_;
+};
+
+// A wrapper of a CoreBluetooth peripheral object. This can be used to uniquely
+// identify a peripheral and connect to its GATT server.
+//
+// Many times a CoreBluetooth peripheral is not available, namely, when the
+// remote device is a central. For these cases, an EmptyBlePeripheral should be
+// used instead.
+class BlePeripheral : public api::ble_v2::BlePeripheral {
+ public:
+  explicit BlePeripheral(id<GNCPeripheral> peripheral);
+  ~BlePeripheral() override = default;
+
+  // Returns an empty string.
+  std::string GetAddress() const override;
+
+  // Returns an immutable unique identifier. The identifier does not change when
+  // the peripheral's address is rotated.
+  api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override;
+
+  // Returns the CoreBluetooth peripheral object.
+  id<GNCPeripheral> GetPeripheral() const;
+
+ private:
+  id<GNCPeripheral> peripheral_;
   api::ble_v2::BlePeripheral::UniqueId unique_id_;
 };
 
