@@ -38,6 +38,10 @@ pub(super) struct JsonData {
 }
 
 impl DeviceInfo {
+    // `new()` is conceivably only used in tests, since this struct should be
+    // constructed by serde_json. Therefore, adding cfg to disable dead code
+    // warnings. Can be removed in the future.
+    #[cfg(test)]
     pub(crate) fn new(image_url: String, name: String) -> Self {
         DeviceInfo { image_url, name }
     }

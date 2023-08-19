@@ -219,7 +219,5 @@ impl api::BleAdapter for BleAdapter {
 }
 
 mod tests {
-    use super::*;
-
     // TODO b/288592509 unit tests
 }
