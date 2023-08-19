@@ -28,7 +28,7 @@ impl FpDecoder {
     pub(crate) fn get_model_id_from_service_data<U: Copy>(
         service_data: &ServiceData<U>,
     ) -> Result<Vec<u8>, FpError> {
-        static MIN_MODEL_ID_LENGTH: usize = 3;
+        const MIN_MODEL_ID_LENGTH: usize = 3;
         let data = service_data.data();
 
         if data.len() < MIN_MODEL_ID_LENGTH {

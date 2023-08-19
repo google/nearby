@@ -124,6 +124,8 @@ fn init_cache() {
 
 /// Sets up initial constructs and infinitely polls for advertisements.
 pub fn init() {
+    const JSON_PATH: &str = "./local";
+
     let run = async {
         info!("start making adapter");
 
@@ -134,7 +136,7 @@ pub fn init() {
 
         let mut latest_advertisement_map = HashMap::new();
         let datatype_selector = vec![BleDataTypeId::ServiceData16BitUuid];
-        let fetcher: Box<dyn FpFetcher> = Box::new(FpFetcherFs::new(String::from("./local")));
+        let fetcher: Box<dyn FpFetcher> = Box::new(FpFetcherFs::new(String::from(JSON_PATH)));
 
         loop {
             // Retrieve the next received advertisement.
