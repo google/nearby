@@ -157,7 +157,5 @@ impl api::ClassicDevice for ClassicDevice {
 }
 
 mod tests {
-    use super::*;
-
     // TODO b/288592509 unit tests
 }

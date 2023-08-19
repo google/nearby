@@ -14,14 +14,14 @@
 
 use bluetooth::{BleAddress, BleAdvertisement, ServiceData};
 
-use crate::{decoder::FpDecoder, fetcher::FpFetcher};
+use crate::{decoder::FpDecoder, error::FpError, fetcher::FpFetcher};
 
 /// Represents a FP device model ID.
 pub(crate) type ModelId = String;
 
 /// Holds information required to make decisions about an incoming Fast Pair
 /// advertisement.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct FpPairingAdvertisement {
     inner: BleAdvertisement,
     /// Estimated distance in meters of device from BLE adapter.
@@ -37,13 +37,15 @@ impl FpPairingAdvertisement {
         adv: BleAdvertisement,
         service_data: &ServiceData<u16>,
         fetcher: &Box<dyn FpFetcher>,
-    ) -> Result<Self, anyhow::Error> {
-        let rssi = adv.rssi().ok_or(anyhow::anyhow!(
-            "Windows advertisements should contain RSSI information."
-        ))?;
-        let tx_power = adv.tx_power().ok_or(anyhow::anyhow!(
-            "Fast Pair advertisements should advertise their transmit power."
-        ))?;
+    ) -> Result<Self, FpError> {
+        let rssi = adv.rssi().ok_or(FpError::ContractViolation(String::from(
+            "Windows advertisements should contain RSSI information.",
+        )))?;
+        let tx_power = adv
+            .tx_power()
+            .ok_or(FpError::ContractViolation(String::from(
+                "Windows advertisements should contain RSSI information.",
+            )))?;
 
         let distance = distance_from_rssi_and_tx_power(rssi, tx_power);
 
@@ -51,22 +53,16 @@ impl FpPairingAdvertisement {
         // data in the `FpPairingAdvertisement` since it's easily accessible from
         // `FpPairingAdvertisement.inner`, but it's convenient to save the parsed
         // model ID.
-        let mut model_id =
-            FpDecoder::get_model_id_from_service_data(service_data).or_else(|err| {
-                // Some FP advertisements can be GATT non-discoverable
-                // advertisements containing service data that isn't
-                // the device model ID. In this case, simply ignore
-                // advertisements with errors extracting the model ID.
-                // See: developers.google.com/nearby/fast-pair/specifications/service/provider
-                Err(anyhow::anyhow!("error extracting model ID: {}", err))
-            })?;
+        let mut model_id = FpDecoder::get_model_id_from_service_data(service_data)?;
 
         if model_id.len() != 3 {
             // In this demo of Fast Pair Rust, only model ID's
             // of length 3 bytes are supported. Therefore, if a
             // larger model ID makes it this far, log an error.
             // TODO b/294453912
-            return Err(anyhow::anyhow!("Error: model ID of unsupported length"));
+            return Err(FpError::Internal(String::from(
+                "creating `model_id` should have already failed",
+            )));
         }
 
         // Pad with 0 at the beginning to successfully call `from_be_bytes`.
@@ -193,6 +189,7 @@ mod tests {
         let fp_adv = FpPairingAdvertisement::new(ble_adv, &service_data, &fetcher);
 
         assert!(fp_adv.is_err());
+        assert!(matches!(fp_adv.unwrap_err(), FpError::ContractViolation(_)));
     }
 
     #[test]
@@ -212,25 +209,7 @@ mod tests {
         let fp_adv = FpPairingAdvertisement::new(ble_adv, &service_data, &fetcher);
 
         assert!(fp_adv.is_err());
-    }
-
-    #[test]
-    fn test_new_fp_pairing_advertisement_bad_service_data() {
-        let addr = BleAddress::new(0x112233, BleAddressKind::Public);
-        let ble_adv = BleAdvertisement::new(addr, Some(-60), Some(10));
-
-        let raw_data = vec![4, 3, 2, 1];
-        let service_data = ServiceData::new(0x123 as u16, raw_data);
-
-        let device_info = Ok(DeviceInfo::new(
-            String::from("image_url"),
-            String::from("name"),
-        ));
-        let fetcher: Box<dyn FpFetcher> = Box::new(FpFetcherMock::new(device_info));
-
-        let fp_adv = FpPairingAdvertisement::new(ble_adv, &service_data, &fetcher);
-
-        assert!(fp_adv.is_err());
+        assert!(matches!(fp_adv.unwrap_err(), FpError::ContractViolation(_)));
     }
 
     #[test]
@@ -241,12 +220,11 @@ mod tests {
         let raw_data = vec![3, 2, 1];
         let service_data = ServiceData::new(0x123 as u16, raw_data);
 
-        let fetcher: Box<dyn FpFetcher> = Box::new(FpFetcherMock::new(Err(anyhow::anyhow!(
-            "mock intentional error"
-        ))));
+        let fetcher: Box<dyn FpFetcher> = Box::new(FpFetcherMock::new(Err(FpError::Test)));
 
         let fp_adv = FpPairingAdvertisement::new(ble_adv, &service_data, &fetcher);
 
         assert!(fp_adv.is_err());
+        assert!(matches!(fp_adv.unwrap_err(), FpError::Test));
     }
 }

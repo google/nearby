@@ -54,7 +54,11 @@ fn wire_event_stream_impl(port_: MessagePort) {
             mode: FfiCallMode::Stream,
         },
         move || {
-            move |task_callback| event_stream(task_callback.stream_sink::<_, Option<[String; 2]>>())
+            move |task_callback| {
+                Ok(event_stream(
+                    task_callback.stream_sink::<_, Option<[String; 2]>>(),
+                ))
+            }
         },
     )
 }

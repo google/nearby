@@ -16,6 +16,7 @@ use std::fs;
 
 use crate::{
     advertisement::ModelId,
+    error::FpError,
     fetcher::{DeviceInfo, FpFetcher, JsonData},
 };
 
@@ -35,14 +36,13 @@ impl FpFetcher for FpFetcherFs {
     /// this information is saved locally. In the future, this should instead
     /// be retrieved from a remote server and cached.
     /// b/294456411
-    fn get_device_info_from_model_id(
-        &self,
-        model_id: &ModelId,
-    ) -> Result<DeviceInfo, anyhow::Error> {
+    fn get_device_info_from_model_id(&self, model_id: &ModelId) -> Result<DeviceInfo, FpError> {
         let file_path = format!("{}/{}.json", self.path, model_id);
-        let contents = fs::read_to_string(file_path).expect("Couldn't find or open file.");
+        let contents = fs::read_to_string(file_path)
+            .or_else(|err| Err(FpError::AccessDenied(err.to_string())))?;
 
-        let model_info: JsonData = serde_json::from_str(&contents)?;
+        let model_info: JsonData = serde_json::from_str(&contents)
+            .or_else(|err| Err(FpError::ContractViolation(err.to_string())))?;
 
         Ok(model_info.device())
     }

@@ -14,15 +14,12 @@
 
 use serde::Deserialize;
 
-use crate::advertisement::ModelId;
+use crate::{advertisement::ModelId, error::FpError};
 
 /// Types that can fetch Fast Pair data from external storage (e.g. filesystem,
 /// remote server).
 pub(crate) trait FpFetcher {
-    fn get_device_info_from_model_id(
-        &self,
-        model_id: &ModelId,
-    ) -> Result<DeviceInfo, anyhow::Error>;
+    fn get_device_info_from_model_id(&self, model_id: &ModelId) -> Result<DeviceInfo, FpError>;
 }
 
 /// Holds Fast Pair device information parsed from JSON.
@@ -41,6 +38,10 @@ pub(super) struct JsonData {
 }
 
 impl DeviceInfo {
+    // `new()` is conceivably only used in tests, since this struct should be
+    // constructed by serde_json. Therefore, adding cfg to disable dead code
+    // warnings. Can be removed in the future.
+    #[cfg(test)]
     pub(crate) fn new(image_url: String, name: String) -> Self {
         DeviceInfo { image_url, name }
     }

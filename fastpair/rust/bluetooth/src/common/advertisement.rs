@@ -18,7 +18,7 @@ use super::{BleAddress, BluetoothError};
 /// information about the advertisement (e.g. address of sender) as well as
 /// data sections extracted from the advertisement. Platform-specific methods
 /// should be written to load in data sections from incoming advertisements.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BleAdvertisement {
     address: BleAddress,
     rssi: Option<DecibelMilliwatts>,

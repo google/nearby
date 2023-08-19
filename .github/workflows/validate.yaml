@@ -48,9 +48,9 @@ jobs:
     - name: Build FPP
       run:  cargo build --manifest-path presence/fpp/fpp/Cargo.toml
     - name: Build Bluetooth Module
-      run:  cargo build --manifest-path fastpair/rust/bluetooth/Cargo.toml
+      run:  cargo test --manifest-path fastpair/rust/bluetooth/Cargo.toml
     - name: Build Fast Pair
-      run:  cargo build --manifest-path fastpair/rust/demo/rust/Cargo.toml
+      run:  cargo test --manifest-path fastpair/rust/demo/rust/Cargo.toml
 
   build-rust-windows:
     name: Build Rust on Windows
@@ -60,7 +60,7 @@ jobs:
       with:
         submodules: recursive
     - name: Build Bluetooth Module
-      run:  cargo build --manifest-path fastpair/rust/bluetooth/Cargo.toml
+      run:  cargo test --manifest-path fastpair/rust/bluetooth/Cargo.toml
     - name: Build Fast Pair
-      run:  cargo build --manifest-path fastpair/rust/demo/rust/Cargo.toml
+      run:  cargo test --manifest-path fastpair/rust/demo/rust/Cargo.toml
   
