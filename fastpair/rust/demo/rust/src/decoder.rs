@@ -13,6 +13,8 @@
 // limitations under the License.
 use bluetooth::ServiceData;
 
+use crate::error::FpError;
+
 /// Unit struct providing parsing operations for Fast Pair advertisements.
 pub(crate) struct FpDecoder;
 
@@ -25,13 +27,13 @@ impl FpDecoder {
     /// Currently unavailable in Fast Pair devices and not supported.
     pub(crate) fn get_model_id_from_service_data<U: Copy>(
         service_data: &ServiceData<U>,
-    ) -> Result<Vec<u8>, anyhow::Error> {
+    ) -> Result<Vec<u8>, FpError> {
         static MIN_MODEL_ID_LENGTH: usize = 3;
         let data = service_data.data();
 
         if data.len() < MIN_MODEL_ID_LENGTH {
             // If service data too small, invalid payload.
-            Err(anyhow::anyhow!(format!(
+            Err(FpError::ContractViolation(format!(
                 "Invalid model ID for Fast Pair advertisement of length {}.",
                 data.len()
             )))
@@ -41,13 +43,14 @@ impl FpDecoder {
         } else {
             // Else, this Fast Pair advertisement is currently unsupported.
             // b/294453912
-            Err(anyhow::anyhow!(
-                "This Fast Pair device is currently unsupported."
-            ))
+            Err(FpError::NotImplemented(String::from(
+                "This Fast Pair device is currently unsupported.",
+            )))
         }
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -70,6 +73,7 @@ mod tests {
         let service_data = ServiceData::new(uuid, data);
         let result = FpDecoder::get_model_id_from_service_data(&service_data);
         assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), FpError::ContractViolation(_)));
     }
 
     #[test]
@@ -80,5 +84,6 @@ mod tests {
         let service_data = ServiceData::new(uuid, data);
         let result = FpDecoder::get_model_id_from_service_data(&service_data);
         assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), FpError::NotImplemented(_)));
     }
 }

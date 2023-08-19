@@ -160,10 +160,9 @@ pub fn init() {
 }
 
 /// Sets up `StreamSink` for Dart-Rust FFI.
-pub fn event_stream(s: StreamSink<Option<[String; 2]>>) -> Result<(), anyhow::Error> {
+pub fn event_stream(s: StreamSink<Option<[String; 2]>>) {
     let mut stream = DEVICE_STREAM.write().unwrap();
     *stream = Some(s);
-    Ok(())
 }
 
 /// Attempt classic pairing with currently displayed device.

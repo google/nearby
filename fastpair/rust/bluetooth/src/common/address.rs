@@ -134,7 +134,7 @@ mod tests {
     fn try_from_ble_address_to_classic() {
         let ble_addr = BleAddress::new(0x112233445566, BleAddressKind::Public);
         let result: Result<ClassicAddress, BluetoothError> =
-            TryFrom::try_from(ble_addr);
+            ble_addr.try_into();
         assert!(result.is_ok());
         assert_eq!(result.unwrap().0, [0x66, 0x55, 0x44, 0x33, 0x22, 0x11]);
 

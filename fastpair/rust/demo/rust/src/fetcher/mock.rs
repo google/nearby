@@ -14,30 +14,25 @@
 
 use crate::{
     advertisement::ModelId,
+    error::FpError,
     fetcher::{DeviceInfo, FpFetcher},
 };
 
 /// A struct for mocking retrieval of Fast Pair data.
 pub(crate) struct FpFetcherMock {
-    get_device_info_from_model_id: Result<DeviceInfo, anyhow::Error>,
+    device_info_from_model_id: Result<DeviceInfo, FpError>,
 }
 
 impl FpFetcherMock {
-    pub(crate) fn new(get_device_info_from_model_id: Result<DeviceInfo, anyhow::Error>) -> Self {
+    pub(crate) fn new(device_info_from_model_id: Result<DeviceInfo, FpError>) -> Self {
         FpFetcherMock {
-            get_device_info_from_model_id,
+            device_info_from_model_id,
         }
     }
 }
 
 impl FpFetcher for FpFetcherMock {
-    fn get_device_info_from_model_id(
-        &self,
-        _model_id: &ModelId,
-    ) -> Result<DeviceInfo, anyhow::Error> {
-        match &self.get_device_info_from_model_id {
-            Ok(result) => Ok(result.clone()),
-            Err(_) => Err(anyhow::anyhow!("intentional mock error")),
-        }
+    fn get_device_info_from_model_id(&self, _model_id: &ModelId) -> Result<DeviceInfo, FpError> {
+        self.device_info_from_model_id.clone()
     }
 }

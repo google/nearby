@@ -14,15 +14,12 @@
 
 use serde::Deserialize;
 
-use crate::advertisement::ModelId;
+use crate::{advertisement::ModelId, error::FpError};
 
 /// Types that can fetch Fast Pair data from external storage (e.g. filesystem,
 /// remote server).
 pub(crate) trait FpFetcher {
-    fn get_device_info_from_model_id(
-        &self,
-        model_id: &ModelId,
-    ) -> Result<DeviceInfo, anyhow::Error>;
+    fn get_device_info_from_model_id(&self, model_id: &ModelId) -> Result<DeviceInfo, FpError>;
 }
 
 /// Holds Fast Pair device information parsed from JSON.
