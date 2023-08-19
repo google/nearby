@@ -1,3 +1,17 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::{collections::HashMap, sync::RwLock, time::Duration};
 
 use bluetooth::{
@@ -23,7 +37,7 @@ static CURR_DEVICE_ADV: RwLock<Option<FpPairingAdvertisement>> = RwLock::new(Non
 // Temporarily restricts which model IDs can be displayed.
 static MODEL_ID_BLACKLIST: RwLock<Option<TtlCache<ModelId, ()>>> = RwLock::new(None);
 
-// How long entries should blacklisted for for.
+// Specifies how long entries should blacklisted for.
 const TTL_BLACKLIST: Duration = Duration::from_secs(10);
 
 /// Updates the device name as displayed by Flutter.
@@ -83,6 +97,8 @@ fn new_best_fp_advertisement(
         return None;
     }
 
+    // Else, this advertisement is now the most recent advertisement by the
+    // device with model ID `fp_adv.model_id()`.
     latest_advertisement_map.insert(fp_adv.model_id().to_owned(), fp_adv.clone());
 
     if let Some(best_adv) = CURR_DEVICE_ADV.read().unwrap().as_ref() {
@@ -101,6 +117,7 @@ fn new_best_fp_advertisement(
                         adv1.distance().partial_cmp(&adv2.distance()).unwrap()
                     });
 
+            // If next closest device exists, it's now the closest!
             if let Some(next_best_adv) = next_best_adv_ref {
                 Some(next_best_adv.to_owned())
             } else {
@@ -206,14 +223,17 @@ pub fn dismiss() {
         let mut adv = CURR_DEVICE_ADV.write().unwrap();
         match MODEL_ID_BLACKLIST.write().unwrap().as_mut() {
             Some(cache) => {
+                // Get rid of the best (i.e. currently displayed) device.
                 let adv = adv.take();
                 match adv {
                     Some(adv) => {
+                        // Add device to TTL blacklist.
                         cache.insert(adv.model_id().to_string(), (), TTL_BLACKLIST);
                     }
                     None => (),
                 }
 
+                // Ensure the currently-displayed device is no longer displayed.
                 match DEVICE_STREAM.read().unwrap().as_ref() {
                     Some(stream) => {
                         stream.add(None);
