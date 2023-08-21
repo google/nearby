@@ -18,8 +18,10 @@
 #include <wtsapi32.h>
 
 #include <string>
+#include <utility>
 
 #include "absl/base/attributes.h"
+#include "absl/base/const_init.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
@@ -34,36 +36,24 @@ namespace {
 constexpr char kMessageWindowClass[] = "Nearby Message Window Class";
 constexpr char kMessageWindowTitle[] = "Nearby Message Dummy Window";
 
-// Define global static variables.
-ABSL_CONST_INIT absl::Mutex kSessionMutex(absl::kConstInit);
-HWND kSessionHwnd = nullptr;
-SubmittableExecutor* kSessionThread = nullptr;
-absl::flat_hash_map<std::string,
-                    absl::AnyInvocable<void(SessionManager::SessionState)>>*
-    kSessionCallbacks = nullptr;
-
 LRESULT CALLBACK NearbyWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                                   LPARAM lParam) {
   switch (uMsg) {
     case WM_DESTROY:
       PostQuitMessage(0);
-      return 0;
+      break;
     case WM_WTSSESSION_CHANGE:
       if (wParam == WTS_SESSION_LOCK) {
-        absl::MutexLock lock(&kSessionMutex);
-        for (auto& it : *kSessionCallbacks) {
-          it.second(SessionManager::SessionState::kLock);
-        }
+        SessionManager::NotifySessionState(SessionManager::SessionState::kLock);
       } else if (wParam == WTS_SESSION_UNLOCK) {
-        absl::MutexLock lock(&kSessionMutex);
-        for (auto& it : *kSessionCallbacks) {
-          it.second(SessionManager::SessionState::kUnlock);
-        }
+        SessionManager::NotifySessionState(
+            SessionManager::SessionState::kUnlock);
       }
-      return 0;
-    default:
-      return DefWindowProc(hwnd, uMsg, wParam, lParam);
+      break;
   }
+
+  // NOLINTNEXTLINE(misc-include-cleaner)
+  return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 HWND CreateNearbyWindow() {
@@ -87,58 +77,75 @@ HWND CreateNearbyWindow() {
 
 }  // namespace
 
+// Initialize class static variables.
+ABSL_CONST_INIT absl::Mutex SessionManager::session_mutex_{absl::kConstInit};
+HWND SessionManager::session_hwnd_ = nullptr;
+SubmittableExecutor* SessionManager::session_thread_ = nullptr;
+absl::flat_hash_map<std::string,
+                    absl::AnyInvocable<void(SessionManager::SessionState)>>*
+    SessionManager::session_callbacks_ = nullptr;
+
 SessionManager::~SessionManager() { StopSession(); }
 
 bool SessionManager::RegisterSessionListener(
     absl::string_view listener_name,
     absl::AnyInvocable<void(SessionState)> callback) {
-  absl::MutexLock lock(&kSessionMutex);
+  absl::MutexLock lock(&session_mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Registering listener: " << listener_name;
 
   // Create session thread if no running thread.
-  if (kSessionThread == nullptr) {
+  if (session_thread_ == nullptr) {
     absl::Notification notification;
-    kSessionThread = new SubmittableExecutor();
-    kSessionCallbacks = new absl::flat_hash_map<
+    session_thread_ = new SubmittableExecutor();
+    session_callbacks_ = new absl::flat_hash_map<
         std::string, absl::AnyInvocable<void(SessionManager::SessionState)>>();
-    kSessionThread->Execute(
+    session_thread_->Execute(
         [this, &notification]() { StartSession(notification); });
     notification.WaitForNotification();
-    if (kSessionThread == nullptr) {
+    if (session_thread_ == nullptr) {
       return false;
     }
   }
 
-  if (kSessionCallbacks->contains(listener_name) ||
+  if (session_callbacks_->contains(listener_name) ||
       listeners_.contains(listener_name)) {
     return false;
   }
 
-  kSessionCallbacks->emplace(listener_name, std::move(callback));
+  session_callbacks_->emplace(listener_name, std::move(callback));
   listeners_.emplace(listener_name);
+  NEARBY_LOGS(INFO) << __func__ << ": Session listener: " << listener_name
+                    << " is registered.";
   return true;
 }
 
 bool SessionManager::UnregisterSessionListener(
     absl::string_view listener_name) {
-  absl::MutexLock lock(&kSessionMutex);
-  if (kSessionThread == nullptr) {
+  absl::MutexLock lock(&session_mutex_);
+  NEARBY_LOGS(INFO) << __func__
+                    << ": Unregistering listener: " << listener_name;
+  if (session_thread_ == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": No running listener.";
     return false;
   }
-  if (!kSessionCallbacks->contains(listener_name) ||
+  if (!session_callbacks_->contains(listener_name) ||
       !listeners_.contains(listener_name)) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": No listener with name:" << listener_name;
     return false;
   }
-  kSessionCallbacks->erase(listener_name);
+  session_callbacks_->erase(listener_name);
   listeners_.erase(listener_name);
 
-  if (!kSessionCallbacks->empty()) {
+  if (!session_callbacks_->empty()) {
+    NEARBY_LOGS(INFO) << __func__ << ": Session listener: " << listener_name
+                      << " is unregistered.";
     return true;
   }
 
   CleanUp();
+  NEARBY_LOGS(INFO) << __func__ << ": Session listener: " << listener_name
+                    << " is unregistered.";
   return true;
 }
 
@@ -188,14 +195,30 @@ bool SessionManager::AllowSleep() const {
   return true;
 }
 
+void SessionManager::NotifySessionState(SessionState state) {
+  NEARBY_LOGS(INFO) << __func__
+                    << ": Notifying session state: " << static_cast<int>(state);
+  if (state == SessionManager::SessionState::kLock) {
+    absl::MutexLock lock(&session_mutex_);
+    for (auto& it : *SessionManager::session_callbacks_) {
+      it.second(SessionManager::SessionState::kLock);
+    }
+  } else if (state == SessionManager::SessionState::kUnlock) {
+    absl::MutexLock lock(&session_mutex_);
+    for (auto& it : *SessionManager::session_callbacks_) {
+      it.second(SessionManager::SessionState::kUnlock);
+    }
+  }
+}
+
 void SessionManager::StartSession(absl::Notification& notification) {
-  kSessionHwnd = CreateNearbyWindow();
-  if (kSessionHwnd == nullptr) {
+  session_hwnd_ = CreateNearbyWindow();
+  if (session_hwnd_ == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to create session Window.";
     return;
   }
 
-  if (!WTSRegisterSessionNotification(kSessionHwnd, NOTIFY_FOR_THIS_SESSION)) {
+  if (!WTSRegisterSessionNotification(session_hwnd_, NOTIFY_FOR_THIS_SESSION)) {
     NEARBY_LOGS(ERROR) << __func__
                        << ":Failed to register session notification.";
     return;
@@ -203,14 +226,17 @@ void SessionManager::StartSession(absl::Notification& notification) {
 
   notification.Notify();
 
+  NEARBY_LOGS(INFO) << __func__ << ": Session thread started.";
+
   // Main message loop
   MSG msg = {};
-  while (GetMessage(&msg, nullptr, 0, 0)) {
+  // NOLINTNEXTLINE(misc-include-cleaner)
+  while (GetMessage(&msg, session_hwnd_, 0, 0)) {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
 
-  if (!WTSUnRegisterSessionNotification(kSessionHwnd)) {
+  if (!WTSUnRegisterSessionNotification(session_hwnd_)) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to register session notification.";
     return;
@@ -225,16 +251,20 @@ void SessionManager::StartSession(absl::Notification& notification) {
 }
 
 void SessionManager::StopSession() {
-  absl::MutexLock lock(&kSessionMutex);
-  if (kSessionThread == nullptr) {
+  if (session_thread_ == nullptr) {
+    return;
+  }
+
+  absl::MutexLock lock(&session_mutex_);
+  if (session_thread_ == nullptr) {
     return;
   }
   for (const auto& it : listeners_) {
-    kSessionCallbacks->erase(it);
+    session_callbacks_->erase(it);
   }
 
   listeners_.clear();
-  if (!kSessionCallbacks->empty()) {
+  if (!session_callbacks_->empty()) {
     return;
   }
 
@@ -242,17 +272,18 @@ void SessionManager::StopSession() {
 }
 
 void SessionManager::CleanUp() {
-  if (kSessionHwnd != nullptr) {
+  if (session_hwnd_ != nullptr) {
     // Send message to destroy message window.
-    PostMessageA(kSessionHwnd, WM_DESTROY, 0, 0);
+    // NOLINTNEXTLINE(misc-include-cleaner)
+    PostMessageA(session_hwnd_, WM_DESTROY, 0, 0);
   }
 
-  kSessionThread->Shutdown();
-  delete kSessionThread;
-  delete kSessionCallbacks;
-  kSessionThread = nullptr;
-  kSessionCallbacks = nullptr;
-  kSessionHwnd = nullptr;
+  session_thread_->Shutdown();
+  delete session_thread_;
+  delete session_callbacks_;
+  session_thread_ = nullptr;
+  session_callbacks_ = nullptr;
+  session_hwnd_ = nullptr;
 }
 
 }  // namespace windows

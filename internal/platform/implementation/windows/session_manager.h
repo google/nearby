@@ -17,10 +17,13 @@
 
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
+#include "internal/platform/implementation/windows/submittable_executor.h"
 
 namespace nearby {
 namespace windows {
@@ -49,12 +52,22 @@ class SessionManager {
   // Allows the Windows device to sleep state.
   bool AllowSleep() const;
 
+  static void NotifySessionState(SessionState state);
+
  private:
   void StartSession(absl::Notification& notification);
   void StopSession();
   void CleanUp();
 
   absl::flat_hash_set<std::string> listeners_;
+
+  // Static class members
+  static absl::Mutex session_mutex_;
+  static HWND session_hwnd_;
+  static SubmittableExecutor* session_thread_;
+  static absl::flat_hash_map<
+      std::string, absl::AnyInvocable<void(SessionManager::SessionState)>>*
+      session_callbacks_;
 };
 
 }  // namespace windows
