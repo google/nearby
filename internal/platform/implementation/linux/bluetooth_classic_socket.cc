@@ -13,7 +13,7 @@
 namespace nearby {
 namespace linux {
 
-ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
+ExceptionOr<ByteArray> InputStream::Read(std::int64_t size) {
   if (!fd_.has_value())
     return Exception::kIo;
 
@@ -30,33 +30,17 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
   return ExceptionOr(ByteArray(data, size));
 }
 
-ExceptionOr<std::size_t> BluetoothInputStream::Skip(std::size_t offset) {
+Exception InputStream::Close() {
   if (!fd_.has_value())
-    return Exception::kIo;
+    return Exception{Exception::kIo};
 
-  auto off = lseek(fd_->get(), offset, SEEK_CUR);
-  if (off != offset) {
-    auto end = lseek(fd_->get(), 0, SEEK_END);
-    return off == end ? ExceptionOr((std::size_t)off) : Exception::kIo;
-  }
-  return ExceptionOr((std::size_t)(off));
+  auto ret = close(fd_->get()) < 0 ? Exception{Exception::kIo}
+                                   : Exception{Exception::kSuccess};
+  fd_.reset();
+  return ret;
 }
 
-ExceptionOr<ByteArray> BluetoothInputStream::ReadExactly(std::size_t size) {
-  if (!fd_.has_value())
-    return Exception::kIo;
-
-  char *data = new char[size];
-  ssize_t ret = read(fd_->get(), data, size);
-  if (ret < 0) {
-    delete[] data;
-    return Exception::kIo;
-  }
-
-  return ExceptionOr(ByteArray(data, size));
-}
-
-Exception BluetoothOutputStream::Write(const ByteArray &data) {
+Exception OutputStream::Write(const ByteArray &data) {
   if (!fd_.has_value())
     return Exception{Exception::kIo};
 
@@ -71,18 +55,21 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
   return Exception{Exception::kSuccess};
 }
 
-Exception BluetoothOutputStream::Flush() {
-  return Exception{Exception::kSuccess};
-}
+Exception OutputStream::Flush() { return Exception{Exception::kSuccess}; }
 
-Exception BluetoothOutputStream::Close() {
-  return close(fd_->get()) < 0 ? Exception{Exception::kIo}
-                               : Exception{Exception::kSuccess};
+Exception OutputStream::Close() {
+  if (!fd_.has_value())
+    return Exception{Exception::kIo};
+
+  auto ret = close(fd_->get()) < 0 ? Exception{Exception::kIo}
+                                   : Exception{Exception::kSuccess};
+  fd_.reset();
+  return ret;
 }
 
 Exception BluetoothSocket::Close() {
-  input_stream_.fd_.reset();
-  output_stream_.fd_.reset();
+  input_stream_.Close();
+  output_stream_.Close();
 
   return Exception{Exception::kSuccess};
 }
