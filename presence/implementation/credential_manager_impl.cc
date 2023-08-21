@@ -245,7 +245,7 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
 
   auto metadata_encryption_key_tag =
       Crypto::Sha256(private_credential.metadata_encryption_key_v0());
-  public_credential.set_metadata_encryption_key_unsigned_adv_tag(
+  public_credential.set_metadata_encryption_key_tag_v0(
       std::string(metadata_encryption_key_tag.AsStringView()));
 
   // Encrypt the device metadata

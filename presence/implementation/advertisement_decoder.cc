@@ -214,7 +214,7 @@ absl::StatusOr<std::string> AdvertisementDecoder::DecryptLdt(
   for (const auto& credential : credentials) {
     absl::StatusOr<LdtEncryptor> encryptor = LdtEncryptor::Create(
         credential.key_seed(),
-        credential.metadata_encryption_key_unsigned_adv_tag());
+        credential.metadata_encryption_key_tag_v0());
     if (encryptor.ok()) {
       absl::StatusOr<std::string> result =
           encryptor->DecryptAndVerify(data_elements, salt);

@@ -175,7 +175,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
             absl::ToUnixMillis(kEndTime + absl::Hours(3)));
   EXPECT_EQ(Crypto::Sha256(private_credential.metadata_encryption_key_v0())
                 .AsStringView(),
-            public_credential.metadata_encryption_key_unsigned_adv_tag());
+            public_credential.metadata_encryption_key_tag_v0());
   EXPECT_FALSE(
       public_credential.connection_signature_verification_key().empty());
   EXPECT_FALSE(public_credential.encrypted_metadata_bytes_v0().empty());
