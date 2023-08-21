@@ -1,6 +1,7 @@
 #ifndef PLATFORM_IMPL_LINUX_WIFI_MEDIUM_H_
 #define PLATFORM_IMPL_LINUX_WIFI_MEDIUM_H_
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -29,11 +30,16 @@ public:
   }
   ~NetworkManager() { unregisterProxy(); }
 
+  std::uint32_t getState() const { return state_; }
+
 protected:
   void onCheckPermissions() override {}
-  void onStateChanged(const uint32_t &state) override {}
+  void onStateChanged(const uint32_t &state) override { state_ = state; }
   void onDeviceAdded(const sdbus::ObjectPath &device_path) override {}
   void onDeviceRemoved(const sdbus::ObjectPath &device_path) override {}
+
+private:
+  std::atomic_uint32_t state_;
 };
 
 class NetworkManagerIP4Config

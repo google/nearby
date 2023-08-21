@@ -91,10 +91,6 @@ std::optional<std::string> DeviceInfo::GetProfileUserName() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
   char *dir = getenv("XDG_DOWNLOAD_DIR");
-  if (dir == NULL) {
-    std::filesystem::path home_path(std::string(getenv("HOME")));
-    return home_path / "Desktop";
-  }
   return std::filesystem::path(std::string(dir));
 }
 
@@ -103,7 +99,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
-  return std::filesystem::path(std::string(dir)) / "com.github.google.nearby";
+  return std::filesystem::path(std::string(dir)) / "Google Nearby";
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
