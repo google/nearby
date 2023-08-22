@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
 #include <ifaddrs.h>
@@ -5,35 +6,54 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 
 #include <sdbus-c++/Types.h>
 
-#include "internal/platform/implementation/linux/wifi_lan_server_socket.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/wifi_lan_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_lan_socket.h"
+#include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
 std::string WifiLanServerSocket::GetIPAddress() const {
-  struct ifaddrs *addrs = nullptr;
-  getifaddrs(&addrs);
+  std::vector<sdbus::ObjectPath> connection_paths;
+  try {
+    connection_paths = network_manager_->ActiveConnections();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(network_manager_, "ActiveConnections", e);
+    return std::string();
+  }
 
-  for (auto ifaddr = addrs; ifaddr != NULL; ifaddr = ifaddr->ifa_next) {
-    if (ifaddr->ifa_addr == nullptr) {
+  for (auto &path : connection_paths) {
+    auto active_connection =
+        std::make_unique<NetworkManagerActiveConnection>(system_bus_, path);
+    std::string conn_type;
+    try {
+      conn_type = active_connection->Type();
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_PROPERTY_GET_ERROR(active_connection, "Type", e);
       continue;
     }
-    if (ifaddr->ifa_addr->sa_family == AF_INET) {
-      auto addr =
-          &(reinterpret_cast<struct sockaddr_in *>(ifaddr->ifa_addr))->sin_addr;
-      char buf[INET_ADDRSTRLEN];
-      inet_ntop(AF_INET, addr, buf, INET_ADDRSTRLEN);
+    if (conn_type == "802-11-wireless" || conn_type == "802-3-ethernet") {
+      auto ip4config_path = active_connection->Ip4Config();
+      NetworkManagerIP4Config ip4config(system_bus_, ip4config_path);
+      std::vector<std::map<std::string, sdbus::Variant>> address_data;
 
-      return std::string(buf);
+      try {
+        address_data = ip4config.AddressData();
+      } catch (const sdbus::Error &e) {
+        DBUS_LOG_PROPERTY_GET_ERROR(&ip4config, "IP4Config", e);
+      }
+
+      return address_data[0]["address"];
     }
   }
 
+  NEARBY_LOGS(ERROR)
+      << __func__ << ": Could not find any active IP addresses for this device"; 
   return std::string();
 }
 

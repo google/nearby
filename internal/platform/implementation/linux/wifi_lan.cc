@@ -16,14 +16,15 @@
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/linux/wifi_lan_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_lan_socket.h"
+#include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus,
-                             NetworkManager &network_manager)
-    : system_bus_(system_bus), network_manager_(network_manager),
+WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus)
+    : system_bus_(system_bus),
+      network_manager_(std::make_shared<linux::NetworkManager>(system_bus)),
       avahi_(std::make_shared<avahi::Server>(system_bus)),
       entry_group_(nullptr) {}
 
@@ -34,7 +35,7 @@ WifiLanMedium::~WifiLanMedium() {
 }
 
 bool WifiLanMedium::IsNetworkConnected() const {
-  auto state = network_manager_.getState();
+  auto state = network_manager_->getState();
   return state >= 50; // NM_STATE_CONNECTED_LOCAL
 }
 
@@ -171,7 +172,7 @@ bool WifiLanMedium::StopDiscovery(const std::string &service_type) {
 
 std::unique_ptr<api::WifiLanSocket>
 WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
-				CancellationFlag *cancellation_flag) {
+                                CancellationFlag *cancellation_flag) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -180,7 +181,7 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
   }
 
   NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
-                       << port;  
+                       << port;
   struct sockaddr_in addr;
   addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
   addr.sin_family = AF_INET;
@@ -198,7 +199,7 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
   return std::make_unique<WifiLanSocket>(std::move(fd));
 }
 
-std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port = 0) {
+std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
   auto sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -206,7 +207,7 @@ std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port = 0) {
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << "Listening for services ";
+  NEARBY_LOGS(VERBOSE) << __func__ << "Listening for services";
 
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
@@ -228,11 +229,10 @@ std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port = 0) {
     return nullptr;
   }
 
-  return std::make_unique<WifiLanServerSocket>(sdbus::UnixFd(sock));
+  return std::make_unique<WifiLanServerSocket>(sock, network_manager_);
 }
 
-absl::optional<std::pair<std::int32_t, std::int32_t>>
-  GetDynamicPortRange() {
+absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
   return absl::nullopt;
 }
 
