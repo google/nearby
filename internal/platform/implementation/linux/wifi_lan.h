@@ -13,8 +13,7 @@ namespace nearby {
 namespace linux {
 class WifiLanMedium : public api::WifiLanMedium {
 public:
-  WifiLanMedium(sdbus::IConnection &system_bus,
-                NetworkManager &network_manager);
+  WifiLanMedium(sdbus::IConnection &system_bus);
   ~WifiLanMedium() override;
 
   bool IsNetworkConnected() const override;
@@ -42,7 +41,7 @@ private:
 
   sdbus::IConnection &system_bus_;
 
-  NetworkManager &network_manager_;
+  std::shared_ptr<NetworkManager> network_manager_;
 
   std::shared_ptr<avahi::Server> avahi_;
   std::unique_ptr<avahi::EntryGroup> entry_group_;
