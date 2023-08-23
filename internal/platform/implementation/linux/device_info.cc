@@ -48,7 +48,7 @@ std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
   try {
-    std::string chasis = hostname_proxy_->getProperty("PrettyHostname")
+    std::string chasis = hostname_proxy_->getProperty("Chasis")
                              .onInterface(HOSTNAME_INTERFACE);
     api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;
     if (chasis == "phone") {
@@ -103,7 +103,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
-  char *dir = getenv("XDG_CACHE_HOME");
+  char *dir = getenv("XDG_RUNTIME_PATH");
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
