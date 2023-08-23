@@ -170,7 +170,7 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(api::Bluetoot
 
 std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
     api::BluetoothAdapter& adapter) {
-  return std::make_unique<apple::BleMedium>(adapter);
+  return std::make_unique<apple::BleMedium>();
 }
 
 std::unique_ptr<ServerSyncMedium> ImplementationPlatform::CreateServerSyncMedium() {

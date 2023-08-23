@@ -23,7 +23,6 @@ package(default_visibility = [
 objc_library(
     name = "apple",
     srcs = [
-        "ble_utils.mm",
         "crypto.mm",
         "device_info.mm",
         "log_message.mm",
@@ -35,7 +34,6 @@ objc_library(
         "wifi_lan.mm",
     ],
     hdrs = [
-        "ble_utils.h",
         "device_info.h",
         "log_message.h",
         "multi_thread_executor.h",
@@ -51,7 +49,7 @@ objc_library(
     deps = [
         ":Platform_cc",
         ":Shared",
-        ":ble",
+        ":ble_v2",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
@@ -78,54 +76,28 @@ objc_library(
 )
 
 objc_library(
-    name = "ble",
-    srcs = [
-        "ble.mm",
-        "bluetooth_adapter.mm",
-        "utils.mm",
-    ],
-    hdrs = [
-        "ble.h",
-        "bluetooth_adapter.h",
-        "utils.h",
-    ],
-    # Prevent Objective-C++ headers from being pulled into swift.
-    aspect_hints = ["//tools/build_defs/swift:no_module"],
-    deps = [
-        "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation/apple/Mediums",
-        "//third_party/apple_frameworks:CoreBluetooth",
-        "//third_party/apple_frameworks:Foundation",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:optional",
-    ],
-)
-
-objc_library(
     name = "ble_v2",
     srcs = [
+        "ble_gatt_client.h",
         "ble_gatt_client.mm",
+        "ble_gatt_server.h",
         "ble_gatt_server.mm",
+        "ble_medium.h",
         "ble_medium.mm",
+        "ble_peripheral.h",
         "ble_peripheral.mm",
+        "ble_server_socket.h",
         "ble_server_socket.mm",
+        "ble_socket.h",
         "ble_socket.mm",
         "ble_utils.mm",
+        "bluetooth_adapter_v2.h",
         "bluetooth_adapter_v2.mm",
         "utils.mm",
     ],
     hdrs = [
-        "ble_gatt_client.h",
-        "ble_gatt_server.h",
-        "ble_medium.h",
-        "ble_peripheral.h",
-        "ble_server_socket.h",
-        "ble_socket.h",
+        "ble.h",
         "ble_utils.h",
-        "bluetooth_adapter_v2.h",
         "utils.h",
     ],
     # Prevent Objective-C++ headers from being pulled into swift.

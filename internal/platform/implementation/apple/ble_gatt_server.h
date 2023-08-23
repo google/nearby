@@ -71,7 +71,7 @@ class GattServer : public api::ble_v2::GattServer {
 
  private:
   GNCBLEGATTServer *gatt_server_;
-  BlePeripheral peripheral_;
+  EmptyBlePeripheral peripheral_;
 };
 
 }  // namespace apple
