@@ -7,49 +7,64 @@
 
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
-#include <systemd/sd-login.h>
 
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/device_info.h"
 #include "internal/platform/logging.h"
+#include "absl/synchronization/mutex.h"
 
 namespace nearby {
 namespace linux {
+void CurrentUserSession::RegisterScreenLockedListener(
+      absl::string_view listener_name,
+      std::function<void(api::DeviceInfo::ScreenStatus)> callback) {
+  absl::MutexLock l(&screen_lock_listeners_mutex_);
+  screen_lock_listeners_[listener_name] = callback;
+}
 
-const char *HOSTNAME_DEST = "org.freedesktop.hostname1";
-const char *HOSTNAME_PATH = "/org/freedesktop/hostname1";
-const char *HOSTNAME_INTERFACE = "org.freedesktop.hostname1";
+void
+  CurrentUserSession::UnregisterScreenLockedListener(absl::string_view listener_name)
+{
+  absl::MutexLock l(&screen_lock_listeners_mutex_);
+  screen_lock_listeners_.erase(listener_name);
+}
 
-const char *LOGIN_DEST = "org.freedesktop.login1";
-const char *LOGIN_PATH = "/org/freedesktop/login1/session/_";
-const char *LOGIN_INTERFACE = "org.freedesktop.login1.Session";
+void CurrentUserSession::onLock() {
+  absl::ReaderMutexLock l(&screen_lock_listeners_mutex_);
+  for (auto &[_, callback] : screen_lock_listeners_) {
+    callback(api::DeviceInfo::ScreenStatus::kLocked);
+  }
+}
 
-DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus) {
-  hostname_proxy_ =
-      sdbus::createProxy(system_bus, HOSTNAME_DEST, HOSTNAME_PATH);
-  hostname_proxy_->finishRegistration();
-  login_proxy_ = sdbus::createProxy(system_bus, LOGIN_PATH, LOGIN_PATH);
-  login_proxy_->finishRegistration();
+void CurrentUserSession::onUnlock() {
+  absl::ReaderMutexLock l(&screen_lock_listeners_mutex_);
+  for (auto &[_, callback] : screen_lock_listeners_) {
+    callback(api::DeviceInfo::ScreenStatus::kUnlocked);
+  }
+}
+
+DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus)
+    : system_bus_(system_bus),
+      current_user_session_(std::make_unique<CurrentUserSession>(system_bus_)) {
 }
 
 std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
+  Hostnamed hostnamed(system_bus_);
   try {
-    std::string hostname = hostname_proxy_->getProperty("PrettyHostname")
-                               .onInterface(HOSTNAME_INTERFACE);
+    std::string hostname = hostnamed.PrettyHostname();
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return convert.from_bytes(hostname);
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get PrettyHostname";
+    DBUS_LOG_PROPERTY_GET_ERROR(&hostnamed, "PrettyHostname", e);
     return std::nullopt;
   }
 }
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
+  Hostnamed hostnamed(system_bus_);
   try {
-    std::string chasis = hostname_proxy_->getProperty("Chasis")
-                             .onInterface(HOSTNAME_INTERFACE);
+    std::string chasis = hostnamed.Chassis();
     api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;
     if (chasis == "phone") {
       device = api::DeviceInfo::DeviceType::kPhone;
@@ -62,9 +77,7 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
     }
     return device;
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get PrettyHostname";
+    DBUS_LOG_PROPERTY_GET_ERROR(&hostnamed, "Chasis", e);
     return api::DeviceInfo::DeviceType::kUnknown;
   }
 }
@@ -107,7 +120,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
-  return std::filesystem::path(std::string(dir)) / "com.github.google.nearby";
+  return std::filesystem::path(std::string(dir)) / "Google Nearby";
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
@@ -115,7 +128,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
-  return std::filesystem::path(std::string(dir)) / "com.github.google.nearby" /
+  return std::filesystem::path(std::string(dir)) / "Google Nearby" /
          "logs";
 }
 
@@ -124,31 +137,15 @@ std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
-  return std::filesystem::path(std::string(dir)) / "com.github.google.nearby" /
+  return std::filesystem::path(std::string(dir)) / "Google Nearby" /
          "crashes";
 }
 
 bool DeviceInfo::IsScreenLocked() const {
-  char *session = nullptr;
-  if (sd_pid_get_session(getpid(), &session) < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error getting session for current user";
-    return false;
-  }
-
-  std::string session_path(LOGIN_PATH);
-  session_path += session;
-  free(session);
-
   try {
-    bool locked =
-        login_proxy_->getProperty("LockedHint").onInterface(LOGIN_INTERFACE);
-    return locked;
+    return current_user_session_->LockedHint();
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get LockedHint for session "
-                       << session_path;
+    DBUS_LOG_PROPERTY_GET_ERROR(current_user_session_, "LockedHint", e);
     return false;
   }
 }
