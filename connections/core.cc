@@ -19,15 +19,32 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "absl/types/span.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
+#include "connections/implementation/service_controller_router.h"
 #include "connections/implementation/service_id_constants.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/params.h"
+#include "connections/payload.h"
+#include "connections/payload_type.h"
+#include "connections/power_level.h"
+#include "connections/status.h"
+#include "connections/v3/advertising_options.h"
 #include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
+#include "connections/v3/discovery_options.h"
 #include "connections/v3/listeners.h"
+#include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
 #include "internal/interop/device.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
@@ -182,7 +199,7 @@ std::string Core::Dump() { return client_.Dump(); }
 
 // V3
 void Core::StartAdvertisingV3(absl::string_view service_id,
-                              const AdvertisingOptions& advertising_options,
+                              const v3::AdvertisingOptions& advertising_options,
                               const NearbyDevice& local_device,
                               v3::ConnectionListener listener,
                               ResultCallback callback) {
@@ -238,56 +255,32 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
       .endpoint_info = local_endpoint_info,
       .listener = old_listener,
   };
-  StartAdvertising(service_id, advertising_options, old_info,
-                   std::move(callback));
+
+  CheckServiceId(service_id);
+  CHECK(advertising_options.strategy.IsValid());
+  AdvertisingOptions old_advertising_options = {
+      {
+          advertising_options.strategy,
+          advertising_options.advertising_mediums,
+      },
+      advertising_options.auto_upgrade_bandwidth,
+      advertising_options.enforce_topology_constraints,
+      advertising_options.power_level == PowerLevel::kLowPower,  // low_power
+      advertising_options.enable_bluetooth_listening,
+      advertising_options.advertising_mediums.web_rtc,
+      false,  // is_out_of_band_connection
+      advertising_options.fast_advertisement_service_uuid,
+      ""  // device_info
+  };
+  // TODO(b/291295755): Refactor deeper to use v3 options throughout.
+  router_->StartAdvertising(&client_, service_id, old_advertising_options,
+                            old_info, std::move(callback));
 }
 
 void Core::StartAdvertisingV3(absl::string_view service_id,
-                              const AdvertisingOptions& advertising_options,
+                              const v3::AdvertisingOptions& advertising_options,
                               v3::ConnectionListener listener,
                               ResultCallback callback) {
-  ConnectionListener old_listener = {
-      .initiated_cb =
-          [&listener](const std::string& endpoint_id,
-                      const ConnectionResponseInfo& info) {
-            auto remote_device = v3::ConnectionsDevice(
-                endpoint_id, info.remote_endpoint_info.AsStringView(), {});
-            listener.initiated_cb(
-                remote_device,
-                v3::InitialConnectionInfo{
-                    .authentication_digits = info.authentication_token,
-                    .raw_authentication_token =
-                        info.raw_authentication_token.string_data(),
-                    .is_incoming_connection = info.is_incoming_connection,
-                });
-          },
-      .accepted_cb =
-          [v3_cb = listener.result_cb](const std::string& endpoint_id) {
-            auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-            v3_cb(remote_device,
-                  v3::ConnectionResult{.status = Status{
-                                           .value = Status::kSuccess,
-                                       }});
-          },
-      .rejected_cb =
-          [v3_cb = listener.result_cb](const std::string& endpoint_id,
-                                       Status status) {
-            auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-            v3_cb(remote_device, v3::ConnectionResult{
-                                     .status = status,
-                                 });
-          },
-      .disconnected_cb =
-          [&listener](const std::string& endpoint_id) {
-            auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-            listener.disconnected_cb(remote_device);
-          },
-      .bandwidth_changed_cb =
-          [&listener](const std::string& endpoint_id, Medium medium) {
-            auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-            listener.bandwidth_changed_cb(remote_device,
-                                          v3::BandwidthInfo{.medium = medium});
-          }};
   ByteArray local_endpoint_info;
   const NearbyDevice* local_device = client_.GetLocalDevice();
   if (local_device->GetType() == NearbyDevice::kConnectionsDevice) {
@@ -295,12 +288,8 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
         ByteArray(reinterpret_cast<const v3::ConnectionsDevice*>(local_device)
                       ->GetEndpointInfo());
   }
-  ConnectionRequestInfo old_info = {
-      .endpoint_info = local_endpoint_info,
-      .listener = old_listener,
-  };
-  StartAdvertising(service_id, advertising_options, old_info,
-                   std::move(callback));
+  StartAdvertisingV3(service_id, advertising_options, *local_device,
+                     std::move(listener), std::move(callback));
 }
 
 void Core::StopAdvertisingV3(ResultCallback result_cb) {
@@ -308,7 +297,7 @@ void Core::StopAdvertisingV3(ResultCallback result_cb) {
 }
 
 void Core::StartDiscoveryV3(absl::string_view service_id,
-                            const DiscoveryOptions& discovery_options,
+                            const v3::DiscoveryOptions& discovery_options,
                             v3::DiscoveryListener listener,
                             ResultCallback callback) {
   DiscoveryListener old_listener = {
@@ -332,7 +321,19 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
             listener.endpoint_distance_changed_cb(remote, distance_info);
           },
   };
-  StartDiscovery(service_id, discovery_options, old_listener,
+  DiscoveryOptions old_discovery_options = {
+      {
+          discovery_options.strategy,
+          discovery_options.discovery_mediums,
+      },
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection
+      discovery_options.fast_advertisement_service_uuid,
+      discovery_options.power_level == PowerLevel::kLowPower,
+  };
+  // TODO(b/291295755): Deeper refactor to use v3 options throughout.
+  StartDiscovery(service_id, old_discovery_options, old_listener,
                  std::move(callback));
 }
 
@@ -469,17 +470,44 @@ void Core::InitiateBandwidthUpgradeV3(const NearbyDevice& remote_device,
                                       std::move(result_cb));
 }
 
-void Core::UpdateAdvertisingOptionsV3(absl::string_view service_id,
-                                      AdvertisingOptions advertising_options,
-                                      ResultCallback result_cb) {
-  router_->UpdateAdvertisingOptionsV3(&client_, service_id, advertising_options,
-                                      std::move(result_cb));
+void Core::UpdateAdvertisingOptionsV3(
+    absl::string_view service_id, v3::AdvertisingOptions advertising_options,
+    ResultCallback result_cb) {
+  // TODO(b/291295755): Deeper refactor to use new advertising options.
+  AdvertisingOptions old_advertising_options = {
+      {
+          advertising_options.strategy,
+          advertising_options.advertising_mediums,
+      },
+      advertising_options.auto_upgrade_bandwidth,
+      advertising_options.enforce_topology_constraints,
+      advertising_options.power_level == PowerLevel::kLowPower,  // low_power
+      advertising_options.enable_bluetooth_listening,
+      advertising_options.advertising_mediums.web_rtc,
+      false,  // is_out_of_band_connection
+      advertising_options.fast_advertisement_service_uuid,
+      ""  // device_info
+  };
+  router_->UpdateAdvertisingOptionsV3(
+      &client_, service_id, old_advertising_options, std::move(result_cb));
 }
 
 void Core::UpdateDiscoveryOptionsV3(absl::string_view service_id,
-                                    DiscoveryOptions discovery_options,
+                                    v3::DiscoveryOptions discovery_options,
                                     ResultCallback result_cb) {
-  router_->UpdateDiscoveryOptionsV3(&client_, service_id, discovery_options,
+  // TODO(b/291295755): Deeper refactor to use new discovery options.
+  DiscoveryOptions old_discovery_options = {
+      {
+          discovery_options.strategy,
+          discovery_options.discovery_mediums,
+      },
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // is_out_of_band_connection
+      discovery_options.fast_advertisement_service_uuid,
+      discovery_options.power_level == PowerLevel::kLowPower,
+  };
+  router_->UpdateDiscoveryOptionsV3(&client_, service_id, old_discovery_options,
                                     std::move(result_cb));
 }
 
