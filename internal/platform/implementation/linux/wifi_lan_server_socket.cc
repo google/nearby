@@ -46,9 +46,12 @@ std::string WifiLanServerSocket::GetIPAddress() const {
         address_data = ip4config.AddressData();
       } catch (const sdbus::Error &e) {
         DBUS_LOG_PROPERTY_GET_ERROR(&ip4config, "IP4Config", e);
+	continue;
       }
 
-      return address_data[0]["address"];
+      if (address_data.size() > 0) {
+	return address_data[0]["address"];
+      }
     }
   }
 

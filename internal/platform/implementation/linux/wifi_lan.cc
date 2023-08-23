@@ -79,6 +79,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
                        << "' while adding service";
+    return false;
   }
 
   advertising_ = true;
@@ -107,6 +108,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo &nsd_service_info) {
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
                        << "' while removing service";
+    return false;
   }
 
   advertising_ = false;
@@ -137,6 +139,7 @@ bool WifiLanMedium::StartDiscovery(
                               std::move(callback));
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(avahi_, "ServiceBrowserPrepare", e);
+    return false;
   }
 
   auto &browser = service_browsers_[service_type];
@@ -146,6 +149,7 @@ bool WifiLanMedium::StartDiscovery(
     browser->Start();
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(browser, "Start", e);
+    return false;
   }
 
   return true;
@@ -163,6 +167,7 @@ bool WifiLanMedium::StopDiscovery(const std::string &service_type) {
     browser->Free();
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(browser, "Free", e);
+    return false;
   }
 
   service_browsers_.erase(service_type);
@@ -199,7 +204,8 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
   return std::make_unique<WifiLanSocket>(std::move(fd));
 }
 
-std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
+std::unique_ptr<api::WifiLanServerSocket>
+WifiLanMedium::ListenForService(int port) {
   auto sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -229,7 +235,8 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int po
     return nullptr;
   }
 
-  return std::make_unique<WifiLanServerSocket>(sock, network_manager_);
+  return std::make_unique<WifiLanServerSocket>(sock, network_manager_,
+                                               system_bus_);
 }
 
 absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {

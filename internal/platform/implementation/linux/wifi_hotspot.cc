@@ -1,86 +1,114 @@
+#include <arpa/inet.h>
 #include <cstring>
 #include <memory>
 
+#include <netinet/in.h>
 #include <random>
+#include <sys/socket.h>
 #include <systemd/sd-id128.h>
 
 #include "internal/platform/implementation/linux/dbus.h"
-#include "internal/platform/implementation/linux/networkmanager_connection_active_client_glue.h"
 #include "internal/platform/implementation/linux/wifi_hotspot.h"
+#include "internal/platform/implementation/linux/wifi_hotspot_server_socket.h"
+#include "internal/platform/implementation/linux/wifi_hotspot_socket.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-bool NetworkManagerWifiHotspotMedium::ConnectWifiHotspot(
-    HotspotCredentials *hotspot_credentials) {
-  if (hotspot_credentials == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": hotspot_credentials cannot be null";
-    return false;
+std::unique_ptr<api::WifiHotspotSocket>
+NetworkManagerWifiHotspotMedium::ConnectToService(
+    absl::string_view ip_address, int port,
+    CancellationFlag *cancellation_flag) {
+  if (!WifiHotspotActive()) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Cannot connect to service without an active WiFi hotspot";
+    return nullptr;
   }
 
-  auto ssid = hotspot_credentials->GetSSID();
-  auto password = hotspot_credentials->GetPassword();
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Error opening socket: " << std::strerror(errno);
+    return nullptr;
+  }
 
-  return wireless_device_->ConnectToNetwork(ssid, password,
-                                            api::WifiAuthType::kWpaPsk) ==
-         api::WifiConnectionStatus::kConnected;
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
+                       << port;
+  struct sockaddr_in addr;
+  addr.sin_addr.s_addr = inet_addr(std::string(ip_address).c_str());
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+
+  auto ret =
+      connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+  if (ret < 0) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to socket: "
+                       << std::strerror(errno);
+    return nullptr;
+  }
+
+  return std::make_unique<WifiHotspotSocket>(sock);
 }
 
-bool NetworkManagerWifiHotspotMedium::DisconnectWifiHotspot() {
+std::unique_ptr<api::WifiHotspotServerSocket>
+NetworkManagerWifiHotspotMedium::ListenForService(int port) {
   if (!WifiHotspotActive()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WiFi hotspot is not active";
-    return false;
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Cannot connect to service without an active WiFi hotspot";
+    return nullptr;
+  }
+
+  auto active_connection = wireless_device_->GetActiveConnection();
+  if (active_connection == nullptr) {
+    return nullptr;
+  }
+
+  auto ip4addresses = active_connection->GetIP4Addresses();
+  if (ip4addresses.empty()) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << "Could not find any IPv4 addresses for active connection "
+        << active_connection->getObjectPath();    
+    return nullptr;
+  }
+
+  auto sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Error opening socket: " << std::strerror(errno);
+    return nullptr;
+  }
+
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = inet_addr(ip4addresses[0].c_str());
+  addr.sin_port = htons(port);
+
+  auto ret =
+      bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+  if (ret < 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Error binding to socket: " << std::strerror(errno);
+    return nullptr;
+  }
+
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Listening for services on "
+                       << ip4addresses[0] << ":" << port << " on device "
+                       << wireless_device_->getObjectPath();
+
+  ret = listen(sock, 0);
+  if (ret < 0) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Error listening on socket: "
+                       << std::strerror(errno);
+    return nullptr;
   }
   
-  sdbus::ObjectPath active_ap_path;
-
-  try {
-    active_ap_path = wireless_device_->ActiveAccessPoint();
-    if (active_ap_path.empty()) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Not connected to any access points on "
-                         << wireless_device_->getObjectPath();
-      return false;
-    }
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "ActiveAccessPoint", e);
-  }
-
-  auto object_manager = NetworkManagerObjectManager(system_bus_);
-
-  auto objects = object_manager.GetManagedObjects();
-
-  for (auto &[path, interfaces] : objects) {
-    if (path.find("/org/freedesktop/NetworkManager/ActiveConnection/") == 0) {
-      if (interfaces.count(org::freedesktop::NetworkManager::Connection::
-                               Active_proxy::INTERFACE_NAME) == 1) {
-        sdbus::ObjectPath specific_object =
-            interfaces[org::freedesktop::NetworkManager::Connection::
-                           Active_proxy::INTERFACE_NAME]["SpecificObject"];
-        if (specific_object == active_ap_path) {
-          NEARBY_LOGS(INFO) << __func__ << ": Deactivating active connection "
-                            << active_ap_path;
-
-          try {
-            network_manager_->DeactivateConnection(path);
-          } catch (const sdbus::Error &e) {
-            DBUS_LOG_METHOD_CALL_ERROR(network_manager_, "DeactiveConnection",
-                                       e);
-            return false;
-          }
-          return true;
-        }
-      }
-    }
-  }
-
-  NEARBY_LOGS(ERROR)
-      << __func__
-      << ": Could not find an active connection with the access point "
-      << active_ap_path;
-  return false;
+  return std::make_unique<NetworkManagerWifiHotspotServerSocket>(sock,
+      system_bus_, active_connection->getObjectPath(), network_manager_);  
 }
 
 bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
@@ -150,11 +178,12 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                    }}};
   std::unique_ptr<NetworkManagerActiveConnection> active_conn;
   try {
-    auto [path, active_path, result] = network_manager_->AddAndActivateConnection2(
-        connection_settings, wireless_device_->getObjectPath(), "/",
-        {{"persist", "volatile"}, {"bind-activation", "dbus-client"}});
+    auto [path, active_path, result] =
+        network_manager_->AddAndActivateConnection2(
+            connection_settings, wireless_device_->getObjectPath(), "/",
+            {{"persist", "volatile"}, {"bind-activation", "dbus-client"}});
     active_conn = std::make_unique<NetworkManagerActiveConnection>(system_bus_,
-                                                                   active_path);    
+                                                                   active_path);
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(network_manager_, "AddAndActivateConnection2",
                                e);
@@ -163,18 +192,100 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
 
   auto [reason, timeout] = active_conn->WaitForConnection();
   if (timeout) {
-    NEARBY_LOGS(ERROR) << __func__ << ": "
-                       << ": timed out while waiting for connection "
-                       << active_conn->getObjectPath()                          
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": "
+        << ": timed out while waiting for connection "
+        << active_conn->getObjectPath()
         << " to be activated, last NMActiveConnectionStateReason: "
         << reason.value();
     DisconnectWifiHotspot();
-    return false;    
+    return false;
   }
 
   NEARBY_LOGS(INFO) << __func__ << ": Started a WiFi hotspot on device "
                     << wireless_device_->getObjectPath() << " at "
                     << active_conn->getObjectPath();
+  return true;
+}
+
+bool NetworkManagerWifiHotspotMedium::StopWifiHotspot() {
+  if (!WifiHotspotActive()) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": " << wireless_device_->getObjectPath()
+        << ": Cannot stop WiFi hotspot as a WiFi hotspot is not active";
+  }
+
+  // Get the active connection object for the hotspot AP.
+  sdbus::ObjectPath active_ap_path;
+
+  try {
+    active_ap_path = wireless_device_->ActiveAccessPoint();
+    if (active_ap_path.empty()) {
+      NEARBY_LOGS(ERROR) << __func__ << ": No active access points on "
+                         << wireless_device_->getObjectPath();
+      return false;
+    }
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "ActiveAccessPoint", e);
+  }
+
+  auto object_manager = NetworkManagerObjectManager(system_bus_);
+  auto active_connection = wireless_device_->GetActiveConnection();
+  if (active_connection == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Could not find an active connection using the access point "
+        << active_ap_path;
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << __func__ << ": " << wireless_device_->getObjectPath()
+                    << ": Deactivating active connection "
+                    << active_connection->getObjectPath();
+
+  try {
+    network_manager_->DeactivateConnection(active_connection->getObjectPath());
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(network_manager_, "DeactivateConnection", e);
+    return false;
+  }
+
+  return true;
+}
+
+bool NetworkManagerWifiHotspotMedium::ConnectWifiHotspot(
+    HotspotCredentials *hotspot_credentials) {
+  if (hotspot_credentials == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": hotspot_credentials cannot be null";
+    return false;
+  }
+
+  auto ssid = hotspot_credentials->GetSSID();
+  auto password = hotspot_credentials->GetPassword();
+
+  return wireless_device_->ConnectToNetwork(ssid, password,
+                                            api::WifiAuthType::kWpaPsk) ==
+         api::WifiConnectionStatus::kConnected;
+}
+
+bool NetworkManagerWifiHotspotMedium::DisconnectWifiHotspot() {
+  if (!WifiHotspotActive()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WiFi hotspot is not active";
+    return false;
+  }
+
+  auto active_connection = wireless_device_->GetActiveConnection();
+  if (active_connection == nullptr) {
+    return false;
+  }
+
+  try {
+    network_manager_->DeactivateConnection(active_connection->getObjectPath());
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(network_manager_, "DeactivateConnection", e);
+    return false;
+  }
+
   return true;
 }
 
@@ -187,5 +298,6 @@ bool NetworkManagerWifiHotspotMedium::WifiHotspotActive() {
     return false;
   }
 }
+
 } // namespace linux
 } // namespace nearby

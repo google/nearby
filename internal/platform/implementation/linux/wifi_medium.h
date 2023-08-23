@@ -65,29 +65,6 @@ public:
   ~NetworkManagerIP4Config() { unregisterProxy(); }
 };
 
-class NetworkManagerObjectManager
-    : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
-public:
-  NetworkManagerObjectManager(sdbus::IConnection &system_bus)
-      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        "/org/freedesktop") {
-    registerProxy();
-  }
-  ~NetworkManagerObjectManager() { unregisterProxy(); }
-
-  std::unique_ptr<NetworkManagerIP4Config>
-  GetIp4Config(const sdbus::ObjectPath &access_point);
-
-protected:
-  void onInterfacesAdded(
-      const sdbus::ObjectPath &objectPath,
-      const std::map<std::string, std::map<std::string, sdbus::Variant>>
-          &interfacesAndProperties) override {}
-  void
-  onInterfacesRemoved(const sdbus::ObjectPath &objectPath,
-                      const std::vector<std::string> &interfaces) override {}
-};
-
 class NetworkManagerAccessPoint
     : public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::AccessPoint_proxy> {
@@ -187,7 +164,35 @@ public:
 
     return state == kStateActivated ? std::pair{std::nullopt, false}
                                     : std::pair{std::optional(reason), false};
-  };
+  }
+
+  std::vector<std::string> GetIP4Addresses() {
+    sdbus::ObjectPath ip4config_path;
+    try {
+      ip4config_path = Ip4Config();
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_PROPERTY_GET_ERROR(this, "Ip4Config", e);
+      return {};
+    }
+
+    NetworkManagerIP4Config ip4config(getProxy().getConnection(),
+                                      ip4config_path);
+    std::vector<std::map<std::string, sdbus::Variant>> address_data;
+    try {
+      address_data = ip4config.AddressData();
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_PROPERTY_GET_ERROR(&ip4config, "AddressData", e);
+      return {};
+    }
+
+    std::vector<std::string> ip4addresses;
+    for (auto &data : address_data) {
+      if (data.count("address") == 1) {
+        ip4addresses.push_back(data["address"]);
+      }
+    }
+    return ip4addresses;
+  }
 
 private:
   absl::Mutex state_mutex_;
@@ -195,11 +200,37 @@ private:
   ActiveConnectionStateReason reason_ ABSL_GUARDED_BY(state_mutex_);
 };
 
+class NetworkManagerObjectManager
+    : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
+public:
+  NetworkManagerObjectManager(sdbus::IConnection &system_bus)
+      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
+                        "/org/freedesktop") {
+    registerProxy();
+  }
+  ~NetworkManagerObjectManager() { unregisterProxy(); }
+
+  std::unique_ptr<NetworkManagerIP4Config>
+  GetIp4Config(const sdbus::ObjectPath &access_point);
+  std::unique_ptr<NetworkManagerActiveConnection>
+  GetActiveConnectionForAccessPoint(const sdbus::ObjectPath &access_point_path,
+                                    const sdbus::ObjectPath &device_path);
+
+protected:
+  void onInterfacesAdded(
+      const sdbus::ObjectPath &objectPath,
+      const std::map<std::string, std::map<std::string, sdbus::Variant>>
+          &interfacesAndProperties) override {}
+  void
+  onInterfacesRemoved(const sdbus::ObjectPath &objectPath,
+                      const std::vector<std::string> &interfaces) override {}
+};
+
 class NetworkManagerWifiMedium
     : public api::WifiMedium,
       public sdbus::ProxyInterfaces<
-  org::freedesktop::NetworkManager::Device::Wireless_proxy,
-  sdbus::Properties_proxy> {
+          org::freedesktop::NetworkManager::Device::Wireless_proxy,
+          sdbus::Properties_proxy> {
 public:
   NetworkManagerWifiMedium(std::shared_ptr<NetworkManager> network_manager,
                            sdbus::IConnection &system_bus,
@@ -238,6 +269,8 @@ public:
 
   bool VerifyInternetConnectivity() override;
   std::string GetIpAddress() override;
+
+  std::unique_ptr<NetworkManagerActiveConnection> GetActiveConnection();
 
 protected:
   void onPropertiesChanged(
