@@ -96,6 +96,7 @@ cc_library(
         "//internal/proto:metadata_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
+        "//third_party/unsupported_toolchains/rust/support:rust_okay_here",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
