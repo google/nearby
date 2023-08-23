@@ -20,8 +20,8 @@ public:
 private:
   std::atomic_bool atomic_boolean_ = false;
 };
+
 } // namespace linux
 } // namespace nearby
 
-#endif
- 
+#endif // PLATFORM_IMPL_LINUX_ATOMIC_BOOLEAN_H_
