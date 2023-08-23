@@ -1,16 +1,16 @@
 licenses(["notice"])
 
 cc_library(
-	name = "types",
+    name = "types",
     hdrs = [
         "atomic_boolean.h",
         "device_info.h",
     ],
-	srcs = [
-	    "device_info.cc",
+    srcs = [
+        "device_info.cc",
         "log_message.cc",
         "timer.cc"
-	],
+    ],
     visibility = ["//third_party/nearby/sharing/internal/impl/linux:__pkg__"],
     deps = [
         ":comm",
@@ -83,6 +83,19 @@ cc_library(
 )
 
 cc_library(
+    name = "crypto",
+    srcs = [
+        "crypto.cc",
+    ],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform/implementation:types",
+        "@boringssl//:crypto",
+        "@com_google_absl//absl/strings",
+])
+
+cc_library(
     name = "linux",
     srcs = [
         "bluetooth_adapter.cc",
@@ -97,14 +110,107 @@ cc_library(
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
         "//presence:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
     ],
     deps = [
         ":comm",
-        "//internal/platform/implementation:types",
+        ":crypto",  # build_cleaner: keep
+        ":types",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:types",
+        "//internal/platform:uuid",
+        "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation/shared:count_down_latch",
+        "//internal/platform/implementation/shared:file",
+        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+        "@nlohmann_json//:json",
+        "@sdbus_cpp//:lib",
+    ],
+)
+
+cc_library(
+    name = "test_utils",
+    srcs = [
+        "test_utils.cc",
+    ],
+    hdrs = [
+        "test_data.h",
+        "test_utils.h",
+    ],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
+    deps = [
+        "//internal/platform:base",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_test(
+    name = "impl_test",
+    size = "small",
+    srcs = [
+        "atomic_boolean_test.cc",
+        "atomic_reference_test.cc",
+        "ble_gatt_server_test.cc",
+        "ble_medium_test.cc",
+        "ble_v2_peripheral_test.cc",
+        "ble_v2_test.cc",
+        "bluetooth_adapter_test.cc",
+        "count_down_latch_test.cc",
+        "crypto_test.cc",
+        "device_info_test.cc",
+        "executor_test.cc",
+        "file_path_test.cc",
+        "http_loader_test.cc",
+        "preferences_manager_test.cc",
+        "preferences_repository_test.cc",
+        "scheduled_executor_test.cc",
+        "submittable_executor_test.cc",
+        "thread_pool_test.cc",
+        "timer_test.cc",
+        "utils_test.cc",
+        "webrtc_test.cc",
+    ],
+    tags = ["notap"],
+    deps = [
+        ":comm",
+        ":crypto",
+        ":test_utils",
+        ":types",
+        ":windows",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation/shared:count_down_latch",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
-        "@libsystemd//:lib",
-    ]
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
+        "@com_google_googletest//:gtest_main",
+        "@nlohmann_json//:json",
+    ],
 )

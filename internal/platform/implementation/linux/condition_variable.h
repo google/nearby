@@ -9,7 +9,7 @@
 namespace nearby {
 namespace linux {
 class ConditionVariable : public api::ConditionVariable {
-public:  
+public:
   explicit ConditionVariable(api::Mutex *mutex)
       : mutex_(static_cast<Mutex *>(mutex)->GetRegularMutex()) {}
   ~ConditionVariable() = default;
@@ -33,4 +33,4 @@ private:
 } // namespace linux
 } // namespace nearby
 
-#endif
+#endif // PLATFORM_IMPL_LINUX_CONDITION_VARIABLE_H_
