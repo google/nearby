@@ -3,11 +3,13 @@ licenses(["notice"])
 cc_library(
 	name = "types",
     hdrs = [
+        "atomic_boolean.h",
         "device_info.h",
     ],
 	srcs = [
 	    "device_info.cc",
-        "bluetooth_adapter.h",
+        "log_message.cc",
+        "timer.cc"
 	],
     visibility = ["//third_party/nearby/sharing/internal/impl/linux:__pkg__"],
     deps = [
@@ -23,14 +25,38 @@ cc_library(
 cc_library(
     name = "comm",
     hdrs = [
+        "avahi.h",
+        "avahi_entrygroup_client_glue.h",
+        "avahi_server_client_glue.h",
+        "avahi_servicebrowser_client_glue.h",
         "bluetooth_adapter.h",
         "bluetooth_bluez_profile.h",
         "bluetooth_classic_device.h",
         "bluetooth_classic_medium.h",
         "bluetooth_classic_server_socket.h",
         "bluetooth_classic_socket.h",
+        "bluetooth_devices.h",
         "bluetooth_pairing.h",
         "bluez.h",
+        "bluez_adapter_client_glue.h",
+        "bluez_profile_glue.h",
+        "bluez_profile_manager_client_glue.h",
+        "dbus.h",
+        "networkmanager_accesspoint_client_glue.h",
+        "networkmanager_client_glue.h",
+        "networkmanager_connection_active_client_glue.h",
+        "networkmanager_device_wifip2p_client_glue.h",
+        "networkmanager_device_wireless_client_glue.h",
+        "networkmanager_ip4config_client_glue.h",
+        "stream.h",
+        "wifi_hotspot.h",
+        "wifi_hotspot_server_socket.h",
+        "wifi_hotspot_socket.h",
+        "wifi_lan.h",
+        "wifi_lan_server_socket.h",
+        "wifi_lan_socket.h",
+        "wifi_medium.h",
+        "wifi_socket.h",
     ],
     deps = [
         "//internal/platform:base",
@@ -51,6 +77,7 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@libsystemd//:lib",
+        "@sdbus_cpp//:lib",
     ],
     visibility = ["//visibility:private"],
 )
