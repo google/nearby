@@ -61,7 +61,16 @@ std::ostream &operator<<(std::ostream &s,
 std::unique_ptr<NetworkManagerIP4Config>
 NetworkManagerObjectManager::GetIp4Config(
     const sdbus::ObjectPath &active_connection) {
-  auto objects = GetManagedObjects();
+  std::map<sdbus::ObjectPath,
+           std::map<std::string, std::map<std::string, sdbus::Variant>>>
+      objects;
+  try {
+    objects = GetManagedObjects();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
+    return nullptr;
+  }
+
   for (auto &[object_path, interfaces] : objects) {
     if (object_path.find("/org/freedesktop/NetworkManager/ActiveConnection/",
                          0) == 0) {
@@ -75,6 +84,44 @@ NetworkManagerObjectManager::GetIp4Config(
         if (specific_object == active_connection)
           return std::make_unique<NetworkManagerIP4Config>(
               getProxy().getConnection(), ip4config);
+      }
+    }
+  }
+
+  return nullptr;
+}
+
+std::unique_ptr<NetworkManagerActiveConnection>
+NetworkManagerObjectManager::GetActiveConnectionForAccessPoint(
+    const sdbus::ObjectPath &access_point,
+    const sdbus::ObjectPath &device_path) {
+  std::map<sdbus::ObjectPath,
+           std::map<std::string, std::map<std::string, sdbus::Variant>>>
+      objects;
+  try {
+    objects = GetManagedObjects();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
+    return nullptr;
+  }
+
+  for (auto &[object_path, interfaces] : objects) {
+    if (object_path.find("/org/freedesktop/NetworkManager/ActiveConnection/") ==
+        0) {
+      if (interfaces.count(org::freedesktop::NetworkManager::Connection::
+                               Active_proxy::INTERFACE_NAME) == 1) {
+        auto props = interfaces[org::freedesktop::NetworkManager::Connection::
+                                    Active_proxy::INTERFACE_NAME];
+        sdbus::ObjectPath specific_object = props["SpecificObject"];
+        if (specific_object == access_point) {
+          std::vector<sdbus::ObjectPath> devices = props["Devices"];
+          for (auto &path : devices) {
+            if (path == device_path) {
+              return std::make_unique<NetworkManagerActiveConnection>(
+                  getProxy().getConnection(), object_path);
+            }
+          }
+        }
       }
     }
   }
@@ -331,7 +378,7 @@ NetworkManagerWifiMedium::ConnectToNetwork(absl::string_view ssid,
   }
 
   NEARBY_LOGS(INFO) << __func__ << ": " << getObjectPath()
-                    << ": Added a new connection at " << connection_path;  
+                    << ": Added a new connection at " << connection_path;
   auto active_connection = NetworkManagerActiveConnection(
       getProxy().getConnection(), active_conn_path);
   auto [reason, timeout] = active_connection.WaitForConnection();
@@ -370,6 +417,35 @@ bool NetworkManagerWifiMedium::VerifyInternetConnectivity() {
 std::string NetworkManagerWifiMedium::GetIpAddress() {
   GetInformation();
   return information_.ip_address_dot_decimal;
+}
+
+std::unique_ptr<NetworkManagerActiveConnection>
+NetworkManagerWifiMedium::GetActiveConnection() {
+  sdbus::ObjectPath active_ap_path;
+
+  try {
+    active_ap_path = ActiveAccessPoint();
+    if (active_ap_path.empty()) {
+      NEARBY_LOGS(ERROR) << __func__ << ": No active access points on "
+                         << getObjectPath();
+      return nullptr;
+    }
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(this, "ActiveAccessPoint", e);
+    return nullptr;
+  }
+
+  auto object_manager = NetworkManagerObjectManager(getProxy().getConnection());
+  auto conn = object_manager.GetActiveConnectionForAccessPoint(active_ap_path,
+                                                               getObjectPath());
+  
+  if (conn == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Could not find an active connection using the access point "
+        << active_ap_path << " and device " << getObjectPath();
+  }
+  return conn;
 }
 
 } // namespace linux
