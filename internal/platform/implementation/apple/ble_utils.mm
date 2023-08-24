@@ -20,6 +20,7 @@
 #include <string>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
+#import "internal/platform/implementation/apple/utils.h"
 
 namespace nearby {
 namespace apple {
@@ -96,6 +97,17 @@ GNCBLEGATTCharacteristic *ObjCGATTCharacteristicFromCPP(const GattCharacteristic
                                             serviceUUID:serviceUUID
                                             permissions:permissions
                                              properties:properties];
+}
+
+NSMutableDictionary<CBUUID *, NSData *> *ObjCServiceDataFromCPP(
+    const absl::flat_hash_map<Uuid, nearby::ByteArray> &sd) {
+  NSMutableDictionary<CBUUID *, NSData *> *serviceData = [NSMutableDictionary dictionary];
+  for (const auto &pair : sd) {
+    CBUUID *key = CBUUID16FromCPP(pair.first);
+    NSData *data = NSDataFromByteArray(pair.second);
+    [serviceData setObject:data forKey:key];
+  }
+  return serviceData;
 }
 
 Uuid CPPUUIDFromObjC(CBUUID *uuid) {

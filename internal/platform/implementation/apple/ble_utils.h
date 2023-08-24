@@ -56,6 +56,9 @@ CBCharacteristicProperties CBCharacteristicPropertiesFromCPP(
 /** Converts a C++ characteristic to an Objective-C characteristic. */
 GNCBLEGATTCharacteristic *ObjCGATTCharacteristicFromCPP(const api::ble_v2::GattCharacteristic &c);
 
+NSMutableDictionary<CBUUID *, NSData *> *ObjCServiceDataFromCPP(
+    const absl::flat_hash_map<Uuid, nearby::ByteArray> &sd);
+
 /** Converts a 16 or 128 bit CoreBluetooth UUID to a C++ UUID. */
 Uuid CPPUUIDFromObjC(CBUUID *uuid);
 

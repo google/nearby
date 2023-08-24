@@ -48,8 +48,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   BleMedium();
   ~BleMedium() override = default;
 
-  // TODO(b/290385712): Not yet implemented.
-  //
   // Async interface for StartAdvertising.
   //
   // Result status will be passed to start_advertising_result callback. To stop advertising, invoke
@@ -72,8 +70,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   // Returns whether or not advertising was successfully stopped.
   bool StopAdvertising() override;
 
-  // TODO(b/290385712): Not yet implemented.
-  //
   // Async interface for StartScanning.
   //
   // Result status will be passed to start_scanning_result callback on a private queue. To stop
@@ -147,6 +143,12 @@ class BleMedium : public api::ble_v2::BleMedium {
                            api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) override;
 
  private:
+  void HandleAdvertisementFound(
+      id<GNCPeripheral> peripheral, NSDictionary<CBUUID *, NSData *> *serviceData,
+      absl::AnyInvocable<void(api::ble_v2::BlePeripheral &peripheral,
+                              api::ble_v2::BleAdvertisementData advertisement_data)>
+          callback);
+
   GNCBLEMedium *medium_;
 
   absl::Mutex peripherals_mutex_;

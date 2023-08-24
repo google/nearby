@@ -56,22 +56,31 @@ namespace apple {
 
 BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {}
 
-// TODO(b/290385712): Implement.
 std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> BleMedium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData &advertising_data,
     api::ble_v2::AdvertiseParameters advertise_set_parameters,
     api::ble_v2::BleMedium::AdvertisingCallback callback) {
-  return nullptr;
+  NSMutableDictionary<CBUUID *, NSData *> *serviceData =
+      ObjCServiceDataFromCPP(advertising_data.service_data);
+
+  __block api::ble_v2::BleMedium::AdvertisingCallback blockCallback = std::move(callback);
+
+  [medium_ startAdvertisingData:serviceData
+              completionHandler:^(NSError *error) {
+                blockCallback.start_advertising_result(
+                    error == nil ? absl::OkStatus()
+                                 : absl::InternalError(error.localizedDescription.UTF8String));
+              }];
+
+  return std::make_unique<AdvertisingSession>(AdvertisingSession{.stop_advertising = [this] {
+    return StopAdvertising() ? absl::OkStatus() : absl::InternalError("Failed to stop advertising");
+  }});
 }
 
 bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
                                  api::ble_v2::AdvertiseParameters advertise_set_parameters) {
-  NSMutableDictionary<CBUUID *, NSData *> *serviceData = [[NSMutableDictionary alloc] init];
-  for (const auto &pair : advertising_data.service_data) {
-    CBUUID *key = CBUUID16FromCPP(pair.first);
-    NSData *data = NSDataFromByteArray(pair.second);
-    [serviceData setObject:data forKey:key];
-  }
+  NSMutableDictionary<CBUUID *, NSData *> *serviceData =
+      ObjCServiceDataFromCPP(advertising_data.service_data);
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
@@ -101,11 +110,54 @@ bool BleMedium::StopAdvertising() {
   return blockError == nil;
 }
 
-// TODO(b/290385712): Implement.
+void BleMedium::HandleAdvertisementFound(
+    id<GNCPeripheral> peripheral, NSDictionary<CBUUID *, NSData *> *serviceData,
+    absl::AnyInvocable<void(api::ble_v2::BlePeripheral &peripheral,
+                            api::ble_v2::BleAdvertisementData advertisement_data)>
+        callback) {
+  absl::MutexLock lock(&peripherals_mutex_);
+  [socketCentralManager_ retrievePeripheralWithIdentifier:peripheral.identifier
+                                        advertisementData:@{}];
+
+  api::ble_v2::BleAdvertisementData data;
+  for (CBUUID *key in serviceData.allKeys) {
+    data.service_data[CPPUUIDFromObjC(key)] = ByteArrayFromNSData(serviceData[key]);
+  }
+
+  // Add the peripheral to the map if we haven't discovered it yet.
+  auto ble_peripheral = std::make_unique<BlePeripheral>(peripheral);
+  auto unique_id = ble_peripheral->GetUniqueId();
+  auto it = peripherals_.find(unique_id);
+  if (it == peripherals_.end()) {
+    peripherals_[unique_id] = std::move(ble_peripheral);
+  }
+  callback(*peripherals_[unique_id], data);
+}
+
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BleMedium::ScanningCallback callback) {
-  return nullptr;
+  CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
+  __block api::ble_v2::BleMedium::ScanningCallback blockCallback = std::move(callback);
+
+  socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
+
+  [medium_ startScanningForService:serviceUUID
+      advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
+                                  NSDictionary<CBUUID *, NSData *> *serviceData) {
+        HandleAdvertisementFound(peripheral, serviceData,
+                                 std::move(blockCallback.advertisement_found_cb));
+      }
+      completionHandler:^(NSError *error) {
+        blockCallback.start_scanning_result(
+            error == nil ? absl::OkStatus()
+                         : absl::InternalError(error.localizedDescription.UTF8String));
+      }];
+
+  return std::make_unique<ScanningSession>(ScanningSession{.stop_scanning = [this] {
+    return StopScanning() ? absl::OkStatus() : absl::InternalError("Failed to stop scanning");
+  }});
 }
 
 bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
@@ -121,23 +173,8 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
-        absl::MutexLock lock(&peripherals_mutex_);
-        [socketCentralManager_ retrievePeripheralWithIdentifier:peripheral.identifier
-                                              advertisementData:@{}];
-
-        api::ble_v2::BleAdvertisementData data;
-        for (CBUUID *key in serviceData.allKeys) {
-          data.service_data[CPPUUIDFromObjC(key)] = ByteArrayFromNSData(serviceData[key]);
-        }
-
-        // Add the peripheral to the map if we haven't discovered it yet.
-        auto ble_peripheral = std::make_unique<BlePeripheral>(peripheral);
-        auto unique_id = ble_peripheral->GetUniqueId();
-        auto it = peripherals_.find(unique_id);
-        if (it == peripherals_.end()) {
-          peripherals_[unique_id] = std::move(ble_peripheral);
-        }
-        blockCallback.advertisement_found_cb(*peripherals_[unique_id], data);
+        HandleAdvertisementFound(peripheral, serviceData,
+                                 std::move(blockCallback.advertisement_found_cb));
       }
       completionHandler:^(NSError *error) {
         if (error != nil) {
