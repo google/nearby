@@ -101,6 +101,19 @@ static NSError *AlreadyScanningError() {
   });
 }
 
+- (void)stopAdvertisingWithCompletionHandler:
+    (nullable GNCStopAdvertisingCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    if (!_server) {
+      if (completionHandler) {
+        completionHandler(nil);
+      }
+      return;
+    }
+    [_server stopAdvertisingWithCompletionHandler:completionHandler];
+  });
+}
+
 - (void)startScanningForService:(CBUUID *)serviceUUID
       advertisementFoundHandler:(GNCAdvertisementFoundHandler)advertisementFoundHandler
               completionHandler:(nullable GNCStartScanningCompletionHandler)completionHandler {
@@ -116,6 +129,18 @@ static NSError *AlreadyScanningError() {
     _advertisementFoundHandler = advertisementFoundHandler;
 
     [self internalStartScanningIfPoweredOn];
+    if (completionHandler) {
+      completionHandler(nil);
+    }
+  });
+}
+
+- (void)stopScanningWithCompletionHandler:
+    (nullable GNCStopScanningCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    _serviceUUID = nil;
+    _advertisementFoundHandler = nil;
+    [_centralManager stopScan];
     if (completionHandler) {
       completionHandler(nil);
     }

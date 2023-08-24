@@ -119,6 +119,7 @@
 }
 
 - (void)stopAdvertising {
+  _isAdvertising = false;
 }
 
 #pragma mark - Testing Helpers

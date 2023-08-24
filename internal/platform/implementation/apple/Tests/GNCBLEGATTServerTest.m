@@ -614,4 +614,44 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[ expectation ] timeout:3];
 }
 
+- (void)testStartStopStartAdvertising {
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+
+  GNCBLEGATTServer *gattServer =
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+
+  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Start advertising."];
+
+  [gattServer startAdvertisingData:@{[CBUUID UUIDWithString:@"FEF3"] : [NSData data]}
+                 completionHandler:^(NSError *error) {
+                   XCTAssertNil(error);
+                   XCTAssertTrue(fakePeripheralManager.isAdvertising);
+                   NSDictionary<NSString *, id> *data = fakePeripheralManager.advertisementData;
+                   XCTAssertEqualObjects(data[CBAdvertisementDataLocalNameKey], @"");
+                   XCTAssertEqualObjects(data[CBAdvertisementDataServiceUUIDsKey][0],
+                                         [CBUUID UUIDWithString:@"FEF3"]);
+                   [gattServer stopAdvertisingWithCompletionHandler:^(NSError *error) {
+                     XCTAssertNil(error);
+                     XCTAssertFalse(fakePeripheralManager.isAdvertising);
+                     [gattServer
+                         startAdvertisingData:@{[CBUUID UUIDWithString:@"FEF4"] : [NSData data]}
+                            completionHandler:^(NSError *error) {
+                              XCTAssertNil(error);
+                              XCTAssertTrue(fakePeripheralManager.isAdvertising);
+                              NSDictionary<NSString *, id> *data =
+                                  fakePeripheralManager.advertisementData;
+                              XCTAssertEqualObjects(data[CBAdvertisementDataLocalNameKey], @"");
+                              XCTAssertEqualObjects(data[CBAdvertisementDataServiceUUIDsKey][0],
+                                                    [CBUUID UUIDWithString:@"FEF4"]);
+                              [expectation fulfill];
+                            }];
+                   }];
+                 }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+}
+
 @end

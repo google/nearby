@@ -223,6 +223,17 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
   });
 }
 
+- (void)stopAdvertisingWithCompletionHandler:
+    (nullable GNCStopAdvertisingCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    _advertisementData = nil;
+    [_peripheralManager stopAdvertising];
+    if (completionHandler) {
+      completionHandler(nil);
+    }
+  });
+}
+
 #pragma mark - Internal
 
 - (void)internalAddPendingServicesIfPoweredOn {

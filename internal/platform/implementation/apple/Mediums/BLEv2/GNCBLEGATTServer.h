@@ -19,10 +19,38 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/**
+ * A block to be invoked when a call to
+ * @c createCharacteristicWithServiceID:characteristicUUID:permissions:properties:completionHandler:
+ * has completed.
+ *
+ * @param characteristic The created characteristic, or @c nil if an error occurred.
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
 typedef void (^GNCCreateCharacteristicCompletionHandler)(
     GNCBLEGATTCharacteristic *_Nullable characteristic, NSError *_Nullable error);
+
+/**
+ * A block to be invoked when a call to @c updateCharacteristic:value:completionHandler: has
+ * completed.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
 typedef void (^GNCUpdateCharacteristicCompletionHandler)(NSError *_Nullable error);
+
+/**
+ * A block to be invoked when a call to @c startAdvertisingData:completionHandler: has completed.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
 typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
+
+/**
+ * A block to be invoked when a call to @c stopAdvertisingWithcompletionHandler: has completed.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
+typedef void (^GNCStopAdvertisingCompletionHandler)(NSError *_Nullable error);
 
 /**
  * An object that manages and advertises GATT characteritics.
@@ -81,6 +109,15 @@ typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
  */
 - (void)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData
            completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler;
+
+/**
+ * Stops advertising all service data.
+ *
+ * @param completionHandler Called on a private queue with @c nil if successfully stopped
+ *                          advertising or an error if one has occured.
+ */
+- (void)stopAdvertisingWithCompletionHandler:
+    (nullable GNCStopAdvertisingCompletionHandler)completionHandler;
 
 @end
 

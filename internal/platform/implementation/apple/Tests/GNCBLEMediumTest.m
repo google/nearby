@@ -106,6 +106,36 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
   [self waitForExpectations:@[ expectation ] timeout:3];
 }
 
+- (void)testStartStopStartScanning {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Start scanning."];
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID];
+
+  [medium startScanningForService:serviceUUID
+      advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
+                                  NSDictionary<CBUUID *, NSData *> *data) {
+      }
+      completionHandler:^(NSError *error) {
+        XCTAssertNil(error);
+        [medium stopScanningWithCompletionHandler:^(NSError *error) {
+          XCTAssertNil(error);
+          [medium startScanningForService:serviceUUID
+              advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
+                                          NSDictionary<CBUUID *, NSData *> *data) {
+              }
+              completionHandler:^(NSError *error) {
+                XCTAssertNil(error);
+                [expectation fulfill];
+              }];
+        }];
+      }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+}
+
 #pragma mark - Decode Advertisement Data
 
 - (void)testDecodeAndroidStyleAdvertisementData {
@@ -222,6 +252,22 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
                XCTAssertNotNil(error);
                [expectation fulfill];
              }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+}
+
+- (void)testStopAdvertising {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Stop advertising."];
+
+  // Stop advertising is fully covered with @c GNCBLEGATTServer tests. We are only testing stopping
+  // without having started which tests the code paths relevant to @c GNCBLEMedium.
+  [medium stopAdvertisingWithCompletionHandler:^(NSError *error) {
+    XCTAssertNil(error);
+    [expectation fulfill];
+  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
 }

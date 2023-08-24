@@ -31,6 +31,13 @@ NS_ASSUME_NONNULL_BEGIN
 typedef void (^GNCStartAdvertisingCompletionHandler)(NSError *_Nullable error);
 
 /**
+ * A block to be invoked when a call to @c stopAdvertisingWithcompletionHandler: has completed.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
+typedef void (^GNCStopAdvertisingCompletionHandler)(NSError *_Nullable error);
+
+/**
  * A block to be invoked when a peripheral’s advertisement has been discovered.
  *
  * @note This block can be called numerous times.
@@ -49,6 +56,13 @@ typedef void (^GNCAdvertisementFoundHandler)(id<GNCPeripheral> peripheral,
  * @param error The cause of the failure, or @c nil if no error occurred.
  */
 typedef void (^GNCStartScanningCompletionHandler)(NSError *_Nullable error);
+
+/**
+ * A block to be invoked when a call to @c stopScanningWithCompletionHandler: has completed.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
+typedef void (^GNCStopScanningCompletionHandler)(NSError *_Nullable error);
 
 /**
  * A block to be invoked when a call to @c startGATTServerWithCompletionHandler: has completed.
@@ -101,6 +115,15 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
            completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler;
 
 /**
+ * Stops advertising all service data.
+ *
+ * @param completionHandler Called on a private queue with @c nil if successfully stopped
+ *                          advertising or an error if one has occured.
+ */
+- (void)stopAdvertisingWithCompletionHandler:
+    (nullable GNCStopAdvertisingCompletionHandler)completionHandler;
+
+/**
  * Scans for peripherals that are advertising the specified service.
  *
  * @param serviceUUID The service UUID to scan for.
@@ -111,6 +134,15 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
 - (void)startScanningForService:(CBUUID *)serviceUUID
       advertisementFoundHandler:(GNCAdvertisementFoundHandler)advertisementFoundHandler
               completionHandler:(nullable GNCStartScanningCompletionHandler)completionHandler;
+
+/**
+ * Stops scanning for peripherals.
+ *
+ * @param completionHandler Called on a private queue with @c nil if successfully stopped
+ *                          scanning or an error if one has occured.
+ */
+- (void)stopScanningWithCompletionHandler:
+    (nullable GNCStopScanningCompletionHandler)completionHandler;
 
 /**
  * Starts a GATT server.

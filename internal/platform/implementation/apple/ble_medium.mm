@@ -87,8 +87,19 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
   return blockError == nil;
 }
 
-// TODO(b/290385712): Implement.
-bool BleMedium::StopAdvertising() { return false; }
+bool BleMedium::StopAdvertising() {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError *blockError = nil;
+  [medium_ stopAdvertisingWithCompletionHandler:^(NSError *error) {
+    if (error != nil) {
+      GTMLoggerError(@"Failed to stop advertising: %@", error);
+    }
+    blockError = error;
+    dispatch_semaphore_signal(semaphore);
+  }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  return blockError == nil;
+}
 
 // TODO(b/290385712): Implement.
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScanning(
@@ -139,8 +150,19 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   return blockError == nil;
 }
 
-// TODO(b/290385712): Implement.
-bool BleMedium::StopScanning() { return false; }
+bool BleMedium::StopScanning() {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError *blockError = nil;
+  [medium_ stopScanningWithCompletionHandler:^(NSError *error) {
+    if (error != nil) {
+      GTMLoggerError(@"Failed to stop scanning: %@", error);
+    }
+    blockError = error;
+    dispatch_semaphore_signal(semaphore);
+  }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  return blockError == nil;
+}
 
 // TODO(b/290385712): Add implementation that calls ServerGattConnectionCallback methods.
 std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(

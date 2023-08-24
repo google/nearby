@@ -67,8 +67,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   bool StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
                         api::ble_v2::AdvertiseParameters advertise_set_parameters) override;
 
-  // TODO(b/290385712): Not yet implemented.
-  //
   // Stops advertising.
   //
   // Returns whether or not advertising was successfully stopped.
@@ -92,8 +90,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   bool StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                      api::ble_v2::BleMedium::ScanCallback callback) override;
 
-  // TODO(b/290385712): Not yet implemented.
-  //
   // Stops scanning.
   //
   // Returns whether or not scanning was successfully stopped.
