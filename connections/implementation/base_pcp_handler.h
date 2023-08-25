@@ -149,7 +149,8 @@ class BasePcpHandler : public PcpHandler,
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
                             const std::string& endpoint_id,
-                            CountDownLatch barrier) override;
+                            CountDownLatch barrier,
+                            DisconnectionReason reason) override;
 
   Status UpdateAdvertisingOptions(
       ClientProxy* client, absl::string_view service_id,
@@ -507,7 +508,9 @@ class BasePcpHandler : public PcpHandler,
       EndpointChannel* channel, bool is_incoming, absl::Time start_time,
       Status status, Future<Status>* result);
   void ProcessPreConnectionResultFailure(ClientProxy* client,
-                                         const std::string& endpoint_id);
+                                         const std::string& endpoint_id,
+                                         bool should_call_disconnect_endpoint,
+                                         const DisconnectionReason& reason);
 
   // Called when either side accepts/rejects the connection, but only takes
   // effect after both have accepted or one side has rejected.

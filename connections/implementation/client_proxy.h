@@ -267,6 +267,20 @@ class ClientProxy final {
     connections_device_provider_ = std::move(provider);
   }
 
+  const bool& IsSupportSafeToDisconnect() const {
+    return supports_safe_to_disconnect_;
+  }
+  const std::int32_t& GetLocalSafeToDisconnectVersion() const {
+    return local_safe_to_disconnect_version_;
+  }
+  std::optional<std::int32_t> GetRemoteSafeToDisconnectVersion(
+      absl::string_view endpoint_id) const;
+  void SetRemoteSafeToDisconnectVersion(
+      absl::string_view endpoint_id,
+      const std::int32_t& safe_to_disconnect_version);
+  bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
+  bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
+
  private:
   struct Connection {
     // Status: may be either:
@@ -296,6 +310,7 @@ class ClientProxy final {
     AdvertisingOptions advertising_options;
     std::string connection_token;
     std::optional<location::nearby::connections::OsInfo> os_info;
+    std::int32_t safe_to_disconnect_version;
   };
   using ConnectionPair = std::pair<Connection, PayloadListener>;
 
@@ -427,6 +442,8 @@ class ClientProxy final {
   NearbyDeviceProvider* external_device_provider_ = nullptr;
   // For Nearby Connections' own device provider.
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
+  bool supports_safe_to_disconnect_;
+  std::int32_t local_safe_to_disconnect_version_;
 };
 
 }  // namespace connections

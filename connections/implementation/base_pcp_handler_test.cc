@@ -37,6 +37,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
@@ -48,19 +49,17 @@
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/future.h"
-#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
-#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
@@ -356,6 +355,16 @@ struct MockDiscoveredEndpoint : public MockPcpHandler::DiscoveredEndpoint {
       : DiscoveredEndpoint(std::move(endpoint)), context(std::move(context)) {}
 
   MockContext context;
+};
+
+class SetSafeToDisconnect {
+ public:
+  explicit SetSafeToDisconnect(bool safe_to_disconnect) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableSafeToDisconnect,
+        safe_to_disconnect);
+  }
 };
 
 class BasePcpHandlerTest
@@ -693,6 +702,7 @@ class BasePcpHandlerTest
       .endpoint_distance_changed_cb =
           mock_discovery_listener_.endpoint_distance_changed_cb.AsStdFunction(),
   };
+  SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
 };
 

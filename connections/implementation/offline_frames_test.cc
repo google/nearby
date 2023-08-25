@@ -269,6 +269,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         status: 1
         response: REJECT
         os_info { type: LINUX }
+        safe_to_disconnect_version: 2
       >
     >)pb";
 
@@ -532,6 +533,25 @@ TEST(OfflineFramesTest, CanGenerateKeepAlive) {
       keep_alive: <>
     >)pb";
   ByteArray bytes = ForKeepAlive();
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGenerateDisconnection) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: DISCONNECTION
+      disconnection: <
+        request_safe_to_disconnect: true
+        ack_safe_to_disconnect: true
+      >
+    >)pb";
+  ByteArray bytes = ForDisconnection(/* request_safe_to_disconnect */ true,
+                                     /* ack_safe_to_disconnect */ true);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

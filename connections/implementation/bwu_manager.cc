@@ -24,6 +24,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/bluetooth_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #ifdef NO_WEBRTC
@@ -343,7 +345,8 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
 void BwuManager::OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& service_id,
                                       const std::string& endpoint_id,
-                                      CountDownLatch barrier) {
+                                      CountDownLatch barrier,
+                                      DisconnectionReason reason) {
   NEARBY_LOGS(INFO)
       << "BwuManager has processed endpoint disconnection for endpoint "
       << endpoint_id;
@@ -1112,7 +1115,11 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   // circumstances so it is necessary to send it unencrypted. This way the
   // serial crypto context does not increment here.
   previous_endpoint_channel->DisableEncryption();
-  previous_endpoint_channel->Write(parser::ForDisconnection());
+  NEARBY_LOGS(INFO) << "[safe-to-disconnect] Sending "
+                       "DISCONNECTION frame with request 0, ack 0";
+  previous_endpoint_channel->Write(
+      parser::ForDisconnection(/* request_safe_to_disconnect */ false,
+                               /* ack_safe_to_disconnect */ false));
 
   // Attempt to read the disconnect message from the previous channel. We don't
   // care whether we successfully read it or whether we get an exception here.

@@ -15,6 +15,8 @@
 #ifndef PLATFORM_BASE_FEATURE_FLAGS_H_
 #define PLATFORM_BASE_FEATURE_FLAGS_H_
 
+#include <cstdint>
+
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 
@@ -60,6 +62,18 @@ class FeatureFlags {
     // requested service id before attempting to connect over rfcomm. SDP fails
     // on Windows when connecting to FP service id but the rfcomm is successful.
     bool skip_service_discovery_before_connecting_to_rfcomm = false;
+    std::int32_t min_nc_version_supports_safe_to_disconnect = 1;
+    // Android code won't be able to launch "payload_received_ack" feature for
+    // in near future, so change "payload_received_ack" version from "2" to "5"
+    // after auto-reconnect and auto-resume.
+    std::int32_t min_nc_version_supports_payload_received_ack = 5;
+    // If the other part doesn't ack the safe_to_disconnect request, the
+    // initiator will end the connection in 30s.
+    absl::Duration safe_to_disconnect_ack_delay_millis =
+        absl::Milliseconds(30000);
+    // If the receiver doesn't ack with payload_received_ack frame in 1s, the
+    // sender will timeout the waiting.
+    absl::Duration wait_payload_received_ack_millis = absl::Milliseconds(1000);
   };
 
   static const FeatureFlags& GetInstance() {

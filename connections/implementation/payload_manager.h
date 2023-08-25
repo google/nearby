@@ -35,6 +35,7 @@
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex.h"
 
@@ -70,7 +71,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
                             const std::string& endpoint_id,
-                            CountDownLatch barrier) override;
+                            CountDownLatch barrier,
+                            DisconnectionReason reason) override;
 
   void DisconnectFromEndpointManager();
 
@@ -92,10 +94,17 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     static Status ControlMessageEventToEndpointInfoStatus(
         PayloadTransferFrame::ControlMessage::EventType event);
+    void MarkReceivedAckFromEndpoint();
+    bool IsEndpointAvailable(ClientProxy* clientProxy,
+                             EndpointInfo::Status status);
 
     std::string id;
     AtomicReference<Status> status{Status::kUnknown};
     std::int64_t offset = 0;
+    mutable Mutex payload_received_ack_mutex;
+    ConditionVariable payload_received_ack_cond{&payload_received_ack_mutex};
+    bool is_payload_received_ack ABSL_GUARDED_BY(payload_received_ack_mutex) =
+        false;
   };
 
   // Tracks state for an InternalPayload and the endpoints associated with it.
@@ -121,6 +130,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     bool IsLocallyCanceled() const;
     void MarkLocallyCanceled();
+    void MarkReceivedAckFromEndpoint(const std::string& from_endpoint_id);
     bool IsIncoming() const;
 
     // Gets the EndpointInfo objects for the endpoints (still) associated with
@@ -289,6 +299,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,
                                                         ByteArray body);
+  bool IsLastChunk(PayloadTransferFrame::PayloadChunk payload_chunk) {
+    return ((payload_chunk.flags() &
+             PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0);
+  }
 
   PendingPayloadHandle CreateIncomingPayload(const PayloadTransferFrame& frame,
                                              const std::string& endpoint_id)
@@ -314,6 +328,21 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
       PayloadTransferFrame::ControlMessage::EventType event_type);
+
+  void SendPayloadReceivedAck(
+      ClientProxy* client, PendingPayload& pending_payload,
+      const std::string& endpoint_id,
+      const PayloadTransferFrame::PayloadHeader& payload_header,
+      std::int64_t chunk_size, bool is_last_chunk);
+
+  bool WaitForReceivedAck(
+      ClientProxy* client, const std::string& endpoint_id,
+      PendingPayload& pending_payload,
+      const PayloadTransferFrame::PayloadHeader& payload_header,
+      std::int64_t payload_chunk_offset, bool is_last_chunk);
+  bool IsPayloadReceivedAckEnabled(ClientProxy* client,
+                                   const std::string& endpoint_id,
+                                   PendingPayload& pending_payload);
 
   // Handles a finished outgoing payload for the given endpointIds. All
   // statuses except for SUCCESS are handled here.

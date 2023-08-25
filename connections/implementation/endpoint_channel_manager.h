@@ -17,15 +17,23 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "securegcm/d2d_connection_context_v1.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/mutex.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 
 namespace nearby {
 namespace connections {
+using DisconnectionReason =
+    ::location::nearby::proto::connections::DisconnectionReason;
+using SafeDisconnectionResult = ::location::nearby::analytics::proto::
+    ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
 
 // NOTE(std::string):
 // All the strings in internal class public interfaces should be exchanged as
@@ -90,13 +98,28 @@ class EndpointChannelManager final {
 
   // Returns true if 'endpoint_id' actually had a registered EndpointChannel.
   // IOW, a return of false signifies a no-op.
-  bool UnregisterChannelForEndpoint(const std::string& endpoint_id)
+  bool UnregisterChannelForEndpoint(const std::string& endpoint_id,
+                                    DisconnectionReason reason,
+                                    SafeDisconnectionResult result)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   int GetConnectedEndpointsCount() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Check if any endpoint uses WLAN Medium
   bool isWifiLanConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
+  void UpdateSafeToDisconnectForEndpoint(const std::string& endpoint_id,
+                                         bool safe_to_disconnect_enabled)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void MarkEndpointStopWaitToDisconnect(const std::string& endpoint_id,
+                                        bool is_safe_to_disconnect,
+                                        bool notify_stop_waiting)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsSafeToDisconnect(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void RemoveTimeoutDisconnectedState(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Tracks channel state for all endpoints. This includes what EndpointChannel
@@ -119,9 +142,17 @@ class EndpointChannelManager final {
 
       std::shared_ptr<EndpointChannel> channel;
       std::shared_ptr<EncryptionContext> context;
-      location::nearby::proto::connections::DisconnectionReason
-          disconnect_reason = location::nearby::proto::connections::
-              DisconnectionReason::UNKNOWN_DISCONNECTION_REASON;
+      DisconnectionReason disconnect_reason =
+          DisconnectionReason::UNKNOWN_DISCONNECTION_REASON;
+      bool safe_to_disconnect_enabled = false;
+      mutable Mutex timeout_to_disconnected_mutex;
+      ConditionVariable timeout_to_disconnected{&timeout_to_disconnected_mutex};
+      bool timeout_to_disconnected_enabled
+          ABSL_GUARDED_BY(timeout_to_disconnected_mutex) = false;
+      bool timeout_to_disconnected_notified
+          ABSL_GUARDED_BY(timeout_to_disconnected_mutex) = false;
+      bool is_safe_to_disconnect
+          ABSL_GUARDED_BY(timeout_to_disconnected_mutex) = false;
     };
 
     ChannelState() = default;
@@ -130,7 +161,7 @@ class EndpointChannelManager final {
     ChannelState& operator=(ChannelState&&) = default;
 
     // Provides a way to destroy contents of a container, while holding a lock.
-    void DestroyAll() { endpoints_.clear(); }
+    void DestroyAll();
     // Return pointer to endpoint data, or nullptr, it not found.
     EndpointData* LookupEndpointData(const std::string& endpoint_id);
 
@@ -145,15 +176,26 @@ class EndpointChannelManager final {
         const std::string& endpoint_id,
         std::unique_ptr<EncryptionContext> context);
 
+    void UpdateSafeToDisconnectForEndpoint(const std::string& endpoint_id,
+                                           bool safe_to_disconnect_enabled);
+    bool GetSafeToDisconnectForEndpoint(const std::string& endpoint_id);
+
     // Removes all knowledge of this endpoint, cleaning up as necessary.
     // Returns false if the endpoint was not found.
-    bool RemoveEndpoint(
-        const std::string& endpoint_id,
-        location::nearby::proto::connections::DisconnectionReason reason);
+    bool RemoveEndpoint(const std::string& endpoint_id,
+                        DisconnectionReason reason,
+                        bool safe_to_disconnect_enabled,
+                        SafeDisconnectionResult result);
 
     bool EncryptChannel(EndpointData* endpoint);
     int GetConnectedEndpointsCount() const { return endpoints_.size(); }
     bool isWifiLanConnected() const;
+    void MarkEndpointStopWaitToDisconnect(const std::string& endpoint_id,
+                                          bool is_safe_to_disconnect,
+                                          bool notify_stop_waiting);
+    bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id);
+    bool IsSafeToDisconnect(const std::string& endpoint_id);
+    void RemoveTimeoutDisconnectedState(const std::string& endpoint_id);
 
    private:
     // Endpoint ID -> EndpointData. Contains everything we know about the
@@ -168,7 +210,7 @@ class EndpointChannelManager final {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable Mutex mutex_;
-  ChannelState channel_state_ ABSL_GUARDED_BY(mutex_);
+  ChannelState channel_state_;
 };
 
 }  // namespace connections

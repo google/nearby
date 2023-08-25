@@ -90,7 +90,8 @@ class EndpointManager {
     virtual void OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& service_id,
                                       const std::string& endpoint_id,
-                                      CountDownLatch barrier) = 0;
+                                      CountDownLatch barrier,
+                                      DisconnectionReason reason) = 0;
   };
 
   explicit EndpointManager(EndpointChannelManager* manager);
@@ -154,7 +155,8 @@ class EndpointManager {
   // ask everyone who's registered an FrameProcessor to
   // processEndpointDisconnection() while the caller of DiscardEndpoint() is
   // blocked here.
-  void DiscardEndpoint(ClientProxy* client, const std::string& endpoint_id);
+  void DiscardEndpoint(ClientProxy* client, const std::string& endpoint_id,
+                       DisconnectionReason reason);
 
  protected:
   // For unit tests only to control executing tasks on the executor.
@@ -260,15 +262,21 @@ class EndpointManager {
   // this method is idempotent.
   // @EndpointManagerThread
   void RemoveEndpoint(ClientProxy* client, const std::string& endpoint_id,
-                      bool notify);
-
+                      bool notify, DisconnectionReason reason);
+  bool ApplySafeToDisconnect(const std::string& endpoint_id,
+                             EndpointChannel* endpoint_channel,
+                             DisconnectionReason reason);
   void WaitForEndpointDisconnectionProcessing(ClientProxy* client,
                                               const std::string& service_id,
-                                              const std::string& endpoint_id);
-
+                                              const std::string& endpoint_id,
+                                              DisconnectionReason reason);
+  void ProcessDisconnectionFrame(
+      ClientProxy* client, const std::string& endpoint_id,
+      EndpointChannel* endpoint_channel,
+      location::nearby::connections::OfflineFrame& frame);
   CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
       ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id);
+      const std::string& endpoint_id, DisconnectionReason reason);
 
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,

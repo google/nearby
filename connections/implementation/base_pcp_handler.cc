@@ -28,6 +28,8 @@
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
@@ -1012,9 +1014,12 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
 }
 
 void BasePcpHandler::ProcessPreConnectionResultFailure(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ClientProxy* client, const std::string& endpoint_id,
+    bool should_call_disconnect_endpoint, const DisconnectionReason& reason) {
   auto item = pending_connections_.extract(endpoint_id);
-  endpoint_manager_->DiscardEndpoint(client, endpoint_id);
+  if (should_call_disconnect_endpoint) {
+    endpoint_manager_->DiscardEndpoint(client, endpoint_id, reason);
+  }
   client->OnConnectionRejected(endpoint_id, {Status::kError});
 }
 
@@ -1048,7 +1053,9 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
           NEARBY_LOGS(ERROR) << "Channel destroyed before Accept; bring down "
                                 "connection: endpoint_id="
                              << endpoint_id;
-          ProcessPreConnectionResultFailure(client, endpoint_id);
+          ProcessPreConnectionResultFailure(
+              client, endpoint_id, /* should_call_disconnect_endpoint= */ true,
+              DisconnectionReason::IO_ERROR);
           response.Set({Status::kEndpointUnknown});
           return;
         }
@@ -1060,7 +1067,9 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
           NEARBY_LOGS(INFO)
               << "AcceptConnection: failed to send response: endpoint_id="
               << endpoint_id;
-          ProcessPreConnectionResultFailure(client, endpoint_id);
+          ProcessPreConnectionResultFailure(
+              client, endpoint_id, /* should_call_disconnect_endpoint= */ true,
+              DisconnectionReason::IO_ERROR);
           response.Set({Status::kEndpointIoError});
           return;
         }
@@ -1106,7 +1115,9 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
               << "Channel destroyed before Reject; bring down connection: "
                  "endpoint_id="
               << endpoint_id;
-          ProcessPreConnectionResultFailure(client, endpoint_id);
+          ProcessPreConnectionResultFailure(
+              client, endpoint_id, /* should_call_disconnect_endpoint= */ true,
+              DisconnectionReason::IO_ERROR);
           response.Set({Status::kEndpointUnknown});
           return;
         }
@@ -1118,7 +1129,9 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
           NEARBY_LOGS(INFO)
               << "RejectConnection: failed to send response: endpoint_id="
               << endpoint_id;
-          ProcessPreConnectionResultFailure(client, endpoint_id);
+          ProcessPreConnectionResultFailure(
+              client, endpoint_id, /* should_call_disconnect_endpoint= */ true,
+              DisconnectionReason::IO_ERROR);
           response.Set({Status::kEndpointIoError});
           return;
         }
@@ -1182,6 +1195,16 @@ void BasePcpHandler::OnIncomingFrame(
           client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
         }
 
+        if (connection_response.has_safe_to_disconnect_version()) {
+          NEARBY_LOGS(INFO)
+              << "[safe-to-disconnect]: endpoint_id=" << endpoint_id
+              << "; Version = "
+              << connection_response.safe_to_disconnect_version();
+          client->SetRemoteSafeToDisconnectVersion(
+              endpoint_id, connection_response.safe_to_disconnect_version());
+        }
+        channel_manager_->UpdateSafeToDisconnectForEndpoint(endpoint_id,
+                         client->IsSafeToDisconnectEnabled(endpoint_id));
         EvaluateConnectionResult(client, endpoint_id,
                                  /* can_close_immediately= */ true);
 
@@ -1193,13 +1216,14 @@ void BasePcpHandler::OnIncomingFrame(
 void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
                                           const std::string& service_id,
                                           const std::string& endpoint_id,
-                                          CountDownLatch barrier) {
+                                          CountDownLatch barrier,
+                                          DisconnectionReason reason) {
   if (stop_.Get()) {
     barrier.CountDown();
     return;
   }
   RunOnPcpHandlerThread("on-endpoint-disconnect",
-                        [this, client, endpoint_id, barrier]()
+                        [this, client, endpoint_id, barrier, reason]()
                             RUN_ON_PCP_HANDLER_THREAD() mutable {
                               auto item = pending_alarms_.find(endpoint_id);
                               if (item != pending_alarms_.end()) {
@@ -1207,8 +1231,10 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
                                 alarm->Cancel();
                                 pending_alarms_.erase(item);
                               }
-                              ProcessPreConnectionResultFailure(client,
-                                                                endpoint_id);
+                              ProcessPreConnectionResultFailure(
+                                  client, endpoint_id,
+                                  /* should_call_disconnect_endpoint= */ false,
+                                  reason);
                               barrier.CountDown();
                             });
 }
@@ -1651,7 +1677,9 @@ void BasePcpHandler::ProcessTieBreakLoss(
       client, info->channel->GetMedium(), endpoint_id, info->channel.get(),
       info->is_incoming, info->start_time, {Status::kEndpointIoError},
       info->result.lock().get());
-  ProcessPreConnectionResultFailure(client, endpoint_id);
+  ProcessPreConnectionResultFailure(client, endpoint_id,
+                                    /* should_call_disconnect_endpoint= */ true,
+                                    DisconnectionReason::IO_ERROR);
 }
 
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
@@ -1798,14 +1826,16 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
     // Clean up the channel in EndpointManager if it's no longer required.
     if (can_close_immediately) {
-      endpoint_manager_->DiscardEndpoint(client, endpoint_id);
+      endpoint_manager_->DiscardEndpoint(client, endpoint_id,
+                                         DisconnectionReason::UNFINISHED);
     } else {
       pending_alarms_.emplace(
           endpoint_id,
           std::make_unique<CancelableAlarm>(
               "BasePcpHandler.evaluateConnectionResult() delayed close",
               [this, client, endpoint_id]() {
-                endpoint_manager_->DiscardEndpoint(client, endpoint_id);
+                endpoint_manager_->DiscardEndpoint(
+                    client, endpoint_id, DisconnectionReason::UNFINISHED);
               },
               kRejectedConnectionCloseDelay, &alarm_executor_));
     }

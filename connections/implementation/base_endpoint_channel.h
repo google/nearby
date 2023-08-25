@@ -21,9 +21,10 @@
 
 #include "absl/base/thread_annotations.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"

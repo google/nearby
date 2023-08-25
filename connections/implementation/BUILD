@@ -131,6 +131,7 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation/shared:file",
+        "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
@@ -182,7 +183,9 @@ cc_library(
     deps = [
         ":internal",
         "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
         "//connections/v3:v3_types",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
@@ -240,6 +243,7 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto/analytics:connections_log_cc_proto",
         "//internal/test",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",

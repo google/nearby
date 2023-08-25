@@ -39,12 +39,14 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
@@ -240,6 +242,12 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   // Shutdown test environment.
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
+  ecm_a.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm_b.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 }
 
 TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
@@ -302,7 +310,12 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   // Shutdown test environment.
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
-}
+  ecm_a.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm_b.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);}
 
 }  // namespace
 }  // namespace connections

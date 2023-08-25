@@ -29,10 +29,13 @@
 #include "connections/connection_options.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+// #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/test/fake_single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
@@ -112,8 +115,19 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 
   MOCK_METHOD(void, OnEndpointDisconnect,
               (ClientProxy * client, const std::string& service_id,
-               const std::string& endpoint_id, CountDownLatch barrier),
+               const std::string& endpoint_id, CountDownLatch barrier,
+               DisconnectionReason reason),
               (override));
+};
+
+class SetSafeToDisconnect {
+ public:
+  explicit SetSafeToDisconnect(bool safe_to_disconnect) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableSafeToDisconnect,
+        safe_to_disconnect);
+  }
 };
 
 class TestEndpointManager : public EndpointManager {
@@ -146,7 +160,7 @@ class EndpointManagerTest : public ::testing::Test {
       EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
     }
   }
-
+  SetSafeToDisconnect set_safe_to_disconnect_{true};
   std::unique_ptr<ClientProxy> client_ = std::make_unique<ClientProxy>();
   ConnectionOptions connection_options_{
       .keep_alive_interval_millis = 5000,
@@ -199,15 +213,28 @@ TEST_F(EndpointManagerTest, RegisterEndpointCallsOnConnectionInitiated) {
 }
 
 TEST_F(EndpointManagerTest, UnregisterEndpointCallsOnDisconnected) {
-  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read())
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+//  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+//  EXPECT_CALL(*endpoint_channel, Read())
+//      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   RegisterEndpoint(std::make_unique<MockEndpointChannel>());
   // NOTE: disconnect_cb is not called, because we did not reach fully connected
   // state. On top of that, UnregisterEndpoint is suppressing this notification.
   // (IMO, it should be called as long as any connection callback was called
   // before. (in this case initiated_cb is called)).
   // Test captures current protocol behavior.
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+}
+
+TEST_F(EndpointManagerTest,
+       UnregisterEndpointCallsOnDisconnectedSafeToDisconnect) {
+  RegisterEndpoint(std::make_unique<MockEndpointChannel>());
+  // NOTE: disconnect_cb is not called, because we did not reach fully connected
+  // state. On top of that, UnregisterEndpoint is suppressing this notification.
+  // (IMO, it should be called as long as any connection callback was called
+  // before. (in this case initiated_cb is called)).
+  // Test captures current protocol behavior.
+  client_->SetRemoteSafeToDisconnectVersion(endpoint_id_, 2);
+  ecm_.UpdateSafeToDisconnectForEndpoint(endpoint_id_, true);
   em_.UnregisterEndpoint(client_.get(), endpoint_id_);
 }
 
@@ -434,7 +461,8 @@ TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
   // immediately.
   fake_serial_executor->SetRunExecutablesImmediately(
       /*run_executables_immediately=*/false);
-  endpoint_manager->DiscardEndpoint(client_.get(), endpoint_id_);
+  endpoint_manager->DiscardEndpoint(client_.get(), endpoint_id_,
+                                    DisconnectionReason::IO_ERROR);
 
   // Simulate Core destruction of ClientProxy by destroying `client_`.
   client_.reset();

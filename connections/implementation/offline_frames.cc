@@ -14,14 +14,17 @@
 
 #include "connections/implementation/offline_frames.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames_validator.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/status.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -165,7 +168,8 @@ ByteArray ForConnectionRequestPresence(
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info) {
+ByteArray ForConnectionResponse(
+    std::int32_t status, const OsInfo& os_info) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -181,6 +185,10 @@ ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info) {
                               ? ConnectionResponseFrame::ACCEPT
                               : ConnectionResponseFrame::REJECT);
   *sub_frame->mutable_os_info() = os_info;
+  sub_frame->set_safe_to_disconnect_version(
+      NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_connections_feature::
+              kSafeToDisconnectVersion));
 
   return ToBytes(std::move(frame));
 }
@@ -445,13 +453,16 @@ ByteArray ForKeepAlive() {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForDisconnection() {
+ByteArray ForDisconnection(bool request_safe_to_disconnect,
+                           bool ack_safe_to_disconnect) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::DISCONNECTION);
-  v1_frame->mutable_disconnection();
+  auto* disconnection = v1_frame->mutable_disconnection();
+  disconnection->set_request_safe_to_disconnect(request_safe_to_disconnect);
+  disconnection->set_ack_safe_to_disconnect(ack_safe_to_disconnect);
 
   return ToBytes(std::move(frame));
 }
