@@ -269,8 +269,8 @@ bool NetworkManagerWifiHotspotMedium::ConnectWifiHotspot(
 }
 
 bool NetworkManagerWifiHotspotMedium::DisconnectWifiHotspot() {
-  if (!WifiHotspotActive()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WiFi hotspot is not active";
+  if (!ConnectedToWifi()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Not connected to a WiFi hotspot";
     return false;
   }
 
@@ -293,6 +293,16 @@ bool NetworkManagerWifiHotspotMedium::WifiHotspotActive() {
   try {
     auto mode = wireless_device_->Mode();
     return mode == 3; // NM_802_11_MODE_AP
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
+    return false;
+  }
+}
+
+bool NetworkManagerWifiHotspotMedium::ConnectedToWifi() {
+  try {
+    auto mode = wireless_device_->Mode();
+    return mode == 2; // NM_802_11_MODE_INFRA
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
     return false;
