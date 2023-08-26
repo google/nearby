@@ -29,6 +29,7 @@
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -47,39 +48,46 @@ class PcpManager {
              InjectedBluetoothDeviceStore& injected_bluetooth_device_store);
   ~PcpManager();
 
-  Status StartAdvertising(ClientProxy* client, const string& service_id,
+  Status StartAdvertising(::nearby::Borrowable<ClientProxy*> client,
+                          const string& service_id,
                           const AdvertisingOptions& advertising_options,
                           const ConnectionRequestInfo& info);
-  void StopAdvertising(ClientProxy* client);
+  void StopAdvertising(::nearby::Borrowable<ClientProxy*> client);
 
-  Status StartDiscovery(ClientProxy* client, const string& service_id,
+  Status StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
+                        const string& service_id,
                         const DiscoveryOptions& discovery_options,
                         DiscoveryListener listener);
-  void StopDiscovery(ClientProxy* client);
+  void StopDiscovery(::nearby::Borrowable<ClientProxy*> client);
 
   std::pair<Status, std::vector<ConnectionInfoVariant>>
   StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options);
 
-  void StopListeningForIncomingConnections(ClientProxy* client);
+  void StopListeningForIncomingConnections(
+      ::nearby::Borrowable<ClientProxy*> client);
 
-  void InjectEndpoint(ClientProxy* client, const std::string& service_id,
+  void InjectEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                      const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata);
 
-  Status RequestConnection(ClientProxy* client, const string& endpoint_id,
+  Status RequestConnection(::nearby::Borrowable<ClientProxy*> client,
+                           const string& endpoint_id,
                            const ConnectionRequestInfo& info,
                            const ConnectionOptions& connection_options);
-  Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
+  Status AcceptConnection(::nearby::Borrowable<ClientProxy*> client,
+                          const string& endpoint_id,
                           PayloadListener payload_listener);
-  Status RejectConnection(ClientProxy* client, const string& endpoint_id);
+  Status RejectConnection(::nearby::Borrowable<ClientProxy*> client,
+                          const string& endpoint_id);
 
   Status UpdateAdvertisingOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const AdvertisingOptions& advertising_options);
 
-  Status UpdateDiscoveryOptions(ClientProxy* client,
+  Status UpdateDiscoveryOptions(::nearby::Borrowable<ClientProxy*> client,
                                 absl::string_view service_id,
                                 const DiscoveryOptions& discovery_options);
 

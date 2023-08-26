@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/mutex.h"
 #include "internal/proto/analytics/connections_log.pb.h"
@@ -58,7 +59,7 @@ class EndpointChannelManager final {
   // Registers the initial EndpointChannel to be associated with an endpoint;
   // if there already exists a previously-associated EndpointChannel, that will
   // be closed before continuing the registration.
-  void RegisterChannelForEndpoint(ClientProxy* client,
+  void RegisterChannelForEndpoint(::nearby::Borrowable<ClientProxy*>,
                                   const std::string& endpoint_id,
                                   std::unique_ptr<EndpointChannel> channel)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -66,7 +67,7 @@ class EndpointChannelManager final {
   // Replaces the EndpointChannel to be associated with an endpoint from here on
   // in, transferring the encryption context from the previous EndpointChannel
   // to the newly-provided EndpointChannel.
-  void ReplaceChannelForEndpoint(ClientProxy* client,
+  void ReplaceChannelForEndpoint(::nearby::Borrowable<ClientProxy*>,
                                  const std::string& endpoint_id,
                                  std::unique_ptr<EndpointChannel> channel,
                                  bool enable_encryption)
@@ -203,7 +204,7 @@ class EndpointChannelManager final {
     absl::flat_hash_map<std::string, EndpointData> endpoints_;
   };
 
-  void SetActiveEndpointChannel(ClientProxy* client,
+  void SetActiveEndpointChannel(::nearby::Borrowable<ClientProxy*>,
                                 const std::string& endpoint_id,
                                 std::unique_ptr<EndpointChannel> channel,
                                 bool enable_encryption)

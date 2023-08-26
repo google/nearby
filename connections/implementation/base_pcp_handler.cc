@@ -24,6 +24,7 @@
 #include "securegcm/ukey2_handshake.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -43,6 +44,7 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/bluetooth_utils.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
 #include "internal/platform/count_down_latch.h"
@@ -110,7 +112,7 @@ void BasePcpHandler::DisconnectFromEndpointManager() {
 
 std::pair<Status, std::vector<ConnectionInfoVariant>>
 BasePcpHandler::StartListeningForIncomingConnections(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     v3::ConnectionListeningOptions options,
     v3::ConnectionListener connection_listener) {
   Future<std::pair<Status, std::vector<ConnectionInfoVariant>>> response;
@@ -119,14 +121,44 @@ BasePcpHandler::StartListeningForIncomingConnections(
       [this, client, service_id, options, &response,
        connection_listener = std::move(
            connection_listener)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        // Borrow the client in order to retrieve the local endpoint id. This
+        // cannot be done in line with
+        // `StartListeningForIncomingConnectionsImpl()` because `Borrow()`
+        // is a blocking call, and leads to a Mutex deadlock.
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          response.Set({{Status::kError}, {}});
+          return;
+        }
+        auto local_endpoint_id = (*borrowed)->GetLocalEndpointId();
+
+        // Mark |borrowed| as finished to release the thread in order to
+        // prevent Mutex deadlock in
+        // `StartListeningForIncomingConnectionsImpl()`.
+        borrowed.FinishBorrowing();
+
         StartOperationResult result = StartListeningForIncomingConnectionsImpl(
-            client, service_id, client->GetLocalEndpointId(), options);
+            client, service_id, local_endpoint_id, options);
         if (!result.status.Ok()) {
           response.Set({result.status, {}});
           return;
         }
-        client->StartedListeningForIncomingConnections(
-            service_id, GetStrategy(), std::move(connection_listener), options);
+
+        // Borrow the client again to set
+        // `StartedListeningForIncomingConnections()`. No need to mark
+        // explicitly as `FinishedBorrowing()` because |borrowed2| will go
+        // out of scope after its used.
+        ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+        if (!borrowed2) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          response.Set({{Status::kError}, {}});
+          return;
+        }
+        (*borrowed2)
+            ->StartedListeningForIncomingConnections(
+                service_id, GetStrategy(), std::move(connection_listener),
+                options);
         response.Set(
             {result.status, GetConnectionInfoFromResult(service_id, result)});
       });
@@ -158,19 +190,32 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
   return connection_infos;
 }
 
-void BasePcpHandler::StopListeningForIncomingConnections(ClientProxy* client) {
+void BasePcpHandler::StopListeningForIncomingConnections(
+    ::nearby::Borrowable<ClientProxy*> client) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread("stop-listening-for-incoming-conn",
-                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-                          StopListeningForIncomingConnectionsImpl(client);
-                          client->StoppedListeningForIncomingConnections();
-                          latch.CountDown();
-                        });
+  RunOnPcpHandlerThread(
+      "stop-listening-for-incoming-conn",
+      [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+        StopListeningForIncomingConnectionsImpl(client);
+
+        // Borrow the client to set
+        // `StoppedListeningForIncomingConnections()`. No need to explicitly
+        // mark as `FinishBorrowing()` since |borrowed| is destroyed after its
+        // used, and thus does not block or introduce deadlocks.
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          latch.CountDown();
+          return;
+        }
+        (*borrowed)->StoppedListeningForIncomingConnections();
+        latch.CountDown();
+      });
   WaitForLatch("StopListeningForIncomingConnections", &latch);
 }
 
 Status BasePcpHandler::StartAdvertising(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const AdvertisingOptions& advertising_options,
     const ConnectionRequestInfo& info) {
   Future<Status> response;
@@ -182,24 +227,61 @@ Status BasePcpHandler::StartAdvertising(
                     << GetStringValueOfSupportedMediums(
                            compatible_advertising_options);
 
+  // The call will block if another thread is already borrowing the ClientProxy.
+  // So reset the borrowed state in order to pass the borrowable's client id
+  // to `WaitForResult()` via `FinishBorrowing()`.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Status::kError};
+  }
+  auto client_id = (*borrowed)->GetClientId();
+  borrowed.FinishBorrowing();
+
   RunOnPcpHandlerThread(
       "start-advertising",
       [this, client, &service_id, &info, &compatible_advertising_options,
        &response]() RUN_ON_PCP_HANDLER_THREAD() {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          response.Set({Status::kError});
+          return;
+        }
+
         // The endpoint id inside of the advertisement is different to high
         // visibility and low visibility mode. In order to decide if client
         // should grab the high visibility or low visibility id, it needs to
         // tell client which one right now, before
         // client#StartedAdvertising.
         if (ShouldEnterHighVisibilityMode(compatible_advertising_options)) {
-          client->EnterHighVisibilityMode();
+          (*borrowed)->EnterHighVisibilityMode();
         }
 
-        auto result = StartAdvertisingImpl(
-            client, service_id, client->GetLocalEndpointId(),
-            info.endpoint_info, compatible_advertising_options);
+        // Stop borrowing to prevent Mutex deadlock in `StartAdvertisingImpl()`.
+        // We need to fetch the endpoint_id before the call to
+        // `StartAdvertisingImpl()` and cannot do this inline because it will
+        // block and cause deadlocks.
+        auto endpoint_id = (*borrowed)->GetLocalEndpointId();
+        borrowed.FinishBorrowing();
+
+        auto result = StartAdvertisingImpl(client, service_id, endpoint_id,
+                                           info.endpoint_info,
+                                           compatible_advertising_options);
+
+        // Borrow the client again to handle setting the state following
+        // the result of `StartAdvertisingImpl()`. None of these uses are
+        // blocking, and we don't need to mark |borrowed2| as
+        // `FinishedBorrowing()` because it will go out of scope.
+        ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+        if (!borrowed2) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          response.Set({Status::kError});
+          return;
+        }
+
         if (!result.status.Ok()) {
-          client->ExitHighVisibilityMode();
+          (*borrowed2)->ExitHighVisibilityMode();
           response.Set(result.status);
           return;
         }
@@ -208,26 +290,52 @@ Status BasePcpHandler::StartAdvertising(
         // Save the advertising options for local reference in later process
         // like upgrading bandwidth.
         advertising_listener_ = info.listener;
-        client->StartedAdvertising(service_id, GetStrategy(), info.listener,
-                                   absl::MakeSpan(result.mediums),
-                                   compatible_advertising_options);
-        client->UpdateLocalEndpointInfo(info.endpoint_info.string_data());
+        (*borrowed2)
+            ->StartedAdvertising(service_id, GetStrategy(), info.listener,
+                                 absl::MakeSpan(result.mediums),
+                                 compatible_advertising_options);
+        (*borrowed2)->UpdateLocalEndpointInfo(info.endpoint_info.string_data());
         response.Set({Status::kSuccess});
       });
+
   return WaitForResult(absl::StrCat("StartAdvertising(", service_id, ")"),
-                       client->GetClientId(), &response);
+                       client_id, &response);
 }
 
-void BasePcpHandler::StopAdvertising(ClientProxy* client) {
+void BasePcpHandler::StopAdvertising(
+    ::nearby::Borrowable<ClientProxy*> client) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
   NEARBY_LOGS(INFO) << "StopAdvertising local_endpoint_id="
-                    << client->GetLocalEndpointId();
+                    << (*borrowed)->GetLocalEndpointId();
+
+  // The call will block if another thread is already borrowing the ClientProxy.
+  // So reset the borrowed state since the use for logging has been
+  // complete.
+  borrowed.FinishBorrowing();
+
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread("stop-advertising",
-                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-                          StopAdvertisingImpl(client);
-                          client->StoppedAdvertising();
-                          latch.CountDown();
-                        });
+  RunOnPcpHandlerThread(
+      "stop-advertising", [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+        StopAdvertisingImpl(client);
+
+        // Borrow the client to set `StoppedAdvertising()`. No need to mark
+        // |borrowed| as `FinishedBorrowing()` becasue it will be destroyed
+        // when it goes out of scope, and thus, no deadlocks from the
+        // blocking call.
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          latch.CountDown();
+          return;
+        }
+
+        (*borrowed)->StoppedAdvertising();
+        latch.CountDown();
+      });
   WaitForLatch("StopAdvertising", &latch);
 }
 
@@ -323,8 +431,19 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
       // We use advertising options as a proxy to whether or not the local
       // client does want to enable a WebRTC upgrade.
       if (my_medium == location::nearby::proto::connections::Medium::WEB_RTC) {
+        // Borrow the stored `ClientProxy` associate with |connection_info|.
+        // No need to explicitly mark |borrowed| as `FinishedBorrowing()`
+        // because it will go out of scope and not block any calls.
+        ::nearby::Borrowed<ClientProxy*> borrowed =
+            connection_info.client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          BooleanMediumSelector mediumSelector{};
+          return mediumSelector;
+        }
+
         AdvertisingOptions advertising_options =
-            connection_info.client->GetAdvertisingOptions();
+            (*borrowed)->GetAdvertisingOptions();
 
         if (!advertising_options.enable_webrtc_listening &&
             !advertising_options.allowed.web_rtc) {
@@ -350,7 +469,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
   return mediumSelector;
 }
 
-Status BasePcpHandler::StartDiscovery(ClientProxy* client,
+Status BasePcpHandler::StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
                                       const std::string& service_id,
                                       const DiscoveryOptions& discovery_options,
                                       const DiscoveryListener& listener) {
@@ -360,6 +479,18 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
   NEARBY_LOGS(INFO) << "StartDiscovery with supported mediums:"
                     << GetStringValueOfSupportedMediums(
                            stripped_discovery_options);
+
+  // The call will block if another thread is already borrowing the ClientProxy.
+  // So reset the borrowed state in order to pass the borrowable's client id
+  // to `WaitForResult()`.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Status::kError};
+  }
+  auto client_id = (*borrowed)->GetClientId();
+  borrowed.FinishBorrowing();
+
   RunOnPcpHandlerThread(
       "start-discovery",
       [this, client, service_id, stripped_discovery_options, &listener,
@@ -379,21 +510,45 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
               MutexLock lock(&discovered_endpoint_mutex_);
               discovered_endpoints_.clear();
             }
-            client->StartedDiscovery(service_id, GetStrategy(), listener,
-                                     absl::MakeSpan(result.mediums),
-                                     stripped_discovery_options);
+
+            // No need to mark |borrowed| as `FinishedBorrowing()` since it
+            // will go out of scope and not block any calls.
+            ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+            if (!borrowed) {
+              NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+              response.Set({Status::kError});
+              return;
+            }
+            (*borrowed)->StartedDiscovery(service_id, GetStrategy(), listener,
+                                          absl::MakeSpan(result.mediums),
+                                          stripped_discovery_options);
             response.Set({Status::kSuccess});
           });
+
   return WaitForResult(absl::StrCat("StartDiscovery(", service_id, ")"),
-                       client->GetClientId(), &response);
+                       client_id, &response);
 }
 
-void BasePcpHandler::StopDiscovery(ClientProxy* client) {
+void BasePcpHandler::StopDiscovery(::nearby::Borrowable<ClientProxy*> client) {
   CountDownLatch latch(1);
   RunOnPcpHandlerThread("stop-discovery",
                         [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
                           StopDiscoveryImpl(client);
-                          client->StoppedDiscovery();
+
+                          // No need to mark |borrowed| as
+                          // `FinishBorrowing()` since it will go out of
+                          // scope at the end of this call and not block
+                          // any threads.
+                          ::nearby::Borrowed<ClientProxy*> borrowed =
+                              client.Borrow();
+                          if (!borrowed) {
+                            NEARBY_LOGS(ERROR)
+                                << __func__ << ": ClientProxy is gone";
+                            latch.CountDown();
+                            return;
+                          }
+
+                          (*borrowed)->StoppedDiscovery();
                           latch.CountDown();
                         });
 
@@ -401,7 +556,7 @@ void BasePcpHandler::StopDiscovery(ClientProxy* client) {
 }
 
 void BasePcpHandler::InjectEndpoint(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
   CountDownLatch latch(1);
   RunOnPcpHandlerThread("inject-endpoint",
@@ -572,10 +727,20 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
 }
 
 ConnectionInfo BasePcpHandler::FillConnectionInfo(
-    ClientProxy* client, const ConnectionRequestInfo& info,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
   ConnectionInfo connection_info;
-  connection_info.local_endpoint_id = client->GetLocalEndpointId();
+
+  // No need to mark |borrowed| as `FinishedBorrowing()` because it will go
+  // out of scope before it can block any calls and cause deadlocks.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return connection_info;
+  }
+
+  connection_info.local_endpoint_id = (*borrowed)->GetLocalEndpointId();
   connection_info.local_endpoint_info = info.endpoint_info;
   connection_info.nonce = Prng().NextInt32();
   if (mediums_->GetWifi().IsAvailable()) {
@@ -603,14 +768,32 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
 }
 
 Status BasePcpHandler::RequestConnection(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
+  // The call will block if another thread is already borrowing the ClientProxy.
+  // So reset the borrowed state in order to pass the borrowable's client id
+  // to `WaitForResult()` after we retrieve the client id, which we use to
+  // pass a `ClientProxy` identifier to `WaitForResult()`.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Status::kError};
+  }
+  auto client_id = (*borrowed)->GetClientId();
+  borrowed.FinishBorrowing();
+
   auto result = std::make_shared<Future<Status>>();
   RunOnPcpHandlerThread(
       "request-connection",
       [this, client, &info, connection_options, endpoint_id,
        result]() RUN_ON_PCP_HANDLER_THREAD() {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          result->Set({Status::kError});
+          return;
+        }
         absl::Time start_time = SystemClock::ElapsedRealtime();
 
         // If we already have a pending connection, then we shouldn't allow any
@@ -627,15 +810,19 @@ Status BasePcpHandler::RequestConnection(
 
         // If our child class says we can't send any more outgoing connections,
         // listen to them.
-        if (client->ShouldEnforceTopologyConstraints() &&
+        if ((*borrowed)->ShouldEnforceTopologyConstraints() &&
             !CanSendOutgoingConnection(client)) {
           NEARBY_LOGS(INFO)
-              << "In requestConnection(), client=" << client->GetClientId()
+              << "In requestConnection(), client=" << (*borrowed)->GetClientId()
               << " attempted a connection with endpoint(id=" << endpoint_id
               << "), but outgoing connections are disallowed";
           result->Set({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // We need to release the borrowed instance here to prevent a Mutex
+        // deadlock in `GetDiscoveredEndpoint()`.
+        borrowed.FinishBorrowing();
 
         DiscoveredEndpoint* endpoint = GetDiscoveredEndpoint(endpoint_id);
         if (endpoint == nullptr) {
@@ -647,16 +834,31 @@ Status BasePcpHandler::RequestConnection(
 
         auto remote_bluetooth_mac_address = BluetoothUtils::ToString(
             connection_options.remote_bluetooth_mac_address);
+
+        // Retrieve again a borrowed instance now that the Mutex has been
+        // released in order to retrieve |discovery_options| before the
+        // blocking call in `AppendRemoteBluetoothMacAddressEndpoint().
+        ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+        if (!borrowed2) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          result->Set({Status::kError});
+          return;
+        }
+        auto discovery_options = (*borrowed2)->GetDiscoveryOptions();
+
+        // Release borrowed instance to prevent Mutex deadlock in
+        // `AppendRemoteBluetoothMacAddressEndpoint()`.
+        borrowed2.FinishBorrowing();
+
         if (!remote_bluetooth_mac_address.empty()) {
           if (AppendRemoteBluetoothMacAddressEndpoint(
-                  endpoint_id, remote_bluetooth_mac_address,
-                  client->GetDiscoveryOptions()))
+                  endpoint_id, remote_bluetooth_mac_address, discovery_options))
             NEARBY_LOGS(INFO)
                 << "Appended remote Bluetooth MAC Address endpoint ["
                 << remote_bluetooth_mac_address << "]";
         }
 
-        if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
+        if (AppendWebRTCEndpoint(endpoint_id, discovery_options))
           NEARBY_LOGS(INFO) << "Appended Web RTC endpoint.";
 
         auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
@@ -696,13 +898,37 @@ Status BasePcpHandler::RequestConnection(
                "to endpoint_id="
             << endpoint_id;
 
-        client->OnRequestConnection(GetStrategy(), endpoint_id,
-                                    connection_options);
+        // Borrow the `ClientProxy` again to set `OnRequestconnection()`.
+        ::nearby::Borrowed<ClientProxy*> borrowed3 = client.Borrow();
+        if (!borrowed3) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          result->Set({Status::kError});
+          return;
+        }
+        (*borrowed3)
+            ->OnRequestConnection(GetStrategy(), endpoint_id,
+                                  connection_options);
+
+        // Release the borrowed instance to prevent Mutex deadline in
+        // `FillConnectionInfo()`.
+        borrowed3.FinishBorrowing();
 
         ConnectionInfo connection_info =
             FillConnectionInfo(client, info, connection_options);
 
-        const NearbyDevice* local_device = client->GetLocalDevice();
+        // Borrow the client again to `GetLocalDevice()`.
+        ::nearby::Borrowed<ClientProxy*> borrowed4 = client.Borrow();
+        if (!borrowed4) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          result->Set({Status::kError});
+          return;
+        }
+        const NearbyDevice* local_device = (*borrowed4)->GetLocalDevice();
+
+        // `FinishBorrowing()` to prevent Mutex deadlocks in
+        // `ProcessPreConnectionInitiationFailure()`.
+        borrowed4.FinishBorrowing();
+
         Exception write_exception = WriteConnectionRequestFrame(
             local_device->GetType(), local_device->ToProtoBytes(),
             connection_info, channel.get());
@@ -750,11 +976,12 @@ Status BasePcpHandler::RequestConnection(
         encryption_runner_.StartClient(client, endpoint_id, endpoint_channel,
                                        GetResultListener());
       });
+
   NEARBY_LOGS(INFO) << "Waiting for connection to complete: endpoint_id="
                     << endpoint_id;
   auto status =
       WaitForResult(absl::StrCat("RequestConnection(", endpoint_id, ")"),
-                    client->GetClientId(), result.get());
+                    client_id, result.get());
   NEARBY_LOGS(INFO) << "Wait is complete: endpoint_id=" << endpoint_id
                     << "; status=" << status.value;
   return status;
@@ -896,7 +1123,8 @@ std::string GetEndpointLostByMediumAlarmKey(absl::string_view endpoint_id,
 }  // namespace
 
 void BasePcpHandler::StartEndpointLostByMediumAlarms(
-    ClientProxy* client, location::nearby::proto::connections::Medium medium) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    location::nearby::proto::connections::Medium medium) {
   auto discovered_endpoints_medium = GetDiscoveredEndpoints(medium);
   for (const auto discovered_endpoint : discovered_endpoints_medium) {
     std::string key = GetEndpointLostByMediumAlarmKey(
@@ -937,31 +1165,48 @@ mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
   return mediums::WebrtcPeerId::FromSeed(ByteArray(std::move(seed)));
 }
 
-bool BasePcpHandler::HasOutgoingConnections(ClientProxy* client) const {
+bool BasePcpHandler::HasOutgoingConnections(
+    ::nearby::Borrowable<ClientProxy*> client) const {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return false;
+  }
+
   for (const auto& item : pending_connections_) {
     auto& connection = item.second;
     if (!connection.is_incoming) {
       return true;
     }
   }
-  return client->GetNumOutgoingConnections() > 0;
+
+  return (*borrowed)->GetNumOutgoingConnections() > 0;
 }
 
-bool BasePcpHandler::HasIncomingConnections(ClientProxy* client) const {
+bool BasePcpHandler::HasIncomingConnections(
+    ::nearby::Borrowable<ClientProxy*> client) const {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return false;
+  }
+
   for (const auto& item : pending_connections_) {
     auto& connection = item.second;
     if (connection.is_incoming) {
       return true;
     }
   }
-  return client->GetNumIncomingConnections() > 0;
+  return (*borrowed)->GetNumIncomingConnections() > 0;
 }
 
-bool BasePcpHandler::CanSendOutgoingConnection(ClientProxy* client) const {
+bool BasePcpHandler::CanSendOutgoingConnection(
+    ::nearby::Borrowable<ClientProxy*> client) const {
   return true;
 }
 
-bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
+bool BasePcpHandler::CanReceiveIncomingConnection(
+    ::nearby::Borrowable<ClientProxy*> client) const {
   return true;
 }
 
@@ -993,9 +1238,9 @@ Exception BasePcpHandler::WriteConnectionRequestFrame(
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
-    ClientProxy* client, Medium medium, const std::string& endpoint_id,
-    EndpointChannel* channel, bool is_incoming, absl::Time start_time,
-    Status status, Future<Status>* result) {
+    ::nearby::Borrowable<ClientProxy*> client, Medium medium,
+    const std::string& endpoint_id, EndpointChannel* channel, bool is_incoming,
+    absl::Time start_time, Status status, Future<Status>* result) {
   if (channel != nullptr) {
     channel->Close();
   }
@@ -1014,18 +1259,36 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
 }
 
 void BasePcpHandler::ProcessPreConnectionResultFailure(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     bool should_call_disconnect_endpoint, const DisconnectionReason& reason) {
   auto item = pending_connections_.extract(endpoint_id);
   if (should_call_disconnect_endpoint) {
     endpoint_manager_->DiscardEndpoint(client, endpoint_id, reason);
   }
-  client->OnConnectionRejected(endpoint_id, {Status::kError});
+
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed)->OnConnectionRejected(endpoint_id, {Status::kError});
 }
 
-Status BasePcpHandler::AcceptConnection(ClientProxy* client,
-                                        const std::string& endpoint_id,
-                                        PayloadListener payload_listener) {
+Status BasePcpHandler::AcceptConnection(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
+    PayloadListener payload_listener) {
+  // Borrow the client and retrieve the |client_id| to pass to
+  // `WaitForResult()`, and then mark |borrowed| as `FinishBorrowing()` in order
+  // to borrow the instance on the PcpHandlerThread, since `Borrow()` is a
+  // blocking call.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Status::kError};
+  }
+  auto client_id = (*borrowed)->GetClientId();
+  borrowed.FinishBorrowing();
+
   Future<Status> response;
   RunOnPcpHandlerThread(
       "accept-connection", [this, client, endpoint_id,
@@ -1060,9 +1323,21 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
           return;
         }
 
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          response.Set({Status::kError});
+          return;
+        }
+
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kSuccess, client->GetLocalOsInfo()));
+                Status::kSuccess, (*borrowed)->GetLocalOsInfo()));
+
+        // Release borrowed instance to prevent Mutex deadlock in
+        // `LocalEndpointAcceptedConnection()`.
+        borrowed.FinishBorrowing();
+
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO)
               << "AcceptConnection: failed to send response: endpoint_id="
@@ -1084,11 +1359,23 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
       });
 
   return WaitForResult(absl::StrCat("AcceptConnection(", endpoint_id, ")"),
-                       client->GetClientId(), &response);
+                       client_id, &response);
 }
 
-Status BasePcpHandler::RejectConnection(ClientProxy* client,
-                                        const std::string& endpoint_id) {
+Status BasePcpHandler::RejectConnection(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id) {
+  // Borrow the client and retrieve the |client_id| to pass to
+  // `WaitForResult()`, and then mark |borrowed| as `FinishBorrowing()` in order
+  // to borrow the instance on the PcpHandlerThread, since `Borrow()` is a
+  // blocking call.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Status::kError};
+  }
+  auto client_id = (*borrowed)->GetClientId();
+  borrowed.FinishBorrowing();
+
   Future<Status> response;
   RunOnPcpHandlerThread(
       "reject-connection",
@@ -1122,9 +1409,21 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
           return;
         }
 
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          response.Set({Status::kError});
+          return;
+        }
+
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kConnectionRejected, client->GetLocalOsInfo()));
+                Status::kConnectionRejected, (*borrowed)->GetLocalOsInfo()));
+
+        // Release borrowed instance to prevent Mutex deadlock in
+        // `ProcessPreConnectionResultFailure()`.
+        borrowed.FinishBorrowing();
+
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO)
               << "RejectConnection: failed to send response: endpoint_id="
@@ -1145,11 +1444,12 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
       });
 
   return WaitForResult(absl::StrCat("RejectConnection(", endpoint_id, ")"),
-                       client->GetClientId(), &response);
+                       client_id, &response);
 }
 
 void BasePcpHandler::OnIncomingFrame(
-    OfflineFrame& frame, const std::string& endpoint_id, ClientProxy* client,
+    OfflineFrame& frame, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client,
     location::nearby::proto::connections::Medium medium,
     PacketMetaData& packet_meta_data) {
   CountDownLatch latch(1);
@@ -1159,7 +1459,13 @@ void BasePcpHandler::OnIncomingFrame(
         NEARBY_LOGS(INFO) << "OnConnectionResponse: endpoint_id="
                           << endpoint_id;
 
-        if (client->HasRemoteEndpointResponded(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          return;
+        }
+
+        if ((*borrowed)->HasRemoteEndpointResponded(endpoint_id)) {
           NEARBY_LOGS(INFO)
               << "OnConnectionResponse: already handled; endpoint_id="
               << endpoint_id;
@@ -1183,16 +1489,17 @@ void BasePcpHandler::OnIncomingFrame(
           NEARBY_LOGS(INFO)
               << "OnConnectionResponse: remote accepted; endpoint_id="
               << endpoint_id;
-          client->RemoteEndpointAcceptedConnection(endpoint_id);
+          (*borrowed)->RemoteEndpointAcceptedConnection(endpoint_id);
         } else {
           NEARBY_LOGS(INFO)
               << "OnConnectionResponse: remote rejected; endpoint_id="
               << endpoint_id << "; status=" << connection_response.status();
-          client->RemoteEndpointRejectedConnection(endpoint_id);
+          (*borrowed)->RemoteEndpointRejectedConnection(endpoint_id);
         }
 
         if (connection_response.has_os_info()) {
-          client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
+          (*borrowed)->SetRemoteOsInfo(endpoint_id,
+                                       connection_response.os_info());
         }
 
         if (connection_response.has_safe_to_disconnect_version()) {
@@ -1200,11 +1507,19 @@ void BasePcpHandler::OnIncomingFrame(
               << "[safe-to-disconnect]: endpoint_id=" << endpoint_id
               << "; Version = "
               << connection_response.safe_to_disconnect_version();
-          client->SetRemoteSafeToDisconnectVersion(
+          (*borrowed)->SetRemoteSafeToDisconnectVersion(
               endpoint_id, connection_response.safe_to_disconnect_version());
         }
-        channel_manager_->UpdateSafeToDisconnectForEndpoint(endpoint_id,
-                         client->IsSafeToDisconnectEnabled(endpoint_id));
+
+        bool is_safe_to_disconnect_enabled =
+            (*borrowed)->IsSafeToDisconnectEnabled(endpoint_id);
+
+        // Release the borrowed instance to prevent Mutex deadlocks in
+        // `EvaluateConnectionResult()`.
+        borrowed.FinishBorrowing();
+
+        channel_manager_->UpdateSafeToDisconnectForEndpoint(
+            endpoint_id, is_safe_to_disconnect_enabled);
         EvaluateConnectionResult(client, endpoint_id,
                                  /* can_close_immediately= */ true);
 
@@ -1213,11 +1528,10 @@ void BasePcpHandler::OnIncomingFrame(
   WaitForLatch("OnIncomingFrame()", &latch);
 }
 
-void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
-                                          const std::string& service_id,
-                                          const std::string& endpoint_id,
-                                          CountDownLatch barrier,
-                                          DisconnectionReason reason) {
+void BasePcpHandler::OnEndpointDisconnect(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
+    const std::string& endpoint_id, CountDownLatch barrier,
+    DisconnectionReason reason) {
   if (stop_.Get()) {
     barrier.CountDown();
     return;
@@ -1246,7 +1560,8 @@ BluetoothDevice BasePcpHandler::GetRemoteBluetoothDevice(
 }
 
 void BasePcpHandler::OnEndpointFound(
-    ClientProxy* client, std::shared_ptr<DiscoveredEndpoint> endpoint) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    std::shared_ptr<DiscoveredEndpoint> endpoint) {
   // Check if we've seen this endpoint ID before.
   std::string& endpoint_id = endpoint->endpoint_id;
   NEARBY_LOGS(INFO) << "OnEndpointFound: id=" << endpoint_id << " [enter]";
@@ -1256,20 +1571,29 @@ void BasePcpHandler::OnEndpointFound(
   DiscoveredEndpoint* owned_endpoint = nullptr;
   for (auto& item = range.first; item != range.second; ++item) {
     auto& discovered_endpoint = item->second;
+
     if (discovered_endpoint->medium != endpoint->medium) continue;
     // Check if there was a info change. If there was, report the previous
     // endpoint as lost.
     if (discovered_endpoint->endpoint_info != endpoint->endpoint_info) {
+      // No need to mark `FinishBorrowing()` because |borrowed| will go out
+      // of scope before it can block any calls.
+      ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+      if (!borrowed) {
+        NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+        return;
+      }
+
       owned_endpoint = discovered_endpoint.get();
-      client->OnEndpointLost(owned_endpoint->service_id,
-                             owned_endpoint->endpoint_id);
+      (*borrowed)->OnEndpointLost(owned_endpoint->service_id,
+                                  owned_endpoint->endpoint_id);
       discovered_endpoints_.erase(item);
       owned_endpoint =
           discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
               ->second.get();
       StopEndpointLostByMediumAlarm(owned_endpoint->endpoint_id,
                                     owned_endpoint->medium);
-      client->OnEndpointFound(
+      (*borrowed)->OnEndpointFound(
           owned_endpoint->service_id, owned_endpoint->endpoint_id,
           owned_endpoint->endpoint_info, owned_endpoint->medium);
       return;
@@ -1289,18 +1613,27 @@ void BasePcpHandler::OnEndpointFound(
                     << location::nearby::proto::connections::Medium_Name(
                            owned_endpoint->medium);
 
+  // No need to mark |borrowed| as `FinishedBorrowing()` because it will go
+  // out of scope before it blocks any calls.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   // Range is empty: this is the first endpoint we discovered so far.
   // Report this endpoint_id to client.
   if (is_range_empty) {
     // And, as it's the first time, report it to the client.
-    client->OnEndpointFound(
+    (*borrowed)->OnEndpointFound(
         owned_endpoint->service_id, owned_endpoint->endpoint_id,
         owned_endpoint->endpoint_info, owned_endpoint->medium);
   }
 }
 
 void BasePcpHandler::OnEndpointLost(
-    ClientProxy* client, const BasePcpHandler::DiscoveredEndpoint& endpoint) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const BasePcpHandler::DiscoveredEndpoint& endpoint) {
   // Look up the DiscoveredEndpoint we have in our cache.
   NEARBY_LOGS(INFO) << "OnEndpointLost: id=" << endpoint.endpoint_id;
   MutexLock lock(&discovered_endpoint_mutex_);
@@ -1333,7 +1666,14 @@ void BasePcpHandler::OnEndpointLost(
                       << location::nearby::proto::connections::Medium_Name(
                              discovered_endpoint->medium);
     if (--count == 0) {
-      client->OnEndpointLost(endpoint.service_id, endpoint.endpoint_id);
+      // No need to mark |borrowed| as `FinishedBorrowing()` because it will go
+      // out of scope before it blocks any calls.
+      ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+      if (!borrowed) {
+        NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+        break;
+      }
+      (*borrowed)->OnEndpointLost(endpoint.service_id, endpoint.endpoint_id);
     }
     discovered_endpoints_.erase(item);
     break;
@@ -1341,42 +1681,95 @@ void BasePcpHandler::OnEndpointLost(
 }
 
 Status BasePcpHandler::UpdateAdvertisingOptions(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const AdvertisingOptions& advertising_options) {
   Future<Status> status;
   RunOnPcpHandlerThread(
       "update-advertising-options",
       [this, client, service_id, advertising_options, &status]()
           RUN_ON_PCP_HANDLER_THREAD() mutable {
+            // Borrow `ClientProxy` and retrieve |local_endpoint_id| and
+            // |local_endpoint_info| before a blocking call is made to
+            // `UpdateAdvertisingOptionsImpl()` since `Borrow()` blocks, and
+            // thus we prevent Mutex deadlock.
+            ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+            if (!borrowed) {
+              NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+              status.Set({Status::kError});
+              return;
+            }
+            auto local_endpoint_id = (*borrowed)->GetLocalEndpointId();
+            auto local_endpoint_info = (*borrowed)->GetLocalEndpointInfo();
+            borrowed.FinishBorrowing();
+
             StartOperationResult result = UpdateAdvertisingOptionsImpl(
-                client, service_id, client->GetLocalEndpointId(),
-                client->GetLocalEndpointInfo(), advertising_options);
+                client, service_id, local_endpoint_id, local_endpoint_info,
+                advertising_options);
+
             if (!result.status.Ok()) {
               status.Set(result.status);
               return;
             }
-            client->UpdateAdvertisingOptions(advertising_options);
+
+            // Borrow the `ClientProxy` again to trigger
+            // `UpdateAdvertisingOptions()`. No need to mark |borrowed| as
+            // `FinishedBorrowing()` because it will go out of scope before
+            // it blocks any calls.
+            ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+            if (!borrowed2) {
+              NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+              status.Set({Status::kError});
+              return;
+            }
+
+            (*borrowed2)->UpdateAdvertisingOptions(advertising_options);
             status.Set({Status::kSuccess});
           });
   return status.Get().GetResult();
 }
 
 Status BasePcpHandler::UpdateDiscoveryOptions(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const DiscoveryOptions& discovery_options) {
   Future<Status> status;
   RunOnPcpHandlerThread(
       "update-discovery-options",
       [this, client, service_id, discovery_options, &status]()
           RUN_ON_PCP_HANDLER_THREAD() mutable {
+            // Borrow `ClientProxy` and retrieve |local_endpoint_id| and
+            // |local_endpoint_info| before a blocking call is made to
+            // `UpdateDiscoveryOptionsImpl()` since `Borrow()` blocks, and
+            // thus we prevent Mutex deadlock.
+            ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+            if (!borrowed) {
+              NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+              status.Set({Status::kError});
+              return;
+            }
+
+            auto local_endpoint_id = (*borrowed)->GetLocalEndpointId();
+            auto local_endpoint_info = (*borrowed)->GetLocalEndpointInfo();
+            borrowed.FinishBorrowing();
+
             StartOperationResult result = UpdateDiscoveryOptionsImpl(
-                client, service_id, client->GetLocalEndpointId(),
-                client->GetLocalEndpointInfo(), discovery_options);
+                client, service_id, local_endpoint_id, local_endpoint_info,
+                discovery_options);
             if (!result.status.Ok()) {
               status.Set(result.status);
               return;
             }
-            client->UpdateDiscoveryOptions(discovery_options);
+
+            // Borrow the `ClientProxy` again to trigger
+            // `UpdateDiscoveryOptions()`. No need to mark |borrowed| as
+            // `FinishedBorrowing()` because it will go out of scope before
+            // it blocks any calls.
+            ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+            if (!borrowed2) {
+              NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+              status.Set({Status::kError});
+              return;
+            }
+            (*borrowed2)->UpdateDiscoveryOptions(discovery_options);
             status.Set({Status::kSuccess});
           });
   return status.Get().GetResult();
@@ -1438,24 +1831,39 @@ bool BasePcpHandler::IsPreferred(
 }
 
 Exception BasePcpHandler::OnIncomingConnection(
-    ClientProxy* client, const ByteArray& remote_endpoint_info,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const ByteArray& remote_endpoint_info,
     std::unique_ptr<EndpointChannel> channel,
     location::nearby::proto::connections::Medium medium,
     NearbyDevice::Type listening_device_type) {
   absl::Time start_time = SystemClock::ElapsedRealtime();
 
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Exception::kFailed};
+  }
+
   //  Fixes an NPE in ClientProxy.OnConnectionAccepted. The crash happened when
   //  the client stopped advertising and we nulled out state, followed by an
   //  incoming connection where we attempted to check that state.
-  if (!client->IsAdvertising() &&
-      !client->IsListeningForIncomingConnections()) {
+  if (!(*borrowed)->IsAdvertising() &&
+      !(*borrowed)->IsListeningForIncomingConnections()) {
     NEARBY_LOGS(WARNING) << "Ignoring incoming connection on medium "
                          << location::nearby::proto::connections::Medium_Name(
                                 channel->GetMedium())
-                         << " because client=" << client->GetClientId()
+                         << " because client=" << (*borrowed)->GetClientId()
                          << " is no longer waiting for incoming connections.";
     return {Exception::kIo};
   }
+
+  // Retrieve the |client_id| from the borrowed instance for logging without
+  // blocking the thread by holding on to |borrowed|.
+  auto client_id = (*borrowed)->GetClientId();
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // `ProcessPreConnectionInitiationFailure()`.
+  borrowed.FinishBorrowing();
 
   // Endpoints connecting to us will always tell us about themselves first.
   ExceptionOr<OfflineFrame> wrapped_frame =
@@ -1464,8 +1872,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   if (!wrapped_frame.ok()) {
     if (wrapped_frame.exception()) {
       NEARBY_LOGS(ERROR)
-          << "Failed to parse incoming connection request; client="
-          << client->GetClientId()
+          << "Failed to parse incoming connection request; client=" << client_id
           << "; device=" << absl::BytesToHexString(remote_endpoint_info.data())
           << "with error: " << wrapped_frame.exception();
       ProcessPreConnectionInitiationFailure(
@@ -1482,10 +1889,17 @@ Exception BasePcpHandler::OnIncomingConnection(
   NEARBY_LOGS(INFO) << "In onIncomingConnection("
                     << location::nearby::proto::connections::Medium_Name(
                            channel->GetMedium())
-                    << ") for client=" << client->GetClientId()
+                    << ") for client=" << client_id
                     << ", read ConnectionRequestFrame from endpoint(id="
                     << connection_request.endpoint_id() << ")";
-  if (client->IsConnectedToEndpoint(connection_request.endpoint_id())) {
+
+  // Borrow the `ClientProxy` again to check `IsConnectedToEndpoint()`.
+  ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+  if (!borrowed2) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Exception::kFailed};
+  }
+  if ((*borrowed2)->IsConnectedToEndpoint(connection_request.endpoint_id())) {
     NEARBY_LOGS(ERROR) << "Incoming connection on medium "
                        << location::nearby::proto::connections::Medium_Name(
                               channel->GetMedium())
@@ -1495,6 +1909,10 @@ Exception BasePcpHandler::OnIncomingConnection(
     return {Exception::kIo};
   }
 
+  // Mark |borrowed2| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // `BreakTie()`.
+  borrowed2.FinishBorrowing();
+
   // If we've already sent out a connection request to this endpoint, then this
   // is where we need to decide which connection to break.
   if (BreakTie(client, connection_request.endpoint_id(),
@@ -1502,9 +1920,23 @@ Exception BasePcpHandler::OnIncomingConnection(
     return {Exception::kSuccess};
   }
 
+  // Borrow `ClientProxy` to store a boolean to track
+  // `ShouldEnforceTopologyConstraints()` since we cannot do this in-line in the
+  // if statement and then pass the `ClientProxy` to
+  // `CanReceiveIncomingConnection`() since `Borrow()` is a blocking call and
+  // would otherwise cause in Mutex deadlocks.
+  ::nearby::Borrowed<ClientProxy*> borrowed3 = client.Borrow();
+  if (!borrowed3) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Exception::kFailed};
+  }
+  auto should_enforce_topology_constraints =
+      (*borrowed3)->ShouldEnforceTopologyConstraints();
+  borrowed3.FinishBorrowing();
+
   // If our child class says we can't accept any more incoming connections,
   // listen to them.
-  if (client->ShouldEnforceTopologyConstraints() &&
+  if (should_enforce_topology_constraints &&
       !CanReceiveIncomingConnection(client)) {
     NEARBY_LOGS(ERROR) << "Incoming connections are currently disallowed.";
     return {Exception::kIo};
@@ -1588,8 +2020,21 @@ Exception BasePcpHandler::OnIncomingConnection(
   pendingConnectionInfo.nonce = connection_request.nonce();
   pendingConnectionInfo.is_incoming = true;
   pendingConnectionInfo.start_time = start_time;
+
+  // Borrow `ClientProxy` again to
+  // `GetAdvertisingOrIncomingConnectionListener()`.
+  ::nearby::Borrowed<ClientProxy*> borrowed4 = client.Borrow();
+  if (!borrowed4) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {Exception::kFailed};
+  }
   pendingConnectionInfo.listener =
-      client->GetAdvertisingOrIncomingConnectionListener();
+      (*borrowed4)->GetAdvertisingOrIncomingConnectionListener();
+
+  // Mark |borrowed4| as `FinishBorrowing` to prevent Mutex deadlocks in
+  // `StartServer()`.
+  borrowed4.FinishBorrowing();
+
   pendingConnectionInfo.connection_options = connection_options;
   pendingConnectionInfo.supported_mediums =
       parser::ConnectionRequestMediumsToMediums(connection_request);
@@ -1606,7 +2051,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   return {Exception::kSuccess};
 }
 
-bool BasePcpHandler::BreakTie(ClientProxy* client,
+bool BasePcpHandler::BreakTie(::nearby::Borrowable<ClientProxy*> client,
                               const std::string& endpoint_id,
                               std::int32_t incoming_nonce,
                               EndpointChannel* endpoint_channel) {
@@ -1614,16 +2059,29 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
   if (it != pending_connections_.end()) {
     BasePcpHandler::PendingConnectionInfo& info = it->second;
 
+    // Borrow `ClientProxy` and pull the client_id to prevent Mutex deadlock
+    // in `ProcessTieBreakLoss()`, while still being able to log the client
+    // id.
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return false;
+    }
+
+    auto client_id = (*borrowed)->GetClientId();
+    borrowed.FinishBorrowing();
+
     NEARBY_LOGS(INFO)
         << "In onIncomingConnection("
         << location::nearby::proto::connections::Medium_Name(
                endpoint_channel->GetMedium())
-        << ") for client=" << client->GetClientId()
-        << ", found a collision with endpoint " << endpoint_id
+        << ") for client=" << client_id << ", found a collision with endpoint "
+        << endpoint_id
         << ". We've already sent a connection request to them with nonce "
         << info.nonce
         << ", but they're also trying to connect to us with nonce "
         << incoming_nonce;
+
     // Break the lowest connection. In the (extremely) rare case of a tie, break
     // both.
     if (info.nonce > incoming_nonce) {
@@ -1633,7 +2091,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
       NEARBY_LOGS(INFO) << "In onIncomingConnection("
                         << location::nearby::proto::connections::Medium_Name(
                                endpoint_channel->GetMedium())
-                        << ") for client=" << client->GetClientId()
+                        << ") for client=" << client_id
                         << ", cleaned up the collision with endpoint "
                         << endpoint_id << " by closing their channel.";
       return true;
@@ -1645,7 +2103,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
           << "In onIncomingConnection("
           << location::nearby::proto::connections::Medium_Name(
                  endpoint_channel->GetMedium())
-          << ") for client=" << client->GetClientId()
+          << ") for client=" << client_id
           << ", cleaned up the collision with endpoint " << endpoint_id
           << " by closing our channel and notifying our client of the failure.";
     } else {
@@ -1659,7 +2117,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
           << "In onIncomingConnection("
           << location::nearby::proto::connections::Medium_Name(
                  endpoint_channel->GetMedium())
-          << ") for client=" << client->GetClientId()
+          << ") for client=" << client_id
           << ", cleaned up the collision with endpoint " << endpoint_id
           << " by closing both channels. Our nonces were identical, so we "
              "couldn't decide which channel to use.";
@@ -1671,7 +2129,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
 }
 
 void BasePcpHandler::ProcessTieBreakLoss(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     BasePcpHandler::PendingConnectionInfo* info) {
   ProcessPreConnectionInitiationFailure(
       client, info->channel->GetMedium(), endpoint_id, info->channel.get(),
@@ -1761,18 +2219,24 @@ bool BasePcpHandler::AppendWebRTCEndpoint(
   return true;
 }
 
-void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
-                                              const std::string& endpoint_id,
-                                              bool can_close_immediately) {
+void BasePcpHandler::EvaluateConnectionResult(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
+    bool can_close_immediately) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   // Short-circuit immediately if we're not in an actionable state yet. We will
   // be called again once the other side has made their decision.
-  if (!client->IsConnectionAccepted(endpoint_id) &&
-      !client->IsConnectionRejected(endpoint_id)) {
-    if (!client->HasLocalEndpointResponded(endpoint_id)) {
+  if (!(*borrowed)->IsConnectionAccepted(endpoint_id) &&
+      !(*borrowed)->IsConnectionRejected(endpoint_id)) {
+    if (!(*borrowed)->HasLocalEndpointResponded(endpoint_id)) {
       NEARBY_LOGS(INFO)
           << "ConnectionResult: local client did not respond; endpoint_id="
           << endpoint_id;
-    } else if (!client->HasRemoteEndpointResponded(endpoint_id)) {
+    } else if (!(*borrowed)->HasRemoteEndpointResponded(endpoint_id)) {
       NEARBY_LOGS(INFO)
           << "ConnectionResult: remote client did not respond; endpoint_id="
           << endpoint_id;
@@ -1791,7 +2255,11 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
   auto pair = pending_connections_.extract(it);
   BasePcpHandler::PendingConnectionInfo& connection_info = pair.mapped();
-  bool is_connection_accepted = client->IsConnectionAccepted(endpoint_id);
+  bool is_connection_accepted = (*borrowed)->IsConnectionAccepted(endpoint_id);
+
+  // Release borrowed instance to prevent Mutex deadlock in
+  // `EndpointChannelManager::EncryptChannelForEndpoint()`.
+  borrowed.FinishBorrowing();
 
   Status response_code;
   if (is_connection_accepted) {
@@ -1822,7 +2290,16 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
   // If the connection failed, clean everything up and short circuit.
   if (!response_code.Ok()) {
-    client->OnConnectionRejected(endpoint_id, response_code);
+    ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+    if (!borrowed2) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    (*borrowed2)->OnConnectionRejected(endpoint_id, response_code);
+
+    // Mark `FinishBorrowing()` to prevent Mutex deadlock in
+    // `DiscardEndpoint()`.
+    borrowed2.FinishBorrowing();
 
     // Clean up the channel in EndpointManager if it's no longer required.
     if (can_close_immediately) {
@@ -1845,21 +2322,31 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
   Medium medium =
       channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium();
-  client->GetAnalyticsRecorder().OnConnectionEstablished(
-      endpoint_id, medium, connection_info.connection_token);
+
+  ::nearby::Borrowed<ClientProxy*> borrowed3 = client.Borrow();
+  if (!borrowed3) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed3)
+      ->GetAnalyticsRecorder()
+      .OnConnectionEstablished(endpoint_id, medium,
+                               connection_info.connection_token);
 
   // Invoke the client callback to let it know of the connection result.
-  client->OnConnectionAccepted(endpoint_id);
+  (*borrowed3)->OnConnectionAccepted(endpoint_id);
 
   // Report the current bandwidth to the client
-  client->OnBandwidthChanged(endpoint_id, medium);
+  (*borrowed3)->OnBandwidthChanged(endpoint_id, medium);
 
   NEARBY_LOGS(INFO) << "Connection accepted on Medium:"
                     << location::nearby::proto::connections::Medium_Name(
                            medium);
 
   // Kick off the bandwidth upgrade for incoming connections.
-  if (connection_info.is_incoming && client->AutoUpgradeBandwidth()) {
+  if (connection_info.is_incoming && (*borrowed3)->AutoUpgradeBandwidth()) {
+    // Finish borrowing to prevent Mutex deadlock in `InitiateBwuForEndpoint()`.
+    borrowed3.FinishBorrowing();
     bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id);
   }
 }
@@ -1907,8 +2394,8 @@ std::string BasePcpHandler::GetHashedConnectionToken(
 }
 
 void BasePcpHandler::LogConnectionAttemptFailure(
-    ClientProxy* client, Medium medium, const std::string& endpoint_id,
-    bool is_incoming, absl::Time start_time,
+    ::nearby::Borrowable<ClientProxy*> client, Medium medium,
+    const std::string& endpoint_id, bool is_incoming, absl::Time start_time,
     EndpointChannel* endpoint_channel) {
   location::nearby::proto::connections::ConnectionAttemptResult result =
       Cancelled(client, endpoint_id)
@@ -1916,19 +2403,29 @@ void BasePcpHandler::LogConnectionAttemptFailure(
           : location::nearby::proto::connections::RESULT_ERROR;
   std::unique_ptr<ConnectionAttemptMetadataParams>
       connections_attempt_metadata_params;
+
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   if (endpoint_channel != nullptr) {
     connections_attempt_metadata_params =
-        client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
-            endpoint_channel->GetTechnology(), endpoint_channel->GetBand(),
-            endpoint_channel->GetFrequency(), endpoint_channel->GetTryCount());
+        (*borrowed)
+            ->GetAnalyticsRecorder()
+            .BuildConnectionAttemptMetadataParams(
+                endpoint_channel->GetTechnology(), endpoint_channel->GetBand(),
+                endpoint_channel->GetFrequency(),
+                endpoint_channel->GetTryCount());
   }
   if (is_incoming) {
-    client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+    (*borrowed)->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
         location::nearby::proto::connections::INITIAL, medium, result,
         SystemClock::ElapsedRealtime() - start_time,
         /* connection_token= */ "", connections_attempt_metadata_params.get());
   } else {
-    client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+    (*borrowed)->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
         endpoint_id, location::nearby::proto::connections::INITIAL, medium,
         result, SystemClock::ElapsedRealtime() - start_time,
         /* connection_token= */ "", connections_attempt_metadata_params.get());
@@ -1938,11 +2435,18 @@ void BasePcpHandler::LogConnectionAttemptFailure(
 void BasePcpHandler::LogConnectionAttemptSuccess(
     const std::string& endpoint_id,
     const PendingConnectionInfo& connection_info) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = connection_info.client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   std::unique_ptr<ConnectionAttemptMetadataParams>
       connections_attempt_metadata_params;
   if (connection_info.channel != nullptr) {
     connections_attempt_metadata_params =
-        connection_info.client->GetAnalyticsRecorder()
+        (*borrowed)
+            ->GetAnalyticsRecorder()
             .BuildConnectionAttemptMetadataParams(
                 connection_info.channel->GetTechnology(),
                 connection_info.channel->GetBand(),
@@ -1955,7 +2459,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
     return;
   }
   if (connection_info.is_incoming) {
-    connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+    (*borrowed)->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
         location::nearby::proto::connections::INITIAL,
         connection_info.channel->GetMedium(),
         location::nearby::proto::connections::RESULT_SUCCESS,
@@ -1963,7 +2467,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
         connection_info.connection_token,
         connections_attempt_metadata_params.get());
   } else {
-    connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+    (*borrowed)->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
         endpoint_id, location::nearby::proto::connections::INITIAL,
         connection_info.channel->GetMedium(),
         location::nearby::proto::connections::RESULT_SUCCESS,
@@ -1973,13 +2477,18 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
   }
 }
 
-bool BasePcpHandler::Cancelled(ClientProxy* client,
+bool BasePcpHandler::Cancelled(::nearby::Borrowable<ClientProxy*> client,
                                const std::string& endpoint_id) {
   if (endpoint_id.empty()) {
     return false;
   }
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return false;
+  }
 
-  return client->GetCancellationFlag(endpoint_id)->Cancelled();
+  return (*borrowed)->GetCancellationFlag(endpoint_id)->Cancelled();
 }
 
 ///////////////////// BasePcpHandler::PendingConnectionInfo ///////////////////
@@ -2008,13 +2517,19 @@ BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
 
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointAcceptedConnection(
     const std::string& endpoint_id, PayloadListener payload_listener) {
-  client->LocalEndpointAcceptedConnection(endpoint_id,
-                                          std::move(payload_listener));
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed)->LocalEndpointAcceptedConnection(endpoint_id,
+                                               std::move(payload_listener));
 }
 
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
     const std::string& endpoint_id) {
-  client->LocalEndpointRejectedConnection(endpoint_id);
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  (*borrowed)->LocalEndpointRejectedConnection(endpoint_id);
 }
 
 }  // namespace connections

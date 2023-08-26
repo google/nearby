@@ -37,6 +37,7 @@
 #endif
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/wifi_lan_service_info.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -66,51 +67,53 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult StartAdvertisingImpl(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options) override;
 
   // @PCPHandlerThread
-  Status StopAdvertisingImpl(ClientProxy* client) override;
+  Status StopAdvertisingImpl(
+      ::nearby::Borrowable<ClientProxy*> client) override;
 
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult StartDiscoveryImpl(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const DiscoveryOptions& discovery_options) override;
 
   // @PCPHandlerThread
-  Status StopDiscoveryImpl(ClientProxy* client) override;
+  Status StopDiscoveryImpl(::nearby::Borrowable<ClientProxy*> client) override;
 
   // @PCPHandlerThread
   Status InjectEndpointImpl(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const OutOfBandConnectionMetadata& metadata) override;
 
   // @PCPHandlerThread
   BasePcpHandler::ConnectImplResult ConnectImpl(
-      ClientProxy* client,
+      ::nearby::Borrowable<ClientProxy*> client,
       BasePcpHandler::DiscoveredEndpoint* endpoint) override;
 
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult StartListeningForIncomingConnectionsImpl(
-      ClientProxy* client_proxy, absl::string_view service_id,
-      absl::string_view local_endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client_proxy,
+      absl::string_view service_id, absl::string_view local_endpoint_id,
       v3::ConnectionListeningOptions options) override;
 
   // @PCPHandlerThread
-  void StopListeningForIncomingConnectionsImpl(ClientProxy* client) override;
+  void StopListeningForIncomingConnectionsImpl(
+      ::nearby::Borrowable<ClientProxy*> client) override;
 
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult UpdateAdvertisingOptionsImpl(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       absl::string_view local_endpoint_id,
       absl::string_view local_endpoint_info,
       const AdvertisingOptions& advertising_options) override;
 
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult UpdateDiscoveryOptionsImpl(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       absl::string_view local_endpoint_id,
       absl::string_view local_endpoint_info,
       const DiscoveryOptions& discovery_options)
@@ -158,108 +161,106 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
                                      const std::string& service_id,
                                      const BluetoothDeviceName& name) const;
-  void BluetoothDeviceDiscoveredHandler(ClientProxy* client,
-                                        const std::string& service_id,
-                                        BluetoothDevice device);
-  void BluetoothNameChangedHandler(ClientProxy* client,
+  void BluetoothDeviceDiscoveredHandler(
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
+      BluetoothDevice device);
+  void BluetoothNameChangedHandler(::nearby::Borrowable<ClientProxy*> client,
                                    const std::string& service_id,
                                    BluetoothDevice device);
-  void BluetoothDeviceLostHandler(ClientProxy* client,
+  void BluetoothDeviceLostHandler(::nearby::Borrowable<ClientProxy*> client,
                                   const std::string& service_id,
                                   BluetoothDevice& device);
-  void BluetoothConnectionAcceptedHandler(ClientProxy* client,
-                                          absl::string_view local_endpoint_info,
-                                          NearbyDevice::Type device_type,
-                                          const std::string& service_id,
-                                          BluetoothSocket socket);
+  void BluetoothConnectionAcceptedHandler(
+      ::nearby::Borrowable<ClientProxy*> client,
+      absl::string_view local_endpoint_info, NearbyDevice::Type device_type,
+      const std::string& service_id, BluetoothSocket socket);
   location::nearby::proto::connections::Medium StartBluetoothAdvertising(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartBluetoothDiscovery(
-      ClientProxy* client, const std::string& service_id);
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id);
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
-      ClientProxy* client, BluetoothEndpoint* endpoint);
+      ::nearby::Borrowable<ClientProxy*> client, BluetoothEndpoint* endpoint);
 
   // Ble
   bool IsRecognizedBleEndpoint(const std::string& service_id,
                                const BleAdvertisement& advertisement) const;
-  void BlePeripheralDiscoveredHandler(ClientProxy* client,
+  void BlePeripheralDiscoveredHandler(::nearby::Borrowable<ClientProxy*> client,
                                       BlePeripheral& peripheral,
                                       const std::string& service_id,
                                       const ByteArray& advertisement_bytes,
                                       bool fast_advertisement);
-  void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
+  void BlePeripheralLostHandler(::nearby::Borrowable<ClientProxy*> client,
+                                BlePeripheral& peripheral,
                                 const std::string& service_id);
-  void BleConnectionAcceptedHandler(ClientProxy* client,
+  void BleConnectionAcceptedHandler(::nearby::Borrowable<ClientProxy*> client,
                                     absl::string_view local_endpoint_info,
                                     NearbyDevice::Type device_type,
                                     BleSocket socket,
                                     const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleAdvertising(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartBleScanning(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& fast_advertisement_service_uuid);
-  BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
-                                                   BleEndpoint* endpoint);
+  BasePcpHandler::ConnectImplResult BleConnectImpl(
+      ::nearby::Borrowable<ClientProxy*> client, BleEndpoint* endpoint);
 
   // BleV2
   bool IsRecognizedBleV2Endpoint(absl::string_view service_id,
                                  const BleAdvertisement& advertisement) const;
-  void BleV2PeripheralDiscoveredHandler(ClientProxy* client,
-                                        BleV2Peripheral peripheral,
-                                        const std::string& service_id,
-                                        const ByteArray& advertisement_bytes,
-                                        bool fast_advertisement);
-  void BleV2PeripheralLostHandler(ClientProxy* client,
+  void BleV2PeripheralDiscoveredHandler(
+      ::nearby::Borrowable<ClientProxy*> client, BleV2Peripheral peripheral,
+      const std::string& service_id, const ByteArray& advertisement_bytes,
+      bool fast_advertisement);
+  void BleV2PeripheralLostHandler(::nearby::Borrowable<ClientProxy*> client,
                                   BleV2Peripheral peripheral,
                                   const std::string& service_id,
                                   const ByteArray& advertisement_bytes,
                                   bool fast_advertisement);
-  void BleV2ConnectionAcceptedHandler(ClientProxy* client,
+  void BleV2ConnectionAcceptedHandler(::nearby::Borrowable<ClientProxy*> client,
                                       absl::string_view local_endpoint_info,
                                       NearbyDevice::Type device_type,
                                       BleV2Socket socket,
                                       const std::string& service_id);
   location::nearby::proto::connections::Medium StartBleV2Advertising(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartBleV2Scanning(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const DiscoveryOptions& discovery_options);
-  BasePcpHandler::ConnectImplResult BleV2ConnectImpl(ClientProxy* client,
-                                                     BleV2Endpoint* endpoint);
+  BasePcpHandler::ConnectImplResult BleV2ConnectImpl(
+      ::nearby::Borrowable<ClientProxy*> client, BleV2Endpoint* endpoint);
 
   // WifiLan
   bool IsRecognizedWifiLanEndpoint(
       const std::string& service_id,
       const WifiLanServiceInfo& wifi_lan_service_info) const;
-  void WifiLanServiceDiscoveredHandler(ClientProxy* client,
-                                       NsdServiceInfo service_info,
-                                       const std::string& service_id);
-  void WifiLanServiceLostHandler(ClientProxy* client,
+  void WifiLanServiceDiscoveredHandler(
+      ::nearby::Borrowable<ClientProxy*> client, NsdServiceInfo service_info,
+      const std::string& service_id);
+  void WifiLanServiceLostHandler(::nearby::Borrowable<ClientProxy*> client,
                                  NsdServiceInfo service_info,
                                  const std::string& service_id);
-  void WifiLanConnectionAcceptedHandler(ClientProxy* client,
-                                        absl::string_view local_endpoint_id,
-                                        absl::string_view local_endpoint_info,
-                                        NearbyDevice::Type device_type,
-                                        const std::string& service_id,
-                                        WifiLanSocket socket);
+  void WifiLanConnectionAcceptedHandler(
+      ::nearby::Borrowable<ClientProxy*> client,
+      absl::string_view local_endpoint_id,
+      absl::string_view local_endpoint_info, NearbyDevice::Type device_type,
+      const std::string& service_id, WifiLanSocket socket);
   location::nearby::proto::connections::Medium StartWifiLanAdvertising(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   location::nearby::proto::connections::Medium StartWifiLanDiscovery(
-      ClientProxy* client, const std::string& service_id);
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id);
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
-      ClientProxy* client, WifiLanEndpoint* endpoint);
+      ::nearby::Borrowable<ClientProxy*> client, WifiLanEndpoint* endpoint);
 
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;

@@ -50,23 +50,24 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
 
   // BwuHandler implementation:
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final;
   Medium GetUpgradeMedium() const final { return Medium::WIFI_HOTSPOT; }
-  void OnEndpointDisconnect(ClientProxy* client,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
   ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) final;
 
-  void OnIncomingWifiHotspotConnection(ClientProxy* client,
-                                       const std::string& upgrade_service_id,
-                                       WifiHotspotSocket socket);
+  void OnIncomingWifiHotspotConnection(
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id, WifiHotspotSocket socket);
 
   Mediums& mediums_;
   WifiHotspot& wifi_hotspot_medium_{mediums_.GetWifiHotspot()};

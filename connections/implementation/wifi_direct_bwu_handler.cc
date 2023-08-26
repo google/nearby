@@ -23,6 +23,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_endpoint_channel.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/wifi_direct.h"
 
 namespace nearby {
@@ -34,8 +35,8 @@ WifiDirectBwuHandler::WifiDirectBwuHandler(
       mediums_(mediums) {}
 
 ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, const std::string& endpoint_id) {
   // Create WifiDirect GO
   if (!wifi_direct_medium_.StartWifiDirect()) {
     NEARBY_LOGS(INFO) << "Failed to start Wifi Direct!";
@@ -75,9 +76,14 @@ ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   NEARBY_LOGS(INFO) << "Start WifiDirect GO with SSID: " << ssid
                     << ",  Password: " << password << ",  Port: " << port
                     << ",  Gateway: " << gateway << ", Frequency: " << freq;
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {};
+  }
 
-  bool disabling_encryption =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+  bool disabling_encryption = ((*borrowed)->GetAdvertisingOptions().strategy ==
+                               Strategy::kP2pPointToPoint);
   return parser::ForBwuWifiDirectPathAvailable(
       ssid, password, port, freq,
       /* supports_disabling_encryption */ disabling_encryption, gateway);
@@ -96,7 +102,7 @@ void WifiDirectBwuHandler::HandleRevertInitiatorStateForService(
 
 std::unique_ptr<EndpointChannel>
 WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_direct_credentials()) {
     NEARBY_LOGS(INFO) << "No WifiDirect Credential";
@@ -119,8 +125,14 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return nullptr;
+  }
+
   WifiDirectSocket socket = wifi_direct_medium_.Connect(
-      service_id, gateway, port, client->GetCancellationFlag(endpoint_id));
+      service_id, gateway, port, (*borrowed)->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "WifiDirectBwuHandler failed to connect to the WifiDirect service("
@@ -138,8 +150,8 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 }
 
 void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    WifiDirectSocket socket) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, WifiDirectSocket socket) {
   auto channel = std::make_unique<WifiDirectEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(

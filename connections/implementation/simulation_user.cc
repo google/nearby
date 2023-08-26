@@ -107,7 +107,8 @@ void SimulationUser::StartAdvertising(const std::string& service_id,
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
   };
-  EXPECT_TRUE(mgr_.StartAdvertising(&client_, service_id_, advertising_options_,
+  EXPECT_TRUE(mgr_.StartAdvertising(client_.GetBorrowable(), service_id_,
+                                    advertising_options_,
                                     {
                                         .endpoint_info = info_,
                                         .listener = std::move(listener),
@@ -118,27 +119,30 @@ void SimulationUser::StartAdvertising(const std::string& service_id,
 void SimulationUser::StartDiscovery(const std::string& service_id,
                                     CountDownLatch* latch) {
   found_latch_ = latch;
-  EXPECT_TRUE(
-      mgr_.StartDiscovery(&client_, service_id, discovery_options_,
-                          {
-                              .endpoint_found_cb = absl::bind_front(
-                                  &SimulationUser::OnEndpointFound, this),
-                              .endpoint_lost_cb = absl::bind_front(
-                                  &SimulationUser::OnEndpointLost, this),
-                          })
-          .Ok());
+  EXPECT_TRUE(mgr_.StartDiscovery(
+                      client_.GetBorrowable(), service_id, discovery_options_,
+                      {
+                          .endpoint_found_cb = absl::bind_front(
+                              &SimulationUser::OnEndpointFound, this),
+                          .endpoint_lost_cb = absl::bind_front(
+                              &SimulationUser::OnEndpointLost, this),
+                      })
+                  .Ok());
 }
 
-void SimulationUser::StopDiscovery() { mgr_.StopDiscovery(&client_); }
+void SimulationUser::StopDiscovery() {
+  mgr_.StopDiscovery(client_.GetBorrowable());
+}
 
 Status SimulationUser::UpdateDiscoveryOptions(absl::string_view service_id) {
-  return mgr_.UpdateDiscoveryOptions(&client_, service_id, discovery_options_);
+  return mgr_.UpdateDiscoveryOptions(client_.GetBorrowable(), service_id,
+                                     discovery_options_);
 }
 
 void SimulationUser::InjectEndpoint(
     const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
-  mgr_.InjectEndpoint(&client_, service_id, metadata);
+  mgr_.InjectEndpoint(client_.GetBorrowable(), service_id, metadata);
 }
 
 void SimulationUser::RequestConnection(CountDownLatch* latch) {
@@ -154,7 +158,7 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
   };
   client_.AddCancellationFlag(discovered_.endpoint_id);
   EXPECT_TRUE(
-      mgr_.RequestConnection(&client_, discovered_.endpoint_id,
+      mgr_.RequestConnection(client_.GetBorrowable(), discovered_.endpoint_id,
                              {
                                  .endpoint_info = discovered_.endpoint_info,
                                  .listener = std::move(listener),
@@ -170,21 +174,24 @@ void SimulationUser::AcceptConnection(CountDownLatch* latch) {
       .payload_progress_cb =
           absl::bind_front(&SimulationUser::OnPayloadProgress, this),
   };
-  EXPECT_TRUE(mgr_.AcceptConnection(&client_, discovered_.endpoint_id,
+  EXPECT_TRUE(mgr_.AcceptConnection(client_.GetBorrowable(),
+                                    discovered_.endpoint_id,
                                     std::move(listener))
                   .Ok());
 }
 
 void SimulationUser::RejectConnection(CountDownLatch* latch) {
   reject_latch_ = latch;
-  EXPECT_TRUE(mgr_.RejectConnection(&client_, discovered_.endpoint_id).Ok());
+  EXPECT_TRUE(
+      mgr_.RejectConnection(client_.GetBorrowable(), discovered_.endpoint_id)
+          .Ok());
 }
 
 void SimulationUser::StartListeningForIncomingConnections(
     CountDownLatch* latch, absl::string_view service_id,
     const v3::ConnectionListeningOptions& options, Status expected_status) {
   auto result = mgr_.StartListeningForIncomingConnections(
-      &client_, service_id, /*listener=*/{}, options);
+      client_.GetBorrowable(), service_id, /*listener=*/{}, options);
   latch->CountDown();
   NEARBY_LOGS(INFO) << "status: " << result.first.ToString();
   EXPECT_EQ(expected_status, result.first);

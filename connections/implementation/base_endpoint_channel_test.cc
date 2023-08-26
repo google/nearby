@@ -114,7 +114,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
   ClientProxy proxy_b;
   CountDownLatch latch(2);
   crypto_a.StartClient(
-      &proxy_a, "endpoint_id", channel_a,
+      proxy_a.GetBorrowable(), "endpoint_id", channel_a,
       {
           .on_success_cb =
               [&latch, &context_a](
@@ -137,7 +137,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
               },
       });
   crypto_b.StartServer(
-      &proxy_b, "endpoint_id", channel_b,
+      proxy_b.GetBorrowable(), "endpoint_id", channel_b,
       {
           .on_success_cb =
               [&latch, &context_b](

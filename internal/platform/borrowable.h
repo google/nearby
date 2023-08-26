@@ -27,6 +27,7 @@
 // if (borrowed) {
 //   borrowed->SomeMethod();
 // }
+// borrowed.FinishBorrowing();
 //
 // When `Lender` goes out of scope, all borrowable instances become invalid and
 // attempts to `Borrow()` will fail safely.
@@ -77,6 +78,17 @@ class Borrowed {
       data_.reset();
     }
   }
+
+  // `Borrow()` will block if another thread is already borrowing the object.
+  // Callers must indicate they are no longer using the borrowed object by
+  // calling `FinishBorrowing()` to release the thread. Once a borrowed object
+  // has had `FinishBorrowing()`, it can no longer be used.
+  void FinishBorrowing() {
+    CHECK(Ok());
+    data_.reset();
+    lock_.reset();
+  }
+
   Borrowed(const Borrowed&) = delete;
   Borrowed(Borrowed&&) = delete;
   Borrowed& operator=(Borrowed other) = delete;

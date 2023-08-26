@@ -21,7 +21,9 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -35,7 +37,7 @@ class BaseBwuHandler : public BwuHandler {
 
   // BwuHandler implementation:
   ByteArray InitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id) final;
   void RevertInitiatorState() final;
   void RevertInitiatorState(const std::string& upgrade_service_id,
@@ -51,14 +53,15 @@ class BaseBwuHandler : public BwuHandler {
   // HandleRevertInitiatorStateForService is only invoked after the last
   // endpoint for the service is reverted.
   virtual ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) = 0;
   virtual void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) = 0;
 
   // Notifies the caller about incoming connection.
   void NotifyOnIncomingConnection(
-      ClientProxy* client,
+      ::nearby::Borrowable<ClientProxy*> client,
       std::unique_ptr<IncomingSocketConnection> connection);
 
  private:

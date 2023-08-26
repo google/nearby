@@ -30,6 +30,7 @@
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
@@ -102,7 +103,7 @@ class EndpointManager::LockedFrameProcessor {
 //           EndpointChannel is available for the given endpoint and, if so,
 //           handler(EndpointChannel) will be called again.
 void EndpointManager::EndpointChannelLoopRunnable(
-    const std::string& runnable_name, ClientProxy* client,
+    const std::string& runnable_name, ::nearby::Borrowable<ClientProxy*> client,
     const std::string& endpoint_id,
     absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler) {
   // EndpointChannelManager will not let multiple channels exist simultaneously
@@ -169,11 +170,20 @@ void EndpointManager::EndpointChannelLoopRunnable(
       NEARBY_LOGS(INFO) << "Dropping current channel: last medium="
                         << location::nearby::proto::connections::Medium_Name(
                                last_failed_medium);
-      if (client->IsSafeToDisconnectEnabled(endpoint_id)) {
+      ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+      if (!borrowed) {
+        NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+        return;
+      }
+      if ((*borrowed)->IsSafeToDisconnectEnabled(endpoint_id)) {
         channel_manager_->MarkEndpointStopWaitToDisconnect(
             endpoint_id, /* is_safe_to_disconnect */ false,
             /* notify_stop_waiting */ true);
       }
+
+      // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+      // `DiscardEndpoint()`.
+      borrowed.FinishBorrowing();
       break;
     }
   }
@@ -212,7 +222,7 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
 }
 
 ExceptionOr<bool> EndpointManager::HandleData(
-    const std::string& endpoint_id, ClientProxy* client,
+    const std::string& endpoint_id, ::nearby::Borrowable<ClientProxy*> client,
     EndpointChannel* endpoint_channel) {
   bool try_decrypting = !endpoint_channel->IsEncrypted();
   // Read as much as we can from the healthy EndpointChannel - when it is no
@@ -288,9 +298,15 @@ ExceptionOr<bool> EndpointManager::HandleData(
 }
 
 void EndpointManager::ProcessDisconnectionFrame(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     EndpointChannel* endpoint_channel, OfflineFrame& frame) {
-  if (!client->IsSafeToDisconnectEnabled(endpoint_id)) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
+  if (!(*borrowed)->IsSafeToDisconnectEnabled(endpoint_id)) {
     NEARBY_LOGS(INFO)
         << "EndpointManager received a DISCONNECTION frame from endpoint "
         << endpoint_id << " on channel " << endpoint_channel->GetType()
@@ -298,6 +314,10 @@ void EndpointManager::ProcessDisconnectionFrame(
     endpoint_channel->Close(DisconnectionReason::REMOTE_DISCONNECTION);
     return;
   }
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // `RemoveEndpoint()`.
+  borrowed.FinishBorrowing();
 
   if (!frame.v1().has_disconnection() ||
       !frame.v1().disconnection().has_request_safe_to_disconnect() ||
@@ -503,7 +523,7 @@ void EndpointManager::RemoveEndpointState(const std::string& endpoint_id) {
 }
 
 void EndpointManager::RegisterEndpoint(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const ConnectionResponseInfo& info,
     const ConnectionOptions& connection_options,
     std::unique_ptr<EndpointChannel> channel,
@@ -530,16 +550,27 @@ void EndpointManager::RegisterEndpoint(
       RemoveEndpointState(endpoint_id);
     }
 
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      latch.CountDown();
+      return;
+    }
+
     absl::Duration keep_alive_interval =
         absl::Milliseconds(connection_options.keep_alive_interval_millis);
     absl::Duration keep_alive_timeout =
         absl::Milliseconds(connection_options.keep_alive_timeout_millis);
+
     NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id
-                      << " for client " << client->GetClientId()
+                      << " for client " << (*borrowed)->GetClientId()
                       << " with keep-alive frame as interval="
                       << absl::FormatDuration(keep_alive_interval)
                       << ", timeout="
                       << absl::FormatDuration(keep_alive_timeout);
+    // Release borrowed instance since no longer using this to prevent deadlocks
+    // in `RegisterChannelForEndpoint()`.
+    borrowed.FinishBorrowing();
 
     // Pass ownership of channel to EndpointChannelManager
     NEARBY_LOGS(INFO) << "Registering endpoint with channel manager: endpoint "
@@ -600,22 +631,41 @@ void EndpointManager::RegisterEndpoint(
                       << ", workers started and notifying client.";
 
     // It's now time to let the client know of this new connection so that
-    // they can accept or reject it.
-    client->OnConnectionInitiated(endpoint_id, info, connection_options,
-                                  listener, connection_token);
+    // they can accept or reject it. Borrow the instance again.
+    ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+    if (!borrowed2) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      latch.CountDown();
+      return;
+    }
+    (*borrowed2)
+        ->OnConnectionInitiated(endpoint_id, info, connection_options, listener,
+                                connection_token);
     latch.CountDown();
   });
   latch.Await();
 }
 
-void EndpointManager::UnregisterEndpoint(ClientProxy* client,
-                                         const std::string& endpoint_id) {
+void EndpointManager::UnregisterEndpoint(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "UnregisterEndpoint for endpoint " << endpoint_id;
   CountDownLatch latch(1);
   RunOnEndpointManagerThread(
       "unregister-endpoint", [this, client, endpoint_id, &latch]() {
-        RemoveEndpoint(client, endpoint_id,
-                       /*notify=*/client->IsConnectedToEndpoint(endpoint_id),
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          latch.CountDown();
+          return;
+        }
+
+        bool notify = (*borrowed)->IsConnectedToEndpoint(endpoint_id);
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `RemoveEndpoint()`.
+        borrowed.FinishBorrowing();
+
+        RemoveEndpoint(client, endpoint_id, /*notify=*/notify,
                        DisconnectionReason::LOCAL_DISCONNECTION);
         latch.CountDown();
       });
@@ -649,9 +699,9 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 }
 
 // Designed to run asynchronously. It is called from IO thread pools, and
-// jobs in these pools may be waited for from the EndpointManager thread. If
-// we allow synchronous behavior here it will cause a live lock.
-void EndpointManager::DiscardEndpoint(ClientProxy* client,
+// jobs in these pools may be waited for from the EndpointManager thread. If we
+// allow synchronous behavior here it will cause a live lock.
+void EndpointManager::DiscardEndpoint(::nearby::Borrowable<ClientProxy*> client,
                                       const std::string& endpoint_id,
                                       DisconnectionReason reason) {
   NEARBY_LOGS(INFO) << "DiscardEndpoint for endpoint " << endpoint_id;
@@ -690,9 +740,6 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
     // which means that "discard-endpoints" will run during the destruction
     // of `serial_executor_` and will still have access to a valid
     // `is_shutdown_`.
-    //
-    // TODO(b/280653613): Develop a more robost solution to prevent
-    // accessing an already destroyed `ClientProxy` during destruction.
     {
       MutexLock lock(&mutex_);
       if (is_shutdown_) {
@@ -702,9 +749,18 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
       }
     }
 
-    RemoveEndpoint(client, endpoint_id,
-                   /* notify */client->IsConnectedToEndpoint(endpoint_id),
-                   reason);
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    bool notify = (*borrowed)->IsConnectedToEndpoint(endpoint_id);
+
+    // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+    // `RemoveEndpoint()`.
+    borrowed.FinishBorrowing();
+
+    RemoveEndpoint(client, endpoint_id, /*notify=*/notify, reason);
   });
 }
 
@@ -724,7 +780,7 @@ std::vector<std::string> EndpointManager::SendControlMessage(
 }
 
 // @EndpointManagerThread
-void EndpointManager::RemoveEndpoint(ClientProxy* client,
+void EndpointManager::RemoveEndpoint(::nearby::Borrowable<ClientProxy*> client,
                                      const std::string& endpoint_id,
                                      bool notify, DisconnectionReason reason) {
   NEARBY_LOGS(INFO) << "RemoveEndpoint for endpoint: " << endpoint_id
@@ -739,7 +795,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
   std::string service_id =
       channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
 
-  if (client->IsSafeToDisconnectEnabled(endpoint_id)) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
+  if ((*borrowed)->IsSafeToDisconnectEnabled(endpoint_id)) {
     if (channel != nullptr) {
       bool is_safe_disconnection =
           ApplySafeToDisconnect(endpoint_id, channel, reason);
@@ -751,6 +813,11 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
                         << (safe_disconnect_result? "true" : "false");
     }
   }
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // `WaitForEndpointDisconnectionProcessing()`.
+  borrowed.FinishBorrowing();
+
   if (safe_disconnect_result ==
       ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION) {
     // TODO(b/297259496): Autoreconnect
@@ -768,8 +835,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     // (See b/37352254 for history)
     WaitForEndpointDisconnectionProcessing(client, service_id, endpoint_id,
                                            reason);
+    ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+    if (!borrowed2) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
 
-    client->OnDisconnected(endpoint_id, notify);
+    (*borrowed2)->OnDisconnected(endpoint_id, notify);
     NEARBY_LOGS(INFO) << "Removed endpoint for endpoint " << endpoint_id;
   }
   RemoveEndpointState(endpoint_id);
@@ -830,11 +902,21 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
 
 // @EndpointManagerThread
 void EndpointManager::WaitForEndpointDisconnectionProcessing(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, DisconnectionReason reason) {
-  NEARBY_LOGS(INFO) << "Wait: client=" << client
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
+  NEARBY_LOGS(INFO) << "Wait: client=" << (*borrowed)
                     << "; service_id=" << service_id
                     << "; endpoint_id=" << endpoint_id;
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // `NotifyFrameProcessorsOnEndpointDisconnect()`.
+  borrowed.FinishBorrowing();
+
   CountDownLatch barrier = NotifyFrameProcessorsOnEndpointDisconnect(
       client, service_id, endpoint_id, reason);
 
@@ -852,11 +934,21 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
 }
 
 CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, DisconnectionReason reason) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    CountDownLatch empty_latch(/*count=*/0);
+    return empty_latch;
+  }
+
   NEARBY_LOGS(INFO) << "NotifyFrameProcessorsOnEndpointDisconnect: client="
-                    << client << "; service_id=" << service_id
+                    << (*borrowed) << "; service_id=" << service_id
                     << "; endpoint_id=" << endpoint_id;
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock.
+  borrowed.FinishBorrowing();
+
   MutexLock lock(&frame_processors_lock_);
   auto total_size = frame_processors_.size();
   NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;

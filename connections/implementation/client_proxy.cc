@@ -141,6 +141,7 @@ void ClientProxy::Reset() {
   StoppedDiscovery();
   RemoveAllEndpoints();
   ExitHighVisibilityMode();
+  lender_.Release();
 }
 
 void ClientProxy::StartedAdvertising(

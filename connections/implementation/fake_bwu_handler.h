@@ -25,6 +25,7 @@
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/fake_endpoint_channel.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -41,7 +42,7 @@ class FakeBwuHandler : public BaseBwuHandler {
   // The arguments passed to the BwuHandler methods. Not all values are set for
   // every method.
   struct InputData {
-    ClientProxy* client = nullptr;
+    ::nearby::Borrowable<ClientProxy*> client;
     std::optional<std::string> service_id;
     std::optional<std::string> endpoint_id;
   };
@@ -105,7 +106,7 @@ class FakeBwuHandler : public BaseBwuHandler {
 
   // BwuHandler:
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final {
     create_calls_.push_back({.client = client,
@@ -116,14 +117,15 @@ class FakeBwuHandler : public BaseBwuHandler {
 
   Medium GetUpgradeMedium() const final { return medium_; }
 
-  void OnEndpointDisconnect(ClientProxy* client,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                             const std::string& endpoint_id) final {
     disconnect_calls_.push_back({.client = client, .endpoint_id = endpoint_id});
   }
 
   // BaseBwuHandler:
   ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) final {
     handle_initialize_calls_.push_back({.client = client,
                                         .service_id = upgrade_service_id,

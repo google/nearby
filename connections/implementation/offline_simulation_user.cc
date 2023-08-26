@@ -120,7 +120,8 @@ Status OfflineSimulationUser::StartAdvertising(const std::string& service_id,
       .disconnected_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
   };
-  return ctrl_.StartAdvertising(&client_, service_id_, advertising_options_,
+  return ctrl_.StartAdvertising(client_.GetBorrowable(), service_id_,
+                                advertising_options_,
                                 {
                                     .endpoint_info = info_,
                                     .listener = std::move(listener),
@@ -128,12 +129,13 @@ Status OfflineSimulationUser::StartAdvertising(const std::string& service_id,
 }
 
 void OfflineSimulationUser::StopAdvertising() {
-  ctrl_.StopAdvertising(&client_);
+  ctrl_.StopAdvertising(client_.GetBorrowable());
 }
 
 Status OfflineSimulationUser::UpdateAdvertisingOptions(
     absl::string_view service_id, const AdvertisingOptions& options) {
-  return ctrl_.UpdateAdvertisingOptions(&client_, service_id, options);
+  return ctrl_.UpdateAdvertisingOptions(client_.GetBorrowable(), service_id,
+                                        options);
 }
 
 Status OfflineSimulationUser::StartDiscovery(const std::string& service_id,
@@ -147,21 +149,25 @@ Status OfflineSimulationUser::StartDiscovery(const std::string& service_id,
       .endpoint_lost_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointLost, this),
   };
-  return ctrl_.StartDiscovery(&client_, service_id, discovery_options_,
-                              std::move(listener));
+
+  return ctrl_.StartDiscovery(client_.GetBorrowable(), service_id,
+                              discovery_options_, std::move(listener));
 }
 
-void OfflineSimulationUser::StopDiscovery() { ctrl_.StopDiscovery(&client_); }
+void OfflineSimulationUser::StopDiscovery() {
+  ctrl_.StopDiscovery(client_.GetBorrowable());
+}
 
 Status OfflineSimulationUser::UpdateDiscoveryOptions(
     absl::string_view service_id, const DiscoveryOptions& options) {
-  return ctrl_.UpdateDiscoveryOptions(&client_, service_id, options);
+  return ctrl_.UpdateDiscoveryOptions(client_.GetBorrowable(), service_id,
+                                      options);
 }
 
 void OfflineSimulationUser::InjectEndpoint(
     const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
-  ctrl_.InjectEndpoint(&client_, service_id, metadata);
+  ctrl_.InjectEndpoint(client_.GetBorrowable(), service_id, metadata);
 }
 
 Status OfflineSimulationUser::RequestConnection(CountDownLatch* latch) {
@@ -177,8 +183,10 @@ Status OfflineSimulationUser::RequestConnection(CountDownLatch* latch) {
       .disconnected_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
   };
+
   client_.AddCancellationFlag(discovered_.endpoint_id);
-  return ctrl_.RequestConnection(&client_, discovered_.endpoint_id,
+  return ctrl_.RequestConnection(client_.GetBorrowable(),
+                                 discovered_.endpoint_id,
                                  {
                                      .endpoint_info = discovered_.endpoint_info,
                                      .listener = std::move(listener),
@@ -193,18 +201,20 @@ Status OfflineSimulationUser::AcceptConnection(CountDownLatch* latch) {
       .payload_progress_cb =
           absl::bind_front(&OfflineSimulationUser::OnPayloadProgress, this),
   };
-  return ctrl_.AcceptConnection(&client_, discovered_.endpoint_id,
-                                std::move(listener));
+  return ctrl_.AcceptConnection(client_.GetBorrowable(),
+                                discovered_.endpoint_id, std::move(listener));
 }
 
 Status OfflineSimulationUser::RejectConnection(CountDownLatch* latch) {
   reject_latch_ = latch;
-  return ctrl_.RejectConnection(&client_, discovered_.endpoint_id);
+  return ctrl_.RejectConnection(client_.GetBorrowable(),
+                                discovered_.endpoint_id);
 }
 
 void OfflineSimulationUser::Disconnect() {
   NEARBY_LOGS(INFO) << "Disconnecting from id=" << discovered_.endpoint_id;
-  ctrl_.DisconnectFromEndpoint(&client_, discovered_.endpoint_id);
+  ctrl_.DisconnectFromEndpoint(client_.GetBorrowable(),
+                               discovered_.endpoint_id);
 }
 
 }  // namespace connections

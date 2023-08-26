@@ -19,8 +19,10 @@
 #include <vector>
 
 #include "gmock/gmock.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/v3/connection_listening_options.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -36,81 +38,96 @@ class MockServiceController : public ServiceController {
  public:
   MOCK_METHOD(void, Stop, (), (override));
   MOCK_METHOD(Status, StartAdvertising,
-              (ClientProxy * client, const std::string& service_id,
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& service_id,
                const AdvertisingOptions& advertising_options,
                const ConnectionRequestInfo& info),
               (override));
 
-  MOCK_METHOD(void, StopAdvertising, (ClientProxy * client), (override));
+  MOCK_METHOD(void, StopAdvertising,
+              (::nearby::Borrowable<ClientProxy*> client), (override));
 
   MOCK_METHOD(Status, StartDiscovery,
-              (ClientProxy * client, const std::string& service_id,
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& service_id,
                const DiscoveryOptions& discovery_options,
                const DiscoveryListener& listener),
               (override));
 
-  MOCK_METHOD(void, StopDiscovery, (ClientProxy * client), (override));
+  MOCK_METHOD(void, StopDiscovery, (::nearby::Borrowable<ClientProxy*> client),
+              (override));
 
   MOCK_METHOD(void, InjectEndpoint,
-              (ClientProxy * client, const std::string& service_id,
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& service_id,
                const OutOfBandConnectionMetadata& metadata),
               (override));
 
   MOCK_METHOD((std::pair<Status, std::vector<ConnectionInfoVariant>>),
               StartListeningForIncomingConnections,
-              (ClientProxy * client, absl::string_view service_id,
-               v3::ConnectionListener listener,
+              (::nearby::Borrowable<ClientProxy*> client,
+               absl::string_view service_id, v3::ConnectionListener listener,
                const v3::ConnectionListeningOptions& options),
               (override));
 
-  MOCK_METHOD(void, StopListeningForIncomingConnections, (ClientProxy * client),
-              (override));
+  MOCK_METHOD(void, StopListeningForIncomingConnections,
+              (::nearby::Borrowable<ClientProxy*> client), (override));
 
   MOCK_METHOD(Status, RequestConnection,
-              (ClientProxy * client, const std::string& endpoint_id,
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& endpoint_id,
                const ConnectionRequestInfo& info,
                const ConnectionOptions& connection_options),
               (override));
 
   MOCK_METHOD(Status, AcceptConnection,
-              (ClientProxy * client, const std::string& endpoint_id,
-               PayloadListener listener),
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& endpoint_id, PayloadListener listener),
               (override));
 
   MOCK_METHOD(Status, RejectConnection,
-              (ClientProxy * client, const std::string& endpoint_id),
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& endpoint_id),
               (override));
 
   MOCK_METHOD(void, InitiateBandwidthUpgrade,
-              (ClientProxy * client, const std::string& endpoint_id),
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& endpoint_id),
               (override));
 
   MOCK_METHOD(void, SendPayload,
-              (ClientProxy * client,
+              (::nearby::Borrowable<ClientProxy*> client,
                const std::vector<std::string>& endpoint_ids, Payload payload),
               (override));
 
   MOCK_METHOD(Status, CancelPayload,
-              (ClientProxy * client, std::int64_t payload_id), (override));
+              (::nearby::Borrowable<ClientProxy*> client,
+               std::int64_t payload_id),
+              (override));
 
   MOCK_METHOD(void, DisconnectFromEndpoint,
-              (ClientProxy * client, const std::string& endpoint_id),
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& endpoint_id),
               (override));
 
   MOCK_METHOD(Status, UpdateAdvertisingOptions,
-              (ClientProxy * client, absl::string_view service_id,
+              (::nearby::Borrowable<ClientProxy*> client,
+               absl::string_view service_id,
                const AdvertisingOptions& advertising_options),
               (override));
 
   MOCK_METHOD(Status, UpdateDiscoveryOptions,
-              (ClientProxy * client, absl::string_view service_id,
+              (::nearby::Borrowable<ClientProxy*> client,
+               absl::string_view service_id,
                const DiscoveryOptions& advertising_options),
               (override));
 
   MOCK_METHOD(void, ShutdownBwuManagerExecutors, (), (override));
 
   MOCK_METHOD(void, SetCustomSavePath,
-              (ClientProxy * client, const std::string& path), (override));
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& path),
+              (override));
 };
 
 }  // namespace connections

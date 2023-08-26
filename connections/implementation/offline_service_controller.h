@@ -32,6 +32,7 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -41,59 +42,66 @@ class OfflineServiceController : public ServiceController {
   OfflineServiceController() = default;
   ~OfflineServiceController() override;
 
-  Status StartAdvertising(ClientProxy* client, const std::string& service_id,
+  Status StartAdvertising(::nearby::Borrowable<ClientProxy*> client,
+                          const std::string& service_id,
                           const AdvertisingOptions& advertising_options,
                           const ConnectionRequestInfo& info) override;
 
-  void StopAdvertising(ClientProxy* client) override;
+  void StopAdvertising(::nearby::Borrowable<ClientProxy*> client) override;
 
-  Status StartDiscovery(ClientProxy* client, const std::string& service_id,
+  Status StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
+                        const std::string& service_id,
                         const DiscoveryOptions& discovery_options,
                         const DiscoveryListener& listener) override;
-  void StopDiscovery(ClientProxy* client) override;
+  void StopDiscovery(::nearby::Borrowable<ClientProxy*> client) override;
 
-  void InjectEndpoint(ClientProxy* client, const std::string& service_id,
+  void InjectEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                      const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
 
   std::pair<Status, std::vector<ConnectionInfoVariant>>
   StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options) override;
 
-  void StopListeningForIncomingConnections(ClientProxy* client) override;
+  void StopListeningForIncomingConnections(
+      ::nearby::Borrowable<ClientProxy*> client) override;
 
   Status RequestConnection(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) override;
-  Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
+  Status AcceptConnection(::nearby::Borrowable<ClientProxy*> client,
+                          const std::string& endpoint_id,
                           PayloadListener listener) override;
-  Status RejectConnection(ClientProxy* client,
+  Status RejectConnection(::nearby::Borrowable<ClientProxy*> client,
                           const std::string& endpoint_id) override;
 
-  void InitiateBandwidthUpgrade(ClientProxy* client,
+  void InitiateBandwidthUpgrade(::nearby::Borrowable<ClientProxy*> client,
                                 const std::string& endpoint_id) override;
 
-  void SendPayload(ClientProxy* client,
+  void SendPayload(::nearby::Borrowable<ClientProxy*> client,
                    const std::vector<std::string>& endpoint_ids,
                    Payload payload) override;
-  Status CancelPayload(ClientProxy* client, Payload::Id payload_id) override;
+  Status CancelPayload(::nearby::Borrowable<ClientProxy*> client,
+                       Payload::Id payload_id) override;
 
-  void DisconnectFromEndpoint(ClientProxy* client,
+  void DisconnectFromEndpoint(::nearby::Borrowable<ClientProxy*> client,
                               const std::string& endpoint_id) override;
 
   Status UpdateAdvertisingOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const AdvertisingOptions& advertising_options) override;
 
   Status UpdateDiscoveryOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const DiscoveryOptions& discovery_options) override;
 
   void Stop() override;
 
-  void SetCustomSavePath(ClientProxy* client, const std::string& path) override;
+  void SetCustomSavePath(::nearby::Borrowable<ClientProxy*> client,
+                         const std::string& path) override;
 
   void ShutdownBwuManagerExecutors() override;
 

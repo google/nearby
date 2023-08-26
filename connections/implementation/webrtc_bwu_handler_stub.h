@@ -56,21 +56,22 @@ class WebrtcBwuHandler : public BaseBwuHandler {
 
   // BwuHandler implementation:
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final;
   Medium GetUpgradeMedium() const final { return Medium::WEB_RTC; }
-  void OnEndpointDisconnect(ClientProxy* client,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
   ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) final;
 
-  void OnIncomingWebrtcConnection(ClientProxy* client,
+  void OnIncomingWebrtcConnection(::nearby::Borrowable<ClientProxy*> client,
                                   const std::string& upgrade_service_id,
                                   mediums::WebRtcSocketWrapper socket);
 

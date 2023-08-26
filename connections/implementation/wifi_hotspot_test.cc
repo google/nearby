@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
@@ -42,7 +43,8 @@ TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
 
   auto handler = std::make_unique<WifiHotspotBwuHandler>(mediums, nullptr);
 
-  handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
+  handler->InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                               /*service_id=*/"B",
                                                /*endpoint_id=*/"2");
   handler->RevertInitiatorState();
   SUCCEED();
@@ -59,7 +61,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   ExceptionOr<OfflineFrame> upgrade_frame;
 
   auto handler_1 = std::make_unique<WifiHotspotBwuHandler>(
-      mediums_1, [&](ClientProxy* client,
+      mediums_1, [&](::nearby::Borrowable<ClientProxy*> client,
                      std::unique_ptr<BwuHandler::IncomingSocketConnection>
                          mutable_connection) {
         NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
@@ -71,7 +73,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   SingleThreadExecutor server_executor;
   server_executor.Execute([&]() {
     ByteArray upgrade_path_available_frame =
-        handler_1->InitializeUpgradedMediumForEndpoint(&client_1,
+        handler_1->InitializeUpgradedMediumForEndpoint(client_1.GetBorrowable(),
                                                        /*service_id=*/"A",
                                                        /*endpoint_id=*/"1");
     EXPECT_FALSE(upgrade_path_available_frame.Empty());
@@ -92,9 +94,9 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 
     std::unique_ptr<EndpointChannel> new_channel =
-        handler_2->CreateUpgradedEndpointChannel(&client_2, /*service_id=*/"A",
-                                                 /*endpoint_id=*/"1",
-                                                 bwu_frame.upgrade_path_info());
+        handler_2->CreateUpgradedEndpointChannel(
+            client_2.GetBorrowable(), /*service_id=*/"A",
+            /*endpoint_id=*/"1", bwu_frame.upgrade_path_info());
     if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
       EXPECT_EQ(new_channel->GetMedium(),

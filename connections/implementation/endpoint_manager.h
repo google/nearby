@@ -33,6 +33,7 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -78,7 +79,8 @@ class EndpointManager {
     // and that leaves us with mutable lvalue reference.
     virtual void OnIncomingFrame(
         location::nearby::connections::OfflineFrame& offline_frame,
-        const std::string& from_endpoint_id, ClientProxy* to_client,
+        const std::string& from_endpoint_id,
+        ::nearby::Borrowable<ClientProxy*> to_client,
         location::nearby::proto::connections::Medium current_medium,
         analytics::PacketMetaData& packet_meta_data) = 0;
 
@@ -87,7 +89,7 @@ class EndpointManager {
     // processors.
     //
     // @EndpointManagerThread
-    virtual void OnEndpointDisconnect(ClientProxy* client,
+    virtual void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                                       const std::string& service_id,
                                       const std::string& endpoint_id,
                                       CountDownLatch barrier,
@@ -111,7 +113,8 @@ class EndpointManager {
   // Invoked from the different PcpHandler implementations (of which there can
   // be only one at a time).
   // Blocks until registration is complete.
-  void RegisterEndpoint(ClientProxy* client, const std::string& endpoint_id,
+  void RegisterEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                        const std::string& endpoint_id,
                         const ConnectionResponseInfo& info,
                         const ConnectionOptions& connection_options,
                         std::unique_ptr<EndpointChannel> channel,
@@ -119,7 +122,8 @@ class EndpointManager {
                         const std::string& connection_token);
   // Called when a client explicitly asks to disconnect from this endpoint. In
   // this case, we do not notify the client of onDisconnected().
-  void UnregisterEndpoint(ClientProxy* client, const std::string& endpoint_id);
+  void UnregisterEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                          const std::string& endpoint_id);
 
   // Returns the maximum supported transmit packet size(MTU) for the underlying
   // transport.
@@ -155,7 +159,8 @@ class EndpointManager {
   // ask everyone who's registered an FrameProcessor to
   // processEndpointDisconnection() while the caller of DiscardEndpoint() is
   // blocked here.
-  void DiscardEndpoint(ClientProxy* client, const std::string& endpoint_id,
+  void DiscardEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                       const std::string& endpoint_id,
                        DisconnectionReason reason);
 
  protected:
@@ -229,7 +234,7 @@ class EndpointManager {
       location::nearby::connections::V1Frame::FrameType frame_type);
 
   ExceptionOr<bool> HandleData(const std::string& endpoint_id,
-                               ClientProxy* client_proxy,
+                               ::nearby::Borrowable<ClientProxy*> client_proxy,
                                EndpointChannel* endpoint_channel);
 
   ExceptionOr<bool> HandleKeepAlive(EndpointChannel* endpoint_channel,
@@ -246,7 +251,8 @@ class EndpointManager {
   void RemoveEndpointState(const std::string& endpoint_id);
 
   void EndpointChannelLoopRunnable(
-      const std::string& runnable_name, ClientProxy* client_proxy,
+      const std::string& runnable_name,
+      ::nearby::Borrowable<ClientProxy*> client_proxy,
       const std::string& endpoint_id,
       absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler);
 
@@ -261,21 +267,21 @@ class EndpointManager {
   // this method being called), but that's alright because the implementation of
   // this method is idempotent.
   // @EndpointManagerThread
-  void RemoveEndpoint(ClientProxy* client, const std::string& endpoint_id,
-                      bool notify, DisconnectionReason reason);
+  void RemoveEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                      const std::string& endpoint_id, bool notify,
+                      DisconnectionReason reason);
   bool ApplySafeToDisconnect(const std::string& endpoint_id,
                              EndpointChannel* endpoint_channel,
                              DisconnectionReason reason);
-  void WaitForEndpointDisconnectionProcessing(ClientProxy* client,
-                                              const std::string& service_id,
-                                              const std::string& endpoint_id,
-                                              DisconnectionReason reason);
+  void WaitForEndpointDisconnectionProcessing(
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
+      const std::string& endpoint_id, DisconnectionReason reason);
   void ProcessDisconnectionFrame(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       EndpointChannel* endpoint_channel,
       location::nearby::connections::OfflineFrame& frame);
   CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> clientt, const std::string& service_id,
       const std::string& endpoint_id, DisconnectionReason reason);
 
   std::vector<std::string> SendTransferFrameBytes(

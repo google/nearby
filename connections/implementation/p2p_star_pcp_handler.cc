@@ -16,6 +16,8 @@
 
 #include <vector>
 
+#include "connections/implementation/client_proxy.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -60,7 +62,8 @@ P2pStarPcpHandler::GetDefaultUpgradeMedium() {
   return location::nearby::proto::connections::Medium::WIFI_HOTSPOT;
 }
 
-bool P2pStarPcpHandler::CanSendOutgoingConnection(ClientProxy* client) const {
+bool P2pStarPcpHandler::CanSendOutgoingConnection(
+    ::nearby::Borrowable<ClientProxy*> client) const {
   // For star, we can only send an outgoing connection while we have no other
   // connections.
   return !this->HasOutgoingConnections(client) &&
@@ -68,7 +71,7 @@ bool P2pStarPcpHandler::CanSendOutgoingConnection(ClientProxy* client) const {
 }
 
 bool P2pStarPcpHandler::CanReceiveIncomingConnection(
-    ClientProxy* client) const {
+    ::nearby::Borrowable<ClientProxy*> client) const {
   // For star, we can only receive an incoming connection if we've sent no
   // outgoing connections.
   return !this->HasOutgoingConnections(client);

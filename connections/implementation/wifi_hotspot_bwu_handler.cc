@@ -24,6 +24,7 @@
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
@@ -38,8 +39,8 @@ WifiHotspotBwuHandler::WifiHotspotBwuHandler(
 // endpoint, and returns a upgrade path info (SSID, Password, Gateway used as
 // IPAddress, Port) for remote party to perform connection.
 ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, const std::string& endpoint_id) {
   // Create SoftAP
   if (!wifi_hotspot_medium_.StartWifiHotspot()) {
     NEARBY_LOGS(INFO) << "Failed to start Wifi Hotspot!";
@@ -78,9 +79,14 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   NEARBY_LOGS(INFO) << "Start SoftAP with SSID:" << ssid
                     << ",  Password:" << password << ",  Port:" << port
                     << ",  Gateway:" << gateway;
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return {};
+  }
 
-  bool disabling_encryption =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+  bool disabling_encryption = ((*borrowed)->GetAdvertisingOptions().strategy ==
+                               Strategy::kP2pPointToPoint);
   return parser::ForBwuWifiHotspotPathAvailable(
       ssid, password, port, gateway,
       /* supports_disabling_encryption */ disabling_encryption);
@@ -101,7 +107,7 @@ void WifiHotspotBwuHandler::HandleRevertInitiatorStateForService(
 // and establishes connection over WifiHotspot using this info.
 std::unique_ptr<EndpointChannel>
 WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_hotspot_credentials()) {
     NEARBY_LOGS(INFO) << "No Hotspot Credential";
@@ -124,8 +130,14 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return nullptr;
+  }
+
   WifiHotspotSocket socket = wifi_hotspot_medium_.Connect(
-      service_id, gateway, port, client->GetCancellationFlag(endpoint_id));
+      service_id, gateway, port, (*borrowed)->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("
@@ -146,8 +158,8 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
 // Accept Connection Callback.
 void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    WifiHotspotSocket socket) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, WifiHotspotSocket socket) {
   auto channel = std::make_unique<WifiHotspotEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(

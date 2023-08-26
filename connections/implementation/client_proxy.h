@@ -46,6 +46,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -281,6 +282,10 @@ class ClientProxy final {
   bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
   bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
 
+  ::nearby::Borrowable<ClientProxy*> GetBorrowable() {
+    return lender_.GetBorrowable();
+  }
+
  private:
   struct Connection {
     // Status: may be either:
@@ -444,6 +449,7 @@ class ClientProxy final {
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
   bool supports_safe_to_disconnect_;
   std::int32_t local_safe_to_disconnect_version_;
+  ::nearby::Lender<ClientProxy*> lender_{this};
 };
 
 }  // namespace connections

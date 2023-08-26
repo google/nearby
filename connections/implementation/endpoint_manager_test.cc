@@ -36,6 +36,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 // #include "internal/platform/feature_flags.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/logging.h"
 #include "internal/test/fake_single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
@@ -109,14 +110,15 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
  public:
   MOCK_METHOD(void, OnIncomingFrame,
               (OfflineFrame & offline_frame,
-               const std::string& from_endpoint_id, ClientProxy* to_client,
+               const std::string& from_endpoint_id,
+               ::nearby::Borrowable<ClientProxy*> to_client,
                Medium current_medium, PacketMetaData& packet_meta_data),
               (override));
 
   MOCK_METHOD(void, OnEndpointDisconnect,
-              (ClientProxy * client, const std::string& service_id,
-               const std::string& endpoint_id, CountDownLatch barrier,
-               DisconnectionReason reason),
+              (::nearby::Borrowable<ClientProxy*> client,
+               const std::string& service_id, const std::string& endpoint_id,
+               CountDownLatch barrier, DisconnectionReason reason),
               (override));
 };
 
@@ -153,7 +155,7 @@ class EndpointManagerTest : public ::testing::Test {
     EXPECT_CALL(*channel, GetLastWriteTimestamp())
         .WillRepeatedly(Return(start_time_));
     EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
-    em_.RegisterEndpoint(client_.get(), endpoint_id_, info_,
+    em_.RegisterEndpoint(client_->GetBorrowable(), endpoint_id_, info_,
                          connection_options_, std::move(channel), listener_,
                          connection_token);
     if (should_close) {
@@ -222,7 +224,7 @@ TEST_F(EndpointManagerTest, UnregisterEndpointCallsOnDisconnected) {
   // (IMO, it should be called as long as any connection callback was called
   // before. (in this case initiated_cb is called)).
   // Test captures current protocol behavior.
-  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  em_.UnregisterEndpoint(client_->GetBorrowable(), endpoint_id_);
 }
 
 TEST_F(EndpointManagerTest,
@@ -235,7 +237,7 @@ TEST_F(EndpointManagerTest,
   // Test captures current protocol behavior.
   client_->SetRemoteSafeToDisconnectVersion(endpoint_id_, 2);
   ecm_.UpdateSafeToDisconnectForEndpoint(endpoint_id_, true);
-  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  em_.UnregisterEndpoint(client_->GetBorrowable(), endpoint_id_);
 }
 
 TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
@@ -290,7 +292,7 @@ TEST_F(EndpointManagerTest, UnregisterFrameProcessorWorks) {
   processors_.emplace_back(std::move(connect_request));
   // Endpoint will not send OnDisconnect notification to frame processor.
   RegisterEndpoint(std::move(endpoint_channel), false);
-  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  em_.UnregisterEndpoint(client_->GetBorrowable(), endpoint_id_);
 }
 
 TEST_F(EndpointManagerTest, SendControlMessageWorks) {
@@ -326,7 +328,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
       em_.SendControlMessage(header, control, std::vector{endpoint_id_});
   EXPECT_EQ(failed_ids, std::vector<std::string>{});
   NEARBY_LOG(INFO, "Will unregister endpoint now");
-  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  em_.UnregisterEndpoint(client_->GetBorrowable(), endpoint_id_);
   NEARBY_LOG(INFO, "Will call destructors now");
 }
 
@@ -361,7 +363,7 @@ TEST_F(EndpointManagerTest, ReadInvalidUnencryptedPayloadIgnoresFrame) {
       .WillOnce([&](DisconnectionReason reason) { latch.CountDown(); });
   RegisterEndpoint(std::move(endpoint_channel), false);
   latch.Await();
-  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  em_.UnregisterEndpoint(client_->GetBorrowable(), endpoint_id_);
 }
 
 TEST_F(EndpointManagerTest, ReadInvalidEncryptedPayloadIgnoresFrame) {
@@ -461,7 +463,7 @@ TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
   // immediately.
   fake_serial_executor->SetRunExecutablesImmediately(
       /*run_executables_immediately=*/false);
-  endpoint_manager->DiscardEndpoint(client_.get(), endpoint_id_,
+  endpoint_manager->DiscardEndpoint(client_->GetBorrowable(), endpoint_id_,
                                     DisconnectionReason::IO_ERROR);
 
   // Simulate Core destruction of ClientProxy by destroying `client_`.

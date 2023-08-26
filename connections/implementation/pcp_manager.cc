@@ -16,10 +16,12 @@
 
 #include <vector>
 
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 #include "connections/implementation/p2p_point_to_point_pcp_handler.h"
 #include "connections/implementation/p2p_star_pcp_handler.h"
 #include "connections/implementation/pcp_handler.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -55,7 +57,7 @@ PcpManager::~PcpManager() {
 }
 
 Status PcpManager::StartAdvertising(
-    ClientProxy* client, const string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const string& service_id,
     const AdvertisingOptions& advertising_options,
     const ConnectionRequestInfo& info) {
   if (!SetCurrentPcpHandler(advertising_options.strategy)) {
@@ -66,13 +68,14 @@ Status PcpManager::StartAdvertising(
                                     info);
 }
 
-void PcpManager::StopAdvertising(ClientProxy* client) {
+void PcpManager::StopAdvertising(::nearby::Borrowable<ClientProxy*> client) {
   if (current_) {
     current_->StopAdvertising(client);
   }
 }
 
-Status PcpManager::StartDiscovery(ClientProxy* client, const string& service_id,
+Status PcpManager::StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
+                                  const string& service_id,
                                   const DiscoveryOptions& discovery_options,
                                   DiscoveryListener listener) {
   if (!SetCurrentPcpHandler(discovery_options.strategy)) {
@@ -83,7 +86,7 @@ Status PcpManager::StartDiscovery(ClientProxy* client, const string& service_id,
                                   std::move(listener));
 }
 
-void PcpManager::StopDiscovery(ClientProxy* client) {
+void PcpManager::StopDiscovery(::nearby::Borrowable<ClientProxy*> client) {
   if (current_) {
     current_->StopDiscovery(client);
   }
@@ -91,7 +94,7 @@ void PcpManager::StopDiscovery(ClientProxy* client) {
 
 std::pair<Status, std::vector<ConnectionInfoVariant>>
 PcpManager::StartListeningForIncomingConnections(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     v3::ConnectionListener listener,
     const v3::ConnectionListeningOptions& options) {
   if (!SetCurrentPcpHandler(options.strategy)) {
@@ -101,13 +104,14 @@ PcpManager::StartListeningForIncomingConnections(
       client, service_id, options, std::move(listener))};
 }
 
-void PcpManager::StopListeningForIncomingConnections(ClientProxy* client) {
+void PcpManager::StopListeningForIncomingConnections(
+    ::nearby::Borrowable<ClientProxy*> client) {
   if (current_) {
     current_->StopListeningForIncomingConnections(client);
   }
 }
 
-void PcpManager::InjectEndpoint(ClientProxy* client,
+void PcpManager::InjectEndpoint(::nearby::Borrowable<ClientProxy*> client,
                                 const std::string& service_id,
                                 const OutOfBandConnectionMetadata& metadata) {
   if (current_) {
@@ -116,7 +120,7 @@ void PcpManager::InjectEndpoint(ClientProxy* client,
 }
 
 Status PcpManager::RequestConnection(
-    ClientProxy* client, const string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const string& endpoint_id,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
   if (!current_) {
@@ -127,7 +131,7 @@ Status PcpManager::RequestConnection(
                                      connection_options);
 }
 
-Status PcpManager::AcceptConnection(ClientProxy* client,
+Status PcpManager::AcceptConnection(::nearby::Borrowable<ClientProxy*> client,
                                     const string& endpoint_id,
                                     PayloadListener payload_listener) {
   if (!current_) {
@@ -138,7 +142,7 @@ Status PcpManager::AcceptConnection(ClientProxy* client,
                                     std::move(payload_listener));
 }
 
-Status PcpManager::RejectConnection(ClientProxy* client,
+Status PcpManager::RejectConnection(::nearby::Borrowable<ClientProxy*> client,
                                     const string& endpoint_id) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
@@ -148,7 +152,7 @@ Status PcpManager::RejectConnection(ClientProxy* client,
 }
 
 Status PcpManager::UpdateAdvertisingOptions(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const AdvertisingOptions& advertising_options) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
@@ -158,7 +162,7 @@ Status PcpManager::UpdateAdvertisingOptions(
 }
 
 Status PcpManager::UpdateDiscoveryOptions(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const DiscoveryOptions& discovery_options) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};

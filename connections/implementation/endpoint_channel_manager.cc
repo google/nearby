@@ -19,7 +19,9 @@
 #include <utility>
 
 #include "absl/time/time.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
@@ -43,7 +45,7 @@ EndpointChannelManager::~EndpointChannelManager() {
 }
 
 void EndpointChannelManager::RegisterChannelForEndpoint(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     std::unique_ptr<EndpointChannel> channel) {
   MutexLock lock(&mutex_);
 
@@ -56,7 +58,7 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
 }
 
 void EndpointChannelManager::ReplaceChannelForEndpoint(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     std::unique_ptr<EndpointChannel> channel, bool enable_encryption) {
   MutexLock lock(&mutex_);
 
@@ -95,14 +97,21 @@ std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
 }
 
 void EndpointChannelManager::SetActiveEndpointChannel(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     std::unique_ptr<EndpointChannel> channel, bool enable_encryption) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   // Update the channel first, then encrypt this new channel, if
   // crypto context is present.
-  channel->SetAnalyticsRecorder(&client->GetAnalyticsRecorder(), endpoint_id);
+  channel->SetAnalyticsRecorder(&(*borrowed)->GetAnalyticsRecorder(),
+                                endpoint_id);
   channel_state_.UpdateChannelForEndpoint(endpoint_id, std::move(channel));
   channel_state_.UpdateSafeToDisconnectForEndpoint(
-      endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));
+      endpoint_id, (*borrowed)->IsSafeToDisconnectEnabled(endpoint_id));
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
   if (endpoint->IsEncrypted() && enable_encryption)
     channel_state_.EncryptChannel(endpoint);

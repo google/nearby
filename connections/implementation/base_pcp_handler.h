@@ -40,6 +40,7 @@
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
@@ -83,81 +84,89 @@ class BasePcpHandler : public PcpHandler,
 
   std::pair<Status, std::vector<ConnectionInfoVariant>>
   StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       v3::ConnectionListeningOptions options,
       v3::ConnectionListener connection_listener) override;
 
-  void StopListeningForIncomingConnections(ClientProxy* client) override;
+  void StopListeningForIncomingConnections(
+      ::nearby::Borrowable<ClientProxy*> client) override;
 
   // Starts advertising. Once successfully started, changes ClientProxy's state.
   // Notifies ConnectionListener (info.listener) in case of any event.
   // See
   // cpp/core/listeners.h
-  Status StartAdvertising(ClientProxy* client, const std::string& service_id,
+  Status StartAdvertising(::nearby::Borrowable<ClientProxy*> client,
+                          const std::string& service_id,
                           const AdvertisingOptions& advertising_options,
                           const ConnectionRequestInfo& info) override;
 
   // Stops Advertising is active, and changes CLientProxy state,
   // otherwise does nothing.
-  void StopAdvertising(ClientProxy* client) override;
+  void StopAdvertising(::nearby::Borrowable<ClientProxy*> client) override;
 
   // Starts discovery of endpoints that may be advertising.
   // Updates ClientProxy state once discovery started.
   // DiscoveryListener will get called in case of any event.
-  Status StartDiscovery(ClientProxy* client, const std::string& service_id,
+  Status StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
+                        const std::string& service_id,
                         const DiscoveryOptions& discovery_options,
                         const DiscoveryListener& listener) override;
 
   // Stops Discovery if it is active, and changes CLientProxy state,
   // otherwise does nothing.
-  void StopDiscovery(ClientProxy* client) override;
+  void StopDiscovery(::nearby::Borrowable<ClientProxy*> client) override;
 
-  void InjectEndpoint(ClientProxy* client, const std::string& service_id,
+  void InjectEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                      const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
 
   ConnectionInfo FillConnectionInfo(
-      ClientProxy* client, const ConnectionRequestInfo& info,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options);
 
   // Requests a newly discovered remote endpoint it to form a connection.
   // Updates state on ClientProxy.
   Status RequestConnection(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) override;
 
   // Called by either party to accept connection on their part.
   // Until both parties call it, connection will not reach a data phase.
   // Updates state in ClientProxy.
-  Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
+  Status AcceptConnection(::nearby::Borrowable<ClientProxy*> client,
+                          const std::string& endpoint_id,
                           PayloadListener payload_listener) override;
 
   // Called by either party to reject connection on their part.
   // If either party does call it, connection will terminate.
   // Updates state in ClientProxy.
-  Status RejectConnection(ClientProxy* client,
+  Status RejectConnection(::nearby::Borrowable<ClientProxy*> client,
                           const std::string& endpoint_id) override;
 
   // @EndpointManagerReaderThread
   void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
-                       const std::string& endpoint_id, ClientProxy* client,
+                       const std::string& endpoint_id,
+                       ::nearby::Borrowable<ClientProxy*> client,
                        location::nearby::proto::connections::Medium medium,
                        analytics::PacketMetaData& packet_meta_data) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.
   // @EndpointManagerThread
-  void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
+                            const std::string& service_id,
                             const std::string& endpoint_id,
                             CountDownLatch barrier,
                             DisconnectionReason reason) override;
 
   Status UpdateAdvertisingOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const AdvertisingOptions& advertising_options) override;
 
   Status UpdateDiscoveryOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const DiscoveryOptions& discovery_options) override;
 
   Pcp GetPcp() const override { return pcp_; }
@@ -259,71 +268,78 @@ class BasePcpHandler : public PcpHandler,
   BluetoothDevice GetRemoteBluetoothDevice(
       const std::string& remote_bluetooth_mac_address);
 
-  void OnEndpointFound(ClientProxy* client,
+  void OnEndpointFound(::nearby::Borrowable<ClientProxy*> client,
                        std::shared_ptr<DiscoveredEndpoint> endpoint)
       RUN_ON_PCP_HANDLER_THREAD()
           ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
-  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint)
+  void OnEndpointLost(::nearby::Borrowable<ClientProxy*> client,
+                      const DiscoveredEndpoint& endpoint)
       RUN_ON_PCP_HANDLER_THREAD()
           ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   Exception OnIncomingConnection(
-      ClientProxy* client, const ByteArray& remote_endpoint_info,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const ByteArray& remote_endpoint_info,
       std::unique_ptr<EndpointChannel> endpoint_channel,
       location::nearby::proto::connections::Medium medium,
       NearbyDevice::Type listening_device_type);  // throws Exception::IO
 
-  virtual bool HasOutgoingConnections(ClientProxy* client) const;
-  virtual bool HasIncomingConnections(ClientProxy* client) const;
+  virtual bool HasOutgoingConnections(
+      ::nearby::Borrowable<ClientProxy*> client) const;
+  virtual bool HasIncomingConnections(
+      ::nearby::Borrowable<ClientProxy*> client) const;
 
-  virtual bool CanSendOutgoingConnection(ClientProxy* client) const;
-  virtual bool CanReceiveIncomingConnection(ClientProxy* client) const;
+  virtual bool CanSendOutgoingConnection(
+      ::nearby::Borrowable<ClientProxy*> client) const;
+  virtual bool CanReceiveIncomingConnection(
+      ::nearby::Borrowable<ClientProxy*> client) const;
 
   virtual StartOperationResult StartAdvertisingImpl(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual Status StopAdvertisingImpl(ClientProxy* client)
+  virtual Status StopAdvertisingImpl(::nearby::Borrowable<ClientProxy*> client)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual StartOperationResult StartDiscoveryImpl(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const DiscoveryOptions& discovery_options)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual Status StopDiscoveryImpl(ClientProxy* client)
+  virtual Status StopDiscoveryImpl(::nearby::Borrowable<ClientProxy*> client)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual StartOperationResult StartListeningForIncomingConnectionsImpl(
-      ClientProxy* client_proxy, absl::string_view service_id,
-      absl::string_view local_endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client_proxy,
+      absl::string_view service_id, absl::string_view local_endpoint_id,
       v3::ConnectionListeningOptions options) RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual void StopListeningForIncomingConnectionsImpl(ClientProxy* client)
+  virtual void StopListeningForIncomingConnectionsImpl(
+      ::nearby::Borrowable<ClientProxy*> client)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual Status InjectEndpointImpl(ClientProxy* client,
+  virtual Status InjectEndpointImpl(::nearby::Borrowable<ClientProxy*> client,
                                     const std::string& service_id,
                                     const OutOfBandConnectionMetadata& metadata)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual ConnectImplResult ConnectImpl(ClientProxy* client,
-                                        DiscoveredEndpoint* endpoint)
+  virtual ConnectImplResult ConnectImpl(
+      ::nearby::Borrowable<ClientProxy*> client, DiscoveredEndpoint* endpoint)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual StartOperationResult UpdateAdvertisingOptionsImpl(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       absl::string_view local_endpoint_id,
       absl::string_view local_endpoint_info,
       const AdvertisingOptions& advertising_options)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual StartOperationResult UpdateDiscoveryOptionsImpl(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       absl::string_view local_endpoint_id,
       absl::string_view local_endpoint_info,
       const DiscoveryOptions& discovery_options)
@@ -361,7 +377,8 @@ class BasePcpHandler : public PcpHandler,
   // Start alarms for endpoints lost by their mediums. Used when updating
   // discovery options.
   void StartEndpointLostByMediumAlarms(
-      ClientProxy* client, location::nearby::proto::connections::Medium medium)
+      ::nearby::Borrowable<ClientProxy*> client,
+      location::nearby::proto::connections::Medium medium)
       RUN_ON_PCP_HANDLER_THREAD();
 
   void StopEndpointLostByMediumAlarm(
@@ -411,7 +428,7 @@ class BasePcpHandler : public PcpHandler,
     void LocalEndpointRejectedConnection(const std::string& endpoint_id);
 
     // Client state tracker to report events to. Never changes. Always valid.
-    ClientProxy* client = nullptr;
+    ::nearby::Borrowable<ClientProxy*> client;
     // Peer endpoint info, or empty, if not discovered yet. May change.
     ByteArray remote_endpoint_info;
     std::int32_t nonce = 0;
@@ -480,12 +497,14 @@ class BasePcpHandler : public PcpHandler,
   // Returns true if the incoming connection should be killed. This only
   // happens when an incoming connection arrives while we have an outgoing
   // connection to the same endpoint and we need to stop one connection.
-  bool BreakTie(ClientProxy* client, const std::string& endpoint_id,
-                std::int32_t incoming_nonce, EndpointChannel* channel);
+  bool BreakTie(::nearby::Borrowable<ClientProxy*> client,
+                const std::string& endpoint_id, std::int32_t incoming_nonce,
+                EndpointChannel* channel);
   // We're not sure how far our outgoing connection has gotten. We may (or may
   // not) have called ClientProxy::OnConnectionInitiated. Therefore, we'll
   // call both preInit and preResult failures.
-  void ProcessTieBreakLoss(ClientProxy* client, const std::string& endpoint_id,
+  void ProcessTieBreakLoss(::nearby::Borrowable<ClientProxy*> client,
+                           const std::string& endpoint_id,
                            PendingConnectionInfo* info);
 
   // Returns true if the bluetooth endpoint based on remote bluetooth mac
@@ -504,13 +523,13 @@ class BasePcpHandler : public PcpHandler,
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   void ProcessPreConnectionInitiationFailure(
-      ClientProxy* client, Medium medium, const std::string& endpoint_id,
-      EndpointChannel* channel, bool is_incoming, absl::Time start_time,
-      Status status, Future<Status>* result);
-  void ProcessPreConnectionResultFailure(ClientProxy* client,
-                                         const std::string& endpoint_id,
-                                         bool should_call_disconnect_endpoint,
-                                         const DisconnectionReason& reason);
+      ::nearby::Borrowable<ClientProxy*> client, Medium medium,
+      const std::string& endpoint_id, EndpointChannel* channel,
+      bool is_incoming, absl::Time start_time, Status status,
+      Future<Status>* result);
+  void ProcessPreConnectionResultFailure(
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
+      bool should_call_disconnect_endpoint, const DisconnectionReason& reason);
 
   // Called when either side accepts/rejects the connection, but only takes
   // effect after both have accepted or one side has rejected.
@@ -521,7 +540,7 @@ class BasePcpHandler : public PcpHandler,
   // onResult(DISCONNECTED) instead of onResult(REJECTED)), we delay our
   // close. If the other side behaves properly, we shouldn't even see the
   // delay (because they will also close the connection).
-  void EvaluateConnectionResult(ClientProxy* client,
+  void EvaluateConnectionResult(::nearby::Borrowable<ClientProxy*> client,
                                 const std::string& endpoint_id,
                                 bool can_close_immediately);
 
@@ -532,11 +551,10 @@ class BasePcpHandler : public PcpHandler,
   // array.
   std::string GetHashedConnectionToken(const ByteArray& token_bytes);
 
-  static void LogConnectionAttemptFailure(ClientProxy* client, Medium medium,
-                                          const std::string& endpoint_id,
-                                          bool is_incoming,
-                                          absl::Time start_time,
-                                          EndpointChannel* endpoint_channel);
+  static void LogConnectionAttemptFailure(
+      ::nearby::Borrowable<ClientProxy*> client, Medium medium,
+      const std::string& endpoint_id, bool is_incoming, absl::Time start_time,
+      EndpointChannel* endpoint_channel);
 
   static void LogConnectionAttemptSuccess(
       const std::string& endpoint_id,
@@ -544,7 +562,8 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns true if the client cancels the operation in progress through the
   // endpoint id. This is done by CancellationFlag.
-  static bool Cancelled(ClientProxy* client, const std::string& endpoint_id);
+  static bool Cancelled(::nearby::Borrowable<ClientProxy*> client,
+                        const std::string& endpoint_id);
 
   void WaitForLatch(const std::string& method_name, CountDownLatch* latch);
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,

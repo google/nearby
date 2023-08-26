@@ -71,7 +71,8 @@ Core::Core(ServiceControllerRouter* router) : router_(router) {}
 
 Core::~Core() {
   CountDownLatch latch(1);
-  router_->StopAllEndpoints(&client_, [&latch](Status) { latch.CountDown(); });
+  router_->StopAllEndpoints(client_.GetBorrowable(),
+                            [&latch](Status) { latch.CountDown(); });
   if (!latch.Await(kWaitForDisconnect).result()) {
     NEARBY_LOG(FATAL, "Unable to shutdown");
   }
@@ -88,12 +89,12 @@ void Core::StartAdvertising(absl::string_view service_id,
   CheckServiceId(service_id);
   CHECK(advertising_options.strategy.IsValid());
 
-  router_->StartAdvertising(&client_, service_id, advertising_options, info,
-                            std::move(callback));
+  router_->StartAdvertising(client_.GetBorrowable(), service_id,
+                            advertising_options, info, std::move(callback));
 }
 
 void Core::StopAdvertising(ResultCallback callback) {
-  router_->StopAdvertising(&client_, std::move(callback));
+  router_->StopAdvertising(client_.GetBorrowable(), std::move(callback));
 }
 
 void Core::StartDiscovery(absl::string_view service_id,
@@ -102,19 +103,20 @@ void Core::StartDiscovery(absl::string_view service_id,
   CheckServiceId(service_id);
   CHECK(discovery_options.strategy.IsValid());
 
-  router_->StartDiscovery(&client_, service_id, discovery_options, listener,
-                          std::move(callback));
+  router_->StartDiscovery(client_.GetBorrowable(), service_id,
+                          discovery_options, listener, std::move(callback));
 }
 
 void Core::InjectEndpoint(absl::string_view service_id,
                           OutOfBandConnectionMetadata metadata,
                           ResultCallback callback) {
   CheckServiceId(service_id);
-  router_->InjectEndpoint(&client_, service_id, metadata, std::move(callback));
+  router_->InjectEndpoint(client_.GetBorrowable(), service_id, metadata,
+                          std::move(callback));
 }
 
 void Core::StopDiscovery(ResultCallback callback) {
-  router_->StopDiscovery(&client_, std::move(callback));
+  router_->StopDiscovery(client_.GetBorrowable(), std::move(callback));
 }
 
 void Core::RequestConnection(absl::string_view endpoint_id,
@@ -141,28 +143,30 @@ void Core::RequestConnection(absl::string_view endpoint_id,
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
 
-  router_->RequestConnection(&client_, endpoint_id, info, connection_options,
-                             std::move(callback));
+  router_->RequestConnection(client_.GetBorrowable(), endpoint_id, info,
+                             connection_options, std::move(callback));
 }
 
 void Core::AcceptConnection(absl::string_view endpoint_id,
                             PayloadListener listener, ResultCallback callback) {
   CHECK(!endpoint_id.empty());
 
-  router_->AcceptConnection(&client_, endpoint_id, std::move(listener),
-                            std::move(callback));
+  router_->AcceptConnection(client_.GetBorrowable(), endpoint_id,
+                            std::move(listener), std::move(callback));
 }
 
 void Core::RejectConnection(absl::string_view endpoint_id,
                             ResultCallback callback) {
   CHECK(!endpoint_id.empty());
 
-  router_->RejectConnection(&client_, endpoint_id, std::move(callback));
+  router_->RejectConnection(client_.GetBorrowable(), endpoint_id,
+                            std::move(callback));
 }
 
 void Core::InitiateBandwidthUpgrade(absl::string_view endpoint_id,
                                     ResultCallback callback) {
-  router_->InitiateBandwidthUpgrade(&client_, endpoint_id, std::move(callback));
+  router_->InitiateBandwidthUpgrade(client_.GetBorrowable(), endpoint_id,
+                                    std::move(callback));
 }
 
 void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
@@ -170,29 +174,32 @@ void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
   CHECK(payload.GetType() != PayloadType::kUnknown);
   CHECK(!endpoint_ids.empty());
 
-  router_->SendPayload(&client_, endpoint_ids, std::move(payload),
-                       std::move(callback));
+  router_->SendPayload(client_.GetBorrowable(), endpoint_ids,
+                       std::move(payload), std::move(callback));
 }
 
 void Core::CancelPayload(std::int64_t payload_id, ResultCallback callback) {
   CHECK_NE(payload_id, 0);
 
-  router_->CancelPayload(&client_, payload_id, std::move(callback));
+  router_->CancelPayload(client_.GetBorrowable(), payload_id,
+                         std::move(callback));
 }
 
 void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
                                   ResultCallback callback) {
   CHECK(!endpoint_id.empty());
 
-  router_->DisconnectFromEndpoint(&client_, endpoint_id, std::move(callback));
+  router_->DisconnectFromEndpoint(client_.GetBorrowable(), endpoint_id,
+                                  std::move(callback));
 }
 
 void Core::StopAllEndpoints(ResultCallback callback) {
-  router_->StopAllEndpoints(&client_, std::move(callback));
+  router_->StopAllEndpoints(client_.GetBorrowable(), std::move(callback));
 }
 
 void Core::SetCustomSavePath(absl::string_view path, ResultCallback callback) {
-  router_->SetCustomSavePath(&client_, path, std::move(callback));
+  router_->SetCustomSavePath(client_.GetBorrowable(), path,
+                             std::move(callback));
 }
 
 std::string Core::Dump() { return client_.Dump(); }
@@ -273,8 +280,9 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
       ""  // device_info
   };
   // TODO(b/291295755): Refactor deeper to use v3 options throughout.
-  router_->StartAdvertising(&client_, service_id, old_advertising_options,
-                            old_info, std::move(callback));
+  router_->StartAdvertising(client_.GetBorrowable(), service_id,
+                            old_advertising_options, old_info,
+                            std::move(callback));
 }
 
 void Core::StartAdvertisingV3(absl::string_view service_id,
@@ -338,7 +346,7 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
 }
 
 void Core::StopDiscoveryV3(ResultCallback result_cb) {
-  router_->StopDiscovery(&client_, std::move(result_cb));
+  router_->StopDiscovery(client_.GetBorrowable(), std::move(result_cb));
 }
 
 void Core::StartListeningForIncomingConnectionsV3(
@@ -347,12 +355,12 @@ void Core::StartListeningForIncomingConnectionsV3(
   CHECK(options.listening_endpoint_type != NearbyDevice::Type::kUnknownDevice);
 
   router_->StartListeningForIncomingConnectionsV3(
-      &client_, service_id, std::move(listener_cb), options,
+      client_.GetBorrowable(), service_id, std::move(listener_cb), options,
       std::move(result_cb));
 }
 
 void Core::StopListeningForIncomingConnectionsV3() {
-  router_->StopListeningForIncomingConnectionsV3(&client_);
+  router_->StopListeningForIncomingConnectionsV3(client_.GetBorrowable());
 }
 
 void Core::RequestConnectionV3(const NearbyDevice& local_device,
@@ -384,8 +392,9 @@ void Core::RequestConnectionV3(const NearbyDevice& local_device,
     connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
-  router_->RequestConnectionV3(&client_, remote_device, std::move(info),
-                               connection_options, std::move(result_cb));
+  router_->RequestConnectionV3(client_.GetBorrowable(), remote_device,
+                               std::move(info), connection_options,
+                               std::move(result_cb));
 }
 
 void Core::RequestConnectionV3(const NearbyDevice& remote_device,
@@ -415,8 +424,9 @@ void Core::RequestConnectionV3(const NearbyDevice& remote_device,
     connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
-  router_->RequestConnectionV3(&client_, remote_device, std::move(info),
-                               connection_options, std::move(result_cb));
+  router_->RequestConnectionV3(client_.GetBorrowable(), remote_device,
+                               std::move(info), connection_options,
+                               std::move(result_cb));
 }
 
 void Core::AcceptConnectionV3(const NearbyDevice& remote_device,
@@ -424,15 +434,16 @@ void Core::AcceptConnectionV3(const NearbyDevice& remote_device,
                               ResultCallback result_cb) {
   CHECK(!remote_device.GetEndpointId().empty());
 
-  router_->AcceptConnectionV3(&client_, remote_device, std::move(listener_cb),
-                              std::move(result_cb));
+  router_->AcceptConnectionV3(client_.GetBorrowable(), remote_device,
+                              std::move(listener_cb), std::move(result_cb));
 }
 
 void Core::RejectConnectionV3(const NearbyDevice& remote_device,
                               ResultCallback result_cb) {
   CHECK(!remote_device.GetEndpointId().empty());
 
-  router_->RejectConnectionV3(&client_, remote_device, std::move(result_cb));
+  router_->RejectConnectionV3(client_.GetBorrowable(), remote_device,
+                              std::move(result_cb));
 }
 
 void Core::SendPayloadV3(const NearbyDevice& remote_device, Payload payload,
@@ -440,15 +451,15 @@ void Core::SendPayloadV3(const NearbyDevice& remote_device, Payload payload,
   CHECK(payload.GetType() != PayloadType::kUnknown);
   CHECK(!remote_device.GetEndpointId().empty());
 
-  router_->SendPayloadV3(&client_, remote_device, std::move(payload),
-                         std::move(result_cb));
+  router_->SendPayloadV3(client_.GetBorrowable(), remote_device,
+                         std::move(payload), std::move(result_cb));
 }
 
 void Core::CancelPayloadV3(const NearbyDevice& remote_device,
                            int64_t payload_id, ResultCallback result_cb) {
   CHECK_NE(payload_id, 0);
 
-  router_->CancelPayloadV3(&client_, remote_device, payload_id,
+  router_->CancelPayloadV3(client_.GetBorrowable(), remote_device, payload_id,
                            std::move(result_cb));
 }
 
@@ -456,17 +467,17 @@ void Core::DisconnectFromDeviceV3(const NearbyDevice& remote_device,
                                   ResultCallback result_cb) {
   CHECK(!remote_device.GetEndpointId().empty());
 
-  router_->DisconnectFromDeviceV3(&client_, remote_device,
+  router_->DisconnectFromDeviceV3(client_.GetBorrowable(), remote_device,
                                   std::move(result_cb));
 }
 
 void Core::StopAllDevicesV3(ResultCallback result_cb) {
-  router_->StopAllEndpoints(&client_, std::move(result_cb));
+  router_->StopAllEndpoints(client_.GetBorrowable(), std::move(result_cb));
 }
 
 void Core::InitiateBandwidthUpgradeV3(const NearbyDevice& remote_device,
                                       ResultCallback result_cb) {
-  router_->InitiateBandwidthUpgradeV3(&client_, remote_device,
+  router_->InitiateBandwidthUpgradeV3(client_.GetBorrowable(), remote_device,
                                       std::move(result_cb));
 }
 
@@ -488,8 +499,9 @@ void Core::UpdateAdvertisingOptionsV3(
       advertising_options.fast_advertisement_service_uuid,
       ""  // device_info
   };
-  router_->UpdateAdvertisingOptionsV3(
-      &client_, service_id, old_advertising_options, std::move(result_cb));
+  router_->UpdateAdvertisingOptionsV3(client_.GetBorrowable(), service_id,
+                                      old_advertising_options,
+                                      std::move(result_cb));
 }
 
 void Core::UpdateDiscoveryOptionsV3(absl::string_view service_id,
@@ -507,7 +519,8 @@ void Core::UpdateDiscoveryOptionsV3(absl::string_view service_id,
       discovery_options.fast_advertisement_service_uuid,
       discovery_options.power_level == PowerLevel::kLowPower,
   };
-  router_->UpdateDiscoveryOptionsV3(&client_, service_id, old_discovery_options,
+  router_->UpdateDiscoveryOptionsV3(client_.GetBorrowable(), service_id,
+                                    old_discovery_options,
                                     std::move(result_cb));
 }
 

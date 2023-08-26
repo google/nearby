@@ -36,6 +36,7 @@
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "connections/implementation/wifi_lan_bwu_handler.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
@@ -176,7 +177,7 @@ void BwuManager::MakeSingleThreadedForTesting() {
 }
 
 void BwuManager::InvokeOnIncomingConnectionForTesting(
-    ClientProxy* client,
+    ::nearby::Borrowable<ClientProxy*> client,
     std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection) {
   OnIncomingConnection(client, std::move(mutable_connection));
 }
@@ -186,16 +187,28 @@ void BwuManager::ShutdownExecutors() {
   serial_executor_.Shutdown();
 }
 
-void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
-                                        const std::string& endpoint_id,
-                                        Medium new_medium) {
+void BwuManager::InitiateBwuForEndpoint(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
+    Medium new_medium) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   // Select the best medium if one is not provided.
+  auto upgrade_mediums =
+      (*borrowed)->GetUpgradeMediums(endpoint_id).GetMediums(true);
   Medium proposed_medium =
       new_medium == Medium::UNKNOWN_MEDIUM
           ? ChooseBestUpgradeMedium(
                 endpoint_id,
-                client->GetUpgradeMediums(endpoint_id).GetMediums(true))
+                (*borrowed)->GetUpgradeMediums(endpoint_id).GetMediums(true))
           : new_medium;
+
+  // Release borrowed instance to prevent Mutex deadlock in
+  // `EndpointChannelManager::IsWifiLanConnected()`
+  borrowed.FinishBorrowing();
 
   RunOnBwuManagerThread("bwu-init", [this, client, endpoint_id,
                                      proposed_medium]() {
@@ -238,20 +251,31 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     auto channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
     Medium channel_medium =
         channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
         endpoint_id, channel_medium, proposed_medium,
         location::nearby::proto::connections::INCOMING,
-        client->GetConnectionToken(endpoint_id));
+        (*borrowed)->GetConnectionToken(endpoint_id));
     if (channel == nullptr) {
       NEARBY_LOGS(INFO)
           << "BwuManager couldn't complete the upgrade for endpoint "
           << endpoint_id
           << " because it couldn't find an existing EndpointChannel for it.";
-      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+      (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
           endpoint_id, location::nearby::proto::connections::CHANNEL_ERROR,
           location::nearby::proto::connections::NETWORK_AVAILABLE);
       return;
     }
+
+    // Release borrowed instance to prevent Mutex deadlock in
+    // `InitializeUpgradedMediumForEndpoint()`
+    borrowed.FinishBorrowing();
 
     // Ignore requests where the medium we're upgrading to is the medium we're
     // already connected over. This can happen now that Bluetooth is both an
@@ -287,9 +311,20 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
       info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
 
       ProcessUpgradeFailureEvent(client, endpoint_id, info);
-      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-          endpoint_id, location::nearby::proto::connections::RESULT_IO_ERROR,
-          location::nearby::proto::connections::NETWORK_AVAILABLE);
+
+      // Borrow again to record failures.
+      ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+      if (!borrowed2) {
+        NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+        return;
+      }
+
+      (*borrowed2)
+          ->GetAnalyticsRecorder()
+          .OnBandwidthUpgradeError(
+              endpoint_id,
+              location::nearby::proto::connections::RESULT_IO_ERROR,
+              location::nearby::proto::connections::NETWORK_AVAILABLE);
       return;
     }
     if (!channel->Write(bytes).Ok()) {
@@ -314,7 +349,8 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
 
 void BwuManager::OnIncomingFrame(OfflineFrame& frame,
                                  const std::string& endpoint_id,
-                                 ClientProxy* client, Medium medium,
+                                 ::nearby::Borrowable<ClientProxy*> client,
+                                 Medium medium,
                                  PacketMetaData& packet_meta_data) {
   V1Frame::FrameType frame_type = parser::GetFrameType(frame);
   if (frame_type != V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION) return;
@@ -342,7 +378,7 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
   }
 }
 
-void BwuManager::OnEndpointDisconnect(ClientProxy* client,
+void BwuManager::OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                                       const std::string& service_id,
                                       const std::string& endpoint_id,
                                       CountDownLatch barrier,
@@ -464,9 +500,9 @@ BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
   return it->second.get();
 }
 
-void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
-                                       const BwuNegotiationFrame frame,
-                                       const string& endpoint_id) {
+void BwuManager::OnBwuNegotiationFrame(
+    ::nearby::Borrowable<ClientProxy*> client, const BwuNegotiationFrame frame,
+    const string& endpoint_id) {
   NEARBY_LOGS(INFO) << "OnBwuNegotiationFrame: processing incoming "
                     << BwuNegotiationFrame::EventType_Name(frame.event_type())
                     << " frame for endpoint " << endpoint_id;
@@ -496,7 +532,7 @@ void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
 }
 
 void BwuManager::OnIncomingConnection(
-    ClientProxy* client,
+    ::nearby::Borrowable<ClientProxy*> client,
     std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection) {
   NEARBY_LOGS(INFO) << "BwuManager process incoming connection";
   std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
@@ -548,40 +584,66 @@ void BwuManager::OnIncomingConnection(
                              << channel->GetName();
 
         const std::string& endpoint_id = introduction.endpoint_id();
-        ClientProxy* mapped_client;
+        ::nearby::Borrowable<ClientProxy*> borrowable_mapped_client;
         const auto item = in_progress_upgrades_.find(endpoint_id);
         if (item == in_progress_upgrades_.end()) return;
-        mapped_client = item->second;
+        borrowable_mapped_client = item->second;
         CancelRetryUpgradeAlarm(endpoint_id);
-        if (mapped_client == nullptr) {
+
+        ::nearby::Borrowed<ClientProxy*> borrowed_mapped_client =
+            borrowable_mapped_client.Borrow();
+        if (!borrowed_mapped_client) {
+          NEARBY_LOGS(ERROR) << __func__ << ": Mapped ClientProxy is gone";
+          return;
+        }
+
+        // Keep a raw pointer to |mapped_client| in order to check if it
+        // matches the passed in `ClientProxy`, however in order to do this
+        // we need to `FinishBorrowing()` it in order to prevent blocking
+        // when we borrow from |client|.
+        ClientProxy* mapped_client = *borrowed_mapped_client;
+        borrowed_mapped_client.FinishBorrowing();
+
+        if (!mapped_client) {
           // This was never a fully EstablishedConnection, no need to provide a
           // closure reason.
           channel->Close();
           return;
         }
 
-        CHECK(client == mapped_client);
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          return;
+        }
+
+        CHECK((*borrowed) == mapped_client);
 
         // The ConnectionAttempt has now succeeded, so record it as such.
         std::unique_ptr<ConnectionAttemptMetadataParams>
             connections_attempt_metadata_params;
         if (channel != nullptr) {
           connections_attempt_metadata_params =
-              client->GetAnalyticsRecorder()
+              (*borrowed)
+                  ->GetAnalyticsRecorder()
                   .BuildConnectionAttemptMetadataParams(
                       channel->GetTechnology(), channel->GetBand(),
                       channel->GetFrequency(), channel->GetTryCount());
         }
-        client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+        (*borrowed)->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
             location::nearby::proto::connections::UPGRADE, channel->GetMedium(),
             location::nearby::proto::connections::RESULT_SUCCESS,
             SystemClock::ElapsedRealtime() - connection_attempt_start_time,
-            client->GetConnectionToken(endpoint_id),
+            (*borrowed)->GetConnectionToken(endpoint_id),
             connections_attempt_metadata_params.get());
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `RunUpgradeProtocol()`.
+        borrowed.FinishBorrowing();
 
         // Use the introductory client information sent over to run the upgrade
         // protocol.
-        RunUpgradeProtocol(mapped_client, endpoint_id,
+        RunUpgradeProtocol(borrowable_mapped_client, endpoint_id,
                            std::move(connection->channel),
                            !introduction.supports_disabling_encryption());
       });
@@ -598,7 +660,7 @@ void BwuManager::RunOnBwuManagerThread(const std::string& name,
 }
 
 void BwuManager::RunUpgradeProtocol(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     std::unique_ptr<EndpointChannel> new_channel, bool enable_encryption) {
   NEARBY_LOGS(INFO) << "RunUpgradeProtocol new channel @" << new_channel.get()
                     << " name: " << new_channel->GetName() << ", medium: "
@@ -620,7 +682,12 @@ void BwuManager::RunUpgradeProtocol(
         << endpoint_id
         << " when registering the new EndpointChannel, short-circuiting the "
            "upgrade protocol.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::CHANNEL_ERROR,
         location::nearby::proto::connections::PRIOR_ENDPOINT_CHANNEL);
     return;
@@ -637,11 +704,18 @@ void BwuManager::RunUpgradeProtocol(
            "BWU_NEGOTIATION.LAST_WRITE_TO_PRIOR_CHANNEL OfflineFrame to "
            "endpoint "
         << endpoint_id << ", short-circuiting the upgrade protocol.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::RESULT_IO_ERROR,
         location::nearby::proto::connections::LAST_WRITE_TO_PRIOR_CHANNEL);
     return;
   }
+
   NEARBY_LOGS(VERBOSE) << "BwuManager successfully wrote "
                           "BWU_NEGOTIATION.LAST_WRITE_TO_PRIOR_CHANNEL "
                           "OfflineFrame while upgrading endpoint "
@@ -663,7 +737,7 @@ void BwuManager::RunUpgradeProtocol(
 
 // Outgoing BWU session.
 void BwuManager::ProcessBwuPathAvailableEvent(
-    ClientProxy* client, const string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const string& endpoint_id,
     const UpgradePathInfo& upgrade_path_info) {
   Medium upgrade_medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
@@ -672,11 +746,21 @@ void BwuManager::ProcessBwuPathAvailableEvent(
                     << location::nearby::proto::connections::Medium_Name(
                            upgrade_medium);
 
+  // Need to borrow to get the type and then immediatley release to
+  // prevent Mutex deadlock in `IsWifiLanConnected()` in the if statement
+  // below.
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  auto type = (*borrowed)->GetLocalOsInfo().type();
+  borrowed.FinishBorrowing();
+
   if (channel_manager_->isWifiLanConnected() &&
       ((upgrade_medium == Medium::WIFI_HOTSPOT) ||
        ((upgrade_medium == Medium::WIFI_DIRECT) &&
-        (client->GetLocalOsInfo().type() ==
-         location::nearby::connections::OsInfo::WINDOWS)))) {
+        (type == location::nearby::connections::OsInfo::WINDOWS)))) {
     NEARBY_LOGS(INFO)
         << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
         << location::nearby::proto::connections::Medium_Name(upgrade_medium)
@@ -726,25 +810,45 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   auto current_channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
   Medium current_medium =
       current_channel ? current_channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
-  client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
-      endpoint_id, current_medium, upgrade_medium,
-      location::nearby::proto::connections::OUTGOING,
-      client->GetConnectionToken(endpoint_id));
+
+  ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+  if (!borrowed2) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed2)
+      ->GetAnalyticsRecorder()
+      .OnBandwidthUpgradeStarted(endpoint_id, current_medium, upgrade_medium,
+                                 location::nearby::proto::connections::OUTGOING,
+                                 (*borrowed2)->GetConnectionToken(endpoint_id));
+
+  // Mark |borrowed2| as `FinishBorrowing` to prevent Mutex deadlock in
+  // `ProcessBwuPathAvailableEventInternal()`.
+  borrowed2.FinishBorrowing();
 
   absl::Time connection_attempt_start_time = SystemClock::ElapsedRealtime();
   auto channel = ProcessBwuPathAvailableEventInternal(client, endpoint_id,
                                                       upgrade_path_info);
   location::nearby::proto::connections::ConnectionAttemptResult
       connection_attempt_result;
+
+  ::nearby::Borrowed<ClientProxy*> borrowed3 = client.Borrow();
+  if (!borrowed3) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
   if (channel != nullptr) {
     connection_attempt_result =
         location::nearby::proto::connections::RESULT_SUCCESS;
-  } else if (client->GetCancellationFlag(endpoint_id)->Cancelled()) {
+  } else if ((*borrowed3)->GetCancellationFlag(endpoint_id)->Cancelled()) {
     connection_attempt_result =
         location::nearby::proto::connections::RESULT_CANCELLED;
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-        endpoint_id, location::nearby::proto::connections::RESULT_REMOTE_ERROR,
-        location::nearby::proto::connections::UPGRADE_CANCEL);
+    (*borrowed3)
+        ->GetAnalyticsRecorder()
+        .OnBandwidthUpgradeError(
+            endpoint_id,
+            location::nearby::proto::connections::RESULT_REMOTE_ERROR,
+            location::nearby::proto::connections::UPGRADE_CANCEL);
   } else {
     connection_attempt_result =
         location::nearby::proto::connections::RESULT_ERROR;
@@ -754,16 +858,24 @@ void BwuManager::ProcessBwuPathAvailableEvent(
       connections_attempt_metadata_params;
   if (channel != nullptr) {
     connections_attempt_metadata_params =
-        client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
-            channel->GetTechnology(), channel->GetBand(),
-            channel->GetFrequency(), channel->GetTryCount());
+        (*borrowed3)
+            ->GetAnalyticsRecorder()
+            .BuildConnectionAttemptMetadataParams(
+                channel->GetTechnology(), channel->GetBand(),
+                channel->GetFrequency(), channel->GetTryCount());
   }
-  client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
-      endpoint_id, location::nearby::proto::connections::UPGRADE,
-      upgrade_medium, connection_attempt_result,
-      SystemClock::ElapsedRealtime() - connection_attempt_start_time,
-      client->GetConnectionToken(endpoint_id),
-      connections_attempt_metadata_params.get());
+  (*borrowed3)
+      ->GetAnalyticsRecorder()
+      .OnOutgoingConnectionAttempt(
+          endpoint_id, location::nearby::proto::connections::UPGRADE,
+          upgrade_medium, connection_attempt_result,
+          SystemClock::ElapsedRealtime() - connection_attempt_start_time,
+          (*borrowed3)->GetConnectionToken(endpoint_id),
+          connections_attempt_metadata_params.get());
+
+  // Mark |borrowed3| as `FinishBorrowing()` in order to prevent Mutex
+  // deadlock in `RunUpgradeProtocol()`.
+  borrowed3.FinishBorrowing();
 
   if (channel == nullptr) {
     NEARBY_LOGS(INFO) << "Failed to get new channel.";
@@ -778,7 +890,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
 
 std::unique_ptr<EndpointChannel>
 BwuManager::ProcessBwuPathAvailableEventInternal(
-    ClientProxy* client, const string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const string& endpoint_id,
     const UpgradePathInfo& upgrade_path_info) {
   Medium medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
@@ -827,11 +939,18 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   std::unique_ptr<EndpointChannel> new_channel =
       handler->CreateUpgradedEndpointChannel(client, service_id, endpoint_id,
                                              upgrade_path_info);
+
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return nullptr;
+  }
+
   if (!new_channel) {
     NEARBY_LOGS(ERROR) << "BwuManager failed to create an endpoint "
                           "channel to endpoint"
                        << endpoint_id << ", aborting upgrade.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::RESULT_IO_ERROR,
         location::nearby::proto::connections::SOCKET_CREATION);
     return nullptr;
@@ -841,7 +960,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   // the first OfflineFrame on this new EndpointChannel.
   if (!new_channel
            ->Write(parser::ForBwuIntroduction(
-               client->GetLocalEndpointId(),
+               (*borrowed)->GetLocalEndpointId(),
                upgrade_path_info.supports_disabling_encryption()))
            .Ok()) {
     // This was never a fully EstablishedConnection, no need to provide a
@@ -852,7 +971,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
         << "BwuManager failed to write BWU_NEGOTIATION.CLIENT_INTRODUCTION "
            "OfflineFrame to newly-created EndpointChannel "
         << new_channel->GetName() << ", aborting upgrade.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::RESULT_IO_ERROR,
         location::nearby::proto::connections::CLIENT_INTRODUCTION);
     return {};
@@ -885,7 +1004,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
 }
 
 void BwuManager::RunUpgradeFailedProtocol(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const UpgradePathInfo& upgrade_path_info) {
   NEARBY_LOGS(INFO) << "RunUpgradeFailedProtocol for endpoint " << endpoint_id
                     << " medium "
@@ -903,7 +1022,12 @@ void BwuManager::RunUpgradeFailedProtocol(
         << endpoint_id
         << " when sending an upgrade failure frame, short-circuiting the "
            "upgrade protocol.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::CHANNEL_ERROR,
         location::nearby::proto::connections::NETWORK_AVAILABLE);
     return;
@@ -917,7 +1041,12 @@ void BwuManager::RunUpgradeFailedProtocol(
         << "BwuManager failed to write BWU_NEGOTIATION.UPGRADE_FAILURE "
            "OfflineFrame to endpoint "
         << endpoint_id << ", short-circuiting the upgrade protocol.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::RESULT_IO_ERROR,
         location::nearby::proto::connections::NETWORK_AVAILABLE);
     return;
@@ -1025,7 +1154,7 @@ bool BwuManager::WriteClientIntroductionAckFrame(EndpointChannel* channel) {
 }
 
 void BwuManager::ProcessLastWriteToPriorChannelEvent(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id) {
   // By this point in the upgrade protocol, there is the guarantee that both
   // involved endpoints have registered a new EndpointChannel with the
   // EndpointChannelManager as the official channel for communication; given
@@ -1052,6 +1181,12 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
                     << location::nearby::proto::connections::Medium_Name(
                            previous_endpoint_channel->GetMedium());
 
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   if (!previous_endpoint_channel->Write(parser::ForBwuSafeToClose()).Ok()) {
     previous_endpoint_channel->Close(DisconnectionReason::IO_ERROR);
     // Remove this prior EndpointChannel from previous_endpoint_channels to
@@ -1063,7 +1198,7 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
                           "OfflineFrame to endpoint "
                        << endpoint_id
                        << ", short-circuiting the upgrade protocol.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::RESULT_IO_ERROR,
         location::nearby::proto::connections::SAFE_TO_CLOSE_PRIOR_CHANNEL);
     return;
@@ -1080,7 +1215,7 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
 }
 
 void BwuManager::ProcessSafeToClosePriorChannelEvent(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "ProcessSafeToClosePriorChannelEvent for endpoint "
                     << endpoint_id;
   // By this point in the upgrade protocol, there's no more writes happening
@@ -1135,13 +1270,23 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
       << " EndpointChannel to conclude upgrade protocol for endpoint "
       << endpoint_id;
 
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   // Now the upgrade protocol has completed, record analytics for this new
   // upgraded bandwidth connection...
-  client->GetAnalyticsRecorder().OnConnectionEstablished(
+  (*borrowed)->GetAnalyticsRecorder().OnConnectionEstablished(
       endpoint_id, GetBwuMediumForEndpoint(endpoint_id),
-      client->GetConnectionToken(endpoint_id));
+      (*borrowed)->GetConnectionToken(endpoint_id));
   // ...and the success of the upgrade itself.
-  client->GetAnalyticsRecorder().OnBandwidthUpgradeSuccess(endpoint_id);
+  (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeSuccess(endpoint_id);
+
+  // Release borrowed instance to prevent Mutex deadlock in
+  // `GetChannelForEndpoint()`.
+  borrowed.FinishBorrowing();
 
   // Now that the old channel has been drained, we can unpause the new channel
   std::shared_ptr<EndpointChannel> channel =
@@ -1156,13 +1301,18 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
 
   channel->Resume();
 
-  // Report the success to the client
-  client->OnBandwidthChanged(endpoint_id, channel->GetMedium());
+  // Borrow again to report the success to the client
+  ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+  if (!borrowed2) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed2)->OnBandwidthChanged(endpoint_id, channel->GetMedium());
   in_progress_upgrades_.erase(endpoint_id);
 }
 
 void BwuManager::ProcessUpgradeFailureEvent(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const UpgradePathInfo& upgrade_info) {
   NEARBY_LOGS(INFO) << "ProcessUpgradeFailureEvent for endpoint " << endpoint_id
                     << " from medium: "
@@ -1188,7 +1338,12 @@ void BwuManager::ProcessUpgradeFailureEvent(
         << endpoint_id
         << " because we have other connected endpoints and can't try a new "
            "upgrade medium.";
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
         endpoint_id, location::nearby::proto::connections::CHANNEL_ERROR,
         location::nearby::proto::connections::NETWORK_AVAILABLE);
     return;
@@ -1210,8 +1365,17 @@ void BwuManager::ProcessUpgradeFailureEvent(
   // top element until we get to the medium we last attempted to upgrade to. The
   // remainder of the list will contain the mediums we haven't attempted yet.
   Medium last = parser::UpgradePathInfoMediumToMedium(upgrade_info.medium());
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
   std::vector<Medium> all_possible_mediums =
-      client->GetUpgradeMediums(endpoint_id).GetMediums(true);
+      (*borrowed)->GetUpgradeMediums(endpoint_id).GetMediums(true);
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlocks in
+  // `TryNextBestUpgradeMediums()`.
+  borrowed.FinishBorrowing();
+
   std::vector<Medium> untried_mediums(all_possible_mediums);
   for (Medium medium : all_possible_mediums) {
     untried_mediums.erase(untried_mediums.begin());
@@ -1224,7 +1388,7 @@ void BwuManager::ProcessUpgradeFailureEvent(
 }
 
 void BwuManager::TryNextBestUpgradeMediums(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     std::vector<Medium> upgrade_mediums) {
   Medium next_medium = ChooseBestUpgradeMedium(endpoint_id, upgrade_mediums);
   NEARBY_LOGS(INFO) << "Try Next Best Medium for endpoint " << endpoint_id
@@ -1356,8 +1520,8 @@ Medium BwuManager::ChooseBestUpgradeMedium(
   return Medium::UNKNOWN_MEDIUM;
 }
 
-void BwuManager::RetryUpgradesAfterDelay(ClientProxy* client,
-                                         const std::string& endpoint_id) {
+void BwuManager::RetryUpgradesAfterDelay(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id) {
   absl::Duration delay = CalculateNextRetryDelay(endpoint_id);
   CancelRetryUpgradeAlarm(endpoint_id);
   auto alarm = std::make_unique<CancelableAlarm>(
@@ -1365,12 +1529,18 @@ void BwuManager::RetryUpgradesAfterDelay(ClientProxy* client,
       [this, client, endpoint_id]() {
         RunOnBwuManagerThread(
             "bwu-retry-upgrade", [this, client, endpoint_id]() {
-              if (!client->IsConnectedToEndpoint(endpoint_id)) {
+              ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+              if (!borrowed) {
+                NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+                return;
+              }
+
+              if (!(*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
                 return;
               }
               TryNextBestUpgradeMediums(
                   client, endpoint_id,
-                  client->GetUpgradeMediums(endpoint_id).GetMediums(true));
+                  (*borrowed)->GetUpgradeMediums(endpoint_id).GetMediums(true));
             });
       },
       delay, &alarm_executor_);
@@ -1389,14 +1559,20 @@ void BwuManager::AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
   if (in_progress_upgrades_.size() == 1) {
     auto it = in_progress_upgrades_.begin();
     std::string endpoint_id = it->first;
-    ClientProxy* client = it->second;
+    ::nearby::Borrowable<ClientProxy*> client = it->second;
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+
     // Note: Even though we know this is an error, we cannot clear state yet.
     // We've sent the remote device the credentials they need and it's up to
     // them if they want to repeatedly attempt to connect or if they want to
     // give up and have us try a different medium. This isn't a decision we can
     // make for them.
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(endpoint_id, result,
-                                                           error_stage);
+    (*borrowed)->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+        endpoint_id, result, error_stage);
     NEARBY_LOGS(INFO)
         << "BwuManager got error "
         << location::nearby::proto::connections::BandwidthUpgradeResult_Name(
