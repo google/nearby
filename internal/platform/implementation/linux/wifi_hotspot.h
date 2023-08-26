@@ -47,6 +47,7 @@ public:
 
 private:
   bool WifiHotspotActive();
+  bool ConnectedToWifi();
 
   sdbus::IConnection &system_bus_;
   std::unique_ptr<NetworkManagerWifiMedium> wireless_device_;
