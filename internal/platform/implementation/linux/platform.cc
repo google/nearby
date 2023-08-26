@@ -1,12 +1,18 @@
 #include <filesystem>
 #include <memory>
-#include <sdbus-c++/Error.h>
-#include <sdbus-c++/Types.h>
 #include <string>
 
+#include <curl/curl.h>
+#include <sdbus-c++/Error.h>
+#include <sdbus-c++/Types.h>
+
+#include "device_info.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/count_down_latch.h"
+#include "internal/platform/implementation/http_loader.h"
+#include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/linux/atomic_boolean.h"
 #include "internal/platform/implementation/linux/atomic_uint32.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
@@ -16,15 +22,20 @@
 #include "internal/platform/implementation/linux/condition_variable.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/mutex.h"
-#include "internal/platform/implementation/linux/networkmanager_device_wireless_client_glue.h"
+#include "internal/platform/implementation/linux/submittable_executor.h"
+#include "internal/platform/implementation/linux/timer.h"
 #include "internal/platform/implementation/linux/wifi_hotspot.h"
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
+#include "internal/platform/implementation/shared/file.h"
+#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/payload_id.h"
 #include "log_message.h"
+#include "scheduled_executor.h"
 
 namespace nearby {
 namespace api {
@@ -84,10 +95,57 @@ ImplementationPlatform::CreateConditionVariable(api::Mutex *mutex) {
   return std::make_unique<linux::ConditionVariable>(mutex);
 }
 
+std::unique_ptr<api::InputFile>
+ImplementationPlatform::CreateInputFile(PayloadId id, std::int64_t total_size) {
+  auto path = GetDownloadPath(std::to_string(id));
+  return nearby::shared::IOFile::CreateInputFile(path, total_size);
+}
+
+std::unique_ptr<InputFile>
+ImplementationPlatform::CreateInputFile(const std::string &file_path,
+                                        size_t size) {
+  return nearby::shared::IOFile::CreateInputFile(file_path, size);
+}
+
+std::unique_ptr<OutputFile>
+ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
+  return nearby::shared::IOFile::CreateOutputFile(
+      GetDownloadPath("", std::to_string(payload_id)));
+}
+
+std::unique_ptr<OutputFile>
+ImplementationPlatform::CreateOutputFile(const std::string &file_path) {
+  std::filesystem::path path(file_path);
+  try {
+    std::filesystem::create_directories(path.parent_path());
+  } catch (std::filesystem::filesystem_error const &err) {
+    NEARBY_LOGS(ERROR) << __func__ << ": error creating directory tree "
+                       << path.parent_path() << ": " << err.what();
+  }
+
+  return nearby::shared::IOFile::CreateOutputFile(path.string());
+}
+
 std::unique_ptr<api::LogMessage>
 ImplementationPlatform::CreateLogMessage(const char *file, int line,
                                          LogMessage::Severity severity) {
   return std::make_unique<linux::LogMessage>(file, line, severity);
+}
+
+std::unique_ptr<api::SubmittableExecutor>
+ImplementationPlatform::CreateSingleThreadExecutor() {
+  return std::make_unique<linux::SubmittableExecutor>();
+}
+
+std::unique_ptr<api::SubmittableExecutor>
+ImplementationPlatform::CreateMultiThreadExecutor(
+    std::int32_t max_concurrency) {
+  return std::make_unique<linux::SubmittableExecutor>(max_concurrency);
+}
+
+std::unique_ptr<ScheduledExecutor>
+ImplementationPlatform::CreateScheduledExecutor() {
+  return std::make_unique<linux::ScheduledExecutor>();
 }
 
 std::unique_ptr<api::BluetoothAdapter>
@@ -98,10 +156,9 @@ ImplementationPlatform::CreateBluetoothAdapter() {
     auto interfaces = manager.GetManagedObjects();
     for (auto &[object, properties] : interfaces) {
       if (properties.count(org::bluez::Adapter1_proxy::INTERFACE_NAME) == 1) {
-	NEARBY_LOGS(INFO)
-              << __func__ << ": found bluetooth adapter " << object;
-          return std::make_unique<linux::BluetoothAdapter>(
-              linux::getSystemBusConnection(), object);
+        NEARBY_LOGS(INFO) << __func__ << ": found bluetooth adapter " << object;
+        return std::make_unique<linux::BluetoothAdapter>(
+            linux::getSystemBusConnection(), object);
       }
     }
   } catch (const sdbus::Error &e) {
@@ -119,6 +176,16 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
   auto path = static_cast<linux::BluetoothAdapter *>(&adapter)->getObjectPath();
   return std::make_unique<linux::BluetoothClassicMedium>(
       linux::getSystemBusConnection(), path);
+}
+
+std::unique_ptr<BleMedium>
+ImplementationPlatform::CreateBleMedium(BluetoothAdapter &) {
+  return nullptr;
+}
+
+std::unique_ptr<api::ble_v2::BleMedium>
+ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
+  return nullptr;
 }
 
 static std::unique_ptr<linux::NetworkManagerWifiMedium>
@@ -152,7 +219,8 @@ createWifiMedium(std::shared_ptr<linux::NetworkManager> nm) {
                            Wireless_proxy::INTERFACE_NAME) == 1) {
         NEARBY_LOGS(INFO) << __func__
                           << ": Found a wireless device at :" << device_path;
-        return std::make_unique<linux::NetworkManagerWifiMedium>(nm, linux::getSystemBusConnection(), device_path);
+        return std::make_unique<linux::NetworkManagerWifiMedium>(
+            nm, linux::getSystemBusConnection(), device_path);
       }
     }
   }
@@ -168,7 +236,8 @@ std::unique_ptr<api::WifiMedium> ImplementationPlatform::CreateWifiMedium() {
   return createWifiMedium(nm);
 }
 
-std::unique_ptr<api::WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
+std::unique_ptr<api::WifiLanMedium>
+ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<linux::WifiLanMedium>(
       linux::getSystemBusConnection());
 }
@@ -186,6 +255,88 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
 
   return std::make_unique<linux::NetworkManagerWifiHotspotMedium>(
       linux::getSystemBusConnection(), nm, std::move(wifiMedium));
+}
+
+std::unique_ptr<api::WifiDirectMedium>
+ImplementationPlatform::CreateWifiDirectMedium() {
+  return nullptr;
+}
+
+std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {
+  return std::make_unique<linux::Timer>();
+}
+
+std::unique_ptr<api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
+  return std::make_unique<linux::DeviceInfo>(linux::getSystemBusConnection());
+}
+
+absl::StatusOr<api::WebResponse>
+ImplementationPlatform::SendRequest(const WebRequest &request) {
+  if (request.body.size() >= (8 * 1024 * 1024)) {
+    return absl::Status(absl::StatusCode::kResourceExhausted,
+                        "request body too large");
+  }
+
+  CURL *handle = curl_easy_init();
+  char errbuf[CURL_ERROR_SIZE];
+  errbuf[0] = '\0';
+
+  curl_easy_setopt(handle, CURLOPT_URL, request.url.c_str());
+  curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errbuf);
+
+  if (request.method == "GET")
+    curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
+  else if (request.method == "POST")
+    curl_easy_setopt(handle, CURLOPT_HTTPPOST, 1L);
+  else
+    curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, request.method.c_str());
+
+  curl_easy_setopt(handle, CURLOPT_UPLOAD, request.body.c_str());
+
+  struct curl_slist *headers_slist = nullptr;
+
+  for (auto &[key, value] : request.headers) {
+    auto hdr = absl::StrCat(key, ": ", value);
+    auto temp = curl_slist_append(headers_slist, hdr.c_str());
+    if (temp == nullptr) {
+      if (headers_slist != nullptr) {
+        curl_slist_free_all(headers_slist);
+      }
+      return absl::Status(absl::StatusCode::kResourceExhausted,
+                          "failed to append header to slist");
+    }
+  }
+
+  curl_easy_setopt(handle, CURLOPT_HTTPHEADER, headers_slist);
+
+  api::WebResponse response;
+
+  if (curl_easy_perform(handle) != CURLE_OK) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Error performing HTTP request: " << errbuf;
+    return absl::Status(absl::StatusCode::kUnknown, errbuf);
+  }
+
+  struct curl_header *prev = nullptr;
+  struct curl_header *h;
+
+  h = curl_easy_nextheader(handle, CURLH_HEADER, 0, prev);
+  while (h != nullptr) {
+    response.headers.emplace(h->name, h->value);
+  }
+
+  auto writefn = [](char *ptr, size_t size, size_t nmemb, void *userdata) {
+    std::string *body = static_cast<std::string *>(userdata);
+    body->append(ptr, size * nmemb);
+  };
+
+  curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writefn);
+  curl_easy_setopt(handle, CURLOPT_WRITEDATA,
+                   static_cast<void *>(&response.body));
+  long status;
+  curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &status);
+  response.status_code = status;
+  return response;
 }
 
 } // namespace api
