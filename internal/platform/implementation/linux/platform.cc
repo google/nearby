@@ -24,6 +24,7 @@
 #include "internal/platform/implementation/linux/mutex.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
 #include "internal/platform/implementation/linux/timer.h"
+#include "internal/platform/implementation/linux/wifi_direct.h"
 #include "internal/platform/implementation/linux/wifi_hotspot.h"
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
@@ -163,6 +164,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
     }
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(&manager, "GetManagedObjects", e);
+    return nullptr;
   }
 
   NEARBY_LOGS(ERROR) << __func__
@@ -259,7 +261,17 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
 
 std::unique_ptr<api::WifiDirectMedium>
 ImplementationPlatform::CreateWifiDirectMedium() {
-  return nullptr;
+  auto nm =
+      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+  auto wifiMedium = createWifiMedium(nm);
+
+  if (wifiMedium == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
+    return nullptr;
+  }
+
+  return std::make_unique<linux::NetworkManagerWifiDirectMedium>(
+      linux::getSystemBusConnection(), nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {
