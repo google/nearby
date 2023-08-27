@@ -16,19 +16,21 @@
 #define PLATFORM_IMPL_LINUX_TIMER_H_
 
 #include <memory>
+#include <optional>
+#include <time.h>
+#include <signal.h>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
-#include "internal/platform/implementation/linux/timer_queue.h"
 
 namespace nearby {
 namespace linux {
 
 class Timer : public api::Timer {
  public:
-  Timer() = default;
+  Timer() : timerid_(nullptr) {} ;
   ~Timer() override;
 
   bool Create(int delay, int interval,
@@ -37,17 +39,11 @@ class Timer : public api::Timer {
   bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
   bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
 
- private:
-  static void TimerRoutine(void *lpParam);
-
-  mutable absl::Mutex mutex_;
-  int delay_ ABSL_GUARDED_BY(mutex_);
-  int interval_ ABSL_GUARDED_BY(mutex_);
+private:
+  absl::Mutex mutex_;
+  std::optional<timer_t> timerid_ ABSL_GUARDED_BY(mutex_);
   absl::AnyInvocable<void()> callback_;
-  uint16_t handle_ ABSL_GUARDED_BY(mutex_) = 0;
-  std::unique_ptr<TimerQueue> timer_queue_handle_;
-  std::unique_ptr<SubmittableExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
-      nullptr;
+  std::unique_ptr<SubmittableExecutor> task_executor_;
 };
 
 }  // namespace linux

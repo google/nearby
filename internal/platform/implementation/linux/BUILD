@@ -17,7 +17,6 @@ cc_library(
         "scheduled_executor.h",
         "submittable_executor.h",
         "timer.h",
-        "timer_queue.h",
         "thread_pool.h",
         "log_message.h",
         "org_freedesktop_logcontrol_server_glue.h",
@@ -29,8 +28,9 @@ cc_library(
     srcs = [
         "device_info.cc",
         "log_message.cc",
-        "timer.cc"
+        "timer.cc",
     ],
+    copts = ["-lrt"],
     visibility = ["//third_party/nearby/sharing/internal/impl/linux:__pkg__"],
     deps = [
         ":comm",
@@ -127,6 +127,8 @@ cc_library(
         "bluetooth_classic_device.cc",
         "bluetooth_classic_medium.cc",
         "bluetooth_classic_socket.cc",
+        "bluetooth_classic_server_socket.cc",
+        "bluetooth_devices.cc",
         "bluetooth_pairing.cc",
         "bluez.cc",
         "dbus.cc",
@@ -185,6 +187,7 @@ cc_library(
         "@nlohmann_json//:json",
         "@libsystemd//:lib",
         "@sdbus_cpp//:lib",
+        "@libcurl//:lib"
     ],
 )
 
