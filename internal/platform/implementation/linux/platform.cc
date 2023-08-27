@@ -22,6 +22,7 @@
 #include "internal/platform/implementation/linux/condition_variable.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/mutex.h"
+#include "internal/platform/implementation/linux/preferences_manager.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
 #include "internal/platform/implementation/linux/timer.h"
 #include "internal/platform/implementation/linux/wifi_direct.h"
@@ -350,6 +351,13 @@ ImplementationPlatform::SendRequest(const WebRequest &request) {
   response.status_code = status;
   return response;
 }
+
+#ifndef NEARBY_CHROMIUM
+std::unique_ptr<nearby::api::PreferencesManager>
+ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
+  return std::make_unique<linux::PreferencesManager>(path);
+}
+#endif
 
 } // namespace api
 } // namespace nearby
