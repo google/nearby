@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_FLAGS_NEARBY_CONNECTIONS_FEATURE_FLAGS_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_FLAGS_NEARBY_CONNECTIONS_FEATURE_FLAGS_H_
 
+#include <cstdint>
 #include "absl/strings/string_view.h"
 #include "internal/flags/flag.h"
 
@@ -27,7 +28,6 @@ constexpr absl::string_view kConfigPackage = "nearby";
 // The Nearby Connections features.
 namespace nearby_connections_feature {
 
-// LINT.IfChanged
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
     flags::Flag<bool>(kConfigPackage, "45401515", false);
@@ -44,11 +44,18 @@ constexpr auto kEnableGattQueryInThread =
 constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
     flags::Flag<bool>(kConfigPackage, "45415729", false);
 
-// LINT.ThenChange(
-//   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.h,
-//   //depot/google3/location/nearby/cpp/sharing/clients/cpp/nearby_sharing_service_adapter_dart.cc,
-//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
-// )
+// Enable/Disable safe-to-disconnect feature.
+constexpr auto kEnableSafeToDisconnect =
+    flags::Flag<bool>(kConfigPackage, "45425789", false);
+
+// When true, allows to enable payload-received-ack protocol.
+constexpr auto kEnablePayloadReceivedAck =
+    flags::Flag<bool>(kConfigPackage, "45425840", false);
+
+// Support 1. safe-to-disconnect 2. reserved 3. auto-reconnect
+// 4. auto-resume for dev device 5. payload_ack
+constexpr auto kSafeToDisconnectVersion =
+    flags::Flag<int64_t>(kConfigPackage, "45425841", 2);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

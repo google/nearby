@@ -18,16 +18,31 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/account_key.h"
+#include "fastpair/common/account_key_filter.h"
 #include "fastpair/common/constant.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
+#include "fastpair/proto/data.proto.h"
+#include "fastpair/proto/enum.proto.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/repository/fast_pair_repository.h"
 
 namespace nearby {
 namespace fastpair {
+void FakeFastPairRepository::AddObserver(Observer* observer) {
+  observers_.AddObserver(observer);
+}
+
+void FakeFastPairRepository::RemoveObserver(Observer* observer) {
+  observers_.RemoveObserver(observer);
+}
+
 void FakeFastPairRepository::SetFakeMetadata(absl::string_view hex_model_id,
                                              proto::Device metadata) {
   proto::GetObservedDeviceResponse response;
@@ -56,6 +71,11 @@ void FakeFastPairRepository::SetResultOfDeleteAssociatedDeviceByAccountKey(
   deleted_associated_device_ = status;
 }
 
+void FakeFastPairRepository::SetResultOfIsDeviceSavedToAccount(
+    absl::Status status) {
+  is_device_saved_to_account_ = status;
+}
+
 void FakeFastPairRepository::GetDeviceMetadata(
     absl::string_view hex_model_id, DeviceMetadataCallback callback) {
   executor_.Execute([this, callback = std::move(callback),
@@ -68,15 +88,23 @@ void FakeFastPairRepository::GetDeviceMetadata(
   });
 }
 
+void FakeFastPairRepository::GetUserSavedDevices() {
+  proto::OptInStatus opt_in_status = proto::OptInStatus::OPT_IN_STATUS_UNKNOWN;
+  std::vector<proto::FastPairDevice> saved_devices;
+  for (auto& observer : observers_.GetObservers()) {
+    observer->OnGetUserSavedDevices(opt_in_status, saved_devices);
+  }
+}
+
 void FakeFastPairRepository::WriteAccountAssociationToFootprints(
-    FastPairDevice& device, OperationToFootprintsCallback callback) {
+    FastPairDevice& device, OperationCallback callback) {
   executor_.Execute([callback = std::move(callback), this]() mutable {
     callback(write_account_association_to_footprints_);
   });
 }
 
 void FakeFastPairRepository::DeleteAssociatedDeviceByAccountKey(
-    const AccountKey& account_key, OperationToFootprintsCallback callback) {
+    const AccountKey& account_key, OperationCallback callback) {
   executor_.Execute([callback = std::move(callback), this]() mutable {
     callback(deleted_associated_device_);
   });
@@ -86,6 +114,13 @@ void FakeFastPairRepository::CheckIfAssociatedWithCurrentAccount(
     AccountKeyFilter& account_key_filter, CheckAccountKeysCallback callback) {
   executor_.Execute([this, callback = std::move(callback)]() mutable {
     std::move(callback)(account_key_, model_id_);
+  });
+}
+
+void FakeFastPairRepository::IsDeviceSavedToAccount(
+    absl::string_view mac_address, OperationCallback callback) {
+  executor_.Execute([callback = std::move(callback), this]() mutable {
+    callback(is_device_saved_to_account_);
   });
 }
 

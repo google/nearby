@@ -18,33 +18,48 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
+#include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/pcp.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
 #include "connections/params.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
-#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
@@ -108,9 +123,12 @@ class FakePresenceDeviceProvider : public NearbyDeviceProvider {
 
 class MockEndpointChannel : public BaseEndpointChannel {
  public:
-  explicit MockEndpointChannel(Pipe* reader, Pipe* writer)
-      : BaseEndpointChannel("service_id", "channel", &reader->GetInputStream(),
-                            &writer->GetOutputStream()) {}
+  explicit MockEndpointChannel(std::unique_ptr<InputStream> reader,
+                               std::unique_ptr<OutputStream> writer)
+      : BaseEndpointChannel("service_id", "channel", reader.get(),
+                            writer.get()),
+        input_stream_(std::move(reader)),
+        output_stream_(std::move(writer)) {}
 
   ExceptionOr<ByteArray> DoRead() { return BaseEndpointChannel::Read(); }
   Exception DoWrite(const ByteArray& data) {
@@ -136,6 +154,10 @@ class MockEndpointChannel : public BaseEndpointChannel {
   MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
 
   bool broken_write_{false};
+
+ private:
+  std::unique_ptr<InputStream> input_stream_;
+  std::unique_ptr<OutputStream> output_stream_;
 };
 
 class MockPcpHandler : public BasePcpHandler {
@@ -233,19 +255,36 @@ class MockPcpHandler : public BasePcpHandler {
     return BasePcpHandler::GetDiscoveredEndpoints(medium);
   }
 
-  absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>&
-  GetEndpointLostByMediumAlarms() {
-    return BasePcpHandler::GetEndpointLostByMediumAlarms();
+  int GetEndpointLostByMediumAlarmsCount() {
+    Future<int> alarms_count;
+    RunOnPcpHandlerThread(
+        "GetEndpointLostByMediumAlarmsCount",
+        [this, alarms_count]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+          alarms_count.Set(
+              BasePcpHandler::GetEndpointLostByMediumAlarmsCount());
+        });
+    return alarms_count.Get().result();
   }
 
   void StartEndpointLostByMediumAlarms(
-    ClientProxy* client, location::nearby::proto::connections::Medium medium) {
-    BasePcpHandler::StartEndpointLostByMediumAlarms(client, medium);
+      ClientProxy* client,
+      location::nearby::proto::connections::Medium medium) {
+    RunOnPcpHandlerThread("StartEndpointLostByMediumAlarms",
+                          [this, client, medium]() RUN_ON_PCP_HANDLER_THREAD() {
+                            BasePcpHandler::StartEndpointLostByMediumAlarms(
+                                client, medium);
+                          });
   }
 
-  void StopEndpointLostByMediumAlarm(absl::string_view endpoint_id,
-    location::nearby::proto::connections::Medium medium) {
-    BasePcpHandler::StopEndpointLostByMediumAlarm(endpoint_id, medium);
+  void StopEndpointLostByMediumAlarm(
+      absl::string_view endpoint_id,
+      location::nearby::proto::connections::Medium medium) {
+    RunOnPcpHandlerThread("StopEndpointLostByMediumAlarm",
+                          [this, endpoint_id = std::string(endpoint_id),
+                           medium]() RUN_ON_PCP_HANDLER_THREAD() {
+                            BasePcpHandler::StopEndpointLostByMediumAlarm(
+                                endpoint_id, medium);
+                          });
   }
 
   std::vector<location::nearby::proto::connections::Medium> GetDiscoveryMediums(
@@ -316,6 +355,16 @@ struct MockDiscoveredEndpoint : public MockPcpHandler::DiscoveredEndpoint {
       : DiscoveredEndpoint(std::move(endpoint)), context(std::move(context)) {}
 
   MockContext context;
+};
+
+class SetSafeToDisconnect {
+ public:
+  explicit SetSafeToDisconnect(bool safe_to_disconnect) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableSafeToDisconnect,
+        safe_to_disconnect);
+  }
 };
 
 class BasePcpHandlerTest
@@ -442,10 +491,13 @@ class BasePcpHandlerTest
   std::pair<std::unique_ptr<MockEndpointChannel>,
             std::unique_ptr<MockEndpointChannel>>
   SetupConnection(
-      Pipe& pipe_a, Pipe& pipe_b,
       location::nearby::proto::connections::Medium medium) {  // NOLINT
-    auto channel_a = std::make_unique<MockEndpointChannel>(&pipe_b, &pipe_a);
-    auto channel_b = std::make_unique<MockEndpointChannel>(&pipe_a, &pipe_b);
+    auto [input_a, output_a] = CreatePipe();
+    auto [input_b, output_b] = CreatePipe();
+    auto channel_a = std::make_unique<MockEndpointChannel>(std::move(input_a),
+                                                           std::move(output_b));
+    auto channel_b = std::make_unique<MockEndpointChannel>(std::move(input_b),
+                                                           std::move(output_a));
     // On initiator (A) side, we drop the first write, since this is a
     // connection establishment packet, and we don't have the peer entity, just
     // the peer channel. The rest of the exchange must happen for the benefit of
@@ -553,8 +605,7 @@ class BasePcpHandlerTest
       const std::string& endpoint_id,
       std::unique_ptr<MockEndpointChannel> channel_a,
       MockEndpointChannel* channel_b, ClientProxy* client,
-      MockPcpHandler* pcp_handler,
-      std::atomic_int* flag = nullptr,
+      MockPcpHandler* pcp_handler, std::atomic_int* flag = nullptr,
       Status expected_result = {Status::kSuccess}) {
     ConnectionRequestInfo info{
         .endpoint_info = ByteArray{"ABCD"},
@@ -581,29 +632,29 @@ class BasePcpHandlerTest
     auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
 
     EXPECT_CALL(*pcp_handler, ConnectImpl)
-        .WillRepeatedly(Invoke([&channel_a](
-                             ClientProxy* client,
-                             MockPcpHandler::DiscoveredEndpoint* endpoint) {
-          if (endpoint->medium ==
-              location::nearby::proto::connections::WIFI_LAN) {
-            NEARBY_LOGS(INFO) << "Connect with Medium WIFI_LAN failed.";
-            return MockPcpHandler::ConnectImplResult{
-                .medium = endpoint->medium,
-                .status = {Status::kError},
-                .endpoint_channel = nullptr,
-            };
-          } else {
-            NEARBY_LOGS(INFO)
-                << "Connect with Medium: "
-                << location::nearby::proto::connections::Medium_Name(
-                       endpoint->medium);
-            return MockPcpHandler::ConnectImplResult{
-                .medium = endpoint->medium,
-                .status = {Status::kSuccess},
-                .endpoint_channel = std::move(channel_a),
-            };
-          }
-        }));
+        .WillRepeatedly(
+            Invoke([&channel_a](ClientProxy* client,
+                                MockPcpHandler::DiscoveredEndpoint* endpoint) {
+              if (endpoint->medium ==
+                  location::nearby::proto::connections::WIFI_LAN) {
+                NEARBY_LOGS(INFO) << "Connect with Medium WIFI_LAN failed.";
+                return MockPcpHandler::ConnectImplResult{
+                    .medium = endpoint->medium,
+                    .status = {Status::kError},
+                    .endpoint_channel = nullptr,
+                };
+              } else {
+                NEARBY_LOGS(INFO)
+                    << "Connect with Medium: "
+                    << location::nearby::proto::connections::Medium_Name(
+                           endpoint->medium);
+                return MockPcpHandler::ConnectImplResult{
+                    .medium = endpoint->medium,
+                    .status = {Status::kSuccess},
+                    .endpoint_channel = std::move(channel_a),
+                };
+              }
+            }));
 
     for (const auto& discovered_medium : allowed_mediums) {
       pcp_handler->OnEndpointFound(
@@ -632,9 +683,6 @@ class BasePcpHandlerTest
               expected_result);
     NEARBY_LOG(INFO, "Stopping Encryption Runner");
   }
-
-  Pipe pipe_a_;
-  Pipe pipe_b_;
   MockConnectionListener mock_connection_listener_;
   MockDiscoveryListener mock_discovery_listener_;
   ConnectionListener connection_listener_{
@@ -654,6 +702,7 @@ class BasePcpHandlerTest
       .endpoint_distance_changed_cb =
           mock_discovery_listener_.endpoint_distance_changed_cb.AsStdFunction(),
   };
+  SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
 };
 
@@ -823,7 +872,7 @@ TEST_F(BasePcpHandlerTest, WifiMediumFailFallBackToBT) {
 
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -849,7 +898,7 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -894,7 +943,7 @@ TEST_P(BasePcpHandlerTest, CanRequestConnectionPresence) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -925,7 +974,7 @@ TEST_P(BasePcpHandlerTest, CanRequestConnectionLegacy) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -952,7 +1001,7 @@ TEST_P(BasePcpHandlerTest, IoError_RequestConnectionFails) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(AtLeast(1));
@@ -981,7 +1030,7 @@ TEST_P(BasePcpHandlerTest, AcceptConnectionChangesState) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -1012,7 +1061,7 @@ TEST_P(BasePcpHandlerTest, RejectConnectionChangesState) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(1);
   RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
@@ -1040,7 +1089,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
   auto& channel_b = channel_pair.second;
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -1082,7 +1131,7 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
     StartDiscovery(&client, &pcp_handler);
     auto mediums = pcp_handler.GetDiscoveryMediums(&client);
     auto connect_medium = mediums[mediums.size() - 1];
-    auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+    auto channel_pair = SetupConnection(connect_medium);
     auto& channel_a = channel_pair.first;
     auto& channel_b = channel_pair.second;
     EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -1125,7 +1174,7 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
     StartDiscovery(&client, &pcp_handler);
     auto mediums = pcp_handler.GetDiscoveryMediums(&client);
     auto connect_medium = mediums[mediums.size() - 1];
-    auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+    auto channel_pair = SetupConnection(connect_medium);
     auto& channel_a = channel_pair.first;
     auto& channel_b = channel_pair.second;
     EXPECT_CALL(*channel_a, CloseImpl).Times(1);
@@ -1247,9 +1296,9 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       {}),
-            Status{Status::kSuccess});
+  EXPECT_EQ(
+      pcp_handler.StartDiscovery(&client, service_id, discovery_options, {}),
+      Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
@@ -1277,11 +1326,11 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 1);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   pcp_handler.StartEndpointLostByMediumAlarms(&client, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 1);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 1);
   pcp_handler.StopEndpointLostByMediumAlarm(endpoint_id, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   env_.Stop();
 }
 
@@ -1311,9 +1360,9 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       {}),
-            Status{Status::kSuccess});
+  EXPECT_EQ(
+      pcp_handler.StartDiscovery(&client, service_id, discovery_options, {}),
+      Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
@@ -1341,12 +1390,12 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 1);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   pcp_handler.StartEndpointLostByMediumAlarms(&client, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 1);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 1);
   absl::SleepFor(absl::Seconds(11));
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 0);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   env_.Stop();
 }
 
@@ -1376,37 +1425,39 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       {}),
-            Status{Status::kSuccess});
+  EXPECT_EQ(
+      pcp_handler.StartDiscovery(&client, service_id, discovery_options, {}),
+      Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
   bool first_call = true;
-  EXPECT_CALL(pcp_handler, InjectEndpointImpl).Times(2)
-      .WillRepeatedly(Invoke([&pcp_handler, &endpoint_id, &first_call](
-                           ClientProxy* client, const std::string& service_id,
-                           const OutOfBandConnectionMetadata& metadata) {
-        ByteArray endpoint_info;
-        if (first_call) {
-          endpoint_info = ByteArray("ABCD");
-        } else {
-          endpoint_info = ByteArray("ABCDE");
-        }
-        first_call = false;
-        pcp_handler.OnEndpointFound(
-            client,
-            std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
-                {
-                    endpoint_id,
-                    endpoint_info,
-                    service_id,
-                    Medium::BLUETOOTH,
-                    WebRtcState::kUndefined,
-                },
-                MockContext{nullptr},
-            }));
-        return Status{Status::kSuccess};
-      }));
+  EXPECT_CALL(pcp_handler, InjectEndpointImpl)
+      .Times(2)
+      .WillRepeatedly(
+          Invoke([&pcp_handler, &endpoint_id, &first_call](
+                     ClientProxy* client, const std::string& service_id,
+                     const OutOfBandConnectionMetadata& metadata) {
+            ByteArray endpoint_info;
+            if (first_call) {
+              endpoint_info = ByteArray("ABCD");
+            } else {
+              endpoint_info = ByteArray("ABCDE");
+            }
+            first_call = false;
+            pcp_handler.OnEndpointFound(
+                client,
+                std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                    {
+                        endpoint_id,
+                        endpoint_info,
+                        service_id,
+                        Medium::BLUETOOTH,
+                        WebRtcState::kUndefined,
+                    },
+                    MockContext{nullptr},
+                }));
+            return Status{Status::kSuccess};
+          }));
   pcp_handler.InjectEndpoint(
       &client, service_id,
       OutOfBandConnectionMetadata{
@@ -1414,16 +1465,16 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 1);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   pcp_handler.StartEndpointLostByMediumAlarms(&client, Medium::BLUETOOTH);
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 1);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 1);
   pcp_handler.InjectEndpoint(
       &client, service_id,
       OutOfBandConnectionMetadata{
           .medium = Medium::BLUETOOTH,
           .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
       });
-  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarms().size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
   env_.Stop();
 }
 
@@ -1564,7 +1615,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithUnknown) {
           .first.Ok());
   ASSERT_TRUE(client.IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, Medium::BLUETOOTH);
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
   ByteArray serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -1613,7 +1664,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithUnknown) {
           .first.Ok());
   ASSERT_TRUE(client.IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, Medium::BLUETOOTH);
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
   ByteArray serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -1663,7 +1714,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithConnections) {
           .first.Ok());
   ASSERT_TRUE(client.IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, Medium::BLUETOOTH);
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
   ByteArray serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -1714,7 +1765,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithPresence) {
           .first.Ok());
   ASSERT_TRUE(client.IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, Medium::BLUETOOTH);
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
   ByteArray serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -1764,7 +1815,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithConnections) {
           .first.Ok());
   ASSERT_TRUE(client.IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, Medium::BLUETOOTH);
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
   ByteArray serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -1814,7 +1865,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
           .first.Ok());
   ASSERT_TRUE(client.IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
-  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, Medium::BLUETOOTH);
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
   ByteArray serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",

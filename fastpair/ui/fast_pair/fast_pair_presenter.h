@@ -24,11 +24,15 @@ namespace fastpair {
 // This Presenter creates and manages UI component with Notification Controller.
 class FastPairPresenter {
  public:
-  // observer_list of notification_controller is updated
   virtual void ShowDiscovery(
       FastPairDevice& device,
       FastPairNotificationController& notification_controller,
       DiscoveryCallback callback) = 0;
+  virtual void ShowPairingResult(
+      FastPairDevice& device,
+      FastPairNotificationController& notification_controller,
+      bool success) = 0;
+
   virtual ~FastPairPresenter() = default;
 };
 

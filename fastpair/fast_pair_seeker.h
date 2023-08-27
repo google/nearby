@@ -38,6 +38,13 @@ struct SubsequentPairingParam {};
 // Retroactive Pairing parameters.
 struct RetroactivePairingParam {};
 
+// Finish Retroactive Pairing parameters.
+struct FinishRetroactivePairingParam {
+  // Save the negotiated Account Key or abandon it and forget the Fast Pair
+  // Device.
+  bool save_account_key = false;
+};
+
 // Fast Pair Seeker API available to plugins.
 class FastPairSeeker {
  public:
@@ -67,11 +74,27 @@ class FastPairSeeker {
   // when the user has paired manually with a new device and we want to
   // retroactively exchange an Account Key. See:
   // https://developers.google.com/nearby/fast-pair/specifications/extensions/retroactiveacctkey
+  // The retroactive pairing flow should be started immediately after the
+  // pairing event, before we had a chance to ask for the user for permission.
+  // Therefore, the retroactive is split into two stages. The client should call
+  // `StartRetroactivePairing()` first. When the pairing result returned via
+  // `callback` is successful, the client should ask the user for permission to
+  // save the account key. Finally, the client should call
+  // `FinishRetroactivePairing()` with the user's decision to complete the
+  // retroactive pairing flow.
   //
   // Returns an error if pairing flow could not be started. Otherwise, the
   // pairing result will be returned via the `callback`.
   virtual absl::Status StartRetroactivePairing(
       const FastPairDevice& device, const RetroactivePairingParam& param,
+      PairingCallback callback) = 0;
+
+  // Finishes the retroactive pairing flow.
+  //
+  // Returns an error if the flow could not be started. Otherwise, the
+  // result will be returned via the `callback`.
+  virtual absl::Status FinishRetroactivePairing(
+      const FastPairDevice& device, const FinishRetroactivePairingParam& param,
       PairingCallback callback) = 0;
 };
 }  // namespace fastpair

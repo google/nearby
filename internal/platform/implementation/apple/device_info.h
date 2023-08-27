@@ -58,6 +58,20 @@ class DeviceInfo : public api::DeviceInfo {
       std::function<void(api::DeviceInfo::ScreenStatus)> callback) override;
 
   void UnregisterScreenLockedListener(absl::string_view listener_name) override;
+
+  // Request the system to prevent the device from going to sleep.
+  //
+  // To allow the system to sleep again, call @c AllowSleep().
+  //
+  // Returns @c true on success or if the platform does not allow preventing
+  // sleep. Returns @c false on any other error.
+  bool PreventSleep() override;
+
+  // Release any requests preventing the device from going to sleep.
+  //
+  // Returns @c true on success or if the system is already allowed to sleep.
+  // Returns @c false if an error occurred.
+  bool AllowSleep() override;
 };
 
 }  // namespace apple

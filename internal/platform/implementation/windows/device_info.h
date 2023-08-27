@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,25 +15,21 @@
 #ifndef PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 #define PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 
-#include <guiddef.h>
-#include <windows.h>
-
-#include <array>
 #include <functional>
 #include <optional>
-#include <string>
 
-#include "absl/container/flat_hash_map.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/device_info.h"
-#include "winrt/Windows.Foundation.h"
+#include "internal/platform/implementation/windows/session_manager.h"
 
 namespace nearby {
 namespace windows {
 
 class DeviceInfo : public api::DeviceInfo {
  public:
-  ~DeviceInfo() override;
+  ~DeviceInfo() override = default;
 
   std::optional<std::u16string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
@@ -55,13 +51,13 @@ class DeviceInfo : public api::DeviceInfo {
       absl::string_view listener_name,
       std::function<void(api::DeviceInfo::ScreenStatus)> callback) override;
   void UnregisterScreenLockedListener(absl::string_view listener_name) override;
-  absl::flat_hash_map<std::string,
-                      std::function<void(api::DeviceInfo::ScreenStatus)>>
-      screen_locked_listeners_;
 
-  HINSTANCE instance_ = nullptr;
-  ATOM registered_class_ = NULL;
-  HWND message_window_handle_ = nullptr;
+  bool PreventSleep() override;
+  bool AllowSleep() override;
+
+ private:
+  mutable absl::Mutex mutex_;
+  SessionManager session_manager_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace windows

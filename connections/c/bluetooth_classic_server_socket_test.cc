@@ -117,10 +117,10 @@ TEST(BluetoothClassicServerSocketTest,
   PerformanceTimer::start();
 
   core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                        {.result_cb = [&](Status status) {
+                        [&](Status status) {
                           request_result = status;
                           notification.Notify();
-                        }});
+                        });
 
   if (notification.WaitForNotificationWithTimeout(
           absl::Seconds(TimeoutSeconds))) {
@@ -163,10 +163,10 @@ TEST(BluetoothClassicServerSocketTest,
   PerformanceTimer::start();
 
   core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                        {.result_cb = [&](Status status) {
+                        [&](Status status) {
                           request_result = status;
                           notification2.Notify();
-                        }});
+                        });
 
   if (notification2.WaitForNotificationWithTimeout(
           absl::Seconds(TimeoutSeconds))) {
@@ -209,10 +209,10 @@ TEST(BluetoothClassicServerSocketTest,
 
   PerformanceTimer::start();
 
-  core.StopAdvertising({.result_cb = [&](Status status) {
+  core.StopAdvertising([&](Status status) {
     request_result = status;
     notification3.Notify();
-  }});
+  });
 
   if (notification3.WaitForNotificationWithTimeout(
           absl::Seconds(TimeoutSeconds))) {
@@ -273,10 +273,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunWithTimeoutReproStuck) {
     PerformanceTimer::start();
 
     core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                          {.result_cb = [&](Status status) {
+                          [&](Status status) {
                             request_result = status;
                             notification.Notify();
-                          }});
+                          });
 
     if (notification.WaitForNotificationWithTimeout(
             absl::Seconds(TimeoutSeconds))) {
@@ -319,10 +319,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunWithTimeoutReproStuck) {
     PerformanceTimer::start();
 
     core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                          {.result_cb = [&](Status status) {
+                          [&](Status status) {
                             request_result = status;
                             notification2.Notify();
-                          }});
+                          });
 
     if (notification2.WaitForNotificationWithTimeout(
             absl::Seconds(TimeoutSeconds))) {
@@ -361,10 +361,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunWithTimeoutReproStuck) {
 
     PerformanceTimer::start();
 
-    core.StopAdvertising({.result_cb = [&](Status status) {
+    core.StopAdvertising([&](Status status) {
       request_result = status;
       notification3.Notify();
-    }});
+    });
 
     if (notification3.WaitForNotificationWithTimeout(
             absl::Seconds(TimeoutSeconds))) {
@@ -424,10 +424,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_SingleRunNoTimeoutReproStuck) {
   PerformanceTimer::start();
 
   core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                        {.result_cb = [&](Status status) {
+                        [&](Status status) {
                           request_result = status;
                           notification.Notify();
-                        }});
+                        });
 
   notification.WaitForNotification();
   PerformanceTimer::stop();
@@ -451,10 +451,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_SingleRunNoTimeoutReproStuck) {
   PerformanceTimer::start();
 
   core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                        {.result_cb = [&](Status status) {
+                        [&](Status status) {
                           request_result = status;
                           notification2.Notify();
-                        }});
+                        });
 
   notification2.WaitForNotification();
   PerformanceTimer::stop();
@@ -477,10 +477,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_SingleRunNoTimeoutReproStuck) {
 
   PerformanceTimer::start();
 
-  core.StopAdvertising({.result_cb = [&](Status status) {
+  core.StopAdvertising([&](Status status) {
     request_result = status;
     notification3.Notify();
-  }});
+  });
 
   notification3.WaitForNotification();
   PerformanceTimer::stop();
@@ -521,10 +521,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunNoTimeoutReproStuck) {
     PerformanceTimer::start();
 
     core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                          {.result_cb = [&](Status status) {
+                          [&](Status status) {
                             request_result = status;
                             notification.Notify();
-                          }});
+                          });
 
     notification.WaitForNotification();
 
@@ -551,10 +551,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunNoTimeoutReproStuck) {
     PerformanceTimer::start();
 
     core.StartAdvertising(SERVICE_ID, AdvertiseOptions, request_info,
-                          {.result_cb = [&](Status status) {
+                          [&](Status status) {
                             request_result = status;
                             notification2.Notify();
-                          }});
+                          });
 
     notification2.WaitForNotification();
     PerformanceTimer::stop();
@@ -580,10 +580,10 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunNoTimeoutReproStuck) {
 
     PerformanceTimer::start();
 
-    core.StopAdvertising({.result_cb = [&](Status status) {
+    core.StopAdvertising([&](Status status) {
       request_result = status;
       notification3.Notify();
-    }});
+    });
 
     notification3.WaitForNotification();
     PerformanceTimer::stop();

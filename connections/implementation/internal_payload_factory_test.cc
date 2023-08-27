@@ -14,15 +14,19 @@
 
 #include "connections/implementation/internal_payload_factory.h"
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "connections/implementation/offline_frames.h"
+#include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/payload.h"
+#include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/file.h"
 #include "internal/platform/pipe.h"
 
 namespace nearby {
@@ -44,11 +48,9 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromBytePayload) {
 }
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
-  auto pipe = std::make_shared<Pipe>();
+  auto [input, output] = CreatePipe();
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateOutgoingInternalPayload(Payload{[pipe]() -> InputStream& {
-        return pipe->GetInputStream();  // NOLINT
-      }});
+      CreateOutgoingInternalPayload(Payload(std::move(input)));
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.AsFile(), nullptr);
@@ -212,13 +214,11 @@ TEST(InternalPayloadFactoryTest,
      SkipToOffset_StreamPayloadValidOffset_SkipsOffset) {
   ByteArray contents("0123456789");
   constexpr size_t kOffset = 6;
-  auto pipe = std::make_shared<Pipe>();
+  auto [input, output] = CreatePipe();
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateOutgoingInternalPayload(Payload{[pipe]() -> InputStream& {
-        return pipe->GetInputStream();  // NOLINT
-      }});
+      CreateOutgoingInternalPayload(Payload(std::move(input)));
   EXPECT_NE(internal_payload, nullptr);
-  pipe->GetOutputStream().Write(contents);
+  output->Write(contents);
 
   ExceptionOr<size_t> result = internal_payload->SkipToOffset(kOffset);
 

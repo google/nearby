@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_SIMULATION_USER_H_
 #define CORE_INTERNAL_SIMULATION_USER_H_
 
+#include <cstdint>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -22,13 +23,15 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/pcp_manager.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
-#include "internal/platform/medium_environment.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.
@@ -38,6 +41,26 @@
 
 namespace nearby {
 namespace connections {
+
+class SetSafeToDisconnect {
+ public:
+  explicit SetSafeToDisconnect(bool safe_to_disconnect,
+                               bool payload_received_ack,
+                               std::int32_t safe_to_disconnect_version) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableSafeToDisconnect,
+        safe_to_disconnect);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnablePayloadReceivedAck,
+        payload_received_ack);
+    NearbyFlags::GetInstance().OverrideInt64FlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kSafeToDisconnectVersion,
+        safe_to_disconnect_version);
+  }
+};
 
 class SimulationUser {
  public:
@@ -134,8 +157,9 @@ class SimulationUser {
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
   ByteArray GetInfo() const { return info_; }
 
-  bool WaitForProgress(std::function<bool(const PayloadProgressInfo&)> pred,
-                       absl::Duration timeout);
+  bool WaitForProgress(
+      absl::AnyInvocable<bool(const PayloadProgressInfo&)> pred,
+      absl::Duration timeout);
 
  protected:
   // ConnectionListener callbacks
@@ -169,12 +193,13 @@ class SimulationUser {
   CountDownLatch* lost_latch_ = nullptr;
   CountDownLatch* payload_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
-  std::function<bool(const PayloadProgressInfo&)> predicate_;
+  absl::AnyInvocable<bool(const PayloadProgressInfo&)> predicate_;
   ByteArray info_;
   Mediums mediums_;
   AdvertisingOptions advertising_options_;
   ConnectionOptions connection_options_;
   DiscoveryOptions discovery_options_;
+  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 2};
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

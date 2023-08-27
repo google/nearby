@@ -23,9 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 @implementation CBPeripheralManager (GNCPeripheralManagerAdditions)
 
 - (void)setPeripheralDelegate:(nullable id<GNCPeripheralManagerDelegate>)peripheralDelegate {
-  NSAssert([peripheralDelegate conformsToProtocol:@protocol(CBPeripheralManagerDelegate)],
-           @"peripheralDelegate must conform to protocol CBPeripheralManagerDelegate");
-  self.delegate = (id<CBPeripheralManagerDelegate>)peripheralDelegate;
+  self.delegate = peripheralDelegate;
 }
 
 - (nullable id<GNCPeripheralManagerDelegate>)peripheralDelegate {

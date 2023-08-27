@@ -36,8 +36,9 @@ constexpr absl::Duration kRetryHandshakeDelay = absl::Seconds(1);
 }  // namespace
 
 PairerBrokerImpl::PairerBrokerImpl(Mediums& medium,
-                                   SingleThreadExecutor* executor)
-    : medium_(medium), executor_(executor) {}
+                                   SingleThreadExecutor* executor,
+                                   AccountManager* account_manager)
+    : medium_(medium), executor_(executor), account_manager_(account_manager) {}
 
 void PairerBrokerImpl::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);
@@ -191,7 +192,7 @@ void PairerBrokerImpl::StartPairingAttempt(FastPairDevice& device) {
   MutexLock lock(&mutex_);
   // Create FastPairPairer instance and start pairing.
   fast_pair_pairers_[device.GetModelId()] = FastPairPairerImpl::Factory::Create(
-      device, medium_, executor_,
+      device, medium_, executor_, account_manager_,
       [&](FastPairDevice& cb_device) {
         executor_->Execute("OnFastPairDevicePaired",
                            [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
@@ -232,42 +233,44 @@ void PairerBrokerImpl::OnFastPairDevicePaired(FastPairDevice& device) {
 
 void PairerBrokerImpl::OnFastPairPairingFailure(FastPairDevice& device,
                                                 PairFailure failure) {
-  MutexLock lock(&mutex_);
-  ++pair_failure_counts_[device.GetModelId()];
-  NEARBY_LOGS(INFO) << __func__ << ": Device=" << device
-                    << ", Failure=" << failure << ", Failure Count = "
-                    << pair_failure_counts_[device.GetModelId()];
-  if (pair_failure_counts_[device.GetModelId()] == kMaxFailureRetryCount) {
-    if (!fast_pair_pairers_[device.GetModelId()]->IsPaired()) {
-      fast_pair_pairers_[device.GetModelId()]->CancelPairing();
+  {
+    MutexLock lock(&mutex_);
+    ++pair_failure_counts_[device.GetModelId()];
+    NEARBY_LOGS(INFO) << __func__ << ": Device=" << device
+                      << ", Failure=" << failure << ", Failure Count = "
+                      << pair_failure_counts_[device.GetModelId()];
+    if (pair_failure_counts_[device.GetModelId()] == kMaxFailureRetryCount) {
+      if (!fast_pair_pairers_[device.GetModelId()]->IsPaired()) {
+        fast_pair_pairers_[device.GetModelId()]->CancelPairing();
+      }
+      executor_->Execute("EraseHandshakeAndPairers",
+                         [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                           EraseHandshakeAndPairers(device);
+                         });
+      NEARBY_LOGS(INFO) << __func__
+                        << ": Reached max failure count. Notifying observers.";
+      for (auto& observer : observers_.GetObservers()) {
+        observer->OnPairFailure(device, failure);
+      }
+      return;
     }
-    executor_->Execute("EraseHandshakeAndPairers",
-                       [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                         EraseHandshakeAndPairers(device);
-                       });
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Reached max failure count. Notifying observers.";
-    for (auto& observer : observers_.GetObservers()) {
-      observer->OnPairFailure(device, failure);
-    }
-    return;
-  }
 
-  if (!fast_pair_pairers_[device.GetModelId()]->IsPaired()) {
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Cancelling pairing and scheduling retry "
-                         "for failed pair attempt.";
-    fast_pair_pairers_[device.GetModelId()]->CancelPairing();
+    if (!fast_pair_pairers_[device.GetModelId()]->IsPaired()) {
+      NEARBY_LOGS(INFO) << __func__
+                        << ": Cancelling pairing and scheduling retry "
+                           "for failed pair attempt.";
+      fast_pair_pairers_[device.GetModelId()]->CancelPairing();
+      fast_pair_pairers_.erase(device.GetModelId());
+      // Create a timer to wait |kCancelPairingRetryDelay| after cancelling
+      // pairing to retry the pairing attempt.
+      cancel_pairing_timer_ = std::make_unique<TimerImpl>();
+      cancel_pairing_timer_->Start(
+          kCancelPairingRetryDelay / absl::Milliseconds(1), 0,
+          [&]() { PairFastPairDevice(device); });
+      return;
+    }
     fast_pair_pairers_.erase(device.GetModelId());
-    // Create a timer to wait |kCancelPairingRetryDelay| after cancelling
-    // pairing to retry the pairing attempt.
-    cancel_pairing_timer_ = std::make_unique<TimerImpl>();
-    cancel_pairing_timer_->Start(
-        kCancelPairingRetryDelay / absl::Milliseconds(1), 0,
-        [&]() { PairFastPairDevice(device); });
-    return;
   }
-  fast_pair_pairers_.erase(device.GetModelId());
   PairFastPairDevice(device);
 }
 
@@ -298,10 +301,11 @@ void PairerBrokerImpl::OnFastPairProcedureComplete(FastPairDevice& device) {
   // been written for devices with a version of V2 or higher.
   if (device.GetVersion().has_value() &&
       device.GetVersion().value() == DeviceFastPairVersion::kHigherThanV1 &&
+      device.GetAccountKey().Ok() &&
       (device.GetProtocol() == Protocol::kFastPairInitialPairing ||
        device.GetProtocol() == Protocol::kFastPairRetroactivePairing)) {
     for (auto& observer : observers_.GetObservers()) {
-      observer->OnAccountKeyWrite(device, /*error=*/absl::nullopt);
+      observer->OnAccountKeyWrite(device, /*error=*/std::nullopt);
     }
   }
 }

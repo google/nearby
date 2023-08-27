@@ -14,23 +14,30 @@
 
 #include "connections/implementation/encryption_runner.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <cstddef>
+#include <string>
+
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/system_clock.h"
 #include "proto/connections_enums.pb.h"
+#include "third_party/ukey2/src/main/cpp/include/securegcm/ukey2_handshake.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
 using ::location::nearby::proto::connections::Medium;
+constexpr size_t kChunkSize = 64 * 1024;
 
 class FakeEndpointChannel : public EndpointChannel {
  public:
@@ -38,13 +45,11 @@ class FakeEndpointChannel : public EndpointChannel {
       : in_(in), out_(out) {}
   ExceptionOr<ByteArray> Read() override {
     read_timestamp_ = SystemClock::ElapsedRealtime();
-    return in_ ? in_->Read(Pipe::kChunkSize)
-               : ExceptionOr<ByteArray>{Exception::kIo};
+    return in_ ? in_->Read(kChunkSize) : ExceptionOr<ByteArray>{Exception::kIo};
   }
   ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) override {
     read_timestamp_ = SystemClock::ElapsedRealtime();
-    return in_ ? in_->Read(Pipe::kChunkSize)
-               : ExceptionOr<ByteArray>{Exception::kIo};
+    return in_ ? in_->Read(kChunkSize) : ExceptionOr<ByteArray>{Exception::kIo};
   }
   Exception Write(const ByteArray& data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
@@ -103,8 +108,7 @@ class FakeEndpointChannel : public EndpointChannel {
 };
 
 struct User {
-  User(Pipe* reader, Pipe* writer)
-      : channel(&reader->GetInputStream(), &writer->GetOutputStream()) {}
+  User(InputStream* reader, OutputStream* writer) : channel(reader, writer) {}
 
   FakeEndpointChannel channel;
   EncryptionRunner crypto;
@@ -126,10 +130,12 @@ struct Response {
 TEST(EncryptionRunnerTest, ConstructorDestructorWorks) { EncryptionRunner enc; }
 
 TEST(EncryptionRunnerTest, ReadWrite) {
-  Pipe from_a_to_b;
-  Pipe from_b_to_a;
-  User user_a(/*reader=*/&from_b_to_a, /*writer=*/&from_a_to_b);
-  User user_b(/*reader=*/&from_a_to_b, /*writer=*/&from_b_to_a);
+  auto from_a_to_b = CreatePipe();
+  auto from_b_to_a = CreatePipe();
+  User user_a(/*reader=*/from_b_to_a.first.get(),
+              /*writer=*/from_a_to_b.second.get());
+  User user_b(/*reader=*/from_a_to_b.first.get(),
+              /*writer=*/from_b_to_a.second.get());
   Response response;
 
   user_a.crypto.StartServer(

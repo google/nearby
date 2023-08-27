@@ -14,19 +14,29 @@
 
 #include "connections/implementation/payload_manager.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <cstddef>
+#include <string>
+#include <utility>
+
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/implementation/simulation_user.h"
+#include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/payload.h"
+#include "connections/status.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
-#include "internal/platform/system_clock.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
+constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
 constexpr absl::string_view kDeviceA = "device-a";
 constexpr absl::string_view kDeviceB = "device-b";
@@ -165,18 +175,14 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
 
-  auto pipe = std::make_shared<Pipe>();
-  OutputStream& tx = pipe->GetOutputStream();
-
+  auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
   const ByteArray message{std::string(kMessage)};
   // The first write to the output stream will send the first PAYLOAD_TRANSFER
   // packet with payload info and message data.
-  tx.Write(message);
+  tx->Write(message);
 
-  user_b.SendPayload(Payload([pipe]() -> InputStream& {
-    return pipe->GetInputStream();  // NOLINT
-  }));
+  user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
@@ -187,22 +193,22 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
         return info.bytes_transferred >= message.size();
       },
       kProgressTimeout));
-  ByteArray result = rx.Read(Pipe::kChunkSize).result();
+  ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, message);
   NEARBY_LOG(INFO, "Packet 1 handled.");
 
-  tx.Write(message);
+  tx->Write(message);
   EXPECT_TRUE(user_a.WaitForProgress(
       [&message](const PayloadProgressInfo& info) {
         return info.bytes_transferred >= 2 * message.size();
       },
       kProgressTimeout));
-  ByteArray result2 = rx.Read(Pipe::kChunkSize).result();
+  ByteArray result2 = rx.Read(kChunkSize).result();
   EXPECT_EQ(result2, message);
   NEARBY_LOG(INFO, "Packet 2 handled.");
 
   rx.Close();
-  tx.Close();
+  tx->Close();
   NEARBY_LOG(INFO, "Test completed.");
   user_a.Stop();
   user_b.Stop();
@@ -214,17 +220,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   PayloadSimulationUser user_a(kDeviceA, GetParam());
   PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-
-  auto pipe = std::make_shared<Pipe>();
-  OutputStream& tx = pipe->GetOutputStream();
-
+  auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
   const ByteArray message{std::string(kMessage)};
-  tx.Write(message);
+  tx->Write(message);
 
-  user_b.SendPayload(Payload([pipe]() -> InputStream& {
-    return pipe->GetInputStream();  // NOLINT
-  }));
+  user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
@@ -235,7 +236,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
         return info.bytes_transferred >= message.size();
       },
       kProgressTimeout));
-  ByteArray result = rx.Read(Pipe::kChunkSize).result();
+  ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, message);
   NEARBY_LOG(INFO, "Packet 1 handled.");
 
@@ -246,7 +247,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   // Once cancel is handled, write will fail.
   int count = 0;
   while (true) {
-    if (!tx.Write(message).Ok()) break;
+    if (!tx->Write(message).Ok()) break;
     SystemClock::Sleep(kDefaultTimeout);
     count++;
   }
@@ -258,7 +259,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
       kProgressTimeout));
   NEARBY_LOG(INFO, "Stream cancelation received.");
 
-  tx.Close();
+  tx->Close();
   rx.Close();
 
   NEARBY_LOG(INFO, "Test completed.");
@@ -272,17 +273,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   PayloadSimulationUser user_a(kDeviceA, GetParam());
   PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-
-  auto pipe = std::make_shared<Pipe>();
-  OutputStream& tx = pipe->GetOutputStream();
-
+  auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
   const ByteArray message{std::string(kMessage)};
-  tx.Write(message);
+  tx->Write(message);
 
-  user_b.SendPayload(Payload([pipe]() -> InputStream& {
-    return pipe->GetInputStream();  // NOLINT
-  }));
+  user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
@@ -293,7 +289,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
         return info.bytes_transferred >= message.size();
       },
       kProgressTimeout));
-  ByteArray result = rx.Read(Pipe::kChunkSize).result();
+  ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, message);
   NEARBY_LOG(INFO, "Packet 1 handled.");
 
@@ -304,7 +300,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   // Once cancel is handled, write will fail.
   int count = 0;
   while (true) {
-    if (!tx.Write(message).Ok()) break;
+    if (!tx->Write(message).Ok()) break;
     SystemClock::Sleep(kDefaultTimeout);
     count++;
   }
@@ -316,7 +312,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
       kProgressTimeout));
   NEARBY_LOG(INFO, "Stream cancelation received.");
 
-  tx.Close();
+  tx->Close();
   rx.Close();
 
   NEARBY_LOG(INFO, "Test completed.");
@@ -331,19 +327,14 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   PayloadSimulationUser user_a(kDeviceA, GetParam());
   PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-
-  auto pipe = std::make_shared<Pipe>();
-  OutputStream& tx = pipe->GetOutputStream();
-
+  auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
   const ByteArray message{std::string(kMessage)};
   // The first write to the output stream will send the first PAYLOAD_TRANSFER
   // packet with payload info and message data.
-  tx.Write(message);
+  tx->Write(message);
 
-  Payload payload([pipe]() -> InputStream& {
-    return pipe->GetInputStream();  // NOLINT
-  });
+  Payload payload(std::move(input));
   payload.SetOffset(kOffset);
   user_b.SendPayload(std::move(payload));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -356,22 +347,22 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
         return info.bytes_transferred >= message.size() - kOffset;
       },
       kProgressTimeout));
-  ByteArray result = rx.Read(Pipe::kChunkSize).result();
+  ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, ByteArray("sage"));
   NEARBY_LOG(INFO, "Packet 1 handled.");
 
-  tx.Write(message);
+  tx->Write(message);
   EXPECT_TRUE(user_a.WaitForProgress(
       [&message](const PayloadProgressInfo& info) {
         return info.bytes_transferred >= 2 * message.size() - kOffset;
       },
       kProgressTimeout));
-  ByteArray result2 = rx.Read(Pipe::kChunkSize).result();
+  ByteArray result2 = rx.Read(kChunkSize).result();
   EXPECT_EQ(result2, message);
   NEARBY_LOG(INFO, "Packet 2 handled.");
 
   rx.Close();
-  tx.Close();
+  tx->Close();
   NEARBY_LOG(INFO, "Test completed.");
   user_a.Stop();
   user_b.Stop();

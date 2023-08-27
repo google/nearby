@@ -1,4 +1,4 @@
-// Copyright 2021-2023 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,12 @@
 
 #include "internal/platform/implementation/timer.h"
 
+#include <chrono>  // NOLINT
+// NOLINT
+#include <memory>
+#include <thread>  // NOLINT
+
 #include "gtest/gtest.h"
-#include "absl/time/time.h"
 #include "internal/platform/implementation/platform.h"
 
 namespace nearby {
@@ -42,7 +46,7 @@ TEST(Timer, DISABLED_TestRepeatTimer) {
 
   ASSERT_TRUE(timer != nullptr);
   EXPECT_TRUE(timer->Create(300, 300, [&]() { ++count; }));
-  absl::SleepFor(absl::Seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   EXPECT_TRUE(timer->Stop());
   EXPECT_EQ(count, 3);
 }
@@ -53,27 +57,8 @@ TEST(Timer, DISABLED_TestFireNow) {
   auto timer = nearby::api::ImplementationPlatform::CreateTimer();
 
   EXPECT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(3000, 3000, [&]() {
-    absl::SleepFor(absl::Milliseconds(1000));
-    ++count;
-  }));
+  EXPECT_TRUE(timer->Create(3000, 3000, [&]() { ++count; }));
   EXPECT_TRUE(timer->FireNow());
-  absl::SleepFor(absl::Milliseconds(100));
-  EXPECT_TRUE(timer->Stop());
-  EXPECT_EQ(count, 1);
-}
-
-TEST(Timer, DISABLED_TestWaitForRunningCallback) {
-  int count = 0;
-
-  auto timer = nearby::api::ImplementationPlatform::CreateTimer();
-
-  EXPECT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(1000, 0, [&]() {
-    absl::SleepFor(absl::Milliseconds(3000));
-    ++count;
-  }));
-  absl::SleepFor(absl::Milliseconds(1050));
   EXPECT_TRUE(timer->Stop());
   EXPECT_EQ(count, 1);
 }

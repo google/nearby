@@ -19,7 +19,16 @@ NS_ASSUME_NONNULL_BEGIN
 @interface NSData (GNCWebSafeBase64)
 
 /** Creates a Base64 encoded string from the data using websafe characters and no padding. */
-- (NSString *)webSafebase64EncodedString;
+- (NSString *)webSafeBase64EncodedString;
+
+/**
+ * Initializes a data object with the given Base64 encoded string.
+ *
+ * @param base64String A Base64 encoded string.
+ * @return A data object built by Base64 decoding the provided string. Returns @c nil if the data
+ *         object could not be decoded.
+ */
+- (nullable instancetype)initWithWebSafeBase64EncodedString:(NSString *)base64String;
 
 @end
 

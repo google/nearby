@@ -14,20 +14,24 @@
 
 #include "connections/implementation/endpoint_channel_manager.h"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
-#include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/base_endpoint_channel.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -35,16 +39,19 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
+constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kEndpointId = "EndpointId";
 constexpr absl::string_view kMonitorA = "MonitorA";
 constexpr absl::string_view kMonitorB = "MonitorB";
@@ -66,7 +73,7 @@ std::function<void()> MakeDataPump(
   return [label, input, output, monitor]() {
     NEARBY_LOGS(INFO) << "streaming data through '" << label << "'";
     while (true) {
-      auto read_response = input->Read(Pipe::kChunkSize);
+      auto read_response = input->Read(kChunkSize);
       if (!read_response.ok()) {
         NEARBY_LOGS(INFO) << "Peer reader closed on '" << label << "'";
         output->Close();
@@ -169,14 +176,18 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   std::string capture_b;
   ClientProxy proxy_a;
   ClientProxy proxy_b;
-  Pipe client_a;  // Channel "a" writes to client "a", reads from server "a".
-  Pipe client_b;  // Channel "b" writes to client "b", reads from server "b".
-  Pipe server_a;  // Data pump "a" reads from client "a", writes to server "b".
-  Pipe server_b;  // Data pump "b" reads from client "b", writes to server "a".
-  auto channel_a = std::make_unique<MockEndpointChannel>(
-      &server_a.GetInputStream(), &client_a.GetOutputStream());
-  auto channel_b = std::make_unique<MockEndpointChannel>(
-      &server_b.GetInputStream(), &client_b.GetOutputStream());
+  auto client_a =
+      CreatePipe();  // Channel "a" writes to client "a", reads from server "a".
+  auto client_b =
+      CreatePipe();  // Channel "b" writes to client "b", reads from server "b".
+  auto server_a = CreatePipe();  // Data pump "a" reads from client "a", writes
+                                 // to server "b".
+  auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
+                                 // to server "a".
+  auto channel_a = std::make_unique<MockEndpointChannel>(server_a.first.get(),
+                                                         client_a.second.get());
+  auto channel_b = std::make_unique<MockEndpointChannel>(server_b.first.get(),
+                                                         client_b.second.get());
   auto channel_a_raw = channel_a.get();
   auto channel_b_raw = channel_b.get();
 
@@ -188,12 +199,12 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   });
 
   MultiThreadExecutor executor(2);
-  executor.Execute(MakeDataPump(
-      kPumpA, &client_a.GetInputStream(), &server_b.GetOutputStream(),
-      MakeDataMonitor(kMonitorA, &capture_a, &mutex)));
-  executor.Execute(MakeDataPump(
-      kPumpB, &client_b.GetInputStream(), &server_a.GetOutputStream(),
-      MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
+  executor.Execute(
+      MakeDataPump(kPumpA, client_a.first.get(), server_b.second.get(),
+                   MakeDataMonitor(kMonitorA, &capture_a, &mutex)));
+  executor.Execute(
+      MakeDataPump(kPumpB, client_b.first.get(), server_a.second.get(),
+                   MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
   auto context = DoDhKeyExchange(channel_a.get(), channel_b.get());
@@ -231,6 +242,12 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   // Shutdown test environment.
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
+  ecm_a.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm_b.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 }
 
 TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
@@ -240,14 +257,18 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   std::string capture_b;
   ClientProxy proxy_a;
   ClientProxy proxy_b;
-  Pipe client_a;  // Channel "a" writes to client "a", reads from server "a".
-  Pipe client_b;  // Channel "b" writes to client "b", reads from server "b".
-  Pipe server_a;  // Data pump "a" reads from client "a", writes to server "b".
-  Pipe server_b;  // Data pump "b" reads from client "b", writes to server "a".
-  auto channel_a = std::make_unique<MockEndpointChannel>(
-      &server_a.GetInputStream(), &client_a.GetOutputStream());
-  auto channel_b = std::make_unique<MockEndpointChannel>(
-      &server_b.GetInputStream(), &client_b.GetOutputStream());
+  auto client_a =
+      CreatePipe();  // Channel "a" writes to client "a", reads from server "a".
+  auto client_b =
+      CreatePipe();  // Channel "b" writes to client "b", reads from server "b".
+  auto server_a = CreatePipe();  // Data pump "a" reads from client "a", writes
+                                 // to server "b".
+  auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
+                                 // to server "a".
+  auto channel_a = std::make_unique<MockEndpointChannel>(server_a.first.get(),
+                                                         client_a.second.get());
+  auto channel_b = std::make_unique<MockEndpointChannel>(server_b.first.get(),
+                                                         client_b.second.get());
   auto channel_a_raw = channel_a.get();
   auto channel_b_raw = channel_b.get();
 
@@ -259,12 +280,12 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   });
 
   MultiThreadExecutor executor(2);
-  executor.Execute(MakeDataPump(
-      kPumpA, &client_a.GetInputStream(), &server_b.GetOutputStream(),
-      MakeDataMonitor(kMonitorA, &capture_a, &mutex)));
-  executor.Execute(MakeDataPump(
-      kPumpB, &client_b.GetInputStream(), &server_a.GetOutputStream(),
-      MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
+  executor.Execute(
+      MakeDataPump(kPumpA, client_a.first.get(), server_b.second.get(),
+                   MakeDataMonitor(kMonitorA, &capture_a, &mutex)));
+  executor.Execute(
+      MakeDataPump(kPumpB, client_b.first.get(), server_a.second.get(),
+                   MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
   auto context = DoDhKeyExchange(channel_a.get(), channel_b.get());
@@ -289,7 +310,12 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   // Shutdown test environment.
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
-}
+  ecm_a.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm_b.UnregisterChannelForEndpoint(
+        std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
+        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);}
 
 }  // namespace
 }  // namespace connections

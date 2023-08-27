@@ -29,9 +29,10 @@
 namespace nearby {
 namespace connections {
 
-WifiHotspotBwuHandler::WifiHotspotBwuHandler(Mediums& mediums,
-                                             BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+WifiHotspotBwuHandler::WifiHotspotBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 // Called by BWU initiator. Set up WifiHotspot upgraded medium for this
 // endpoint, and returns a upgrade path info (SSID, Password, Gateway used as
@@ -48,11 +49,9 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (!wifi_hotspot_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_hotspot_medium_.StartAcceptingConnections(
             upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection,
-                    this, client),
-            })) {
+            absl::bind_front(
+                &WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection, this,
+                client))) {
       NEARBY_LOGS(ERROR)
           << "WifiHotspotBwuHandler couldn't initiate WifiHotspot upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id
@@ -157,7 +156,7 @@ void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
               upgrade_service_id, socket),
           .channel = std::move(channel),
       });
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections

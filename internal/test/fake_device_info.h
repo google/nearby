@@ -86,6 +86,10 @@ class FakeDeviceInfo : public DeviceInfo {
     screen_locked_listeners_.erase(listener_name);
   }
 
+  bool PreventSleep() override { return true; }
+
+  bool AllowSleep() override { return true; }
+
   int GetScreenLockedListenerCount() { return screen_locked_listeners_.size(); }
 
   // Mock methods.

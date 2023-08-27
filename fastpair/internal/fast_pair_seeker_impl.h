@@ -25,6 +25,7 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/pairer_broker_impl.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
+#include "fastpair/repository/fast_pair_repository.h"
 #include "fastpair/retroactive/retroactive.h"
 #include "fastpair/retroactive/retroactive_pairing_detector_impl.h"
 #include "fastpair/scanning/scanner_broker_impl.h"
@@ -42,6 +43,7 @@ class FastPairSeekerExt : public FastPairSeeker {
 
   // Handle the state changes of screen lock.
   virtual void SetIsScreenLocked(bool is_locked) = 0;
+  virtual void ForgetDeviceByAccountKey(const AccountKey& account_key) = 0;
 };
 
 class FastPairSeekerImpl : public FastPairSeekerExt,
@@ -63,7 +65,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
   };
 
   FastPairSeekerImpl(ServiceCallbacks callbacks, SingleThreadExecutor* executor,
-                     FastPairDeviceRepository* devices);
+                     AccountManager* account_manager,
+                     FastPairDeviceRepository* devices,
+                     FastPairRepository* repository);
 
   ~FastPairSeekerImpl() override;
 
@@ -80,10 +84,15 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
                                        const RetroactivePairingParam& param,
                                        PairingCallback callback) override;
 
+  absl::Status FinishRetroactivePairing(
+      const FastPairDevice& device, const FinishRetroactivePairingParam& param,
+      PairingCallback callback) override;
+
   // From FastPairSeekerExt.
   absl::Status StartFastPairScan() override;
   absl::Status StopFastPairScan() override;
   void SetIsScreenLocked(bool is_locked) override;
+  void ForgetDeviceByAccountKey(const AccountKey& account_key) override;
 
   // From BluetoothClassicMedium::Observer.
   void DeviceAdded(BluetoothDevice& device) override;
@@ -117,7 +126,9 @@ class FastPairSeekerImpl : public FastPairSeekerExt,
 
   ServiceCallbacks callbacks_;
   SingleThreadExecutor* executor_;
+  AccountManager* account_manager_;
   FastPairDeviceRepository* devices_;
+  FastPairRepository* repository_;
   Mediums mediums_;
   std::unique_ptr<ScannerBrokerImpl> scanner_;
   std::unique_ptr<ScannerBrokerImpl::ScanningSession> scanning_session_;

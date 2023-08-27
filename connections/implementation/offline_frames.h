@@ -98,8 +98,8 @@ ByteArray ForBwuLastWrite();
 ByteArray ForBwuSafeToClose();
 
 ByteArray ForKeepAlive();
-ByteArray ForDisconnection();
-
+ByteArray ForDisconnection(bool request_safe_to_disconnect,
+                           bool ack_safe_to_disconnect);
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);
 

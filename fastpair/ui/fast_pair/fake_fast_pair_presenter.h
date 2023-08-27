@@ -35,13 +35,24 @@ class FakeFastPairPresenter : public FastPairPresenter {
     version_changed_ = true;
     callback(DiscoveryAction::kPairToDevice);
   }
+
+  void ShowPairingResult(
+      FastPairDevice& device,
+      FastPairNotificationController& notification_controller,
+      bool success) override {
+    pairing_result_changed_ = true;
+  }
+
   bool show_discovery() { return show_discovery_; }
 
   bool version_changed() { return version_changed_; }
 
+  bool pairing_result_changed() { return pairing_result_changed_; }
+
  private:
   bool show_discovery_ = false;
   bool version_changed_ = false;
+  bool pairing_result_changed_ = false;
 };
 
 class FakeFastPairPresenterFactory : public FastPairPresenterImpl::Factory {

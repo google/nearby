@@ -14,11 +14,13 @@
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
 
+#import <Foundation/Foundation.h>
+
 NS_ASSUME_NONNULL_BEGIN
 
 @implementation NSData (GNCWebSafeBase64)
 
-- (NSString *)webSafebase64EncodedString {
+- (NSString *)webSafeBase64EncodedString {
   NSString *encoded = [self base64EncodedStringWithOptions:0];
 
   // Convert the standard base64 characters to URL safe variants.
@@ -27,6 +29,20 @@ NS_ASSUME_NONNULL_BEGIN
   encoded = [encoded stringByReplacingOccurrencesOfString:@"=" withString:@""];
 
   return encoded;
+}
+
+- (nullable instancetype)initWithWebSafeBase64EncodedString:(NSString *)base64String {
+  // Convert the URL safe base64 characters to the standard variants.
+  base64String = [base64String stringByReplacingOccurrencesOfString:@"-" withString:@"+"];
+  base64String = [base64String stringByReplacingOccurrencesOfString:@"_" withString:@"/"];
+
+  // @c initWithBase64EncodedString:options: requires a padded base64 string. Append enough "="
+  // characters to make the string a multiple of 4.
+  NSUInteger paddedLength = base64String.length + ((4 - (base64String.length % 4)) % 4);
+  base64String = [base64String stringByPaddingToLength:paddedLength
+                                            withString:@"="
+                                       startingAtIndex:0];
+  return [self initWithBase64EncodedString:base64String options:0];
 }
 
 @end

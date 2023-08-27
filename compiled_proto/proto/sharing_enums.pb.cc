@@ -86,13 +86,18 @@ bool EventType_IsValid(int value) {
     case 57:
     case 58:
     case 59:
+    case 60:
+    case 61:
+    case 62:
+    case 63:
+    case 64:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[60] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[65] = {};
 
 static const char EventType_names[] =
   "ACCEPT_AGREEMENTS"
@@ -107,6 +112,7 @@ static const char EventType_names[] =
   "CANCEL_RECEIVING_ATTACHMENTS"
   "CANCEL_SENDING_ATTACHMENTS"
   "DECLINE_AGREEMENTS"
+  "DECRYPT_CERTIFICATE_FAILURE"
   "DEFAULT_OPT_IN"
   "DESCRIBE_ATTACHMENTS"
   "DEVICE_SETTINGS"
@@ -117,6 +123,7 @@ static const char EventType_names[] =
   "DISPLAY_PRIVACY_NOTIFICATION"
   "ENABLE_NEARBY_SHARING"
   "ESTABLISH_CONNECTION"
+  "FAST_INIT_DISCOVER_DEVICE"
   "FAST_SHARE_SERVER_RESPONSE"
   "INSTALL_APK"
   "LAUNCH_ACTIVITY"
@@ -124,6 +131,7 @@ static const char EventType_names[] =
   "LAUNCH_PHONE_CONSENT"
   "LAUNCH_SETUP_ACTIVITY"
   "OPEN_RECEIVED_ATTACHMENTS"
+  "PARSING_FAILED_ENDPOINT_ID"
   "PREFERENCES_USAGE"
   "PROCESS_RECEIVED_ATTACHMENTS_END"
   "QR_CODE_LINK_SHOWN"
@@ -139,10 +147,12 @@ static const char EventType_names[] =
   "SCAN_FOR_SHARE_TARGETS_START"
   "SEND_ATTACHMENTS_END"
   "SEND_ATTACHMENTS_START"
+  "SEND_DESKTOP_NOTIFICATION"
   "SEND_FAST_INITIALIZATION"
   "SEND_INTRODUCTION"
   "SEND_START"
   "SETUP_WIZARD"
+  "SET_ACCOUNT"
   "SET_DATA_USAGE"
   "SET_DEVICE_NAME"
   "SET_VISIBILITY"
@@ -169,117 +179,127 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EventType_entries[] = 
   { {EventType_names + 195, 28}, 20 },
   { {EventType_names + 223, 26}, 19 },
   { {EventType_names + 249, 18}, 46 },
-  { {EventType_names + 267, 14}, 56 },
-  { {EventType_names + 281, 20}, 4 },
-  { {EventType_names + 301, 15}, 49 },
-  { {EventType_names + 316, 21}, 11 },
-  { {EventType_names + 337, 27}, 29 },
-  { {EventType_names + 364, 28}, 32 },
-  { {EventType_names + 392, 21}, 54 },
-  { {EventType_names + 413, 28}, 53 },
-  { {EventType_names + 441, 21}, 2 },
-  { {EventType_names + 462, 20}, 48 },
-  { {EventType_names + 482, 26}, 25 },
-  { {EventType_names + 508, 11}, 40 },
-  { {EventType_names + 519, 15}, 31 },
-  { {EventType_names + 534, 14}, 42 },
-  { {EventType_names + 548, 20}, 38 },
-  { {EventType_names + 568, 21}, 22 },
-  { {EventType_names + 589, 25}, 21 },
-  { {EventType_names + 614, 17}, 55 },
-  { {EventType_names + 631, 32}, 43 },
-  { {EventType_names + 663, 18}, 59 },
-  { {EventType_names + 681, 23}, 18 },
-  { {EventType_names + 704, 25}, 17 },
-  { {EventType_names + 729, 27}, 10 },
-  { {EventType_names + 756, 20}, 13 },
-  { {EventType_names + 776, 14}, 24 },
-  { {EventType_names + 790, 26}, 37 },
-  { {EventType_names + 816, 27}, 47 },
-  { {EventType_names + 843, 23}, 14 },
-  { {EventType_names + 866, 26}, 6 },
-  { {EventType_names + 892, 28}, 5 },
-  { {EventType_names + 920, 20}, 16 },
-  { {EventType_names + 940, 22}, 15 },
-  { {EventType_names + 962, 24}, 9 },
-  { {EventType_names + 986, 17}, 12 },
-  { {EventType_names + 1003, 10}, 26 },
-  { {EventType_names + 1013, 12}, 57 },
-  { {EventType_names + 1025, 14}, 28 },
-  { {EventType_names + 1039, 15}, 45 },
-  { {EventType_names + 1054, 14}, 3 },
-  { {EventType_names + 1068, 12}, 35 },
-  { {EventType_names + 1080, 8}, 34 },
-  { {EventType_names + 1088, 24}, 33 },
-  { {EventType_names + 1112, 11}, 58 },
-  { {EventType_names + 1123, 29}, 52 },
-  { {EventType_names + 1152, 23}, 39 },
-  { {EventType_names + 1175, 24}, 44 },
-  { {EventType_names + 1199, 18}, 0 },
-  { {EventType_names + 1217, 10}, 41 },
+  { {EventType_names + 267, 27}, 64 },
+  { {EventType_names + 294, 14}, 56 },
+  { {EventType_names + 308, 20}, 4 },
+  { {EventType_names + 328, 15}, 49 },
+  { {EventType_names + 343, 21}, 11 },
+  { {EventType_names + 364, 27}, 29 },
+  { {EventType_names + 391, 28}, 32 },
+  { {EventType_names + 419, 21}, 54 },
+  { {EventType_names + 440, 28}, 53 },
+  { {EventType_names + 468, 21}, 2 },
+  { {EventType_names + 489, 20}, 48 },
+  { {EventType_names + 509, 25}, 61 },
+  { {EventType_names + 534, 26}, 25 },
+  { {EventType_names + 560, 11}, 40 },
+  { {EventType_names + 571, 15}, 31 },
+  { {EventType_names + 586, 14}, 42 },
+  { {EventType_names + 600, 20}, 38 },
+  { {EventType_names + 620, 21}, 22 },
+  { {EventType_names + 641, 25}, 21 },
+  { {EventType_names + 666, 26}, 60 },
+  { {EventType_names + 692, 17}, 55 },
+  { {EventType_names + 709, 32}, 43 },
+  { {EventType_names + 741, 18}, 59 },
+  { {EventType_names + 759, 23}, 18 },
+  { {EventType_names + 782, 25}, 17 },
+  { {EventType_names + 807, 27}, 10 },
+  { {EventType_names + 834, 20}, 13 },
+  { {EventType_names + 854, 14}, 24 },
+  { {EventType_names + 868, 26}, 37 },
+  { {EventType_names + 894, 27}, 47 },
+  { {EventType_names + 921, 23}, 14 },
+  { {EventType_names + 944, 26}, 6 },
+  { {EventType_names + 970, 28}, 5 },
+  { {EventType_names + 998, 20}, 16 },
+  { {EventType_names + 1018, 22}, 15 },
+  { {EventType_names + 1040, 25}, 62 },
+  { {EventType_names + 1065, 24}, 9 },
+  { {EventType_names + 1089, 17}, 12 },
+  { {EventType_names + 1106, 10}, 26 },
+  { {EventType_names + 1116, 12}, 57 },
+  { {EventType_names + 1128, 11}, 63 },
+  { {EventType_names + 1139, 14}, 28 },
+  { {EventType_names + 1153, 15}, 45 },
+  { {EventType_names + 1168, 14}, 3 },
+  { {EventType_names + 1182, 12}, 35 },
+  { {EventType_names + 1194, 8}, 34 },
+  { {EventType_names + 1202, 24}, 33 },
+  { {EventType_names + 1226, 11}, 58 },
+  { {EventType_names + 1237, 29}, 52 },
+  { {EventType_names + 1266, 23}, 39 },
+  { {EventType_names + 1289, 24}, 44 },
+  { {EventType_names + 1313, 18}, 0 },
+  { {EventType_names + 1331, 10}, 41 },
 };
 
 static const int EventType_entries_by_number[] = {
-  58, // 0 -> UNKNOWN_EVENT_TYPE
+  63, // 0 -> UNKNOWN_EVENT_TYPE
   0, // 1 -> ACCEPT_AGREEMENTS
-  20, // 2 -> ENABLE_NEARBY_SHARING
-  50, // 3 -> SET_VISIBILITY
-  13, // 4 -> DESCRIBE_ATTACHMENTS
-  41, // 5 -> SCAN_FOR_SHARE_TARGETS_START
-  40, // 6 -> SCAN_FOR_SHARE_TARGETS_END
+  21, // 2 -> ENABLE_NEARBY_SHARING
+  55, // 3 -> SET_VISIBILITY
+  14, // 4 -> DESCRIBE_ATTACHMENTS
+  44, // 5 -> SCAN_FOR_SHARE_TARGETS_START
+  43, // 6 -> SCAN_FOR_SHARE_TARGETS_END
   5, // 7 -> ADVERTISE_DEVICE_PRESENCE_START
   4, // 8 -> ADVERTISE_DEVICE_PRESENCE_END
-  44, // 9 -> SEND_FAST_INITIALIZATION
-  34, // 10 -> RECEIVE_FAST_INITIALIZATION
-  15, // 11 -> DISCOVER_SHARE_TARGET
-  45, // 12 -> SEND_INTRODUCTION
-  35, // 13 -> RECEIVE_INTRODUCTION
-  39, // 14 -> RESPOND_TO_INTRODUCTION
-  43, // 15 -> SEND_ATTACHMENTS_START
-  42, // 16 -> SEND_ATTACHMENTS_END
-  33, // 17 -> RECEIVE_ATTACHMENTS_START
-  32, // 18 -> RECEIVE_ATTACHMENTS_END
+  48, // 9 -> SEND_FAST_INITIALIZATION
+  37, // 10 -> RECEIVE_FAST_INITIALIZATION
+  16, // 11 -> DISCOVER_SHARE_TARGET
+  49, // 12 -> SEND_INTRODUCTION
+  38, // 13 -> RECEIVE_INTRODUCTION
+  42, // 14 -> RESPOND_TO_INTRODUCTION
+  46, // 15 -> SEND_ATTACHMENTS_START
+  45, // 16 -> SEND_ATTACHMENTS_END
+  36, // 17 -> RECEIVE_ATTACHMENTS_START
+  35, // 18 -> RECEIVE_ATTACHMENTS_END
   10, // 19 -> CANCEL_SENDING_ATTACHMENTS
   9, // 20 -> CANCEL_RECEIVING_ATTACHMENTS
-  28, // 21 -> OPEN_RECEIVED_ATTACHMENTS
-  27, // 22 -> LAUNCH_SETUP_ACTIVITY
+  30, // 21 -> OPEN_RECEIVED_ATTACHMENTS
+  29, // 22 -> LAUNCH_SETUP_ACTIVITY
   2, // 23 -> ADD_CONTACT
-  36, // 24 -> REMOVE_CONTACT
-  22, // 25 -> FAST_SHARE_SERVER_RESPONSE
-  46, // 26 -> SEND_START
+  39, // 24 -> REMOVE_CONTACT
+  24, // 25 -> FAST_SHARE_SERVER_RESPONSE
+  50, // 26 -> SEND_START
   1, // 27 -> ACCEPT_FAST_INITIALIZATION
-  48, // 28 -> SET_DATA_USAGE
-  16, // 29 -> DISMISS_FAST_INITIALIZATION
+  53, // 28 -> SET_DATA_USAGE
+  17, // 29 -> DISMISS_FAST_INITIALIZATION
   8, // 30 -> CANCEL_CONNECTION
-  24, // 31 -> LAUNCH_ACTIVITY
-  17, // 32 -> DISMISS_PRIVACY_NOTIFICATION
-  53, // 33 -> TAP_PRIVACY_NOTIFICATION
-  52, // 34 -> TAP_HELP
-  51, // 35 -> TAP_FEEDBACK
+  26, // 31 -> LAUNCH_ACTIVITY
+  18, // 32 -> DISMISS_PRIVACY_NOTIFICATION
+  58, // 33 -> TAP_PRIVACY_NOTIFICATION
+  57, // 34 -> TAP_HELP
+  56, // 35 -> TAP_FEEDBACK
   3, // 36 -> ADD_QUICK_SETTINGS_TILE
-  37, // 37 -> REMOVE_QUICK_SETTINGS_TILE
-  26, // 38 -> LAUNCH_PHONE_CONSENT
-  56, // 39 -> TAP_QUICK_SETTINGS_TILE
-  23, // 40 -> INSTALL_APK
-  59, // 41 -> VERIFY_APK
-  25, // 42 -> LAUNCH_CONSENT
-  30, // 43 -> PROCESS_RECEIVED_ATTACHMENTS_END
-  57, // 44 -> TOGGLE_SHOW_NOTIFICATION
-  49, // 45 -> SET_DEVICE_NAME
+  40, // 37 -> REMOVE_QUICK_SETTINGS_TILE
+  28, // 38 -> LAUNCH_PHONE_CONSENT
+  61, // 39 -> TAP_QUICK_SETTINGS_TILE
+  25, // 40 -> INSTALL_APK
+  64, // 41 -> VERIFY_APK
+  27, // 42 -> LAUNCH_CONSENT
+  33, // 43 -> PROCESS_RECEIVED_ATTACHMENTS_END
+  62, // 44 -> TOGGLE_SHOW_NOTIFICATION
+  54, // 45 -> SET_DEVICE_NAME
   11, // 46 -> DECLINE_AGREEMENTS
-  38, // 47 -> REQUEST_SETTING_PERMISSIONS
-  21, // 48 -> ESTABLISH_CONNECTION
-  14, // 49 -> DEVICE_SETTINGS
+  41, // 47 -> REQUEST_SETTING_PERMISSIONS
+  22, // 48 -> ESTABLISH_CONNECTION
+  15, // 49 -> DEVICE_SETTINGS
   7, // 50 -> AUTO_DISMISS_FAST_INITIALIZATION
   6, // 51 -> APP_CRASH
-  55, // 52 -> TAP_QUICK_SETTINGS_FILE_SHARE
-  19, // 53 -> DISPLAY_PRIVACY_NOTIFICATION
-  18, // 54 -> DISPLAY_PHONE_CONSENT
-  29, // 55 -> PREFERENCES_USAGE
-  12, // 56 -> DEFAULT_OPT_IN
-  47, // 57 -> SETUP_WIZARD
-  54, // 58 -> TAP_QR_CODE
-  31, // 59 -> QR_CODE_LINK_SHOWN
+  60, // 52 -> TAP_QUICK_SETTINGS_FILE_SHARE
+  20, // 53 -> DISPLAY_PRIVACY_NOTIFICATION
+  19, // 54 -> DISPLAY_PHONE_CONSENT
+  32, // 55 -> PREFERENCES_USAGE
+  13, // 56 -> DEFAULT_OPT_IN
+  51, // 57 -> SETUP_WIZARD
+  59, // 58 -> TAP_QR_CODE
+  34, // 59 -> QR_CODE_LINK_SHOWN
+  31, // 60 -> PARSING_FAILED_ENDPOINT_ID
+  23, // 61 -> FAST_INIT_DISCOVER_DEVICE
+  47, // 62 -> SEND_DESKTOP_NOTIFICATION
+  52, // 63 -> SET_ACCOUNT
+  12, // 64 -> DECRYPT_CERTIFICATE_FAILURE
 };
 
 const std::string& EventType_Name(
@@ -288,12 +308,12 @@ const std::string& EventType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           EventType_entries,
           EventType_entries_by_number,
-          60, EventType_strings);
+          65, EventType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       EventType_entries,
       EventType_entries_by_number,
-      60, value);
+      65, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      EventType_strings[idx].get();
 }
@@ -301,7 +321,7 @@ bool EventType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EventType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      EventType_entries, 60, name, &int_value);
+      EventType_entries, 65, name, &int_value);
   if (success) {
     *value = static_cast<EventType>(int_value);
   }
@@ -626,13 +646,17 @@ bool AttachmentTransmissionStatus_IsValid(int value) {
     case 15:
     case 16:
     case 17:
+    case 18:
+    case 19:
+    case 20:
+    case 21:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AttachmentTransmissionStatus_strings[18] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AttachmentTransmissionStatus_strings[22] = {};
 
 static const char AttachmentTransmissionStatus_names[] =
   "AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT"
@@ -643,6 +667,10 @@ static const char AttachmentTransmissionStatus_names[] =
   "FAILED_NO_SHARE_TARGET_ENDPOINT"
   "FAILED_NO_TRANSFER_UPDATE_CALLBACK"
   "FAILED_NULL_CONNECTION"
+  "FAILED_NULL_CONNECTION_DISCONNECTED"
+  "FAILED_NULL_CONNECTION_FAILURE"
+  "FAILED_NULL_CONNECTION_INIT_OUTGOING"
+  "FAILED_NULL_CONNECTION_LOST_CONNECTIVITY"
   "FAILED_PAIRED_KEYHANDSHAKE"
   "FAILED_UNKNOWN_REMOTE_RESPONSE"
   "FAILED_WRITE_INTRODUCTION"
@@ -663,37 +691,45 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry AttachmentTransmission
   { {AttachmentTransmissionStatus_names + 176, 31}, 12 },
   { {AttachmentTransmissionStatus_names + 207, 34}, 8 },
   { {AttachmentTransmissionStatus_names + 241, 22}, 14 },
-  { {AttachmentTransmissionStatus_names + 263, 26}, 13 },
-  { {AttachmentTransmissionStatus_names + 289, 30}, 17 },
-  { {AttachmentTransmissionStatus_names + 319, 25}, 16 },
-  { {AttachmentTransmissionStatus_names + 344, 28}, 9 },
-  { {AttachmentTransmissionStatus_names + 372, 27}, 7 },
-  { {AttachmentTransmissionStatus_names + 399, 19}, 11 },
-  { {AttachmentTransmissionStatus_names + 418, 19}, 4 },
-  { {AttachmentTransmissionStatus_names + 437, 20}, 5 },
-  { {AttachmentTransmissionStatus_names + 457, 38}, 0 },
-  { {AttachmentTransmissionStatus_names + 495, 38}, 10 },
+  { {AttachmentTransmissionStatus_names + 263, 35}, 19 },
+  { {AttachmentTransmissionStatus_names + 298, 30}, 21 },
+  { {AttachmentTransmissionStatus_names + 328, 36}, 18 },
+  { {AttachmentTransmissionStatus_names + 364, 40}, 20 },
+  { {AttachmentTransmissionStatus_names + 404, 26}, 13 },
+  { {AttachmentTransmissionStatus_names + 430, 30}, 17 },
+  { {AttachmentTransmissionStatus_names + 460, 25}, 16 },
+  { {AttachmentTransmissionStatus_names + 485, 28}, 9 },
+  { {AttachmentTransmissionStatus_names + 513, 27}, 7 },
+  { {AttachmentTransmissionStatus_names + 540, 19}, 11 },
+  { {AttachmentTransmissionStatus_names + 559, 19}, 4 },
+  { {AttachmentTransmissionStatus_names + 578, 20}, 5 },
+  { {AttachmentTransmissionStatus_names + 598, 38}, 0 },
+  { {AttachmentTransmissionStatus_names + 636, 38}, 10 },
 };
 
 static const int AttachmentTransmissionStatus_entries_by_number[] = {
-  16, // 0 -> UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS
+  20, // 0 -> UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS
   2, // 1 -> COMPLETE_ATTACHMENT_TRANSMISSION_STATUS
   1, // 2 -> CANCELED_ATTACHMENT_TRANSMISSION_STATUS
   3, // 3 -> FAILED_ATTACHMENT_TRANSMISSION_STATUS
-  14, // 4 -> REJECTED_ATTACHMENT
-  15, // 5 -> TIMED_OUT_ATTACHMENT
+  18, // 4 -> REJECTED_ATTACHMENT
+  19, // 5 -> TIMED_OUT_ATTACHMENT
   0, // 6 -> AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT
-  12, // 7 -> NOT_ENOUGH_SPACE_ATTACHMENT
+  16, // 7 -> NOT_ENOUGH_SPACE_ATTACHMENT
   6, // 8 -> FAILED_NO_TRANSFER_UPDATE_CALLBACK
-  11, // 9 -> MEDIA_UNAVAILABLE_ATTACHMENT
-  17, // 10 -> UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT
-  13, // 11 -> NO_ATTACHMENT_FOUND
+  15, // 9 -> MEDIA_UNAVAILABLE_ATTACHMENT
+  21, // 10 -> UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT
+  17, // 11 -> NO_ATTACHMENT_FOUND
   5, // 12 -> FAILED_NO_SHARE_TARGET_ENDPOINT
-  8, // 13 -> FAILED_PAIRED_KEYHANDSHAKE
+  12, // 13 -> FAILED_PAIRED_KEYHANDSHAKE
   7, // 14 -> FAILED_NULL_CONNECTION
   4, // 15 -> FAILED_NO_PAYLOAD
-  10, // 16 -> FAILED_WRITE_INTRODUCTION
-  9, // 17 -> FAILED_UNKNOWN_REMOTE_RESPONSE
+  14, // 16 -> FAILED_WRITE_INTRODUCTION
+  13, // 17 -> FAILED_UNKNOWN_REMOTE_RESPONSE
+  10, // 18 -> FAILED_NULL_CONNECTION_INIT_OUTGOING
+  8, // 19 -> FAILED_NULL_CONNECTION_DISCONNECTED
+  11, // 20 -> FAILED_NULL_CONNECTION_LOST_CONNECTIVITY
+  9, // 21 -> FAILED_NULL_CONNECTION_FAILURE
 };
 
 const std::string& AttachmentTransmissionStatus_Name(
@@ -702,12 +738,12 @@ const std::string& AttachmentTransmissionStatus_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           AttachmentTransmissionStatus_entries,
           AttachmentTransmissionStatus_entries_by_number,
-          18, AttachmentTransmissionStatus_strings);
+          22, AttachmentTransmissionStatus_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       AttachmentTransmissionStatus_entries,
       AttachmentTransmissionStatus_entries_by_number,
-      18, value);
+      22, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      AttachmentTransmissionStatus_strings[idx].get();
 }
@@ -715,9 +751,128 @@ bool AttachmentTransmissionStatus_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AttachmentTransmissionStatus* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      AttachmentTransmissionStatus_entries, 18, name, &int_value);
+      AttachmentTransmissionStatus_entries, 22, name, &int_value);
   if (success) {
     *value = static_cast<AttachmentTransmissionStatus>(int_value);
+  }
+  return success;
+}
+bool ConnectionLayerStatus_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionLayerStatus_strings[19] = {};
+
+static const char ConnectionLayerStatus_names[] =
+  "CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING"
+  "CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT"
+  "CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING"
+  "CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY"
+  "CONNECTION_LAYER_STATUS_ALREADY_LISTENING"
+  "CONNECTION_LAYER_STATUS_BLE_ERROR"
+  "CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR"
+  "CONNECTION_LAYER_STATUS_CONNECTION_REJECTED"
+  "CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR"
+  "CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN"
+  "CONNECTION_LAYER_STATUS_ERROR"
+  "CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT"
+  "CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL"
+  "CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN"
+  "CONNECTION_LAYER_STATUS_RESET"
+  "CONNECTION_LAYER_STATUS_SUCCESS"
+  "CONNECTION_LAYER_STATUS_TIMEOUT"
+  "CONNECTION_LAYER_STATUS_UNKNOWN"
+  "CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionLayerStatus_entries[] = {
+  { {ConnectionLayerStatus_names + 0, 43}, 5 },
+  { {ConnectionLayerStatus_names + 43, 54}, 11 },
+  { {ConnectionLayerStatus_names + 97, 43}, 6 },
+  { {ConnectionLayerStatus_names + 140, 52}, 4 },
+  { {ConnectionLayerStatus_names + 192, 41}, 7 },
+  { {ConnectionLayerStatus_names + 233, 33}, 14 },
+  { {ConnectionLayerStatus_names + 266, 39}, 13 },
+  { {ConnectionLayerStatus_names + 305, 43}, 10 },
+  { {ConnectionLayerStatus_names + 348, 42}, 8 },
+  { {ConnectionLayerStatus_names + 390, 41}, 9 },
+  { {ConnectionLayerStatus_names + 431, 29}, 2 },
+  { {ConnectionLayerStatus_names + 460, 50}, 12 },
+  { {ConnectionLayerStatus_names + 510, 45}, 3 },
+  { {ConnectionLayerStatus_names + 555, 39}, 16 },
+  { {ConnectionLayerStatus_names + 594, 29}, 17 },
+  { {ConnectionLayerStatus_names + 623, 31}, 1 },
+  { {ConnectionLayerStatus_names + 654, 31}, 18 },
+  { {ConnectionLayerStatus_names + 685, 31}, 0 },
+  { {ConnectionLayerStatus_names + 716, 38}, 15 },
+};
+
+static const int ConnectionLayerStatus_entries_by_number[] = {
+  17, // 0 -> CONNECTION_LAYER_STATUS_UNKNOWN
+  15, // 1 -> CONNECTION_LAYER_STATUS_SUCCESS
+  10, // 2 -> CONNECTION_LAYER_STATUS_ERROR
+  12, // 3 -> CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL
+  3, // 4 -> CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY
+  0, // 5 -> CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING
+  2, // 6 -> CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING
+  4, // 7 -> CONNECTION_LAYER_STATUS_ALREADY_LISTENING
+  8, // 8 -> CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR
+  9, // 9 -> CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN
+  7, // 10 -> CONNECTION_LAYER_STATUS_CONNECTION_REJECTED
+  1, // 11 -> CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT
+  11, // 12 -> CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT
+  6, // 13 -> CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR
+  5, // 14 -> CONNECTION_LAYER_STATUS_BLE_ERROR
+  18, // 15 -> CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR
+  13, // 16 -> CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN
+  14, // 17 -> CONNECTION_LAYER_STATUS_RESET
+  16, // 18 -> CONNECTION_LAYER_STATUS_TIMEOUT
+};
+
+const std::string& ConnectionLayerStatus_Name(
+    ConnectionLayerStatus value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ConnectionLayerStatus_entries,
+          ConnectionLayerStatus_entries_by_number,
+          19, ConnectionLayerStatus_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ConnectionLayerStatus_entries,
+      ConnectionLayerStatus_entries_by_number,
+      19, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ConnectionLayerStatus_strings[idx].get();
+}
+bool ConnectionLayerStatus_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionLayerStatus* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ConnectionLayerStatus_entries, 19, name, &int_value);
+  if (success) {
+    *value = static_cast<ConnectionLayerStatus>(int_value);
   }
   return success;
 }
@@ -1328,6 +1483,168 @@ bool ServerResponseState_Parse(
   }
   return success;
 }
+bool SyncPurpose_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SyncPurpose_strings[16] = {};
+
+static const char SyncPurpose_names[] =
+  "SYNC_PURPOSE_ACCOUNT_CHANGE"
+  "SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN"
+  "SYNC_PURPOSE_CHIME_NOTIFICATION"
+  "SYNC_PURPOSE_CONTACT_LIST_CHANGE"
+  "SYNC_PURPOSE_DAILY_SYNC"
+  "SYNC_PURPOSE_NEARBY_SHARE_ENABLED"
+  "SYNC_PURPOSE_ON_DEMAND_SYNC"
+  "SYNC_PURPOSE_OPT_IN_FIRST_SYNC"
+  "SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY"
+  "SYNC_PURPOSE_SHOW_C11N_VIEW"
+  "SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT"
+  "SYNC_PURPOSE_SYNC_AT_DISCOVERY"
+  "SYNC_PURPOSE_SYNC_AT_FAST_INIT"
+  "SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE"
+  "SYNC_PURPOSE_UNKNOWN"
+  "SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SyncPurpose_entries[] = {
+  { {SyncPurpose_names + 0, 27}, 15 },
+  { {SyncPurpose_names + 27, 33}, 5 },
+  { {SyncPurpose_names + 60, 31}, 2 },
+  { {SyncPurpose_names + 91, 32}, 11 },
+  { {SyncPurpose_names + 123, 23}, 3 },
+  { {SyncPurpose_names + 146, 33}, 6 },
+  { {SyncPurpose_names + 179, 27}, 1 },
+  { {SyncPurpose_names + 206, 30}, 4 },
+  { {SyncPurpose_names + 236, 47}, 13 },
+  { {SyncPurpose_names + 283, 27}, 12 },
+  { {SyncPurpose_names + 310, 34}, 10 },
+  { {SyncPurpose_names + 344, 30}, 8 },
+  { {SyncPurpose_names + 374, 30}, 7 },
+  { {SyncPurpose_names + 404, 45}, 9 },
+  { {SyncPurpose_names + 449, 20}, 0 },
+  { {SyncPurpose_names + 469, 47}, 14 },
+};
+
+static const int SyncPurpose_entries_by_number[] = {
+  14, // 0 -> SYNC_PURPOSE_UNKNOWN
+  6, // 1 -> SYNC_PURPOSE_ON_DEMAND_SYNC
+  2, // 2 -> SYNC_PURPOSE_CHIME_NOTIFICATION
+  4, // 3 -> SYNC_PURPOSE_DAILY_SYNC
+  7, // 4 -> SYNC_PURPOSE_OPT_IN_FIRST_SYNC
+  1, // 5 -> SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN
+  5, // 6 -> SYNC_PURPOSE_NEARBY_SHARE_ENABLED
+  12, // 7 -> SYNC_PURPOSE_SYNC_AT_FAST_INIT
+  11, // 8 -> SYNC_PURPOSE_SYNC_AT_DISCOVERY
+  13, // 9 -> SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE
+  10, // 10 -> SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT
+  3, // 11 -> SYNC_PURPOSE_CONTACT_LIST_CHANGE
+  9, // 12 -> SYNC_PURPOSE_SHOW_C11N_VIEW
+  8, // 13 -> SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY
+  15, // 14 -> SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE
+  0, // 15 -> SYNC_PURPOSE_ACCOUNT_CHANGE
+};
+
+const std::string& SyncPurpose_Name(
+    SyncPurpose value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          SyncPurpose_entries,
+          SyncPurpose_entries_by_number,
+          16, SyncPurpose_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      SyncPurpose_entries,
+      SyncPurpose_entries_by_number,
+      16, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     SyncPurpose_strings[idx].get();
+}
+bool SyncPurpose_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SyncPurpose* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      SyncPurpose_entries, 16, name, &int_value);
+  if (success) {
+    *value = static_cast<SyncPurpose>(int_value);
+  }
+  return success;
+}
+bool ClientRole_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ClientRole_strings[3] = {};
+
+static const char ClientRole_names[] =
+  "CLIENT_ROLE_RECEIVER"
+  "CLIENT_ROLE_SENDER"
+  "CLIENT_ROLE_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ClientRole_entries[] = {
+  { {ClientRole_names + 0, 20}, 2 },
+  { {ClientRole_names + 20, 18}, 1 },
+  { {ClientRole_names + 38, 19}, 0 },
+};
+
+static const int ClientRole_entries_by_number[] = {
+  2, // 0 -> CLIENT_ROLE_UNKNOWN
+  1, // 1 -> CLIENT_ROLE_SENDER
+  0, // 2 -> CLIENT_ROLE_RECEIVER
+};
+
+const std::string& ClientRole_Name(
+    ClientRole value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ClientRole_entries,
+          ClientRole_entries_by_number,
+          3, ClientRole_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ClientRole_entries,
+      ClientRole_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ClientRole_strings[idx].get();
+}
+bool ClientRole_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ClientRole* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ClientRole_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<ClientRole>(int_value);
+  }
+  return success;
+}
 bool ScanType_IsValid(int value) {
   switch (value) {
     case 0:
@@ -1388,6 +1705,61 @@ bool ScanType_Parse(
       ScanType_entries, 5, name, &int_value);
   if (success) {
     *value = static_cast<ScanType>(int_value);
+  }
+  return success;
+}
+bool ParsingFailedType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ParsingFailedType_strings[3] = {};
+
+static const char ParsingFailedType_names[] =
+  "FAILED_CONVERT_SHARE_TARGET"
+  "FAILED_PARSE_ADVERTISEMENT"
+  "FAILED_UNKNOWN_TYPE";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ParsingFailedType_entries[] = {
+  { {ParsingFailedType_names + 0, 27}, 2 },
+  { {ParsingFailedType_names + 27, 26}, 1 },
+  { {ParsingFailedType_names + 53, 19}, 0 },
+};
+
+static const int ParsingFailedType_entries_by_number[] = {
+  2, // 0 -> FAILED_UNKNOWN_TYPE
+  1, // 1 -> FAILED_PARSE_ADVERTISEMENT
+  0, // 2 -> FAILED_CONVERT_SHARE_TARGET
+};
+
+const std::string& ParsingFailedType_Name(
+    ParsingFailedType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ParsingFailedType_entries,
+          ParsingFailedType_entries_by_number,
+          3, ParsingFailedType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ParsingFailedType_entries,
+      ParsingFailedType_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ParsingFailedType_strings[idx].get();
+}
+bool ParsingFailedType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ParsingFailedType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ParsingFailedType_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<ParsingFailedType>(int_value);
   }
   return success;
 }
@@ -2345,6 +2717,341 @@ bool PreferencesActionStatus_Parse(
       PreferencesActionStatus_entries, 3, name, &int_value);
   if (success) {
     *value = static_cast<PreferencesActionStatus>(int_value);
+  }
+  return success;
+}
+bool FastInitState_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> FastInitState_strings[4] = {};
+
+static const char FastInitState_names[] =
+  "FAST_INIT_CLOSE_STATE"
+  "FAST_INIT_FAR_STATE"
+  "FAST_INIT_LOST_STATE"
+  "FAST_INIT_UNKNOWN_STATE";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry FastInitState_entries[] = {
+  { {FastInitState_names + 0, 21}, 1 },
+  { {FastInitState_names + 21, 19}, 2 },
+  { {FastInitState_names + 40, 20}, 3 },
+  { {FastInitState_names + 60, 23}, 0 },
+};
+
+static const int FastInitState_entries_by_number[] = {
+  3, // 0 -> FAST_INIT_UNKNOWN_STATE
+  0, // 1 -> FAST_INIT_CLOSE_STATE
+  1, // 2 -> FAST_INIT_FAR_STATE
+  2, // 3 -> FAST_INIT_LOST_STATE
+};
+
+const std::string& FastInitState_Name(
+    FastInitState value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          FastInitState_entries,
+          FastInitState_entries_by_number,
+          4, FastInitState_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      FastInitState_entries,
+      FastInitState_entries_by_number,
+      4, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     FastInitState_strings[idx].get();
+}
+bool FastInitState_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, FastInitState* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      FastInitState_entries, 4, name, &int_value);
+  if (success) {
+    *value = static_cast<FastInitState>(int_value);
+  }
+  return success;
+}
+bool FastInitType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> FastInitType_strings[3] = {};
+
+static const char FastInitType_names[] =
+  "FAST_INIT_NOTIFY_TYPE"
+  "FAST_INIT_SILENT_TYPE"
+  "FAST_INIT_UNKNOWN_TYPE";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry FastInitType_entries[] = {
+  { {FastInitType_names + 0, 21}, 1 },
+  { {FastInitType_names + 21, 21}, 2 },
+  { {FastInitType_names + 42, 22}, 0 },
+};
+
+static const int FastInitType_entries_by_number[] = {
+  2, // 0 -> FAST_INIT_UNKNOWN_TYPE
+  0, // 1 -> FAST_INIT_NOTIFY_TYPE
+  1, // 2 -> FAST_INIT_SILENT_TYPE
+};
+
+const std::string& FastInitType_Name(
+    FastInitType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          FastInitType_entries,
+          FastInitType_entries_by_number,
+          3, FastInitType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      FastInitType_entries,
+      FastInitType_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     FastInitType_strings[idx].get();
+}
+bool FastInitType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, FastInitType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      FastInitType_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<FastInitType>(int_value);
+  }
+  return success;
+}
+bool DesktopNotification_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DesktopNotification_strings[6] = {};
+
+static const char DesktopNotification_names[] =
+  "DESKTOP_NOTIFICATION_ACCEPT"
+  "DESKTOP_NOTIFICATION_CONNECTING"
+  "DESKTOP_NOTIFICATION_ERROR"
+  "DESKTOP_NOTIFICATION_PROGRESS"
+  "DESKTOP_NOTIFICATION_RECEIVED"
+  "DESKTOP_NOTIFICATION_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DesktopNotification_entries[] = {
+  { {DesktopNotification_names + 0, 27}, 3 },
+  { {DesktopNotification_names + 27, 31}, 1 },
+  { {DesktopNotification_names + 58, 26}, 5 },
+  { {DesktopNotification_names + 84, 29}, 2 },
+  { {DesktopNotification_names + 113, 29}, 4 },
+  { {DesktopNotification_names + 142, 28}, 0 },
+};
+
+static const int DesktopNotification_entries_by_number[] = {
+  5, // 0 -> DESKTOP_NOTIFICATION_UNKNOWN
+  1, // 1 -> DESKTOP_NOTIFICATION_CONNECTING
+  3, // 2 -> DESKTOP_NOTIFICATION_PROGRESS
+  0, // 3 -> DESKTOP_NOTIFICATION_ACCEPT
+  4, // 4 -> DESKTOP_NOTIFICATION_RECEIVED
+  2, // 5 -> DESKTOP_NOTIFICATION_ERROR
+};
+
+const std::string& DesktopNotification_Name(
+    DesktopNotification value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          DesktopNotification_entries,
+          DesktopNotification_entries_by_number,
+          6, DesktopNotification_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      DesktopNotification_entries,
+      DesktopNotification_entries_by_number,
+      6, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     DesktopNotification_strings[idx].get();
+}
+bool DesktopNotification_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DesktopNotification* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      DesktopNotification_entries, 6, name, &int_value);
+  if (success) {
+    *value = static_cast<DesktopNotification>(int_value);
+  }
+  return success;
+}
+bool DesktopTransferEventType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DesktopTransferEventType_strings[10] = {};
+
+static const char DesktopTransferEventType_names[] =
+  "DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ACCEPT"
+  "DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ERROR"
+  "DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_PROGRESS"
+  "DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_RECEIVED"
+  "DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR"
+  "DESKTOP_TRANSFER_EVENT_SEND_TYPE_PROGRESS"
+  "DESKTOP_TRANSFER_EVENT_SEND_TYPE_SELECT_A_DEVICE"
+  "DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT"
+  "DESKTOP_TRANSFER_EVENT_SEND_TYPE_START"
+  "DESKTOP_TRANSFER_EVENT_TYPE_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DesktopTransferEventType_entries[] = {
+  { {DesktopTransferEventType_names + 0, 42}, 1 },
+  { {DesktopTransferEventType_names + 42, 41}, 4 },
+  { {DesktopTransferEventType_names + 83, 44}, 2 },
+  { {DesktopTransferEventType_names + 127, 44}, 3 },
+  { {DesktopTransferEventType_names + 171, 38}, 9 },
+  { {DesktopTransferEventType_names + 209, 41}, 7 },
+  { {DesktopTransferEventType_names + 250, 48}, 6 },
+  { {DesktopTransferEventType_names + 298, 37}, 8 },
+  { {DesktopTransferEventType_names + 335, 38}, 5 },
+  { {DesktopTransferEventType_names + 373, 35}, 0 },
+};
+
+static const int DesktopTransferEventType_entries_by_number[] = {
+  9, // 0 -> DESKTOP_TRANSFER_EVENT_TYPE_UNKNOWN
+  0, // 1 -> DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ACCEPT
+  2, // 2 -> DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_PROGRESS
+  3, // 3 -> DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_RECEIVED
+  1, // 4 -> DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ERROR
+  8, // 5 -> DESKTOP_TRANSFER_EVENT_SEND_TYPE_START
+  6, // 6 -> DESKTOP_TRANSFER_EVENT_SEND_TYPE_SELECT_A_DEVICE
+  5, // 7 -> DESKTOP_TRANSFER_EVENT_SEND_TYPE_PROGRESS
+  7, // 8 -> DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT
+  4, // 9 -> DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR
+};
+
+const std::string& DesktopTransferEventType_Name(
+    DesktopTransferEventType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          DesktopTransferEventType_entries,
+          DesktopTransferEventType_entries_by_number,
+          10, DesktopTransferEventType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      DesktopTransferEventType_entries,
+      DesktopTransferEventType_entries_by_number,
+      10, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     DesktopTransferEventType_strings[idx].get();
+}
+bool DesktopTransferEventType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DesktopTransferEventType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      DesktopTransferEventType_entries, 10, name, &int_value);
+  if (success) {
+    *value = static_cast<DesktopTransferEventType>(int_value);
+  }
+  return success;
+}
+bool DecryptCertificateFailureStatus_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DecryptCertificateFailureStatus_strings[7] = {};
+
+static const char DecryptCertificateFailureStatus_names[] =
+  "DECRYPT_CERT_BAD_PADDING_FAILURE"
+  "DECRYPT_CERT_ILLEGAL_BLOCK_SIZE_FAILURE"
+  "DECRYPT_CERT_INVALID_ALGORITHM_PARAMETER_FAILURE"
+  "DECRYPT_CERT_INVALID_KEY_FAILURE"
+  "DECRYPT_CERT_NO_SUCH_ALGORITHM_FAILURE"
+  "DECRYPT_CERT_NO_SUCH_PADDING_FAILURE"
+  "DECRYPT_CERT_UNKNOWN_FAILURE";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DecryptCertificateFailureStatus_entries[] = {
+  { {DecryptCertificateFailureStatus_names + 0, 32}, 6 },
+  { {DecryptCertificateFailureStatus_names + 32, 39}, 5 },
+  { {DecryptCertificateFailureStatus_names + 71, 48}, 4 },
+  { {DecryptCertificateFailureStatus_names + 119, 32}, 3 },
+  { {DecryptCertificateFailureStatus_names + 151, 38}, 1 },
+  { {DecryptCertificateFailureStatus_names + 189, 36}, 2 },
+  { {DecryptCertificateFailureStatus_names + 225, 28}, 0 },
+};
+
+static const int DecryptCertificateFailureStatus_entries_by_number[] = {
+  6, // 0 -> DECRYPT_CERT_UNKNOWN_FAILURE
+  4, // 1 -> DECRYPT_CERT_NO_SUCH_ALGORITHM_FAILURE
+  5, // 2 -> DECRYPT_CERT_NO_SUCH_PADDING_FAILURE
+  3, // 3 -> DECRYPT_CERT_INVALID_KEY_FAILURE
+  2, // 4 -> DECRYPT_CERT_INVALID_ALGORITHM_PARAMETER_FAILURE
+  1, // 5 -> DECRYPT_CERT_ILLEGAL_BLOCK_SIZE_FAILURE
+  0, // 6 -> DECRYPT_CERT_BAD_PADDING_FAILURE
+};
+
+const std::string& DecryptCertificateFailureStatus_Name(
+    DecryptCertificateFailureStatus value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          DecryptCertificateFailureStatus_entries,
+          DecryptCertificateFailureStatus_entries_by_number,
+          7, DecryptCertificateFailureStatus_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      DecryptCertificateFailureStatus_entries,
+      DecryptCertificateFailureStatus_entries_by_number,
+      7, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     DecryptCertificateFailureStatus_strings[idx].get();
+}
+bool DecryptCertificateFailureStatus_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DecryptCertificateFailureStatus* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      DecryptCertificateFailureStatus_entries, 7, name, &int_value);
+  if (success) {
+    *value = static_cast<DecryptCertificateFailureStatus>(int_value);
   }
   return success;
 }

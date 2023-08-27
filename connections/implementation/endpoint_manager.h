@@ -25,6 +25,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
@@ -89,7 +90,8 @@ class EndpointManager {
     virtual void OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& service_id,
                                       const std::string& endpoint_id,
-                                      CountDownLatch barrier) = 0;
+                                      CountDownLatch barrier,
+                                      DisconnectionReason reason) = 0;
   };
 
   explicit EndpointManager(EndpointChannelManager* manager);
@@ -153,7 +155,8 @@ class EndpointManager {
   // ask everyone who's registered an FrameProcessor to
   // processEndpointDisconnection() while the caller of DiscardEndpoint() is
   // blocked here.
-  void DiscardEndpoint(ClientProxy* client, const std::string& endpoint_id);
+  void DiscardEndpoint(ClientProxy* client, const std::string& endpoint_id,
+                       DisconnectionReason reason);
 
  protected:
   // For unit tests only to control executing tasks on the executor.
@@ -189,7 +192,7 @@ class EndpointManager {
 
     void StartEndpointReader(Runnable&& runnable);
     void StartEndpointKeepAliveManager(
-        std::function<void(Mutex*, ConditionVariable*)> runnable);
+        absl::AnyInvocable<void(Mutex*, ConditionVariable*)> runnable);
 
    private:
     const std::string endpoint_id_;
@@ -245,7 +248,7 @@ class EndpointManager {
   void EndpointChannelLoopRunnable(
       const std::string& runnable_name, ClientProxy* client_proxy,
       const std::string& endpoint_id,
-      std::function<ExceptionOr<bool>(EndpointChannel*)> handler);
+      absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler);
 
   static void WaitForLatch(const std::string& method_name,
                            CountDownLatch* latch);
@@ -259,15 +262,21 @@ class EndpointManager {
   // this method is idempotent.
   // @EndpointManagerThread
   void RemoveEndpoint(ClientProxy* client, const std::string& endpoint_id,
-                      bool notify);
-
+                      bool notify, DisconnectionReason reason);
+  bool ApplySafeToDisconnect(const std::string& endpoint_id,
+                             EndpointChannel* endpoint_channel,
+                             DisconnectionReason reason);
   void WaitForEndpointDisconnectionProcessing(ClientProxy* client,
                                               const std::string& service_id,
-                                              const std::string& endpoint_id);
-
+                                              const std::string& endpoint_id,
+                                              DisconnectionReason reason);
+  void ProcessDisconnectionFrame(
+      ClientProxy* client, const std::string& endpoint_id,
+      EndpointChannel* endpoint_channel,
+      location::nearby::connections::OfflineFrame& frame);
   CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
       ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id);
+      const std::string& endpoint_id, DisconnectionReason reason);
 
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,

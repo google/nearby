@@ -14,24 +14,25 @@
 
 #include "connections/implementation/internal_payload_factory.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
-#include "absl/memory/memory.h"
-#include "connections/implementation/offline_frames_validator.h"
+#include "absl/strings/str_cat.h"
+#include "connections/implementation/internal_payload.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
+#include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/file.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/implementation/shared/file.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/os_name.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 
 namespace nearby {
@@ -155,8 +156,9 @@ class OutgoingStreamInternalPayload : public InternalPayload {
 
 class IncomingStreamInternalPayload : public InternalPayload {
  public:
-  IncomingStreamInternalPayload(Payload payload, std::shared_ptr<Pipe> pipe)
-      : InternalPayload(std::move(payload)), pipe_(pipe) {}
+  IncomingStreamInternalPayload(Payload payload,
+                                std::unique_ptr<OutputStream> output)
+      : InternalPayload(std::move(payload)), output_(std::move(output)) {}
 
   PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
     return PayloadTransferFrame::PayloadHeader::STREAM;
@@ -174,7 +176,7 @@ class IncomingStreamInternalPayload : public InternalPayload {
       return {Exception::kSuccess};
     }
 
-    return pipe_->GetOutputStream().Write(chunk);
+    return output_->Write(chunk);
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -183,10 +185,10 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return {Exception::kIo};
   }
 
-  void Close() override { pipe_->GetOutputStream().Close(); }
+  void Close() override { output_->Close(); }
 
  private:
-  std::shared_ptr<Pipe> pipe_;
+  std::unique_ptr<OutputStream> output_;
 };
 
 class OutgoingFileInternalPayload : public InternalPayload {
@@ -311,14 +313,14 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
     case PayloadType::kBytes:
-      return absl::make_unique<BytesInternalPayload>(std::move(payload));
+      return std::make_unique<BytesInternalPayload>(std::move(payload));
 
     case PayloadType::kFile: {
-      return absl::make_unique<OutgoingFileInternalPayload>(std::move(payload));
+      return std::make_unique<OutgoingFileInternalPayload>(std::move(payload));
     }
 
     case PayloadType::kStream:
-      return absl::make_unique<OutgoingStreamInternalPayload>(
+      return std::make_unique<OutgoingStreamInternalPayload>(
           std::move(payload));
 
     default:
@@ -359,19 +361,15 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
   const Payload::Id payload_id = frame.payload_header().id();
   switch (frame.payload_header().type()) {
     case PayloadTransferFrame::PayloadHeader::BYTES: {
-      return absl::make_unique<BytesInternalPayload>(
+      return std::make_unique<BytesInternalPayload>(
           Payload(payload_id, ByteArray(frame.payload_chunk().body())));
     }
 
     case PayloadTransferFrame::PayloadHeader::STREAM: {
-      auto pipe = std::make_shared<Pipe>();
+      auto [input, output] = CreatePipe();
 
-      return absl::make_unique<IncomingStreamInternalPayload>(
-          Payload(payload_id,
-                  [pipe]() -> InputStream& {
-                    return pipe->GetInputStream();  // NOLINT
-                  }),
-          pipe);
+      return std::make_unique<IncomingStreamInternalPayload>(
+          Payload(payload_id, std::move(input)), std::move(output));
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
@@ -411,11 +409,11 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
       // there will be no input file to open.
       // On Chrome the file path should be empty, so use the payload id.
       if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
-        return absl::make_unique<IncomingFileInternalPayload>(
+        return std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, InputFile(payload_id, total_size)),
             OutputFile(payload_id), total_size);
       } else {
-        return absl::make_unique<IncomingFileInternalPayload>(
+        return std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, parent_folder, file_name,
                     InputFile(file_path, total_size)),
             OutputFile(file_path), total_size);

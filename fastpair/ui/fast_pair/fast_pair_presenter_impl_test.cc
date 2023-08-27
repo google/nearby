@@ -14,8 +14,8 @@
 
 #include "fastpair/ui/fast_pair/fast_pair_presenter_impl.h"
 
-#include <optional>
-
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
@@ -26,78 +26,88 @@
 
 namespace nearby {
 namespace fastpair {
+const int64_t kDeviceId = 10148625;
 constexpr absl::string_view kModelId = "000000";
 constexpr absl::string_view kAddress = "00:00:00:00:00:00";
 constexpr absl::string_view kPublicKey = "test public key";
+constexpr absl::string_view kInitialPairingdescription =
+    "InitialPairingdescription";
 
 namespace {
-TEST(FastPairPresenterImplTest, ShowDiscoveryForV1Version) {
-  // Setup repository with v1 version device metadata
-  FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
-  proto::GetObservedDeviceResponse response;
-  DeviceMetadata device_metadata(response);
-  device.SetMetadata(device_metadata);
-
-  // Register FastPairNotificationControllerObserver
-  auto latch_1 = std::make_optional<CountDownLatch>(1);
-  FastPairNotificationController controller;
-  FakeFastPairNotificationControllerObserver notification_controller_observer(
-      latch_1);
-  controller.AddObserver(&notification_controller_observer);
-  EXPECT_EQ(notification_controller_observer.on_update_device_count(), 0);
-
-  // FastPairPresenter ShowDiscovery
-  CountDownLatch latch_2(1);
-  FastPairPresenterImpl fast_pair_presenter;
-  DiscoveryAction discovery_action = DiscoveryAction::kUnknown;
-  fast_pair_presenter.ShowDiscovery(device, controller,
-                                    [&](DiscoveryAction action) {
-                                      discovery_action = action;
-                                      latch_2.CountDown();
-                                    });
-  latch_1->Await();
-  EXPECT_EQ(notification_controller_observer.on_update_device_count(), 1);
-  EXPECT_EQ(device.GetVersion(), DeviceFastPairVersion::kV1);
-  controller.OnDiscoveryClicked(DiscoveryAction::kPairToDevice);
-  latch_2.Await();
-  EXPECT_EQ(discovery_action, DiscoveryAction::kPairToDevice);
+// A gMock matcher to match proto values. Use this matcher like:
+// request/response proto, expected_proto;
+// EXPECT_THAT(proto, MatchesProto(expected_proto));
+MATCHER_P(
+    MatchesProto, expected_proto,
+    absl::StrCat(negation ? "does not match" : "matches",
+                 testing::PrintToString(expected_proto.SerializeAsString()))) {
+  return arg.SerializeAsString() == expected_proto.SerializeAsString();
 }
 
-TEST(FastPairPresenterImplTest, ShowDiscoveryForHigherThanV1Version) {
-  // Setup repository with HigherThanV1Version device metadata
-  FastPairDevice device(kModelId, kAddress, Protocol::kFastPairInitialPairing);
-  proto::GetObservedDeviceResponse response;
-  auto* higher_than_v1_version_device = response.mutable_device();
-  higher_than_v1_version_device->mutable_anti_spoofing_key_pair()
-      ->set_public_key(kPublicKey);
-  DeviceMetadata device_metadata(response);
-  device.SetMetadata(device_metadata);
+TEST(FastPairPresenterImplTest, ShowDiscovery) {
+  // Sets up proto::GetObservedDeviceResponse
+  proto::GetObservedDeviceResponse response_proto;
+  auto* device = response_proto.mutable_device();
+  device->set_id(kDeviceId);
+  auto* observed_device_strings = response_proto.mutable_strings();
+  observed_device_strings->set_initial_pairing_description(
+      kInitialPairingdescription);
+  DeviceMetadata device_metadata(response_proto);
+  FastPairDevice fast_pair_device(kModelId, kAddress,
+                                  Protocol::kFastPairInitialPairing);
 
-  // Register FastPairNotificationControllerObserver
-  auto latch_1 = std::make_optional<CountDownLatch>(1);
-  FastPairNotificationController controller;
-  FakeFastPairNotificationControllerObserver notification_controller_observer(
-      latch_1);
-  controller.AddObserver(&notification_controller_observer);
-  EXPECT_EQ(notification_controller_observer.on_update_device_count(), 0);
+  fast_pair_device.SetMetadata(device_metadata);
 
-  // FastPairPresenter ShowDiscovery
-  CountDownLatch latch_2(1);
-  FastPairPresenterImpl fast_pair_presenter;
+  FastPairNotificationController notification_controller;
+  CountDownLatch on_update_device_latch(1);
+  CountDownLatch on_click_latch(1);
+  FakeFastPairNotificationControllerObserver observer(&on_update_device_latch,
+                                                      nullptr);
+  notification_controller.AddObserver(&observer);
   DiscoveryAction discovery_action = DiscoveryAction::kUnknown;
-  fast_pair_presenter.ShowDiscovery(device, controller,
+  FastPairPresenterImpl fast_pair_presenter;
+  fast_pair_presenter.ShowDiscovery(fast_pair_device, notification_controller,
                                     [&](DiscoveryAction action) {
+                                      on_click_latch.CountDown();
                                       discovery_action = action;
-                                      latch_2.CountDown();
                                     });
-  latch_1->Await();
-  EXPECT_EQ(notification_controller_observer.on_update_device_count(), 1);
-  EXPECT_EQ(device.GetVersion(), DeviceFastPairVersion::kHigherThanV1);
-  controller.OnDiscoveryClicked(DiscoveryAction::kDismissedByUser);
-  latch_2.Await();
-  EXPECT_EQ(discovery_action, DiscoveryAction::kDismissedByUser);
+  on_update_device_latch.Await();
+  EXPECT_EQ(observer.GetDevice()->GetMetadata()->GetFastPairVersion(),
+            DeviceFastPairVersion::kV1);
+  EXPECT_THAT(observer.GetDevice()->GetMetadata()->GetResponse(),
+              MatchesProto(response_proto));
 }
 
+TEST(FastPairPresenterImplTest, ShowPairingResult) {
+  // Sets up proto::GetObservedDeviceResponse
+  proto::GetObservedDeviceResponse response_proto;
+  auto* device = response_proto.mutable_device();
+  device->set_id(kDeviceId);
+  auto* observed_device_strings = response_proto.mutable_strings();
+  observed_device_strings->set_initial_pairing_description(
+      kInitialPairingdescription);
+  DeviceMetadata device_metadata(response_proto);
+  FastPairDevice fast_pair_device(kModelId, kAddress,
+                                  Protocol::kFastPairInitialPairing);
+
+  fast_pair_device.SetMetadata(device_metadata);
+
+  FastPairNotificationController notification_controller;
+  CountDownLatch on_pairing_result_latch(1);
+  FakeFastPairNotificationControllerObserver observer(nullptr,
+                                                      &on_pairing_result_latch);
+  notification_controller.AddObserver(&observer);
+  FastPairPresenterImpl fast_pair_presenter;
+  fast_pair_presenter.ShowPairingResult(fast_pair_device,
+                                        notification_controller, true);
+  on_pairing_result_latch.Await();
+  EXPECT_EQ(observer.GetDevice()->GetMetadata()->GetFastPairVersion(),
+            DeviceFastPairVersion::kV1);
+  EXPECT_THAT(observer.GetDevice()->GetMetadata()->GetResponse(),
+              MatchesProto(response_proto));
+  EXPECT_TRUE(observer.GetPairingResult().has_value());
+  EXPECT_TRUE(observer.GetPairingResult().value());
+}
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby

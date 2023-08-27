@@ -23,7 +23,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
-#include "internal/platform/implementation/g3/pipe.h"
+#include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
@@ -33,69 +33,28 @@ namespace g3 {
 
 class WifiHotspotMedium;
 
-class WifiHotspotSocket : public api::WifiHotspotSocket {
+class WifiHotspotSocket : public api::WifiHotspotSocket, public SocketBase {
  public:
-  WifiHotspotSocket() = default;
-  ~WifiHotspotSocket() override;
-  WifiHotspotSocket(const WifiHotspotSocket&) = default;
-  WifiHotspotSocket(WifiHotspotSocket&&) = default;
-  WifiHotspotSocket& operator=(const WifiHotspotSocket&) = default;
-  WifiHotspotSocket& operator=(WifiHotspotSocket&&) = default;
-
-  // Connect to another WifiHotspotSocket, to form a functional low-level
-  // channel. from this point on, and until Close is called, connection exists.
-  void Connect(WifiHotspotSocket& other) ABSL_LOCKS_EXCLUDED(mutex_);
-
   // Returns the InputStream of the WifiHotspotSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  InputStream& GetInputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  InputStream& GetInputStream() override {
+    return SocketBase::GetInputStream();
+  }
 
   // Returns the OutputStream of the WifiHotspotSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  OutputStream& GetOutputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns address of a remote WifiHotspotSocket or nullptr.
-  WifiHotspotSocket* GetRemoteSocket() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns true if connection exists to the (possibly closed) remote socket.
-  bool IsConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns true if socket is closed.
-  bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
+  OutputStream& GetOutputStream() override {
+    return SocketBase::GetOutputStream();
+  }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
-
- private:
-  void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Returns true if connection exists to the (possibly closed) remote socket.
-  bool IsConnectedLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Returns InputStream of our side of a connection.
-  // This is what the remote side is supposed to read from.
-  // This is a helper for GetInputStream() method.
-  InputStream& GetLocalInputStream() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns OutputStream of our side of a connection.
-  // This is what the local size is supposed to write to.
-  // This is a helper for GetOutputStream() method.
-  OutputStream& GetLocalOutputStream() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Output pipe is initialized by constructor, it remains always valid, until
-  // it is closed. it represents output part of a local socket. Input part of a
-  // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_{new Pipe};
-  std::shared_ptr<Pipe> input_;
-  mutable absl::Mutex mutex_;
-  WifiHotspotSocket* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
+  Exception Close() override { return SocketBase::Close(); }
 };
 
 // WifiHotspotServerSocket provides the support to server socket, this server

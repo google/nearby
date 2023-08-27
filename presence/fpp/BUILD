@@ -24,13 +24,28 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "//presence:types",
         "//presence/fpp/fpp_c_ffi",
         "//presence/implementation:sensor_fusion",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "sensor_fusion_impl",
+    srcs = [
+        "sensor_fusion_impl.cc",
+    ],
+    hdrs = ["sensor_fusion_impl.h"],
+    visibility = [
+        "//presence:__subpackages__",
+    ],
+    deps = [
+        ":fpp_manager",
+        "//presence/implementation:sensor_fusion",
+        "@com_google_absl//absl/status",
     ],
 )
 
@@ -40,6 +55,27 @@ cc_test(
     srcs = ["fpp_manager_test.cc"],
     deps = [
         ":fpp_manager",
+        "//presence/implementation:sensor_fusion",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
+cc_test(
+    name = "sensor_fusion_test",
+    size = "small",
+    srcs = ["sensor_fusion_test.cc"],
+    deps = [
+        ":sensor_fusion_impl",
+        "//presence/implementation:sensor_fusion",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",

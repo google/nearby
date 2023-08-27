@@ -29,10 +29,8 @@ namespace connections {
 class WifiHotspot {
  public:
   // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    std::function<void(const std::string& service_id, WifiHotspotSocket socket)>
-        accepted_cb = [](const std::string&, WifiHotspotSocket) {};
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      const std::string& service_id, WifiHotspotSocket socket)>;
 
   WifiHotspot() : is_hotspot_started_(false), is_connected_to_hotspot_(false) {}
   ~WifiHotspot();

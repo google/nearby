@@ -4,11 +4,13 @@ cc_library(
         "connections_device.cc",
     ],
     hdrs = [
+        "advertising_options.h",
         "bandwidth_info.h",
         "connection_listening_options.h",
         "connection_result.h",
         "connections_device.h",
         "connections_device_provider.h",
+        "discovery_options.h",
         "listeners.h",
         "listening_result.h",
         "params.h",

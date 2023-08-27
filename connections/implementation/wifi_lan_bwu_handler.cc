@@ -28,9 +28,10 @@
 namespace nearby {
 namespace connections {
 
-WifiLanBwuHandler::WifiLanBwuHandler(Mediums& mediums,
-                                     BwuNotifications notifications)
-    : BaseBwuHandler(std::move(notifications)), mediums_(mediums) {}
+WifiLanBwuHandler::WifiLanBwuHandler(
+    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      mediums_(mediums) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WifiLan using this info.
@@ -94,11 +95,8 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WifiLanBwuHandler::OnIncomingWifiLanConnection, this,
-                    client),
-            })) {
+            absl::bind_front(&WifiLanBwuHandler::OnIncomingWifiLanConnection,
+                             this, client))) {
       NEARBY_LOGS(ERROR)
           << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id
@@ -153,7 +151,7 @@ void WifiLanBwuHandler::OnIncomingWifiLanConnection(
                                                              socket),
           .channel = std::move(channel),
       });
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+  NotifyOnIncomingConnection(client, std::move(connection));
 }
 
 }  // namespace connections

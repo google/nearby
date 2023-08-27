@@ -417,7 +417,9 @@ bool BleV2::StartAcceptingConnections(const std::string& service_id,
             });
             incoming_sockets_.insert({service_id, client_socket});
           }
-          callback.accepted_cb(std::move(client_socket), service_id);
+          if (callback) {
+            callback(std::move(client_socket), service_id);
+          }
         }
       });
 

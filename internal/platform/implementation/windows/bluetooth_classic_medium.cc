@@ -311,7 +311,10 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     RfcommDeviceService requested_service(
         GetRequestedService(current_device, service));
 
-    if (!CheckSdp(requested_service)) {
+    if (!FeatureFlags::GetInstance()
+             .GetFlags()
+             .skip_service_discovery_before_connecting_to_rfcomm &&
+        !CheckSdp(requested_service)) {
       NEARBY_LOGS(ERROR) << __func__ << ": Invalid SDP.";
       return nullptr;
     }

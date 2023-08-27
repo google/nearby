@@ -19,10 +19,13 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/escaping.h"
+#include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -30,71 +33,6 @@
 
 namespace nearby {
 namespace g3 {
-
-WifiLanSocket::~WifiLanSocket() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-}
-
-void WifiLanSocket::Connect(WifiLanSocket& other) {
-  absl::MutexLock lock(&mutex_);
-  remote_socket_ = &other;
-  input_ = other.output_;
-}
-
-InputStream& WifiLanSocket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
-  CHECK(remote_socket != nullptr);
-  return remote_socket->GetLocalInputStream();
-}
-
-OutputStream& WifiLanSocket::GetOutputStream() {
-  return GetLocalOutputStream();
-}
-
-WifiLanSocket* WifiLanSocket::GetRemoteSocket() {
-  absl::MutexLock lock(&mutex_);
-  return remote_socket_;
-}
-
-bool WifiLanSocket::IsConnected() const {
-  absl::MutexLock lock(&mutex_);
-  return IsConnectedLocked();
-}
-
-bool WifiLanSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
-  return closed_;
-}
-
-Exception WifiLanSocket::Close() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-  return {Exception::kSuccess};
-}
-
-void WifiLanSocket::DoClose() {
-  if (!closed_) {
-    remote_socket_ = nullptr;
-    output_->GetOutputStream().Close();
-    output_->GetInputStream().Close();
-    input_->GetOutputStream().Close();
-    input_->GetInputStream().Close();
-    closed_ = true;
-  }
-}
-
-bool WifiLanSocket::IsConnectedLocked() const { return input_ != nullptr; }
-
-InputStream& WifiLanSocket::GetLocalInputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetInputStream();
-}
-
-OutputStream& WifiLanSocket::GetLocalOutputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetOutputStream();
-}
 
 std::string WifiLanServerSocket::GetName(const std::string& ip_address,
                                          int port) {

@@ -87,7 +87,6 @@ cc_library(
         "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform:comm",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
@@ -126,7 +125,8 @@ cc_library(
     ],
     deps = [
         "//presence:types",
-        "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
     ],
 )
 

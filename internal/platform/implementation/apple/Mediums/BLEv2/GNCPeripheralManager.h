@@ -23,7 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 @protocol GNCPeripheralManager
 
 /** Shadow property of a @c CBPeripheralManagerDelegate. */
-@property(nonatomic, nullable) id<GNCPeripheralManagerDelegate> peripheralDelegate;
+@property(weak, nonatomic, nullable) id<GNCPeripheralManagerDelegate> peripheralDelegate;
 
 @property(nonatomic, assign, readonly) CBManagerState state;
 
@@ -111,13 +111,20 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result;
 
+/**
+ * Stops advertising peripheral manager data.
+ *
+ * Call this method when you no longer want to advertise peripheral manager data.
+ */
+- (void)stopAdvertising;
+
 @end
 
 /**
  * Protocol which helps the @c GNCPeripheralManager wrap a @c CBPeripheralManagerDelegate for
  * testing.
  */
-@protocol GNCPeripheralManagerDelegate <NSObject>
+@protocol GNCPeripheralManagerDelegate <CBPeripheralManagerDelegate>
 
 /**
  * Tells the delegate the peripheral manager’s state updated.

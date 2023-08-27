@@ -26,118 +26,113 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
   MOCK_METHOD(void, StartAdvertising,
               (ClientProxy * client, absl::string_view service_id,
                const AdvertisingOptions& advertising_options,
-               const ConnectionRequestInfo& info,
-               const ResultCallback& callback),
+               const ConnectionRequestInfo& info, ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, StopAdvertising,
-              (ClientProxy * client, const ResultCallback& callback),
-              (override));
+              (ClientProxy * client, ResultCallback callback), (override));
 
   MOCK_METHOD(void, StartDiscovery,
               (ClientProxy * client, absl::string_view service_id,
                const DiscoveryOptions& discovery_options,
-               const DiscoveryListener& listener,
-               const ResultCallback& callback),
+               const DiscoveryListener& listener, ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, StopDiscovery,
-              (ClientProxy * client, const ResultCallback& callback),
-              (override));
+              (ClientProxy * client, ResultCallback callback), (override));
 
   MOCK_METHOD(void, InjectEndpoint,
               (ClientProxy * client, absl::string_view service_id,
                const OutOfBandConnectionMetadata& metadata,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, RequestConnection,
               (ClientProxy * client, absl::string_view endpoint_id,
                const ConnectionRequestInfo& info,
                const ConnectionOptions& connection_options,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, AcceptConnection,
               (ClientProxy * client, absl::string_view endpoint_id,
-               PayloadListener listener, const ResultCallback& callback),
+               PayloadListener listener, ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, RejectConnection,
               (ClientProxy * client, absl::string_view endpoint_id,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, InitiateBandwidthUpgrade,
               (ClientProxy * client, absl::string_view endpoint_id,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, SendPayload,
               (ClientProxy * client, absl::Span<const std::string> endpoint_ids,
-               Payload payload, const ResultCallback& callback),
+               Payload payload, ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, CancelPayload,
               (ClientProxy * client, std::uint64_t payload_id,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, DisconnectFromEndpoint,
               (ClientProxy * client, absl::string_view endpoint_id,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, StopAllEndpoints,
-              (ClientProxy * client, const ResultCallback& callback),
-              (override));
+              (ClientProxy * client, ResultCallback callback), (override));
 
   MOCK_METHOD(void, SetCustomSavePath,
               (ClientProxy * client, absl::string_view path,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, RequestConnectionV3,
               (ClientProxy * client, const NearbyDevice&,
                v3::ConnectionRequestInfo, const ConnectionOptions&,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, AcceptConnectionV3,
               (ClientProxy * client, const NearbyDevice&, v3::PayloadListener,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, RejectConnectionV3,
               (ClientProxy * client, const NearbyDevice&,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, InitiateBandwidthUpgradeV3,
               (ClientProxy * client, const NearbyDevice&,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, SendPayloadV3,
               (ClientProxy * client, const NearbyDevice&, Payload,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, DisconnectFromDeviceV3,
               (ClientProxy * client, const NearbyDevice&,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, UpdateAdvertisingOptionsV3,
               (ClientProxy * client, absl::string_view service_id,
                const AdvertisingOptions& advertising_options,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, UpdateDiscoveryOptionsV3,
               (ClientProxy * client, absl::string_view service_id,
                const DiscoveryOptions& discovery_options,
-               const ResultCallback& callback),
+               ResultCallback callback),
               (override));
 };
 

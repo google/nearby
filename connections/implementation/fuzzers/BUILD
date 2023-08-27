@@ -23,6 +23,7 @@ cc_fuzz_target(
     deps = [
         "//connections/implementation:internal",
         "//internal/platform:base",
+        "//internal/platform/implementation/g3",
         "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
     ],
 )

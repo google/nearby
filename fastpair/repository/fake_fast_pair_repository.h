@@ -25,6 +25,7 @@
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/repository/fast_pair_repository.h"
+#include "internal/base/observer_list.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -46,26 +47,29 @@ class FakeFastPairRepository : public FastPairRepository {
   void SetResultOfCheckIfAssociatedWithCurrentAccount(
       std::optional<AccountKey> account_key,
       std::optional<absl::string_view> model_id);
+  void SetResultOfIsDeviceSavedToAccount(absl::Status status);
 
   // FastPairRepository::
-  void AddObserver(Observer* observer) override{};
-  void RemoveObserver(Observer* observer) override{};
+  void AddObserver(Observer* observer) override;
+  void RemoveObserver(Observer* observer) override;
 
   void GetDeviceMetadata(absl::string_view hex_model_id,
                          DeviceMetadataCallback callback) override;
 
-  void GetUserSavedDevices() override{};
+  void GetUserSavedDevices() override;
 
-  void WriteAccountAssociationToFootprints(
-      FastPairDevice& device, OperationToFootprintsCallback callback) override;
+  void WriteAccountAssociationToFootprints(FastPairDevice& device,
+                                           OperationCallback callback) override;
 
-  void DeleteAssociatedDeviceByAccountKey(
-      const AccountKey& account_key,
-      OperationToFootprintsCallback callback) override;
+  void DeleteAssociatedDeviceByAccountKey(const AccountKey& account_key,
+                                          OperationCallback callback) override;
 
   void CheckIfAssociatedWithCurrentAccount(
       AccountKeyFilter& account_key_filter,
       CheckAccountKeysCallback callback) override;
+
+  void IsDeviceSavedToAccount(absl::string_view mac_address,
+                              OperationCallback callback) override;
 
  private:
   absl::flat_hash_map<std::string, std::unique_ptr<DeviceMetadata>> data_;
@@ -77,6 +81,9 @@ class FakeFastPairRepository : public FastPairRepository {
   absl::Status write_account_association_to_footprints_;
   // Results of DeleteAssociatedDeviceByAccountKey
   absl::Status deleted_associated_device_;
+  // Results of IsDeviceSavedToAccount
+  absl::Status is_device_saved_to_account_;
+  ObserverList<FastPairRepository::Observer> observers_;
   SingleThreadExecutor executor_;
 };
 }  // namespace fastpair

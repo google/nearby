@@ -36,7 +36,9 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class WebrtcBwuHandler : public BaseBwuHandler {
  public:
-  explicit WebrtcBwuHandler(Mediums& mediums, BwuNotifications notifications);
+  explicit WebrtcBwuHandler(
+      Mediums& mediums,
+      IncomingConnectionCallback incoming_connection_callback);
 
  private:
   class WebrtcIncomingSocket : public BwuHandler::IncomingSocket {

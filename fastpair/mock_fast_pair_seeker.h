@@ -38,6 +38,11 @@ class MockFastPairSeeker : public FastPairSeeker {
               (const FastPairDevice& device,
                const RetroactivePairingParam& param, PairingCallback callback),
               (override));
+  MOCK_METHOD(absl::Status, FinishRetroactivePairing,
+              (const FastPairDevice& device,
+               const FinishRetroactivePairingParam& param,
+               PairingCallback callback),
+              (override));
 };
 
 }  // namespace fastpair

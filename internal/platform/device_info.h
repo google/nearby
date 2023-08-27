@@ -52,6 +52,9 @@ class DeviceInfo {
   virtual void UnregisterScreenLockedListener(
       absl::string_view listener_name) = 0;
 
+  virtual bool PreventSleep() = 0;
+  virtual bool AllowSleep() = 0;
+
   // Returns localized device name depends on device type.
   std::u16string GetDeviceTypeName() const {
     // TODO(b/230132370): return localized device name.

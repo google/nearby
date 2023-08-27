@@ -21,8 +21,10 @@
 #include <vector>
 
 #include "fastpair/common/device_metadata.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace fastpair {
@@ -30,35 +32,45 @@ class FakeFastPairNotificationControllerObserver
     : public FastPairNotificationController::Observer {
  public:
   explicit FakeFastPairNotificationControllerObserver(
-      std::optional<CountDownLatch> latch) {
-    latch_ = latch;
+      CountDownLatch* on_device_updated_latch,
+      CountDownLatch* on_pairing_result_latch) {
+    on_device_updated_latch_ = on_device_updated_latch;
+    on_pairing_result_latch_ = on_pairing_result_latch;
   }
 
-  void OnUpdateDevice(const DeviceMetadata& device) override {
-    device_metadata_name_list_.push_back(device.GetDetails().name());
-    on_update_device_count_++;
-    if (latch_.has_value()) {
-      latch_->CountDown();
+  void OnUpdateDevice(FastPairDevice& device) override {
+    MutexLock lock(&mutex_);
+    device_ = &const_cast<FastPairDevice&>(device);
+    if (on_device_updated_latch_) {
+      on_device_updated_latch_->CountDown();
     }
   }
 
-  bool CheckDeviceMetadataListContainTestDevice(
-      const std::string& device_name) {
-    auto it = std::find(device_metadata_name_list_.begin(),
-                        device_metadata_name_list_.end(), device_name);
-    return it != device_metadata_name_list_.end();
+  void OnPairingResult(FastPairDevice& device, bool success) override {
+    MutexLock lock(&mutex_);
+    pairing_result_ = success;
+    device_ = &const_cast<FastPairDevice&>(device);
+    if (on_pairing_result_latch_) {
+      on_pairing_result_latch_->CountDown();
+    }
   }
 
-  int on_update_device_count() { return on_update_device_count_; }
+  FastPairDevice* GetDevice() {
+    MutexLock lock(&mutex_);
+    return device_;
+  }
 
-  std::vector<std::string> device_metadata_name_list() {
-    return device_metadata_name_list_;
+  std::optional<bool> GetPairingResult() {
+    MutexLock lock(&mutex_);
+    return pairing_result_;
   }
 
  private:
-  std::vector<std::string> device_metadata_name_list_;
-  int on_update_device_count_ = 0;
-  std::optional<CountDownLatch> latch_;
+  Mutex mutex_;
+  CountDownLatch* on_device_updated_latch_;
+  CountDownLatch* on_pairing_result_latch_;
+  FastPairDevice* device_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  std::optional<bool> pairing_result_ ABSL_GUARDED_BY(mutex_);
 };
 }  // namespace fastpair
 }  // namespace nearby

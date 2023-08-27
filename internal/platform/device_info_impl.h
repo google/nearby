@@ -53,6 +53,9 @@ class DeviceInfoImpl : public DeviceInfo {
       std::function<void(api::DeviceInfo::ScreenStatus)> callback) override;
   void UnregisterScreenLockedListener(absl::string_view listener_name) override;
 
+  bool PreventSleep() override;
+  bool AllowSleep() override;
+
  private:
   std::unique_ptr<api::DeviceInfo> device_info_impl_;
 };

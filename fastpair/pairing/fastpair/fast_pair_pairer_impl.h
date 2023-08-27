@@ -26,6 +26,7 @@
 #include "fastpair/handshake/fast_pair_handshake.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
+#include "internal/account/account_manager.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/timer_impl.h"
@@ -39,7 +40,7 @@ class FastPairPairerImpl : public FastPairPairer {
    public:
     static std::unique_ptr<FastPairPairer> Create(
         FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
-        OnPairedCallback on_paired_cb,
+        AccountManager* account_manager, OnPairedCallback on_paired_cb,
         OnPairingFailedCallback on_pair_failed_cb,
         OnAccountKeyFailureCallback on_account_failure_cb,
         OnPairingCompletedCallback on_pairing_completed_cb);
@@ -51,7 +52,7 @@ class FastPairPairerImpl : public FastPairPairer {
 
     virtual std::unique_ptr<FastPairPairer> CreateInstance(
         FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
-        OnPairedCallback on_paired_cb,
+        AccountManager* account_manager, OnPairedCallback on_paired_cb,
         OnPairingFailedCallback on_pair_failed_cb,
         OnAccountKeyFailureCallback on_account_failure_cb,
         OnPairingCompletedCallback on_pairing_completed_cb) = 0;
@@ -62,6 +63,7 @@ class FastPairPairerImpl : public FastPairPairer {
 
   FastPairPairerImpl(FastPairDevice& device, Mediums& medium,
                      SingleThreadExecutor* executor,
+                     AccountManager* account_manager,
                      OnPairedCallback on_paired_cb,
                      OnPairingFailedCallback on_pair_failed_cb,
                      OnAccountKeyFailureCallback on_account_failure_cb,
@@ -86,6 +88,7 @@ class FastPairPairerImpl : public FastPairPairer {
 
   // Attempts to write account key to remote device
   void AttemptSendAccountKey() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void WriteAccountKey();
   // FastPairDataEncryptor::WriteAccountKey callback
   void OnWriteAccountKey(std::optional<AccountKey> account_key,
                          std::optional<PairFailure> failure);
@@ -103,6 +106,7 @@ class FastPairPairerImpl : public FastPairPairer {
   FastPairDevice& device_;
   Mediums& mediums_;
   SingleThreadExecutor* executor_;
+  AccountManager* account_manager_;
   OnPairedCallback on_paired_cb_ ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   OnPairingFailedCallback on_pair_failed_cb_
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);

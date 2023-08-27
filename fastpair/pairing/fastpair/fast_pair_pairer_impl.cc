@@ -44,17 +44,18 @@ FastPairPairerImpl::Factory* FastPairPairerImpl::Factory::g_test_factory_ =
 // static
 std::unique_ptr<FastPairPairer> FastPairPairerImpl::Factory::Create(
     FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
-    OnPairedCallback on_paired_cb, OnPairingFailedCallback on_pair_failed_cb,
+    AccountManager* account_manager, OnPairedCallback on_paired_cb,
+    OnPairingFailedCallback on_pair_failed_cb,
     OnAccountKeyFailureCallback on_account_failure_cb,
     OnPairingCompletedCallback on_pairing_completed_cb) {
   if (g_test_factory_) {
     return g_test_factory_->CreateInstance(
-        device, medium, executor, std::move(on_paired_cb),
+        device, medium, executor, account_manager, std::move(on_paired_cb),
         std::move(on_pair_failed_cb), std::move(on_account_failure_cb),
         std::move(on_pairing_completed_cb));
   }
   return std::make_unique<FastPairPairerImpl>(
-      device, medium, executor, std::move(on_paired_cb),
+      device, medium, executor, account_manager, std::move(on_paired_cb),
       std::move(on_pair_failed_cb), std::move(on_account_failure_cb),
       std::move(on_pairing_completed_cb));
 }
@@ -67,12 +68,14 @@ void FastPairPairerImpl::Factory::SetFactoryForTesting(
 
 FastPairPairerImpl::FastPairPairerImpl(
     FastPairDevice& device, Mediums& medium, SingleThreadExecutor* executor,
-    OnPairedCallback on_paired_cb, OnPairingFailedCallback on_pair_failed_cb,
+    AccountManager* account_manager, OnPairedCallback on_paired_cb,
+    OnPairingFailedCallback on_pair_failed_cb,
     OnAccountKeyFailureCallback on_account_failure_cb,
     OnPairingCompletedCallback on_pairing_completed_cb)
     : device_(device),
       mediums_(medium),
       executor_(executor),
+      account_manager_(account_manager),
       on_paired_cb_(std::move(on_paired_cb)),
       on_pair_failed_cb_(std::move(on_pair_failed_cb)),
       on_account_key_failure_cb_(std::move(on_account_failure_cb)),
@@ -279,8 +282,37 @@ void FastPairPairerImpl::AttemptSendAccountKey() {
     return;
   }
 
-  // TODO(b/281781730) : Check if we need to send account key
-  // TODO(b/281782018) : Handle BLE address rotation
+  if (!account_manager_->GetCurrentAccount().has_value()) {
+    NEARBY_LOGS(INFO)
+        << __func__
+        << ": No need to write accountkey because no logged in user.";
+    NotifyPairingCompleted();
+    return;
+  }
+
+  // It's possible that the user has opted to initial pair to a device that
+  // already has an account key saved. We check to see if this is the case
+  // before writing a new account key.
+  if (device_.GetProtocol() == Protocol::kFastPairInitialPairing) {
+    FastPairRepository::Get()->IsDeviceSavedToAccount(
+        device_.GetPublicAddress().value(), [this](absl::Status status) {
+          if (status.ok()) {
+            NEARBY_LOGS(VERBOSE)
+                << __func__
+                << ": Device is already saved, skipping write account key. "
+                   "Pairing procedure complete.";
+            NotifyPairingCompleted();
+            return;
+          }
+          WriteAccountKey();
+        });
+  } else {
+    // TODO(b/281782018) : Handle BLE address rotation
+    WriteAccountKey();
+  }
+}
+
+void FastPairPairerImpl::WriteAccountKey() {
   fast_pair_gatt_service_client_->WriteAccountKey(
       *fast_pair_handshake_->fast_pair_data_encryptor(),
       [&](const std::optional<AccountKey> account_key,

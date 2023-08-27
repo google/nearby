@@ -203,20 +203,27 @@ void FastPairDiscoverableScanner::NotifyDeviceFound(FastPairDevice& device) {
   NEARBY_LOGS(VERBOSE) << "Notify Device found:"
                        << "BluetoothAddress = " << device.GetBleAddress()
                        << ", Model id = " << device.GetModelId();
+  {
+    MutexLock lock(&mutex_);
+    notified_devices_[device.GetBleAddress()] = &device;
+  }
   found_callback_(device);
 }
 
 void FastPairDiscoverableScanner::OnDeviceLost(
     const BlePeripheral& peripheral) {
   NEARBY_LOGS(INFO) << __func__ << ": Running lost callback";
+  {
+    MutexLock lock(&mutex_);
+    auto node = notified_devices_.extract(peripheral.GetName());
+    // Don't invoke callback if we didn't notify this device.
+    if (node.empty()) return;
+  }
   executor_->Execute("device-lost",
                      [this, address = peripheral.GetName()]()
                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                            auto opt_device =
                                device_repository_->FindDevice(address);
-
-                           // Don't invoke callback if we didn't notify this
-                           // device.
                            if (!opt_device.has_value()) return;
                            FastPairDevice* device = opt_device.value();
                            lost_callback_(*device);

@@ -12,31 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/offline_service_controller.h"
-
 #include <array>
+#include <cstddef>
+#include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_simulation_user.h"
+#include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/payload.h"
 #include "connections/status.h"
+#include "connections/strategy.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/platform/system_clock.h"
+#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
 using ::testing::Eq;
-
+constexpr size_t kChunkSize = 64 * 1024;
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
 constexpr absl::string_view kServiceId = "service-id";
 constexpr absl::string_view kDeviceA = "device-a";
@@ -83,6 +94,9 @@ class OfflineServiceControllerTest
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2, true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableSafeToDisconnect, false);
   }
   bool SetupConnection(OfflineSimulationUser& user_a,
                        OfflineSimulationUser& user_b) {
@@ -284,10 +298,10 @@ TEST_P(OfflineServiceControllerTest, CanSendBytePayload) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
+  user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
   user_a.SendPayload(Payload(message));
-  user_b.ExpectPayload(payload_latch_);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   EXPECT_EQ(user_b.GetPayload().AsBytes(), message);
   user_a.Stop();
@@ -299,15 +313,12 @@ TEST_P(OfflineServiceControllerTest, CanSendStreamPayload) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
+  user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
-  auto pipe = std::make_shared<Pipe>();
-  OutputStream& tx = pipe->GetOutputStream();
-  user_a.SendPayload(Payload([pipe]() -> InputStream& {
-    return pipe->GetInputStream();  // NOLINT
-  }));
-  user_b.ExpectPayload(payload_latch_);
-  tx.Write(message);
+  auto [input, tx] = CreatePipe();
+  user_a.SendPayload(Payload(std::move(input)));
+  tx->Write(message);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_b.GetPayload().AsStream();
@@ -316,7 +327,7 @@ TEST_P(OfflineServiceControllerTest, CanSendStreamPayload) {
         return info.bytes_transferred >= size;
       },
       kLongTimeout));
-  EXPECT_EQ(rx.Read(Pipe::kChunkSize).result(), message);
+  EXPECT_EQ(rx.Read(kChunkSize).result(), message);
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -326,15 +337,12 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
+  user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
-  auto pipe = std::make_shared<Pipe>();
-  OutputStream& tx = pipe->GetOutputStream();
-  user_a.SendPayload(Payload([pipe]() -> InputStream& {
-    return pipe->GetInputStream();  // NOLINT
-  }));
-  user_b.ExpectPayload(payload_latch_);
-  tx.Write(message);
+  auto [input, tx] = CreatePipe();
+  user_a.SendPayload(Payload(std::move(input)));
+  tx->Write(message);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_b.GetPayload().AsStream();
@@ -343,11 +351,11 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
         return info.bytes_transferred >= size;
       },
       kLongTimeout));
-  EXPECT_EQ(rx.Read(Pipe::kChunkSize).result(), message);
+  EXPECT_EQ(rx.Read(kChunkSize).result(), message);
   user_b.CancelPayload();
   absl::Time start_time = SystemClock::ElapsedRealtime();
   while (true) {
-    if (!tx.Write(message).Ok()) break;
+    if (!tx->Write(message).Ok()) break;
     absl::Duration run_time = SystemClock::ElapsedRealtime() - start_time;
     if (run_time >= kLongTimeout) {
       EXPECT_LT(run_time, kLongTimeout);

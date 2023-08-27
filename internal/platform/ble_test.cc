@@ -86,14 +86,11 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
   ble_b.StartAdvertising(service_id, advertisement_bytes,
                          fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
-      service_id,
-      AcceptedConnectionCallback{
-          .accepted_cb = [&accepted_latch](BleSocket socket,
-                                           const std::string& service_id) {
-            NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                       &socket, service_id.c_str());
-            accepted_latch.CountDown();
-          }});
+      service_id, [&](BleSocket socket, const std::string& service_id) {
+        NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
+                   &socket, service_id.c_str());
+        accepted_latch.CountDown();
+      });
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
   BleSocket socket_a;
@@ -148,14 +145,11 @@ TEST_P(BleMediumTest, CanCancelConnect) {
   ble_b.StartAdvertising(service_id, advertisement_bytes,
                          fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
-      service_id,
-      AcceptedConnectionCallback{
-          .accepted_cb = [&accepted_latch](BleSocket socket,
-                                           const std::string& service_id) {
-            NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                       &socket, service_id.c_str());
-            accepted_latch.CountDown();
-          }});
+      service_id, [&](BleSocket socket, const std::string& service_id) {
+        NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
+                   &socket, service_id.c_str());
+        accepted_latch.CountDown();
+      });
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
   BleSocket socket_a;

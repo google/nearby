@@ -188,5 +188,15 @@ TEST(FakeDeviceInfo, UpdateScreenLockedListener) {
   EXPECT_EQ(screen_locked_tracker_2, api::DeviceInfo::ScreenStatus::kUnlocked);
 }
 
+TEST(FakeDeviceInfo, PreventSleep) {
+  FakeDeviceInfo device_info;
+  EXPECT_TRUE(device_info.PreventSleep());
+}
+
+TEST(FakeDeviceInfo, AllowSleep) {
+  FakeDeviceInfo device_info;
+  EXPECT_TRUE(device_info.AllowSleep());
+}
+
 }  // namespace
 }  // namespace nearby

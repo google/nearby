@@ -138,6 +138,11 @@ bool ThroughputRecorder::Stop() {
   return true;
 }
 
+void ThroughputRecorder::MarkAsSuccess() {
+  MutexLock lock(&mutex_);
+  success_ = true;
+}
+
 int ThroughputRecorder::CalculateThroughputKBps(int64_t total_byte_size,
                                                 int64_t total_millis) {
   if (total_millis > 0) {

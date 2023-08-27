@@ -47,7 +47,7 @@ class FakeBwuHandler : public BaseBwuHandler {
   };
 
   explicit FakeBwuHandler(Medium medium)
-      : BaseBwuHandler(BwuNotifications{}), medium_(medium) {}
+      : BaseBwuHandler(nullptr), medium_(medium) {}
   ~FakeBwuHandler() override = default;
 
   const std::vector<InputData>& create_calls() const { return create_calls_; }

@@ -17,9 +17,9 @@
 
 #include <cstdint>
 #include <functional>
-#include <string>
-#include <memory>
 #include <map>
+#include <memory>
+#include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -40,10 +40,8 @@ class BluetoothClassic {
   using ScanMode = BluetoothAdapter::ScanMode;
 
   // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    std::function<void(const std::string& service_id, BluetoothSocket socket)>
-        accepted_cb = [](const std::string&, BluetoothSocket) {};
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      const std::string& service_id, BluetoothSocket socket)>;
 
   explicit BluetoothClassic(BluetoothRadio& radio);
   ~BluetoothClassic();

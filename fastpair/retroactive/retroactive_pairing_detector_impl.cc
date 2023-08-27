@@ -17,18 +17,23 @@
 #include <ios>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 
 #include "fastpair/internal/mediums/mediums.h"
-#include "fastpair/pairing/pairer_broker.h"
+#include "fastpair/repository/fast_pair_repository.h"
+#include "internal/account/account_manager.h"
 
 namespace nearby {
 namespace fastpair {
 
 RetroactivePairingDetectorImpl::RetroactivePairingDetectorImpl(
     Mediums& mediums, FastPairDeviceRepository* repository,
-    SingleThreadExecutor* executor)
-    : mediums_(mediums), repository_(repository), executor_(executor) {
+    AccountManager* account_manager, SingleThreadExecutor* executor)
+    : mediums_(mediums),
+      repository_(repository),
+      account_manager_(account_manager),
+      executor_(executor) {
   mediums_.GetBluetoothClassic().AddObserver(this);
   mediums_.GetBluetoothClassic().StartDiscovery();
 }
@@ -65,9 +70,11 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
 
   std::optional<FastPairDevice*> existing_device =
       repository_->FindDevice(device.GetMacAddress());
-  if (existing_device.has_value()) {
+  if (existing_device.has_value() &&
+      existing_device.value()->HasStartedPairing()) {
     // Both classic paired and Fast paired devices call this function, so we
-    // have to filter out pairing events for devices that we already know.
+    // have to filter out pairing events for device that paired from Fast Pair.
+    NEARBY_LOGS(INFO) << __func__ << ": Ignoring Fast paired devices.";
     return;
   }
 
@@ -75,15 +82,33 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
   // first check if it has already been saved to the user's account. If it has
   // already been saved, we don't want to prompt the user to save a device
   // again.
-  // TODO(b/285047010): check if device has already been saved to the user's
-  // account
+  if (!account_manager_->GetCurrentAccount().has_value()) {
+    NEARBY_LOGS(INFO) << __func__ << ": Ignoring because no logged in user.";
+    return;
+  }
 
+  FastPairRepository::Get()->IsDeviceSavedToAccount(
+      device.GetMacAddress(),
+      [this, mac_address = device.GetMacAddress()](absl::Status status) {
+        if (status.ok()) {
+          NEARBY_LOGS(VERBOSE) << __func__
+                               << ": Ignoring because device is already saved "
+                                  "to the current account.";
+          return;
+        }
+        NotifyRetroactiveDeviceFound(mac_address);
+      });
+}
+
+void RetroactivePairingDetectorImpl::NotifyRetroactiveDeviceFound(
+    absl::string_view mac_address) {
+  NEARBY_LOGS(VERBOSE) << __func__ << ": mac_address = " << mac_address;
   auto fast_pair_device =
       std::make_unique<FastPairDevice>(Protocol::kFastPairRetroactivePairing);
-  fast_pair_device->SetPublicAddress(device.GetMacAddress());
+  fast_pair_device->SetPublicAddress(mac_address);
   repository_->AddDevice(std::move(fast_pair_device));
   executor_->Execute("notify-retro-candidate",
-                     [this, address = device.GetMacAddress()]() {
+                     [this, address = std::string(mac_address)]() {
                        std::optional<FastPairDevice*> fast_pair_device =
                            repository_->FindDevice(address);
                        if (!fast_pair_device) return;

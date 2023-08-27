@@ -94,7 +94,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void OnEndpointDisconnect(ClientProxy* client_proxy,
                             const std::string& service_id,
                             const std::string& endpoint_id,
-                            CountDownLatch barrier) override;
+                            CountDownLatch barrier,
+                            DisconnectionReason reason) override;
 
   void Shutdown();
 

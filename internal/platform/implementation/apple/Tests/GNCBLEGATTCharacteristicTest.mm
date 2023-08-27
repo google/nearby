@@ -26,12 +26,15 @@
 - (void)testConvenienceInit {
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:@"00000000-0000-3000-8000-000000000000"];
   CBUUID *serviceUUID = [CBUUID UUIDWithString:@"0000FEF3-0000-1000-8000-00805F9B34FB"];
+  CBCharacteristicProperties properties = CBCharacteristicPropertyRead;
   GNCBLEGATTCharacteristic *characteristic =
-      [[GNCBLEGATTCharacteristic alloc] initWithUUID:characteristicUUID serviceUUID:serviceUUID];
+      [[GNCBLEGATTCharacteristic alloc] initWithUUID:characteristicUUID
+                                         serviceUUID:serviceUUID
+                                          properties:properties];
   XCTAssertEqualObjects(characteristic.characteristicUUID, characteristicUUID);
   XCTAssertEqualObjects(characteristic.serviceUUID, serviceUUID);
   XCTAssertEqual(characteristic.permissions, 0);
-  XCTAssertEqual(characteristic.properties, 0);
+  XCTAssertEqual(characteristic.properties, properties);
 }
 
 - (void)testInit {

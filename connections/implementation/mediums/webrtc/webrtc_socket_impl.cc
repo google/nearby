@@ -12,10 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
+#include <string>
+#include <tuple>
+#include <utility>
+
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/pipe.h"
 #ifndef NO_WEBRTC
 
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
-
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -61,6 +69,7 @@ WebRtcSocket::WebRtcSocket(
     : name_(name), data_channel_(std::move(data_channel)) {
   NEARBY_LOGS(INFO) << "WebRtcSocket::WebRtcSocket(" << name_
                     << ") this: " << this;
+  std::tie(pipe_input_, pipe_output_) = CreatePipe();
   data_channel_->RegisterObserver(this);
 }
 
@@ -77,7 +86,7 @@ WebRtcSocket::~WebRtcSocket() {
                     << ") this: " << this << " done";
 }
 
-InputStream& WebRtcSocket::GetInputStream() { return pipe_.GetInputStream(); }
+InputStream& WebRtcSocket::GetInputStream() { return *pipe_input_; }
 
 OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
@@ -129,12 +138,12 @@ void WebRtcSocket::OnMessage(const webrtc::DataBuffer& buffer) {
   // we don't block signaling.
   OffloadFromSignalingThread(
       [this, buffer = ByteArray(buffer.data.data<char>(), buffer.size())] {
-        if (!pipe_.GetOutputStream().Write(buffer).Ok()) {
+        if (!pipe_output_->Write(buffer).Ok()) {
           Close();
           return;
         }
 
-        if (!pipe_.GetOutputStream().Flush().Ok()) {
+        if (!pipe_output_->Flush().Ok()) {
           Close();
         }
       });
@@ -159,8 +168,8 @@ void WebRtcSocket::ClosePipe() {
   // This is thread-safe to close these sockets even if a read or write is in
   // process on another thread, Close will wait for the exclusive mutex before
   // setting state.
-  pipe_.GetInputStream().Close();
-  pipe_.GetOutputStream().Close();
+  pipe_input_->Close();
+  pipe_output_->Close();
   WakeUpWriter();
   NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this
                     << " done";

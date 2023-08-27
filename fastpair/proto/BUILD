@@ -37,7 +37,7 @@ cc_library(
     deps = [
         ":fastpair_cc_proto",
         "//fastpair/common",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "@com_google_absl//absl/strings",
         "@nlohmann_json//:json",
     ],
@@ -57,7 +57,7 @@ cc_library(
         ":fastpair_cc_proto",
         "//fastpair/common",
         "//fastpair/repository",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "@com_google_absl//absl/time",
     ],
 )

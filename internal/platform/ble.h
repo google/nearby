@@ -100,10 +100,8 @@ class BleMedium final {
     BlePeripheral peripheral;
   };
 
-  struct AcceptedConnectionCallback {
-    absl::AnyInvocable<void(BleSocket& socket, const std::string& service_id)>
-        accepted_cb = DefaultCallback<BleSocket&, const std::string&>();
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      BleSocket& socket, const std::string& service_id)>;
   struct AcceptedConnectionInfo {
     BleSocket socket;
   };

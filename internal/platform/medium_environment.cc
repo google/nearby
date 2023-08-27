@@ -576,7 +576,9 @@ void MediumEnvironment::CallBleAcceptedConnectionCallback(
           return;
         }
         auto& info = item->second;
-        info.accepted_connection_callback.accepted_cb(socket, service_id);
+        if (info.accepted_connection_callback) {
+          info.accepted_connection_callback(socket, service_id);
+        }
       });
 }
 
@@ -936,8 +938,8 @@ api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
           return;
         }
       }
-      latch.CountDown();
     }
+    latch.CountDown();
   });
   latch.Await();
   return result;

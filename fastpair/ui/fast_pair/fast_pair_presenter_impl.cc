@@ -15,14 +15,10 @@
 #include "fastpair/ui/fast_pair/fast_pair_presenter_impl.h"
 
 #include <memory>
-#include <optional>
 #include <utility>
 
-#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/repository/fast_pair_repository.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace fastpair {
@@ -51,8 +47,14 @@ void FastPairPresenterImpl::ShowDiscovery(
     FastPairDevice& device,
     FastPairNotificationController& notification_controller,
     DiscoveryCallback callback) {
-  notification_controller.ShowGuestDiscoveryNotification(*device.GetMetadata(),
+  notification_controller.ShowGuestDiscoveryNotification(device,
                                                          std::move(callback));
+}
+
+void FastPairPresenterImpl::ShowPairingResult(
+    FastPairDevice& device,
+    FastPairNotificationController& notification_controller, bool success) {
+  notification_controller.ShowPairingResultNotification(device, success);
 }
 }  // namespace fastpair
 }  // namespace nearby

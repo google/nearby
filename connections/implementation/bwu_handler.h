@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
@@ -47,12 +48,9 @@ class BwuHandler {
     std::unique_ptr<IncomingSocket> socket;
     std::unique_ptr<EndpointChannel> channel;
   };
-
-  struct BwuNotifications {
-    std::function<void(ClientProxy* client,
-                       std::unique_ptr<IncomingSocketConnection> connection)>
-        incoming_connection_cb;
-  };
+  using IncomingConnectionCallback = absl::AnyInvocable<void(
+      ClientProxy* client,
+      std::unique_ptr<IncomingSocketConnection> connection)>;
 
   virtual ~BwuHandler() = default;
 

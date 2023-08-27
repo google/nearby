@@ -14,16 +14,29 @@
 
 #include "connections/core.h"
 
-#include <memory>
+#include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/clock.h"
+#include "connections/advertising_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/mock_service_controller_router.h"
+#include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/params.h"
+#include "connections/payload.h"
+#include "connections/power_level.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
+#include "connections/v3/advertising_options.h"
 #include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
+#include "connections/v3/discovery_options.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 
@@ -54,8 +67,8 @@ TEST(CoreTest, ConstructorDestructorWorks) {
   MockServiceControllerRouter mock;
   // Called when Core is destroyed.
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
-        callback.result_cb({Status::kSuccess});
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
       });
   Core core{&mock};
 }
@@ -69,6 +82,97 @@ TEST(CoreTest, DestructorReportsFatalFailure) {
         Core core{&mock};
       },
       "Unable to shutdown");
+}
+
+TEST(CoreTest, RequestConnectionCallsScRouter) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, RequestConnection);
+  Core core{&mock};
+  core.RequestConnection("TEST", {}, {}, {});
+}
+
+TEST(CoreTest, AcceptConnectionCallsScRouter) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, AcceptConnection);
+  Core core{&mock};
+  core.AcceptConnection("TEST", {}, {});
+}
+
+TEST(CoreTest, SendPayloadCallsScRouter) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, SendPayload);
+  Core core{&mock};
+  core.SendPayload({"TEST"}, Payload(ByteArray("Hello world")), {});
+}
+
+TEST(CoreV3Test, TestAdvertisingOptionsConversionWorks) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, StartAdvertising)
+      .WillOnce([](ClientProxy*, absl::string_view,
+                   const AdvertisingOptions& options,
+                   const ConnectionRequestInfo& info, ResultCallback) {
+        EXPECT_EQ(options.strategy, Strategy::kP2pCluster);
+        EXPECT_FALSE(options.low_power);
+        EXPECT_TRUE(options.enable_bluetooth_listening);
+        EXPECT_FALSE(options.auto_upgrade_bandwidth);
+        EXPECT_EQ(options.fast_advertisement_service_uuid, "NearbyConnections");
+      });
+  Core core{&mock};
+  v3::AdvertisingOptions advertising_options = {
+      .strategy = Strategy::kP2pCluster,
+      .power_level = PowerLevel::kHighPower,
+      .enable_bluetooth_listening = true,
+      .auto_upgrade_bandwidth = false,
+      .fast_advertisement_service_uuid = "NearbyConnections",
+  };
+  core.StartAdvertisingV3("service", advertising_options, {}, {});
+  core.StopDiscoveryV3({});
+}
+
+TEST(CoreV3Test, TestDiscoveryOptionsConversionWorks) {
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock, StartDiscovery)
+      .WillOnce([](ClientProxy*, absl::string_view,
+                   const DiscoveryOptions& options,
+                   const DiscoveryListener& info, ResultCallback) {
+        EXPECT_EQ(options.strategy, Strategy::kP2pCluster);
+        EXPECT_FALSE(options.low_power);
+        EXPECT_TRUE(options.auto_upgrade_bandwidth);
+        EXPECT_EQ(options.fast_advertisement_service_uuid, "NearbyConnections");
+      });
+  Core core{&mock};
+  v3::DiscoveryOptions discovery_options = {
+      .strategy = Strategy::kP2pCluster,
+      .power_level = PowerLevel::kHighPower,
+      .fast_advertisement_service_uuid = "NearbyConnections",
+  };
+  core.StartDiscoveryV3("service", discovery_options, {}, {});
+  core.StopDiscoveryV3({});
 }
 
 TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
@@ -86,16 +190,16 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
   CountDownLatch initiated_latch(1);
-  AdvertisingOptions advertising_options;
+  v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   core.StartAdvertisingV3(
       "service", advertising_options,
@@ -132,7 +236,7 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
   MockServiceControllerRouter mock;
   EXPECT_CALL(mock, StartAdvertising)
       .WillOnce([&](ClientProxy*, absl::string_view, const AdvertisingOptions&,
-                    const ConnectionRequestInfo& info, const ResultCallback&) {
+                    const ConnectionRequestInfo& info, ResultCallback) {
         NEARBY_LOGS(INFO) << "StartAdvertising called";
         ASSERT_TRUE(info.endpoint_info.Empty());
         // call all callbacks to make sure it all gets called correctly.
@@ -143,16 +247,16 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
   CountDownLatch initiated_latch(1);
-  AdvertisingOptions advertising_options;
+  v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   FakeNearbyDeviceProvider device_provider;
   core.RegisterDeviceProvider(&device_provider);
@@ -202,16 +306,16 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
   CountDownLatch initiated_latch(1);
-  AdvertisingOptions advertising_options;
+  v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   auto local_device = FakeNearbyDevice();
   core.StartAdvertisingV3(
@@ -260,16 +364,16 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
         info.listener.disconnected_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
   Core core{&mock};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
   CountDownLatch initiated_latch(1);
-  AdvertisingOptions advertising_options;
+  v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   auto local_device = v3::ConnectionsDevice("FAKE", "endpoint_info", {});
   core.StartAdvertisingV3(
@@ -315,11 +419,11 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartDiscoveryV3) {
         info.endpoint_lost_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
-      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
-        callback.result_cb({Status::kSuccess});
+        callback({Status::kSuccess});
       });
-  DiscoveryOptions options;
+  v3::DiscoveryOptions options;
   options.strategy = Strategy::kP2pCluster;
   Core core{&mock};
   CountDownLatch endpoint_distance_latch(1);

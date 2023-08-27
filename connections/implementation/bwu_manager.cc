@@ -24,6 +24,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/bluetooth_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #ifdef NO_WEBRTC
@@ -103,31 +105,40 @@ BwuManager::~BwuManager() {
 
 void BwuManager::InitBwuHandlers() {
   // Register the supported concrete BwuMedium implementations.
-  BwuHandler::BwuNotifications notifications{
-      .incoming_connection_cb =
-          absl::bind_front(&BwuManager::OnIncomingConnection, this),
-  };
   if (config_.allow_upgrade_to.wifi_hotspot) {
     handlers_.emplace(
         Medium::WIFI_HOTSPOT,
-        std::make_unique<WifiHotspotBwuHandler>(*mediums_, notifications));
+        std::make_unique<WifiHotspotBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_direct) {
     handlers_.emplace(
         Medium::WIFI_DIRECT,
-        std::make_unique<WifiDirectBwuHandler>(*mediums_, notifications));
+        std::make_unique<WifiDirectBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_lan) {
-    handlers_.emplace(Medium::WIFI_LAN, std::make_unique<WifiLanBwuHandler>(
-                                            *mediums_, notifications));
+    handlers_.emplace(
+        Medium::WIFI_LAN,
+        std::make_unique<WifiLanBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.web_rtc) {
-    handlers_.emplace(Medium::WEB_RTC, std::make_unique<WebrtcBwuHandler>(
-                                           *mediums_, notifications));
+    handlers_.emplace(
+        Medium::WEB_RTC,
+        std::make_unique<WebrtcBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.bluetooth) {
-    handlers_.emplace(Medium::BLUETOOTH, std::make_unique<BluetoothBwuHandler>(
-                                             *mediums_, notifications));
+    handlers_.emplace(
+        Medium::BLUETOOTH,
+        std::make_unique<BluetoothBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
 }
 
@@ -334,7 +345,8 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
 void BwuManager::OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& service_id,
                                       const std::string& endpoint_id,
-                                      CountDownLatch barrier) {
+                                      CountDownLatch barrier,
+                                      DisconnectionReason reason) {
   NEARBY_LOGS(INFO)
       << "BwuManager has processed endpoint disconnection for endpoint "
       << endpoint_id;
@@ -700,8 +712,8 @@ void BwuManager::ProcessBwuPathAvailableEvent(
 
     return;
   }
-  Medium current_medium = GetBwuMediumForEndpoint(endpoint_id);
-  if (current_medium == Medium::UNKNOWN_MEDIUM) {
+  Medium current_bwu_medium = GetBwuMediumForEndpoint(endpoint_id);
+  if (current_bwu_medium == Medium::UNKNOWN_MEDIUM) {
     SetBwuMediumForEndpoint(endpoint_id, upgrade_medium);
   }
   // Check for the correct medium so we don't process an incorrect OfflineFrame.
@@ -711,6 +723,9 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
+  auto current_channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
+  Medium current_medium =
+      current_channel ? current_channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
   client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
       endpoint_id, current_medium, upgrade_medium,
       location::nearby::proto::connections::OUTGOING,
@@ -1100,7 +1115,11 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   // circumstances so it is necessary to send it unencrypted. This way the
   // serial crypto context does not increment here.
   previous_endpoint_channel->DisableEncryption();
-  previous_endpoint_channel->Write(parser::ForDisconnection());
+  NEARBY_LOGS(INFO) << "[safe-to-disconnect] Sending "
+                       "DISCONNECTION frame with request 0, ack 0";
+  previous_endpoint_channel->Write(
+      parser::ForDisconnection(/* request_safe_to_disconnect */ false,
+                               /* ack_safe_to_disconnect */ false));
 
   // Attempt to read the disconnect message from the previous channel. We don't
   // care whether we successfully read it or whether we get an exception here.

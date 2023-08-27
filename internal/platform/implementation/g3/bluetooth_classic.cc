@@ -17,92 +17,31 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/log/check.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
-#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace g3 {
 
-BluetoothSocket::~BluetoothSocket() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-}
-
-void BluetoothSocket::Connect(BluetoothSocket& other) {
-  absl::MutexLock lock(&mutex_);
-  remote_socket_ = &other;
-  input_ = other.output_;
-}
-
-bool BluetoothSocket::IsConnected() const {
-  absl::MutexLock lock(&mutex_);
-  return IsConnectedLocked();
-}
-
-bool BluetoothSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
-  return closed_;
-}
-
-bool BluetoothSocket::IsConnectedLocked() const { return input_ != nullptr; }
-
-InputStream& BluetoothSocket::GetInputStream() {
-  absl::MutexLock lock(&mutex_);
-  if (IsConnectedLocked()) {
-    return input_->GetInputStream();
-  } else {
-    return invalid_input_stream_;
-  }
-}
-
-OutputStream& BluetoothSocket::GetOutputStream() {
-  return GetLocalOutputStream();
-}
-
-InputStream& BluetoothSocket::GetLocalInputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetInputStream();
-}
-
-OutputStream& BluetoothSocket::GetLocalOutputStream() {
-  absl::MutexLock lock(&mutex_);
-  return output_->GetOutputStream();
-}
-
-Exception BluetoothSocket::Close() {
-  absl::MutexLock lock(&mutex_);
-  DoClose();
-  return {Exception::kSuccess};
-}
-
-void BluetoothSocket::DoClose() {
-  if (!closed_) {
-    remote_socket_ = nullptr;
-    output_->GetOutputStream().Close();
-    output_->GetInputStream().Close();
-    input_->GetOutputStream().Close();
-    input_->GetInputStream().Close();
-    input_.reset();
-    closed_ = true;
-  }
-}
-
 BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
-  BluetoothAdapter* remote_adapter = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (remote_socket_ == nullptr || remote_socket_->adapter_ == nullptr) {
-      return nullptr;
-    }
-    remote_adapter = remote_socket_->adapter_;
+  BluetoothSocket* remote_socket =
+      static_cast<BluetoothSocket*>(GetRemoteSocket());
+  if (remote_socket == nullptr || remote_socket->adapter_ == nullptr) {
+    return nullptr;
   }
-  return remote_adapter ? &remote_adapter->GetDevice() : nullptr;
+  return &remote_socket->adapter_->GetDevice();
 }
 
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {

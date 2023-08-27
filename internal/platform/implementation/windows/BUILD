@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 licenses(["notice"])
 
 cc_library(
@@ -49,7 +50,6 @@ cc_library(
         "//base:stringprintf",
         "//internal/base:bluetooth_address",
         "//internal/platform:base",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:types",
@@ -95,6 +95,7 @@ cc_library(
         "mutex.h",
         "scheduled_executor.h",
         "server_sync.h",
+        "session_manager.h",
         "submittable_executor.h",
         "thread_pool.h",
         "webrtc.h",
@@ -166,6 +167,7 @@ cc_library(
         "preferences_repository.cc",
         "preferences_repository.h",
         "scheduled_executor.cc",
+        "session_manager.cc",
         "submittable_executor.cc",
         "system_clock.cc",
         "thread_pool.cc",
@@ -202,7 +204,6 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
-        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/flags:platform_flags",
@@ -283,7 +284,7 @@ cc_test(
         ":types",
         ":windows",
         "//internal/platform:base",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",

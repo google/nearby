@@ -31,7 +31,6 @@ namespace presence {
 // between fpp and NP sensor fusion
 class FppManager {
  public:
-  using ZoneTransitionCallback = SensorFusion::ZoneTransitionCallback;
   using RangeType = PresenceZone::DistanceBoundary::RangeType;
 
   FppManager() { presence_detector_handle_ = presence_detector_create(); }
@@ -66,6 +65,11 @@ class FppManager {
    * Gets the most recent ranging data for a given device
    */
   std::optional<RangingData> GetRangingData(uint64_t device_id);
+
+  /*
+   * Converts a status code to a string representation
+   */
+  std::string GetStatusStringFromCode(int status_code);
 
  private:
   void CheckPresenceZoneChanged(uint64_t device_id,

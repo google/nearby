@@ -14,6 +14,7 @@
 
 #include "connections/implementation/client_proxy.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <optional>
@@ -40,7 +41,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
-#include "proto/connections_enums.proto.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -1023,6 +1024,9 @@ TEST_F(ClientProxyTest, GetRemoteInfoNullWithoutConnections) {
       StartAdvertising(&client1_, advertising_connection_listener_);
 
   EXPECT_FALSE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
+  EXPECT_FALSE(
+      client1_.GetRemoteSafeToDisconnectVersion(advertising_endpoint.id)
+          .has_value());
 }
 
 TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
@@ -1032,11 +1036,16 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
 
   OsInfo os_info;
   os_info.set_type(OsInfo::ANDROID);
+  std::int32_t nearby_connections_version = 2;
   client1_.SetRemoteOsInfo(advertising_endpoint.id, os_info);
+  client1_.SetRemoteSafeToDisconnectVersion(advertising_endpoint.id,
+                                             nearby_connections_version);
 
   ASSERT_TRUE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
   EXPECT_EQ(client1_.GetRemoteOsInfo(advertising_endpoint.id).value().type(),
             OsInfo::ANDROID);
+  EXPECT_EQ(client1_.GetRemoteSafeToDisconnectVersion(advertising_endpoint.id),
+            nearby_connections_version);
 }
 
 // Test ClientProxy::AddCancellationFlag, where if a flag is already in the map,

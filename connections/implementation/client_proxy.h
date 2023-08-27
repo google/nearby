@@ -16,13 +16,13 @@
 #define CORE_INTERNAL_CLIENT_PROXY_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -143,11 +143,17 @@ class ClientProxy final {
   void OnEndpointLost(const std::string& service_id,
                       const std::string& endpoint_id);
 
+  // Triggered when client request connection to remote device.
+  void OnRequestConnection(const Strategy& strategy,
+                           const std::string& endpoint_id,
+                           const ConnectionOptions& connection_options);
+
   // Proxies to the client's ConnectionListener::OnInitiated() callback.
-  void OnConnectionInitiated(
-      const std::string& endpoint_id, const ConnectionResponseInfo& info,
-      const ConnectionOptions& connection_options,
-      const ConnectionListener& listener, const std::string& connection_token);
+  void OnConnectionInitiated(const std::string& endpoint_id,
+                             const ConnectionResponseInfo& info,
+                             const ConnectionOptions& connection_options,
+                             const ConnectionListener& listener,
+                             const std::string& connection_token);
 
   // Proxies to the client's ConnectionListener::OnAccepted() callback.
   void OnConnectionAccepted(const std::string& endpoint_id);
@@ -261,6 +267,20 @@ class ClientProxy final {
     connections_device_provider_ = std::move(provider);
   }
 
+  const bool& IsSupportSafeToDisconnect() const {
+    return supports_safe_to_disconnect_;
+  }
+  const std::int32_t& GetLocalSafeToDisconnectVersion() const {
+    return local_safe_to_disconnect_version_;
+  }
+  std::optional<std::int32_t> GetRemoteSafeToDisconnectVersion(
+      absl::string_view endpoint_id) const;
+  void SetRemoteSafeToDisconnectVersion(
+      absl::string_view endpoint_id,
+      const std::int32_t& safe_to_disconnect_version);
+  bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
+  bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
+
  private:
   struct Connection {
     // Status: may be either:
@@ -290,6 +310,7 @@ class ClientProxy final {
     AdvertisingOptions advertising_options;
     std::string connection_token;
     std::optional<location::nearby::connections::OsInfo> os_info;
+    std::int32_t safe_to_disconnect_version;
   };
   using ConnectionPair = std::pair<Connection, PayloadListener>;
 
@@ -332,7 +353,7 @@ class ClientProxy final {
   bool ConnectionStatusMatches(const std::string& endpoint_id,
                                Connection::Status status) const;
   std::vector<std::string> GetMatchingEndpoints(
-      std::function<bool(const Connection&)> pred) const;
+      absl::AnyInvocable<bool(const Connection&)> pred) const;
   std::string GenerateLocalEndpointId();
 
   void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
@@ -421,6 +442,8 @@ class ClientProxy final {
   NearbyDeviceProvider* external_device_provider_ = nullptr;
   // For Nearby Connections' own device provider.
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
+  bool supports_safe_to_disconnect_;
+  std::int32_t local_safe_to_disconnect_version_;
 };
 
 }  // namespace connections

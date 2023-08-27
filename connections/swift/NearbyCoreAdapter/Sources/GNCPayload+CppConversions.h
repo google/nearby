@@ -29,10 +29,20 @@ class Payload;
 @interface GNCPayload (CppConversions)
 
 #ifdef __cplusplus
+/**
+ * @note @c fromCpp should not be used to convert a @c Payload created from @c toCpp. For some
+ * payload types, each conversion creates a new object holding a reference to the previous,
+ * resulting in potentially endless nesting of objects.
+ */
 + (nonnull GNCPayload *)fromCpp:(nearby::connections::Payload)payload;
 #endif
 
 #ifdef __cplusplus
+/**
+ * @note @c toCPP should not be used to convert a @c GNCPayload created from @c fromCpp. For some
+ * payload types, each conversion creates a new object holding a reference to the previous,
+ * resulting in potentially endless nesting of objects.
+ */
 - (nearby::connections::Payload)toCpp;
 #endif
 

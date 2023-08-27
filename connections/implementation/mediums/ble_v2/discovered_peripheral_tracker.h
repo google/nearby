@@ -20,6 +20,9 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "connections/implementation/mediums//lost_entity_tracker.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
@@ -288,6 +291,10 @@ class DiscoveredPeripheralTracker {
   // advertisements are lost or become stale.
   absl::flat_hash_map<BleAdvertisement, GattAdvertisementInfo>
       gatt_advertisement_infos_ ABSL_GUARDED_BY(mutex_);
+
+  // Tracks the advertisements in GATT fetching.
+  absl::flat_hash_set<ByteArray> fetching_advertisements_
+      ABSL_GUARDED_BY(mutex_);
 
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;

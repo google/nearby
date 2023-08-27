@@ -37,7 +37,7 @@ cc_library(
         "//fastpair/common",
         "//fastpair/repository",
         "//internal/base",
-        "//internal/platform:logging",
+        "//internal/platform:types",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
     ],
@@ -88,6 +88,7 @@ cc_test(
         ":fake_fast_pair_ui",
         ":fast_pair_ui",
         "//fastpair/common",
+        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

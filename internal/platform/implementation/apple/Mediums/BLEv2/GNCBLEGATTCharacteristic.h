@@ -15,20 +15,24 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 /** A container for GATT characteristic information. */
 @interface GNCBLEGATTCharacteristic : NSObject
 
 /** @remark init is not an available initializer. */
-- (nonnull instancetype)init NS_UNAVAILABLE;
+- (instancetype)init NS_UNAVAILABLE;
 
 /**
- * Creates a container for GATT characteristic information.
+ * Creates a container for GATT characteristic information with properties.
  *
  * @param characteristicUUID The UUID of the characteristic.
  * @param serviceUUID The UUID of the service.
+ * @param properties The properties of the characteristic.
  */
-- (instancetype)initWithUUID:(nonnull CBUUID *)characteristicUUID
-                 serviceUUID:(nonnull CBUUID *)serviceUUID;
+- (instancetype)initWithUUID:(CBUUID *)characteristicUUID
+                 serviceUUID:(CBUUID *)serviceUUID
+                  properties:(CBCharacteristicProperties)properties;
 
 /**
  * Creates a container for GATT characteristic information with permissions and properties.
@@ -38,17 +42,16 @@
  * @param permissions The permissions of the characteristic value.
  * @param properties The properties of the characteristic.
  */
-- (nonnull instancetype)initWithUUID:(nonnull CBUUID *)characteristicUUID
-                         serviceUUID:(nonnull CBUUID *)serviceUUID
-                         permissions:(CBAttributePermissions)permissions
-                          properties:(CBCharacteristicProperties)properties
-    NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithUUID:(CBUUID *)characteristicUUID
+                 serviceUUID:(CBUUID *)serviceUUID
+                 permissions:(CBAttributePermissions)permissions
+                  properties:(CBCharacteristicProperties)properties NS_DESIGNATED_INITIALIZER;
 
 /** The 128-bit UUID that identifies the characteristic. */
-@property(nonatomic, readonly, nonnull) CBUUID *characteristicUUID;
+@property(nonatomic, readonly) CBUUID *characteristicUUID;
 
 /** The 128-bit UUID that identifies the service that the characteristic belongs to. */
-@property(nonatomic, readonly, nonnull) CBUUID *serviceUUID;
+@property(nonatomic, readonly) CBUUID *serviceUUID;
 
 /**
  * The permissions of the characteristic value.
@@ -67,3 +70,5 @@
 @property(nonatomic, readonly) CBCharacteristicProperties properties;
 
 @end
+
+NS_ASSUME_NONNULL_END

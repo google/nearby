@@ -29,10 +29,8 @@ namespace connections {
 class WifiDirect {
  public:
   // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    std::function<void(const std::string& service_id, WifiDirectSocket socket)>
-        accepted_cb = [](const std::string&, WifiDirectSocket) {};
-  };
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      const std::string& service_id, WifiDirectSocket socket)>;
 
   WifiDirect() : is_go_started_(false), is_connected_to_go_(false) {}
   ~WifiDirect();

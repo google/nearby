@@ -17,10 +17,17 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @implementation GNCBLEGATTCharacteristic
 
-- (instancetype)initWithUUID:(CBUUID *)characteristicUUID serviceUUID:(CBUUID *)serviceUUID {
-  return [self initWithUUID:characteristicUUID serviceUUID:serviceUUID permissions:0 properties:0];
+- (instancetype)initWithUUID:(CBUUID *)characteristicUUID
+                 serviceUUID:(CBUUID *)serviceUUID
+                  properties:(CBCharacteristicProperties)properties {
+  return [self initWithUUID:characteristicUUID
+                serviceUUID:serviceUUID
+                permissions:0
+                 properties:properties];
 }
 
 - (instancetype)initWithUUID:(CBUUID *)characteristicUUID
@@ -38,3 +45,5 @@
 }
 
 @end
+
+NS_ASSUME_NONNULL_END

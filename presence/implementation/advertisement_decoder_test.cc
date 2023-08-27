@@ -78,7 +78,7 @@ SharedCredential GetPublicCredential() {
                        163, 203, 100, 235, 53,  65, 202, 97,  75,  180});
   SharedCredential public_credential;
   public_credential.set_key_seed(seed.AsStringView());
-  public_credential.set_metadata_encryption_key_unsigned_adv_tag(
+  public_credential.set_metadata_encryption_key_tag_v0(
       known_mac.AsStringView());
   return public_credential;
 }

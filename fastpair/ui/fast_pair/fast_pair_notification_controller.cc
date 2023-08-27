@@ -17,7 +17,7 @@
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
-#include "fastpair/common/device_metadata.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/ui/actions.h"
 #include "internal/platform/logging.h"
 
@@ -32,18 +32,32 @@ void FastPairNotificationController::RemoveObserver(Observer* observer) {
 }
 
 void FastPairNotificationController::NotifyShowDiscovery(
-    const DeviceMetadata& device) {
+    FastPairDevice& device) {
   NEARBY_LOGS(INFO) << __func__;
   for (Observer* observer : observers_.GetObservers()) {
     observer->OnUpdateDevice(device);
   }
 }
 
+void FastPairNotificationController::NotifyShowPairingResult(
+    FastPairDevice& device, bool success) {
+  NEARBY_LOGS(INFO) << __func__;
+  for (Observer* observer : observers_.GetObservers()) {
+    observer->OnPairingResult(device, success);
+  }
+}
+
 void FastPairNotificationController::ShowGuestDiscoveryNotification(
-    const DeviceMetadata& device, DiscoveryCallback callback) {
+    FastPairDevice& device, DiscoveryCallback callback) {
   callback_ = std::move(callback);
   NEARBY_LOGS(INFO) << __func__ << "Notify show guest discovery notification. ";
   NotifyShowDiscovery(device);
+}
+
+void FastPairNotificationController::ShowPairingResultNotification(
+    FastPairDevice& device, bool success) {
+  NEARBY_LOGS(INFO) << __func__ << "Notify show pairing result notification. ";
+  NotifyShowPairingResult(device, success);
 }
 
 void FastPairNotificationController::OnDiscoveryClicked(

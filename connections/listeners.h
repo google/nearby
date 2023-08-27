@@ -42,12 +42,9 @@ namespace connections {
 // This is not the same as completion of the associated process,
 // which may have many states, and multiple async jobs, and be still ongoing.
 // Progress on the overall process is reported by the associated listener.
-struct ResultCallback {
-  // Callback to access the status of the operation when available.
-  // status - result of job execution;
-  //   Status::kSuccess, if successful; anything else indicates failure.
-  std::function<void(Status)> result_cb = [](Status) {};
-};
+// status - result of job execution;
+//   Status::kSuccess, if successful; anything else indicates failure.
+using ResultCallback = absl::AnyInvocable<void(Status)>;
 
 struct ConnectionResponseInfo {
   std::string GetAuthenticationDigits() {

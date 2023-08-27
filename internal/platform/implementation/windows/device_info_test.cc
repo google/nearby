@@ -77,59 +77,12 @@ TEST(DeviceInfo, DISABLED_IsScreenLocked) {
   EXPECT_FALSE(DeviceInfo().IsScreenLocked());
 }
 
-TEST(DeviceInfo, DISABLED_RegisterScreenLockedListener) {
-  std::function<void(api::DeviceInfo::ScreenStatus)> listener_1 =
-      [](api::DeviceInfo::ScreenStatus) {};
-  std::function<void(api::DeviceInfo::ScreenStatus)> listener_2 =
-      [](api::DeviceInfo::ScreenStatus) {};
-
-  DeviceInfo device_info;
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 0);
-
-  device_info.RegisterScreenLockedListener("listener_1", listener_1);
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 1);
-
-  device_info.RegisterScreenLockedListener("listener_2", listener_2);
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 2);
+TEST(DeviceInfo, DISABLED_PreventSleep) {
+  EXPECT_TRUE(DeviceInfo().PreventSleep());
 }
 
-TEST(DeviceInfo, DISABLED_UnregisterScreenLockedListener) {
-  std::function<void(api::DeviceInfo::ScreenStatus)> listener_1 =
-      [](api::DeviceInfo::ScreenStatus) {};
-  std::function<void(api::DeviceInfo::ScreenStatus)> listener_2 =
-      [](api::DeviceInfo::ScreenStatus) {};
-
-  DeviceInfo device_info;
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 0);
-
-  device_info.RegisterScreenLockedListener("listener_1", listener_1);
-  device_info.RegisterScreenLockedListener("listener_2", listener_2);
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 2);
-
-  device_info.UnregisterScreenLockedListener("listener_1");
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 1);
-
-  device_info.UnregisterScreenLockedListener("listener_2");
-  EXPECT_EQ(device_info.screen_locked_listeners_.size(), 0);
-}
-
-TEST(DeviceInfo, DISABLED_UpdateScreenLockedListener) {
-  absl::Notification notification;
-
-  api::DeviceInfo::ScreenStatus screen_locked_tracker =
-      api::DeviceInfo::ScreenStatus::kUndetermined;
-
-  std::function<void(api::DeviceInfo::ScreenStatus)> listener =
-      [&screen_locked_tracker,
-       &notification](api::DeviceInfo::ScreenStatus status) {
-        screen_locked_tracker = api::DeviceInfo::ScreenStatus::kLocked;
-        notification.Notify();
-      };
-
-  DeviceInfo device_info;
-  device_info.RegisterScreenLockedListener("listener", listener);
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
-  EXPECT_EQ(screen_locked_tracker, api::DeviceInfo::ScreenStatus::kLocked);
+TEST(DeviceInfo, DISABLED_AllowSleep) {
+  EXPECT_TRUE(DeviceInfo().AllowSleep());
 }
 
 }  // namespace

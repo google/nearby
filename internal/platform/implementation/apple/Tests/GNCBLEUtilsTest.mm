@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #import <CoreBluetooth/CoreBluetooth.h>
+#import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
@@ -25,6 +26,7 @@ using Property = ::nearby::api::ble_v2::GattCharacteristic::Property;
 using Permission = ::nearby::api::ble_v2::GattCharacteristic::Permission;
 using WriteType = ::nearby::api::ble_v2::GattClient::WriteType;
 using Uuid = ::nearby::Uuid;
+using ByteArray = ::nearby::ByteArray;
 
 @interface GNCBLEUtilsTest : XCTestCase
 @end
@@ -118,6 +120,22 @@ using Uuid = ::nearby::Uuid;
   XCTAssertEqualObjects(actual.serviceUUID, serviceUUID);
   XCTAssertEqual(actual.permissions, permissions);
   XCTAssertEqual(actual.properties, properties);
+}
+
+- (void)testObjCServiceDataFromCpp {
+  CBUUID *serviceUUID1 = [CBUUID UUIDWithString:@"0000FEF3-0000-1000-8000-00805F9B34FB"];
+  CBUUID *serviceUUID2 = [CBUUID UUIDWithString:@"0000FEF4-0000-1000-8000-00805F9B34FB"];
+  NSData *data1 = [@"one" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *data2 = [@"two" dataUsingEncoding:NSUTF8StringEncoding];
+
+  absl::flat_hash_map<Uuid, ByteArray> service_data;
+  service_data[Uuid(0x0000FEF300001000, 0x800000805F9B34FB)] = ByteArray("one");
+  service_data[Uuid(0x0000FEF400001000, 0x800000805F9B34FB)] = ByteArray("two");
+
+  NSMutableDictionary<CBUUID *, NSData *> *actual =
+      ::nearby::apple::ObjCServiceDataFromCPP(service_data);
+  XCTAssertEqualObjects(actual[serviceUUID1], data1);
+  XCTAssertEqualObjects(actual[serviceUUID2], data2);
 }
 
 #pragma mark - Objective-C to C++

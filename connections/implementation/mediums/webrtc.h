@@ -17,13 +17,12 @@
 
 #ifndef NO_WEBRTC
 
-#include <cstddef>
-#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
@@ -42,15 +41,13 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-// Callback that is invoked when a new connection is accepted.
-struct AcceptedConnectionCallback {
-  std::function<void(const std::string& service_id, WebRtcSocketWrapper socket)>
-      accepted_cb = [](const std::string&, WebRtcSocketWrapper) {};
-};
-
 // Entry point for connecting a data channel between two devices via WebRtc.
 class WebRtc {
  public:
+  // Callback that is invoked when a new connection is accepted.
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      const std::string& service_id, WebRtcSocketWrapper socket)>;
+
   WebRtc();
   ~WebRtc();
 

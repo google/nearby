@@ -16,8 +16,8 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAST_PAIR_NOTIFICATION_CONTROLLER_H_
 
 #include "absl/functional/any_invocable.h"
-#include "absl/strings/string_view.h"
 #include "fastpair/common/device_metadata.h"
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/ui/actions.h"
 #include "internal/base/observer_list.h"
 
@@ -38,7 +38,8 @@ class FastPairNotificationController {
   class Observer {
    public:
     virtual ~Observer() = default;
-    virtual void OnUpdateDevice(const DeviceMetadata& device) = 0;
+    virtual void OnUpdateDevice(FastPairDevice& device) = 0;
+    virtual void OnPairingResult(FastPairDevice& device, bool success) = 0;
   };
 
   FastPairNotificationController() = default;
@@ -51,11 +52,14 @@ class FastPairNotificationController {
   // Observer process
   void AddObserver(Observer* observer);
   void RemoveObserver(Observer* observer);
-  void NotifyShowDiscovery(const DeviceMetadata& device);
+  void NotifyShowDiscovery(FastPairDevice& device);
+  void NotifyShowPairingResult(FastPairDevice& device, bool success);
 
   // Creates and displays corresponding notification.
-  void ShowGuestDiscoveryNotification(const DeviceMetadata& device_metadata,
+  void ShowGuestDiscoveryNotification(FastPairDevice& device,
                                       DiscoveryCallback callback);
+
+  void ShowPairingResultNotification(FastPairDevice& device, bool success);
 
   // Triggers callback when the related action is clicked.
   void OnDiscoveryClicked(DiscoveryAction action);
