@@ -20,7 +20,7 @@ void CurrentUserSession::RegisterScreenLockedListener(
     absl::string_view listener_name,
     std::function<void(api::DeviceInfo::ScreenStatus)> callback) {
   absl::MutexLock l(&screen_lock_listeners_mutex_);
-  screen_lock_listeners_[listener_name] = callback;
+  screen_lock_listeners_[listener_name] = std::move(callback);
 }
 
 void CurrentUserSession::UnregisterScreenLockedListener(
