@@ -32,7 +32,7 @@ class LogControl
       public google::LogSink {
 public:
   LogControl(sdbus::IConnection &system_bus)
-      : AdaptorInterfaces(system_bus, "/com/github/google/nearby"),
+      : AdaptorInterfaces(system_bus, "/com/google/nearby"),
         severity_(api::LogMessage::LogMessage::Severity::kVerbose) {
     registerAdaptor();
   }

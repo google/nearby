@@ -24,7 +24,7 @@ std::string device_object_path(const sdbus::ObjectPath &adapter_object_path,
 }
 
 sdbus::ObjectPath profile_object_path(absl::string_view service_uuid) {
-  return absl::Substitute("/com/github/google/nearby/profiles/$0", service_uuid);
+  return absl::Substitute("/com/google/nearby/profiles/$0", service_uuid);
 }
 
 sdbus::ObjectPath adapter_object_path(absl::string_view name) {
