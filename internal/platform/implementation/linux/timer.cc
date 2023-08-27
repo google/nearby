@@ -12,8 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <bits/types/struct_itimerspec.h>
+#include <cerrno>
+#include <cstring>
+#include <ctime>
+#include <signal.h>
+#include <time.h>
+
+#include "internal/platform/implementation/linux/submittable_executor.h"
 #include "internal/platform/implementation/linux/timer.h"
-#include "internal/platform/implementation/linux/timer_queue.h"
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/logging.h"
@@ -21,100 +28,109 @@
 namespace nearby {
 namespace linux {
 
-Timer::~Timer() { Stop(); }
+static void timer_callback(union sigval val) {
+  absl::AnyInvocable<void()> *callback =
+      reinterpret_cast<absl::AnyInvocable<void()> *>(val.sival_ptr);
+  if (*callback != nullptr)
+    (*callback)();
+}
+
+Timer::~Timer() {
+  absl::MutexLock l(&mutex_);
+  if (timerid_.has_value())
+    if (timer_delete(*timerid_) < 0) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Error deleting POSIX timer: "
+                         << std::strerror(errno);
+    }
+}
 
 bool Timer::Create(int delay, int interval,
                    absl::AnyInvocable<void()> callback) {
-  absl::MutexLock lock(&mutex_);
-
-  if ((delay < 0) || (interval < 0)) {
-    NEARBY_LOGS(WARNING) << "Delay and interval shouldn\'t be negative value.";
+  if (delay < 0 || interval < 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Delay and interval cannot be negative.";
     return false;
   }
 
-  if (timer_queue_handle_) {
+  absl::MutexLock l(&mutex_);
+  if (timerid_.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << "Timer has already been created and armed.";
     return false;
   }
 
-  timer_queue_handle_ = TimerQueue::CreateTimerQueue();
-  if (!timer_queue_handle_) {
-    NEARBY_LOGS(ERROR) << "Failed to create timer queue.";
-    return false;
-  }
-
-  delay_ = delay;
-  interval_ = interval;
   callback_ = std::move(callback);
+  
+  struct sigevent ev;
+  ev.sigev_value.sival_ptr = &callback_;
+  ev.sigev_notify_function = timer_callback;
+  
+  timer_t timerid;
 
-  absl::StatusOr<uint16_t> createStatus = timer_queue_handle_->CreateTimerQueueTimer(TimerRoutine,
-                             &callback_, std::chrono::milliseconds(delay), std::chrono::milliseconds(interval), TimerQueue::WT_EXECUTEDEFAULT);
+  struct itimerspec spec;
 
-  if (!createStatus.ok()) {
-    if (!timer_queue_handle_->DeleteTimerQueueEx(TimerQueue::CE_IMEDIATERETURN).ok()) {
-      NEARBY_LOGS(ERROR) << "Failed to create timer in timer queue.";
-    }
-    delete timer_queue_handle_.release();
+  spec.it_value.tv_nsec = delay * 1000000;
+  spec.it_value.tv_sec = 0;
+
+  spec.it_interval.tv_nsec = interval * 1000000;
+  spec.it_interval.tv_sec = 0;
+
+  if (timer_create(CLOCK_MONOTONIC, &ev, &timerid) < 0) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Error creating POSIX timer: "
+                       << std::strerror(errno);
     return false;
   }
-  handle_ = createStatus.value();
+
+  if (timer_settime(&timerid, 0, &spec, nullptr) < 0) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Error arming POSIX timer: "
+                       << std::strerror(errno);
+    if (!timer_delete(&timerid)) {
+      NEARBY_LOGS(ERROR) << __func__ << ": error deleting POSIX timer: "
+			 << std::strerror(errno);
+    }
+    return false;
+  }
+
+  timerid_ = timerid;
   return true;
 }
 
 bool Timer::Stop() {
-  absl::MutexLock lock(&mutex_);
-
-  if (!timer_queue_handle_) {
+  absl::MutexLock l(&mutex_);
+  if (!timerid_.has_value()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": no timer created";
     return true;
   }
 
-  absl::Status deleteStatus = timer_queue_handle_->DeleteTimerQueueTimer(handle_, TimerQueue::CE_IMEDIATERETURN);
-
-  if (!deleteStatus.ok()) {
-    NEARBY_LOGS(ERROR) << "Failed to delete timer from queue: " << deleteStatus.message();
-  }
-
-  handle_ = 0;
-
-  deleteStatus = timer_queue_handle_->DeleteTimerQueueEx(TimerQueue::CE_IMEDIATERETURN);
-
-  if (!deleteStatus.ok()) {
-    NEARBY_LOGS(ERROR) << "Failed to delete timer queue: " << deleteStatus.message();
+  if (!timer_delete(&*timerid_)) {
+    NEARBY_LOGS(ERROR) << __func__ << ": error deleting POSIX timer: "
+                       << std::strerror(errno);
     return false;
   }
 
-  timer_queue_handle_ = nullptr;
+  timerid_.reset();  
+
   return true;
 }
 
 bool Timer::FireNow() {
   absl::MutexLock lock(&mutex_);
-
-  if (!timer_queue_handle_ || !callback_) {
+  if (!timerid_.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": No timer has been created";
     return false;
   }
-
+  if (callback_ == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": No callback has been set";
+    return false;
+  }
   if (task_executor_ == nullptr) {
     task_executor_ = std::make_unique<SubmittableExecutor>();
   }
 
-  if (task_executor_ == nullptr) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to fire the task due to cannot create executor.";
-    return false;
-  }
-
-  task_executor_->Execute([&]() { callback_(); });
+  task_executor_->Execute([&]() {callback_();});
 
   return true;
 }
 
-void Timer::TimerRoutine(void *lpParam) {
-  absl::AnyInvocable<void()>* callback =
-      reinterpret_cast<absl::AnyInvocable<void()>*>(lpParam);
-  if (*callback != nullptr) {
-    (*callback)();
-  }
-}
-
-}  // namespace linux
-}  // namespace nearby
+} // namespace linux
+} // namespace nearby
