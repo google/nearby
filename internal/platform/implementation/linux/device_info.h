@@ -120,12 +120,16 @@ public:
   std::optional<std::filesystem::path> GetCrashDumpPath() const override;
 
   bool IsScreenLocked() const override;
-  // TODO: Implement listening to logind for changes to LockedState.
   void RegisterScreenLockedListener(
       absl::string_view listener_name,
-      std::function<void(api::DeviceInfo::ScreenStatus)> callback) override {}
+      std::function<void(api::DeviceInfo::ScreenStatus)> callback) override {
+    current_user_session_->RegisterScreenLockedListener(listener_name,
+                                                        std::move(callback));    
+  }
   void
-  UnregisterScreenLockedListener(absl::string_view listener_name) override {}
+  UnregisterScreenLockedListener(absl::string_view listener_name) override {
+    current_user_session_->UnregisterScreenLockedListener(listener_name);
+  }
 
   bool PreventSleep() override;
   bool AllowSleep() override;
