@@ -20,23 +20,23 @@
 namespace nearby {
 namespace linux {
 namespace bluez {
-extern const char *SERVICE_DEST;
+static constexpr const char *SERVICE_DEST = "org.bluez";
 
-extern const char *ADAPTER_INTERFACE;
+static constexpr const char *ADAPTER_INTERFACE = "org.bluez.Adapter1";
 
-extern const char *DEVICE_INTERFACE;
-extern const char *DEVICE_PROP_ADDRESS;
-extern const char *DEVICE_PROP_ALIAS;
-extern const char *DEVICE_PROP_PAIRED;
-extern const char *DEVICE_PROP_CONNECTED;
+static constexpr const char *DEVICE_INTERFACE = "org.bluez.Device1";
+static constexpr const char *DEVICE_PROP_ADDRESS = "Address";
+static constexpr const char *DEVICE_PROP_ALIAS = "Alias";
+static constexpr const char *DEVICE_PROP_PAIRED = "Paired";
+static constexpr const char *DEVICE_PROP_CONNECTED = "Connected";
 
-extern std::string
+ std::string
 device_object_path(const sdbus::ObjectPath &adapter_object_path,
                    absl::string_view mac_address);
 
-extern sdbus::ObjectPath profile_object_path(absl::string_view service_uuid);
+ sdbus::ObjectPath profile_object_path(absl::string_view service_uuid);
 
-extern sdbus::ObjectPath adapter_object_path(absl::string_view name);
+ sdbus::ObjectPath adapter_object_path(absl::string_view name);
 
 class BluezObjectManager
     : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {

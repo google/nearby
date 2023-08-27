@@ -38,7 +38,21 @@ bool LogMessage::ShouldCreateLogMessage(Severity severity) {
 
 } // namespace api
 namespace linux {
-
+static inline google::LogSeverity
+ConvertSeverity(api::LogMessage::Severity severity) {
+  switch (severity) {
+  case api::LogMessage::Severity::kWarning:
+    return google::GLOG_WARNING;
+  case api::LogMessage::Severity::kError:
+    return google::GLOG_ERROR;
+  case api::LogMessage::Severity::kFatal:
+    return google::GLOG_FATAL;
+  case api::LogMessage::Severity::kVerbose:
+  case api::LogMessage::Severity::kInfo:
+  default:
+    return google::GLOG_INFO;
+  }
+}
 static inline int ConvertSeverityToSyslog(google::LogSeverity severity) {
   switch (severity) {
   case google::GLOG_WARNING:
@@ -52,6 +66,11 @@ static inline int ConvertSeverityToSyslog(google::LogSeverity severity) {
     return LOG_INFO;
   }
 }
+
+// TODO: Set a LogSink depending on the target set by LogControl
+LogMessage::LogMessage(const char *file, int line, Severity severity)
+    : log_streamer_(file, line, ConvertSeverity(severity),
+                    global_log_control_.get(), false) {}
 
 void LogControl::send(google::LogSeverity severity, const char *full_filename,
                       const char *base_filename, int line,
@@ -76,27 +95,6 @@ void LogControl::send(google::LogSeverity severity, const char *full_filename,
     break;
   }
 }
-
-static inline google::LogSeverity
-ConvertSeverity(api::LogMessage::Severity severity) {
-  switch (severity) {
-  case api::LogMessage::Severity::kWarning:
-    return google::GLOG_WARNING;
-  case api::LogMessage::Severity::kError:
-    return google::GLOG_ERROR;
-  case api::LogMessage::Severity::kFatal:
-    return google::GLOG_FATAL;
-  case api::LogMessage::Severity::kVerbose:
-  case api::LogMessage::Severity::kInfo:
-  default:
-    return google::GLOG_INFO;
-  }
-}
-
-// TODO: Set a LogSink depending on the target set by LogControl
-LogMessage::LogMessage(const char *file, int line, Severity severity)
-    : log_streamer_(file, line, ConvertSeverity(severity),
-                    global_log_control_.get(), false) {}
 
 void LogMessage::Print(const char *format, ...) {
   va_list ap;

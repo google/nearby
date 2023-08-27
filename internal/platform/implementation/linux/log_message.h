@@ -16,7 +16,7 @@ namespace linux {
 class LogMessage : public api::LogMessage {
 public:
   LogMessage(const char *file, int line, Severity severity);
-  ~LogMessage() override;
+  ~LogMessage() override {};
 
   void Print(const char *format, ...) override;
 
