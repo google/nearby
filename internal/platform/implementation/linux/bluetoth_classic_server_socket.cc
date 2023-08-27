@@ -26,7 +26,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
 
 Exception BluetoothServerSocket::Close() {
   auto profile_object_path =
-      absl::Substitute("/com/github/google/nearby/profiles/$0", service_uuid_);
+      absl::Substitute("/com/google/nearby/profiles/$0", service_uuid_);
 
   profile_manager_.Unregister(service_uuid_);
 
