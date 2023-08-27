@@ -108,7 +108,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
-  char *dir = getenv("XDG_STATE_HOME");
+  char *dir = getenv("XDG_CONFIG_HOME");
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
