@@ -300,7 +300,7 @@ ImplementationPlatform::SendRequest(const WebRequest &request) {
   if (request.method == "GET")
     curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
   else if (request.method == "POST")
-    curl_easy_setopt(handle, CURLOPT_HTTPPOST, 1L);
+    curl_easy_setopt(handle, CURLOPT_POST, 1L);
   else
     curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, request.method.c_str());
 

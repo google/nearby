@@ -135,8 +135,10 @@ bool WifiLanMedium::StartDiscovery(
         << __func__
         << ": Created a new org.freedesktop.Avahi.ServiceBrowser object at "
         << browser_object_path;
-    service_browsers_.emplace(service_type, system_bus_, browser_object_path,
-                              std::move(callback));
+    service_browsers_.emplace(
+        service_type,
+        std::make_unique<avahi::ServiceBrowser>(
+            system_bus_, browser_object_path, std::move(callback)));
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(avahi_, "ServiceBrowserPrepare", e);
     return false;

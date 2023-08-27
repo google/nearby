@@ -72,7 +72,7 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
     NEARBY_LOGS(ERROR)
         << __func__
         << "Could not find any IPv4 addresses for active connection "
-        << active_connection->getObjectPath();    
+        << active_connection->getObjectPath();
     return nullptr;
   }
 
@@ -106,9 +106,9 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
                        << std::strerror(errno);
     return nullptr;
   }
-  
-  return std::make_unique<NetworkManagerWifiHotspotServerSocket>(sock,
-      system_bus_, active_connection->getObjectPath(), network_manager_);  
+
+  return std::make_unique<NetworkManagerWifiHotspotServerSocket>(
+      sock, system_bus_, active_connection->getObjectPath(), network_manager_);
 }
 
 bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
@@ -126,7 +126,11 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                        << std::strerror(ret);
     return false;
   }
-  std::string ssid = absl::StrCat("DIRECT-", SD_ID128_TO_STRING(id));
+
+  char id_cstr[SD_ID128_STRING_MAX];
+  sd_id128_to_string(id, id_cstr);
+
+  std::string ssid = absl::StrCat("DIRECT-", id_cstr);
   ssid.resize(32);
   hotspot_credentials->SetSSID(ssid);
 
@@ -135,7 +139,9 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                        << std::strerror(ret);
     return false;
   }
-  std::string password = std::string(SD_ID128_TO_STRING(id), 15);
+
+  sd_id128_to_string(id, id_cstr);
+  std::string password = std::string(id_cstr, 15);
   hotspot_credentials->SetPassword(password);
 
   if (auto ret = sd_id128_randomize(&id); ret < 0) {
@@ -143,6 +149,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                        << std::strerror(ret);
     return false;
   }
+  sd_id128_to_string(id, id_cstr);
 
   std::vector<uint8_t> ssid_bytes(ssid.begin(), ssid.end());
   std::map<std::string, std::map<std::string, sdbus::Variant>>
@@ -150,7 +157,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
           {
               "connection",
               std::map<std::string, sdbus::Variant>{
-                  {"uuid", SD_ID128_TO_UUID_STRING(id)},
+                  {"uuid", std::string(id_cstr)},
                   {"id", "Google Nearby Hotspot"},
                   {"type", "802-11-wireless"},
                   {"zone", "Public"}},
@@ -171,7 +178,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                },
                {"proto", std::vector<std::string>{"rsn"}},
                {"psk", password}}},
-          {"ipv4", std::map<std::string, sdbus::Variant>{"method", "shared"}},
+          {"ipv4", std::map<std::string, sdbus::Variant>{{"method", "shared"}}},
           {"ipv6", std::map<std::string, sdbus::Variant>{
                        {"addr-gen-mode", static_cast<std::int32_t>(1)},
                        {"method", "shared"},

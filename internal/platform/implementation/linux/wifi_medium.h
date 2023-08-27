@@ -282,8 +282,9 @@ protected:
       ABSL_LOCKS_EXCLUDED(known_access_points_lock_) {
     absl::MutexLock l(&known_access_points_lock_);
     known_access_points_.erase(access_point);
-    known_access_points_.emplace(access_point, getProxy().getConnection(),
-                                 access_point);
+    known_access_points_.emplace(access_point,
+                                 std::make_unique<NetworkManagerAccessPoint>(
+                                     getProxy().getConnection(), access_point));
   }
   void onAccessPointRemoved(const sdbus::ObjectPath &access_point) override
       ABSL_LOCKS_EXCLUDED(known_access_points_lock_) {

@@ -330,12 +330,16 @@ NetworkManagerWifiMedium::ConnectToNetwork(absl::string_view ssid,
 
   {
     sd_id128_t id;
+    char id_cstr[SD_ID128_UUID_STRING_MAX];
+
     if (auto ret = sd_id128_randomize(&id); ret < 0) {
       NEARBY_LOGS(ERROR) << __func__
                          << ": could not generation a connection UUID";
       return api::WifiConnectionStatus::kUnknown;
     }
-    connection_id = SD_ID128_TO_UUID_STRING(id);
+
+    sd_id128_to_uuid_string(id, id_cstr);
+    connection_id = std::string(id_cstr);
   }
 
   auto [auth_alg, key_mgmt] = AuthAlgAndKeyMgmt(auth_type);
@@ -346,7 +350,7 @@ NetworkManagerWifiMedium::ConnectToNetwork(absl::string_view ssid,
            std::map<std::string, sdbus::Variant>{
                {"uuid", connection_id},
                {"autoconnect", true},
-               {"id", ssid},
+               {"id", std::string(ssid)},
                {"type", "802-11-wireless"},
                {"zone", "Public"},
            }},
@@ -438,7 +442,7 @@ NetworkManagerWifiMedium::GetActiveConnection() {
   auto object_manager = NetworkManagerObjectManager(getProxy().getConnection());
   auto conn = object_manager.GetActiveConnectionForAccessPoint(active_ap_path,
                                                                getObjectPath());
-  
+
   if (conn == nullptr) {
     NEARBY_LOGS(ERROR)
         << __func__
