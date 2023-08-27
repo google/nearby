@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/strings/str_cat.h"
+#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/utils.h"
 #include "internal/platform/implementation/linux/device_info.h"
 #include "internal/platform/logging.h"
@@ -50,7 +51,7 @@ std::wstring FilePath::GetDownloadPath(std::wstring parent_folder,
 
 std::wstring FilePath::GetDownloadPathInternal(std::wstring parent_folder,
                                                std::wstring file_name) {
-  DeviceInfo info = DeviceInfo();
+  DeviceInfo info = DeviceInfo(linux::getSystemBusConnection());
 
   std::optional<std::filesystem::path> download_path = info.GetDownloadPath();
 
