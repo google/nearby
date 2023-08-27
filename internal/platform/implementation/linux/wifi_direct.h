@@ -11,7 +11,7 @@
 namespace nearby {
 namespace linux {
 class NetworkManagerWifiDirectMedium : public api::WifiDirectMedium {
-public:  
+public:
   NetworkManagerWifiDirectMedium(
       sdbus::IConnection &system_bus,
       std::shared_ptr<NetworkManager> network_manager,
@@ -32,11 +32,14 @@ public:
 
   bool StartWifiDirect(WifiDirectCredentials *wifi_direct_credentials) override;
   bool StopWifiDirect() override;
-  
+
   absl::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() override {
     return std::nullopt;
   }
+
+private:
+  bool ConnectedToWifi();
 
   sdbus::IConnection &system_bus_;
   std::shared_ptr<NetworkManager> network_manager_;
