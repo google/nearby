@@ -17,8 +17,10 @@ static absl::once_flag bus_connection_init_;
 static void initBusConnections() {
   global_system_bus_connection =
       sdbus::createSystemBusConnection("/com/github/google/nearby");
+  global_system_bus_connection->enterEventLoopAsync();
   global_default_bus_connection =
       sdbus::createDefaultBusConnection("/com/github/google/nearby");
+  global_default_bus_connection->enterEventLoopAsync();
 }
 
 sdbus::IConnection &getSystemBusConnection() {
