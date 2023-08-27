@@ -11,6 +11,7 @@
 #include <systemd/sd-journal.h>
 
 #include "absl/base/call_once.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/log_message.h"
 
@@ -72,6 +73,8 @@ LogMessage::LogMessage(const char *file, int line, Severity severity)
     : log_streamer_(file, line, ConvertSeverity(severity),
                     global_log_control_.get(), false) {}
 
+static absl::Mutex cout_mutex;
+
 void LogControl::send(google::LogSeverity severity, const char *full_filename,
                       const char *base_filename, int line,
                       const struct ::tm *tm_time, const char *message,
@@ -89,6 +92,7 @@ void LogControl::send(google::LogSeverity severity, const char *full_filename,
   }
   case kConsole:
   default:
+    absl::MutexLock l(&cout_mutex);
     std::cout << LogSink::ToString(severity, base_filename, line, tm_time,
                                    message, message_len)
               << "\n";
