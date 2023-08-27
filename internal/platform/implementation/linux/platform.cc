@@ -69,13 +69,13 @@ ImplementationPlatform::GetAppDataPath(const std::string &file_name) {
   return state / std::filesystem::path(file_name).filename();
 }
 
-OSName GetCurrentOS() { return OSName::kWindows; }
+OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
 
-std::unique_ptr<api::AtomicBoolean> CreateAtomicBoolean(bool initial_value) {
+std::unique_ptr<api::AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {
   return std::make_unique<linux::AtomicBoolean>(initial_value);
 }
 
-std::unique_ptr<api::AtomicUint32> CreateAtomicUint32(std::uint32_t value) {
+std::unique_ptr<api::AtomicUint32> ImplementationPlatform::CreateAtomicUint32(std::uint32_t value) {
   return std::make_unique<linux::AtomicUint32>(value);
 }
 
