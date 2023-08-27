@@ -34,7 +34,9 @@ public:
   std::unique_ptr<api::WifiLanServerSocket>
   ListenForService(int port = 0) override;
   absl::optional<std::pair<std::int32_t, std::int32_t>>
-  GetDynamicPortRange() override;
+  GetDynamicPortRange() override {
+    return std::nullopt;
+  }
 
 private:
   DiscoveredServiceCallback discovery_cb_;

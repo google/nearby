@@ -1,6 +1,8 @@
 #ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_DEVICES_H_
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_DEVICES_H_
 
+#include <memory>
+
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Types.h>
@@ -20,6 +22,7 @@ public:
       ObserverList<api::BluetoothClassicMedium::Observer> &observers)
       : system_bus_(system_bus), observers_(observers),
         adapter_object_path_(adapter_object_path) {}
+  ~BluetoothDevices() = default;
 
   std::optional<std::reference_wrapper<BluetoothDevice>>
   get_device_by_path(const sdbus::ObjectPath &);
@@ -30,7 +33,8 @@ public:
 
 private:
   absl::Mutex devices_by_path_lock_;
-  std::map<std::string, MonitoredBluetoothDevice> devices_by_path_;
+  std::map<std::string, std::unique_ptr<MonitoredBluetoothDevice>>
+      devices_by_path_;
 
   sdbus::IConnection &system_bus_;
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;

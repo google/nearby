@@ -87,7 +87,7 @@ void BluetoothClassicMedium::onInterfacesRemoved(
     if (interface == bluez::DEVICE_INTERFACE) {
 
       {
-        auto device = get_device_by_path(object);
+        auto device = devices_->get_device_by_path(object);
         if (!device.has_value()) {
           NEARBY_LOGS(WARNING) << __func__
                                << ": received InterfacesRemoved for a device "
@@ -107,7 +107,7 @@ void BluetoothClassicMedium::onInterfacesRemoved(
         }
         discovery_cb_lock_.ReaderUnlock();
       }
-      remove_device_by_path(object);
+      devices_->remove_device_by_path(object);
     }
   }
 }
@@ -195,7 +195,7 @@ BluetoothClassicMedium::ListenForService(const std::string &service_name,
 
 api::BluetoothDevice *
 BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
-  auto device = get_device_by_address(mac_address);
+  auto device = devices_->get_device_by_address(mac_address);
   if (device.has_value())
     return nullptr;
 

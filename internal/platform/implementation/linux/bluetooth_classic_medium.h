@@ -93,12 +93,6 @@ public:
     observers_.RemoveObserver(observer);
   };
 
-  std::optional<std::reference_wrapper<BluetoothDevice>>
-  get_device_by_path(const sdbus::ObjectPath &);
-  std::optional<std::reference_wrapper<BluetoothDevice>>
-  get_device_by_address(const std::string &);
-  void remove_device_by_path(const sdbus::ObjectPath &);
-
 protected:
   void onInterfacesAdded(
       const sdbus::ObjectPath &objectPath,
