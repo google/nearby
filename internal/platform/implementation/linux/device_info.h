@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <sdbus-c++/ProxyInterfaces.h>
+#include <sdbus-c++/Types.h>
 #include <string>
 
 #include <sdbus-c++/IConnection.h>
@@ -13,6 +14,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/linux/hostname_client_glue.h"
+#include "internal/platform/implementation/linux/login_manager_client_glue.h"
 #include "internal/platform/implementation/linux/login_session_client_glue.h"
 
 namespace nearby {
@@ -62,6 +64,33 @@ public:
   ~Hostnamed() { unregisterProxy(); }
 };
 
+class LoginManager
+    : public sdbus::ProxyInterfaces<org::freedesktop::login1::Manager_proxy> {
+public:
+  LoginManager(sdbus::IConnection &system_bus)
+      : ProxyInterfaces("org.freedesktop.login1",
+                        "/org/freedesktop/hostname1") {
+    registerProxy();
+  }
+  ~LoginManager() { unregisterProxy(); }
+
+protected:
+  void onSessionNew(const std::string &session_id,
+                    const sdbus::ObjectPath &object_path) override {}
+  void onSessionRemoved(const std::string &session_id,
+                        const sdbus::ObjectPath &object_path) override {}
+  void onUserNew(const uint32_t &uid,
+                 const sdbus::ObjectPath &object_path) override {}
+  void onUserRemoved(const uint32_t &uid,
+                     const sdbus::ObjectPath &object_path) override {}
+  void onSeatNew(const std::string &seat_id,
+                 const sdbus::ObjectPath &object_path) override {}
+  void onSeatRemoved(const std::string &seat_id,
+                     const sdbus::ObjectPath &object_path) override {}
+  void onPrepareForShutdown(const bool &start) override {}
+  void onPrepareForSleep(const bool &start) override {}
+};
+
 class DeviceInfo : public api::DeviceInfo {
 public:
   DeviceInfo(sdbus::IConnection &system_bus);
@@ -94,13 +123,18 @@ public:
   // TODO: Implement listening to logind for changes to LockedState.
   void RegisterScreenLockedListener(
       absl::string_view listener_name,
-      std::function<void(api::DeviceInfo::ScreenStatus)> callback) override{};
+      std::function<void(api::DeviceInfo::ScreenStatus)> callback) override {}
   void
-  UnregisterScreenLockedListener(absl::string_view listener_name) override{};
+  UnregisterScreenLockedListener(absl::string_view listener_name) override {}
+
+  bool PreventSleep() override;
+  bool AllowSleep() override;
 
 private:
   sdbus::IConnection &system_bus_;
   std::unique_ptr<CurrentUserSession> current_user_session_;
+  std::unique_ptr<LoginManager> login_manager_;
+  std::optional<sdbus::UnixFd> inhibit_fd_;
 };
 } // namespace linux
 } // namespace nearby

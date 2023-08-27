@@ -8,24 +8,23 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
 
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/device_info.h"
 #include "internal/platform/logging.h"
-#include "absl/synchronization/mutex.h"
 
 namespace nearby {
 namespace linux {
 void CurrentUserSession::RegisterScreenLockedListener(
-      absl::string_view listener_name,
-      std::function<void(api::DeviceInfo::ScreenStatus)> callback) {
+    absl::string_view listener_name,
+    std::function<void(api::DeviceInfo::ScreenStatus)> callback) {
   absl::MutexLock l(&screen_lock_listeners_mutex_);
   screen_lock_listeners_[listener_name] = callback;
 }
 
-void
-  CurrentUserSession::UnregisterScreenLockedListener(absl::string_view listener_name)
-{
+void CurrentUserSession::UnregisterScreenLockedListener(
+    absl::string_view listener_name) {
   absl::MutexLock l(&screen_lock_listeners_mutex_);
   screen_lock_listeners_.erase(listener_name);
 }
@@ -46,8 +45,8 @@ void CurrentUserSession::onUnlock() {
 
 DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus)
     : system_bus_(system_bus),
-      current_user_session_(std::make_unique<CurrentUserSession>(system_bus_)) {
-}
+      current_user_session_(std::make_unique<CurrentUserSession>(system_bus_)),
+      login_manager_(std::make_unique<LoginManager>(system_bus_)) {}
 
 std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
   Hostnamed hostnamed(system_bus_);
@@ -128,8 +127,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
-  return std::filesystem::path(std::string(dir)) / "Google Nearby" /
-         "logs";
+  return std::filesystem::path(std::string(dir)) / "Google Nearby" / "logs";
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
@@ -137,8 +135,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
   if (dir == NULL) {
     return std::filesystem::path("/tmp");
   }
-  return std::filesystem::path(std::string(dir)) / "Google Nearby" /
-         "crashes";
+  return std::filesystem::path(std::string(dir)) / "Google Nearby" / "crashes";
 }
 
 bool DeviceInfo::IsScreenLocked() const {
@@ -149,5 +146,28 @@ bool DeviceInfo::IsScreenLocked() const {
     return false;
   }
 }
+
+bool DeviceInfo::PreventSleep() {
+  try {
+    inhibit_fd_ = login_manager_->Inhibit("sleep", "Google Nearby",
+                                          "Google Nearby", "block");
+    return true;
+  } catch (const sdbus::Error& e) {
+    DBUS_LOG_METHOD_CALL_ERROR(login_manager_, "Inhibit", e);
+    return false;
+  }
+}
+
+bool DeviceInfo::AllowSleep() {
+  if (!inhibit_fd_.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << "No inhibit lock is acquired at the moment";
+    return false;
+  }
+
+  inhibit_fd_.reset();
+  return true;
+}
+
 } // namespace linux
 } // namespace nearby
