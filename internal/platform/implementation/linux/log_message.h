@@ -45,19 +45,17 @@ public:
 protected:
   std::string LogLevel() override {
     switch (severity_) {
-    case api::LogMessage::Severity::kVerbose:
-      return "debug";
-      break;
     case api::LogMessage::Severity::kInfo:
       return "info";
-      break;
     case api::LogMessage::Severity::kWarning:
       return "warning";
-      break;
     case api::LogMessage::Severity::kError:
       return "err";
     case api::LogMessage::Severity::kFatal:
       return "emerg";
+    case api::LogMessage::Severity::kVerbose:
+    default:
+      return "debug";
     }
   }
 
@@ -78,14 +76,15 @@ protected:
 
   std::string LogTarget() override {
     switch (log_target_) {
-    case kConsole:
-      return "console";
     case kKernel:
       return "kmsg";
     case kJournal:
       return "journal";
     case kSyslog:
       return "syslog";
+    case kConsole:
+    default:
+      return "console";
     }
   }
 

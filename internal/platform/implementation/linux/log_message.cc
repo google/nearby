@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdarg>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -17,7 +18,7 @@ namespace nearby {
 static std::unique_ptr<linux::LogControl> global_log_control_;
 static absl::once_flag log_control_init_;
 
-static void init_log_control() {
+static void init_log_control(std::nullptr_t) {
   global_log_control_ =
       std::make_unique<linux::LogControl>(linux::getDefaultBusConnection());
 }
@@ -79,15 +80,16 @@ void LogControl::send(google::LogSeverity severity, const char *full_filename,
 static inline google::LogSeverity
 ConvertSeverity(api::LogMessage::Severity severity) {
   switch (severity) {
-  case api::LogMessage::Severity::kVerbose:
-  case api::LogMessage::Severity::kInfo:
-    return google::GLOG_INFO;
   case api::LogMessage::Severity::kWarning:
     return google::GLOG_WARNING;
   case api::LogMessage::Severity::kError:
     return google::GLOG_ERROR;
   case api::LogMessage::Severity::kFatal:
     return google::GLOG_FATAL;
+  case api::LogMessage::Severity::kVerbose:
+  case api::LogMessage::Severity::kInfo:
+  default:
+    return google::GLOG_INFO;
   }
 }
 
