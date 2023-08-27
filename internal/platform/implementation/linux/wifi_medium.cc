@@ -212,10 +212,9 @@ void NetworkManagerWifiMedium::onPropertiesChanged(
         absl::MutexLock l(&last_scan_lock_);
         last_scan_ = val;
       }
-      absl::ReaderMutexLock l(&scan_result_callback_lock_);
-      if (scan_result_callback_.has_value()) {
-        // scan_result_callback_->get().OnScanResults()
-      }
+      // absl::ReaderMutexLock l(&scan_result_callback_lock_);
+      // if (scan_result_callback_.has_value()) {
+      // }
     }
   }
 }
