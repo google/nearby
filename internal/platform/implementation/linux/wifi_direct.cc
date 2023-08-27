@@ -129,6 +129,16 @@ bool NetworkManagerWifiDirectMedium::DisconnectWifiDirect() {
   return true;
 }
 
+bool NetworkManagerWifiDirectMedium::ConnectedToWifi() {
+  try {
+    auto mode = wireless_device_->Mode();
+    return mode == 2; // NM_802_11_MODE_INFRA
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
+    return false;
+  }
+}
+
 bool NetworkManagerWifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials *wifi_direct_credentials) {
   // According to the comments in the windows implementation, the wifi direct
