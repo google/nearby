@@ -157,6 +157,7 @@ enum ConnectionAttemptType {
   UNKNOWN_CONNECTION_ATTEMPT_TYPE = 0;
   INITIAL = 1;
   UPGRADE = 2;
+  RECONNECT = 3;
 }
 
 // The reason that an EstablishedConnection was disconnected.
