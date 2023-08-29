@@ -104,13 +104,17 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
     return true;
   }
 
-  auto profile_object_path = bluez::profile_object_path(service_uuid);
+  auto profile = std::make_shared<Profile>(
+      getProxy().getConnection(), bluez::profile_object_path(service_uuid),
+      devices_);
+
   try {
     std::map<std::string, sdbus::Variant> options;
     if (name.has_value()) {
       options["Name"] = std::string(*name);
     }
-    RegisterProfile(profile_object_path, std::string(service_uuid), options);
+    RegisterProfile(profile->getObjectPath(), std::string(service_uuid),
+                    options);
   } catch (const sdbus::Error &e) {
     BLUEZ_LOG_METHOD_CALL_ERROR(&getProxy(), "RegisterProfile", e);
     return false;
@@ -118,10 +122,7 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
 
   {
     absl::MutexLock l(&registered_service_uuids_lock_);
-    registered_services_.emplace(
-        std::string(service_uuid),
-        std::make_shared<Profile>(getProxy().getConnection(),
-                                  profile_object_path, devices_));
+    registered_services_.emplace(service_uuid, profile);
   }
 
   NEARBY_LOGS(INFO) << __func__
