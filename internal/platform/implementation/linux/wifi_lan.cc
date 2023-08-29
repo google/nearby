@@ -26,7 +26,7 @@ namespace linux {
 WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus)
     : system_bus_(system_bus),
       network_manager_(std::make_shared<linux::NetworkManager>(system_bus)),
-      avahi_(std::make_unique<avahi::Server>(system_bus)) {}
+      avahi_(std::make_shared<avahi::Server>(system_bus)) {}
 
 bool WifiLanMedium::IsNetworkConnected() const {
   auto state = network_manager_->getState();
@@ -151,7 +151,7 @@ bool WifiLanMedium::StartDiscovery(
     service_browsers_.emplace(
         service_type,
         std::make_unique<avahi::ServiceBrowser>(
-            system_bus_, browser_object_path, std::move(callback)));
+            system_bus_, browser_object_path, std::move(callback), avahi_));
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(avahi_, "ServiceBrowserPrepare", e);
     return false;

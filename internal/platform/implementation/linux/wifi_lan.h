@@ -50,7 +50,7 @@ private:
 
   std::shared_ptr<NetworkManager> network_manager_;
 
-  std::unique_ptr<avahi::Server> avahi_;
+  std::shared_ptr<avahi::Server> avahi_;
 
   absl::Mutex entry_groups_mutex_;
   absl::flat_hash_map<std::pair<std::string, std::string>,
