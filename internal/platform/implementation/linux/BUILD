@@ -48,6 +48,8 @@ cc_library(
         "avahi_entrygroup_client_glue.h",
         "avahi_server_client_glue.h",
         "avahi_servicebrowser_client_glue.h",
+        "ble_medium.h",
+        "ble_v2_medium.h",
         "bluetooth_adapter.h",
         "bluetooth_bluez_profile.h",
         "bluetooth_classic_device.h",
