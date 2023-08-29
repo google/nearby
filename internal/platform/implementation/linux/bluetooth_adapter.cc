@@ -5,6 +5,7 @@
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/bluez_adapter_client_glue.h"
+#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -13,29 +14,19 @@ namespace linux {
 bool BluetoothAdapter::SetStatus(Status status) {
   try {
     bool val = status == api::BluetoothAdapter::Status::kEnabled;
-    Powered(val);
+    bluez_adapter_->Powered(val);
     return true;
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to set Powered status for adapter "
-                       << getObjectPath();
+    DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Powered", e);
     return false;
   }
 }
 
 bool BluetoothAdapter::IsEnabled() const {
-  auto proxy = sdbus::createProxy(getProxy().getConnection(),
-                                  bluez::SERVICE_DEST, getObjectPath());
-  proxy->finishRegistration();
-
   try {
-    return proxy->getProperty("Powered").onInterface(INTERFACE_NAME);
+    return bluez_adapter_->Powered();
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get Powered status for adapter "
-                       << getObjectPath();
+    DBUS_LOG_PROPERTY_GET_ERROR(bluez_adapter_, "Powered", e);
     return false;
   }
 }
@@ -47,20 +38,11 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
   }
 
   try {
-    auto proxy = sdbus::createProxy(getProxy().getConnection(),
-                                    bluez::SERVICE_DEST, getObjectPath());
-    proxy->finishRegistration();
-
-    bool discoverable =
-        proxy->getProperty("Discoverable").onInterface(INTERFACE_NAME);
+    bool discoverable = bluez_adapter_->Discoverable();
     return discoverable ? ScanMode::kConnectableDiscoverable
                         : ScanMode::kConnectable;
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Got error '" << e.getName() << "' with message '"
-        << e.getMessage()
-        << "' while trying to get Discoverable status for adapter "
-        << getObjectPath();
+    DBUS_LOG_PROPERTY_GET_ERROR(bluez_adapter_, "Discoverable", e);
     return ScanMode::kUnknown;
   }
 }
@@ -75,13 +57,9 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
     }
 
     try {
-      Discoverable(true);
+      bluez_adapter_->Discoverable(true);
     } catch (const sdbus::Error &e) {
-      NEARBY_LOGS(ERROR)
-          << __func__ << ": Got error '" << e.getName() << "' with message '"
-          << e.getMessage()
-          << "' while trying to set Discoverable status for adapter "
-          << getObjectPath();
+      DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Discoverable", e);
       return false;
     }
 
@@ -95,50 +73,34 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
 }
 
 std::string BluetoothAdapter::GetName() const {
-  auto proxy = sdbus::createProxy(getProxy().getConnection(),
-                                  bluez::SERVICE_DEST, getObjectPath());
-  proxy->finishRegistration();
-
   try {
-    return proxy->getProperty("Alias").onInterface(INTERFACE_NAME);
+    return bluez_adapter_->Alias();
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get Alias for adapter "
-                       << getObjectPath();
+    DBUS_LOG_PROPERTY_GET_ERROR(bluez_adapter_, "Alias", e);
     return std::string();
   }
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
+  persist_name_ = persist;
   return SetName(name);
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name) {
   try {
-    Alias(std::string(name));
+    bluez_adapter_->Alias(std::string(name));
     return true;
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to set Alias for adapter "
-                       << getObjectPath();
+    DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Alias", e);
     return false;
   }
 }
 
 std::string BluetoothAdapter::GetMacAddress() const {
-  auto proxy = sdbus::createProxy(getProxy().getConnection(),
-                                  bluez::SERVICE_DEST, getObjectPath());
-  proxy->finishRegistration();
-
   try {
-    return proxy->getProperty("Address").onInterface(INTERFACE_NAME);
+    return bluez_adapter_->Address();
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get Address for adapter "
-                       << getObjectPath();
+    DBUS_LOG_PROPERTY_GET_ERROR(bluez_adapter_, "Address", e);
     return std::string();
   }
 }

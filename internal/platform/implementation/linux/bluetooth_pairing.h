@@ -17,8 +17,7 @@ namespace nearby {
 namespace linux {
 class BluetoothPairing : public api::BluetoothPairing {
 public:
-  BluetoothPairing(BluetoothAdapter &adapter,
-                   BluetoothDevice &remote_device);
+  BluetoothPairing(BluetoothAdapter &adapter, BluetoothDevice &remote_device);
   ~BluetoothPairing() override = default;
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
@@ -33,7 +32,7 @@ private:
   sdbus::PendingAsyncCall pair_async_call_;
 
   BluetoothDevice &device_;
-  BluetoothAdapter &adapter_;
+  linux::BluetoothAdapter &adapter_;
 
   api::BluetoothPairingCallback pairing_cb_;
 };
