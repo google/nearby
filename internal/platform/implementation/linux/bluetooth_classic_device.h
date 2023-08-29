@@ -34,21 +34,27 @@ class BluetoothDevice
     : public api::BluetoothDevice,
       public sdbus::ProxyInterfaces<org::bluez::Device1_proxy> {
 public:
-  BluetoothDevice(sdbus::IConnection &system_bus, const sdbus::ObjectPath &);
-  ~BluetoothDevice() = default;
+ BluetoothDevice(const BluetoothDevice &) = delete;
+ BluetoothDevice(BluetoothDevice &&) = delete;
+ BluetoothDevice &operator=(const BluetoothDevice &) = delete;
+ BluetoothDevice &operator=(BluetoothDevice &&) = delete;
+ BluetoothDevice(sdbus::IConnection &system_bus, sdbus::ObjectPath device_object_path);
+ ~BluetoothDevice() override {
+   unregisterProxy();
+ }
 
-  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
-  std::string GetName() const override;
+ // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
+ std::string GetName() const override;
 
-  // Returns BT MAC address assigned to this device.
-  std::string GetMacAddress() const override;
+ // Returns BT MAC address assigned to this device.
+ std::string GetMacAddress() const override;
 
-  bool ConnectToProfile(absl::string_view service_uuid);
+ bool ConnectToProfile(absl::string_view service_uuid);
 
-  void
-  set_pair_reply_callback(absl::AnyInvocable<void(const sdbus::Error *)> cb) {
-    absl::MutexLock l(&pair_callback_lock_);
-    on_pair_reply_cb_ = std::move(cb);
+ void set_pair_reply_callback(
+     absl::AnyInvocable<void(const sdbus::Error *)> cb) {
+   absl::MutexLock l(&pair_callback_lock_);
+   on_pair_reply_cb_ = std::move(cb);
   }
 
   void reset_pair_reply_callback() {
@@ -73,7 +79,7 @@ private:
   mutable std::string last_known_address_ ABSL_GUARDED_BY(properties_mutex_);
 };
 
-class MonitoredBluetoothDevice
+class MonitoredBluetoothDevice final
     : public BluetoothDevice,
       public sdbus::ProxyInterfaces<sdbus::Properties_proxy> {
 public:
@@ -81,10 +87,15 @@ public:
   using sdbus::ProxyInterfaces<sdbus::Properties_proxy>::unregisterProxy;
   using sdbus::ProxyInterfaces<sdbus::Properties_proxy>::getObjectPath;
 
+  MonitoredBluetoothDevice(const MonitoredBluetoothDevice &) = delete;
+  MonitoredBluetoothDevice(MonitoredBluetoothDevice &&) = delete;
+  MonitoredBluetoothDevice &operator=(const MonitoredBluetoothDevice &) =
+      delete;
+  MonitoredBluetoothDevice &operator=(MonitoredBluetoothDevice &&) = delete;
   MonitoredBluetoothDevice(
       sdbus::IConnection &system_bus, const sdbus::ObjectPath &,
       ObserverList<api::BluetoothClassicMedium::Observer> &observers);
-  ~MonitoredBluetoothDevice() { unregisterProxy(); }
+  ~MonitoredBluetoothDevice() override { unregisterProxy(); }
 
 protected:
   void onPropertiesChanged(

@@ -30,9 +30,8 @@ public:
       sdbus::IConnection &system_bus,
       std::shared_ptr<NetworkManager> network_manager,
       std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
-      : system_bus_(system_bus), network_manager_(network_manager),
+      : system_bus_(system_bus), network_manager_(std::move(network_manager)),
         wireless_device_(std::move(wireless_device)) {}
-  ~NetworkManagerWifiDirectMedium() {}
 
   bool IsInterfaceValid() const override { return true; }
   std::unique_ptr<api::WifiDirectSocket>

@@ -27,8 +27,7 @@ namespace nearby {
 namespace linux {
 class WifiLanMedium : public api::WifiLanMedium {
 public:
-  WifiLanMedium(sdbus::IConnection &system_bus);
-  ~WifiLanMedium() override = default;
+  explicit WifiLanMedium(sdbus::IConnection &system_bus);
 
   bool IsNetworkConnected() const override;
 

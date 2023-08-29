@@ -28,15 +28,14 @@
 
 namespace nearby {
 namespace linux {
-class BluetoothDevices {
+class BluetoothDevices final {
 public:
   BluetoothDevices(
       sdbus::IConnection &system_bus,
-      const sdbus::ObjectPath &adapter_object_path,
+      sdbus::ObjectPath adapter_object_path,
       ObserverList<api::BluetoothClassicMedium::Observer> &observers)
       : system_bus_(system_bus), observers_(observers),
-        adapter_object_path_(adapter_object_path) {}
-  ~BluetoothDevices() = default;
+        adapter_object_path_(std::move(adapter_object_path)) {}
 
   std::optional<std::reference_wrapper<BluetoothDevice>>
   get_device_by_path(const sdbus::ObjectPath &);

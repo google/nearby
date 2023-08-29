@@ -25,38 +25,38 @@ namespace nearby {
 namespace linux {
 class NetworkManagerWifiHotspotMedium : public api::WifiHotspotMedium {
 public:
-  NetworkManagerWifiHotspotMedium(
-      sdbus::IConnection &system_bus,
-      std::shared_ptr<NetworkManager> network_manager,
-      const sdbus::ObjectPath &wireless_device_object_path)
-      : system_bus_(system_bus),
-        wireless_device_(std::make_unique<NetworkManagerWifiMedium>(
-            network_manager, system_bus, wireless_device_object_path)),
-        network_manager_(network_manager) {}
-  NetworkManagerWifiHotspotMedium(
-      sdbus::IConnection &system_bus,
-      std::shared_ptr<NetworkManager> network_manager,
-      std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
-      : system_bus_(system_bus), wireless_device_(std::move(wireless_device)),
-        network_manager_(network_manager) {}
-  ~NetworkManagerWifiHotspotMedium() {}
+ NetworkManagerWifiHotspotMedium(
+     sdbus::IConnection &system_bus,
+     std::shared_ptr<NetworkManager> network_manager,
+     sdbus::ObjectPath wireless_device_object_path)
+     : system_bus_(system_bus),
+       wireless_device_(std::make_unique<NetworkManagerWifiMedium>(
+           network_manager, system_bus, std::move(wireless_device_object_path))),
+       network_manager_(std::move(network_manager)) {}
+ NetworkManagerWifiHotspotMedium(
+     sdbus::IConnection &system_bus,
+     std::shared_ptr<NetworkManager> network_manager,
+     std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
+     : system_bus_(system_bus),
+       wireless_device_(std::move(wireless_device)),
+       network_manager_(std::move(network_manager)) {}
 
-  bool IsInterfaceValid() const override { return true; }
-  std::unique_ptr<api::WifiHotspotSocket>
-  ConnectToService(absl::string_view ip_address, int port,
-                   CancellationFlag *cancellation_flag) override;
-  std::unique_ptr<api::WifiHotspotServerSocket>
-  ListenForService(int port) override;
+ bool IsInterfaceValid() const override { return true; }
+ std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
+     absl::string_view ip_address, int port,
+     CancellationFlag *cancellation_flag) override;
+ std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(
+     int port) override;
 
-  bool StartWifiHotspot(HotspotCredentials *hotspot_credentials) override;
-  bool StopWifiHotspot() override;
+ bool StartWifiHotspot(HotspotCredentials *hotspot_credentials) override;
+ bool StopWifiHotspot() override;
 
-  bool ConnectWifiHotspot(HotspotCredentials *hotspot_credentials) override;
-  bool DisconnectWifiHotspot() override;
+ bool ConnectWifiHotspot(HotspotCredentials *hotspot_credentials) override;
+ bool DisconnectWifiHotspot() override;
 
-  absl::optional<std::pair<std::int32_t, std::int32_t>>
-  GetDynamicPortRange() override {
-    return absl::nullopt;
+ absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
+     override {
+   return absl::nullopt;
   }
 
 private:

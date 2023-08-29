@@ -55,7 +55,7 @@ Exception OutputStream::Write(const ByteArray &data) {
   if (!fd_.has_value())
     return Exception{Exception::kIo};
 
-  ssize_t written = 0;
+  size_t written = 0;
   while (written < data.size()) {
     ssize_t ret = write(fd_->get(), data.data(), data.size());
     if (ret < 1) {

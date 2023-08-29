@@ -31,21 +31,24 @@ namespace linux {
 
 class ThreadPool {
 public:
-  ThreadPool(size_t max_pool_size);
-  ~ThreadPool();
+ ThreadPool(const ThreadPool &) = delete;
+ ThreadPool(ThreadPool &&) = delete;
+ ThreadPool &operator=(const ThreadPool &) = delete;
+ ThreadPool &operator=(ThreadPool &&) = delete;
+ explicit ThreadPool(size_t max_pool_size);
+ ~ThreadPool();
 
-  bool Start() ABSL_LOCKS_EXCLUDED(mutex_);
+ bool Start() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Runs a task on thread pool. The result indicates whether the task is put
-  // into the thread pool.
-  bool Run(Runnable &&task) ABSL_LOCKS_EXCLUDED(mutex_);
+ // Runs a task on thread pool. The result indicates whether the task is put
+ // into the thread pool.
+ bool Run(Runnable &&task) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
+ void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
 
 private:
   Runnable NextTask() ABSL_LOCKS_EXCLUDED(mutex_);
 
-private:
   size_t max_pool_size_;
   std::atomic_bool shut_down_;
 
