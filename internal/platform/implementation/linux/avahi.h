@@ -38,6 +38,9 @@ public:
     registerProxy();
   }
   ~EntryGroup() {
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Freeing entry group "
+                         << getObjectPath();
+
     try {
       Free();
     } catch (const sdbus::Error &e) {
@@ -64,12 +67,15 @@ public:
     registerProxy();
   }
   ~ServiceBrowser() {
-    unregisterProxy();
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Freeing service browser "
+                         << getObjectPath();
+
     try {
       Free();
     } catch (const sdbus::Error &e) {
       DBUS_LOG_METHOD_CALL_ERROR(this, "Free", e);
     }
+    unregisterProxy();
   }
 
 protected:
