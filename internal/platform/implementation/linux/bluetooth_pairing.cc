@@ -100,15 +100,15 @@ bool BluetoothPairing::CancelPairing() {
 }
 
 bool BluetoothPairing::Unpair() {
-  try {
-    adapter_.RemoveDevice(device_.getObjectPath());
+  try {    
+    adapter_.RemoveDeviceByObjectPath(device_.getObjectPath());
     return true;
   } catch (const sdbus::Error &e) {
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
                        << "' while trying to unpair device "
                        << device_.getObjectPath() << " on adapter "
-                       << adapter_.getObjectPath();
+                       << adapter_.GetObjectPath();
     return false;
   }
 }

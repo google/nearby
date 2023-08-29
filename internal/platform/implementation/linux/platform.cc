@@ -178,7 +178,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
 std::unique_ptr<api::BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     BluetoothAdapter &adapter) {
-  auto path = static_cast<linux::BluetoothAdapter *>(&adapter)->getObjectPath();
+  auto path = static_cast<linux::BluetoothAdapter *>(&adapter)->GetObjectPath();
   return std::make_unique<linux::BluetoothClassicMedium>(
       linux::getSystemBusConnection(), path);
 }

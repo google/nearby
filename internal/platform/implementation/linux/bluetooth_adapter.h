@@ -7,20 +7,37 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/bluez_adapter_client_glue.h"
+#include "internal/platform/implementation/linux/dbus.h"
 
 namespace nearby {
 namespace linux {
-class BluetoothAdapter
-    : public api::BluetoothAdapter,
-      public sdbus::ProxyInterfaces<org::bluez::Adapter1_proxy> {
+class BluezAdapter : public sdbus::ProxyInterfaces<org::bluez::Adapter1_proxy> {
 public:
-  BluetoothAdapter(sdbus::IConnection &system_bus,
-                   const sdbus::ObjectPath &adapter_object_path)
+  BluezAdapter(sdbus::IConnection &system_bus,
+               const sdbus::ObjectPath &adapter_object_path)
       : ProxyInterfaces(system_bus, bluez::SERVICE_DEST, adapter_object_path) {
     registerProxy();
   }
+  ~BluezAdapter() { unregisterProxy(); }
+};
 
-  ~BluetoothAdapter() override { unregisterProxy(); }
+class BluetoothAdapter : public api::BluetoothAdapter {
+public:
+  BluetoothAdapter(sdbus::IConnection &system_bus,
+                   const sdbus::ObjectPath &adapter_object_path)
+      : bluez_adapter_(
+            std::make_unique<BluezAdapter>(system_bus, adapter_object_path)) {}
+
+  ~BluetoothAdapter() override {
+    if (!persist_name_) {
+      NEARBY_LOGS(INFO) << __func__ << "Resetting adapter Alias";
+      try {
+        bluez_adapter_->Alias("");
+      } catch (const sdbus::Error &e) {
+        DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Alias", e);
+      }
+    }
+  }
 
   bool SetStatus(Status status) override;
   bool IsEnabled() const override;
@@ -33,6 +50,26 @@ public:
   bool SetName(absl::string_view name) override;
   bool SetName(absl::string_view name, bool persist) override;
   std::string GetMacAddress() const override;
+
+  bool RemoveDeviceByObjectPath(const sdbus::ObjectPath &device_object_path) {
+    try {
+      bluez_adapter_->RemoveDevice(device_object_path);
+      return true;
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_METHOD_CALL_ERROR(bluez_adapter_, "RemoveDevice", e);
+      return false;
+    }
+  }
+
+  sdbus::ObjectPath GetObjectPath() const {
+    return bluez_adapter_->getObjectPath();
+  }
+
+  BluezAdapter &GetBluezAdapterObject() { return *bluez_adapter_; }
+
+private:
+  std::unique_ptr<BluezAdapter> bluez_adapter_;
+  bool persist_name_;
 };
 } // namespace linux
 } // namespace nearby
