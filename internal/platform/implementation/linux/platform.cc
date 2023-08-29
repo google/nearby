@@ -15,6 +15,8 @@
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/linux/atomic_boolean.h"
 #include "internal/platform/implementation/linux/atomic_uint32.h"
+#include "internal/platform/implementation/linux/ble_medium.h"
+#include "internal/platform/implementation/linux/ble_v2_medium.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/linux/bluez.h"
@@ -183,12 +185,12 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
 
 std::unique_ptr<BleMedium>
 ImplementationPlatform::CreateBleMedium(BluetoothAdapter &) {
-  return nullptr;
+  return std::make_unique<linux::BleMedium>();
 }
 
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
-  return nullptr;
+  return std::make_unique<linux::BleV2Medium>();
 }
 
 static std::unique_ptr<linux::NetworkManagerWifiMedium>
