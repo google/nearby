@@ -1,0 +1,1003 @@
+<!DOCTYPE node PUBLIC
+"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd" >
+<node name="/" xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+  <interface name="org.freedesktop.Accounts.User">
+
+  <method name="SetUserName">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="name" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new username.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs username. Note that it is usually not allowed
+          to have multiple users with the same username.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the username of any user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetRealName">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="name" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new name, typically in the form "Firstname Lastname".
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs real name.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own name</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the name of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetEmail">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="email" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new email address.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs email address.
+        </doc:para>
+        <doc:para>
+          Note that setting an email address in the AccountsService is
+          not the same as configuring a mail client. Mail clients might
+          default to email address that is configured here, though.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own email address</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the email address of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetLanguage">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="language" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new language, as a locale specification like "de_DE.UTF-8".
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the user's language.
+        </doc:para>
+        <doc:para>
+          The expectation is that display managers will start the
+          userʼs session with this locale.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own language</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the language of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetLanguages">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="languages" direction="in" type="as">
+      <doc:doc>
+        <doc:summary>
+          The user's preferred languages, as an array of locale specification like "de_DE.UTF-8".
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs preferred languages. The first item in the list will
+          be used to set the Language property.
+        </doc:para>
+        <doc:para>
+          The expectation is that package installers will use
+          this to know which languages the user is interested in, so as
+          to install extra data, like translations, dictionaries, etc.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own preferred languages</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the preferred languages of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetXSession">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="user_set_x_session"/>
+    <arg name="x_session" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new xsession to start (e.g. "gnome")
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs x session.
+        </doc:para>
+        <doc:para>
+          The expectation is that display managers will log the user in to this
+          specified session, if available.
+
+          Note this call is deprecated and has been superceded by SetSession since
+          not all graphical sessions use X as the display server.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own language</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the language of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+   </doc:doc>
+  </method>
+
+  <method name="SetSession">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="user_set_session"/>
+    <arg name="session" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new session to start (e.g. "gnome-xorg")
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs wayland or x session.
+        </doc:para>
+        <doc:para>
+          The expectation is that display managers will log the user in to this
+          specified session, if available.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own language</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the language of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+   </doc:doc>
+  </method>
+
+  <method name="SetSessionType">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="user_set_session_type"/>
+    <arg name="session_type" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The type of the new session to start (e.g. "wayland" or "x11")
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the session type of the userʼs session.
+        </doc:para>
+        <doc:para>
+          Display managers may use this property to decide what type of display server to use when
+          loading the session
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own language</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the language of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+   </doc:doc>
+  </method>
+
+  <method name="SetLocation">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="location" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new location as a freeform string.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs location.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own location</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the location of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetHomeDirectory">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="homedir" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new homedir as an absolute path.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs home directory.
+        </doc:para>
+        <doc:para>
+          Note that changing the userʼs home directory moves all the content
+          from the old location to the new one, and is potentially an
+          expensive operation.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the home directory of a user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetShell">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="shell" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The new user shell.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs shell.
+        </doc:para>
+        <doc:para>
+          Note that setting the shell to a non-allowed program may
+          prevent the user from logging in.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the shell of a user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetIconFile">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="filename" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The absolute filename of a png file to use as the userʼs icon.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs icon.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own icon</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the icon of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetLocked">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="locked" direction="in" type="b">
+      <doc:doc>
+        <doc:summary>
+          Whether to lock or unlock the userʼs account.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Locks or unlocks a userʼs account.
+        </doc:para>
+        <doc:para>
+          Locking an account prevents the user from logging in.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To lock or unlock user accounts</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetAccountType">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="accountType" direction="in" type="i">
+      <doc:doc>
+        <doc:summary>
+          The new account type, encoded as an integer:
+          <doc:list>
+            <doc:item>
+              <doc:term>0</doc:term>
+              <doc:definition>Standard user</doc:definition>
+            </doc:item>
+            <doc:item>
+              <doc:term>1</doc:term>
+              <doc:definition>Administrator</doc:definition>
+            </doc:item>
+          </doc:list>
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Changes the userʼs account type.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change an account type</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetPasswordMode">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="mode" direction="in" type="i">
+      <doc:doc>
+        <doc:summary>
+          The new password mode, encoded as an integer:
+          <doc:list>
+            <doc:item>
+              <doc:term>0</doc:term>
+              <doc:definition>Regular password</doc:definition>
+            </doc:item>
+            <doc:item>
+              <doc:term>1</doc:term>
+              <doc:definition>Password must be set at next login</doc:definition>
+            </doc:item>
+            <doc:item>
+              <doc:term>2</doc:term>
+              <doc:definition>No password</doc:definition>
+            </doc:item>
+          </doc:list>
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Changes the userʼs password mode.
+        </doc:para>
+        <doc:para>
+          Note that changing the password mode has the side-effect of
+          unlocking the account.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change a userʼs password mode</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetPassword">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="password" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The crypted password.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <arg name="hint" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The password hint.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets a new password for this user.
+        </doc:para>
+        <doc:para>
+          Note that setting a password has the side-effect of
+          unlocking the account.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the password of a user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetPasswordHint">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="hint" direction="in" type="s">
+      <doc:doc>
+        <doc:summary>
+          The password hint.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Sets the userʼs password hint.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
+            <doc:definition>To change their own language</doc:definition>
+          </doc:item>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
+            <doc:definition>To change the language of another user</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="SetAutomaticLogin">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="enabled" direction="in" type="b">
+      <doc:doc>
+        <doc:summary>
+          Whether to enable automatic login for this user.
+        </doc:summary>
+      </doc:doc>
+    </arg>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Enables or disables automatic login for a user.
+        </doc:para>
+        <doc:para>
+          Note that usually only one user can have automatic login
+          enabled, so turning it on for a user will disable it for
+          the previously configured autologin user.
+        </doc:para>
+      </doc:description>
+      <doc:permission>
+        The caller needs one of the following PolicyKit authorizations:
+        <doc:list>
+          <doc:item>
+            <doc:term>org.freedesktop.accounts.set-login-option</doc:term>
+            <doc:definition>To change the login screen configuration</doc:definition>
+          </doc:item>
+        </doc:list>
+      </doc:permission>
+      <doc:errors>
+        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
+        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
+      </doc:errors>
+    </doc:doc>
+  </method>
+
+  <method name="GetPasswordExpirationPolicy">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="expiration_time" direction="out" type="x"/>
+    <arg name="last_change_time" direction="out" type="x"/>
+    <arg name="min_days_between_changes" direction="out" type="x"/>
+    <arg name="max_days_between_changes" direction="out" type="x"/>
+    <arg name="days_to_warn" direction="out" type="x"/>
+    <arg name="days_after_expiration_until_lock" direction="out" type="x"/>
+  </method>
+
+  <method name="SetPasswordExpirationPolicy">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="min_days_between_changes" direction="in" type="x"/>
+    <arg name="max_days_between_changes" direction="in" type="x"/>
+    <arg name="days_to_warn" direction="in" type="x"/>
+    <arg name="days_after_expiration_until_lock" direction="in" type="x"/>
+  </method>
+
+  <method name="SetUserExpirationPolicy">
+    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+    <arg name="expiration_time" direction="in" type="x"/>
+  </method>
+
+  <property name="Uid" type="t" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The uid of the user.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="UserName" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The username of the user.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="RealName" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs real name.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="AccountType" type="i" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs account type, encoded as an integer:
+          <doc:list>
+            <doc:item>
+              <doc:term>0</doc:term>
+              <doc:definition>Standard user</doc:definition>
+            </doc:item>
+            <doc:item>
+              <doc:term>1</doc:term>
+              <doc:definition>Administrator</doc:definition>
+            </doc:item>
+          </doc:list>
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="HomeDirectory" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs home directory.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Shell" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs shell.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Email" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The email address.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Language" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The user's main language, as a locale specification like "de_DE.UTF-8".
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Languages" type="as" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The user's other preferred languages, as a locale specification like "de_DE.UTF-8".
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Session" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs Wayland or X session.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="SessionType" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The type of session the user should use (e.g. "wayland" or "x11")
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="XSession" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs x session.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Location" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The userʼs location.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="LoginFrequency" type="t" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          How often the user has logged in.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="LoginTime" type="x" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The last login time.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="LoginHistory" type="a(xxa{sv})" access="read">
+    <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false"/>
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The login history for this user.
+          Each entry in the array represents a login session. The first two
+          members are the login time and logout time, as timestamps (seconds since the epoch). If the session is still running, the logout time
+          is 0.
+        </doc:para>
+        <doc:para>
+          The a{sv} member is a dictionary containing additional information
+          about the session. Possible members include 'type' (with values like ':0', 'tty0', 'pts/0' etc).
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="IconFile" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           The filename of a png file containing the userʼs icon.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Saved" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           Whether the userʼs account has retained state
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="Locked" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           Whether the userʼs account is locked.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="PasswordMode" type="i" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The password mode for the user account, encoded as an integer:
+          <doc:list>
+            <doc:item>
+              <doc:term>0</doc:term>
+              <doc:definition>Regular password</doc:definition>
+            </doc:item>
+            <doc:item>
+              <doc:term>1</doc:term>
+              <doc:definition>Password must be set at next login</doc:definition>
+            </doc:item>
+            <doc:item>
+              <doc:term>2</doc:term>
+              <doc:definition>No password</doc:definition>
+            </doc:item>
+          </doc:list>
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="PasswordHint" type="s" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           The password hint for the user.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="AutomaticLogin" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           Whether automatic login is enabled for the user.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="SystemAccount" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           Whether this is a 'system' account, like 'root' or 'nobody'.
+           System accounts should normally not appear in lists of
+           users, and ListCachedUsers will not include such accounts.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="LocalAccount" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Whether the user is a local account or not.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <signal name="Changed">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+           Emitted when the user is changed.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </signal>
+
+  </interface>
+</node>
