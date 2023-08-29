@@ -60,10 +60,11 @@ class ServiceBrowser : public sdbus::ProxyInterfaces<
 public:
   ServiceBrowser(sdbus::IConnection &system_bus,
                  const sdbus::ObjectPath &service_browser_object_path,
-                 api::WifiLanMedium::DiscoveredServiceCallback callback)
+                 api::WifiLanMedium::DiscoveredServiceCallback callback,
+                 std::shared_ptr<Server> avahi_server)
       : ProxyInterfaces(system_bus, "org.freedesktop.Avahi",
                         service_browser_object_path),
-        discovery_cb_(std::move(callback)) {
+        discovery_cb_(std::move(callback)), server_(avahi_server) {
     registerProxy();
   }
   ~ServiceBrowser() {
