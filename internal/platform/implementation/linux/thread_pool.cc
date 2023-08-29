@@ -26,6 +26,7 @@ namespace linux {
 ThreadPool::ThreadPool(size_t max_pool_size)
     : max_pool_size_(max_pool_size), shut_down_(false) {
   threads_.reserve(max_pool_size);
+  Start();
 }
 
 ThreadPool::~ThreadPool() { ShutDown(); }
@@ -55,6 +56,9 @@ bool ThreadPool::Start() {
     }
   };
 
+  NEARBY_LOGS(INFO) << __func__ << ": Starting thread pool with "
+                    << max_pool_size_ << " threads";
+
   for (size_t i = 0; i < max_pool_size_; i++) {
     threads_.emplace_back(runner);
   }
@@ -70,7 +74,7 @@ bool ThreadPool::Run(Runnable &&task) {
 
   absl::MutexLock l(&mutex_);
   if (threads_.empty()) {
-    NEARBY_LOGS(ERROR) << __func__ << "thread pool is not active";
+    NEARBY_LOGS(ERROR) << __func__ << ": thread pool is not active";
     return false;
   }
 
