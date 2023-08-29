@@ -27,8 +27,7 @@ namespace linux {
 // Platform must override bool submit(absl::AnyInvocable<void()>) method.
 class SubmittableExecutor : public api::SubmittableExecutor {
  public:
-  SubmittableExecutor();
-  SubmittableExecutor(int32_t maxConcurrancy);
+  SubmittableExecutor(size_t maxConcurrancy = 1);
   ~SubmittableExecutor() override = default;
 
   // Submit a callable (with no delay).

@@ -16,21 +16,18 @@
 
 #include <cassert>
 
+#include "internal/platform/implementation/linux/thread_pool.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-
-Executor::Executor() : Executor(1) {}
-
-Executor::Executor(int32_t max_concurrency)
-    : max_concurrency_(max_concurrency) {
-  assert(max_concurrency_ >= 1);
-  thread_pool_ = linux::ThreadPool::Create(max_concurrency);
+Executor::Executor(size_t max_concurrency)
+    : thread_pool_(std::make_unique<ThreadPool>(max_concurrency)) {
+  assert(max_concurrency >= 1);
   assert(thread_pool_ != nullptr);
 }
 
-void Executor::Execute(Runnable&& runnable) {
+void Executor::Execute(Runnable &&runnable) {
   if (shut_down_) {
     NEARBY_LOGS(VERBOSE) << "Warning: " << __func__
                          << ": Attempt to execute on a shut down pool.";
@@ -51,5 +48,5 @@ void Executor::Shutdown() {
   thread_pool_ = nullptr;
 }
 
-}  // namespace linux
-}  // namespace nearby
+} // namespace linux
+} // namespace nearby
