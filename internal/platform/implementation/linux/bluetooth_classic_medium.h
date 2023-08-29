@@ -105,7 +105,6 @@ private:
   std::unique_ptr<BluetoothAdapter> adapter_;
   std::unique_ptr<BluetoothDevices> devices_;
 
-  absl::Mutex discovery_cb_lock_;
   std::optional<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
 
   std::unique_ptr<ProfileManager> profile_manager_;

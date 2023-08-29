@@ -60,12 +60,10 @@ void BluetoothClassicMedium::onInterfacesAdded(
 
       auto &device = devices_->add_new_device(object);
 
-      discovery_cb_lock_.ReaderLock();
       if (discovery_cb_.has_value() &&
           discovery_cb_->device_discovered_cb != nullptr) {
         discovery_cb_->device_discovered_cb(device);
       }
-      discovery_cb_lock_.ReaderUnlock();
 
       for (auto &observer : observers_.GetObservers()) {
         observer->DeviceAdded(device);
@@ -101,12 +99,11 @@ void BluetoothClassicMedium::onInterfacesRemoved(
         for (auto &observer : observers_.GetObservers()) {
           observer->DeviceRemoved(*device);
         }
-        discovery_cb_lock_.ReaderLock();
+
         if (discovery_cb_.has_value() &&
             discovery_cb_->device_lost_cb != nullptr) {
           discovery_cb_->device_lost_cb(*device);
         }
-        discovery_cb_lock_.ReaderUnlock();
       }
       devices_->remove_device_by_path(object);
     }
@@ -115,9 +112,8 @@ void BluetoothClassicMedium::onInterfacesRemoved(
 
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
-  discovery_cb_lock_.Lock();
+
   discovery_cb_ = std::move(discovery_callback);
-  discovery_cb_lock_.Unlock();
 
   try {
     NEARBY_LOGS(INFO) << __func__ << ": Starting discovery on "
@@ -126,6 +122,7 @@ bool BluetoothClassicMedium::StartDiscovery(
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(&adapter_->GetBluezAdapterObject(),
                                "StartDiscovery", e);
+    discovery_cb_.reset();
     return false;
   }
 
@@ -134,12 +131,11 @@ bool BluetoothClassicMedium::StartDiscovery(
 
 bool BluetoothClassicMedium::StopDiscovery() {
   auto &adapter = adapter_->GetBluezAdapterObject();
-  
+
   try {
     NEARBY_LOGS(INFO) << __func__ << "Stopping discovery on "
                       << adapter.getObjectPath();
 
-    absl::MutexLock l(&this->discovery_cb_lock_);
     adapter.StopDiscovery();
     this->discovery_cb_.reset();
   } catch (const sdbus::Error &e) {
