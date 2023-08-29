@@ -8,6 +8,7 @@
 #include "internal/platform/implementation/linux/avahi_entrygroup_client_glue.h"
 #include "internal/platform/implementation/linux/avahi_server_client_glue.h"
 #include "internal/platform/implementation/linux/avahi_servicebrowser_client_glue.h"
+#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/wifi_lan.h"
 
 namespace nearby {
@@ -36,7 +37,15 @@ public:
                         entry_group_object_path) {
     registerProxy();
   }
-  ~EntryGroup() { unregisterProxy(); }
+  ~EntryGroup() {
+    try {
+      Free();
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_METHOD_CALL_ERROR(this, "Free", e);
+    }
+
+    unregisterProxy();
+  }
 
 protected:
   void onStateChanged(const int32_t &state, const std::string &error) override {
@@ -54,7 +63,14 @@ public:
         discovery_cb_(std::move(callback)) {
     registerProxy();
   }
-  ~ServiceBrowser() { unregisterProxy(); }
+  ~ServiceBrowser() {
+    unregisterProxy();
+    try {
+      Free();
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_METHOD_CALL_ERROR(this, "Free", e);
+    }
+  }
 
 protected:
   void onItemNew(const int32_t &interface, const int32_t &protocol,
