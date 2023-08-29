@@ -1,9 +1,9 @@
 #ifndef PLATFORM_IMPL_LINUX_WIFI_LAN_H_
 #define PLATFORM_IMPL_LINUX_WIFI_LAN_H_
 #include <memory>
-#include <unordered_map>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/avahi.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi_lan.h"
@@ -14,14 +14,21 @@ namespace linux {
 class WifiLanMedium : public api::WifiLanMedium {
 public:
   WifiLanMedium(sdbus::IConnection &system_bus);
-  ~WifiLanMedium() override;
+  ~WifiLanMedium() override = default;
 
   bool IsNetworkConnected() const override;
-  bool StartAdvertising(const NsdServiceInfo &nsd_service_info) override;
-  bool StopAdvertising(const NsdServiceInfo &nsd_service_info) override;
+
+  bool StartAdvertising(const NsdServiceInfo &nsd_service_info) override
+      ABSL_LOCKS_EXCLUDED(entry_groups_mutex_);
+  bool StopAdvertising(const NsdServiceInfo &nsd_service_info) override
+      ABSL_LOCKS_EXCLUDED(entry_groups_mutex_);
+
   bool StartDiscovery(const std::string &service_type,
-                      DiscoveredServiceCallback callback) override;
-  bool StopDiscovery(const std::string &service_type) override;
+                      DiscoveredServiceCallback callback) override
+      ABSL_LOCKS_EXCLUDED(service_browsers_mutex_);
+  bool StopDiscovery(const std::string &service_type) override
+      ABSL_LOCKS_EXCLUDED(service_browsers_mutex_);
+
   std::unique_ptr<api::WifiLanSocket>
   ConnectToService(const NsdServiceInfo &remote_service_info,
                    CancellationFlag *cancellation_flag) override {
@@ -39,19 +46,20 @@ public:
   }
 
 private:
-  DiscoveredServiceCallback discovery_cb_;
-
   sdbus::IConnection &system_bus_;
 
   std::shared_ptr<NetworkManager> network_manager_;
 
-  std::shared_ptr<avahi::Server> avahi_;
-  std::unique_ptr<avahi::EntryGroup> entry_group_;
+  std::unique_ptr<avahi::Server> avahi_;
 
+  absl::Mutex entry_groups_mutex_;
+  absl::flat_hash_map<std::pair<std::string, std::string>,
+                      std::unique_ptr<avahi::EntryGroup>>
+      entry_groups_ ABSL_GUARDED_BY(entry_groups_mutex_);
+
+  absl::Mutex service_browsers_mutex_;
   absl::flat_hash_map<std::string, std::unique_ptr<avahi::ServiceBrowser>>
-      service_browsers_;
-
-  bool advertising_;
+      service_browsers_ ABSL_GUARDED_BY(service_browsers_mutex_);
 };
 } // namespace linux
 } // namespace nearby

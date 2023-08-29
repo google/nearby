@@ -9,6 +9,7 @@
 
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/IConnection.h>
+#include <utility>
 
 #include "absl/strings/substitute.h"
 #include "internal/platform/implementation/linux/avahi.h"
@@ -25,39 +26,43 @@ namespace linux {
 WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus)
     : system_bus_(system_bus),
       network_manager_(std::make_shared<linux::NetworkManager>(system_bus)),
-      avahi_(std::make_shared<avahi::Server>(system_bus)),
-      entry_group_(nullptr) {}
-
-WifiLanMedium::~WifiLanMedium() {
-  if (entry_group_ != nullptr) {
-    entry_group_->Free();
-  }
-}
+      avahi_(std::make_unique<avahi::Server>(system_bus)) {}
 
 bool WifiLanMedium::IsNetworkConnected() const {
   auto state = network_manager_->getState();
   return state >= 50; // NM_STATE_CONNECTED_LOCAL
 }
 
-bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
-  if (entry_group_ == nullptr) {
-    try {
-      auto object_path = avahi_->EntryGroupNew();
-      entry_group_ =
-          std::make_unique<avahi::EntryGroup>(system_bus_, object_path);
-      NEARBY_LOGS(VERBOSE) << __func__ << "Created a new entry group at "
-                           << entry_group_->getObjectPath();
-    } catch (const sdbus::Error &e) {
-      DBUS_LOG_METHOD_CALL_ERROR(avahi_, "EntryGroupNew", e);
-      NEARBY_LOGS(ERROR) << __func__ << ": Could not create a new entry group.";
-      return false;
-    }
+std::optional<std::pair<std::string, std::string>>
+entry_group_key(const NsdServiceInfo &nsd_service_info) {
+  auto name = nsd_service_info.GetServiceName();
+  if (name.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": service name cannot be empty";
+    return std::nullopt;
   }
 
-  if (advertising_) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot advertise while we are already advertising";
+  auto type = nsd_service_info.GetServiceType();
+  if (type.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": service type cannot be empty";
+    return std::nullopt;
+  }
+
+  return std::make_pair(std::move(name), std::move(type));
+}
+
+bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
+  auto key = entry_group_key(nsd_service_info);
+  if (!key.has_value()) {
     return false;
+  }
+
+  {
+    absl::ReaderMutexLock l(&entry_groups_mutex_);
+    if (entry_groups_.count(*key) == 1) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": advertising is already active for this service";
+      return false;
+    }
   }
 
   auto txt_records_map = nsd_service_info.GetTxtRecords();
@@ -69,13 +74,24 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
     txt_records[i++] = std::vector<std::uint8_t>(entry.begin(), entry.end());
   }
 
+  sdbus::ObjectPath entry_group_path;
   try {
-    entry_group_->AddService(
+    entry_group_path = avahi_->EntryGroupNew();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(avahi_, "EntryGroupNew", e);
+    return false;
+  }
+
+  auto entry_group =
+      std::make_unique<avahi::EntryGroup>(system_bus_, entry_group_path);
+
+  try {
+    entry_group->AddService(
         -1, // AVAHI_IF_UNSPEC
         -1, // AVAHI_PROTO_UNSPED
         0, nsd_service_info.GetServiceName(), nsd_service_info.GetServiceType(),
         std::string(), std::string(), nsd_service_info.GetPort(), txt_records);
-    entry_group_->Commit();
+    entry_group->Commit();
   } catch (const sdbus::Error &e) {
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
@@ -83,48 +99,42 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
     return false;
   }
 
-  advertising_ = true;
+  absl::MutexLock l(&entry_groups_mutex_);
+  entry_groups_.insert({*key, std::move(entry_group)});
+
   return true;
 }
 
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo &nsd_service_info) {
-  if (!advertising_) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Advertising is already stopped.";
-    return false;
-  }
-  if (entry_group_ == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": No entry group registered.";
+  auto key = entry_group_key(nsd_service_info);
+  if (!key.has_value()) {
     return false;
   }
 
-  try {
-    if (entry_group_->IsEmpty()) {
-      NEARBY_LOGS(ERROR)
-          << __func__ << ": Cannot stop advertising on an empty entry group.";
-      return false;
-    }
-    entry_group_->Reset();
-    entry_group_->Commit();
-  } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while removing service";
+  absl::MutexLock l(&entry_groups_mutex_);
+  if (entry_groups_.count(*key) == 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Advertising is already inactive for this service.";
     return false;
   }
 
-  advertising_ = false;
+  entry_groups_.erase(*key);
   return true;
 }
 
 bool WifiLanMedium::StartDiscovery(
     const std::string &service_type,
     api::WifiLanMedium::DiscoveredServiceCallback callback) {
-  if (service_browsers_.count(service_type) != 0) {
-    auto &object = service_browsers_[service_type];
-    NEARBY_LOGS(ERROR) << __func__ << ": A service browser for service type "
-                       << service_type << " already exists at "
-                       << object->getObjectPath();
-    return false;
+
+  {
+    absl::ReaderMutexLock l(&service_browsers_mutex_);
+    if (service_browsers_.count(service_type) != 0) {
+      auto &object = service_browsers_[service_type];
+      NEARBY_LOGS(ERROR) << __func__ << ": A service browser for service type "
+                         << service_type << " already exists at "
+                         << object->getObjectPath();
+      return false;
+    }
   }
 
   try {
@@ -136,6 +146,8 @@ bool WifiLanMedium::StartDiscovery(
         << __func__
         << ": Created a new org.freedesktop.Avahi.ServiceBrowser object at "
         << browser_object_path;
+
+    absl::MutexLock l(&service_browsers_mutex_);
     service_browsers_.emplace(
         service_type,
         std::make_unique<avahi::ServiceBrowser>(
@@ -145,7 +157,10 @@ bool WifiLanMedium::StartDiscovery(
     return false;
   }
 
+  service_browsers_mutex_.ReaderLock();
   auto &browser = service_browsers_[service_type];
+  service_browsers_mutex_.ReaderUnlock();
+
   try {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Starting service discovery for "
                          << browser->getObjectPath();
@@ -159,20 +174,13 @@ bool WifiLanMedium::StartDiscovery(
 }
 
 bool WifiLanMedium::StopDiscovery(const std::string &service_type) {
+  absl::MutexLock l(&service_browsers_mutex_);
+
   if (service_browsers_.count(service_type) == 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Service type " << service_type
                        << " has not been registered for discovery";
     return false;
   }
-
-  auto &browser = service_browsers_[service_type];
-  try {
-    browser->Free();
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(browser, "Free", e);
-    return false;
-  }
-
   service_browsers_.erase(service_type);
 
   return true;
