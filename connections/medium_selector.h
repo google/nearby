@@ -15,6 +15,7 @@
 #define CORE_MEDIUM_SELECTOR_H_
 
 #include <vector>
+
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -23,12 +24,12 @@ namespace connections {
 using Medium = ::location::nearby::proto::connections::Medium;
 
 struct BooleanMediumSelector {
-  bool bluetooth;
-  bool ble;
-  bool web_rtc;
-  bool wifi_lan;
-  bool wifi_hotspot;
-  bool wifi_direct;
+  bool bluetooth = false;
+  bool ble = false;
+  bool web_rtc = false;
+  bool wifi_lan = false;
+  bool wifi_hotspot = false;
+  bool wifi_direct = false;
 
   constexpr bool Any(bool value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
