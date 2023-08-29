@@ -53,6 +53,10 @@ private:
   absl::Mutex pair_callback_lock_;
   absl::AnyInvocable<void(const sdbus::Error *)> on_pair_reply_cb_ =
       DefaultCallback<const sdbus::Error *>();
+
+  mutable absl::Mutex properties_mutex_;
+  mutable std::string last_known_name_ ABSL_GUARDED_BY(properties_mutex_);
+  mutable std::string last_known_address_ ABSL_GUARDED_BY(properties_mutex_);
 };
 
 class MonitoredBluetoothDevice
