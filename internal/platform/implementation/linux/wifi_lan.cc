@@ -45,6 +45,8 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
       auto object_path = avahi_->EntryGroupNew();
       entry_group_ =
           std::make_unique<avahi::EntryGroup>(system_bus_, object_path);
+      NEARBY_LOGS(VERBOSE) << __func__ << "Created a new entry group at "
+                           << entry_group_->getObjectPath();
     } catch (const sdbus::Error &e) {
       DBUS_LOG_METHOD_CALL_ERROR(avahi_, "EntryGroupNew", e);
       NEARBY_LOGS(ERROR) << __func__ << ": Could not create a new entry group.";
@@ -68,12 +70,11 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
   }
 
   try {
-    entry_group_->AddService(-1, // AVAHI_IF_UNSPEC
-                             -1, // AVAHI_PROTO_UNSPED
-                             0, nsd_service_info.GetServiceName(),
-                             nsd_service_info.GetServiceType(), std::string(),
-                             nsd_service_info.GetIPAddress(),
-                             nsd_service_info.GetPort(), txt_records);
+    entry_group_->AddService(
+        -1, // AVAHI_IF_UNSPEC
+        -1, // AVAHI_PROTO_UNSPED
+        0, nsd_service_info.GetServiceName(), nsd_service_info.GetServiceType(),
+        std::string(), std::string(), nsd_service_info.GetPort(), txt_records);
     entry_group_->Commit();
   } catch (const sdbus::Error &e) {
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
@@ -215,8 +216,6 @@ WifiLanMedium::ListenForService(int port) {
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << "Listening for services";
-
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -236,6 +235,8 @@ WifiLanMedium::ListenForService(int port) {
                        << std::strerror(errno);
     return nullptr;
   }
+
+  NEARBY_LOGS(VERBOSE) << __func__ << "Listening for services on port " << port;
 
   return std::make_unique<WifiLanServerSocket>(sock, network_manager_,
                                                system_bus_);
