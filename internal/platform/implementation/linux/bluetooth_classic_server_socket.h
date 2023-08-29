@@ -4,13 +4,14 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
 namespace linux {
 class BluetoothServerSocket : public api::BluetoothServerSocket {
 public:
   BluetoothServerSocket(ProfileManager &profile_manager,
-                        const std::string &service_uuid)
+                        absl::string_view service_uuid)
       : profile_manager_(profile_manager), service_uuid_(service_uuid) {}
   ~BluetoothServerSocket() = default;
 
@@ -32,7 +33,7 @@ public:
 
 private:
   ProfileManager &profile_manager_;
-  const std::string &service_uuid_;
+  std::string service_uuid_;
 };
 } // namespace linux
 } // namespace nearby
