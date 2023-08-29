@@ -89,6 +89,7 @@ void LogControl::send(google::LogSeverity severity, const char *full_filename,
     auto str = LogSink::ToString(severity, base_filename, line, tm_time,
                                  message, message_len);
     syslog(ConvertSeverityToSyslog(severity), "%s", str.c_str());
+    break;
   }
   case kConsole:
   default:
@@ -101,12 +102,17 @@ void LogControl::send(google::LogSeverity severity, const char *full_filename,
 }
 
 void LogMessage::Print(const char *format, ...) {
+  char *buf = nullptr;
+
   va_list ap;
   va_start(ap, format);
-  char *buf = nullptr;
-  vasprintf(&buf, format, ap);
+  auto ret = vasprintf(&buf, format, ap);
   va_end(ap);
-  log_streamer_.stream() << std::string(buf);
+
+  if (ret >= 0) {
+    free(buf);
+    log_streamer_.stream() << std::string(buf);
+  }
 }
 
 std::ostream &LogMessage::Stream() { return log_streamer_.stream(); }
