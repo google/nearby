@@ -69,7 +69,7 @@ class LoginManager
 public:
   LoginManager(sdbus::IConnection &system_bus)
       : ProxyInterfaces("org.freedesktop.login1",
-                        "/org/freedesktop/hostname1") {
+                        "/org/freedesktop/login1") {
     registerProxy();
   }
   ~LoginManager() { unregisterProxy(); }
