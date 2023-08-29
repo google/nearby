@@ -25,7 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/linux/bluez_device_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/device_client.h"
 
 namespace nearby {
 namespace linux {

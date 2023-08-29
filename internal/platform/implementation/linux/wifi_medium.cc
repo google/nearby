@@ -25,8 +25,8 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/dbus.h"
-#include "internal/platform/implementation/linux/networkmanager_connection_active_client_glue.h"
-#include "internal/platform/implementation/linux/networkmanager_device_wireless_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/networkmanager/connection_active_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/networkmanager/device_wireless_client.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi.h"
 

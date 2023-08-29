@@ -19,7 +19,7 @@
 #include <sdbus-c++/IConnection.h>
 
 #include "glog/logging.h"
-#include "internal/platform/implementation/linux/org_freedesktop_logcontrol_server_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/logcontrol/logcontrol_server.h"
 #include "internal/platform/implementation/log_message.h"
 
 namespace nearby {

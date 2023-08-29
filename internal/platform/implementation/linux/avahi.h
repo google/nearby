@@ -19,9 +19,9 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/ProxyInterfaces.h>
 
-#include "internal/platform/implementation/linux/avahi_entrygroup_client_glue.h"
-#include "internal/platform/implementation/linux/avahi_server_client_glue.h"
-#include "internal/platform/implementation/linux/avahi_servicebrowser_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/avahi/entrygroup_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/avahi/server2_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/avahi/servicebrowser_client.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/wifi_lan.h"
 
