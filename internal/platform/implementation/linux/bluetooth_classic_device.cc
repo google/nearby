@@ -5,6 +5,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -14,6 +15,16 @@ BluetoothDevice::BluetoothDevice(sdbus::IConnection &system_bus,
     : ProxyInterfaces(system_bus, bluez::SERVICE_DEST,
                       std::string(device_object_path)) {
   registerProxy();
+  try {
+    last_known_name_ = Alias();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(this, "Alias", e);
+  }
+  try {
+    last_known_address_ = Address();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(this, "Address", e);
+  }
 }
 
 std::string BluetoothDevice::GetName() const {
@@ -24,8 +35,19 @@ std::string BluetoothDevice::GetName() const {
   try {
     std::string alias =
         bluez_device->getProperty("Alias").onInterface(bluez::DEVICE_INTERFACE);
+    {
+      absl::MutexLock l(&properties_mutex_);
+      last_known_name_ = alias;
+    }
     return alias;
   } catch (const sdbus::Error &e) {
+    if (e.getName() == "org.freedesktop.DBus.Error.UnknownObject") {
+      NEARBY_LOGS(VERBOSE)
+          << __func__ << ": " << getObjectPath()
+          << ": device is no longer known, returning last known name";
+      absl::ReaderMutexLock l(&properties_mutex_);
+      return last_known_name_;
+    }
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
                        << "' while trying to get Alias for device "
@@ -42,8 +64,20 @@ std::string BluetoothDevice::GetMacAddress() const {
   try {
     std::string addr = bluez_device->getProperty("Address").onInterface(
         bluez::DEVICE_INTERFACE);
+    {
+      absl::MutexLock l(&properties_mutex_);
+      last_known_address_ = addr;
+    }
     return addr;
   } catch (const sdbus::Error &e) {
+    if (e.getName() == "org.freedesktop.DBus.Error.UnknownObject") {
+      NEARBY_LOGS(VERBOSE)
+          << __func__ << ": " << getObjectPath()
+          << ": device is no longer known, returning last known address";
+      absl::ReaderMutexLock l(&properties_mutex_);
+      return last_known_address_;
+    }
+
     NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
                        << "' while trying to get Address for device "
@@ -90,10 +124,6 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
   if (interfaceName != bluez::DEVICE_INTERFACE) {
     return;
   }
-
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
-                       << ": Received PropertiesChanged signal for interface "
-                       << interfaceName;
 
   for (auto it = changedProperties.begin(); it != changedProperties.end();
        it++) {
