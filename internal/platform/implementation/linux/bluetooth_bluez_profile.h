@@ -38,8 +38,8 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/bluez_profile_glue.h"
-#include "internal/platform/implementation/linux/bluez_profile_manager_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/profile_server.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/profile_manager_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

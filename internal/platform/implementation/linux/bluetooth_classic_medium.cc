@@ -29,7 +29,7 @@
 #include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_pairing.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/bluez_device_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/device_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

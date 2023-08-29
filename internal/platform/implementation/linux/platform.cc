@@ -34,7 +34,7 @@
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/bluez_adapter_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/implementation/linux/condition_variable.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/mutex.h"

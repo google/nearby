@@ -16,20 +16,20 @@
 #define PLATFORM_IMPL_LINUX_DEVICE_INFO_H_
 
 #include <optional>
-#include <sdbus-c++/ProxyInterfaces.h>
-#include <sdbus-c++/Types.h>
 #include <string>
 
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/ProxyInterfaces.h>
+#include <sdbus-c++/Types.h>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/linux/hostname_client_glue.h"
-#include "internal/platform/implementation/linux/login_manager_client_glue.h"
-#include "internal/platform/implementation/linux/login_session_client_glue.h"
+#include "internal/platform/implementation/linux/generated/dbus/hostname/hostname_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/login/login_manager_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/login/login_session_client.h"
 
 namespace nearby {
 namespace linux {
