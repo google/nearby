@@ -91,7 +91,7 @@ std::string BluetoothAdapter::GetName() const {
     return bluez_adapter_->Alias();
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(bluez_adapter_, "Alias", e);
-    return std::string();
+    return {};
   }
 }
 
@@ -115,7 +115,7 @@ std::string BluetoothAdapter::GetMacAddress() const {
     return bluez_adapter_->Address();
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(bluez_adapter_, "Address", e);
-    return std::string();
+    return {};
   }
 }
 

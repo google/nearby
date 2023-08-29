@@ -21,30 +21,35 @@
 #include <memory>
 #include <optional>
 
-#include <ostream>
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/ProxyInterfaces.h>
 #include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Types.h>
+#include <ostream>
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/access_point_client.h"
-#include "internal/platform/implementation/linux/generated/dbus/networkmanager/networkmanager_client.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/connection_active_client.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/device_wireless_client.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/ip4config_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/networkmanager/networkmanager_client.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-class NetworkManager
+class NetworkManager final
     : public sdbus::ProxyInterfaces<org::freedesktop::NetworkManager_proxy> {
-public:
-  NetworkManager(sdbus::IConnection &system_bus)
+ public:
+  NetworkManager(const NetworkManager &) = delete;
+  NetworkManager(NetworkManager &&) = delete;
+  NetworkManager &operator=(const NetworkManager &) = delete;
+  NetworkManager &operator=(NetworkManager &&) = delete;
+  explicit NetworkManager(sdbus::IConnection &system_bus)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        "/org/freedesktop/NetworkManager") {
+                        "/org/freedesktop/NetworkManager"),
+        state_(0) {
     registerProxy();
     try {
       state_ = State();
@@ -56,20 +61,24 @@ public:
 
   std::uint32_t getState() const { return state_; }
 
-protected:
+ protected:
   void onCheckPermissions() override {}
   void onStateChanged(const uint32_t &state) override { state_ = state; }
   void onDeviceAdded(const sdbus::ObjectPath &device_path) override {}
   void onDeviceRemoved(const sdbus::ObjectPath &device_path) override {}
 
-private:
+ private:
   std::atomic_uint32_t state_;
 };
 
 class NetworkManagerIP4Config
     : public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::IP4Config_proxy> {
-public:
+ public:
+  NetworkManagerIP4Config(const NetworkManagerIP4Config &) = delete;
+  NetworkManagerIP4Config(NetworkManagerIP4Config &&) = delete;
+  NetworkManagerIP4Config &operator=(const NetworkManagerIP4Config &) = delete;
+  NetworkManagerIP4Config &operator=(NetworkManagerIP4Config &&) = delete;
   NetworkManagerIP4Config(sdbus::IConnection &system_bus,
                           const sdbus::ObjectPath &config_object_path)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
@@ -82,11 +91,16 @@ public:
 class NetworkManagerAccessPoint
     : public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::AccessPoint_proxy> {
-public:
+ public:
+  NetworkManagerAccessPoint(const NetworkManagerAccessPoint &) = delete;
+  NetworkManagerAccessPoint(NetworkManagerAccessPoint &&) = delete;
+  NetworkManagerAccessPoint &operator=(const NetworkManagerAccessPoint &) =
+      delete;
+  NetworkManagerAccessPoint &operator=(NetworkManagerAccessPoint &&) = delete;
   NetworkManagerAccessPoint(sdbus::IConnection &system_bus,
-                            const sdbus::ObjectPath &access_point_object_path)
+                            sdbus::ObjectPath access_point_object_path)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        access_point_object_path) {
+                        std::move(access_point_object_path)) {
     registerProxy();
   }
   ~NetworkManagerAccessPoint() { unregisterProxy(); }
@@ -123,12 +137,20 @@ extern std::ostream &operator<<(std::ostream &s,
 class NetworkManagerActiveConnection
     : public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::Connection::Active_proxy> {
-public:
-  NetworkManagerActiveConnection(
-      sdbus::IConnection &system_bus,
-      const sdbus::ObjectPath &active_connection_path)
+ public:
+  NetworkManagerActiveConnection(const NetworkManagerActiveConnection &) =
+      delete;
+  NetworkManagerActiveConnection(NetworkManagerActiveConnection &&) = delete;
+  NetworkManagerActiveConnection &operator=(
+      const NetworkManagerActiveConnection &) = delete;
+  NetworkManagerActiveConnection &operator=(NetworkManagerActiveConnection &&) =
+      delete;
+  explicit NetworkManagerActiveConnection(
+      sdbus::IConnection &system_bus, sdbus::ObjectPath active_connection_path)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        active_connection_path) {
+                        std::move(active_connection_path)),
+        state_(kStateUnknown),
+        reason_(kStateReasonUnknown) {
     registerProxy();
     try {
       auto state = State();
@@ -139,9 +161,9 @@ public:
       DBUS_LOG_PROPERTY_GET_ERROR(this, "State", e);
     }
   }
-  ~NetworkManagerActiveConnection() { unregisterProxy(); }
+  virtual ~NetworkManagerActiveConnection() { unregisterProxy(); }
 
-protected:
+ protected:
   void onStateChanged(const uint32_t &state, const uint32_t &reason) override
       ABSL_LOCKS_EXCLUDED(state_mutex_) {
     absl::MutexLock l(&state_mutex_);
@@ -153,9 +175,9 @@ protected:
     }
   }
 
-public:
-  std::pair<std::optional<ActiveConnectionStateReason>, bool>
-  WaitForConnection(absl::Duration timeout = absl::Seconds(10))
+ public:
+  std::pair<std::optional<ActiveConnectionStateReason>, bool> WaitForConnection(
+      absl::Duration timeout = absl::Seconds(10))
       ABSL_LOCKS_EXCLUDED(state_mutex_) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Waiting for an update to "
                          << getObjectPath() << "'s state";
@@ -208,36 +230,42 @@ public:
     return ip4addresses;
   }
 
-private:
+ private:
   absl::Mutex state_mutex_;
   ActiveConnectionState state_ ABSL_GUARDED_BY(state_mutex_);
   ActiveConnectionStateReason reason_ ABSL_GUARDED_BY(state_mutex_);
 };
 
-class NetworkManagerObjectManager
+class NetworkManagerObjectManager final
     : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
-public:
-  NetworkManagerObjectManager(sdbus::IConnection &system_bus)
+ public:
+  NetworkManagerObjectManager(const NetworkManagerObjectManager &) = delete;
+  NetworkManagerObjectManager(NetworkManagerObjectManager &&) = delete;
+  NetworkManagerObjectManager &operator=(const NetworkManagerObjectManager &) =
+      delete;
+  NetworkManagerObjectManager &operator=(NetworkManagerObjectManager &&) =
+      delete;
+  explicit NetworkManagerObjectManager(sdbus::IConnection &system_bus)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
                         "/org/freedesktop") {
     registerProxy();
   }
   ~NetworkManagerObjectManager() { unregisterProxy(); }
 
-  std::unique_ptr<NetworkManagerIP4Config>
-  GetIp4Config(const sdbus::ObjectPath &access_point);
+  std::unique_ptr<NetworkManagerIP4Config> GetIp4Config(
+      const sdbus::ObjectPath &access_point);
   std::unique_ptr<NetworkManagerActiveConnection>
   GetActiveConnectionForAccessPoint(const sdbus::ObjectPath &access_point_path,
                                     const sdbus::ObjectPath &device_path);
 
-protected:
+ protected:
   void onInterfacesAdded(
       const sdbus::ObjectPath &objectPath,
       const std::map<std::string, std::map<std::string, sdbus::Variant>>
           &interfacesAndProperties) override {}
-  void
-  onInterfacesRemoved(const sdbus::ObjectPath &objectPath,
-                      const std::vector<std::string> &interfaces) override {}
+  void onInterfacesRemoved(
+      const sdbus::ObjectPath &objectPath,
+      const std::vector<std::string> &interfaces) override {}
 };
 
 class NetworkManagerWifiMedium
@@ -245,21 +273,26 @@ class NetworkManagerWifiMedium
       public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::Device::Wireless_proxy,
           sdbus::Properties_proxy> {
-public:
+ public:
+  NetworkManagerWifiMedium(const NetworkManagerWifiMedium &) = delete;
+  NetworkManagerWifiMedium(NetworkManagerWifiMedium &&) = delete;
+  NetworkManagerWifiMedium &operator=(const NetworkManagerWifiMedium &) =
+      delete;
+  NetworkManagerWifiMedium &operator=(NetworkManagerWifiMedium &&) = delete;
   NetworkManagerWifiMedium(std::shared_ptr<NetworkManager> network_manager,
                            sdbus::IConnection &system_bus,
                            const sdbus::ObjectPath &wireless_device_object_path)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
                         wireless_device_object_path),
-        network_manager_(std::move(network_manager)) {
+        network_manager_(std::move(network_manager)),
+        last_scan_(-1) {
     registerProxy();
   }
 
   ~NetworkManagerWifiMedium() override { unregisterProxy(); }
 
   class ScanResultCallback : public api::WifiMedium::ScanResultCallback {
-  public:
-    ~ScanResultCallback() override = default;
+   public:
     void OnScanResults(
         const std::vector<api::WifiScanResult> &scan_results) override {
       // TODO: Add implementation at some point
@@ -272,21 +305,20 @@ public:
   bool Scan(
       const api::WifiMedium::ScanResultCallback &scan_result_callback) override;
 
-  std::shared_ptr<NetworkManagerAccessPoint>
-  SearchBySSID(absl::string_view ssid,
-               absl::Duration scan_timeout = absl::Seconds(15))
+  std::shared_ptr<NetworkManagerAccessPoint> SearchBySSID(
+      absl::string_view ssid, absl::Duration scan_timeout = absl::Seconds(15))
       ABSL_LOCKS_EXCLUDED(known_access_points_lock_);
 
-  api::WifiConnectionStatus
-  ConnectToNetwork(absl::string_view ssid, absl::string_view password,
-                   api::WifiAuthType auth_type) override;
+  api::WifiConnectionStatus ConnectToNetwork(
+      absl::string_view ssid, absl::string_view password,
+      api::WifiAuthType auth_type) override;
 
   bool VerifyInternetConnectivity() override;
   std::string GetIpAddress() override;
 
   std::unique_ptr<NetworkManagerActiveConnection> GetActiveConnection();
 
-protected:
+ protected:
   void onPropertiesChanged(
       const std::string &interfaceName,
       const std::map<std::string, sdbus::Variant> &changedProperties,
@@ -306,9 +338,9 @@ protected:
     known_access_points_.erase(access_point);
   }
 
-private:
-  std::shared_ptr<NetworkManagerAccessPoint>
-  SearchBySSIDNoScan(std::vector<std::uint8_t> &ssid)
+ private:
+  std::shared_ptr<NetworkManagerAccessPoint> SearchBySSIDNoScan(
+      std::vector<std::uint8_t> &ssid)
       ABSL_LOCKS_EXCLUDED(known_access_points_lock_);
 
   std::shared_ptr<NetworkManager> network_manager_;
@@ -329,7 +361,7 @@ private:
   std::int64_t last_scan_ ABSL_GUARDED_BY(last_scan_lock_);
 };
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

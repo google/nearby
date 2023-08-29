@@ -22,10 +22,9 @@ namespace nearby {
 namespace linux {
 class WifiHotspotSocket : public api::WifiHotspotSocket {
 public:  
-  WifiHotspotSocket(int connection_fd)
+  explicit WifiHotspotSocket(int connection_fd)
       : fd_(sdbus::UnixFd(connection_fd)), output_stream_(fd_),
         input_stream_(fd_) {}
-  ~WifiHotspotSocket() {}
 
   nearby::InputStream &GetInputStream() override { return input_stream_; };
   nearby::OutputStream &GetOutputStream() override { return output_stream_; };

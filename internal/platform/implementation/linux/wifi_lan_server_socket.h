@@ -28,12 +28,11 @@ namespace nearby {
 namespace linux {
 class WifiLanServerSocket : public api::WifiLanServerSocket {
 public:
-  WifiLanServerSocket(int socket,
+  explicit WifiLanServerSocket(int socket,
                       std::shared_ptr<NetworkManager> network_manager,
                       sdbus::IConnection &system_bus)
-      : fd_(sdbus::UnixFd(socket)), network_manager_(network_manager),
+      : fd_(sdbus::UnixFd(socket)), network_manager_(std::move(network_manager)),
         system_bus_(system_bus) {}
-  ~WifiLanServerSocket() override = default;
 
   std::string GetIPAddress() const override;
   int GetPort() const override;

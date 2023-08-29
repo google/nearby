@@ -28,9 +28,8 @@ namespace nearby {
 namespace linux {
 class WifiLanSocket : public api::WifiLanSocket {
 public:
-  WifiLanSocket(sdbus::UnixFd fd)
+  explicit WifiLanSocket(sdbus::UnixFd fd)
       : fd_(fd), output_stream_(fd), input_stream_(fd) {}
-  ~WifiLanSocket() = default;
 
   nearby::InputStream &GetInputStream() override {
     return input_stream_;

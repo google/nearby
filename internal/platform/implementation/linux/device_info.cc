@@ -108,7 +108,7 @@ std::optional<std::u16string> DeviceInfo::GetFullName() const {
 
 std::optional<std::string> DeviceInfo::GetProfileUserName() const {
   struct passwd *pwd = getpwuid(getuid());
-  if (!pwd) {
+  if (pwd == nullptr) {
     return std::nullopt;
   }
   char *name = strtok(pwd->pw_gecos, ",");
@@ -122,7 +122,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
   char *dir = getenv("XDG_CONFIG_HOME");
-  if (dir == NULL) {
+  if (dir == nullptr) {
     return std::filesystem::path("/tmp");
   }
   return std::filesystem::path(std::string(dir)) / "Google Nearby";
@@ -130,7 +130,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
   char *dir = getenv("XDG_RUNTIME_PATH");
-  if (dir == NULL) {
+  if (dir == nullptr) {
     return std::filesystem::path("/tmp");
   }
   return std::filesystem::path(std::string(dir)) / "Google Nearby";
@@ -138,7 +138,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
   char *dir = getenv("XDG_STATE_HOME");
-  if (dir == NULL) {
+  if (dir == nullptr) {
     return std::filesystem::path("/tmp");
   }
   return std::filesystem::path(std::string(dir)) / "Google Nearby" / "logs";
@@ -146,7 +146,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
   char *dir = getenv("XDG_STATE_HOME");
-  if (dir == NULL) {
+  if (dir == nullptr) {
     return std::filesystem::path("/tmp");
   }
   return std::filesystem::path(std::string(dir)) / "Google Nearby" / "crashes";

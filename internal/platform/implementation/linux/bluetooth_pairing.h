@@ -29,10 +29,9 @@
 
 namespace nearby {
 namespace linux {
-class BluetoothPairing : public api::BluetoothPairing {
+class BluetoothPairing final : public api::BluetoothPairing {
 public:
   BluetoothPairing(BluetoothAdapter &adapter, BluetoothDevice &remote_device);
-  ~BluetoothPairing() override = default;
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
   bool FinishPairing(std::optional<absl::string_view> pin_code) override;

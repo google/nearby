@@ -47,8 +47,6 @@ BluetoothClassicMedium::BluetoothClassicMedium(
   registerProxy();
 }
 
-BluetoothClassicMedium::~BluetoothClassicMedium() { unregisterProxy(); }
-
 void BluetoothClassicMedium::onInterfacesAdded(
     const sdbus::ObjectPath &object,
     const std::map<std::string, std::map<std::string, sdbus::Variant>>
@@ -74,7 +72,7 @@ void BluetoothClassicMedium::onInterfacesAdded(
       discovery_cb_->device_discovered_cb(device);
     }
 
-    for (auto &observer : observers_.GetObservers()) {
+    for (const auto &observer : observers_.GetObservers()) {
       observer->DeviceAdded(device);
     }
   }
@@ -88,7 +86,7 @@ void BluetoothClassicMedium::onInterfacesRemoved(
     return;
   }
 
-  for (auto &interface : interfaces) {
+  for (const auto &interface : interfaces) {
     if (interface == org::bluez::Device1_proxy::INTERFACE_NAME) {
       {
         auto device = devices_->get_device_by_path(object);
@@ -107,7 +105,7 @@ void BluetoothClassicMedium::onInterfacesRemoved(
           discovery_cb_->device_lost_cb(*device);
         }
 
-        for (auto &observer : observers_.GetObservers()) {
+        for (const auto &observer : observers_.GetObservers()) {
           observer->DeviceRemoved(*device);
         }
       }
@@ -166,7 +164,10 @@ BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
     }
   }
 
-  auto &device = devices_->get_device_by_path(device_object_path).value().get();
+  auto maybe_device = devices_->get_device_by_path(device_object_path);
+  if (!maybe_device.has_value()) return nullptr;
+
+  auto &device = maybe_device->get();
   device.ConnectToProfile(service_uuid);
 
   auto fd = profile_manager_->GetServiceRecordFD(remote_device, service_uuid,
@@ -202,7 +203,7 @@ BluetoothClassicMedium::ListenForService(const std::string &service_name,
 api::BluetoothDevice *
 BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
   auto device = devices_->get_device_by_address(mac_address);
-  if (device.has_value())
+  if (!device.has_value())
     return nullptr;
 
   return &(device->get());
@@ -211,6 +212,8 @@ BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
 std::unique_ptr<api::BluetoothPairing>
 BluetoothClassicMedium::CreatePairing(api::BluetoothDevice &remote_device) {
   auto device = devices_->get_device_by_address(remote_device.GetMacAddress());
+  if (!device.has_value()) return nullptr;
+
   return std::unique_ptr<api::BluetoothPairing>(
       new BluetoothPairing(*adapter_, *device));
 }

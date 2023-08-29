@@ -29,8 +29,9 @@ namespace linux {
 
 void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
   if (error != nullptr && error->isValid()) {
-    auto name = error->getName();
-    api::BluetoothPairingCallback::PairingError err;
+    const auto &name = error->getName();
+    api::BluetoothPairingCallback::PairingError err =
+        api::BluetoothPairingCallback::PairingError::kAuthFailed;
 
     NEARBY_LOGS(ERROR) << __func__ << ": "
                        << "Got error '" << error->getName()
@@ -46,8 +47,6 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
       err = api::BluetoothPairingCallback::PairingError::kAuthRejected;
     } else if (name == "org.bluez.Error.AuthenticationTimeout") {
       err = api::BluetoothPairingCallback::PairingError::kAuthTimeout;
-    } else {
-      err = api::BluetoothPairingCallback::PairingError::kAuthFailed;
     }
 
     if (pairing_cb_.on_pairing_error_cb != nullptr) {
@@ -59,7 +58,6 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
   if (pairing_cb_.on_paired_cb != nullptr) {
     pairing_cb_.on_paired_cb();
   }
-  return;
 }
 
 BluetoothPairing::BluetoothPairing(BluetoothAdapter &adapter,

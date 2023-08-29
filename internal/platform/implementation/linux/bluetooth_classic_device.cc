@@ -25,9 +25,9 @@
 namespace nearby {
 namespace linux {
 BluetoothDevice::BluetoothDevice(sdbus::IConnection &system_bus,
-                                 const sdbus::ObjectPath &device_object_path)
+                                 sdbus::ObjectPath device_object_path)
     : ProxyInterfaces(system_bus, bluez::SERVICE_DEST,
-                      std::string(device_object_path)) {
+                      std::move(device_object_path)) {
   registerProxy();
   try {
     last_known_name_ = Alias();

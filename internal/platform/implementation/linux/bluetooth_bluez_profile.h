@@ -38,26 +38,38 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/generated/dbus/bluez/profile_server.h"
 #include "internal/platform/implementation/linux/generated/dbus/bluez/profile_manager_client.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/profile_server.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-class Profile : public sdbus::AdaptorInterfaces<org::bluez::Profile1_adaptor> {
-public:
+class ProfileManager;
+
+class Profile final
+    : public sdbus::AdaptorInterfaces<org::bluez::Profile1_adaptor> {
+ public:
+  Profile(const Profile &) = delete;
+  Profile(Profile &&) = delete;
+  Profile &operator=(const Profile &) = delete;
+  Profile &operator=(Profile &&) = delete;
   Profile(sdbus::IConnection &system_bus, absl::string_view profile_object_path,
           BluetoothDevices &devices)
       : AdaptorInterfaces(system_bus, std::string(profile_object_path)),
-        released_(false), devices_(devices) {
+        released_(false),
+        devices_(devices) {
     registerAdaptor();
     NEARBY_LOGS(VERBOSE) << __func__ << ": Created a new BlueZ profile at :"
                          << getObjectPath();
   }
   ~Profile() { unregisterAdaptor(); }
 
+ private:
+  friend class ProfileManager;
+
   struct FDProperties {
-    FDProperties(const std::map<std::string, sdbus::Variant> &fd_props) {
+    explicit FDProperties(const std::map<std::string, sdbus::Variant> &fd_props)
+        : version(std::nullopt), features(std::nullopt) {
       if (fd_props.count("Version") == 1) {
         version = fd_props.at("Version");
       }
@@ -72,21 +84,27 @@ public:
 
   void Release() override;
   void NewConnection(const sdbus::ObjectPath &, const sdbus::UnixFd &,
-                     const std::map<std::string, sdbus::Variant> &) override;
-  void RequestDisconnection(const sdbus::ObjectPath &) override;
+                     const std::map<std::string, sdbus::Variant> &) override
+      ABSL_LOCKS_EXCLUDED(connections_lock_);
+  void RequestDisconnection(const sdbus::ObjectPath &) override
+      ABSL_LOCKS_EXCLUDED(connections_lock_);
 
   std::atomic_bool released_;
 
   absl::Mutex connections_lock_;
   std::map<std::string, std::vector<std::pair<sdbus::UnixFd, FDProperties>>>
-      connections_;
+      connections_ ABSL_GUARDED_BY(connections_lock_);
 
   BluetoothDevices &devices_;
 };
 
-class ProfileManager
+class ProfileManager final
     : private sdbus::ProxyInterfaces<org::bluez::ProfileManager1_proxy> {
-public:
+ public:
+  ProfileManager(const ProfileManager &) = delete;
+  ProfileManager(ProfileManager &&) = delete;
+  ProfileManager &operator=(const ProfileManager &) = delete;
+  ProfileManager &operator=(ProfileManager &&) = delete;
   ProfileManager(sdbus::IConnection &system_bus, BluetoothDevices &devices)
       : ProxyInterfaces(system_bus, bluez::SERVICE_DEST, "/org/bluez"),
         devices_(devices) {
@@ -94,29 +112,35 @@ public:
   }
   ~ProfileManager() { unregisterProxy(); }
 
-  bool ProfileRegistered(absl::string_view service_uuid);
+  bool ProfileRegistered(absl::string_view service_uuid)
+      ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
   bool Register(std::optional<absl::string_view> service_name,
-                absl::string_view service_uuid);
-  bool Register(absl::string_view service_uuid) {
+                absl::string_view service_uuid)
+      ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
+  bool Register(absl::string_view service_uuid)
+      ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_) {
     return Register(std::nullopt, service_uuid);
   }
-  void Unregister(absl::string_view service_uuid);
+  void Unregister(absl::string_view service_uuid)
+      ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
 
-  std::optional<sdbus::UnixFd>
-  GetServiceRecordFD(api::BluetoothDevice &remote_device,
-                     absl::string_view service_uuid,
-                     CancellationFlag *cancellation_flag);
+  std::optional<sdbus::UnixFd> GetServiceRecordFD(
+      api::BluetoothDevice &remote_device, absl::string_view service_uuid,
+      CancellationFlag *cancellation_flag)
+      ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
   std::optional<
       std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
-  GetServiceRecordFD(absl::string_view service_uuid);
+  GetServiceRecordFD(absl::string_view service_uuid)
+      ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
 
-private:
+ private:
   BluetoothDevices &devices_;
   // Maps service UUIDs to RegisteredService
-  std::map<std::string, std::shared_ptr<Profile>> registered_services_;
-  absl::Mutex registered_service_uuids_lock_;
+  absl::Mutex registered_service_uuids_mutex_;
+  std::map<std::string, std::shared_ptr<Profile>> registered_services_
+      ABSL_GUARDED_BY(registered_service_uuids_mutex_);
 };
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 #endif

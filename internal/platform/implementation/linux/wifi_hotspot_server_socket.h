@@ -27,12 +27,11 @@ class NetworkManagerWifiHotspotServerSocket
 public:
   NetworkManagerWifiHotspotServerSocket(
       int socket, sdbus::IConnection &system_bus,
-      const sdbus::ObjectPath &active_connection_path,
+      sdbus::ObjectPath active_connection_path,
       std::shared_ptr<NetworkManager> network_manager)
       : fd_(socket), system_bus_(system_bus),
-        active_connection_path_(active_connection_path),
-        network_manager_(network_manager) {}
-  ~NetworkManagerWifiHotspotServerSocket() {}
+        active_connection_path_(std::move(active_connection_path)),
+        network_manager_(std::move(network_manager)) {}
 
   std::string GetIPAddress() const override;
   int GetPort() const override;

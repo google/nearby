@@ -23,9 +23,8 @@ namespace nearby {
 namespace linux {
 class WifiDirectSocket : public api::WifiDirectSocket {
 public:
-  WifiDirectSocket(int socket)
-      : fd_(sdbus::UnixFd(socket)), output_stream_(fd_), input_stream_(fd_) {}
-  ~WifiDirectSocket() = default;
+  explicit WifiDirectSocket(int socket)
+    : fd_(sdbus::UnixFd(socket)), output_stream_(fd_), input_stream_(fd_) {}
 
   InputStream &GetInputStream() override { return input_stream_; };
   OutputStream &GetOutputStream() override { return output_stream_; };
