@@ -12,117 +12,106 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/thread_pool.h"
-
+#include <atomic>
 #include <queue>
 #include <utility>
 
-#include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/linux/thread_pool.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace linux {
-
-std::unique_ptr<ThreadPool> ThreadPool::Create(int max_pool_size) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Create thread pool with maximum size("
-                       << max_pool_size << ").";
-
-  if (max_pool_size <= 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Maximum pool size must be positive integer value.";
-    return nullptr;
-  }
-
-  std::unique_ptr<std::vector<std::thread>> thread_pool = std::make_unique<std::vector<std::thread>>();
-
-  // Sets thread pool maximum value.
-  thread_pool->resize(max_pool_size);
-
-  return absl::WrapUnique(
-      new ThreadPool(thread_pool, max_pool_size));
+ThreadPool::ThreadPool(size_t max_pool_size)
+    : max_pool_size_(max_pool_size), shut_down_(false) {
+  threads_.reserve(max_pool_size);
 }
 
-ThreadPool::ThreadPool(std::unique_ptr<std::vector<std::thread>> &thread_pool, int max_pool_size)
-    : thread_pool_(std::move(thread_pool)),
-      max_pool_size_(max_pool_size) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                       << ") is created with size:" << max_pool_size_;
+ThreadPool::~ThreadPool() { ShutDown(); }
 
-  for (int size = 0; size < max_pool_size_; size++) {
-    thread_pool_->at(size) = std::thread([this]() {
-      while (!tasks_.empty()) {
-        RunNextTask();
-        // Possibly don't need but here to prevent 100% usage for loop
-        sleep(300);
+bool ThreadPool::Start() {
+  shut_down_.store(false, std::memory_order_acquire);
+
+  absl::MutexLock l(&mutex_);
+  if (!threads_.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << "thread pool is already active";
+    return false;
+  }
+
+  auto runner = [&]() {
+    while (true) {
+      if (shut_down_) {
+        return;
       }
-    });
+
+      auto task = NextTask();
+
+      if (task == nullptr) {
+        NEARBY_LOGS(WARNING) << __func__ << ": Tried to run a null task.";
+        continue;
+      }
+      task();
+    }
+  };
+
+  for (size_t i = 0; i < max_pool_size_; i++) {
+    threads_.emplace_back(runner);
   }
+
+  return true;
 }
 
-ThreadPool::~ThreadPool() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                       << ") is released.";
+bool ThreadPool::Run(Runnable &&task) {
+  if (shut_down_) {
+    NEARBY_LOGS(ERROR) << __func__ << "thread pool has shut down";
+    return false;
+  }
 
-  ShutDown();
-}
-
-bool ThreadPool::Run(Runnable task) {
-  absl::MutexLock lock(&mutex_);
-
-  if (thread_pool_->size() == max_pool_size_) {
+  absl::MutexLock l(&mutex_);
+  if (threads_.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << "thread pool is not active";
     return false;
   }
 
   tasks_.push(std::move(task));
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Scheduled to run task("
-                       << &tasks_.back() << ").";
   return true;
 }
 
 void ThreadPool::ShutDown() {
-  absl::MutexLock lock(&mutex_);
+  shut_down_.store(true, std::memory_order_acquire);
 
-  if (!thread_pool_->empty()) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Request to shutdown thread pool with " << thread_pool_->size() << " tasks not finished(" << this << ").";
-  }
-
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Shutdown thread pool(" << this << ").";
-  if (thread_pool_ == nullptr) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Shutdown on closed thread pool("
-                         << this << ").";
-    return;
-  }
-
-  thread_pool_.reset();
-}
-
-void ThreadPool::RunNextTask() {
-  Runnable task = nullptr;
+  NEARBY_LOGS(INFO)
+      << __func__ << ": asked to shut down, waiting for active threads to stop";
 
   {
-    absl::MutexLock lock(&mutex_);
-
-    if (!thread_pool_) {
-      return;
-    }
-    if (!tasks_.empty()) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Run task(" << &tasks_.front()
-                           << ").";
-
-      task = std::move(tasks_.front());
-      tasks_.pop();
+    absl::ReaderMutexLock l(&mutex_);
+    for (auto &thread : threads_) {
+      thread.join();
     }
   }
-  if (task == nullptr) {
-    NEARBY_LOGS(WARNING) << __func__
-                         << ": Tried to run task in an empty thread pool.";
-    return;
-  }
 
-  task();
+  absl::MutexLock l(&mutex_);
+  threads_.clear();
+  NEARBY_LOGS(INFO) << __func__ << ": shut down thread pool";
 }
 
-}  // namespace linux
-}  // namespace nearby
+Runnable ThreadPool::NextTask() {
+  Runnable task;
+  auto task_available = [&]() {
+    mutex_.AssertReaderHeld();
+    return !tasks_.empty();
+  };
+
+  {
+    absl::MutexLock l(&mutex_, absl::Condition(&task_available));
+
+    task = std::move(tasks_.front());
+    tasks_.pop();
+  }
+
+  return task;
+}
+
+} // namespace linux
+} // namespace nearby
