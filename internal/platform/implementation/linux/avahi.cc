@@ -24,7 +24,7 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
           r_address, r_port, r_txt, r_flags] =
         server_->ResolveService(interface, protocol, name, type, domain,
                                 0, // AVAHI_PROTO_INET
-                                flags);
+                                0);
     info.SetServiceName(r_name);
     info.SetIPAddress(r_address);
     info.SetPort(r_port);
