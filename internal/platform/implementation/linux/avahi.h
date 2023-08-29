@@ -91,6 +91,15 @@ protected:
   void onCacheExhausted() override;
 
 private:
+  enum LookupResultFlags {
+    kAvahiLookupResultFlagCached = 1,
+    kAvahiLookupResultFlagWideArea = 2,
+    kAvahiLookupResultFlagMulticast = 4,
+    kAvahiLookupResultLocal = 8,
+    kAvahiLookupResultOurOwn = 16,
+    kAvahiLookupResultStatic = 32,
+  };
+
   api::WifiLanMedium::DiscoveredServiceCallback discovery_cb_;
   std::shared_ptr<Server> server_;
 };

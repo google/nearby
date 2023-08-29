@@ -17,6 +17,10 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
                        << protocol << ", name: '" << name << "', type: '"
                        << type << "', domain: '" << domain
                        << "', flags: " << flags;
+  if (flags & kAvahiLookupResultLocal) {
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Ignoring local service.";
+    return;
+  }
 
   NsdServiceInfo info;
   try {
@@ -45,9 +49,9 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
   discovery_cb_.service_discovered_cb(std::move(info));
 }
 
-void ServiceBrowser::onItemRemove(const int32_t &interface, const int32_t &protocol,
-                    const std::string &name, const std::string &type,
-                    const std::string &domain, const uint32_t &flags) {
+void ServiceBrowser::onItemRemove(
+    const int32_t &interface, const int32_t &protocol, const std::string &name,
+    const std::string &type, const std::string &domain, const uint32_t &flags) {
   // TODO: Can we even resolve removed items?
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
                        << ": Item removed through the ServiceBrowser: "
@@ -55,6 +59,11 @@ void ServiceBrowser::onItemRemove(const int32_t &interface, const int32_t &proto
                        << protocol << ", name: '" << name << "', type: '"
                        << type << "', domain: '" << domain
                        << "', flags: " << flags;
+  if (flags & kAvahiLookupResultLocal) {
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Ignoring local service.";
+    return;
+  }
+
   NsdServiceInfo info;
   try {
     auto [r_iface, r_protocol, r_name, r_type, r_domain, r_host, r_aprotocol,
@@ -89,13 +98,13 @@ void ServiceBrowser::onFailure(const std::string &error) {
 
 void ServiceBrowser::onAllForNow() {
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
-                    << ": notified via ServiceBrowser that all records have "
-                       "been added for now";
+                       << ": notified via ServiceBrowser that all records have "
+                          "been added for now";
 }
 
 void ServiceBrowser::onCacheExhausted() {
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
-                       << ": notified via ServiceBrowser of cache exhaustion";  
+                       << ": notified via ServiceBrowser of cache exhaustion";
 }
 
 } // namespace avahi
