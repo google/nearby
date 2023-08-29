@@ -20,9 +20,7 @@
 namespace nearby {
 namespace linux {
 
-SubmittableExecutor::SubmittableExecutor() : SubmittableExecutor(1) {}
-
-SubmittableExecutor::SubmittableExecutor(int32_t max_concurrancy)
+SubmittableExecutor::SubmittableExecutor(size_t max_concurrancy)
     : executor_(std::make_unique<nearby::linux::Executor>(max_concurrancy)),
       shut_down_(false) {}
 

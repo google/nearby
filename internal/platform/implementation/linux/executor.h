@@ -28,8 +28,7 @@ namespace linux {
 // Executor.
 class Executor : public api::Executor {
  public:
-  Executor();
-  explicit Executor(int max_concurrency);
+  Executor(size_t max_concurrency = 1);
 
   // Before returning from destructor, executor must wait for all pending
   // jobs to finish.
@@ -41,7 +40,6 @@ class Executor : public api::Executor {
  private:
   std::unique_ptr<linux::ThreadPool> thread_pool_ = nullptr;
   std::atomic<bool> shut_down_ = false;
-  int32_t max_concurrency_;
 };
 
 }  // namespace linux

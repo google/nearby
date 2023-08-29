@@ -32,8 +32,8 @@ ScheduledExecutor::ScheduledExecutor()
 // We want Cancelable to live until both caller and executor are done with it.
 // Exclusive ownership model does not work for this case;
 // using std:shared_ptr<> instead of std::unique_ptr<>.
-std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
-    Runnable&& runnable, absl::Duration duration) {
+std::shared_ptr<api::Cancelable>
+ScheduledExecutor::Schedule(Runnable &&runnable, absl::Duration duration) {
   if (shut_down_) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Attempt to Schedule on a shut down executor.";
@@ -42,9 +42,11 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
   }
 
   // Cleans completed tasks
-  std::remove_if(
-      scheduled_tasks_.begin(), scheduled_tasks_.end(),
-      [](std::shared_ptr<ScheduledTask>& task) { return task->IsDone(); });
+  scheduled_tasks_.erase(
+      std::remove_if(
+          scheduled_tasks_.begin(), scheduled_tasks_.end(),
+          [](std::shared_ptr<ScheduledTask> &task) { return task->IsDone(); }),
+      scheduled_tasks_.end());
 
   std::shared_ptr<ScheduledTask> task =
       std::make_shared<ScheduledTask>(std::move(runnable), duration);
@@ -54,7 +56,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
   return task;
 }
 
-void ScheduledExecutor::Execute(Runnable&& runnable) {
+void ScheduledExecutor::Execute(Runnable &&runnable) {
   if (shut_down_) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Attempt to Execute on a shut down executor.";
@@ -67,7 +69,7 @@ void ScheduledExecutor::Execute(Runnable&& runnable) {
 void ScheduledExecutor::Shutdown() {
   if (!shut_down_) {
     shut_down_ = true;
-    for (auto& task : scheduled_tasks_) {
+    for (auto &task : scheduled_tasks_) {
       task->Cancel();
     }
 
@@ -78,5 +80,5 @@ void ScheduledExecutor::Shutdown() {
   NEARBY_LOGS(ERROR) << __func__
                      << ": Attempt to Shutdown on a shut down executor.";
 }
-}  // namespace linux
-}  // namespace nearby
+} // namespace linux
+} // namespace nearby
