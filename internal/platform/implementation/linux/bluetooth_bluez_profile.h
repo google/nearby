@@ -26,6 +26,7 @@
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/bluez_profile_glue.h"
 #include "internal/platform/implementation/linux/bluez_profile_manager_client_glue.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
@@ -36,6 +37,8 @@ public:
       : AdaptorInterfaces(system_bus, std::string(profile_object_path)),
         released_(false), devices_(devices) {
     registerAdaptor();
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Created a new BlueZ profile at :"
+                         << getObjectPath();
   }
   ~Profile() { unregisterAdaptor(); }
 
