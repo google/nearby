@@ -1,12 +1,12 @@
 #ifndef PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_
 
-#include "absl/synchronization/mutex.h"
+#include <sdbus-c++/AdaptorInterfaces.h>
+#include <sdbus-c++/IConnection.h>
+
 #include "glog/logging.h"
 #include "internal/platform/implementation/linux/org_freedesktop_logcontrol_server_glue.h"
 #include "internal/platform/implementation/log_message.h"
-#include <sdbus-c++/AdaptorInterfaces.h>
-#include <sdbus-c++/IConnection.h>
 
 namespace nearby {
 namespace linux {
@@ -16,7 +16,7 @@ namespace linux {
 class LogMessage : public api::LogMessage {
 public:
   LogMessage(const char *file, int line, Severity severity);
-  ~LogMessage() override {};
+  ~LogMessage() override{};
 
   void Print(const char *format, ...) override;
 
@@ -32,8 +32,9 @@ class LogControl
       public google::LogSink {
 public:
   LogControl(sdbus::IConnection &system_bus)
-      : AdaptorInterfaces(system_bus, "/com/google/nearby"),
-        severity_(api::LogMessage::LogMessage::Severity::kVerbose) {
+      : AdaptorInterfaces(system_bus, "/org/freedesktop/LogControl1"),
+        severity_(api::LogMessage::LogMessage::Severity::kVerbose),
+        log_target_(kConsole) {
     registerAdaptor();
   }
   ~LogControl() { unregisterAdaptor(); }
@@ -99,9 +100,7 @@ protected:
       log_target_ = kSyslog;
   }
 
-  std::string SyslogIdentifier() override {
-    return "com.github.com.google.nearby";
-  }
+  std::string SyslogIdentifier() override { return "com.google.nearby"; }
 
   void send(google::LogSeverity severity, const char *full_filename,
             const char *base_filename, int line, const struct ::tm *tm_time,
