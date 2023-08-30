@@ -44,7 +44,9 @@ WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus)
 
 bool WifiLanMedium::IsNetworkConnected() const {
   auto state = network_manager_->getState();
-  return state >= 50;  // NM_STATE_CONNECTED_LOCAL
+  return state == NetworkManager::kNMStateConnectedLocal ||
+         state == NetworkManager::kNMStateConnectedSite ||
+         state == NetworkManager::kNMStateConnectedGlobal;
 }
 
 std::optional<std::pair<std::string, std::string>> entry_group_key(
