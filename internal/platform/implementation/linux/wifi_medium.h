@@ -49,26 +49,60 @@ class NetworkManager final
   explicit NetworkManager(sdbus::IConnection &system_bus)
       : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
                         "/org/freedesktop/NetworkManager"),
-        state_(0) {
+        state_(kNMStateUnknown) {
     registerProxy();
     try {
-      state_ = State();
+      setState(State());
     } catch (const sdbus::Error &e) {
       DBUS_LOG_PROPERTY_GET_ERROR(this, "State", e);
     }
   }
   ~NetworkManager() { unregisterProxy(); }
 
-  std::uint32_t getState() const { return state_; }
+  // https://networkmanager.dev/docs/api/latest/nm-dbus-types.html#NMState
+  enum NMState {
+    kNMStateUnknown = 0,
+    kNMStateAsleep = 10,
+    kNMStateDisconnected = 20,
+    kNMStateDisconnecting = 30,
+    kNMStateConnecting = 40,
+    kNMStateConnectedLocal = 50,
+    kNMStateConnectedSite = 60,
+    kNMStateConnectedGlobal = 70,
+  };
+
+  NMState getState() const { return state_; }
 
  protected:
   void onCheckPermissions() override {}
-  void onStateChanged(const uint32_t &state) override { state_ = state; }
+  void onStateChanged(const uint32_t &state) override { setState(state); }
   void onDeviceAdded(const sdbus::ObjectPath &device_path) override {}
   void onDeviceRemoved(const sdbus::ObjectPath &device_path) override {}
 
  private:
-  std::atomic_uint32_t state_;
+  void inline setState(std::uint32_t val) {
+#define NM_STATE_CASE_SET(k) \
+  case (k):                  \
+    state_ = (k);            \
+    break
+
+    switch (val) {
+      NM_STATE_CASE_SET(kNMStateAsleep);
+      NM_STATE_CASE_SET(kNMStateDisconnected);
+      NM_STATE_CASE_SET(kNMStateDisconnecting);
+      NM_STATE_CASE_SET(kNMStateConnecting);
+      NM_STATE_CASE_SET(kNMStateConnectedLocal);
+      NM_STATE_CASE_SET(kNMStateConnectedSite);
+      NM_STATE_CASE_SET(kNMStateConnectedGlobal);
+      default:
+        NEARBY_LOGS(ERROR) << __func__ << "invalid NMState value: " << val
+                           << ", setting state to unknown";
+        NM_STATE_CASE_SET(kNMStateUnknown);
+    }
+#undef NM_STATE_CASE_SET
+  };
+
+  std::atomic<NMState> state_;
 };
 
 class NetworkManagerIP4Config
