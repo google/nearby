@@ -37,7 +37,7 @@ api::WifiCapability &NetworkManagerWifiMedium::GetCapability() {
   try {
     auto cap_mask = WirelessCapabilities();
     // https://networkmanager.dev/docs/api/latest/nm-dbus-types.html#NMDeviceWifiCapabilities
-    capability_.supports_5_ghz = (cap_mask & 0x00000400);
+    capability_.supports_5_ghz = (cap_mask & 0x00000400) != 0;
     capability_.supports_6_ghz = false;
     capability_.support_wifi_direct = true;
   } catch (const sdbus::Error &e) {
@@ -121,13 +121,13 @@ bool NetworkManagerWifiMedium::Scan(
   // absl::MutexLock l(&scan_result_callback_lock_);
   // scan_result_callback_ = scan_result_callback;
 
-  // try {
-  //   RequestScan(std::map<std::string, sdbus::Variant>());
-  // } catch (const sdbus::Error &e) {
-  //   scan_result_callback_ = std::nullopt;
-  //   DBUS_LOG_METHOD_CALL_ERROR(&getProxy(), "RequestScan", e);
-  //   return false;
-  // }
+  try {
+    RequestScan({});
+  } catch (const sdbus::Error &e) {
+    scan_result_callback_ = std::nullopt;
+    DBUS_LOG_METHOD_CALL_ERROR(&getProxy(), "RequestScan", e);
+    return false;
+  }
   return false;
 }
 
@@ -136,8 +136,12 @@ NetworkManagerWifiMedium::SearchBySSIDNoScan(
     std::vector<std::uint8_t> &ssid_bytes) {
   absl::ReaderMutexLock l(&known_access_points_lock_);
   for (auto &[object_path, ap] : known_access_points_) {
-    if (ap->Ssid() == ssid_bytes) {
-      return ap;
+    try {
+      if (ap->Ssid() == ssid_bytes) {
+        return ap;
+      }
+    } catch (const sdbus::Error &e) {
+      DBUS_LOG_PROPERTY_GET_ERROR(ap, "Ssid", e);
     }
   }
 
