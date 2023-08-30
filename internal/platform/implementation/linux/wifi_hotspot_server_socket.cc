@@ -30,13 +30,13 @@ std::string NetworkManagerWifiHotspotServerSocket::GetIPAddress() const {
         << __func__
         << ": Could not find any IPv4 addresses for active connection "
         << active_connection_path_;
-    return std::string();
+    return {};
   }
   return ip4addresses[0];
 }
 
 int NetworkManagerWifiHotspotServerSocket::GetPort() const {
-  struct sockaddr_in sin;
+  struct sockaddr_in sin{};
   socklen_t len = sizeof(sin);
   auto ret =
       getsockname(fd_.get(), reinterpret_cast<struct sockaddr *>(&sin), &len);
@@ -51,7 +51,7 @@ int NetworkManagerWifiHotspotServerSocket::GetPort() const {
 
 std::unique_ptr<api::WifiHotspotSocket>
 NetworkManagerWifiHotspotServerSocket::Accept() {
-  struct sockaddr_in addr;
+  struct sockaddr_in addr{};
   socklen_t len = sizeof(addr);
 
   auto conn =
@@ -67,10 +67,9 @@ NetworkManagerWifiHotspotServerSocket::Accept() {
 }
 
 Exception NetworkManagerWifiHotspotServerSocket::Close() {
-  int fd = fd_.release();
-  auto ret = close(fd);
+  auto ret = close(fd_.release());
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket " << fd << ": "
+    NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket: "
                        << std::strerror(errno);
     return {Exception::kFailed};
   }

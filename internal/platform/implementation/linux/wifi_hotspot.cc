@@ -51,7 +51,7 @@ NetworkManagerWifiHotspotMedium::ConnectToService(
 
   NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
                        << port;
-  struct sockaddr_in addr;
+  struct sockaddr_in addr{};
   addr.sin_addr.s_addr = inet_addr(std::string(ip_address).c_str());
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
