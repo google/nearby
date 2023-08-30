@@ -27,124 +27,12 @@
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/connection_active_client.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/device_wireless_client.h"
+#include "internal/platform/implementation/linux/network_manager_active_connection.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi.h"
 
 namespace nearby {
 namespace linux {
-
-std::ostream &operator<<(std::ostream &s,
-                         const ActiveConnectionStateReason &reason) {
-  switch (reason) {
-    case kStateReasonUnknown:
-      return s
-             << "The reason for the active connection state change is unknown.";
-    case kStateReasonNone:
-      return s << "No reason was given for the active connection state change.";
-    case kStateReasonUserDisconnected:
-      return s << "The active connection changed state because the user "
-                  "disconnected it.";
-    case kStateReasonDeviceDisconnected:
-      return s
-             << "The active connection changed state because the device it was "
-                "using was disconnected.";
-    case kStateReasonServiceStopped:
-      return s << "The service providing the VPN connection was stopped.";
-    case kStateReasonIPConfigInvalid:
-      return s << "The IP config of the active connection was invalid.";
-    case kStateReasonConnectTimeout:
-      return s << "The connection attempt to the VPN service timed out.";
-    case kStateReasonServiceStartTimeout:
-      return s << "A timeout occurred while starting the service providing the "
-                  "VPN connection.";
-    case kStateReasonServiceStartFailed:
-      return s << "Starting the service providing the VPN connection failed.";
-    case kStateReasonNoSecrets:
-      return s << "Necessary secrets for the connection were not provided.";
-    case kStateReasonLoginFailed:
-      return s << "Authentication to the server failed.";
-    case kStateReasonConnectionRemoved:
-      return s << "The connection was deleted from settings.";
-    case kStateReasonDependencyFailed:
-      return s << "Master connection of this connection failed to activate.";
-    case kStateReasonDeviceRealizeFailed:
-      return s << "Could not create the software device link.";
-    case kStateReasonDeviceRemoved:
-      return s << "The device this connection depended on disappeared.";
-  }
-}
-
-std::unique_ptr<NetworkManagerIP4Config>
-NetworkManagerObjectManager::GetIp4Config(
-    const sdbus::ObjectPath &active_connection) {
-  std::map<sdbus::ObjectPath,
-           std::map<std::string, std::map<std::string, sdbus::Variant>>>
-      objects;
-  try {
-    objects = GetManagedObjects();
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
-    return nullptr;
-  }
-
-  for (auto &[object_path, interfaces] : objects) {
-    if (object_path.find("/org/freedesktop/NetworkManager/ActiveConnection/",
-                         0) == 0) {
-      if (interfaces.count(org::freedesktop::NetworkManager::Connection::
-                               Active_proxy::INTERFACE_NAME) == 1) {
-        auto props = interfaces[org::freedesktop::NetworkManager::Connection::
-                                    Active_proxy::INTERFACE_NAME];
-        sdbus::ObjectPath specific_object = props["SpecificObject"];
-        sdbus::ObjectPath ip4config = props["Ip4Config"];
-
-        if (specific_object == active_connection)
-          return std::make_unique<NetworkManagerIP4Config>(
-              getProxy().getConnection(), ip4config);
-      }
-    }
-  }
-
-  return nullptr;
-}
-
-std::unique_ptr<NetworkManagerActiveConnection>
-NetworkManagerObjectManager::GetActiveConnectionForAccessPoint(
-    const sdbus::ObjectPath &access_point,
-    const sdbus::ObjectPath &device_path) {
-  std::map<sdbus::ObjectPath,
-           std::map<std::string, std::map<std::string, sdbus::Variant>>>
-      objects;
-  try {
-    objects = GetManagedObjects();
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
-    return nullptr;
-  }
-
-  for (auto &[object_path, interfaces] : objects) {
-    if (object_path.find("/org/freedesktop/NetworkManager/ActiveConnection/") ==
-        0) {
-      if (interfaces.count(org::freedesktop::NetworkManager::Connection::
-                               Active_proxy::INTERFACE_NAME) == 1) {
-        auto props = interfaces[org::freedesktop::NetworkManager::Connection::
-                                    Active_proxy::INTERFACE_NAME];
-        sdbus::ObjectPath specific_object = props["SpecificObject"];
-        if (specific_object == access_point) {
-          std::vector<sdbus::ObjectPath> devices = props["Devices"];
-          for (auto &path : devices) {
-            if (path == device_path) {
-              return std::make_unique<NetworkManagerActiveConnection>(
-                  getProxy().getConnection(), object_path);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return nullptr;
-}
-
 api::WifiCapability &NetworkManagerWifiMedium::GetCapability() {
   try {
     auto cap_mask = WirelessCapabilities();
@@ -222,16 +110,9 @@ void NetworkManagerWifiMedium::onPropertiesChanged(
     return;
   }
 
-  for (auto &[property, val] : changedProperties) {
-    if (property == "LastScan") {
-      {
-        absl::MutexLock l(&last_scan_lock_);
-        last_scan_ = val;
-      }
-      // absl::ReaderMutexLock l(&scan_result_callback_lock_);
-      // if (scan_result_callback_.has_value()) {
-      // }
-    }
+  if (changedProperties.count("LastScan") == 1) {
+    absl::MutexLock l(&last_scan_lock_);
+    last_scan_ = changedProperties.at("LastScan");
   }
 }
 
@@ -413,8 +294,8 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
                        << active_conn_path
                        << " failed to activate, NMActiveConnectionStateReason:"
                        << *reason;
-    if (*reason == ActiveConnectionStateReason::kStateReasonNoSecrets ||
-        *reason == ActiveConnectionStateReason::kStateReasonLoginFailed)
+    if (*reason == NetworkManagerActiveConnection::kStateReasonNoSecrets ||
+        *reason == NetworkManagerActiveConnection::kStateReasonLoginFailed)
       return api::WifiConnectionStatus::kAuthFailure;
   }
 
