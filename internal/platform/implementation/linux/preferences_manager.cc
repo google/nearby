@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/preferences_manager.h"
-
 #include <filesystem>  // NOLINT(build/c++17)
 #include <memory>
 #include <optional>
@@ -22,10 +20,11 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#include "internal/platform/implementation/linux/preferences_manager.h"
 #include "internal/platform/implementation/linux/preferences_repository.h"
 #include "internal/platform/logging.h"
+#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 namespace nearby {
 namespace linux {

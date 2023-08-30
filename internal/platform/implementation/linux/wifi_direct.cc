@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include <arpa/inet.h>
-#include <memory>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <memory>
 
 #include "internal/platform/implementation/linux/wifi_direct.h"
 #include "internal/platform/implementation/linux/wifi_direct_server_socket.h"
@@ -146,7 +146,7 @@ bool NetworkManagerWifiDirectMedium::DisconnectWifiDirect() {
 bool NetworkManagerWifiDirectMedium::ConnectedToWifi() {
   try {
     auto mode = wireless_device_->Mode();
-    return mode == 2; // NM_802_11_MODE_INFRA
+    return mode == 2;  // NM_802_11_MODE_INFRA
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
     return false;
@@ -156,15 +156,14 @@ bool NetworkManagerWifiDirectMedium::ConnectedToWifi() {
 bool NetworkManagerWifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials *wifi_direct_credentials) {
   // According to the comments in the windows implementation, the wifi direct
-  // medium is currently just a regular wifi hotspot.  
+  // medium is currently just a regular wifi hotspot.
   auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
       network_manager_, system_bus_, wireless_device_->getObjectPath());
   auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_, network_manager_,
                                                  std::move(wireless_device));
 
   HotspotCredentials hotspot_creds;
-  if (!hotspot.StartWifiHotspot(&hotspot_creds))
-    return false;
+  if (!hotspot.StartWifiHotspot(&hotspot_creds)) return false;
 
   wifi_direct_credentials->SetSSID(hotspot_creds.GetSSID());
   wifi_direct_credentials->SetPassword(hotspot_creds.GetPassword());
@@ -180,5 +179,5 @@ bool NetworkManagerWifiDirectMedium::StopWifiDirect() {
   return hotspot.DisconnectWifiHotspot();
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

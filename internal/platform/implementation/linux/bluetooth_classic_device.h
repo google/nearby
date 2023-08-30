@@ -33,28 +33,27 @@ namespace linux {
 class BluetoothDevice
     : public api::BluetoothDevice,
       public sdbus::ProxyInterfaces<org::bluez::Device1_proxy> {
-public:
- BluetoothDevice(const BluetoothDevice &) = delete;
- BluetoothDevice(BluetoothDevice &&) = delete;
- BluetoothDevice &operator=(const BluetoothDevice &) = delete;
- BluetoothDevice &operator=(BluetoothDevice &&) = delete;
- BluetoothDevice(sdbus::IConnection &system_bus, sdbus::ObjectPath device_object_path);
- ~BluetoothDevice() override {
-   unregisterProxy();
- }
+ public:
+  BluetoothDevice(const BluetoothDevice &) = delete;
+  BluetoothDevice(BluetoothDevice &&) = delete;
+  BluetoothDevice &operator=(const BluetoothDevice &) = delete;
+  BluetoothDevice &operator=(BluetoothDevice &&) = delete;
+  BluetoothDevice(sdbus::IConnection &system_bus,
+                  sdbus::ObjectPath device_object_path);
+  ~BluetoothDevice() override { unregisterProxy(); }
 
- // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
- std::string GetName() const override;
+  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
+  std::string GetName() const override;
 
- // Returns BT MAC address assigned to this device.
- std::string GetMacAddress() const override;
+  // Returns BT MAC address assigned to this device.
+  std::string GetMacAddress() const override;
 
- bool ConnectToProfile(absl::string_view service_uuid);
+  bool ConnectToProfile(absl::string_view service_uuid);
 
- void set_pair_reply_callback(
-     absl::AnyInvocable<void(const sdbus::Error *)> cb) {
-   absl::MutexLock l(&pair_callback_lock_);
-   on_pair_reply_cb_ = std::move(cb);
+  void set_pair_reply_callback(
+      absl::AnyInvocable<void(const sdbus::Error *)> cb) {
+    absl::MutexLock l(&pair_callback_lock_);
+    on_pair_reply_cb_ = std::move(cb);
   }
 
   void reset_pair_reply_callback() {
@@ -62,14 +61,14 @@ public:
     on_pair_reply_cb_ = DefaultCallback<const sdbus::Error *>();
   }
 
-protected:
+ protected:
   void onConnectProfileReply(const sdbus::Error *error) override;
   void onPairReply(const sdbus::Error *error) override {
     absl::ReaderMutexLock l(&pair_callback_lock_);
     on_pair_reply_cb_(error);
   };
 
-private:
+ private:
   absl::Mutex pair_callback_lock_;
   absl::AnyInvocable<void(const sdbus::Error *)> on_pair_reply_cb_ =
       DefaultCallback<const sdbus::Error *>();
@@ -82,7 +81,7 @@ private:
 class MonitoredBluetoothDevice final
     : public BluetoothDevice,
       public sdbus::ProxyInterfaces<sdbus::Properties_proxy> {
-public:
+ public:
   using sdbus::ProxyInterfaces<sdbus::Properties_proxy>::registerProxy;
   using sdbus::ProxyInterfaces<sdbus::Properties_proxy>::unregisterProxy;
   using sdbus::ProxyInterfaces<sdbus::Properties_proxy>::getObjectPath;
@@ -97,17 +96,17 @@ public:
       ObserverList<api::BluetoothClassicMedium::Observer> &observers);
   ~MonitoredBluetoothDevice() override { unregisterProxy(); }
 
-protected:
+ protected:
   void onPropertiesChanged(
       const std::string &interfaceName,
       const std::map<std::string, sdbus::Variant> &changedProperties,
       const std::vector<std::string> &invalidatedProperties) override;
 
-private:
+ private:
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;
 };
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

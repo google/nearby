@@ -22,8 +22,8 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
-#include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/linux/executor.h"
+#include "internal/platform/implementation/scheduled_executor.h"
 
 namespace nearby {
 namespace linux {

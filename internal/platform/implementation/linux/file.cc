@@ -17,11 +17,11 @@
 #include <algorithm>
 #include <codecvt>
 #include <cstddef>
+#include <filesystem>
 #include <ios>
 #include <locale>
 #include <memory>
 #include <string>
-#include <filesystem>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
@@ -40,7 +40,8 @@ std::unique_ptr<IOFile> IOFile::CreateInputFile(
 IOFile::IOFile(const absl::string_view file_path, size_t size)
     : path_(file_path) {
   // Always open input file path as wide string on Linux platform.
-  file_.open(std::filesystem::path(linux::string_to_wstring(path_)), std::ios::binary | std::ios::in | std::ios::ate);
+  file_.open(std::filesystem::path(linux::string_to_wstring(path_)),
+             std::ios::binary | std::ios::in | std::ios::ate);
 
   total_size_ = file_.tellg();
   file_.seekg(0);
@@ -54,7 +55,8 @@ IOFile::IOFile(const absl::string_view file_path)
     : file_(), path_(file_path), total_size_(0) {
   // Always open input file path as wide string on Windows platform.
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  file_.open(std::filesystem::path(converter.from_bytes(path_)), std::ios::binary | std::ios::out);
+  file_.open(std::filesystem::path(converter.from_bytes(path_)),
+             std::ios::binary | std::ios::out);
 }
 
 ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {

@@ -24,12 +24,13 @@ namespace nearby {
 namespace linux {
 class NetworkManagerWifiHotspotServerSocket
     : public api::WifiHotspotServerSocket {
-public:
+ public:
   NetworkManagerWifiHotspotServerSocket(
       int socket, sdbus::IConnection &system_bus,
       sdbus::ObjectPath active_connection_path,
       std::shared_ptr<NetworkManager> network_manager)
-      : fd_(socket), system_bus_(system_bus),
+      : fd_(socket),
+        system_bus_(system_bus),
         active_connection_path_(std::move(active_connection_path)),
         network_manager_(std::move(network_manager)) {}
 
@@ -38,13 +39,13 @@ public:
   std::unique_ptr<api::WifiHotspotSocket> Accept() override;
   Exception Close() override;
 
-private:
+ private:
   sdbus::UnixFd fd_;
   sdbus::IConnection &system_bus_;
   sdbus::ObjectPath active_connection_path_;
   std::shared_ptr<NetworkManager> network_manager_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

@@ -34,9 +34,9 @@
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/implementation/linux/condition_variable.h"
 #include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/implementation/linux/mutex.h"
 #include "internal/platform/implementation/linux/preferences_manager.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
@@ -57,41 +57,41 @@
 
 namespace nearby {
 namespace api {
-std::string
-ImplementationPlatform::GetCustomSavePath(const std::string &parent_folder,
-                                          const std::string &file_name) {
+std::string ImplementationPlatform::GetCustomSavePath(
+    const std::string &parent_folder, const std::string &file_name) {
   auto fs = std::filesystem::path(parent_folder);
   return fs / file_name;
 }
 
-std::string
-ImplementationPlatform::GetDownloadPath(const std::string &parent_folder,
-                                        const std::string &file_name) {
+std::string ImplementationPlatform::GetDownloadPath(
+    const std::string &parent_folder, const std::string &file_name) {
   auto downloads = std::filesystem::path(getenv("XDG_DOWNLOAD_DIR"));
 
   return downloads / std::filesystem::path(parent_folder).filename() /
          std::filesystem::path(file_name).filename();
 }
 
-std::string
-ImplementationPlatform::GetDownloadPath(const std::string &file_name) {
+std::string ImplementationPlatform::GetDownloadPath(
+    const std::string &file_name) {
   auto downloads = std::filesystem::path(getenv("XDG_DOWNLOAD_DIR"));
   return downloads / std::filesystem::path(file_name).filename();
 }
 
-std::string
-ImplementationPlatform::GetAppDataPath(const std::string &file_name) {
+std::string ImplementationPlatform::GetAppDataPath(
+    const std::string &file_name) {
   auto state = std::filesystem::path(getenv("XDG_STATE_HOME"));
   return state / std::filesystem::path(file_name).filename();
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
 
-std::unique_ptr<api::AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {
+std::unique_ptr<api::AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
+    bool initial_value) {
   return std::make_unique<linux::AtomicBoolean>(initial_value);
 }
 
-std::unique_ptr<api::AtomicUint32> ImplementationPlatform::CreateAtomicUint32(std::uint32_t value) {
+std::unique_ptr<api::AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
+    std::uint32_t value) {
   return std::make_unique<linux::AtomicUint32>(value);
 }
 
@@ -102,8 +102,8 @@ ImplementationPlatform::CreateCountDownLatch(std::int32_t count) {
 
 #pragma push_macro("CreateMutex")
 #undef CreateMutex
-std::unique_ptr<api::Mutex>
-ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
+std::unique_ptr<api::Mutex> ImplementationPlatform::CreateMutex(
+    Mutex::Mode mode) {
   return std::make_unique<linux::Mutex>(mode);
 }
 #pragma pop_macro("CreateMutex")
@@ -113,26 +113,25 @@ ImplementationPlatform::CreateConditionVariable(api::Mutex *mutex) {
   return std::make_unique<linux::ConditionVariable>(mutex);
 }
 
-std::unique_ptr<api::InputFile>
-ImplementationPlatform::CreateInputFile(PayloadId id, std::int64_t total_size) {
+std::unique_ptr<api::InputFile> ImplementationPlatform::CreateInputFile(
+    PayloadId id, std::int64_t total_size) {
   auto path = GetDownloadPath(std::to_string(id));
   return nearby::shared::IOFile::CreateInputFile(path, total_size);
 }
 
-std::unique_ptr<InputFile>
-ImplementationPlatform::CreateInputFile(const std::string &file_path,
-                                        size_t size) {
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
+    const std::string &file_path, size_t size) {
   return nearby::shared::IOFile::CreateInputFile(file_path, size);
 }
 
-std::unique_ptr<OutputFile>
-ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
+    PayloadId payload_id) {
   return nearby::shared::IOFile::CreateOutputFile(
       GetDownloadPath("", std::to_string(payload_id)));
 }
 
-std::unique_ptr<OutputFile>
-ImplementationPlatform::CreateOutputFile(const std::string &file_path) {
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
+    const std::string &file_path) {
   std::filesystem::path path(file_path);
   try {
     std::filesystem::create_directories(path.parent_path());
@@ -144,9 +143,8 @@ ImplementationPlatform::CreateOutputFile(const std::string &file_path) {
   return nearby::shared::IOFile::CreateOutputFile(path.string());
 }
 
-std::unique_ptr<api::LogMessage>
-ImplementationPlatform::CreateLogMessage(const char *file, int line,
-                                         LogMessage::Severity severity) {
+std::unique_ptr<api::LogMessage> ImplementationPlatform::CreateLogMessage(
+    const char *file, int line, LogMessage::Severity severity) {
   return std::make_unique<linux::LogMessage>(file, line, severity);
 }
 
@@ -197,8 +195,8 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
       linux::getSystemBusConnection(), path);
 }
 
-std::unique_ptr<BleMedium>
-ImplementationPlatform::CreateBleMedium(BluetoothAdapter &) {
+std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
+    BluetoothAdapter &) {
   return std::make_unique<linux::BleMedium>();
 }
 
@@ -207,8 +205,8 @@ ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
   return std::make_unique<linux::BleV2Medium>();
 }
 
-static std::unique_ptr<linux::NetworkManagerWifiMedium>
-createWifiMedium(std::shared_ptr<linux::NetworkManager> nm) {
+static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
+    std::shared_ptr<linux::NetworkManager> nm) {
   std::vector<sdbus::ObjectPath> device_paths;
 
   try {
@@ -299,8 +297,8 @@ std::unique_ptr<api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<linux::DeviceInfo>(linux::getSystemBusConnection());
 }
 
-absl::StatusOr<api::WebResponse>
-ImplementationPlatform::SendRequest(const WebRequest &request) {
+absl::StatusOr<api::WebResponse> ImplementationPlatform::SendRequest(
+    const WebRequest &request) {
   if (request.body.size() >= (8 * 1024 * 1024)) {
     return absl::Status(absl::StatusCode::kResourceExhausted,
                         "request body too large");
@@ -375,5 +373,5 @@ ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
 }
 #endif
 
-} // namespace api
-} // namespace nearby
+}  // namespace api
+}  // namespace nearby

@@ -17,8 +17,8 @@
 #include <functional>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {

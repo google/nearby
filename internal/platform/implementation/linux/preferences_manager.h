@@ -26,10 +26,10 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/platform/implementation/linux/preferences_repository.h"
+#include "internal/platform/implementation/preferences_manager.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/platform/implementation/preferences_manager.h"
-#include "internal/platform/implementation/linux/preferences_repository.h"
 
 namespace nearby {
 namespace linux {

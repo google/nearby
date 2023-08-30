@@ -15,9 +15,9 @@
 #ifndef PLATFORM_IMPL_LINUX_OUTPUT_FILE_H_
 #define PLATFORM_IMPL_LINUX_OUTPUT_FILE_H_
 
-#include "internal/platform/implementation/output_file.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/output_file.h"
 
 namespace nearby {
 namespace linux {

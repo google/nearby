@@ -30,23 +30,23 @@ namespace nearby {
 namespace linux {
 
 class ThreadPool {
-public:
- ThreadPool(const ThreadPool &) = delete;
- ThreadPool(ThreadPool &&) = delete;
- ThreadPool &operator=(const ThreadPool &) = delete;
- ThreadPool &operator=(ThreadPool &&) = delete;
- explicit ThreadPool(size_t max_pool_size);
- ~ThreadPool();
+ public:
+  ThreadPool(const ThreadPool &) = delete;
+  ThreadPool(ThreadPool &&) = delete;
+  ThreadPool &operator=(const ThreadPool &) = delete;
+  ThreadPool &operator=(ThreadPool &&) = delete;
+  explicit ThreadPool(size_t max_pool_size);
+  ~ThreadPool();
 
- bool Start() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Start() ABSL_LOCKS_EXCLUDED(mutex_);
 
- // Runs a task on thread pool. The result indicates whether the task is put
- // into the thread pool.
- bool Run(Runnable &&task) ABSL_LOCKS_EXCLUDED(mutex_);
+  // Runs a task on thread pool. The result indicates whether the task is put
+  // into the thread pool.
+  bool Run(Runnable &&task) ABSL_LOCKS_EXCLUDED(mutex_);
 
- void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
+  void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
 
-private:
+ private:
   Runnable NextTask() ABSL_LOCKS_EXCLUDED(mutex_);
 
   size_t max_pool_size_;
@@ -56,7 +56,7 @@ private:
   std::vector<std::thread> threads_ ABSL_GUARDED_BY(mutex_);
   std::queue<Runnable> tasks_ ABSL_GUARDED_BY(mutex_);
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
-#endif //  PLATFORM_IMPL_LINUX_THREAD_POOL_H_
+#endif  //  PLATFORM_IMPL_LINUX_THREAD_POOL_H_

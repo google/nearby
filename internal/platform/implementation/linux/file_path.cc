@@ -23,8 +23,8 @@
 
 #include "absl/strings/str_cat.h"
 #include "internal/platform/implementation/linux/dbus.h"
-#include "internal/platform/implementation/linux/utils.h"
 #include "internal/platform/implementation/linux/device_info.h"
+#include "internal/platform/implementation/linux/utils.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -63,9 +63,8 @@ std::wstring FilePath::GetDownloadPathInternal(std::wstring parent_folder,
     // If grabbing the download path fails then we make a custom one
     base_path = getenv("HOME");
     base_path.append("/Downloads");
-  }
-  else {
-      base_path = download_path.value();
+  } else {
+    base_path = download_path.value();
   }
 
   // If parent_folder starts with a \\ or /, then strip it
@@ -152,7 +151,8 @@ std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
               file_name2);
 
     file.clear();
-    file.open(wstring_to_string(target), std::fstream::binary | std::fstream::in);
+    file.open(wstring_to_string(target),
+              std::fstream::binary | std::fstream::in);
   }
 
   if (count > 0) {
@@ -186,13 +186,12 @@ void FilePath::SanitizePath(std::wstring& path) {
 char kIllegalFileCharacters[] = {'/'};
 
 void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
-
-  for (auto &character : path) {
+  for (auto& character : path) {
     // If 0 < character < 32, it's illegal, replace it
     if (character > 0 && character < 32) {
       NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
-                        << " replaced \'" << std::string(1, character) << "\' with \'"
-                        << std::string(1, kReplacementChar);
+                        << " replaced \'" << std::string(1, character)
+                        << "\' with \'" << std::string(1, kReplacementChar);
       character = kReplacementChar;
     }
     for (auto illegal_character : kIllegalFileCharacters) {

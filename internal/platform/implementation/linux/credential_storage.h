@@ -50,15 +50,15 @@ class CredentialStorage : public api::CredentialStorage {
                              absl::string_view account_name,
                              nearby::internal::LocalCredential credential,
                              SaveCredentialsResultCallback callback) override;
-  void
-  GetPublicCredentials(const CredentialSelector &credential_selector,
-                       PublicCredentialType public_credential_type,
-                       GetPublicCredentialsResultCallback callback) override;
+  void GetPublicCredentials(
+      const CredentialSelector &credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) override;
 
-private:
+ private:
   std::unique_ptr<sdbus::IProxy> proxy;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

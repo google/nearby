@@ -13,12 +13,11 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/linux/output_file.h"
-
 #include "gtest/gtest.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/payload_id.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/windows/test_utils.h"
+#include "internal/platform/payload_id.h"
 
 class OutputFileTests : public testing::Test {
  protected:
@@ -33,7 +32,8 @@ class OutputFileTests : public testing::Test {
   // You can define per-test tear-down logic as usual.
   void TearDown() override {
     nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-    if (std::filesystem::exists(test_utils::GetPayloadPath(payloadId).c_str())) {
+    if (std::filesystem::exists(
+            test_utils::GetPayloadPath(payloadId).c_str())) {
       std::filesystem::remove(test_utils::GetPayloadPath(payloadId).c_str());
     }
   }

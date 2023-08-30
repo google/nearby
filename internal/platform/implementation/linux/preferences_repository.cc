@@ -11,16 +11,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/preferences_repository.h"
-
 #include <exception>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
 #include <optional>
 
+#include "internal/platform/implementation/linux/preferences_repository.h"
+#include "internal/platform/logging.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {

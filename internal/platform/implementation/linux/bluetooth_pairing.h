@@ -30,7 +30,7 @@
 namespace nearby {
 namespace linux {
 class BluetoothPairing final : public api::BluetoothPairing {
-public:
+ public:
   BluetoothPairing(BluetoothAdapter &adapter, BluetoothDevice &remote_device);
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
@@ -39,7 +39,7 @@ public:
   bool Unpair() override;
   bool IsPaired() override;
 
-private:
+ private:
   void pairing_reply_handler(const sdbus::Error *e);
 
   sdbus::PendingAsyncCall pair_async_call_;
@@ -49,7 +49,7 @@ private:
 
   api::BluetoothPairingCallback pairing_cb_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

@@ -12,17 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/preferences_repository.h"
-
 #include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
 #include <optional>
 
 #include "gtest/gtest.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/platform.h"
+#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
+#include "internal/platform/implementation/linux/preferences_repository.h"
 
 namespace nearby {
 namespace linux {

@@ -27,11 +27,12 @@
 namespace nearby {
 namespace linux {
 class WifiLanServerSocket : public api::WifiLanServerSocket {
-public:
+ public:
   explicit WifiLanServerSocket(int socket,
-                      std::shared_ptr<NetworkManager> network_manager,
-                      sdbus::IConnection &system_bus)
-      : fd_(sdbus::UnixFd(socket)), network_manager_(std::move(network_manager)),
+                               std::shared_ptr<NetworkManager> network_manager,
+                               sdbus::IConnection &system_bus)
+      : fd_(sdbus::UnixFd(socket)),
+        network_manager_(std::move(network_manager)),
         system_bus_(system_bus) {}
 
   std::string GetIPAddress() const override;
@@ -40,11 +41,11 @@ public:
   std::unique_ptr<api::WifiLanSocket> Accept() override;
   Exception Close() override;
 
-private:
+ private:
   sdbus::UnixFd fd_;
   std::shared_ptr<NetworkManager> network_manager_;
   sdbus::IConnection &system_bus_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 #endif

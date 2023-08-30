@@ -18,8 +18,8 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -63,26 +63,26 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
 
 bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
   switch (scan_mode) {
-  case ScanMode::kConnectable:
-    return SetStatus(Status::kEnabled);
-  case ScanMode::kConnectableDiscoverable: {
-    if (!SetStatus(Status::kEnabled)) {
-      return false;
-    }
+    case ScanMode::kConnectable:
+      return SetStatus(Status::kEnabled);
+    case ScanMode::kConnectableDiscoverable: {
+      if (!SetStatus(Status::kEnabled)) {
+        return false;
+      }
 
-    try {
-      bluez_adapter_->Discoverable(true);
-    } catch (const sdbus::Error &e) {
-      DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Discoverable", e);
-      return false;
-    }
+      try {
+        bluez_adapter_->Discoverable(true);
+      } catch (const sdbus::Error &e) {
+        DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Discoverable", e);
+        return false;
+      }
 
-    return true;
-  }
-  case ScanMode::kNone:
-    return SetStatus(Status::kDisabled);
-  default:
-    return false;
+      return true;
+    }
+    case ScanMode::kNone:
+      return SetStatus(Status::kDisabled);
+    default:
+      return false;
   }
 }
 
@@ -119,5 +119,5 @@ std::string BluetoothAdapter::GetMacAddress() const {
   }
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

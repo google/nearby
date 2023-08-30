@@ -20,13 +20,13 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluez.h"
-#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 
 namespace nearby {
 namespace linux {
 class BluezAdapter : public sdbus::ProxyInterfaces<org::bluez::Adapter1_proxy> {
-public:
+ public:
   BluezAdapter(sdbus::IConnection &system_bus,
                const sdbus::ObjectPath &adapter_object_path)
       : ProxyInterfaces(system_bus, bluez::SERVICE_DEST, adapter_object_path) {
@@ -36,7 +36,7 @@ public:
 };
 
 class BluetoothAdapter : public api::BluetoothAdapter {
-public:
+ public:
   BluetoothAdapter(sdbus::IConnection &system_bus,
                    const sdbus::ObjectPath &adapter_object_path)
       : bluez_adapter_(
@@ -81,11 +81,11 @@ public:
 
   BluezAdapter &GetBluezAdapterObject() { return *bluez_adapter_; }
 
-private:
+ private:
   std::unique_ptr<BluezAdapter> bluez_adapter_;
   bool persist_name_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
-#endif // PLATFORM_IMPL_LINUX_BLUETOOTH_ADAPTER_H_
+#endif  // PLATFORM_IMPL_LINUX_BLUETOOTH_ADAPTER_H_

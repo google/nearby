@@ -16,11 +16,11 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <sdbus-c++/Error.h>
 #include <string>
 #include <tuple>
 
 #include <sdbus-c++/AdaptorInterfaces.h>
+#include <sdbus-c++/Error.h>
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IObject.h>
 #include <sdbus-c++/IProxy.h>
@@ -172,10 +172,9 @@ void ProfileManager::Unregister(absl::string_view service_uuid) {
 
 // Get a service record FD for a connected profile (identified by service_uuid)
 // to the given device.
-std::optional<sdbus::UnixFd>
-ProfileManager::GetServiceRecordFD(api::BluetoothDevice &remote_device,
-                                   absl::string_view service_uuid,
-                                   CancellationFlag *cancellation_flag) {
+std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
+    api::BluetoothDevice &remote_device, absl::string_view service_uuid,
+    CancellationFlag *cancellation_flag) {
   if (!ProfileRegistered(service_uuid)) {
     NEARBY_LOGS(ERROR) << __func__ << ": Service " << service_uuid
                        << " is not registered";
@@ -245,8 +244,7 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid) {
   auto mac_addr = it->first;
   auto [fd, properties] = it->second.back();
   it->second.pop_back();
-  if (it->second.empty())
-    profile->connections_.erase(it);
+  if (it->second.empty()) profile->connections_.erase(it);
   profile->connections_lock_.Unlock();
 
   auto maybe_device = devices_.get_device_by_address(mac_addr);
@@ -259,5 +257,5 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid) {
   return std::pair(*maybe_device, fd);
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

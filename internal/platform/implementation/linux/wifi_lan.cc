@@ -13,17 +13,17 @@
 // limitations under the License.
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <netinet/in.h>
-#include <sdbus-c++/Types.h>
-#include <sys/socket.h>
+#include <utility>
 
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/IConnection.h>
-#include <utility>
+#include <sdbus-c++/Types.h>
 
 #include "absl/strings/substitute.h"
 #include "internal/platform/implementation/linux/avahi.h"
@@ -44,11 +44,11 @@ WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus)
 
 bool WifiLanMedium::IsNetworkConnected() const {
   auto state = network_manager_->getState();
-  return state >= 50; // NM_STATE_CONNECTED_LOCAL
+  return state >= 50;  // NM_STATE_CONNECTED_LOCAL
 }
 
-std::optional<std::pair<std::string, std::string>>
-entry_group_key(const NsdServiceInfo &nsd_service_info) {
+std::optional<std::pair<std::string, std::string>> entry_group_key(
+    const NsdServiceInfo &nsd_service_info) {
   auto name = nsd_service_info.GetServiceName();
   if (name.empty()) {
     NEARBY_LOGS(ERROR) << __func__ << ": service name cannot be empty";
@@ -101,8 +101,8 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
 
   try {
     entry_group->AddService(
-        -1, // AVAHI_IF_UNSPEC
-        -1, // AVAHI_PROTO_UNSPED
+        -1,  // AVAHI_IF_UNSPEC
+        -1,  // AVAHI_PROTO_UNSPED
         0, nsd_service_info.GetServiceName(), nsd_service_info.GetServiceType(),
         std::string(), std::string(), nsd_service_info.GetPort(), txt_records);
     entry_group->Commit();
@@ -139,7 +139,6 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo &nsd_service_info) {
 bool WifiLanMedium::StartDiscovery(
     const std::string &service_type,
     api::WifiLanMedium::DiscoveredServiceCallback callback) {
-
   {
     absl::ReaderMutexLock l(&service_browsers_mutex_);
     if (service_browsers_.count(service_type) != 0) {
@@ -153,8 +152,8 @@ bool WifiLanMedium::StartDiscovery(
 
   try {
     sdbus::ObjectPath browser_object_path =
-        avahi_->ServiceBrowserPrepare(-1, // AVAHI_IF_UNSPEC
-                                      -1, // AVAHI_PROTO_UNSPED
+        avahi_->ServiceBrowserPrepare(-1,  // AVAHI_IF_UNSPEC
+                                      -1,  // AVAHI_PROTO_UNSPED
                                       service_type, std::string(), 0);
     NEARBY_LOGS(VERBOSE)
         << __func__
@@ -200,9 +199,9 @@ bool WifiLanMedium::StopDiscovery(const std::string &service_type) {
   return true;
 }
 
-std::unique_ptr<api::WifiLanSocket>
-WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
-                                CancellationFlag *cancellation_flag) {
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+    const std::string &ip_address, int port,
+    CancellationFlag *cancellation_flag) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -229,8 +228,8 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
   return std::make_unique<WifiLanSocket>(std::move(fd));
 }
 
-std::unique_ptr<api::WifiLanServerSocket>
-WifiLanMedium::ListenForService(int port) {
+std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
+    int port) {
   auto sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -268,5 +267,5 @@ absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
   return absl::nullopt;
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

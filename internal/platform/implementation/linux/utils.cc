@@ -37,10 +37,10 @@
 #include "internal/platform/uuid.h"
 
 // Linux headers
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netdb.h>
+#include <netinet/in.h>
 
 namespace nearby {
 namespace linux {
@@ -69,10 +69,9 @@ uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
 
 std::string ipaddr_4bytes_to_dotdecimal_string(
     absl::string_view ipaddr_4bytes) {
-
   union addrs {
-      in_addr_t addr;
-      uint8_t bits[4];
+    in_addr_t addr;
+    uint8_t bits[4];
   } address;
 
   address.bits[0] = ipaddr_4bytes[0];
@@ -99,7 +98,7 @@ std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
   struct in_addr addr;
 
   if (inet_aton(ipv4_s.c_str(), &addr) != 0) {
-      return {};
+    return {};
   }
 
   std::string ipv4_b = std::to_string(addr.s_addr);
@@ -120,75 +119,66 @@ std::string wstring_to_string(std::wstring wstr) {
 std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> result;
 
-  struct ifaddrs *interface = nullptr;
+  struct ifaddrs* interface = nullptr;
   char host[NI_MAXHOST];
 
   if (getifaddrs(&interface) != 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to get interfaces. Error: "
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get interfaces. Error: "
                        << strerror(errno);
     freeifaddrs(interface);
     return {};
   }
   int status = 0;
-  for (struct ifaddrs *ifa = interface; ifa != nullptr; ifa = ifa->ifa_next) {
+  for (struct ifaddrs* ifa = interface; ifa != nullptr; ifa = ifa->ifa_next) {
     if (ifa->ifa_addr->sa_family == AF_INET) {
-        status = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
+      status = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host,
+                           NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
     }
     switch (status) {
-        case EAI_AGAIN:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : The name could not be resolved at this time. "
-                               << "Try again later.";
-            break;
-        case EAI_BADFLAGS:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : The flags argument has an invalid value.";
-            break;
-        case EAI_FAIL:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : A nonrecoverable error occured.";
-            break;
-        case EAI_FAMILY:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : The address family was not recognized, "
-                               << "or the address length was invalid for the "
-                               << "specified family.";
-            break;
-        case EAI_MEMORY:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : Out of memory.";
-            break;
-        case EAI_NONAME:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : The name does not resolve for the suplied arguments."
-                               << " NI_NAMEREQD is set and the host's name cannot be located, "
-                               << "or neither hostname nor service name were requsted.";
-            break;
-        case EAI_OVERFLOW:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "Failed to get IP for interface: "
-                               << ifa->ifa_name
-                               << " : The bugger pointed to by `host` or `serv` was too small.";
-            break;
-        case EAI_SYSTEM:
-            NEARBY_LOGS(ERROR) << __func__
-                               << "A system error occured. Error code: "
-                               << errno
-                               << ": " << strerror(errno);
-            break;
+      case EAI_AGAIN:
+        NEARBY_LOGS(ERROR) << __func__ << "Failed to get IP for interface: "
+                           << ifa->ifa_name
+                           << " : The name could not be resolved at this time. "
+                           << "Try again later.";
+        break;
+      case EAI_BADFLAGS:
+        NEARBY_LOGS(ERROR) << __func__ << "Failed to get IP for interface: "
+                           << ifa->ifa_name
+                           << " : The flags argument has an invalid value.";
+        break;
+      case EAI_FAIL:
+        NEARBY_LOGS(ERROR) << __func__ << "Failed to get IP for interface: "
+                           << ifa->ifa_name
+                           << " : A nonrecoverable error occured.";
+        break;
+      case EAI_FAMILY:
+        NEARBY_LOGS(ERROR) << __func__ << "Failed to get IP for interface: "
+                           << ifa->ifa_name
+                           << " : The address family was not recognized, "
+                           << "or the address length was invalid for the "
+                           << "specified family.";
+        break;
+      case EAI_MEMORY:
+        NEARBY_LOGS(ERROR) << __func__ << "Failed to get IP for interface: "
+                           << ifa->ifa_name << " : Out of memory.";
+        break;
+      case EAI_NONAME:
+        NEARBY_LOGS(ERROR)
+            << __func__ << "Failed to get IP for interface: " << ifa->ifa_name
+            << " : The name does not resolve for the suplied arguments."
+            << " NI_NAMEREQD is set and the host's name cannot be located, "
+            << "or neither hostname nor service name were requsted.";
+        break;
+      case EAI_OVERFLOW:
+        NEARBY_LOGS(ERROR)
+            << __func__ << "Failed to get IP for interface: " << ifa->ifa_name
+            << " : The bugger pointed to by `host` or `serv` was too small.";
+        break;
+      case EAI_SYSTEM:
+        NEARBY_LOGS(ERROR) << __func__
+                           << "A system error occured. Error code: " << errno
+                           << ": " << strerror(errno);
+        break;
     }
   }
   freeifaddrs(interface);
@@ -358,6 +348,6 @@ std::vector<std::string> InspectableReader::ReadStringArray(
   return result;
 }
 */
-}
+}  // namespace
 }  // namespace linux
 }  // namespace nearby

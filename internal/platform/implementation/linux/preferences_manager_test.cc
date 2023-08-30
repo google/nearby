@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/preferences_manager.h"
-
 #include <stdint.h>
 
 #include <codecvt>
@@ -24,14 +22,15 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "gtest/gtest.h"
+#include "internal/platform/implementation/linux/preferences_manager.h"
+#include "internal/platform/logging.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
@@ -41,10 +40,8 @@ constexpr absl::Duration kTimeOut = absl::Milliseconds(200);
 constexpr char kPreferencesFilePath[] = "Google/Nearby/Sharing";
 }  // namespace
 
-
 TEST(PreferencesManager, CorruptedConfigFile) {
-  std::filesystem::path settingsPath =
-      std::filesystem::temp_directory_path();
+  std::filesystem::path settingsPath = std::filesystem::temp_directory_path();
   std::ofstream output_stream{settingsPath / "preferences.json"};
   output_stream << "CORRUPTED" << std::endl;
 
@@ -54,8 +51,7 @@ TEST(PreferencesManager, CorruptedConfigFile) {
 }
 
 TEST(PreferencesManager, ValidConfigFile) {
-  std::filesystem::path settingsPath =
-      std::filesystem::temp_directory_path();
+  std::filesystem::path settingsPath = std::filesystem::temp_directory_path();
   std::ofstream output_stream{settingsPath / "preferences.json"};
   output_stream << "{\"data\":8, \"name\": \"Valid\"}" << std::endl;
   output_stream.close();

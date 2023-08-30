@@ -165,5 +165,5 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
   }
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
