@@ -28,20 +28,20 @@
 namespace nearby {
 namespace linux {
 class BluetoothSocket final : public api::BluetoothSocket {
-public:
- BluetoothSocket(api::BluetoothDevice &device, sdbus::UnixFd fd)
-     : device_(device), output_stream_(fd), input_stream_(fd) {}
+ public:
+  BluetoothSocket(api::BluetoothDevice &device, sdbus::UnixFd fd)
+      : device_(device), output_stream_(fd), input_stream_(fd) {}
 
- nearby::InputStream &GetInputStream() override { return input_stream_; }
- nearby::OutputStream &GetOutputStream() override { return output_stream_; }
- Exception Close() override;
- api::BluetoothDevice *GetRemoteDevice() override { return &device_; };
+  nearby::InputStream &GetInputStream() override { return input_stream_; }
+  nearby::OutputStream &GetOutputStream() override { return output_stream_; }
+  Exception Close() override;
+  api::BluetoothDevice *GetRemoteDevice() override { return &device_; };
 
-private:
+ private:
   api::BluetoothDevice &device_;
   OutputStream output_stream_;
   InputStream input_stream_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 #endif

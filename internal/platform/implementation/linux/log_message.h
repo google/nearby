@@ -28,7 +28,7 @@ namespace linux {
 // See documentation in
 // cpp/platform/api/log_message.h
 class LogMessage : public api::LogMessage {
-public:
+ public:
   LogMessage(const char *file, int line, Severity severity);
   ~LogMessage() override{};
 
@@ -36,7 +36,7 @@ public:
 
   std::ostream &Stream() override;
 
-private:
+ private:
   google::LogMessage log_streamer_;
   static api::LogMessage::Severity min_log_severity_;
 };
@@ -44,7 +44,7 @@ private:
 class LogControl
     : public sdbus::AdaptorInterfaces<org::freedesktop::LogControl1_adaptor>,
       public google::LogSink {
-public:
+ public:
   LogControl(sdbus::IConnection &system_bus)
       : AdaptorInterfaces(system_bus, "/org/freedesktop/LogControl1"),
         severity_(api::LogMessage::LogMessage::Severity::kVerbose),
@@ -57,20 +57,20 @@ public:
 
   LogMessage::Severity GetLogLevel() { return severity_; }
 
-protected:
+ protected:
   std::string LogLevel() override {
     switch (severity_) {
-    case api::LogMessage::Severity::kInfo:
-      return "info";
-    case api::LogMessage::Severity::kWarning:
-      return "warning";
-    case api::LogMessage::Severity::kError:
-      return "err";
-    case api::LogMessage::Severity::kFatal:
-      return "emerg";
-    case api::LogMessage::Severity::kVerbose:
-    default:
-      return "debug";
+      case api::LogMessage::Severity::kInfo:
+        return "info";
+      case api::LogMessage::Severity::kWarning:
+        return "warning";
+      case api::LogMessage::Severity::kError:
+        return "err";
+      case api::LogMessage::Severity::kFatal:
+        return "emerg";
+      case api::LogMessage::Severity::kVerbose:
+      default:
+        return "debug";
     }
   }
 
@@ -91,15 +91,15 @@ protected:
 
   std::string LogTarget() override {
     switch (log_target_) {
-    case kKernel:
-      return "kmsg";
-    case kJournal:
-      return "journal";
-    case kSyslog:
-      return "syslog";
-    case kConsole:
-    default:
-      return "console";
+      case kKernel:
+        return "kmsg";
+      case kJournal:
+        return "journal";
+      case kSyslog:
+        return "syslog";
+      case kConsole:
+      default:
+        return "console";
     }
   }
 
@@ -120,11 +120,11 @@ protected:
             const char *base_filename, int line, const struct ::tm *tm_time,
             const char *message, size_t message_len) override;
 
-private:
+ private:
   std::atomic<api::LogMessage::Severity> severity_;
   std::atomic<enum LogTarget> log_target_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
-#endif // PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_
+#endif  // PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_

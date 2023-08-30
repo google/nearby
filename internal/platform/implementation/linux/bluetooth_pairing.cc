@@ -61,7 +61,7 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
 }
 
 BluetoothPairing::BluetoothPairing(BluetoothAdapter &adapter,
-				   BluetoothDevice &remote_device)
+                                   BluetoothDevice &remote_device)
     : device_(remote_device), adapter_(adapter) {}
 
 bool BluetoothPairing::InitiatePairing(
@@ -112,7 +112,7 @@ bool BluetoothPairing::CancelPairing() {
 }
 
 bool BluetoothPairing::Unpair() {
-  try {    
+  try {
     adapter_.RemoveDeviceByObjectPath(device_.getObjectPath());
     return true;
   } catch (const sdbus::Error &e) {
@@ -137,5 +137,5 @@ bool BluetoothPairing::IsPaired() {
     return false;
   }
 }
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

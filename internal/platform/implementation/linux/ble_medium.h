@@ -21,7 +21,7 @@ namespace nearby {
 namespace linux {
 // Container of operations that can be performed over the BLE medium.
 class BleMedium : public api::BleMedium {
-public:
+ public:
   BleMedium() {}
   ~BleMedium() = default;
 
@@ -61,13 +61,13 @@ public:
   // Connects to a BLE peripheral.
   // On success, returns a new BleSocket.
   // On error, returns nullptr.
-  std::unique_ptr<api::BleSocket>
-  Connect(api::BlePeripheral &peripheral, const std::string &service_id,
-          CancellationFlag *cancellation_flag) override {
+  std::unique_ptr<api::BleSocket> Connect(
+      api::BlePeripheral &peripheral, const std::string &service_id,
+      CancellationFlag *cancellation_flag) override {
     return nullptr;
   }
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

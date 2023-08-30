@@ -32,8 +32,8 @@ ScheduledExecutor::ScheduledExecutor()
 // We want Cancelable to live until both caller and executor are done with it.
 // Exclusive ownership model does not work for this case;
 // using std:shared_ptr<> instead of std::unique_ptr<>.
-std::shared_ptr<api::Cancelable>
-ScheduledExecutor::Schedule(Runnable &&runnable, absl::Duration duration) {
+std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
+    Runnable &&runnable, absl::Duration duration) {
   if (shut_down_) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Attempt to Schedule on a shut down executor.";
@@ -80,5 +80,5 @@ void ScheduledExecutor::Shutdown() {
   NEARBY_LOGS(ERROR) << __func__
                      << ": Attempt to Shutdown on a shut down executor.";
 }
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

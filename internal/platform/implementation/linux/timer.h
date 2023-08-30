@@ -15,22 +15,22 @@
 #ifndef PLATFORM_IMPL_LINUX_TIMER_H_
 #define PLATFORM_IMPL_LINUX_TIMER_H_
 
+#include <signal.h>
+#include <time.h>
 #include <memory>
 #include <optional>
-#include <time.h>
-#include <signal.h>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
+#include "internal/platform/implementation/timer.h"
 
 namespace nearby {
 namespace linux {
 
 class Timer : public api::Timer {
  public:
-  Timer() : timerid_(nullptr) {} ;
+  Timer() : timerid_(nullptr){};
   ~Timer() override;
 
   bool Create(int delay, int interval,
@@ -39,7 +39,7 @@ class Timer : public api::Timer {
   bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
   bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-private:
+ private:
   absl::Mutex mutex_;
   std::optional<timer_t> timerid_ ABSL_GUARDED_BY(mutex_);
   absl::AnyInvocable<void()> callback_;

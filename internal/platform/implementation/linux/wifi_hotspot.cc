@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <cstring>
 #include <memory>
-
-#include <netinet/in.h>
 #include <random>
-#include <sys/socket.h>
+
 #include <systemd/sd-id128.h>
 
 #include "internal/platform/implementation/linux/dbus.h"
@@ -313,7 +313,7 @@ bool NetworkManagerWifiHotspotMedium::DisconnectWifiHotspot() {
 bool NetworkManagerWifiHotspotMedium::WifiHotspotActive() {
   try {
     auto mode = wireless_device_->Mode();
-    return mode == 3; // NM_802_11_MODE_AP
+    return mode == 3;  // NM_802_11_MODE_AP
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
     return false;
@@ -323,12 +323,12 @@ bool NetworkManagerWifiHotspotMedium::WifiHotspotActive() {
 bool NetworkManagerWifiHotspotMedium::ConnectedToWifi() {
   try {
     auto mode = wireless_device_->Mode();
-    return mode == 2; // NM_802_11_MODE_INFRA
+    return mode == 2;  // NM_802_11_MODE_INFRA
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
     return false;
   }
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

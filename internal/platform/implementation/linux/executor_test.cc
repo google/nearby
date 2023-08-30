@@ -15,14 +15,14 @@
 #include "internal/platform/implementation/linux/executor.h"
 
 #include <algorithm>
-#include <utility>
 #include <thread>
+#include <utility>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/linux/test_data.h"
 
 namespace nearby {

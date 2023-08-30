@@ -25,13 +25,13 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       api::ble_v2::AdvertiseParameters advertise_set_parameters) override {
     return false;
   }
-  std::unique_ptr<AdvertisingSession>
-  StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
-                   api::ble_v2::AdvertiseParameters advertise_set_parameters,
-                   AdvertisingCallback callback) override {
+  std::unique_ptr<AdvertisingSession> StartAdvertising(
+      const api::ble_v2::BleAdvertisementData &advertising_data,
+      api::ble_v2::AdvertiseParameters advertise_set_parameters,
+      AdvertisingCallback callback) override {
     return nullptr;
   }
-  bool StopAdvertising() override {return false;}
+  bool StopAdvertising() override { return false; }
 
   bool StartScanning(const Uuid &service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
@@ -40,15 +40,14 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   }
   bool StopScanning() override { return false; }
 
-  std::unique_ptr<ScanningSession>
-  StartScanning(const Uuid &service_uuid,
-                api::ble_v2::TxPowerLevel tx_power_level,
-                ScanningCallback callback) override {
+  std::unique_ptr<ScanningSession> StartScanning(
+      const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
+      ScanningCallback callback) override {
     return nullptr;
   };
 
-  std::unique_ptr<api::ble_v2::GattServer>
-  StartGattServer(api::ble_v2::ServerGattConnectionCallback callback) override {
+  std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
+      api::ble_v2::ServerGattConnectionCallback callback) override {
     return nullptr;
   }
 
@@ -59,21 +58,18 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     return nullptr;
   }
 
-  std::unique_ptr<api::ble_v2::BleServerSocket>
-  OpenServerSocket(const std::string &service_id) override {
+  std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
+      const std::string &service_id) override {
     return nullptr;
   }
 
-  std::unique_ptr<api::ble_v2::BleSocket>
-  Connect(const std::string &service_id,
-          api::ble_v2::TxPowerLevel tx_power_level,
-          api::ble_v2::BlePeripheral &peripheral,
-          CancellationFlag *cancellation_flag) override {
+  std::unique_ptr<api::ble_v2::BleSocket> Connect(
+      const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
+      api::ble_v2::BlePeripheral &peripheral,
+      CancellationFlag *cancellation_flag) override {
     return nullptr;
   }
-  bool IsExtendedAdvertisementsAvailable() override {
-    return false;
-  }
+  bool IsExtendedAdvertisementsAvailable() override { return false; }
   bool GetRemotePeripheral(const std::string &mac_address,
                            GetRemotePeripheralCallback callback) override {
     return false;
@@ -83,7 +79,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     return false;
   }
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

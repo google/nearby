@@ -48,5 +48,5 @@ void Executor::Shutdown() {
   thread_pool_ = nullptr;
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

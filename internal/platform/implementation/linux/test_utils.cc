@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/test_utils.h"
-#include "internal/platform/implementation/linux/device_info.h"
-
 #include <algorithm>
-#include <sstream>
 #include <codecvt>
+#include <sstream>
 
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
+#include "internal/platform/implementation/linux/device_info.h"
+#include "internal/platform/implementation/linux/test_utils.h"
 
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s) {
@@ -29,7 +28,9 @@ std::wstring StringToWideString(const std::string& s) {
 }
 
 std::string GetPayloadPath(nearby::PayloadId payload_id) {
-    std::filesystem::path path = nearby::linux::DeviceInfo().GetDownloadPath().value_or(std::string(getenv("HOME")).append("Downloads"));
+  std::filesystem::path path =
+      nearby::linux::DeviceInfo().GetDownloadPath().value_or(
+          std::string(getenv("HOME")).append("Downloads"));
 
   return path.string();
 }

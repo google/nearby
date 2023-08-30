@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include <arpa/inet.h>
-#include <cerrno>
-#include <cstring>
 #include <ifaddrs.h>
-#include <memory>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <cerrno>
+#include <cstring>
+#include <memory>
 
 #include <sdbus-c++/Types.h>
 
@@ -60,17 +60,17 @@ std::string WifiLanServerSocket::GetIPAddress() const {
         address_data = ip4config.AddressData();
       } catch (const sdbus::Error &e) {
         DBUS_LOG_PROPERTY_GET_ERROR(&ip4config, "IP4Config", e);
-	continue;
+        continue;
       }
 
       if (address_data.size() > 0) {
-	return address_data[0]["address"];
+        return address_data[0]["address"];
       }
     }
   }
 
   NEARBY_LOGS(ERROR)
-      << __func__ << ": Could not find any active IP addresses for this device"; 
+      << __func__ << ": Could not find any active IP addresses for this device";
   return std::string();
 }
 
@@ -115,5 +115,5 @@ Exception WifiLanServerSocket::Close() {
 
   return {Exception::kSuccess};
 }
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

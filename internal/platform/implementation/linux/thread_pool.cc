@@ -117,5 +117,5 @@ Runnable ThreadPool::NextTask() {
   return task;
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

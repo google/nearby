@@ -83,7 +83,7 @@ class Hostnamed
                         "/org/freedesktop/hostname1") {
     registerProxy();
   }
-  ~Hostnamed() { unregisterProxy(); }  
+  ~Hostnamed() { unregisterProxy(); }
 };
 
 class LoginManager final
@@ -94,7 +94,8 @@ class LoginManager final
   LoginManager &operator=(const LoginManager &) = delete;
   LoginManager &operator=(LoginManager &&) = delete;
   explicit LoginManager(sdbus::IConnection &system_bus)
-      : ProxyInterfaces(system_bus, "org.freedesktop.login1", "/org/freedesktop/login1") {
+      : ProxyInterfaces(system_bus, "org.freedesktop.login1",
+                        "/org/freedesktop/login1") {
     registerProxy();
   }
   ~LoginManager() { unregisterProxy(); }

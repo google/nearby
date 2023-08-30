@@ -20,14 +20,14 @@
 namespace nearby {
 
 // Initialize global system state.
-void SystemClock::Init() { }
+void SystemClock::Init() {}
 
 // Returns current absolute time. It is guaranteed to be monotonic.
 absl::Time SystemClock::ElapsedRealtime() {
   return absl::FromUnixNanos(
-     std::chrono::duration_cast<std::chrono::nanoseconds>(
-         std::chrono::steady_clock::now().time_since_epoch())
-         .count());
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
 }
 
 // Pauses current thread for the specified duration.

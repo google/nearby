@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/scheduled_executor.h"
-
 #include <memory>
 #include <utility>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
 #include "internal/platform/implementation/linux/test_data.h"
+#include "internal/platform/implementation/linux/scheduled_executor.h"
 
 namespace nearby {
 namespace linux {

@@ -14,7 +14,7 @@
 
 #include "internal/platform/implementation/linux/condition_variable.h"
 
-#include <future> // NOLINT
+#include <future>  // NOLINT
 
 #include "absl/time/clock.h"
 #include "internal/platform/exception.h"
@@ -28,12 +28,10 @@ class ConditionVariableTests : public testing::Test {
    public:
     ConditionVariableTest() {}
 
-    std::future<bool> WaitForEvent(bool timedWait, // NOLINT
+    std::future<bool> WaitForEvent(bool timedWait,  // NOLINT
                                    const absl::Duration* timeout) {
       return std::async(
-          std::launch::async,
-          [this, timedWait, timeout]() mutable -> bool {
-
+          std::launch::async, [this, timedWait, timeout]() mutable -> bool {
             if (timedWait == true) {
               auto result = this->condition_variable_actual_.Wait(*timeout);
               if (result.value == nearby::Exception::kSuccess) {

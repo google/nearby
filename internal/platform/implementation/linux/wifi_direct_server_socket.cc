@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/wifi_direct_server_socket.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/implementation/linux/wifi_direct_socket.h"
 #include <netinet/in.h>
 #include <sys/socket.h>
+
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/linux/wifi_direct_server_socket.h"
+#include "internal/platform/implementation/linux/wifi_direct_socket.h"
 
 namespace nearby {
 namespace linux {
@@ -76,5 +77,5 @@ Exception NetworkManagerWifiDirectServerSocket::Close() {
 
   return {Exception::kSuccess};
 }
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

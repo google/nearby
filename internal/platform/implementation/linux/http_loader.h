@@ -15,8 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_LINUX_HTTP_LOADER_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_LINUX_HTTP_LOADER_H_
 
-#include <string>
 #include <curl/curl.h>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -32,18 +32,19 @@ namespace linux {
 // WinInet APIs to get HTTP response. The platform handles HTTP/HTTPS sessions.
 class HttpLoader {
  public:
-  explicit HttpLoader(const nearby::api::WebRequest& request);
+  explicit HttpLoader(const nearby::api::WebRequest &request);
   ~HttpLoader();
 
   absl::StatusOr<nearby::api::WebResponse> GetResponse();
 
-  const nearby::api::WebRequest& GetRequest();
+  const nearby::api::WebRequest &GetRequest();
 
  private:
   // Defines the buffer size. It is used to init a buffer for receiving HTTP
   // response. The unit is byte.
   static constexpr int kReceiveBufferSize = 8 * 1024;
-  static size_t CurlReadCallback(char *buffer, size_t size, size_t nitems, void *userdata);
+  static size_t CurlReadCallback(char *buffer, size_t size, size_t nitems,
+                                 void *userdata);
 
   absl::Status ConnectWebServer();
   absl::Status SendRequest();

@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <cstdint>
 #include <memory>
-#include <netinet/in.h>
 #include <type_traits>
 
 #include <sdbus-c++/Error.h>
@@ -36,39 +36,41 @@ namespace linux {
 std::ostream &operator<<(std::ostream &s,
                          const ActiveConnectionStateReason &reason) {
   switch (reason) {
-  case kStateReasonUnknown:
-    return s << "The reason for the active connection state change is unknown.";
-  case kStateReasonNone:
-    return s << "No reason was given for the active connection state change.";
-  case kStateReasonUserDisconnected:
-    return s << "The active connection changed state because the user "
-                "disconnected it.";
-  case kStateReasonDeviceDisconnected:
-    return s << "The active connection changed state because the device it was "
+    case kStateReasonUnknown:
+      return s
+             << "The reason for the active connection state change is unknown.";
+    case kStateReasonNone:
+      return s << "No reason was given for the active connection state change.";
+    case kStateReasonUserDisconnected:
+      return s << "The active connection changed state because the user "
+                  "disconnected it.";
+    case kStateReasonDeviceDisconnected:
+      return s
+             << "The active connection changed state because the device it was "
                 "using was disconnected.";
-  case kStateReasonServiceStopped:
-    return s << "The service providing the VPN connection was stopped.";
-  case kStateReasonIPConfigInvalid:
-    return s << "The IP config of the active connection was invalid.";
-  case kStateReasonConnectTimeout:
-    return s << "The connection attempt to the VPN service timed out.";
-  case kStateReasonServiceStartTimeout:
-    return s << "A timeout occurred while starting the service providing the "
-                "VPN connection.";
-  case kStateReasonServiceStartFailed:
-    return s << "Starting the service providing the VPN connection failed.";
-  case kStateReasonNoSecrets:
-    return s << "Necessary secrets for the connection were not provided.";
-  case kStateReasonLoginFailed:
-    return s << "Authentication to the server failed.";
-  case kStateReasonConnectionRemoved:
-    return s << "The connection was deleted from settings.";
-  case kStateReasonDependencyFailed:
-    return s << "Master connection of this connection failed to activate.";
-  case kStateReasonDeviceRealizeFailed:
-    return s << "Could not create the software device link.";
-  case kStateReasonDeviceRemoved:
-    return s << "The device this connection depended on disappeared.";
+    case kStateReasonServiceStopped:
+      return s << "The service providing the VPN connection was stopped.";
+    case kStateReasonIPConfigInvalid:
+      return s << "The IP config of the active connection was invalid.";
+    case kStateReasonConnectTimeout:
+      return s << "The connection attempt to the VPN service timed out.";
+    case kStateReasonServiceStartTimeout:
+      return s << "A timeout occurred while starting the service providing the "
+                  "VPN connection.";
+    case kStateReasonServiceStartFailed:
+      return s << "Starting the service providing the VPN connection failed.";
+    case kStateReasonNoSecrets:
+      return s << "Necessary secrets for the connection were not provided.";
+    case kStateReasonLoginFailed:
+      return s << "Authentication to the server failed.";
+    case kStateReasonConnectionRemoved:
+      return s << "The connection was deleted from settings.";
+    case kStateReasonDependencyFailed:
+      return s << "Master connection of this connection failed to activate.";
+    case kStateReasonDeviceRealizeFailed:
+      return s << "Could not create the software device link.";
+    case kStateReasonDeviceRemoved:
+      return s << "The device this connection depended on disappeared.";
   }
 }
 
@@ -312,25 +314,23 @@ NetworkManagerWifiMedium::SearchBySSID(absl::string_view ssid,
   return ap;
 }
 
-static inline std::pair<std::string, std::string>
-AuthAlgAndKeyMgmt(api::WifiAuthType auth_type) {
+static inline std::pair<std::string, std::string> AuthAlgAndKeyMgmt(
+    api::WifiAuthType auth_type) {
   switch (auth_type) {
-  case api::WifiAuthType::kUnknown:
-    return {"open", "none"};
-  case api::WifiAuthType::kOpen:
-    return {"open", "none"};
-  case api::WifiAuthType::kWpaPsk:
-    return {"shared", "wpa-psk"};
-  case api::WifiAuthType::kWep:
-    return {"none", "wep"};
+    case api::WifiAuthType::kUnknown:
+      return {"open", "none"};
+    case api::WifiAuthType::kOpen:
+      return {"open", "none"};
+    case api::WifiAuthType::kWpaPsk:
+      return {"shared", "wpa-psk"};
+    case api::WifiAuthType::kWep:
+      return {"none", "wep"};
   }
 }
 
-api::WifiConnectionStatus
-NetworkManagerWifiMedium::ConnectToNetwork(absl::string_view ssid,
-                                           absl::string_view password,
-                                           api::WifiAuthType auth_type) {
-
+api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
+    absl::string_view ssid, absl::string_view password,
+    api::WifiAuthType auth_type) {
   auto ap = SearchBySSID(ssid);
   if (ap == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
@@ -424,7 +424,7 @@ NetworkManagerWifiMedium::ConnectToNetwork(absl::string_view ssid,
 bool NetworkManagerWifiMedium::VerifyInternetConnectivity() {
   try {
     std::uint32_t connectivity = network_manager_->CheckConnectivity();
-    return connectivity == 4; // NM_CONNECTIVITY_FULL
+    return connectivity == 4;  // NM_CONNECTIVITY_FULL
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(network_manager_, "CheckConnectivity", e);
     return false;
@@ -465,5 +465,5 @@ NetworkManagerWifiMedium::GetActiveConnection() {
   return conn;
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

@@ -24,7 +24,7 @@
 namespace nearby {
 namespace linux {
 class ABSL_LOCKABLE Mutex : public api::Mutex {
-public:
+ public:
   explicit Mutex(Mode mode) : mode_(mode) {
     if (mode == Mode::kRecursive)
       mutex_.emplace<std::recursive_mutex>();
@@ -57,14 +57,12 @@ public:
     }
   }
 
-  absl::Mutex *GetRegularMutex() {
-    return std::get_if<absl::Mutex>(&mutex_);
-  }
+  absl::Mutex *GetRegularMutex() { return std::get_if<absl::Mutex>(&mutex_); }
 
-private:
+ private:
   std::variant<absl::Mutex, std::recursive_mutex> mutex_;
   Mode mode_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 #endif

@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
 #include <cassert>
+#include <memory>
 
 #include <sdbus-c++/IConnection.h>
 
-#include "internal/platform/implementation/linux/dbus.h"
 #include "absl/base/call_once.h"
+#include "internal/platform/implementation/linux/dbus.h"
 
 namespace nearby {
 namespace linux {
@@ -29,8 +29,7 @@ static std::unique_ptr<sdbus::IConnection> global_default_bus_connection =
 static absl::once_flag bus_connection_init_;
 
 static void initBusConnections() {
-  global_system_bus_connection =
-      sdbus::createSystemBusConnection();
+  global_system_bus_connection = sdbus::createSystemBusConnection();
   global_system_bus_connection->enterEventLoopAsync();
   global_default_bus_connection =
       sdbus::createDefaultBusConnection("com.google.nearby");
@@ -47,5 +46,5 @@ sdbus::IConnection &getDefaultBusConnection() {
   assert(global_default_bus_connection != nullptr);
   return *global_default_bus_connection;
 }
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

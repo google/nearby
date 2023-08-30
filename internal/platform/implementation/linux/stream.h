@@ -25,30 +25,30 @@
 namespace nearby {
 namespace linux {
 class InputStream : public nearby::InputStream {
-public:
+ public:
   InputStream(sdbus::UnixFd &fd) : fd_(fd){};
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
 
   Exception Close() override;
 
-private:
+ private:
   std::optional<sdbus::UnixFd> fd_;
 };
 
 class OutputStream : public nearby::OutputStream {
-public:
+ public:
   OutputStream(sdbus::UnixFd &fd) : fd_(fd){};
 
   Exception Write(const ByteArray &data) override;
   Exception Flush() override;
   Exception Close() override;
 
-private:
+ private:
   std::optional<sdbus::UnixFd> fd_;
 };
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

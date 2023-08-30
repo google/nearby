@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sys/syslog.h>
 #include <cassert>
 #include <cstdarg>
 #include <cstddef>
@@ -19,7 +20,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <memory>
-#include <sys/syslog.h>
 
 #define SD_JOURNAL_SUPPRESS_LOCATION true
 #include <systemd/sd-journal.h>
@@ -51,34 +51,34 @@ bool LogMessage::ShouldCreateLogMessage(Severity severity) {
   return severity >= global_log_control_->GetLogLevel();
 }
 
-} // namespace api
+}  // namespace api
 namespace linux {
-static inline google::LogSeverity
-ConvertSeverity(api::LogMessage::Severity severity) {
+static inline google::LogSeverity ConvertSeverity(
+    api::LogMessage::Severity severity) {
   switch (severity) {
-  case api::LogMessage::Severity::kWarning:
-    return google::GLOG_WARNING;
-  case api::LogMessage::Severity::kError:
-    return google::GLOG_ERROR;
-  case api::LogMessage::Severity::kFatal:
-    return google::GLOG_FATAL;
-  case api::LogMessage::Severity::kVerbose:
-  case api::LogMessage::Severity::kInfo:
-  default:
-    return google::GLOG_INFO;
+    case api::LogMessage::Severity::kWarning:
+      return google::GLOG_WARNING;
+    case api::LogMessage::Severity::kError:
+      return google::GLOG_ERROR;
+    case api::LogMessage::Severity::kFatal:
+      return google::GLOG_FATAL;
+    case api::LogMessage::Severity::kVerbose:
+    case api::LogMessage::Severity::kInfo:
+    default:
+      return google::GLOG_INFO;
   }
 }
 static inline int ConvertSeverityToSyslog(google::LogSeverity severity) {
   switch (severity) {
-  case google::GLOG_WARNING:
-    return LOG_WARNING;
-  case google::GLOG_ERROR:
-    return LOG_ERR;
-  case google::GLOG_FATAL:
-    return LOG_EMERG;
-  case google::GLOG_INFO:
-  default:
-    return LOG_INFO;
+    case google::GLOG_WARNING:
+      return LOG_WARNING;
+    case google::GLOG_ERROR:
+      return LOG_ERR;
+    case google::GLOG_FATAL:
+      return LOG_EMERG;
+    case google::GLOG_INFO:
+    default:
+      return LOG_INFO;
   }
 }
 
@@ -94,24 +94,24 @@ void LogControl::send(google::LogSeverity severity, const char *full_filename,
                       const struct ::tm *tm_time, const char *message,
                       size_t message_len) {
   switch (log_target_) {
-  case kJournal:
-    sd_journal_send("MESSAGE=%s", message, "PRIORITY=%d",
-                    ConvertSeverityToSyslog(severity), "CODE_FILE=%s",
-                    base_filename, "CODE_LINE=%d", line, NULL);
-    break;
-  case kSyslog: {
-    auto str = LogSink::ToString(severity, base_filename, line, tm_time,
-                                 message, message_len);
-    syslog(ConvertSeverityToSyslog(severity), "%s", str.c_str());
-    break;
-  }
-  case kConsole:
-  default:
-    absl::MutexLock l(&cout_mutex);
-    std::cout << LogSink::ToString(severity, base_filename, line, tm_time,
-                                   message, message_len)
-              << "\n";
-    break;
+    case kJournal:
+      sd_journal_send("MESSAGE=%s", message, "PRIORITY=%d",
+                      ConvertSeverityToSyslog(severity), "CODE_FILE=%s",
+                      base_filename, "CODE_LINE=%d", line, NULL);
+      break;
+    case kSyslog: {
+      auto str = LogSink::ToString(severity, base_filename, line, tm_time,
+                                   message, message_len);
+      syslog(ConvertSeverityToSyslog(severity), "%s", str.c_str());
+      break;
+    }
+    case kConsole:
+    default:
+      absl::MutexLock l(&cout_mutex);
+      std::cout << LogSink::ToString(severity, base_filename, line, tm_time,
+                                     message, message_len)
+                << "\n";
+      break;
   }
 }
 
@@ -131,5 +131,5 @@ void LogMessage::Print(const char *format, ...) {
 
 std::ostream &LogMessage::Stream() { return log_streamer_.stream(); }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

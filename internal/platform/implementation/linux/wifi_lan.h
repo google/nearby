@@ -26,7 +26,7 @@
 namespace nearby {
 namespace linux {
 class WifiLanMedium : public api::WifiLanMedium {
-public:
+ public:
   explicit WifiLanMedium(sdbus::IConnection &system_bus);
 
   bool IsNetworkConnected() const override;
@@ -42,23 +42,23 @@ public:
   bool StopDiscovery(const std::string &service_type) override
       ABSL_LOCKS_EXCLUDED(service_browsers_mutex_);
 
-  std::unique_ptr<api::WifiLanSocket>
-  ConnectToService(const NsdServiceInfo &remote_service_info,
-                   CancellationFlag *cancellation_flag) override {
+  std::unique_ptr<api::WifiLanSocket> ConnectToService(
+      const NsdServiceInfo &remote_service_info,
+      CancellationFlag *cancellation_flag) override {
     return ConnectToService(remote_service_info.GetIPAddress(),
                             remote_service_info.GetPort(), cancellation_flag);
   };
-  std::unique_ptr<api::WifiLanSocket>
-  ConnectToService(const std::string &ip_address, int port,
-                   CancellationFlag *cancellation_flag) override;
-  std::unique_ptr<api::WifiLanServerSocket>
-  ListenForService(int port = 0) override;
-  absl::optional<std::pair<std::int32_t, std::int32_t>>
-  GetDynamicPortRange() override {
+  std::unique_ptr<api::WifiLanSocket> ConnectToService(
+      const std::string &ip_address, int port,
+      CancellationFlag *cancellation_flag) override;
+  std::unique_ptr<api::WifiLanServerSocket> ListenForService(
+      int port = 0) override;
+  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
+      override {
     return std::nullopt;
   }
 
-private:
+ private:
   sdbus::IConnection &system_bus_;
 
   std::shared_ptr<NetworkManager> network_manager_;
@@ -74,7 +74,7 @@ private:
   absl::flat_hash_map<std::string, std::unique_ptr<avahi::ServiceBrowser>>
       service_browsers_ ABSL_GUARDED_BY(service_browsers_mutex_);
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

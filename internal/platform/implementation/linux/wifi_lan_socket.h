@@ -27,16 +27,12 @@
 namespace nearby {
 namespace linux {
 class WifiLanSocket : public api::WifiLanSocket {
-public:
+ public:
   explicit WifiLanSocket(sdbus::UnixFd fd)
       : fd_(fd), output_stream_(fd), input_stream_(fd) {}
 
-  nearby::InputStream &GetInputStream() override {
-    return input_stream_;
-  };
-  nearby::OutputStream &GetOutputStream() override {
-    return output_stream_;
-  };
+  nearby::InputStream &GetInputStream() override { return input_stream_; };
+  nearby::OutputStream &GetOutputStream() override { return output_stream_; };
   Exception Close() override {
     input_stream_.Close();
     output_stream_.Close();
@@ -44,12 +40,12 @@ public:
     return Exception{Exception::kSuccess};
   };
 
-private:
+ private:
   sdbus::UnixFd fd_;
   OutputStream output_stream_;
   InputStream input_stream_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
 #endif

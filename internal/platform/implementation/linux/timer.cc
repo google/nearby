@@ -13,16 +13,15 @@
 // limitations under the License.
 
 #include <bits/types/struct_itimerspec.h>
+#include <signal.h>
+#include <time.h>
 #include <cerrno>
 #include <cstring>
 #include <ctime>
-#include <signal.h>
-#include <time.h>
-
-#include "internal/platform/implementation/linux/submittable_executor.h"
-#include "internal/platform/implementation/linux/timer.h"
 
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/linux/submittable_executor.h"
+#include "internal/platform/implementation/linux/timer.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -31,8 +30,7 @@ namespace linux {
 static void timer_callback(union sigval val) {
   absl::AnyInvocable<void()> *callback =
       reinterpret_cast<absl::AnyInvocable<void()> *>(val.sival_ptr);
-  if (*callback != nullptr)
-    (*callback)();
+  if (*callback != nullptr) (*callback)();
 }
 
 Timer::~Timer() {
@@ -60,11 +58,11 @@ bool Timer::Create(int delay, int interval,
   }
 
   callback_ = std::move(callback);
-  
+
   struct sigevent ev;
   ev.sigev_value.sival_ptr = &callback_;
   ev.sigev_notify_function = timer_callback;
-  
+
   timer_t timerid;
 
   struct itimerspec spec;
@@ -86,7 +84,7 @@ bool Timer::Create(int delay, int interval,
                        << std::strerror(errno);
     if (!timer_delete(&timerid)) {
       NEARBY_LOGS(ERROR) << __func__ << ": error deleting POSIX timer: "
-			 << std::strerror(errno);
+                         << std::strerror(errno);
     }
     return false;
   }
@@ -108,7 +106,7 @@ bool Timer::Stop() {
     return false;
   }
 
-  timerid_.reset();  
+  timerid_.reset();
 
   return true;
 }
@@ -127,10 +125,10 @@ bool Timer::FireNow() {
     task_executor_ = std::make_unique<SubmittableExecutor>();
   }
 
-  task_executor_->Execute([&]() {callback_();});
+  task_executor_->Execute([&]() { callback_(); });
 
   return true;
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

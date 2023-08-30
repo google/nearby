@@ -23,12 +23,12 @@
 
 #include <string>
 
-#define BLUEZ_LOG_METHOD_CALL_ERROR(proxy, method, err)                        \
-  do {                                                                         \
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << (err).getName()       \
-                       << "' with message '" << (err).getMessage()             \
-                       << "' while calling " << method << " on object "        \
-                       << (proxy)->getObjectPath();                            \
+#define BLUEZ_LOG_METHOD_CALL_ERROR(proxy, method, err)                  \
+  do {                                                                   \
+    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << (err).getName() \
+                       << "' with message '" << (err).getMessage()       \
+                       << "' while calling " << method << " on object "  \
+                       << (proxy)->getObjectPath();                      \
   } while (false)
 
 namespace nearby {
@@ -44,35 +44,34 @@ static constexpr const char *DEVICE_PROP_ALIAS = "Alias";
 static constexpr const char *DEVICE_PROP_PAIRED = "Paired";
 static constexpr const char *DEVICE_PROP_CONNECTED = "Connected";
 
- std::string
-device_object_path(const sdbus::ObjectPath &adapter_object_path,
-                   absl::string_view mac_address);
+std::string device_object_path(const sdbus::ObjectPath &adapter_object_path,
+                               absl::string_view mac_address);
 
- sdbus::ObjectPath profile_object_path(absl::string_view service_uuid);
+sdbus::ObjectPath profile_object_path(absl::string_view service_uuid);
 
- sdbus::ObjectPath adapter_object_path(absl::string_view name);
+sdbus::ObjectPath adapter_object_path(absl::string_view name);
 
 class BluezObjectManager
     : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
-public:
+ public:
   BluezObjectManager(sdbus::IConnection &system_bus)
       : ProxyInterfaces(system_bus, "org.bluez", "/") {
     registerProxy();
   }
   ~BluezObjectManager() { unregisterProxy(); }
 
-protected:
+ protected:
   void onInterfacesAdded(
       const sdbus::ObjectPath &objectPath,
       const std::map<std::string, std::map<std::string, sdbus::Variant>>
           &interfacesAndProperties) override {}
-  void
-  onInterfacesRemoved(const sdbus::ObjectPath &objectPath,
-                      const std::vector<std::string> &interfaces) override {}
+  void onInterfacesRemoved(
+      const sdbus::ObjectPath &objectPath,
+      const std::vector<std::string> &interfaces) override {}
 };
 
-} // namespace bluez
-} // namespace linux
-} // namespace nearby
+}  // namespace bluez
+}  // namespace linux
+}  // namespace nearby
 
 #endif

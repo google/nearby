@@ -15,8 +15,8 @@
 #ifndef PLATFORM_IMPL_LINUX_SUBMITTABLE_EXECUTOR_H_
 #define PLATFORM_IMPL_LINUX_SUBMITTABLE_EXECUTOR_H_
 
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/linux/executor.h"
+#include "internal/platform/implementation/submittable_executor.h"
 
 namespace nearby {
 namespace linux {

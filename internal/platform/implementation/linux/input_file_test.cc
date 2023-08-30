@@ -18,9 +18,9 @@
 
 #include "gtest/gtest.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/payload_id.h"
 #include "internal/platform/implementation/linux/test_utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/payload_id.h"
 
 class InputFileTests : public testing::Test {
  protected:
@@ -32,9 +32,9 @@ class InputFileTests : public testing::Test {
     file_.open(path, std::ios::out);
 
     if (!file_) {
-      NEARBY_LOG(ERROR,
-                 "Failed to create OutputFile with payloadId: %s and error: %d",
-                 test_utils::GetPayloadPath(payloadId).c_str(), std::strerror(errno));
+      NEARBY_LOG(
+          ERROR, "Failed to create OutputFile with payloadId: %s and error: %d",
+          test_utils::GetPayloadPath(payloadId).c_str(), std::strerror(errno));
     }
 
     const char* buffer = TEST_STRING;

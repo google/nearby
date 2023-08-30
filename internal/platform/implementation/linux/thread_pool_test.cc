@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/thread_pool.h"
-
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "gtest/gtest.h"
+#include "internal/platform/implementation/linux/thread_pool.h"
 
 namespace nearby {
 namespace linux {

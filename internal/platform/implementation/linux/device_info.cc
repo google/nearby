@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <pwd.h>
+#include <sys/types.h>
 #include <cstdlib>
 #include <cstring>
 #include <optional>
-#include <pwd.h>
 #include <string>
-#include <sys/types.h>
 
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
@@ -166,7 +166,7 @@ bool DeviceInfo::PreventSleep() {
     inhibit_fd_ = login_manager_->Inhibit("sleep", "Google Nearby",
                                           "Google Nearby", "block");
     return true;
-  } catch (const sdbus::Error& e) {
+  } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(login_manager_, "Inhibit", e);
     return false;
   }
@@ -183,5 +183,5 @@ bool DeviceInfo::AllowSleep() {
   return true;
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

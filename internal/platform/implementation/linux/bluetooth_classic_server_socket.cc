@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "internal/platform/implementation/linux/bluetooth_classic_server_socket.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/substitute.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
-#include "internal/platform/implementation/linux/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
-#include <systemd/sd-bus.h>
 
 namespace nearby {
 namespace linux {
@@ -46,5 +45,5 @@ Exception BluetoothServerSocket::Close() {
 
   return {Exception::kSuccess};
 }
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

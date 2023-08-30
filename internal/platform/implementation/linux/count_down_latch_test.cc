@@ -31,7 +31,7 @@ class CountDownLatchTests : public testing::Test {
 
   class CountDownLatchTest {
    public:
-    static unsigned int ThreadProcCountDown(void *lpParam) {
+    static unsigned int ThreadProcCountDown(void* lpParam) {
       TestData* testData = static_cast<TestData*>(lpParam);
 
       sleep(1);
@@ -42,7 +42,7 @@ class CountDownLatchTests : public testing::Test {
       return 0;
     }
 
-    static unsigned int ThreadProcAwait(void *lpParam) {
+    static unsigned int ThreadProcAwait(void* lpParam) {
       TestData* testData = static_cast<TestData*>(lpParam);
 
       sleep(1);
@@ -125,7 +125,7 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitNoTimeoutSucceeds) {
     threads.emplace_back(CountDownLatchTest::ThreadProcAwait, &testData);
   }
 
-  for (auto &thread : threads) {
+  for (auto& thread : threads) {
     thread.join();
   }
   // Act
@@ -139,8 +139,8 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitNoTimeoutSucceeds) {
 }
 
 void test(std::string str) {
-    std::cout << str << std::endl;
-    return;
+  std::cout << str << std::endl;
+  return;
 }
 
 TEST_F(CountDownLatchTests, CountDownLatchCountDownBeforeAwaitSucceeds) {
@@ -158,4 +158,3 @@ TEST_F(CountDownLatchTests, CountDownLatchCountDownBeforeAwaitSucceeds) {
   // Assert
   EXPECT_EQ(count, 1);
 }
-

@@ -23,7 +23,7 @@
 namespace nearby {
 namespace linux {
 class ConditionVariable : public api::ConditionVariable {
-public:
+ public:
   explicit ConditionVariable(api::Mutex *mutex)
       : mutex_(static_cast<Mutex *>(mutex)->GetRegularMutex()) {}
   ~ConditionVariable() = default;
@@ -40,11 +40,11 @@ public:
 
   void Notify() override { cond_var_.SignalAll(); }
 
-private:
+ private:
   absl::Mutex *mutex_;
   absl::CondVar cond_var_;
 };
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby
 
-#endif // PLATFORM_IMPL_LINUX_CONDITION_VARIABLE_H_
+#endif  // PLATFORM_IMPL_LINUX_CONDITION_VARIABLE_H_

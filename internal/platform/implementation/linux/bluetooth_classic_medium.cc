@@ -116,7 +116,6 @@ void BluetoothClassicMedium::onInterfacesRemoved(
 
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
-
   discovery_cb_ = std::move(discovery_callback);
 
   try {
@@ -150,10 +149,9 @@ bool BluetoothClassicMedium::StopDiscovery() {
   return true;
 }
 
-std::unique_ptr<api::BluetoothSocket>
-BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
-                                         const std::string &service_uuid,
-                                         CancellationFlag *cancellation_flag) {
+std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
+    api::BluetoothDevice &remote_device, const std::string &service_uuid,
+    CancellationFlag *cancellation_flag) {
   auto device_object_path = bluez::device_object_path(
       adapter_->GetObjectPath(), remote_device.GetMacAddress());
   if (!profile_manager_->ProfileRegistered(service_uuid)) {
@@ -200,17 +198,16 @@ BluetoothClassicMedium::ListenForService(const std::string &service_name,
       new BluetoothServerSocket(*profile_manager_, service_uuid));
 }
 
-api::BluetoothDevice *
-BluetoothClassicMedium::GetRemoteDevice(const std::string &mac_address) {
+api::BluetoothDevice *BluetoothClassicMedium::GetRemoteDevice(
+    const std::string &mac_address) {
   auto device = devices_->get_device_by_address(mac_address);
-  if (!device.has_value())
-    return nullptr;
+  if (!device.has_value()) return nullptr;
 
   return &(device->get());
 }
 
-std::unique_ptr<api::BluetoothPairing>
-BluetoothClassicMedium::CreatePairing(api::BluetoothDevice &remote_device) {
+std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
+    api::BluetoothDevice &remote_device) {
   auto device = devices_->get_device_by_address(remote_device.GetMacAddress());
   if (!device.has_value()) return nullptr;
 
@@ -218,5 +215,5 @@ BluetoothClassicMedium::CreatePairing(api::BluetoothDevice &remote_device) {
       new BluetoothPairing(*adapter_, *device));
 }
 
-} // namespace linux
-} // namespace nearby
+}  // namespace linux
+}  // namespace nearby

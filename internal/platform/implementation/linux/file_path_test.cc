@@ -20,9 +20,9 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include <internal/platform/implementation/linux/device_info.h>
 #include <internal/platform/implementation/linux/utils.h>
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace linux {
@@ -54,7 +54,9 @@ class FilePathTests : public testing::Test {
  protected:
   // You can define per-test set-up logic as usual.
   FilePathTests() {
-    default_download_path_ = string_to_wstring(DeviceInfo().GetDownloadPath().value_or(std::string(getenv("HOME")).append("/Downloads")));
+    default_download_path_ =
+        string_to_wstring(DeviceInfo().GetDownloadPath().value_or(
+            std::string(getenv("HOME")).append("/Downloads")));
   }
   std::wstring default_download_path_;
 };
@@ -563,7 +565,8 @@ FileWithIncrementedName) {
   // File 1
   std::filesystem::remove(output_file_path.c_str());
 
-  input_file.open(wstring_to_string(output_file_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file_path),
+                  std::ifstream::binary | std::ifstream::in);
 
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
@@ -615,7 +618,8 @@ ReturnsNextIncrementedFileName) {
   std::filesystem::remove(wstring_to_string(output_file2_path).c_str());
 
   input_file.clear();
-  input_file.open(wstring_to_string(output_file2_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file2_path),
+                  std::ifstream::binary | std::ifstream::in);
 
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
@@ -649,7 +653,8 @@ MultipleDotsReturnsIncrementBeforeFirstDot) {
   EXPECT_EQ(expected, actual);
 
   std::filesystem::remove(wstring_to_string(output_file1_path).c_str());
-  input_file.open(wstring_to_string(output_file1_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file1_path),
+                  std::ifstream::binary | std::ifstream::in);
 
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
@@ -683,7 +688,8 @@ DotsReturnsWithIncrementAtEnd) {
   EXPECT_EQ(expected, actual);
 
   std::filesystem::remove(wstring_to_string(output_file1_path).c_str());
-  input_file.open(wstring_to_string(output_file1_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file1_path),
+                  std::ifstream::binary | std::ifstream::in);
 
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
@@ -751,19 +757,22 @@ AHoleBetweenRenamedFiles) {
 
   // Delete the original file
   std::filesystem::remove(wstring_to_string(output_file_path).c_str());
-  input_file.open(wstring_to_string(output_file_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file_path),
+                  std::ifstream::binary | std::ifstream::in);
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 
   // Delete the first iteration of the original file
   input_file.clear();  // Reset the input_file state
   std::filesystem::remove(wstring_to_string(output_file1_path).c_str());
-  input_file.open(wstring_to_string(output_file1_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file1_path),
+                  std::ifstream::binary | std::ifstream::in);
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 
   // Delete the third iteration of the original file
   input_file.clear();  // Reset the input_file state
   std::filesystem::remove(wstring_to_string(output_file3_path).c_str());
-  input_file.open(wstring_to_string(output_file3_path), std::ifstream::binary | std::ifstream::in);
+  input_file.open(wstring_to_string(output_file3_path),
+                  std::ifstream::binary | std::ifstream::in);
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 }  // namespace linux
