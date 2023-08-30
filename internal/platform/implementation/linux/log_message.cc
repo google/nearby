@@ -121,12 +121,11 @@ void LogMessage::Print(const char *format, ...) {
   va_list ap;
   va_start(ap, format);
   auto ret = vasprintf(&buf, format, ap);
-  va_end(ap);
-
-  if (ret >= 0) {
-    free(buf);
-    log_streamer_.stream() << std::string(buf);
+  if (ret > 0) {
+    log_streamer_.stream() << std::string(buf, ret);
   }
+  if (buf != nullptr) free(buf);
+  va_end(ap);
 }
 
 std::ostream &LogMessage::Stream() { return log_streamer_.stream(); }
