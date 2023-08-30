@@ -14,6 +14,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <climits>
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -47,6 +48,13 @@ api::WifiCapability &NetworkManagerWifiMedium::GetCapability() {
   return capability_;
 }
 
+inline std::int32_t to_signed(std::uint32_t v) {
+  if (v <= INT_MAX) return static_cast<std::int32_t>(v);
+  if (v >= INT_MIN) return static_cast<std::int32_t>(v - INT_MIN) + INT_MIN;
+
+  return INT_MAX;
+}
+
 api::WifiInformation &NetworkManagerWifiMedium::GetInformation() {
   std::unique_ptr<NetworkManagerAccessPoint> active_access_point;
 
@@ -68,17 +76,17 @@ api::WifiInformation &NetworkManagerWifiMedium::GetInformation() {
 
     information_ =
         api::WifiInformation{true, ssid, active_access_point->HwAddress(),
-                             (int32_t)(active_access_point->Frequency())};
+                             to_signed(active_access_point->Frequency())};
     NetworkManagerObjectManager manager(getProxy().getConnection());
     auto ip4config = manager.GetIp4Config(active_access_point->getObjectPath());
 
     if (ip4config != nullptr) {
       auto address_data = ip4config->AddressData();
-      if (address_data.size() > 0) {
+      if (!address_data.empty()) {
         std::string address = address_data[0]["address"];
         information_.ip_address_dot_decimal = address;
 
-        struct in_addr addr;
+        struct in_addr addr {};
         inet_aton(address.c_str(), &addr);
 
         char addr_bytes[4];
@@ -176,9 +184,9 @@ NetworkManagerWifiMedium::SearchBySSID(absl::string_view ssid,
     DBUS_LOG_METHOD_CALL_ERROR(this, "RequestScan", e);
   }
 
-  auto scan_finish = [cur_last_scan, this]() {
-    this->last_scan_lock_.AssertReaderHeld();
-    return cur_last_scan != this->last_scan_;
+  auto scan_finish = [&, cur_last_scan]() {
+    last_scan_lock_.AssertReaderHeld();
+    return cur_last_scan != last_scan_;
   };
 
   absl::Condition cond(&scan_finish);
