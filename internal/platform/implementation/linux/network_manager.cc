@@ -78,11 +78,11 @@ NetworkManagerObjectManager::GetIp4Config(
         auto props = interfaces[org::freedesktop::NetworkManager::Connection::
                                     Active_proxy::INTERFACE_NAME];
         sdbus::ObjectPath specific_object = props["SpecificObject"];
-        sdbus::ObjectPath ip4config = props["Ip4Config"];
-
-        if (specific_object == active_connection)
+        if (specific_object == active_connection) {
+          sdbus::ObjectPath ip4config = props["Ip4Config"];
           return std::make_unique<NetworkManagerIP4Config>(
               getProxy().getConnection(), ip4config);
+        }
       }
     }
   }
