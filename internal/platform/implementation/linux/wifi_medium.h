@@ -97,7 +97,7 @@ class NetworkManagerWifiMedium
     absl::MutexLock l(&known_access_points_lock_);
     known_access_points_.erase(access_point);
     known_access_points_.emplace(access_point,
-                                 std::make_unique<NetworkManagerAccessPoint>(
+                                 std::make_shared<NetworkManagerAccessPoint>(
                                      getProxy().getConnection(), access_point));
   }
   void onAccessPointRemoved(const sdbus::ObjectPath &access_point) override
@@ -117,7 +117,8 @@ class NetworkManagerWifiMedium
   api::WifiInformation information_{false};
 
   absl::Mutex known_access_points_lock_;
-  std::map<sdbus::ObjectPath, std::shared_ptr<NetworkManagerAccessPoint>>
+  absl::flat_hash_map<sdbus::ObjectPath,
+                      std::shared_ptr<NetworkManagerAccessPoint>>
       known_access_points_ ABSL_GUARDED_BY(known_access_points_lock_);
 
   absl::Mutex scan_result_callback_lock_;
