@@ -20,7 +20,6 @@
 #include <string>
 
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/prng.h"
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 
@@ -29,7 +28,7 @@ namespace apple {
 
 #pragma mark - EmptyBlePeripheral
 
-EmptyBlePeripheral::EmptyBlePeripheral() : unique_id_(Prng().NextInt64()) {}
+EmptyBlePeripheral::EmptyBlePeripheral() : unique_id_(0) {}
 
 std::string EmptyBlePeripheral::GetAddress() const { return ""; }
 
