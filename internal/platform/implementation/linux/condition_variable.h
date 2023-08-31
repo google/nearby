@@ -25,7 +25,7 @@ namespace linux {
 class ConditionVariable : public api::ConditionVariable {
  public:
   explicit ConditionVariable(api::Mutex *mutex)
-      : mutex_(static_cast<Mutex *>(mutex)->GetRegularMutex()) {}
+      : mutex_(&(static_cast<linux::Mutex*>(mutex)->GetMutex())) {}
   ~ConditionVariable() = default;
 
   Exception Wait() override {

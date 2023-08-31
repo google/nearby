@@ -25,42 +25,37 @@ namespace nearby {
 namespace linux {
 class ABSL_LOCKABLE Mutex : public api::Mutex {
  public:
-  explicit Mutex(Mode mode) : mode_(mode) {
-    if (mode == Mode::kRecursive)
-      mutex_.emplace<std::recursive_mutex>();
-    else
-      mutex_.emplace<absl::Mutex>();
-  }
-
+  explicit Mutex(Mode mode) : mode_(mode) {}
   ~Mutex() override = default;
-  Mutex(Mutex &&) = delete;
-  Mutex &operator=(Mutex &&) = delete;
-  Mutex(const Mutex &) = delete;
-  Mutex &operator=(const Mutex &) = delete;
+  Mutex(Mutex&&) = delete;
+  Mutex& operator=(Mutex&&) = delete;
+  Mutex(const Mutex&) = delete;
+  Mutex& operator=(const Mutex&) = delete;
 
   void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override {
-    if (auto mutex = std::get_if<absl::Mutex>(&mutex_); mutex != nullptr) {
-      if (mode_ == Mode::kRegularNoCheck) {
-        mutex->ForgetDeadlockInfo();
-      }
-      mutex->Lock();
+    if (mode_ == Mode::kRegularNoCheck) mutex_.ForgetDeadlockInfo();
+    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
+      mutex_.Lock();
     } else {
-      std::get_if<std::recursive_mutex>(&mutex_)->lock();
+      recursive_mutex_.lock();
     }
   }
 
   void Unlock() ABSL_UNLOCK_FUNCTION() override {
-    if (auto mutex = std::get_if<absl::Mutex>(&mutex_); mutex != nullptr) {
-      mutex->Unlock();
+    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
+      mutex_.Unlock();
     } else {
-      std::get_if<std::recursive_mutex>(&mutex_)->unlock();
+      recursive_mutex_.unlock();
     }
   }
 
-  absl::Mutex *GetRegularMutex() { return std::get_if<absl::Mutex>(&mutex_); }
+  absl::Mutex& GetMutex() { return mutex_; }
+  std::recursive_mutex& GetRecursiveMutex() { return recursive_mutex_; }
 
  private:
-  std::variant<absl::Mutex, std::recursive_mutex> mutex_;
+  friend class ConditionVariable;
+  absl::Mutex mutex_;
+  std::recursive_mutex recursive_mutex_;  //  The actual mutex allocation
   Mode mode_;
 };
 }  // namespace linux
