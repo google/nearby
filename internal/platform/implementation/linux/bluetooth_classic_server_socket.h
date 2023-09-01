@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_SERVER_SOCKET_H_
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
@@ -45,6 +46,7 @@ class BluetoothServerSocket final : public api::BluetoothServerSocket {
   Exception Close() override;
 
  private:
+  CancellationFlag stopped_;
   ProfileManager &profile_manager_;
   std::string service_uuid_;
 };

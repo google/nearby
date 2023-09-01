@@ -13,34 +13,39 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/linux/bluetooth_classic_server_socket.h"
-#include "absl/strings/str_replace.h"
-#include "absl/strings/substitute.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
-  auto pair = profile_manager_.GetServiceRecordFD(service_uuid_);
+  if (stopped_.Cancelled()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": server socket has been stopped";
+    return nullptr;
+  }
+
+  NEARBY_LOGS(VERBOSE) << __func__
+                       << ": accepting new connections for service uuid "
+                       << service_uuid_;
+
+  auto pair = profile_manager_.GetServiceRecordFD(service_uuid_, stopped_);
   if (!pair.has_value()) {
     NEARBY_LOGS(ERROR) << __func__
                        << "Failed to get a new connection for profile "
-                       << service_uuid_ << " for device ";
+                       << service_uuid_;
     return nullptr;
   }
 
   auto [device, fd] = *pair;
-  return std::unique_ptr<api::BluetoothSocket>(new BluetoothSocket(device, fd));
+  return std::make_unique<BluetoothSocket>(device, std::move(fd));
 }
 
 Exception BluetoothServerSocket::Close() {
-  auto profile_object_path =
-      absl::Substitute("/com/google/nearby/profiles/$0", service_uuid_);
-
+  NEARBY_LOGS(ERROR) << __func__ << ": closing bluetooth server socket";
+  stopped_.Cancel();
   profile_manager_.Unregister(service_uuid_);
 
   return {Exception::kSuccess};
