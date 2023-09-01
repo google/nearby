@@ -34,7 +34,12 @@ class BluetoothSocket final : public api::BluetoothSocket {
 
   nearby::InputStream &GetInputStream() override { return input_stream_; }
   nearby::OutputStream &GetOutputStream() override { return output_stream_; }
-  Exception Close() override;
+  Exception Close() override {
+    input_stream_.Close();
+    output_stream_.Close();
+
+    return Exception{Exception::kSuccess};
+  }
   api::BluetoothDevice *GetRemoteDevice() override { return &device_; };
 
  private:
