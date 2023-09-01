@@ -269,7 +269,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         status: 1
         response: REJECT
         os_info { type: LINUX }
-        safe_to_disconnect_version: 2
+        safe_to_disconnect_version: 0
       >
     >)pb";
 
