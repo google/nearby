@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sys/socket.h>
 #include <unistd.h>
 #include <array>
 #include <cerrno>
@@ -20,6 +21,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/linux/stream.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
@@ -29,11 +31,13 @@ ExceptionOr<ByteArray> InputStream::Read(std::int64_t size) {
 
   std::string buffer;
   buffer.resize(size);
-  ssize_t ret = read(fd_.get(), buffer.data(), buffer.size());
+  ssize_t ret = recv(fd_.get(), buffer.data(), buffer.size(), MSG_WAITALL);
   if (ret == 0) {
     return ExceptionOr(ByteArray());
   }
   if (ret < 0) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": error reading from fd: " << std::strerror(errno);
     return {Exception::kIo};
   }
   buffer.resize(ret);
@@ -53,7 +57,9 @@ Exception OutputStream::Write(const ByteArray &data) {
   size_t written = 0;
   while (written < data.size()) {
     ssize_t ret = write(fd_.get(), data.data(), data.size());
-    if (ret < 1) {
+    if (ret < 0) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": error writing to fd: " << std::strerror(errno);
       return Exception{Exception::kIo};
     }
     written += ret;
@@ -67,7 +73,7 @@ Exception OutputStream::Close() {
   if (!fd_.isValid()) return Exception{Exception::kIo};
 
   auto ret = close(fd_.get()) < 0 ? Exception{Exception::kIo}
-                                   : Exception{Exception::kSuccess};
+                                  : Exception{Exception::kSuccess};
   fd_.reset();
   return ret;
 }

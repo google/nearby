@@ -19,17 +19,66 @@
 #include <optional>
 
 #include <sdbus-c++/Types.h>
+#include <sys/poll.h>
 #include <systemd/sd-bus.h>
 
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/linux/stream.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace linux {
+// BlueZ's NewConnection gives us a non-blocking FD, so we need to poll
+// it to be able to write/read bytes.
+class Poller final {
+ public:
+  static Poller CreateInputPoller(const sdbus::UnixFd &fd) {
+    return Poller(fd, POLLIN);
+  }
+
+  static Poller CreateOutputPoller(const sdbus::UnixFd &fd) {
+    return Poller(fd, POLLOUT);
+  }
+
+  Exception Ready();
+
+ private:
+  Poller(const sdbus::UnixFd &fd, short event) : poll_event_(event) {
+    fds_[0].fd = fd.get();
+    fds_[0].events = event;
+  }
+
+  short poll_event_;
+  struct pollfd fds_[1];
+};
+
+class BluetoothInputStream final : public nearby::InputStream {
+ public:
+  explicit BluetoothInputStream(sdbus::UnixFd fd) : fd_(std::move(fd)){};
+
+  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  Exception Close() override;
+
+ private:
+  sdbus::UnixFd fd_;
+};
+
+class BluetoothOutputStream : public nearby::OutputStream {
+ public:
+  explicit BluetoothOutputStream(sdbus::UnixFd fd) : fd_(std::move(fd)){};
+
+  Exception Write(const ByteArray &data) override;
+  Exception Flush() override {return {Exception::kSuccess};}
+  Exception Close() override;
+
+ private:
+  sdbus::UnixFd fd_;
+};
+
 class BluetoothSocket final : public api::BluetoothSocket {
  public:
-  BluetoothSocket(api::BluetoothDevice &device, sdbus::UnixFd fd)
+  BluetoothSocket(api::BluetoothDevice &device, const sdbus::UnixFd &fd)
       : device_(device), output_stream_(fd), input_stream_(fd) {}
 
   nearby::InputStream &GetInputStream() override { return input_stream_; }
@@ -44,8 +93,8 @@ class BluetoothSocket final : public api::BluetoothSocket {
 
  private:
   api::BluetoothDevice &device_;
-  OutputStream output_stream_;
-  InputStream input_stream_;
+  BluetoothOutputStream output_stream_;
+  BluetoothInputStream input_stream_;
 };
 }  // namespace linux
 }  // namespace nearby
