@@ -321,6 +321,9 @@ message ConnectionsLog {
 
     // The end status of the payload transfer.
     optional location.nearby.proto.connections.PayloadStatus status = 6;
+
+    // The number of successful auto resume.
+    optional int32 num_successful_auto_resume = 7;
   }
 
   // An attempt to upgrade an existing connection from one medium to another.

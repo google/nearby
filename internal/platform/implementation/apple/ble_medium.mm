@@ -65,6 +65,8 @@ std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> BleMedium::StartAdve
 
   __block api::ble_v2::BleMedium::AdvertisingCallback blockCallback = std::move(callback);
 
+  [socketPeripheralManager_ start];
+
   [medium_ startAdvertisingData:serviceData
               completionHandler:^(NSError *error) {
                 blockCallback.start_advertising_result(
@@ -82,6 +84,8 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
   NSMutableDictionary<CBUUID *, NSData *> *serviceData =
       ObjCServiceDataFromCPP(advertising_data.service_data);
 
+  [socketPeripheralManager_ start];
+
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
   [medium_ startAdvertisingData:serviceData
@@ -97,6 +101,8 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
 }
 
 bool BleMedium::StopAdvertising() {
+  [socketPeripheralManager_ stop];
+
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
   [medium_ stopAdvertisingWithCompletionHandler:^(NSError *error) {
@@ -110,11 +116,8 @@ bool BleMedium::StopAdvertising() {
   return blockError == nil;
 }
 
-void BleMedium::HandleAdvertisementFound(
-    id<GNCPeripheral> peripheral, NSDictionary<CBUUID *, NSData *> *serviceData,
-    absl::AnyInvocable<void(api::ble_v2::BlePeripheral &peripheral,
-                            api::ble_v2::BleAdvertisementData advertisement_data)>
-        callback) {
+void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
+                                         NSDictionary<CBUUID *, NSData *> *serviceData) {
   absl::MutexLock lock(&peripherals_mutex_);
   [socketCentralManager_ retrievePeripheralWithIdentifier:peripheral.identifier
                                         advertisementData:@{}];
@@ -131,14 +134,19 @@ void BleMedium::HandleAdvertisementFound(
   if (it == peripherals_.end()) {
     peripherals_[unique_id] = std::move(ble_peripheral);
   }
-  callback(*peripherals_[unique_id], data);
+  if (scanning_cb_.advertisement_found_cb) {
+    scanning_cb_.advertisement_found_cb(*peripherals_[unique_id], data);
+  }
+  if (scan_cb_.advertisement_found_cb) {
+    scan_cb_.advertisement_found_cb(*peripherals_[unique_id], data);
+  }
 }
 
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BleMedium::ScanningCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
-  __block api::ble_v2::BleMedium::ScanningCallback blockCallback = std::move(callback);
+  scanning_cb_ = std::move(callback);
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -146,13 +154,14 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
-        HandleAdvertisementFound(peripheral, serviceData,
-                                 std::move(blockCallback.advertisement_found_cb));
+        HandleAdvertisementFound(peripheral, serviceData);
       }
       completionHandler:^(NSError *error) {
-        blockCallback.start_scanning_result(
-            error == nil ? absl::OkStatus()
-                         : absl::InternalError(error.localizedDescription.UTF8String));
+        if (scanning_cb_.start_scanning_result) {
+          scanning_cb_.start_scanning_result(
+              error == nil ? absl::OkStatus()
+                           : absl::InternalError(error.localizedDescription.UTF8String));
+        }
       }];
 
   return std::make_unique<ScanningSession>(ScanningSession{.stop_scanning = [this] {
@@ -163,7 +172,7 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
 bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                               api::ble_v2::BleMedium::ScanCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
-  __block api::ble_v2::BleMedium::ScanCallback blockCallback = std::move(callback);
+  scan_cb_ = std::move(callback);
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -173,8 +182,7 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
-        HandleAdvertisementFound(peripheral, serviceData,
-                                 std::move(blockCallback.advertisement_found_cb));
+        HandleAdvertisementFound(peripheral, serviceData);
       }
       completionHandler:^(NSError *error) {
         if (error != nil) {
@@ -188,6 +196,8 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
 }
 
 bool BleMedium::StopScanning() {
+  [socketCentralManager_ stopNoScanMode];
+
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
   [medium_ stopScanningWithCompletionHandler:^(NSError *error) {
@@ -255,7 +265,8 @@ std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
 // TODO(b/293336684): Old Weave code that need to be deleted once shared Weave is complete.
 std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
     const std::string &service_id) {
-  __block auto server_socket = std::make_unique<BleServerSocket>();
+  auto server_socket = std::make_unique<BleServerSocket>();
+  __block auto server_socket_ptr = server_socket.get();
   socketPeripheralServiceManager_ = [[GNSPeripheralServiceManager alloc]
          initWithBleServiceUUID:[CBUUID UUIDWithString:kWeaveServiceUUID]
        addPairingCharacteristic:NO
@@ -263,13 +274,17 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
         GNCMWaitForConnection(socket, ^(BOOL didConnect) {
           GNCMBleConnection *connection =
               [GNCMBleConnection connectionWithSocket:socket
-                                            serviceID:@(service_id.c_str())
+                                            // This must be nil as the advertiser even though we
+                                            // have a service ID available to us.
+                                            serviceID:nil
                                   expectedIntroPacket:YES
                                         callbackQueue:dispatch_get_main_queue()];
 
           auto socket = std::make_unique<BleSocket>(connection);
           connection.connectionHandlers = socket->GetInputStream().GetConnectionHandlers();
-          server_socket->Connect(std::move(socket));
+          if (server_socket_ptr) {
+            server_socket_ptr->Connect(std::move(socket));
+          }
         });
         return YES;
       }];
@@ -363,6 +378,13 @@ bool BleMedium::GetRemotePeripheral(const std::string &mac_address,
 
 bool BleMedium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId unique_id,
                                     api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) {
+  // If the unique_id is 0, that means it's the local/empty peripheral. We must return "true"
+  // otherwise the connection will be considered invalid and the application will crash.
+  if (unique_id == 0) {
+    callback(*local_peripheral_);
+    return true;
+  }
+
   BlePeripheral *peripheral;
   {
     absl::MutexLock lock(&peripherals_mutex_);

@@ -205,10 +205,13 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     NSData *value = [serviceData objectForKey:serviceUUID];
     NSString *encoded = [value webSafeBase64EncodedString];
 
-    // Base64 encoding increases the size of the data so we must truncate it to 22 bytes to ensure
-    // it fits in the advertisement alongside an assumed 16-bit serviceUUID.
-    if (encoded.length > 22) {
-      encoded = [encoded substringToIndex:22];
+    // Apple only "guarantees" (best effort) 28 bytes of advertisement data. Base64 encoding
+    // increases the size of the original data so we must truncate it to ensure it still meets the
+    // 28 byte limit. Since we have a 2-byte service UUID and the header for local name and service
+    // UUID is 2 bytes each, that leaves us with a maximum of 22 bytes for the local name. However,
+    // it seems in practice we can only reliably advertise a 20-byte local name on iOS.
+    if (encoded.length > 20) {
+      encoded = [encoded substringToIndex:20];
     }
 
     _advertisementData = @{

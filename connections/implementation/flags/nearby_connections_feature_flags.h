@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_FLAGS_NEARBY_CONNECTIONS_FEATURE_FLAGS_H_
 
 #include <cstdint>
+
 #include "absl/strings/string_view.h"
 #include "internal/flags/flag.h"
 
@@ -52,10 +53,10 @@ constexpr auto kEnableSafeToDisconnect =
 constexpr auto kEnablePayloadReceivedAck =
     flags::Flag<bool>(kConfigPackage, "45425840", false);
 
-// Support 1. safe-to-disconnect 2. reserved 3. auto-reconnect
+// Support 0. disabled all. 1. safe-to-disconnect 2. reserved 3. auto-reconnect
 // 4. auto-resume for dev device 5. payload_ack
 constexpr auto kSafeToDisconnectVersion =
-    flags::Flag<int64_t>(kConfigPackage, "45425841", 2);
+    flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

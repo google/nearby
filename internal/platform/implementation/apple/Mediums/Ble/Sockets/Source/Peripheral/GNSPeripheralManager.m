@@ -284,8 +284,6 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
   GTMLoggerInfo(@"Start advertising: %@", advertisementData);
   _advertisementInProgressData = [advertisementData copy];
-  [_cbPeripheralManager stopAdvertising];
-  [_cbPeripheralManager startAdvertising:_advertisementInProgressData];
 }
 
 #pragma mark - Private

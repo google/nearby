@@ -120,6 +120,7 @@ cc_library(
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//third_party/nearby/sharing:__subpackages__",
     ],

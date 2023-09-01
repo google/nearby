@@ -143,11 +143,8 @@ class BleMedium : public api::ble_v2::BleMedium {
                            api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) override;
 
  private:
-  void HandleAdvertisementFound(
-      id<GNCPeripheral> peripheral, NSDictionary<CBUUID *, NSData *> *serviceData,
-      absl::AnyInvocable<void(api::ble_v2::BlePeripheral &peripheral,
-                              api::ble_v2::BleAdvertisementData advertisement_data)>
-          callback);
+  void HandleAdvertisementFound(id<GNCPeripheral> peripheral,
+                                NSDictionary<CBUUID *, NSData *> *serviceData);
 
   GNCBLEMedium *medium_;
 
@@ -155,9 +152,17 @@ class BleMedium : public api::ble_v2::BleMedium {
   absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, std::unique_ptr<BlePeripheral>>
       peripherals_ ABSL_GUARDED_BY(peripherals_mutex_);
 
+  std::unique_ptr<EmptyBlePeripheral> local_peripheral_;
+
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;
   GNSCentralManager *socketCentralManager_;
+
+  // Used for the blocking version of StartAdvertising and only has an advertisement found callback.
+  api::ble_v2::BleMedium::ScanCallback scan_cb_;
+  // Used for the async version of StartAdvertising and has both an advertisement found and result
+  // callback.
+  api::ble_v2::BleMedium::ScanningCallback scanning_cb_;
 };
 
 }  // namespace apple

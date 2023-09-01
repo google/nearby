@@ -431,7 +431,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[ expectation ] timeout:3];
 }
 
-- (void)testStartAdvertising22ByteServiceData {
+- (void)testStartAdvertising20ByteServiceData {
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
@@ -443,14 +443,14 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
       [[XCTestExpectation alloc] initWithDescription:@"Start advertising."];
 
   [gattServer startAdvertisingData:@{
-    [CBUUID UUIDWithString:@"FEF3"] : [@"0123456789012345" dataUsingEncoding:NSUTF8StringEncoding],
+    [CBUUID UUIDWithString:@"FEF3"] : [@"012345678901234" dataUsingEncoding:NSUTF8StringEncoding],
   }
                  completionHandler:^(NSError *error) {
                    XCTAssertNil(error);
                    XCTAssertTrue(fakePeripheralManager.isAdvertising);
                    NSDictionary<NSString *, id> *data = fakePeripheralManager.advertisementData;
                    XCTAssertEqualObjects(data[CBAdvertisementDataLocalNameKey],
-                                         @"MDEyMzQ1Njc4OTAxMjM0NQ");
+                                         @"MDEyMzQ1Njc4OTAxMjM0");
                    XCTAssertEqualObjects(data[CBAdvertisementDataServiceUUIDsKey][0],
                                          [CBUUID UUIDWithString:@"FEF3"]);
                    [expectation fulfill];
@@ -479,7 +479,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
            XCTAssertNil(error);
            XCTAssertTrue(fakePeripheralManager.isAdvertising);
            NSDictionary<NSString *, id> *data = fakePeripheralManager.advertisementData;
-           XCTAssertEqualObjects(data[CBAdvertisementDataLocalNameKey], @"MDEyMzQ1Njc4OTAxMjM0NT");
+           XCTAssertEqualObjects(data[CBAdvertisementDataLocalNameKey], @"MDEyMzQ1Njc4OTAxMjM0");
            XCTAssertEqualObjects(data[CBAdvertisementDataServiceUUIDsKey][0],
                                  [CBUUID UUIDWithString:@"FEF3"]);
            [expectation fulfill];

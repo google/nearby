@@ -66,6 +66,7 @@ message Metadata {
 }
 
 // The type of the device.
+// LINT.IfChange
 enum DeviceType {
   // The type of the device is unknown.
   DEVICE_TYPE_UNKNOWN = 0;
@@ -94,7 +95,14 @@ enum DeviceType {
 
   // The device is a foldable.
   DEVICE_TYPE_FOLDABLE = 8;
+
+  // The device is an automotive.
+  DEVICE_TYPE_AUTOMOTIVE = 9;
+
+  // The device is a speaker.
+  DEVICE_TYPE_SPEAKER = 10;
 }
+// LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/presence/PresenceDevice.java)
 
 // The instance type of the metadata.
 // LINT.IfChange
