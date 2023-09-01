@@ -79,14 +79,12 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
   try {
     std::string chasis = hostnamed.Chassis();
     api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;
-    if (chasis == "phone") {
+    if (chasis == "phone" || chasis == "handset") {
       device = api::DeviceInfo::DeviceType::kPhone;
     } else if (chasis == "laptop" || chasis == "desktop") {
       device = api::DeviceInfo::DeviceType::kLaptop;
     } else if (chasis == "tablet") {
       device = api::DeviceInfo::DeviceType::kTablet;
-    } else if (chasis == "handset") {
-      device = api::DeviceInfo::DeviceType::kPhone;
     }
     return device;
   } catch (const sdbus::Error &e) {
@@ -97,20 +95,20 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
 
 std::optional<std::u16string> DeviceInfo::GetFullName() const {
   struct passwd *pwd = getpwuid(getuid());
-  if (!pwd) {
+  if (pwd == nullptr) {
     return std::nullopt;
   }
   char *name = strtok(pwd->pw_gecos, ",");
 
   std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-  return convert.from_bytes(name ? name : pwd->pw_gecos);
+  return convert.from_bytes(name == nullptr ? name : pwd->pw_gecos);
 }
 
 std::optional<std::string> DeviceInfo::GetProfileUserName() const {
   struct passwd *pwd = getpwuid(getuid());
   if (pwd == nullptr) {
     return std::nullopt;
-  }
+  }  
   char *name = strtok(pwd->pw_gecos, ",");
   return std::string(name);
 }
