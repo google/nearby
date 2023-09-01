@@ -51,7 +51,7 @@ NetworkManagerWifiHotspotMedium::ConnectToService(
 
   NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
                        << port;
-  struct sockaddr_in addr{};
+  struct sockaddr_in addr {};
   addr.sin_addr.s_addr = inet_addr(std::string(ip_address).c_str());
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
@@ -179,6 +179,8 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
           {"802-11-wireless",
            std::map<std::string, sdbus::Variant>{
                {"assigned-mac-address", "random"},
+               {"ap-isolation",
+                static_cast<std::int32_t>(0)},  // NM_TERNARY_FALSE
                {"mode", "ap"},
                {"ssid", ssid_bytes},
                {"security", "802-11-wireless-security"}}},
