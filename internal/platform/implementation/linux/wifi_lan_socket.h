@@ -29,7 +29,7 @@ namespace linux {
 class WifiLanSocket : public api::WifiLanSocket {
  public:
   explicit WifiLanSocket(sdbus::UnixFd fd)
-      : fd_(fd), output_stream_(fd), input_stream_(fd) {}
+      : output_stream_(fd), input_stream_(fd) {}
 
   nearby::InputStream &GetInputStream() override { return input_stream_; };
   nearby::OutputStream &GetOutputStream() override { return output_stream_; };
@@ -41,7 +41,6 @@ class WifiLanSocket : public api::WifiLanSocket {
   };
 
  private:
-  sdbus::UnixFd fd_;
   OutputStream output_stream_;
   InputStream input_stream_;
 };
