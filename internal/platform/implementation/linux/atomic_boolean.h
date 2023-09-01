@@ -22,7 +22,7 @@ namespace linux {
 // A boolean value that may be updated atomically.
 class AtomicBoolean : public api::AtomicBoolean {
  public:
-  AtomicBoolean(bool initial_value) : atomic_boolean_(initial_value) {}
+  AtomicBoolean(bool initial_value = false) : atomic_boolean_(initial_value) {}
   ~AtomicBoolean() override = default;
 
   // Atomically read and return current value.
