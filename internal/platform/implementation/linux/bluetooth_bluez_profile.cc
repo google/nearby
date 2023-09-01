@@ -196,19 +196,20 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
                        << service_uuid << " on device " << mac_addr;
 
   auto cond = [mac_addr, profile, cancellation_flag]() {
+    profile->connections_lock_.AssertReaderHeld();
     return profile->connections_.count(mac_addr) != 0 ||
            (cancellation_flag != nullptr && cancellation_flag->Cancelled());
   };
-  profile->connections_lock_.Lock();
-  profile->connections_lock_.Await(absl::Condition(&cond));
+
+  absl::MutexLock connections_lock(&profile->connections_lock_,
+                                   absl::Condition(&cond));
 
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(WARNING)
+    NEARBY_LOGS(VERBOSE)
         << __func__ << ": " << profile->getObjectPath() << ": "
         << remote_device.GetMacAddress()
-        << ": Cancelled waiting for a service record for profile "
+        << ": Cancelled waiting for a new connection on profile "
         << service_uuid;
-    profile->connections_lock_.Unlock();
     return std::nullopt;
   }
 
@@ -216,15 +217,15 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
   profile->connections_[mac_addr].pop_back();
   if (profile->connections_[mac_addr].empty())
     profile->connections_.erase(mac_addr);
-  profile->connections_lock_.Unlock();
 
-  return fd;
+  return std::move(fd);
 }
 
 // Listen for a connected profile on any device, returning the connected device
 // with its FD.
 std::optional<std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
-ProfileManager::GetServiceRecordFD(absl::string_view service_uuid) {
+ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
+                                   const CancellationFlag &cancellation_flag) {
   if (!ProfileRegistered(service_uuid)) {
     return std::nullopt;
   }
@@ -238,11 +239,19 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid) {
                        << service_uuid;
 
   profile->connections_lock_.Lock();
-  auto cond = [profile]() {
+  auto cond = [profile, &cancellation_flag]() {
     profile->connections_lock_.AssertReaderHeld();
-    return !profile->connections_.empty();
+    return !profile->connections_.empty() || cancellation_flag.Cancelled();
   };
   profile->connections_lock_.Await(absl::Condition(&cond));
+
+  if (cancellation_flag.Cancelled()) {
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << "Cancelled waiting for new connections on profile "
+                         << profile->getObjectPath();
+    profile->connections_lock_.Unlock();
+    return std::nullopt;
+  }
 
   auto it = profile->connections_.begin();
   auto mac_addr = it->first;
@@ -258,7 +267,7 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid) {
     return std::nullopt;
   }
 
-  return std::pair(*maybe_device, fd);
+  return std::pair(*maybe_device, std::move(fd));
 }
 
 }  // namespace linux
