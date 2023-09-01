@@ -53,9 +53,9 @@ class Profile final
   Profile(Profile &&) = delete;
   Profile &operator=(const Profile &) = delete;
   Profile &operator=(Profile &&) = delete;
-  Profile(sdbus::IConnection &system_bus, absl::string_view profile_object_path,
+  Profile(sdbus::IConnection &system_bus, sdbus::ObjectPath profile_object_path,
           BluetoothDevices &devices)
-      : AdaptorInterfaces(system_bus, std::string(profile_object_path)),
+      : AdaptorInterfaces(system_bus, std::move(profile_object_path)),
         released_(false),
         devices_(devices) {
     registerAdaptor();
@@ -130,7 +130,8 @@ class ProfileManager final
       ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
   std::optional<
       std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
-  GetServiceRecordFD(absl::string_view service_uuid)
+  GetServiceRecordFD(absl::string_view service_uuid,
+                     const CancellationFlag &cancellation_flag)
       ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
 
  private:
