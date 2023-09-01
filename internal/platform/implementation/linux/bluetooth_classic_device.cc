@@ -109,6 +109,8 @@ void BluetoothDevice::onConnectProfileReply(const sdbus::Error *error) {
 }
 
 bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
+  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+                       << ": Attempting to connect to profile " << service_uuid;
   try {
     ConnectProfile(std::string(service_uuid));
     return true;
