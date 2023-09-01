@@ -68,7 +68,15 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
 #endif
 }
 
-api::DeviceInfo::OsType DeviceInfo::GetOsType() const { return api::DeviceInfo::OsType::kIos; }
+api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
+#if TARGET_OS_OSX
+  return api::DeviceInfo::OsType::kMacOS;
+#elif TARGET_OS_IPHONE
+  return api::DeviceInfo::OsType::kIos;
+#else
+  return api::DeviceInfo::OsType::kUnknown;
+#endif
+}
 
 std::optional<std::u16string> DeviceInfo::GetFullName() const { return std::nullopt; }
 std::optional<std::u16string> DeviceInfo::GetGivenName() const { return std::nullopt; }
