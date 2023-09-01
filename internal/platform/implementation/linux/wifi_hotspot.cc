@@ -141,7 +141,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
     return false;
   }
 
-  char id_cstr[SD_ID128_STRING_MAX];
+  char id_cstr[SD_ID128_UUID_STRING_MAX];
   sd_id128_to_string(id, id_cstr);
 
   std::string ssid = absl::StrCat("DIRECT-", id_cstr);
@@ -163,7 +163,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                        << std::strerror(ret);
     return false;
   }
-  sd_id128_to_string(id, id_cstr);
+  sd_id128_to_uuid_string(id, id_cstr);
 
   std::vector<uint8_t> ssid_bytes(ssid.begin(), ssid.end());
   std::map<std::string, std::map<std::string, sdbus::Variant>>
