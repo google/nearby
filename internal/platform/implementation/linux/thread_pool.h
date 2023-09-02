@@ -38,23 +38,24 @@ class ThreadPool {
   explicit ThreadPool(size_t max_pool_size);
   ~ThreadPool();
 
-  bool Start() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Start() ABSL_LOCKS_EXCLUDED(threads_mutex_);
 
   // Runs a task on thread pool. The result indicates whether the task is put
   // into the thread pool.
-  bool Run(Runnable &&task) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Run(Runnable &&task) ABSL_LOCKS_EXCLUDED(tasks_mutex_);
 
-  void ShutDown() ABSL_LOCKS_EXCLUDED(mutex_);
+  void ShutDown() ABSL_LOCKS_EXCLUDED(threads_mutex_);
 
  private:
-  Runnable NextTask() ABSL_LOCKS_EXCLUDED(mutex_);
+  Runnable NextTask() ABSL_LOCKS_EXCLUDED(tasks_mutex_);
 
   size_t max_pool_size_;
   std::atomic_bool shut_down_;
 
-  absl::Mutex mutex_;
-  std::vector<std::thread> threads_ ABSL_GUARDED_BY(mutex_);
-  std::queue<Runnable> tasks_ ABSL_GUARDED_BY(mutex_);
+  absl::Mutex threads_mutex_;
+  std::vector<std::thread> threads_ ABSL_GUARDED_BY(threads_mutex_);
+  absl::Mutex tasks_mutex_;
+  std::queue<Runnable> tasks_ ABSL_GUARDED_BY(tasks_mutex_);
 };
 }  // namespace linux
 }  // namespace nearby
