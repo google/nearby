@@ -131,7 +131,7 @@ class ProfileManager final
   std::optional<
       std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
   GetServiceRecordFD(absl::string_view service_uuid,
-                     const CancellationFlag &cancellation_flag)
+                     CancellationFlag *cancellation_flag)
       ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
 
  private:

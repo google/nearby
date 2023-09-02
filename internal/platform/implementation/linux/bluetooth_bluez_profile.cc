@@ -27,6 +27,7 @@
 #include <sdbus-c++/Types.h>
 
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
@@ -191,6 +192,14 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
   auto profile = registered_services_[std::string(service_uuid)];
   registered_service_uuids_mutex_.ReaderUnlock();
 
+  std::unique_ptr<CancellationFlagListener> cancel_listener;
+  if (cancellation_flag != nullptr)
+    cancel_listener = std::make_unique<CancellationFlagListener>(
+        cancellation_flag, [&profile]() {
+          profile->connections_lock_.Lock();
+          profile->connections_lock_.Unlock();
+        });
+
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << profile->getObjectPath()
                        << ": Attempting to get a FD for service "
                        << service_uuid << " on device " << mac_addr;
@@ -225,7 +234,7 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
 // with its FD.
 std::optional<std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
 ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
-                                   const CancellationFlag &cancellation_flag) {
+                                   CancellationFlag *cancellation_flag) {
   if (!ProfileRegistered(service_uuid)) {
     return std::nullopt;
   }
@@ -238,14 +247,23 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
                        << ": Attempting to get a FD for service "
                        << service_uuid;
 
+  std::unique_ptr<CancellationFlagListener> cancel_listener;
+  if (cancellation_flag != nullptr)
+    cancel_listener = std::make_unique<CancellationFlagListener>(
+        cancellation_flag, [&profile]() {
+          profile->connections_lock_.Lock();
+          profile->connections_lock_.Unlock();
+        });
+
   profile->connections_lock_.Lock();
   auto cond = [profile, &cancellation_flag]() {
     profile->connections_lock_.AssertReaderHeld();
-    return !profile->connections_.empty() || cancellation_flag.Cancelled();
+    return !profile->connections_.empty() ||
+           (cancellation_flag != nullptr && cancellation_flag->Cancelled());
   };
   profile->connections_lock_.Await(absl::Condition(&cond));
 
-  if (cancellation_flag.Cancelled()) {
+  if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
     NEARBY_LOGS(VERBOSE) << __func__
                          << "Cancelled waiting for new connections on profile "
                          << profile->getObjectPath();
