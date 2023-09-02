@@ -24,6 +24,7 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/linux/avahi.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/device_info.h"
 #include "internal/platform/logging.h"
@@ -63,13 +64,13 @@ DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus)
       login_manager_(std::make_unique<LoginManager>(system_bus_)) {}
 
 std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
-  Hostnamed hostnamed(system_bus_);
+  avahi::Server avahi(system_bus_);
   try {
-    std::string hostname = hostnamed.PrettyHostname();
+    std::string hostname = avahi.GetHostNameFqdn();
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return convert.from_bytes(hostname);
   } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(&hostnamed, "PrettyHostname", e);
+    DBUS_LOG_PROPERTY_GET_ERROR(&avahi, "GetHostNameFqdn", e);
     return std::nullopt;
   }
 }
@@ -105,12 +106,9 @@ std::optional<std::u16string> DeviceInfo::GetFullName() const {
 }
 
 std::optional<std::string> DeviceInfo::GetProfileUserName() const {
-  struct passwd *pwd = getpwuid(getuid());
-  if (pwd == nullptr) {
-    return std::nullopt;
-  }  
-  char *name = strtok(pwd->pw_gecos, ",");
-  return std::string(name);
+  char *logname = secure_getenv("LOGNAME");
+  return logname == nullptr ? std::nullopt
+                            : std::optional(std::string(logname));
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
