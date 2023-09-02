@@ -34,27 +34,26 @@ ThreadPool::~ThreadPool() { ShutDown(); }
 bool ThreadPool::Start() {
   shut_down_.store(false, std::memory_order_acquire);
 
-  absl::MutexLock l(&mutex_);
-  if (!threads_.empty()) {
-    NEARBY_LOGS(ERROR) << __func__ << "thread pool is already active";
-    return false;
-  }
-
-  auto runner = [&]() {
+  auto runner = [this]() {
     while (true) {
-      if (shut_down_) {
-        return;
-      }
-
       auto task = NextTask();
 
       if (task == nullptr) {
+        if (shut_down_) {
+          return;
+        }
         NEARBY_LOGS(WARNING) << __func__ << ": Tried to run a null task.";
         continue;
       }
       task();
     }
   };
+
+  absl::MutexLock l(&threads_mutex_);
+  if (!threads_.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << "thread pool is already active";
+    return false;
+  }
 
   NEARBY_LOGS(INFO) << __func__ << ": Starting thread pool with "
                     << max_pool_size_ << " threads";
@@ -72,43 +71,51 @@ bool ThreadPool::Run(Runnable &&task) {
     return false;
   }
 
-  absl::MutexLock l(&mutex_);
-  if (threads_.empty()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": thread pool is not active";
-    return false;
+  {
+    absl::ReaderMutexLock l(&threads_mutex_);
+    if (threads_.empty()) {
+      NEARBY_LOGS(ERROR) << __func__ << ": thread pool is not active";
+      return false;
+    }
   }
 
+  absl::MutexLock l(&tasks_mutex_);
   tasks_.push(std::move(task));
   return true;
 }
 
 void ThreadPool::ShutDown() {
-  shut_down_.store(true, std::memory_order_acquire);
-
+  {
+    absl::MutexLock l(&tasks_mutex_);
+    shut_down_.store(true, std::memory_order_acquire);
+  }
   NEARBY_LOGS(INFO)
       << __func__ << ": asked to shut down, waiting for active threads to stop";
 
   {
-    absl::ReaderMutexLock l(&mutex_);
+    absl::ReaderMutexLock l(&threads_mutex_);
     for (auto &thread : threads_) {
       thread.join();
     }
   }
 
-  absl::MutexLock l(&mutex_);
+  absl::MutexLock l(&threads_mutex_);
   threads_.clear();
   NEARBY_LOGS(INFO) << __func__ << ": shut down thread pool";
 }
 
 Runnable ThreadPool::NextTask() {
   Runnable task;
-  auto task_available = [&]() {
-    mutex_.AssertReaderHeld();
-    return !tasks_.empty();
+  auto task_available = [this]() {
+    this->tasks_mutex_.AssertReaderHeld();
+    return !this->tasks_.empty() || this->shut_down_;
   };
 
   {
-    absl::MutexLock l(&mutex_, absl::Condition(&task_available));
+    absl::MutexLock l(&tasks_mutex_, absl::Condition(&task_available));
+    if (shut_down_) {
+      return nullptr;
+    }
 
     task = std::move(tasks_.front());
     tasks_.pop();
