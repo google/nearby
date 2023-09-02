@@ -14,10 +14,13 @@
 
 #include "connections/implementation/base_bwu_handler.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -28,7 +31,7 @@ BaseBwuHandler::BaseBwuHandler(
     : incoming_connection_callback_(std::move(incoming_connection_callback)) {}
 
 ByteArray BaseBwuHandler::InitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id) {
   std::string upgrade_service_id = WrapInitiatorUpgradeServiceId(service_id);
 
@@ -80,7 +83,8 @@ void BaseBwuHandler::RevertResponderState(const std::string& service_id) {
 }
 
 void BaseBwuHandler::NotifyOnIncomingConnection(
-    ClientProxy* client, std::unique_ptr<IncomingSocketConnection> connection) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    std::unique_ptr<IncomingSocketConnection> connection) {
   if (!incoming_connection_callback_) {
     NEARBY_LOGS(WARNING)
         << "Ignoring incoming connection, no callback registered";

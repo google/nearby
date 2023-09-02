@@ -27,6 +27,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/base64_utils.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/exception.h"
@@ -69,11 +70,17 @@ bool HandleEncryptionSuccess(const std::string& endpoint_id,
   return true;
 }
 
-void CancelableAlarmRunnable(ClientProxy* client,
+void CancelableAlarmRunnable(::nearby::Borrowable<ClientProxy*> client,
                              const std::string& endpoint_id,
                              EndpointChannel* endpoint_channel) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   NEARBY_LOGS(INFO) << "Timing out encryption for client "
-                    << client->GetClientId()
+                    << (*borrowed)->GetClientId()
                     << " to endpoint_id=" << endpoint_id << " after "
                     << absl::FormatDuration(kTimeout);
   endpoint_channel->Close();
@@ -81,7 +88,8 @@ void CancelableAlarmRunnable(ClientProxy* client,
 
 class ServerRunnable final {
  public:
-  ServerRunnable(ClientProxy* client, ScheduledExecutor* alarm_executor,
+  ServerRunnable(::nearby::Borrowable<ClientProxy*> client,
+                 ScheduledExecutor* alarm_executor,
                  const std::string& endpoint_id, EndpointChannel* channel,
                  EncryptionRunner::ResultListener listener)
       : client_(client),
@@ -202,15 +210,21 @@ class ServerRunnable final {
       const securegcm::UKey2Handshake::ParseResult& parse_result) const {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
+    ::nearby::Borrowed<ClientProxy*> borrowed = client_.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+
     if (!write_exception.Ok()) {
       NEARBY_LOGS(WARNING)
-          << "In StartServer(), client " << client_->GetClientId()
+          << "In StartServer(), client " << (*borrowed)->GetClientId()
           << " failed to pass the alert error message to endpoint(id="
           << endpoint_id_ << ").";
     }
   }
 
-  ClientProxy* client_;
+  ::nearby::Borrowable<ClientProxy*> client_;
   ScheduledExecutor* alarm_executor_;
   const std::string endpoint_id_;
   EndpointChannel* channel_;
@@ -219,7 +233,8 @@ class ServerRunnable final {
 
 class ClientRunnable final {
  public:
-  ClientRunnable(ClientProxy* client, ScheduledExecutor* alarm_executor,
+  ClientRunnable(::nearby::Borrowable<ClientProxy*> client,
+                 ScheduledExecutor* alarm_executor,
                  const std::string& endpoint_id, EndpointChannel* channel,
                  EncryptionRunner::ResultListener listener)
       : client_(client),
@@ -339,15 +354,21 @@ class ClientRunnable final {
       const securegcm::UKey2Handshake::ParseResult& parse_result) const {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
+    ::nearby::Borrowed<ClientProxy*> borrowed = client_.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+
     if (!write_exception.Ok()) {
       NEARBY_LOGS(WARNING)
-          << "In StartClient(), client " << client_->GetClientId()
+          << "In StartClient(), client " << (*borrowed)->GetClientId()
           << " failed to pass the alert error message to endpoint(id="
           << endpoint_id_ << ").";
     }
   }
 
-  ClientProxy* client_;
+  ::nearby::Borrowable<ClientProxy*> client_;
   ScheduledExecutor* alarm_executor_;
   const std::string endpoint_id_;
   EndpointChannel* channel_;
@@ -363,7 +384,7 @@ EncryptionRunner::~EncryptionRunner() {
   alarm_executor_.Shutdown();
 }
 
-void EncryptionRunner::StartServer(ClientProxy* client,
+void EncryptionRunner::StartServer(::nearby::Borrowable<ClientProxy*> client,
                                    const std::string& endpoint_id,
                                    EndpointChannel* endpoint_channel,
                                    EncryptionRunner::ResultListener listener) {
@@ -372,7 +393,7 @@ void EncryptionRunner::StartServer(ClientProxy* client,
   server_executor_.Execute("encryption-server", std::move(runnable));
 }
 
-void EncryptionRunner::StartClient(ClientProxy* client,
+void EncryptionRunner::StartClient(::nearby::Borrowable<ClientProxy*> client,
                                    const std::string& endpoint_id,
                                    EndpointChannel* endpoint_channel,
                                    EncryptionRunner::ResultListener listener) {

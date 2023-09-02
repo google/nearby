@@ -43,8 +43,10 @@ class P2pPointToPointPcpHandler : public P2pStarPcpHandler {
   std::vector<location::nearby::proto::connections::Medium>
   GetConnectionMediumsByPriority() override;
 
-  bool CanSendOutgoingConnection(ClientProxy* client) const override;
-  bool CanReceiveIncomingConnection(ClientProxy* client) const override;
+  bool CanSendOutgoingConnection(
+      ::nearby::Borrowable<ClientProxy*> client) const override;
+  bool CanReceiveIncomingConnection(
+      ::nearby::Borrowable<ClientProxy*> client) const override;
 };
 
 }  // namespace connections

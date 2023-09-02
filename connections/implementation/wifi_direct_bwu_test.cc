@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/wifi_direct_bwu_handler.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
@@ -43,7 +44,8 @@ TEST_F(WifiDirectTest, CanCreateBwuHandler) {
 
   auto handler = std::make_unique<WifiDirectBwuHandler>(mediums, nullptr);
 
-  handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
+  handler->InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                               /*service_id=*/"B",
                                                /*endpoint_id=*/"2");
   handler->RevertInitiatorState();
   SUCCEED();
@@ -60,7 +62,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   ExceptionOr<OfflineFrame> upgrade_frame;
 
   auto handler_1 = std::make_unique<WifiDirectBwuHandler>(
-      mediums_1, [&](ClientProxy* client,
+      mediums_1, [&](::nearby::Borrowable<ClientProxy*>,
                      std::unique_ptr<BwuHandler::IncomingSocketConnection>
                          mutable_connection) {
         NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
@@ -77,9 +79,10 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   server_executor.Execute(
       [&handler_1, &wifi_direct_go, &upgrade_frame, &start_latch]() {
         ByteArray upgrade_path_available_frame =
-            handler_1->InitializeUpgradedMediumForEndpoint(&wifi_direct_go,
-                                                           /*service_id=*/"A",
-                                                           /*endpoint_id=*/"1");
+            handler_1->InitializeUpgradedMediumForEndpoint(
+                wifi_direct_go.GetBorrowable(),
+                /*service_id=*/"A",
+                /*endpoint_id=*/"1");
         EXPECT_FALSE(upgrade_path_available_frame.Empty());
 
         upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
@@ -99,7 +102,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
 
     std::unique_ptr<EndpointChannel> new_channel =
         handler_2->CreateUpgradedEndpointChannel(
-            &wifi_direct_gc, /*service_id=*/"A",
+            wifi_direct_go.GetBorrowable(), /*service_id=*/"A",
             /*endpoint_id=*/"1", bwu_frame.upgrade_path_info());
     if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());

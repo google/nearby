@@ -21,6 +21,7 @@
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/platform/borrowable.h"
 
 // Manages the Bluetooth-specific methods needed to upgrade an {@link
 // EndpointChannel}.
@@ -38,7 +39,7 @@ BluetoothBwuHandler::BluetoothBwuHandler(
 // Returns a channel ready to exchange data or nullptr on error.
 std::unique_ptr<EndpointChannel>
 BluetoothBwuHandler::CreateUpgradedEndpointChannel(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   const UpgradePathInfo::BluetoothCredentials& bluetooth_credentials =
       upgrade_path_info.bluetooth_credentials();
@@ -66,8 +67,14 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return nullptr;
+  }
+
   BluetoothSocket socket = bluetooth_medium_.Connect(
-      device, service_id, client->GetCancellationFlag(endpoint_id));
+      device, service_id, (*borrowed)->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to connect to the Bluetooth device ("
@@ -97,8 +104,8 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
 }
 
 ByteArray BluetoothBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, const std::string& endpoint_id) {
   std::string mac_address = bluetooth_medium_.GetMacAddress();
   if (mac_address.empty()) {
     NEARBY_LOGS(ERROR) << "BluetoothBwuHandler couldn't initiate the "
@@ -142,8 +149,8 @@ void BluetoothBwuHandler::HandleRevertInitiatorStateForService(
 // Notifies that the remote party called BluetoothClassic::Connect()
 // for this socket.
 void BluetoothBwuHandler::OnIncomingBluetoothConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    BluetoothSocket socket) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, BluetoothSocket socket) {
   auto channel = absl::make_unique<BluetoothEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection{

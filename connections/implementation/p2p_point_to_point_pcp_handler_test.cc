@@ -164,7 +164,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
   } discovered;
   EXPECT_EQ(
       handler_a.StartAdvertising(
-          &client_a_, service_id_, advertising_options_,
+          client_a_.GetBorrowable(), service_id_, advertising_options_,
           {
               .endpoint_info = ByteArray{endpoint_name_a},
               .listener =
@@ -180,7 +180,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
           }),
       Status{Status::kSuccess});
   EXPECT_EQ(handler_b.StartDiscovery(
-                &client_b_, service_id_, discovery_options_,
+                client_b_.GetBorrowable(), service_id_, discovery_options_,
                 {
                     .endpoint_found_cb =
                         [&discover_latch, &discovered](
@@ -217,7 +217,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
 
   client_b_.AddCancellationFlag(discovered.endpoint_id);
   handler_b.RequestConnection(
-      &client_b_, discovered.endpoint_id,
+      client_b_.GetBorrowable(), discovered.endpoint_id,
       {.endpoint_info = discovered.endpoint_info,
        .listener =
            {
@@ -246,7 +246,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
   EXPECT_EQ(client_a_.GetIPAddress(client_b_local_endpoint),
             mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
 
-  handler_b.StopDiscovery(&client_b_);
+  handler_b.StopDiscovery(client_b_.GetBorrowable());
   bwu_a.Shutdown();
   bwu_b.Shutdown();
   env_.Stop();

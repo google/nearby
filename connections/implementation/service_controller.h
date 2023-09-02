@@ -29,6 +29,7 @@
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -63,62 +64,65 @@ class ServiceController {
   virtual void ShutdownBwuManagerExecutors() = 0;
 
   // Starts advertising an endpoint for a local app.
-  virtual Status StartAdvertising(ClientProxy* client,
+  virtual Status StartAdvertising(::nearby::Borrowable<ClientProxy*> client,
                                   const std::string& service_id,
                                   const AdvertisingOptions& advertising_options,
                                   const ConnectionRequestInfo& info) = 0;
 
-  virtual void StopAdvertising(ClientProxy* client) = 0;
+  virtual void StopAdvertising(::nearby::Borrowable<ClientProxy*> client) = 0;
 
-  virtual Status StartDiscovery(ClientProxy* client,
+  virtual Status StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
                                 const std::string& service_id,
                                 const DiscoveryOptions& discovery_options,
                                 const DiscoveryListener& listener) = 0;
-  virtual void StopDiscovery(ClientProxy* client) = 0;
+  virtual void StopDiscovery(::nearby::Borrowable<ClientProxy*> client) = 0;
 
-  virtual void InjectEndpoint(ClientProxy* client,
+  virtual void InjectEndpoint(::nearby::Borrowable<ClientProxy*> client,
                               const std::string& service_id,
                               const OutOfBandConnectionMetadata& metadata) = 0;
 
   virtual std::pair<Status, std::vector<ConnectionInfoVariant>>
   StartListeningForIncomingConnections(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options) = 0;
 
-  virtual void StopListeningForIncomingConnections(ClientProxy* client) = 0;
+  virtual void StopListeningForIncomingConnections(
+      ::nearby::Borrowable<ClientProxy*> client) = 0;
 
   virtual Status RequestConnection(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) = 0;
-  virtual Status AcceptConnection(ClientProxy* client,
+  virtual Status AcceptConnection(::nearby::Borrowable<ClientProxy*> client,
                                   const std::string& endpoint_id,
                                   PayloadListener listener) = 0;
-  virtual Status RejectConnection(ClientProxy* client,
+  virtual Status RejectConnection(::nearby::Borrowable<ClientProxy*> client,
                                   const std::string& endpoint_id) = 0;
 
-  virtual void InitiateBandwidthUpgrade(ClientProxy* client,
-                                        const std::string& endpoint_id) = 0;
+  virtual void InitiateBandwidthUpgrade(
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& endpoint_id) = 0;
 
-  virtual void SendPayload(ClientProxy* client,
+  virtual void SendPayload(::nearby::Borrowable<ClientProxy*> client,
                            const std::vector<std::string>& endpoint_ids,
                            Payload payload) = 0;
 
-  virtual Status CancelPayload(ClientProxy* client, Payload::Id payload_id) = 0;
+  virtual Status CancelPayload(::nearby::Borrowable<ClientProxy*> client,
+                               Payload::Id payload_id) = 0;
 
-  virtual void DisconnectFromEndpoint(ClientProxy* client,
+  virtual void DisconnectFromEndpoint(::nearby::Borrowable<ClientProxy*> client,
                                       const std::string& endpoint_id) = 0;
 
   virtual Status UpdateAdvertisingOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const AdvertisingOptions& advertising_options) = 0;
 
   virtual Status UpdateDiscoveryOptions(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       const DiscoveryOptions& discovery_options) = 0;
 
-  virtual void SetCustomSavePath(ClientProxy* client,
+  virtual void SetCustomSavePath(::nearby::Borrowable<ClientProxy*> client,
                                  const std::string& path) = 0;
 };
 

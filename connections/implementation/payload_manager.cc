@@ -34,6 +34,7 @@
 #include "connections/implementation/internal_payload_factory.h"
 #include "connections/payload_type.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
@@ -57,7 +58,7 @@ using ::nearby::connections::PayloadDirection;
 constexpr absl::Duration PayloadManager::kWaitCloseTimeout;
 
 bool PayloadManager::SendPayloadLoop(
-    ClientProxy* client, PendingPayload& pending_payload,
+    ::nearby::Borrowable<ClientProxy*> client, PendingPayload& pending_payload,
     PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t& next_chunk_offset, size_t resume_offset) {
   // in lieu of structured binding:
@@ -380,7 +381,7 @@ bool PayloadManager::NotifyShutdown() {
   return true;
 }
 
-void PayloadManager::SendPayload(ClientProxy* client,
+void PayloadManager::SendPayload(::nearby::Borrowable<ClientProxy*> client,
                                  const EndpointIds& endpoint_ids,
                                  Payload payload) {
   if (shutdown_.Get()) return;
@@ -485,7 +486,7 @@ PayloadManager::PendingPayloadHandle PayloadManager::GetPayload(
   return pending_payloads_.GetPayload(payload_id);
 }
 
-Status PayloadManager::CancelPayload(ClientProxy* client,
+Status PayloadManager::CancelPayload(::nearby::Borrowable<ClientProxy*> client,
                                      Payload::Id payload_id) {
   PendingPayloadHandle canceled_payload = GetPayload(payload_id);
   if (!canceled_payload) {
@@ -509,7 +510,7 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
 // @EndpointManagerDataPool
 void PayloadManager::OnIncomingFrame(
     OfflineFrame& offline_frame, const std::string& from_endpoint_id,
-    ClientProxy* to_client,
+    ::nearby::Borrowable<ClientProxy*> to_client,
     location::nearby::proto::connections::Medium current_medium,
     PacketMetaData& packet_meta_data) {
   PayloadTransferFrame& frame =
@@ -533,11 +534,10 @@ void PayloadManager::OnIncomingFrame(
   }
 }
 
-void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
-                                          const std::string& service_id,
-                                          const std::string& endpoint_id,
-                                          CountDownLatch barrier,
-                                          DisconnectionReason reason) {
+void PayloadManager::OnEndpointDisconnect(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
+    const std::string& endpoint_id, CountDownLatch barrier,
+    DisconnectionReason reason) {
   if (shutdown_.Get()) {
     barrier.CountDown();
     return;
@@ -549,6 +549,13 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
         // Iterate through all our payloads and look for payloads associated
         // with this endpoint.
         MutexLock lock(&mutex_);
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          barrier.CountDown();
+          return;
+        }
+
         pending_payloads_.ForEachPayload([&](PendingPayload* pending_payload) {
           auto endpoint_info = pending_payload->GetEndpoint(endpoint_id);
           if (!endpoint_info) return;
@@ -572,28 +579,27 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
                                      payload_total_size, endpoint_offset};
 
           // Send a client notification of a payload transfer failure.
-          client->OnPayloadProgress(endpoint_id, update);
+          (*borrowed)->OnPayloadProgress(endpoint_id, update);
 
-              PayloadStatus payload_status;
-              switch (reason) {
-                case DisconnectionReason::LOCAL_DISCONNECTION:
-                  payload_status = PayloadStatus::LOCAL_CLIENT_DISCONNECTION;
-                  break;
-                case DisconnectionReason::REMOTE_DISCONNECTION:
-                  payload_status = PayloadStatus::REMOTE_CLIENT_DISCONNECTION;
-                  break;
-                case DisconnectionReason::IO_ERROR:
-                default:
-                  payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
-                  break;
-              }
-
+          PayloadStatus payload_status;
+          switch (reason) {
+            case DisconnectionReason::LOCAL_DISCONNECTION:
+              payload_status = PayloadStatus::LOCAL_CLIENT_DISCONNECTION;
+              break;
+            case DisconnectionReason::REMOTE_DISCONNECTION:
+              payload_status = PayloadStatus::REMOTE_CLIENT_DISCONNECTION;
+              break;
+            case DisconnectionReason::IO_ERROR:
+            default:
+              payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
+              break;
+          }
 
           if (pending_payload->IsIncoming()) {
-            client->GetAnalyticsRecorder().OnIncomingPayloadDone(
+            (*borrowed)->GetAnalyticsRecorder().OnIncomingPayloadDone(
                 endpoint_id, pending_payload->GetId(), payload_status);
           } else {
-            client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
+            (*borrowed)->GetAnalyticsRecorder().OnOutgoingPayloadDone(
                 endpoint_id, pending_payload->GetId(), payload_status);
           }
         });
@@ -741,7 +747,8 @@ void PayloadManager::OnPendingPayloadDestroy(const PendingPayload* payload) {
 }
 
 void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
-    ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
     location::nearby::proto::connections::PayloadStatus status) {
@@ -767,11 +774,17 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
             continue;
           }
 
+          ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+          if (!borrowed) {
+            NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+            return;
+          }
+
           // Notify the client.
-          client->OnPayloadProgress(endpoint_id, update);
+          (*borrowed)->OnPayloadProgress(endpoint_id, update);
 
           // Mark this payload as done for analytics.
-          client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
+          (*borrowed)->GetAnalyticsRecorder().OnOutgoingPayloadDone(
               endpoint_id, payload_header.id(), status);
         }
 
@@ -786,7 +799,7 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
 }
 
 void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes,
     location::nearby::proto::connections::PayloadStatus status) {
@@ -811,7 +824,13 @@ void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
         DestroyPendingPayload(payload_header.id());
 
         // Analyze
-        client->GetAnalyticsRecorder().OnIncomingPayloadDone(
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          return;
+        }
+
+        (*borrowed)->GetAnalyticsRecorder().OnIncomingPayloadDone(
             endpoint_id, payload_header.id(), status);
       });
 }
@@ -830,7 +849,7 @@ void PayloadManager::SendControlMessage(
 }
 
 void PayloadManager::SendPayloadReceivedAck(
-    ClientProxy* client, PendingPayload& pending_payload,
+    ::nearby::Borrowable<ClientProxy*> client, PendingPayload& pending_payload,
     const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t chunk_size, bool is_last_chunk) {
@@ -849,7 +868,7 @@ void PayloadManager::SendPayloadReceivedAck(
 }
 
 bool PayloadManager::WaitForReceivedAck(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     PendingPayload& pending_payload,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t payload_chunk_offset, bool is_last_chunk) {
@@ -911,19 +930,25 @@ bool PayloadManager::WaitForReceivedAck(
 }
 
 bool PayloadManager::IsPayloadReceivedAckEnabled(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     PendingPayload& pending_payload) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return false;
+  }
   return NearbyFlags::GetInstance().GetBoolFlag(
              config_package_nearby::nearby_connections_feature::
                  kEnablePayloadReceivedAck) &&
-         client->IsPayloadReceivedAckEnabled(endpoint_id) &&
+         (*borrowed)->IsPayloadReceivedAckEnabled(endpoint_id) &&
          (pending_payload.GetInternalPayload()->GetType() !=
           nearby::connections::PayloadTransferFrame::PayloadTransferFrame::
               PayloadHeader::BYTES);
 }
 
 void PayloadManager::HandleFinishedOutgoingPayload(
-    ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
     location::nearby::proto::connections::PayloadStatus status) {
@@ -971,7 +996,7 @@ void PayloadManager::HandleFinishedOutgoingPayload(
 }
 
 void PayloadManager::HandleFinishedIncomingPayload(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes,
     location::nearby::proto::connections::PayloadStatus status) {
@@ -998,7 +1023,7 @@ void PayloadManager::HandleFinishedIncomingPayload(
 }
 
 void PayloadManager::HandleSuccessfulOutgoingChunk(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
@@ -1031,7 +1056,12 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             if (!is_last_chunk && payload_chunk_offset != 0) {
               NEARBY_LOGS(INFO) << "Skip the outgoing chunk update with offset="
                                 << payload_chunk_offset;
-              client->GetAnalyticsRecorder().OnPayloadChunkSent(
+              ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+              if (!borrowed) {
+                NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+                return;
+              }
+              (*borrowed)->GetAnalyticsRecorder().OnPayloadChunkSent(
                   endpoint_id, payload_header.id(), payload_chunk_body_size);
               return;
             }
@@ -1055,11 +1085,17 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             is_last_chunk ? payload_chunk_offset
                           : payload_chunk_offset + payload_chunk_body_size};
 
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          return;
+        }
+
         // Notify the client.
-        client->OnPayloadProgress(endpoint_id, update);
+        (*borrowed)->OnPayloadProgress(endpoint_id, update);
 
         if (is_last_chunk) {
-          client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
+          (*borrowed)->GetAnalyticsRecorder().OnOutgoingPayloadDone(
               endpoint_id, payload_header.id(),
               location::nearby::proto::connections::SUCCESS);
 
@@ -1071,7 +1107,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             pending_payload->Close();
           }
         } else {
-          client->GetAnalyticsRecorder().OnPayloadChunkSent(
+          (*borrowed)->GetAnalyticsRecorder().OnPayloadChunkSent(
               endpoint_id, payload_header.id(), payload_chunk_body_size);
         }
       });
@@ -1083,7 +1119,7 @@ void PayloadManager::DestroyPendingPayload(Payload::Id payload_id) {
 }
 
 void PayloadManager::HandleSuccessfulIncomingChunk(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
@@ -1115,7 +1151,12 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
             if (!is_last_chunk && payload_chunk_offset != 0) {
               NEARBY_LOGS(INFO) << "Skip the incoming chunk update with offset="
                                 << payload_chunk_offset;
-              client->GetAnalyticsRecorder().OnPayloadChunkReceived(
+              ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+              if (!borrowed) {
+                NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+                return;
+              }
+              (*borrowed)->GetAnalyticsRecorder().OnPayloadChunkReceived(
                   endpoint_id, payload_header.id(), payload_chunk_body_size);
               return;
             }
@@ -1138,13 +1179,19 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
         // Notify the client of this update.
         NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
 
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          return;
+        }
+
         // Analyze the success.
         if (is_last_chunk) {
-          client->GetAnalyticsRecorder().OnIncomingPayloadDone(
+          (*borrowed)->GetAnalyticsRecorder().OnIncomingPayloadDone(
               endpoint_id, payload_header.id(),
               location::nearby::proto::connections::SUCCESS);
         } else {
-          client->GetAnalyticsRecorder().OnPayloadChunkReceived(
+          (*borrowed)->GetAnalyticsRecorder().OnPayloadChunkReceived(
               endpoint_id, payload_header.id(), payload_chunk_body_size);
         }
       });
@@ -1152,7 +1199,8 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
 
 // @EndpointManagerDataPool
 void PayloadManager::ProcessDataPacket(
-    ClientProxy* to_client, const std::string& from_endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> to_client,
+    const std::string& from_endpoint_id,
     PayloadTransferFrame& payload_transfer_frame, Medium medium,
     PacketMetaData& packet_meta_data) {
   PayloadTransferFrame::PayloadHeader& payload_header =
@@ -1174,9 +1222,15 @@ void PayloadManager::ProcessDataPacket(
     RunOnStatusUpdateThread(
         "process-data-packet", [to_client, from_endpoint_id, payload_header,
                                 this]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
+          ::nearby::Borrowed<ClientProxy*> borrowed = to_client.Borrow();
+          if (!borrowed) {
+            NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+            return;
+          }
+
           // This is the first chunk of a new incoming
           // payload. Start the analysis.
-          to_client->GetAnalyticsRecorder().OnIncomingPayloadStarted(
+          (*borrowed)->GetAnalyticsRecorder().OnIncomingPayloadStarted(
               from_endpoint_id, payload_header.id(),
               FramePayloadTypeToPayloadType(payload_header.type()),
               payload_header.total_size());
@@ -1207,7 +1261,12 @@ void PayloadManager::ProcessDataPacket(
                   << "PayloadManager received new payload_id="
                   << pending_payload->GetInternalPayload()->GetId()
                   << " from endpoint_id=" << from_endpoint_id;
-              to_client->OnPayload(
+              ::nearby::Borrowed<ClientProxy*> borrowed = to_client.Borrow();
+              if (!borrowed) {
+                NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+                return;
+              }
+              (*borrowed)->OnPayload(
                   from_endpoint_id,
                   pending_payload->GetInternalPayload()->ReleasePayload());
             });
@@ -1280,7 +1339,8 @@ void PayloadManager::ProcessDataPacket(
 
 // @EndpointManagerDataPool
 void PayloadManager::ProcessControlPacket(
-    ClientProxy* to_client, const std::string& from_endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> to_client,
+    const std::string& from_endpoint_id,
     PayloadTransferFrame& payload_transfer_frame) {
   const PayloadTransferFrame::PayloadHeader& payload_header =
       payload_transfer_frame.payload_header();
@@ -1351,29 +1411,45 @@ void PayloadManager::ProcessControlPacket(
 
 // @PayloadManagerStatusUpdateThread
 void PayloadManager::NotifyClientOfIncomingPayloadProgressInfo(
-    ClientProxy* client, const std::string& endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
     const PayloadProgressInfo& payload_transfer_update) {
-  client->OnPayloadProgress(endpoint_id, payload_transfer_update);
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed)->OnPayloadProgress(endpoint_id, payload_transfer_update);
 }
 
 void PayloadManager::RecordPayloadStartedAnalytics(
-    ClientProxy* client, const EndpointIds& endpoint_ids,
+    ::nearby::Borrowable<ClientProxy*> client, const EndpointIds& endpoint_ids,
     std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
     std::int64_t total_size) {
-  client->GetAnalyticsRecorder().OnOutgoingPayloadStarted(
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
+  (*borrowed)->GetAnalyticsRecorder().OnOutgoingPayloadStarted(
       endpoint_ids, payload_id, payload_type,
       total_size == -1 ? -1 : total_size - offset);
 }
 
 void PayloadManager::RecordInvalidPayloadAnalytics(
-    ClientProxy* client, const EndpointIds& endpoint_ids,
+    ::nearby::Borrowable<ClientProxy*> client, const EndpointIds& endpoint_ids,
     std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
     std::int64_t total_size) {
   RecordPayloadStartedAnalytics(client, endpoint_ids, payload_id, payload_type,
                                 offset, total_size);
 
   for (const auto& endpoint_id : endpoint_ids) {
-    client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
+    ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+    if (!borrowed) {
+      NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+      return;
+    }
+    (*borrowed)->GetAnalyticsRecorder().OnOutgoingPayloadDone(
         endpoint_id, payload_id,
         location::nearby::proto::connections::LOCAL_ERROR);
   }
@@ -1393,8 +1469,8 @@ PayloadType PayloadManager::FramePayloadTypeToPayloadType(
   }
 }
 
-void PayloadManager::SetCustomSavePath(ClientProxy* client,
-                                       const std::string& path) {
+void PayloadManager::SetCustomSavePath(
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& path) {
   custom_save_path_ = path;
 }
 
@@ -1432,13 +1508,19 @@ void PayloadManager::EndpointInfo::MarkReceivedAckFromEndpoint() {
 }
 
 bool PayloadManager::EndpointInfo::IsEndpointAvailable(
-    ClientProxy* clientProxy, EndpointInfo::Status status) {
+    ::nearby::Borrowable<ClientProxy*> client, EndpointInfo::Status status) {
   // Pending endpointIds would be removed from the payload after
   // onPayloadTransferUpdate, but there is the racing problem that gets the
   // available endpoints before update. Here force to remove those endpoints
   // (b/227419433).
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return false;
+  }
+
   bool is_pending_endpoint = false;
-  if (clientProxy->HasPendingConnectionToEndpoint(id)) {
+  if ((*borrowed)->HasPendingConnectionToEndpoint(id)) {
     is_pending_endpoint = true;
   }
   return (status == EndpointInfo::Status::kAvailable) && !is_pending_endpoint;

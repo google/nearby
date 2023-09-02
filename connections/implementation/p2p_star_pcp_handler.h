@@ -23,6 +23,7 @@
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 #include "connections/implementation/pcp.h"
 #include "connections/strategy.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -48,8 +49,10 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
   location::nearby::proto::connections::Medium GetDefaultUpgradeMedium()
       override;
 
-  bool CanSendOutgoingConnection(ClientProxy* client) const override;
-  bool CanReceiveIncomingConnection(ClientProxy* client) const override;
+  bool CanSendOutgoingConnection(
+      ::nearby::Borrowable<ClientProxy*> client) const override;
+  bool CanReceiveIncomingConnection(
+      ::nearby::Borrowable<ClientProxy*> client) const override;
 };
 
 }  // namespace connections

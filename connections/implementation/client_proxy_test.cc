@@ -1181,6 +1181,14 @@ TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
   EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
 }
 
+TEST_F(ClientProxyTest, Borrowable) {
+  std::unique_ptr<ClientProxy> client = std::make_unique<ClientProxy>();
+  auto borrowable_client = client->GetBorrowable();
+  EXPECT_TRUE(borrowable_client.Borrow());
+  client.reset();
+  EXPECT_FALSE(borrowable_client.Borrow());
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

@@ -22,6 +22,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/listeners.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
@@ -70,11 +71,13 @@ class EncryptionRunner {
   };
 
   // @AnyThread
-  void StartServer(ClientProxy* client, const std::string& endpoint_id,
+  void StartServer(::nearby::Borrowable<ClientProxy*> client,
+                   const std::string& endpoint_id,
                    EndpointChannel* endpoint_channel,
                    ResultListener result_listener);
   // @AnyThread
-  void StartClient(ClientProxy* client, const std::string& endpoint_id,
+  void StartClient(::nearby::Borrowable<ClientProxy*> client,
+                   const std::string& endpoint_id,
                    EndpointChannel* endpoint_channel,
                    ResultListener result_listener);
 

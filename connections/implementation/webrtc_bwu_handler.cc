@@ -26,6 +26,8 @@
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
+#include "internal/platform/borrowable.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
@@ -49,8 +51,14 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 // and establishes connection over WebRTC using this info.
 std::unique_ptr<EndpointChannel>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return nullptr;
+  }
+
   const UpgradePathInfo::WebRtcCredentials& web_rtc_credentials =
       upgrade_path_info.web_rtc_credentials();
   mediums::WebrtcPeerId peer_id(web_rtc_credentials.peer_id());
@@ -67,7 +75,7 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
 
   mediums::WebRtcSocketWrapper socket =
       webrtc_.Connect(service_id, peer_id, location_hint,
-                      client->GetCancellationFlag(endpoint_id));
+                      (*borrowed)->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     NEARBY_LOG(ERROR,
                "WebRtcBwuHandler failed to connect to remote peer (%s) on "
@@ -106,8 +114,8 @@ void WebrtcBwuHandler::HandleRevertInitiatorStateForService(
 // and returns a upgrade path info (PeerId, LocationHint) for remote party to
 // perform discovery.
 ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, const std::string& endpoint_id) {
   LocationHint location_hint =
       Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
 
@@ -137,7 +145,8 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 // Notifies that the remote party called WebRtc::Connect()
 // for this socket.
 void WebrtcBwuHandler::OnIncomingWebrtcConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id,
     mediums::WebRtcSocketWrapper socket) {
   auto channel = std::make_unique<WebRtcEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);

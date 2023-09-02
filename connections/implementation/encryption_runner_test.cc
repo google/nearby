@@ -139,7 +139,7 @@ TEST(EncryptionRunnerTest, ReadWrite) {
   Response response;
 
   user_a.crypto.StartServer(
-      &user_a.client, "endpoint_id", &user_a.channel,
+      user_a.client.GetBorrowable(), "endpoint_id", &user_a.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -157,7 +157,7 @@ TEST(EncryptionRunnerTest, ReadWrite) {
               },
       });
   user_b.crypto.StartClient(
-      &user_b.client, "endpoint_id", &user_b.channel,
+      user_b.client.GetBorrowable(), "endpoint_id", &user_b.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,

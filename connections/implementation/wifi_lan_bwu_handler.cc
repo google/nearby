@@ -22,6 +22,8 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
+#include "internal/platform/borrowable.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/wifi_lan.h"
 #include "internal/platform/wifi_utils.h"
 
@@ -37,7 +39,7 @@ WifiLanBwuHandler::WifiLanBwuHandler(
 // and establishes connection over WifiLan using this info.
 std::unique_ptr<EndpointChannel>
 WifiLanBwuHandler::CreateUpgradedEndpointChannel(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_lan_socket()) {
     return nullptr;
@@ -57,8 +59,18 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
                        << "available WifiLan service (" << ip_address << ":"
                        << port << ") for endpoint " << endpoint_id;
 
-  WifiLanSocket socket = wifi_lan_medium_.Connect(
-      service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return nullptr;
+  }
+
+  CancellationFlag* cancellation_flag =
+      (*borrowed)->GetCancellationFlag(endpoint_id);
+  borrowed.FinishBorrowing();
+
+  WifiLanSocket socket =
+      wifi_lan_medium_.Connect(service_id, ip_address, port, cancellation_flag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "WifiLanBwuHandler failed to connect to the WifiLan service ("
@@ -90,8 +102,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
 // and returns a upgrade path info (ip address, port) for remote party to
 // perform discovery.
 ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, const std::string& endpoint_id) {
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             upgrade_service_id,
@@ -141,8 +153,8 @@ void WifiLanBwuHandler::HandleRevertInitiatorStateForService(
 
 // Accept Connection Callback.
 void WifiLanBwuHandler::OnIncomingWifiLanConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    WifiLanSocket socket) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, WifiLanSocket socket) {
   auto channel = absl::make_unique<WifiLanEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(

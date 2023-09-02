@@ -34,6 +34,7 @@
 #include "connections/status.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -57,26 +58,30 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   explicit PayloadManager(EndpointManager& endpoint_manager);
   ~PayloadManager() override;
 
-  void SendPayload(ClientProxy* client, const EndpointIds& endpoint_ids,
-                   Payload payload);
-  Status CancelPayload(ClientProxy* client, Payload::Id payload_id);
+  void SendPayload(::nearby::Borrowable<ClientProxy*> client,
+                   const EndpointIds& endpoint_ids, Payload payload);
+  Status CancelPayload(::nearby::Borrowable<ClientProxy*> client,
+                       Payload::Id payload_id);
 
   // @EndpointManagerReaderThread
   void OnIncomingFrame(
       location::nearby::connections::OfflineFrame& offline_frame,
-      const std::string& from_endpoint_id, ClientProxy* to_client,
+      const std::string& from_endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> to_client,
       location::nearby::proto::connections::Medium current_medium,
       analytics::PacketMetaData& packet_meta_data) override;
 
   // @EndpointManagerThread
-  void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
+                            const std::string& service_id,
                             const std::string& endpoint_id,
                             CountDownLatch barrier,
                             DisconnectionReason reason) override;
 
   void DisconnectFromEndpointManager();
 
-  void SetCustomSavePath(ClientProxy* client, const std::string& path);
+  void SetCustomSavePath(::nearby::Borrowable<ClientProxy*> client,
+                         const std::string& path);
 
  private:
   // Information about an endpoint for a particular payload.
@@ -95,7 +100,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     static Status ControlMessageEventToEndpointInfoStatus(
         PayloadTransferFrame::ControlMessage::EventType event);
     void MarkReceivedAckFromEndpoint();
-    bool IsEndpointAvailable(ClientProxy* clientProxy,
+    bool IsEndpointAvailable(::nearby::Borrowable<ClientProxy*> client,
                              EndpointInfo::Status status);
 
     std::string id;
@@ -268,11 +273,12 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Returns list of endpoint ids.
   static EndpointIds EndpointsToEndpointIds(const Endpoints& endpoints);
 
-  bool SendPayloadLoop(ClientProxy* client, PendingPayload& pending_payload,
+  bool SendPayloadLoop(::nearby::Borrowable<ClientProxy*> client,
+                       PendingPayload& pending_payload,
                        PayloadTransferFrame::PayloadHeader& payload_header,
                        std::int64_t& next_chunk_offset, size_t resume_offset);
   void SendClientCallbacksForFinishedIncomingPayloadRunnable(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t offset_bytes,
       location::nearby::proto::connections::PayloadStatus status);
@@ -313,12 +319,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   void SendClientCallbacksForFinishedOutgoingPayload(
-      ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
       location::nearby::proto::connections::PayloadStatus status);
   void SendClientCallbacksForFinishedIncomingPayload(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t offset_bytes,
       location::nearby::proto::connections::PayloadStatus status);
@@ -330,56 +337,57 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       PayloadTransferFrame::ControlMessage::EventType event_type);
 
   void SendPayloadReceivedAck(
-      ClientProxy* client, PendingPayload& pending_payload,
-      const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      PendingPayload& pending_payload, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t chunk_size, bool is_last_chunk);
 
   bool WaitForReceivedAck(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       PendingPayload& pending_payload,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t payload_chunk_offset, bool is_last_chunk);
-  bool IsPayloadReceivedAckEnabled(ClientProxy* client,
+  bool IsPayloadReceivedAckEnabled(::nearby::Borrowable<ClientProxy*> client,
                                    const std::string& endpoint_id,
                                    PendingPayload& pending_payload);
 
   // Handles a finished outgoing payload for the given endpointIds. All
   // statuses except for SUCCESS are handled here.
   void HandleFinishedOutgoingPayload(
-      ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
       location::nearby::proto::connections::PayloadStatus status = location::
           nearby::proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
   void HandleFinishedIncomingPayload(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t offset_bytes,
       location::nearby::proto::connections::PayloadStatus status);
 
   void HandleSuccessfulOutgoingChunk(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
       std::int64_t payload_chunk_body_size);
   void HandleSuccessfulIncomingChunk(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
       std::int64_t payload_chunk_body_size);
 
-  void ProcessDataPacket(ClientProxy* to_client,
+  void ProcessDataPacket(::nearby::Borrowable<ClientProxy*> to_client,
                          const std::string& from_endpoint_id,
                          PayloadTransferFrame& payload_transfer_frame,
                          Medium medium,
                          analytics::PacketMetaData& packet_meta_data);
-  void ProcessControlPacket(ClientProxy* to_client,
+  void ProcessControlPacket(::nearby::Borrowable<ClientProxy*> to_client,
                             const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);
 
   void NotifyClientOfIncomingPayloadProgressInfo(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const PayloadProgressInfo& payload_transfer_update)
       RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD();
 
@@ -394,13 +402,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void RecordPayloadStartedAnalytics(ClientProxy* client,
+  void RecordPayloadStartedAnalytics(::nearby::Borrowable<ClientProxy*> client,
                                      const EndpointIds& endpoint_ids,
                                      std::int64_t payload_id,
                                      PayloadType payload_type,
                                      std::int64_t offset,
                                      std::int64_t total_size);
-  void RecordInvalidPayloadAnalytics(ClientProxy* client,
+  void RecordInvalidPayloadAnalytics(::nearby::Borrowable<ClientProxy*> client,
                                      const EndpointIds& endpoint_ids,
                                      std::int64_t payload_id,
                                      PayloadType payload_type,

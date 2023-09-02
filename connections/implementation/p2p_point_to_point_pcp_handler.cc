@@ -16,6 +16,9 @@
 
 #include <vector>
 
+#include "connections/implementation/client_proxy.h"
+#include "internal/platform/borrowable.h"
+
 namespace nearby {
 namespace connections {
 
@@ -53,7 +56,7 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
 }
 
 bool P2pPointToPointPcpHandler::CanSendOutgoingConnection(
-    ClientProxy* client) const {
+    ::nearby::Borrowable<ClientProxy*> client) const {
   // For point to point, we can only send an outgoing connection while we have
   // no other connections.
   return !this->HasOutgoingConnections(client) &&
@@ -61,7 +64,7 @@ bool P2pPointToPointPcpHandler::CanSendOutgoingConnection(
 }
 
 bool P2pPointToPointPcpHandler::CanReceiveIncomingConnection(
-    ClientProxy* client) const {
+    ::nearby::Borrowable<ClientProxy*> client) const {
   // For point to point, we can only receive an incoming connection while we
   // have no other connections.
   return !this->HasOutgoingConnections(client) &&

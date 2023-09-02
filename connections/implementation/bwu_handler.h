@@ -22,6 +22,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/count_down_latch.h"
 
 namespace nearby {
@@ -49,7 +50,7 @@ class BwuHandler {
     std::unique_ptr<EndpointChannel> channel;
   };
   using IncomingConnectionCallback = absl::AnyInvocable<void(
-      ClientProxy* client,
+      ::nearby::Borrowable<ClientProxy*> client,
       std::unique_ptr<IncomingSocketConnection> connection)>;
 
   virtual ~BwuHandler() = default;
@@ -59,7 +60,7 @@ class BwuHandler {
   // that can be sent to the Responder.
   // @BwuHandlerThread
   virtual ByteArray InitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id) = 0;
 
   // Called to revert any state changed by the Initiator to set up the upgraded
@@ -82,7 +83,7 @@ class BwuHandler {
   // Initiator, and returns a new EndpointChannel for the upgraded medium.
   // @BwuHandlerThread
   virtual std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) = 0;
 
@@ -90,7 +91,7 @@ class BwuHandler {
   // @BwuHandlerThread
   virtual Medium GetUpgradeMedium() const = 0;
 
-  virtual void OnEndpointDisconnect(ClientProxy* client,
+  virtual void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                                     const std::string& endpoint_id) = 0;
 };
 

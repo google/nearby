@@ -119,7 +119,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
   ClientProxy proxy_b;
   CountDownLatch latch(2);
   crypto_a.StartClient(
-      &proxy_a, std::string(kEndpointId), channel_a,
+      proxy_a.GetBorrowable(), std::string(kEndpointId), channel_a,
       {
           .on_success_cb =
               [&latch, &context_a](
@@ -142,7 +142,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
               },
       });
   crypto_b.StartServer(
-      &proxy_b, std::string(kEndpointId), channel_b,
+      proxy_b.GetBorrowable(), std::string(kEndpointId), channel_b,
       {
           .on_success_cb =
               [&latch, &context_b](
@@ -214,14 +214,14 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   EndpointChannelManager ecm_a;
   ecm_a.EncryptChannelForEndpoint(std::string(kEndpointId),
                                   std::move(context.first));
-  ecm_a.RegisterChannelForEndpoint(&proxy_a, std::string(kEndpointId),
-                                   std::move(channel_a));
+  ecm_a.RegisterChannelForEndpoint(
+      proxy_a.GetBorrowable(), std::string(kEndpointId), std::move(channel_a));
 
   EndpointChannelManager ecm_b;
   ecm_b.EncryptChannelForEndpoint(std::string(kEndpointId),
                                   std::move(context.second));
-  ecm_b.RegisterChannelForEndpoint(&proxy_b, std::string(kEndpointId),
-                                   std::move(channel_b));
+  ecm_b.RegisterChannelForEndpoint(
+      proxy_b.GetBorrowable(), std::string(kEndpointId), std::move(channel_b));
 
   EXPECT_EQ(channel_a_raw->GetType(), "ENCRYPTED_BLUETOOTH");
   EXPECT_EQ(channel_b_raw->GetType(), "ENCRYPTED_BLUETOOTH");
@@ -295,13 +295,15 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   EndpointChannelManager ecm_a;
   ecm_a.EncryptChannelForEndpoint(std::string(kEndpointId),
                                   std::move(context.first));
-  ecm_a.ReplaceChannelForEndpoint(&proxy_a, std::string(kEndpointId),
+  ecm_a.ReplaceChannelForEndpoint(proxy_a.GetBorrowable(),
+                                  std::string(kEndpointId),
                                   std::move(channel_a), false);
 
   EndpointChannelManager ecm_b;
   ecm_b.EncryptChannelForEndpoint(std::string(kEndpointId),
                                   std::move(context.second));
-  ecm_b.ReplaceChannelForEndpoint(&proxy_b, std::string(kEndpointId),
+  ecm_b.ReplaceChannelForEndpoint(proxy_b.GetBorrowable(),
+                                  std::string(kEndpointId),
                                   std::move(channel_b), false);
 
   EXPECT_EQ(channel_a_raw->GetType(), "BLUETOOTH");

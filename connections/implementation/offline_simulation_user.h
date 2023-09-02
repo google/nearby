@@ -23,6 +23,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
@@ -139,14 +140,16 @@ class OfflineSimulationUser {
   Payload& GetPayload() { return payload_; }
   void SendPayload(Payload payload) {
     sender_payload_id_ = payload.GetId();
-    ctrl_.SendPayload(&client_, {discovered_.endpoint_id}, std::move(payload));
+
+    ctrl_.SendPayload(client_.GetBorrowable(), {discovered_.endpoint_id},
+                      std::move(payload));
   }
 
   Status CancelPayload() {
     if (sender_payload_id_) {
-      return ctrl_.CancelPayload(&client_, sender_payload_id_);
+      return ctrl_.CancelPayload(client_.GetBorrowable(), sender_payload_id_);
     } else {
-      return ctrl_.CancelPayload(&client_, payload_.GetId());
+      return ctrl_.CancelPayload(client_.GetBorrowable(), payload_.GetId());
     }
   }
 

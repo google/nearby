@@ -87,14 +87,15 @@ class PayloadSimulationUser : public SimulationUser {
   Payload& GetPayload() { return payload_; }
   void SendPayload(Payload payload) {
     sender_payload_id_ = payload.GetId();
-    pm_.SendPayload(&client_, {discovered_.endpoint_id}, std::move(payload));
+    pm_.SendPayload(client_.GetBorrowable(), {discovered_.endpoint_id},
+                    std::move(payload));
   }
 
   Status CancelPayload() {
     if (sender_payload_id_) {
-      return pm_.CancelPayload(&client_, sender_payload_id_);
+      return pm_.CancelPayload(client_.GetBorrowable(), sender_payload_id_);
     } else {
-      return pm_.CancelPayload(&client_, payload_.GetId());
+      return pm_.CancelPayload(client_.GetBorrowable(), payload_.GetId());
     }
   }
 

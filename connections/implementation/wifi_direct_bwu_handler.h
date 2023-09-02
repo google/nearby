@@ -21,6 +21,7 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -54,18 +55,19 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
   // spec to achieve the connection. So return fail to stop the upgrade request
   // from phone side.
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final;
   Medium GetUpgradeMedium() const final { return Medium::WIFI_DIRECT; }
-  void OnEndpointDisconnect(ClientProxy* client,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                             const std::string& endpoint_id) final {}
 
   // Called by BWU initiator. Set up WifiDirect upgraded medium for this
   // endpoint, and returns a upgrade path info (SSID, Password, Gateway used as
   // IPAddress, Port) for remote party to perform connection.
   ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
 
   // Revert the upgrade when the procedure fails or disconnection is called.
@@ -73,7 +75,7 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
       const std::string& upgrade_service_id) final;
 
   // Accept Connection Callback.
-  void OnIncomingWifiDirectConnection(ClientProxy* client,
+  void OnIncomingWifiDirectConnection(::nearby::Borrowable<ClientProxy*> client,
                                       const std::string& upgrade_service_id,
                                       WifiDirectSocket socket);
 

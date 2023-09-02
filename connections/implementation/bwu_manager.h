@@ -28,6 +28,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
@@ -76,7 +77,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Initiates the bandwidth upgrade and sends an UPGRADE_PATH_AVAILABLE
   // frame to the remote device (Responder). If |new_medium| is not provided,
   // the best available medium is chosen.
-  void InitiateBwuForEndpoint(ClientProxy* client_proxy,
+  void InitiateBwuForEndpoint(::nearby::Borrowable<ClientProxy*> client_proxy,
                               const std::string& endpoint_id,
                               Medium new_medium = Medium::UNKNOWN_MEDIUM);
 
@@ -85,13 +86,13 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // inbound BWU protocol.
   // @EndpointManagerReaderThread
   void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
-                       const std::string& endpoint_id, ClientProxy* client,
-                       Medium medium,
+                       const std::string& endpoint_id,
+                       ::nearby::Borrowable<ClientProxy*> client, Medium medium,
                        PacketMetaData& packet_meta_data) override;
 
   // Cleans up in-progress upgrades after endpoint disconnection.
   // @EndpointManagerReaderThread
-  void OnEndpointDisconnect(ClientProxy* client_proxy,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client_proxy,
                             const std::string& service_id,
                             const std::string& endpoint_id,
                             CountDownLatch barrier,
@@ -107,7 +108,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // InitBwuHandlers. When explicitly passing handlers into the BwuManager
   // constructor, we need a way to invoke OnIncomingConnection.
   void InvokeOnIncomingConnectionForTesting(
-      ClientProxy* client,
+      ::nearby::Borrowable<ClientProxy*> client,
       std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection);
 
   // Shutdown the executors during Nearby Connections shutdown process before
@@ -134,7 +135,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   // Processes the BwuNegotiationFrames that come over the EndpointChannel on
   // both initiator and responder side of the upgrade.
-  void OnBwuNegotiationFrame(ClientProxy* client,
+  void OnBwuNegotiationFrame(::nearby::Borrowable<ClientProxy*> client,
                              const BwuNegotiationFrame frame,
                              const string& endpoint_id);
 
@@ -155,42 +156,45 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // upgrade process. This is a callback, invoked by concrete handlers, once
   // connection is available.
   void OnIncomingConnection(
-      ClientProxy* client,
+      ::nearby::Borrowable<ClientProxy*> client,
       std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection);
 
-  void RunUpgradeProtocol(ClientProxy* client, const std::string& endpoint_id,
+  void RunUpgradeProtocol(::nearby::Borrowable<ClientProxy*> client,
+                          const std::string& endpoint_id,
                           std::unique_ptr<EndpointChannel> new_channel,
                           bool enable_encryption);
-  void RunUpgradeFailedProtocol(ClientProxy* client,
+  void RunUpgradeFailedProtocol(::nearby::Borrowable<ClientProxy*> client,
                                 const std::string& endpoint_id,
                                 const UpgradePathInfo& upgrade_path_info);
-  void ProcessBwuPathAvailableEvent(ClientProxy* client,
+  void ProcessBwuPathAvailableEvent(::nearby::Borrowable<ClientProxy*> client,
                                     const std::string& endpoint_id,
                                     const UpgradePathInfo& upgrade_path_info);
   std::unique_ptr<EndpointChannel> ProcessBwuPathAvailableEventInternal(
-      ClientProxy* client, const std::string& endpoint_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info);
-  void ProcessLastWriteToPriorChannelEvent(ClientProxy* client,
-                                           const std::string& endpoint_id);
-  void ProcessSafeToClosePriorChannelEvent(ClientProxy* client,
-                                           const std::string& endpoint_id);
+  void ProcessLastWriteToPriorChannelEvent(
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& endpoint_id);
+  void ProcessSafeToClosePriorChannelEvent(
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& endpoint_id);
   bool ReadClientIntroductionFrame(EndpointChannel* endpoint_channel,
                                    ClientIntroduction& introduction);
   bool ReadClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   bool WriteClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
-  void ProcessEndpointDisconnection(ClientProxy* client,
+  void ProcessEndpointDisconnection(::nearby::Borrowable<ClientProxy*> client,
                                     const std::string& endpoint_id,
                                     CountDownLatch* barrier);
-  void ProcessUpgradeFailureEvent(ClientProxy* client,
+  void ProcessUpgradeFailureEvent(::nearby::Borrowable<ClientProxy*> client,
                                   const std::string& endpoint_id,
                                   const UpgradePathInfo& upgrade_info);
   void CancelRetryUpgradeAlarm(const std::string& endpoint_id);
   void CancelAllRetryUpgradeAlarms();
-  void TryNextBestUpgradeMediums(ClientProxy* client,
+  void TryNextBestUpgradeMediums(::nearby::Borrowable<ClientProxy*> client,
                                  const std::string& endpoint_id,
                                  std::vector<Medium> upgrade_mediums);
   absl::Duration CalculateNextRetryDelay(const std::string& endpoint_id);
-  void RetryUpgradesAfterDelay(ClientProxy* client,
+  void RetryUpgradesAfterDelay(::nearby::Borrowable<ClientProxy*> client,
                                const std::string& endpoint_id);
   void AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
       location::nearby::proto::connections::BandwidthUpgradeResult result,
@@ -225,7 +229,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Maps endpointId -> ClientProxy for which
   // initiateBwuForEndpoint() has been called but which have not
   // yet completed the upgrade via onIncomingConnection().
-  absl::flat_hash_map<std::string, ClientProxy*> in_progress_upgrades_;
+  absl::flat_hash_map<std::string, ::nearby::Borrowable<ClientProxy*>>
+      in_progress_upgrades_;
   // Maps endpointId -> timestamp of when the SAFE_TO_CLOSE message was written.
   absl::flat_hash_map<std::string, absl::Time> safe_to_close_write_timestamps_;
   absl::flat_hash_map<

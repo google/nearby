@@ -35,6 +35,7 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -72,7 +73,8 @@ class ServiceControllerRouterTest : public testing::Test {
     router_.SetServiceControllerForTesting(std::move(mock));
   }
 
-  void StartAdvertising(ClientProxy* client, std::string service_id,
+  void StartAdvertising(::nearby::Borrowable<ClientProxy*> client,
+                        std::string service_id,
                         AdvertisingOptions advertising_options,
                         ConnectionRequestInfo info, ResultCallback callback) {
     EXPECT_CALL(*mock_, StartAdvertising)
@@ -85,12 +87,15 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->StartedAdvertising(kServiceId, advertising_options.strategy,
-                               info.listener, absl::MakeSpan(mediums_));
-    EXPECT_TRUE(client->IsAdvertising());
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())
+        ->StartedAdvertising(kServiceId, advertising_options.strategy,
+                             info.listener, absl::MakeSpan(mediums_));
+    EXPECT_TRUE((*client.Borrow())->IsAdvertising());
   }
 
-  void StopAdvertising(ClientProxy* client, ResultCallback callback) {
+  void StopAdvertising(::nearby::Borrowable<ClientProxy*> client,
+                       ResultCallback callback) {
     EXPECT_CALL(*mock_, StopAdvertising).Times(1);
     {
       MutexLock lock(&mutex_);
@@ -98,11 +103,13 @@ class ServiceControllerRouterTest : public testing::Test {
       router_.StopAdvertising(client, std::move(callback));
       while (!complete_) cond_.Wait();
     }
-    client->StoppedAdvertising();
-    EXPECT_FALSE(client->IsAdvertising());
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())->StoppedAdvertising();
+    EXPECT_FALSE((*client.Borrow())->IsAdvertising());
   }
 
-  void StartDiscovery(ClientProxy* client, std::string service_id,
+  void StartDiscovery(::nearby::Borrowable<ClientProxy*> client,
+                      std::string service_id,
                       DiscoveryOptions discovery_options,
                       const DiscoveryListener& listener,
                       ResultCallback callback) {
@@ -116,12 +123,15 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->StartedDiscovery(service_id, discovery_options.strategy, listener,
-                             absl::MakeSpan(mediums_));
-    EXPECT_TRUE(client->IsDiscovering());
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())
+        ->StartedDiscovery(service_id, discovery_options.strategy, listener,
+                           absl::MakeSpan(mediums_));
+    EXPECT_TRUE((*client.Borrow())->IsDiscovering());
   }
 
-  void StopDiscovery(ClientProxy* client, ResultCallback callback) {
+  void StopDiscovery(::nearby::Borrowable<ClientProxy*> client,
+                     ResultCallback callback) {
     EXPECT_CALL(*mock_, StopDiscovery).Times(1);
     {
       MutexLock lock(&mutex_);
@@ -129,11 +139,13 @@ class ServiceControllerRouterTest : public testing::Test {
       router_.StopDiscovery(client, std::move(callback));
       while (!complete_) cond_.Wait();
     }
-    client->StoppedDiscovery();
-    EXPECT_FALSE(client->IsDiscovering());
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())->StoppedDiscovery();
+    EXPECT_FALSE((*client.Borrow())->IsDiscovering());
   }
 
-  void InjectEndpoint(ClientProxy* client, std::string service_id,
+  void InjectEndpoint(::nearby::Borrowable<ClientProxy*> client,
+                      std::string service_id,
                       const OutOfBandConnectionMetadata& metadata,
                       ResultCallback callback) {
     EXPECT_CALL(*mock_, InjectEndpoint).Times(1);
@@ -145,7 +157,8 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void RequestConnection(ClientProxy* client, const std::string& endpoint_id,
+  void RequestConnection(::nearby::Borrowable<ClientProxy*> client,
+                         const std::string& endpoint_id,
                          const ConnectionRequestInfo& request_info,
                          ResultCallback callback) {
     EXPECT_CALL(*mock_, RequestConnection)
@@ -166,18 +179,22 @@ class ServiceControllerRouterTest : public testing::Test {
         .is_incoming_connection = true,
     };
     std::string connection_token{"conntokn"};
-    client->OnConnectionInitiated(endpoint_id, response_info,
-                                  connection_options, request_info.listener,
-                                  connection_token);
-    EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())
+        ->OnConnectionInitiated(endpoint_id, response_info, connection_options,
+                                request_info.listener, connection_token);
+    EXPECT_TRUE(
+        (*client.Borrow())->HasPendingConnectionToEndpoint(endpoint_id));
   }
 
-  void AcceptConnection(ClientProxy* client, const std::string endpoint_id,
+  void AcceptConnection(::nearby::Borrowable<ClientProxy*> client,
+                        const std::string endpoint_id,
                         ResultCallback callback) {
     EXPECT_CALL(*mock_, AcceptConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     // Pre-condition for successful Accept is: connection must exist.
-    EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
+    EXPECT_TRUE(
+        (*client.Borrow())->HasPendingConnectionToEndpoint(endpoint_id));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -185,20 +202,22 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->LocalEndpointAcceptedConnection(endpoint_id,
-                                            {});
-    client->RemoteEndpointAcceptedConnection(endpoint_id);
-    EXPECT_TRUE(client->IsConnectionAccepted(endpoint_id));
-    client->OnConnectionAccepted(endpoint_id);
-    EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())->LocalEndpointAcceptedConnection(endpoint_id, {});
+    (*client.Borrow())->RemoteEndpointAcceptedConnection(endpoint_id);
+    EXPECT_TRUE((*client.Borrow())->IsConnectionAccepted(endpoint_id));
+    (*client.Borrow())->OnConnectionAccepted(endpoint_id);
+    EXPECT_TRUE((*client.Borrow())->IsConnectedToEndpoint(endpoint_id));
   }
 
-  void RejectConnection(ClientProxy* client, const std::string endpoint_id,
+  void RejectConnection(::nearby::Borrowable<ClientProxy*> client,
+                        const std::string endpoint_id,
                         ResultCallback callback) {
     EXPECT_CALL(*mock_, RejectConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     // Pre-condition for successful Accept is: connection must exist.
-    EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
+    EXPECT_TRUE(
+        (*client.Borrow())->HasPendingConnectionToEndpoint(endpoint_id));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -206,15 +225,17 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->LocalEndpointRejectedConnection(endpoint_id);
-    EXPECT_TRUE(client->IsConnectionRejected(endpoint_id));
+    EXPECT_TRUE(client.Borrow());
+    (*client.Borrow())->LocalEndpointRejectedConnection(endpoint_id);
+    EXPECT_TRUE((*client.Borrow())->IsConnectionRejected(endpoint_id));
   }
 
-  void InitiateBandwidthUpgrade(ClientProxy* client,
+  void InitiateBandwidthUpgrade(::nearby::Borrowable<ClientProxy*> client,
                                 const std::string endpoint_id,
                                 ResultCallback callback) {
     EXPECT_CALL(*mock_, InitiateBandwidthUpgrade).Times(1);
-    EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
+    EXPECT_TRUE(client.Borrow());
+    EXPECT_TRUE((*client.Borrow())->IsConnectedToEndpoint(endpoint_id));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -225,14 +246,16 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void SendPayload(ClientProxy* client,
+  void SendPayload(::nearby::Borrowable<ClientProxy*> client,
                    const std::vector<std::string>& endpoint_ids,
                    Payload payload, ResultCallback callback) {
     EXPECT_CALL(*mock_, SendPayload).Times(1);
 
     bool connected = false;
+    EXPECT_TRUE(client.Borrow());
     for (const auto& endpoint_id : endpoint_ids) {
-      connected = connected || client->IsConnectedToEndpoint(endpoint_id);
+      connected =
+          connected || (*client.Borrow())->IsConnectedToEndpoint(endpoint_id);
     }
     EXPECT_TRUE(connected);
     {
@@ -245,8 +268,8 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void CancelPayload(ClientProxy* client, std::int64_t payload_id,
-                     ResultCallback callback) {
+  void CancelPayload(::nearby::Borrowable<ClientProxy*> client,
+                     std::int64_t payload_id, ResultCallback callback) {
     EXPECT_CALL(*mock_, CancelPayload)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
@@ -258,22 +281,23 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void DisconnectFromEndpoint(ClientProxy* client,
+  void DisconnectFromEndpoint(::nearby::Borrowable<ClientProxy*> client,
                               const std::string endpoint_id,
                               ResultCallback callback) {
     EXPECT_CALL(*mock_, DisconnectFromEndpoint).Times(1);
-    EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
+    EXPECT_TRUE(client.Borrow());
+    EXPECT_TRUE((*client.Borrow())->IsConnectedToEndpoint(endpoint_id));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
       router_.DisconnectFromEndpoint(client, endpoint_id, std::move(callback));
       while (!complete_) cond_.Wait();
     }
-    client->OnDisconnected(endpoint_id, false);
-    EXPECT_FALSE(client->IsConnectedToEndpoint(endpoint_id));
+    (*client.Borrow())->OnDisconnected(endpoint_id, false);
+    EXPECT_FALSE((*client.Borrow())->IsConnectedToEndpoint(endpoint_id));
   }
 
-  void RequestConnectionV3(ClientProxy* client,
+  void RequestConnectionV3(::nearby::Borrowable<ClientProxy*> client,
                            const NearbyDevice& kRemoteDevice,
                            v3::ConnectionRequestInfo request_info,
                            ResultCallback callback, bool call_all_cb,
@@ -284,8 +308,8 @@ class ServiceControllerRouterTest : public testing::Test {
     if (check_result) {
       EXPECT_CALL(*mock_, RequestConnection)
           .WillOnce([call_all_cb, endpoint_info_present, this](
-                        ClientProxy*, const std::string&,
-                        const ConnectionRequestInfo& info,
+                        ::nearby::Borrowable<ClientProxy*> client,
+                        const std::string&, const ConnectionRequestInfo& info,
                         const ConnectionOptions&) {
             EXPECT_EQ(info.endpoint_info.Empty(), !endpoint_info_present);
             if (call_all_cb) {
@@ -318,24 +342,31 @@ class ServiceControllerRouterTest : public testing::Test {
         .raw_authentication_token = ByteArray{"auth_token"},
         .is_incoming_connection = true,
     };
-    if (client->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId())) {
+
+    EXPECT_TRUE(client.Borrow());
+    if ((*client.Borrow())
+            ->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId())) {
       // we are calling this again, and do not need to rerun the below behavior.
       return;
     }
-    client->OnConnectionInitiated(kRemoteDevice.GetEndpointId(), response_info,
-                                  connection_options, {}, "conntokn");
+    (*client.Borrow())
+        ->OnConnectionInitiated(kRemoteDevice.GetEndpointId(), response_info,
+                                connection_options, {}, "conntokn");
     EXPECT_TRUE(
-        client->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId()));
+        (*client.Borrow())
+            ->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId()));
   }
 
-  void AcceptConnectionV3(ClientProxy* client,
+  void AcceptConnectionV3(::nearby::Borrowable<ClientProxy*> client,
                           const NearbyDevice& kRemoteDevice,
                           ResultCallback callback) {
     EXPECT_CALL(*mock_, AcceptConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     // Pre-condition for successful Accept is: connection must exist.
+    EXPECT_TRUE(client.Borrow());
     EXPECT_TRUE(
-        client->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId()));
+        (*client.Borrow())
+            ->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId()));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -345,19 +376,21 @@ class ServiceControllerRouterTest : public testing::Test {
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     auto endpoint_id = kRemoteDevice.GetEndpointId();
-    client->LocalEndpointAcceptedConnection(endpoint_id, {});
-    client->RemoteEndpointAcceptedConnection(endpoint_id);
-    EXPECT_TRUE(client->IsConnectionAccepted(endpoint_id));
-    client->OnConnectionAccepted(endpoint_id);
-    EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
+    (*client.Borrow())->LocalEndpointAcceptedConnection(endpoint_id, {});
+    (*client.Borrow())->RemoteEndpointAcceptedConnection(endpoint_id);
+    EXPECT_TRUE((*client.Borrow())->IsConnectionAccepted(endpoint_id));
+    (*client.Borrow())->OnConnectionAccepted(endpoint_id);
+    EXPECT_TRUE((*client.Borrow())->IsConnectedToEndpoint(endpoint_id));
   }
 
-  void RejectConnectionV3(ClientProxy* client, const NearbyDevice& device,
-                          ResultCallback callback) {
+  void RejectConnectionV3(::nearby::Borrowable<ClientProxy*> client,
+                          const NearbyDevice& device, ResultCallback callback) {
     EXPECT_CALL(*mock_, RejectConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     // Pre-condition for successful Accept is: connection must exist.
-    EXPECT_TRUE(client->HasPendingConnectionToEndpoint(device.GetEndpointId()));
+    EXPECT_TRUE(client.Borrow());
+    EXPECT_TRUE((*client.Borrow())
+                    ->HasPendingConnectionToEndpoint(device.GetEndpointId()));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -365,15 +398,18 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->LocalEndpointRejectedConnection(device.GetEndpointId());
-    EXPECT_TRUE(client->IsConnectionRejected(device.GetEndpointId()));
+    (*client.Borrow())->LocalEndpointRejectedConnection(device.GetEndpointId());
+    EXPECT_TRUE(
+        (*client.Borrow())->IsConnectionRejected(device.GetEndpointId()));
   }
 
-  void InitiateBandwidthUpgradeV3(ClientProxy* client,
+  void InitiateBandwidthUpgradeV3(::nearby::Borrowable<ClientProxy*> client,
                                   const NearbyDevice& device,
                                   ResultCallback callback) {
     EXPECT_CALL(*mock_, InitiateBandwidthUpgrade).Times(1);
-    EXPECT_TRUE(client->IsConnectedToEndpoint(device.GetEndpointId()));
+    EXPECT_TRUE(client.Borrow());
+    EXPECT_TRUE(
+        (*client.Borrow())->IsConnectedToEndpoint(device.GetEndpointId()));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -383,12 +419,15 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void SendPayloadV3(ClientProxy* client, const NearbyDevice& recipient_device,
-                     Payload payload, ResultCallback callback) {
+  void SendPayloadV3(::nearby::Borrowable<ClientProxy*> client,
+                     const NearbyDevice& recipient_device, Payload payload,
+                     ResultCallback callback) {
     EXPECT_CALL(*mock_, SendPayload).Times(1);
+    EXPECT_TRUE(client.Borrow());
 
     bool connected =
-        client->IsConnectedToEndpoint(recipient_device.GetEndpointId());
+        (*client.Borrow())
+            ->IsConnectedToEndpoint(recipient_device.GetEndpointId());
     EXPECT_TRUE(connected);
     {
       MutexLock lock(&mutex_);
@@ -400,12 +439,13 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void CancelPayloadV3(ClientProxy* client,
+  void CancelPayloadV3(::nearby::Borrowable<ClientProxy*> client,
                        const NearbyDevice& recipient_device,
                        uint64_t payload_id, ResultCallback callback) {
     EXPECT_CALL(*mock_, CancelPayload).Times(1);
-    EXPECT_TRUE(
-        client->IsConnectedToEndpoint(recipient_device.GetEndpointId()));
+    EXPECT_TRUE(client.Borrow());
+    EXPECT_TRUE((*client.Borrow())
+                    ->IsConnectedToEndpoint(recipient_device.GetEndpointId()));
     {
       MutexLock lock(&mutex_);
       router_.CancelPayloadV3(client, recipient_device, payload_id,
@@ -413,11 +453,13 @@ class ServiceControllerRouterTest : public testing::Test {
     }
   }
 
-  void DisconnectFromDeviceV3(ClientProxy* client,
+  void DisconnectFromDeviceV3(::nearby::Borrowable<ClientProxy*> client,
                               const NearbyDevice& kRemoteDevice,
                               ResultCallback callback) {
     EXPECT_CALL(*mock_, DisconnectFromEndpoint).Times(1);
-    EXPECT_TRUE(client->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
+    EXPECT_TRUE(client.Borrow());
+    EXPECT_TRUE((*client.Borrow())
+                    ->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -425,23 +467,26 @@ class ServiceControllerRouterTest : public testing::Test {
                                      std::move(callback));
       while (!complete_) cond_.Wait();
     }
-    client->OnDisconnected(kRemoteDevice.GetEndpointId(), false);
-    EXPECT_FALSE(client->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
+    (*client.Borrow())->OnDisconnected(kRemoteDevice.GetEndpointId(), false);
+    EXPECT_FALSE((*client.Borrow())
+                     ->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
   }
 
   void StartListeningForIncomingConnectionsV3(
-      ClientProxy* client, absl::string_view service_id,
+      ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
       v3::ConnectionListener listener,
       const v3::ConnectionListeningOptions& options,
       v3::ListeningResultListener result_listener, bool expecting_call = true) {
+    EXPECT_TRUE(client.Borrow());
     if (expecting_call) {
       EXPECT_CALL(*mock_, StartListeningForIncomingConnections)
           .Times(1)
-          .WillOnce([](ClientProxy* client, absl::string_view service_id,
-                       v3::ConnectionListener,
+          .WillOnce([](::nearby::Borrowable<ClientProxy*> client,
+                       absl::string_view service_id, v3::ConnectionListener,
                        const v3::ConnectionListeningOptions& options) {
-            client->StartedListeningForIncomingConnections(
-                service_id, options.strategy, {}, options);
+            (*client.Borrow())
+                ->StartedListeningForIncomingConnections(
+                    service_id, options.strategy, {}, options);
             return std::pair<Status, std::vector<ConnectionInfoVariant>>{
                 Status{Status::kSuccess}, {}};
           });
@@ -453,7 +498,7 @@ class ServiceControllerRouterTest : public testing::Test {
           client, service_id, std::move(listener), options,
           std::move(result_listener));
       while (!complete_) cond_.Wait();
-      EXPECT_TRUE(client->IsListeningForIncomingConnections());
+      EXPECT_TRUE((*client.Borrow())->IsListeningForIncomingConnections());
     }
   }
 
@@ -535,7 +580,7 @@ TEST_F(ServiceControllerRouterTest, QualityConversionWorks) {
 }
 
 TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
-  StartAdvertising(&client_, kServiceId, kAdvertisingOptions,
+  StartAdvertising(client_.GetBorrowable(), kServiceId, kAdvertisingOptions,
                    kConnectionRequestInfo, [this](Status status) {
                      MutexLock lock(&mutex_);
                      result_ = status;
@@ -545,14 +590,14 @@ TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, StopAdvertisingCalled) {
-  StartAdvertising(&client_, kServiceId, kAdvertisingOptions,
+  StartAdvertising(client_.GetBorrowable(), kServiceId, kAdvertisingOptions,
                    kConnectionRequestInfo, [this](Status status) {
                      MutexLock lock(&mutex_);
                      result_ = status;
                      complete_ = true;
                      cond_.Notify();
                    });
-  StopAdvertising(&client_, [this](Status status) {
+  StopAdvertising(client_.GetBorrowable(), [this](Status status) {
     MutexLock lock(&mutex_);
     result_ = status;
     complete_ = true;
@@ -561,8 +606,8 @@ TEST_F(ServiceControllerRouterTest, StopAdvertisingCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, StartDiscoveryCalled) {
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -571,14 +616,14 @@ TEST_F(ServiceControllerRouterTest, StartDiscoveryCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, StopDiscoveryCalled) {
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
-  StopDiscovery(&client_, [this](Status status) {
+  StopDiscovery(client_.GetBorrowable(), [this](Status status) {
     MutexLock lock(&mutex_);
     result_ = status;
     complete_ = true;
@@ -587,21 +632,21 @@ TEST_F(ServiceControllerRouterTest, StopDiscoveryCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
-  InjectEndpoint(&client_, kServiceId, kOutOfBandConnectionMetadata,
-                 [this](Status status) {
+  InjectEndpoint(client_.GetBorrowable(), kServiceId,
+                 kOutOfBandConnectionMetadata, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
-  StopDiscovery(&client_, [this](Status status) {
+  StopDiscovery(client_.GetBorrowable(), [this](Status status) {
     MutexLock lock(&mutex_);
     result_ = status;
     complete_ = true;
@@ -611,15 +656,15 @@ TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
@@ -629,115 +674,121 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
   // Establish connection.
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
                       cond_.Notify();
                     });
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                   [this](Status status) {
+                     MutexLock lock(&mutex_);
+                     result_ = status;
+                     complete_ = true;
+                     cond_.Notify();
+                   });
 }
 
 TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
   // Establish connection.
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
                       cond_.Notify();
                     });
   // Now, we can reject connection.
-  RejectConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  RejectConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                   [this](Status status) {
+                     MutexLock lock(&mutex_);
+                     result_ = status;
+                     complete_ = true;
+                     cond_.Notify();
+                   });
 }
 
 TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
   // Establish connection.
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
                       cond_.Notify();
                     });
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                   [this](Status status) {
+                     MutexLock lock(&mutex_);
+                     result_ = status;
+                     complete_ = true;
+                     cond_.Notify();
+                   });
   // Now we can change connection bandwidth.
-  InitiateBandwidthUpgrade(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  InitiateBandwidthUpgrade(client_.GetBorrowable(), kRemoteEndpointId,
+                           [this](Status status) {
+                             MutexLock lock(&mutex_);
+                             result_ = status;
+                             complete_ = true;
+                             cond_.Notify();
+                           });
 }
 
 TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
   // Establish connection.
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
                       cond_.Notify();
                     });
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                   [this](Status status) {
+                     MutexLock lock(&mutex_);
+                     result_ = status;
+                     complete_ = true;
+                     cond_.Notify();
+                   });
   // Now we can send payload.
-  SendPayload(&client_, std::vector<std::string>{kRemoteEndpointId},
+  SendPayload(client_.GetBorrowable(),
+              std::vector<std::string>{kRemoteEndpointId},
               Payload{ByteArray("data")}, [this](Status status) {
                 MutexLock lock(&mutex_);
                 result_ = status;
@@ -748,32 +799,33 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
 
 TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
   // Establish connection.
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
                       cond_.Notify();
                     });
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                   [this](Status status) {
+                     MutexLock lock(&mutex_);
+                     result_ = status;
+                     complete_ = true;
+                     cond_.Notify();
+                   });
   // We have to know payload id, before we can cancel payload transfer.
   // It is either after a call to SendPayload, or after receiving
   // PayloadProgress callback. Let's assume we have it, and proceed.
-  CancelPayload(&client_, kPayloadId, [this](Status status) {
+  CancelPayload(client_.GetBorrowable(), kPayloadId, [this](Status status) {
     MutexLock lock(&mutex_);
     result_ = status;
     complete_ = true;
@@ -783,41 +835,43 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
 
 TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
                    cond_.Notify();
                  });
   // Establish connection.
-  RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
-                    [this](Status status) {
+  RequestConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                    kConnectionRequestInfo, [this](Status status) {
                       MutexLock lock(&mutex_);
                       result_ = status;
                       complete_ = true;
                       cond_.Notify();
                     });
   // Now, we can accept connection.
-  AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnection(client_.GetBorrowable(), kRemoteEndpointId,
+                   [this](Status status) {
+                     MutexLock lock(&mutex_);
+                     result_ = status;
+                     complete_ = true;
+                     cond_.Notify();
+                   });
   // We can disconnect at any time after RequestConnection.
-  DisconnectFromEndpoint(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  DisconnectFromEndpoint(client_.GetBorrowable(), kRemoteEndpointId,
+                         [this](Status status) {
+                           MutexLock lock(&mutex_);
+                           result_ = status;
+                           complete_ = true;
+                           cond_.Notify();
+                         });
 }
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -832,7 +886,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
   CountDownLatch disconnected_latch(1);
   CountDownLatch bandwidth_changed_latch(1);
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {
@@ -870,8 +924,8 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -885,7 +939,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
   CountDownLatch disconnected_latch(1);
   CountDownLatch bandwidth_changed_latch(1);
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {
@@ -923,8 +977,8 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -934,7 +988,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -947,7 +1001,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
       },
       false);
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -967,8 +1021,8 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
 
 TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -978,7 +1032,7 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -991,18 +1045,19 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
       },
       false);
   // Now, we can accept connection.
-  AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnectionV3(client_.GetBorrowable(), kRemoteDevice,
+                     [this](Status status) {
+                       MutexLock lock(&mutex_);
+                       result_ = status;
+                       complete_ = true;
+                       cond_.Notify();
+                     });
 }
 
 TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -1012,7 +1067,7 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -1025,18 +1080,19 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
       },
       false);
   // Now, we can reject connection.
-  RejectConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  RejectConnectionV3(client_.GetBorrowable(), kRemoteDevice,
+                     [this](Status status) {
+                       MutexLock lock(&mutex_);
+                       result_ = status;
+                       complete_ = true;
+                       cond_.Notify();
+                     });
 }
 
 TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -1046,7 +1102,7 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -1059,25 +1115,27 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
       },
       false);
   // Now, we can accept connection.
-  AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnectionV3(client_.GetBorrowable(), kRemoteDevice,
+                     [this](Status status) {
+                       MutexLock lock(&mutex_);
+                       result_ = status;
+                       complete_ = true;
+                       cond_.Notify();
+                     });
   // Now we can change connection bandwidth.
-  InitiateBandwidthUpgradeV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  InitiateBandwidthUpgradeV3(client_.GetBorrowable(), kRemoteDevice,
+                             [this](Status status) {
+                               MutexLock lock(&mutex_);
+                               result_ = status;
+                               complete_ = true;
+                               cond_.Notify();
+                             });
 }
 
 TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -1087,7 +1145,7 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -1100,15 +1158,16 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
       },
       false);
   // Now, we can accept connection.
-  AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnectionV3(client_.GetBorrowable(), kRemoteDevice,
+                     [this](Status status) {
+                       MutexLock lock(&mutex_);
+                       result_ = status;
+                       complete_ = true;
+                       cond_.Notify();
+                     });
   // Now we can send payload.
-  SendPayloadV3(&client_, kRemoteDevice, Payload{ByteArray("data")},
-                [this](Status status) {
+  SendPayloadV3(client_.GetBorrowable(), kRemoteDevice,
+                Payload{ByteArray("data")}, [this](Status status) {
                   MutexLock lock(&mutex_);
                   result_ = status;
                   complete_ = true;
@@ -1118,8 +1177,8 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -1129,7 +1188,7 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -1142,25 +1201,27 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
       },
       false);
   // Now, we can accept connection.
-  AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnectionV3(client_.GetBorrowable(), kRemoteDevice,
+                     [this](Status status) {
+                       MutexLock lock(&mutex_);
+                       result_ = status;
+                       complete_ = true;
+                       cond_.Notify();
+                     });
   // We can disconnect at any time after RequestConnection.
-  DisconnectFromDeviceV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  DisconnectFromDeviceV3(client_.GetBorrowable(), kRemoteDevice,
+                         [this](Status status) {
+                           MutexLock lock(&mutex_);
+                           result_ = status;
+                           complete_ = true;
+                           cond_.Notify();
+                         });
 }
 
 TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
-                 [this](Status status) {
+  StartDiscovery(client_.GetBorrowable(), kServiceId, kDiscoveryOptions,
+                 discovery_listener_, [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
                    complete_ = true;
@@ -1170,7 +1231,7 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   RequestConnectionV3(
-      &client_, kRemoteDevice,
+      client_.GetBorrowable(), kRemoteDevice,
       v3::ConnectionRequestInfo{
           .local_device = local_device,
           .listener = {},
@@ -1183,27 +1244,29 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
       },
       false);
   // Now, we can accept connection.
-  AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  AcceptConnectionV3(client_.GetBorrowable(), kRemoteDevice,
+                     [this](Status status) {
+                       MutexLock lock(&mutex_);
+                       result_ = status;
+                       complete_ = true;
+                       cond_.Notify();
+                     });
   // We have to know payload id, before we can cancel payload transfer.
   // It is either after a call to SendPayload, or after receiving
   // PayloadProgress callback. Let's assume we have it, and proceed.
-  CancelPayloadV3(&client_, kRemoteDevice, kPayloadId, [this](Status status) {
-    MutexLock lock(&mutex_);
-    result_ = status;
-    complete_ = true;
-    cond_.Notify();
-  });
+  CancelPayloadV3(client_.GetBorrowable(), kRemoteDevice, kPayloadId,
+                  [this](Status status) {
+                    MutexLock lock(&mutex_);
+                    result_ = status;
+                    complete_ = true;
+                    cond_.Notify();
+                  });
 }
 
 TEST_F(ServiceControllerRouterTest,
        StartListeningForIncomingConnectionsCalledV3) {
   StartListeningForIncomingConnectionsV3(
-      &client_, kServiceId, {}, {},
+      client_.GetBorrowable(), kServiceId, {}, {},
       [this](std::pair<Status, v3::ListeningResult> result) {
         EXPECT_TRUE(result.first.Ok());
         {
@@ -1217,7 +1280,7 @@ TEST_F(ServiceControllerRouterTest,
 TEST_F(ServiceControllerRouterTest,
        StartListeningForIncomingConnectionsCalledV3TwiceFails) {
   StartListeningForIncomingConnectionsV3(
-      &client_, kServiceId, {}, {},
+      client_.GetBorrowable(), kServiceId, {}, {},
       [this](std::pair<Status, v3::ListeningResult> result) {
         EXPECT_TRUE(result.first.Ok());
         {
@@ -1228,7 +1291,7 @@ TEST_F(ServiceControllerRouterTest,
       });
 
   StartListeningForIncomingConnectionsV3(
-      &client_, kServiceId, {}, {},
+      client_.GetBorrowable(), kServiceId, {}, {},
       [this](std::pair<Status, v3::ListeningResult> result) {
         EXPECT_EQ(result.first.value, Status::kAlreadyListening);
         {

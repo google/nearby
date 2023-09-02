@@ -18,7 +18,9 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/platform/borrowable.h"
 
 namespace nearby {
 namespace connections {
@@ -33,7 +35,7 @@ class BwuHandlerImpl : public BaseBwuHandler {
   // The arguments passed to the BwuHandler methods. Not all values are set
   // for every method.
   struct InputData {
-    ClientProxy* client = nullptr;
+    ::nearby::Borrowable<ClientProxy*> client;
     absl::optional<std::string> service_id;
     absl::optional<std::string> endpoint_id;
   };
@@ -53,18 +55,19 @@ class BwuHandlerImpl : public BaseBwuHandler {
  private:
   // BwuHandler implementation:
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final {
     return nullptr;
   }
   Medium GetUpgradeMedium() const final { return Medium::UNKNOWN_MEDIUM; }
-  void OnEndpointDisconnect(ClientProxy* client,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
   ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) final {
     handle_initialize_calls_.push_back({.client = client,
                                         .service_id = upgrade_service_id,
@@ -91,28 +94,28 @@ TEST(BaseBwuHandlerTest, InitializeAndRevert) {
   // Initialize two upgrade endpoints for service A and one for service B.
   // Notably, verify that the service ID is given a suffix.
   EXPECT_EQ(expected_output, handler.InitializeUpgradedMediumForEndpoint(
-                                 &client, /*service_id=*/"A",
+                                 client.GetBorrowable(), /*service_id=*/"A",
                                  /*endpoint_id=*/"1"));
   ASSERT_EQ(1u, handler.handle_initialize_calls().size());
-  EXPECT_EQ(&client, handler.handle_initialize_calls()[0].client);
+  EXPECT_EQ(&client, (*handler.handle_initialize_calls()[0].client.Borrow()));
   EXPECT_EQ(WrapInitiatorUpgradeServiceId("A"),
             handler.handle_initialize_calls()[0].service_id);
   EXPECT_EQ("1", handler.handle_initialize_calls()[0].endpoint_id);
 
   EXPECT_EQ(expected_output, handler.InitializeUpgradedMediumForEndpoint(
-                                 &client, /*service_id=*/"A",
+                                 client.GetBorrowable(), /*service_id=*/"A",
                                  /*endpoint_id=*/"2"));
   ASSERT_EQ(2u, handler.handle_initialize_calls().size());
-  EXPECT_EQ(&client, handler.handle_initialize_calls()[1].client);
+  EXPECT_EQ(&client, (*handler.handle_initialize_calls()[1].client.Borrow()));
   EXPECT_EQ(WrapInitiatorUpgradeServiceId("A"),
             handler.handle_initialize_calls()[1].service_id);
   EXPECT_EQ("2", handler.handle_initialize_calls()[1].endpoint_id);
 
   EXPECT_EQ(expected_output, handler.InitializeUpgradedMediumForEndpoint(
-                                 &client, /*service_id=*/"B",
+                                 client.GetBorrowable(), /*service_id=*/"B",
                                  /*endpoint_id=*/"1"));
   ASSERT_EQ(3u, handler.handle_initialize_calls().size());
-  EXPECT_EQ(&client, handler.handle_initialize_calls()[2].client);
+  EXPECT_EQ(&client, (*handler.handle_initialize_calls()[2].client.Borrow()));
   EXPECT_EQ(WrapInitiatorUpgradeServiceId("B"),
             handler.handle_initialize_calls()[2].service_id);
   EXPECT_EQ("1", handler.handle_initialize_calls()[2].endpoint_id);
@@ -143,11 +146,14 @@ TEST(BaseBwuHandlerTest, InitializeAndRevertAll) {
   ByteArray expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
 
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"A",
                                               /*endpoint_id=*/"1");
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"A",
                                               /*endpoint_id=*/"2");
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"B",
                                               /*endpoint_id=*/"1");
 
   // Call the function that reverts all services at once.
@@ -162,11 +168,14 @@ TEST(BaseBwuHandlerTest, Initialize_Failure_EmptyUpgradePathAvailableFrame) {
   ByteArray expected_output{};
   handler.set_handle_initialize_output(expected_output);
 
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"A",
                                               /*endpoint_id=*/"1");
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"A",
                                               /*endpoint_id=*/"2");
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"B",
                                               /*endpoint_id=*/"1");
   EXPECT_EQ(3u, handler.handle_initialize_calls().size());
 
@@ -186,7 +195,7 @@ TEST(BaseBwuHandlerTest, Initialize_StillWorkWithUpgradeServiceIdSuffix) {
 
   // The method should be robust and not add _another_ upgrade suffix
   handler.InitializeUpgradedMediumForEndpoint(
-      &client, /*service_id=*/
+      client.GetBorrowable(), /*service_id=*/
       WrapInitiatorUpgradeServiceId("A"),
       /*endpoint_id=*/"1");
   handler.RevertInitiatorState(WrapInitiatorUpgradeServiceId("A"),
@@ -200,7 +209,8 @@ TEST(BaseBwuHandlerTest, Revert_Failure_CantFindService) {
 
   ByteArray expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"A",
                                               /*endpoint_id=*/"1");
 
   handler.RevertInitiatorState(WrapInitiatorUpgradeServiceId("B"),
@@ -214,7 +224,8 @@ TEST(BaseBwuHandlerTest, Revert_Failure_CantFindEndpoint) {
 
   ByteArray expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
-  handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
+  handler.InitializeUpgradedMediumForEndpoint(client.GetBorrowable(),
+                                              /*service_id=*/"A",
                                               /*endpoint_id=*/"1");
 
   handler.RevertInitiatorState(WrapInitiatorUpgradeServiceId("A"),

@@ -22,6 +22,7 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/count_down_latch.h"
 
 namespace nearby {
@@ -52,21 +53,22 @@ class BluetoothBwuHandler : public BaseBwuHandler {
 
   // BwuHandler implementation:
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
+      ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final;
   Medium GetUpgradeMedium() const final { return Medium::BLUETOOTH; }
-  void OnEndpointDisconnect(ClientProxy* client,
+  void OnEndpointDisconnect(::nearby::Borrowable<ClientProxy*> client,
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
   ByteArray HandleInitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& upgrade_service_id,
+      ::nearby::Borrowable<ClientProxy*> client,
+      const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) final;
 
-  void OnIncomingBluetoothConnection(ClientProxy* client,
+  void OnIncomingBluetoothConnection(::nearby::Borrowable<ClientProxy*> client,
                                      const std::string& upgrade_service_id,
                                      BluetoothSocket socket);
 

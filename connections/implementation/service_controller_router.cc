@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "connections/implementation/client_proxy.h"
@@ -29,6 +30,7 @@
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/logging.h"
 
 // TODO(b/285657711): Add tests for uncovered logic, even if trivial.
@@ -49,9 +51,16 @@ const std::size_t kEndpointIdLength = 4u;
 const std::size_t kMaxEndpointInfoLength = 131u;
 
 bool ClientHasConnectionToAtLeastOneEndpoint(
-    ClientProxy* client, const std::vector<std::string>& remote_endpoint_ids) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::vector<std::string>& remote_endpoint_ids) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << "ClientProxy is gone";
+    return false;
+  }
+
   for (auto& endpoint_id : remote_endpoint_ids) {
-    if (client->IsConnectedToEndpoint(endpoint_id)) {
+    if ((*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
       return true;
     }
   }
@@ -96,67 +105,127 @@ ServiceControllerRouter::~ServiceControllerRouter() {
 }
 
 void ServiceControllerRouter::StartAdvertising(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const AdvertisingOptions& advertising_options,
     const ConnectionRequestInfo& info, ResultCallback callback) {
   RouteToServiceController(
       "scr-start-advertising",
       [this, client, service_id = std::string(service_id), advertising_options,
        info, callback = std::move(callback)]() mutable {
-        if (client->IsAdvertising()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        // Mark |borrowed| as `FinishBorrowing()` before executing
+        // |callback| to prevent potential Mutex deadlocks of |client| being
+        // used in the callbacks.
+        if ((*borrowed)->IsDiscovering()) {
+          borrowed.FinishBorrowing();
+          callback({Status::kAlreadyDiscovering});
+          return;
+        }
+
+        if ((*borrowed)->IsAdvertising()) {
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyAdvertising});
           return;
         }
 
+        borrowed.FinishBorrowing();
         callback(GetServiceController()->StartAdvertising(
             client, service_id, advertising_options, info));
       });
 }
 
-void ServiceControllerRouter::StopAdvertising(ClientProxy* client,
-                                              ResultCallback callback) {
+void ServiceControllerRouter::StopAdvertising(
+    ::nearby::Borrowable<ClientProxy*> client, ResultCallback callback) {
   RouteToServiceController(
       "scr-stop-advertising",
       [this, client, callback = std::move(callback)]() mutable {
-        if (client->IsAdvertising()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        // Pull |is_advertising| from `ClientProxy` and mark |borrowed| as
+        // `FinishBorrowing()` in order to prevent deadlocks in
+        // `StopAdvertising()`.
+        bool is_advertising = (*borrowed)->IsAdvertising();
+        borrowed.FinishBorrowing();
+
+        if (is_advertising) {
           GetServiceController()->StopAdvertising(client);
         }
+
         callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::StartDiscovery(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const DiscoveryOptions& discovery_options,
     const DiscoveryListener& listener, ResultCallback callback) {
   RouteToServiceController(
       "scr-start-discovery",
       [this, client, service_id = std::string(service_id), discovery_options,
        listener, callback = std::move(callback)]() mutable {
-        if (client->IsDiscovering()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        // Mark |borrowed| as `FinishBorrowing()` before executing the callback
+        // to prevent potential Mutex deadlock in the callback code.
+        if ((*borrowed)->IsDiscovering()) {
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyDiscovering});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` before executing the callback
+        // to prevent Mutex deadlock in `StartDiscovery()`.
+        borrowed.FinishBorrowing();
 
         callback(GetServiceController()->StartDiscovery(
             client, service_id, discovery_options, listener));
       });
 }
 
-void ServiceControllerRouter::StopDiscovery(ClientProxy* client,
-                                            ResultCallback callback) {
+void ServiceControllerRouter::StopDiscovery(
+    ::nearby::Borrowable<ClientProxy*> client, ResultCallback callback) {
   RouteToServiceController(
       "scr-stop-discovery",
       [this, client, callback = std::move(callback)]() mutable {
-        if (client->IsDiscovering()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        // Pull |is_discovering| from `ClientProxy` and mark |borrowed| as
+        // `FinishBorrowing()` in order to prevent deadlocks in
+        // `StopDiscovery()`.
+        bool is_discovering = (*borrowed)->IsDiscovering();
+        borrowed.FinishBorrowing();
+
+        if (is_discovering) {
           GetServiceController()->StopDiscovery(client);
         }
+
         callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::InjectEndpoint(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const OutOfBandConnectionMetadata& metadata, ResultCallback callback) {
   RouteToServiceController(
       "scr-inject-endpoint",
@@ -181,10 +250,24 @@ void ServiceControllerRouter::InjectEndpoint(
           return;
         }
 
-        if (!client->IsDiscovering()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+        // deadlock in the callback code.
+        if (!(*borrowed)->IsDiscovering()) {
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // InjectEndpoint().
+        borrowed.FinishBorrowing();
 
         GetServiceController()->InjectEndpoint(client, service_id, metadata);
         callback({Status::kSuccess});
@@ -192,99 +275,194 @@ void ServiceControllerRouter::InjectEndpoint(
 }
 
 void ServiceControllerRouter::RequestConnection(
-    ClientProxy* client, absl::string_view endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view endpoint_id,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options, ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
   // Cancellations can be fired from clients anytime, need to add the
   // CancellationListener as soon as possible.
-  client->AddCancellationFlag(std::string(endpoint_id));
+  (*borrowed)->AddCancellationFlag(std::string(endpoint_id));
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client} to the ServiceController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-request-connection",
       [this, client, endpoint_id = std::string(endpoint_id), info,
        connection_options, callback = std::move(callback)]() mutable {
-        if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
-            client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if ((*borrowed)->HasPendingConnectionToEndpoint(endpoint_id) ||
+            (*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback.
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // RequestConnection().
+        borrowed.FinishBorrowing();
+
         Status status = GetServiceController()->RequestConnection(
             client, endpoint_id, info, connection_options);
         if (!status.Ok()) {
-          client->CancelEndpoint(endpoint_id);
+          ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+          if (!borrowed2) {
+            NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+            callback({Status::kError});
+            return;
+          }
+          (*borrowed2)->CancelEndpoint(endpoint_id);
+
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
         }
         callback(status);
       });
 }
 
-void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
-                                               absl::string_view endpoint_id,
-                                               PayloadListener listener,
-                                               ResultCallback callback) {
+void ServiceControllerRouter::AcceptConnection(
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view endpoint_id,
+    PayloadListener listener, ResultCallback callback) {
   RouteToServiceController(
       "scr-accept-connection",
       [this, client, endpoint_id = std::string(endpoint_id),
        listener = std::move(listener),
        callback = std::move(callback)]() mutable {
-        if (client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if ((*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
-        if (client->HasLocalEndpointResponded(endpoint_id)) {
+        if ((*borrowed)->HasLocalEndpointResponded(endpoint_id)) {
           NEARBY_LOGS(WARNING)
-              << "Client " << client->GetClientId()
+              << "Client " << (*borrowed)->GetClientId()
               << " invoked acceptConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `AcceptConnection()`.
+        borrowed.FinishBorrowing();
 
         callback(GetServiceController()->AcceptConnection(client, endpoint_id,
                                                           std::move(listener)));
       });
 }
 
-void ServiceControllerRouter::RejectConnection(ClientProxy* client,
-                                               absl::string_view endpoint_id,
-                                               ResultCallback callback) {
-  client->CancelEndpoint(std::string(endpoint_id));
+void ServiceControllerRouter::RejectConnection(
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view endpoint_id,
+    ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
+  (*borrowed)->CancelEndpoint(std::string(endpoint_id));
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client| to the ServierController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-reject-connection",
       [this, client, endpoint_id = std::string(endpoint_id),
        callback = std::move(callback)]() mutable {
-        if (client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if ((*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
-        if (client->HasLocalEndpointResponded(endpoint_id)) {
+        if ((*borrowed)->HasLocalEndpointResponded(endpoint_id)) {
           NEARBY_LOGS(WARNING)
-              << "Client " << client->GetClientId()
+              << "Client " << (*borrowed)->GetClientId()
               << " invoked rejectConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `RejectConnection()`.
+        borrowed.FinishBorrowing();
 
         callback(GetServiceController()->RejectConnection(client, endpoint_id));
       });
 }
 
 void ServiceControllerRouter::InitiateBandwidthUpgrade(
-    ClientProxy* client, absl::string_view endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view endpoint_id,
     ResultCallback callback) {
   RouteToServiceController(
       "scr-init-bwu", [this, client, endpoint_id = std::string(endpoint_id),
                        callback = std::move(callback)]() mutable {
-        if (!client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if (!(*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `InitiateBandwidthUpgrade()`.
+        borrowed.FinishBorrowing();
 
         GetServiceController()->InitiateBandwidthUpgrade(client, endpoint_id);
 
@@ -295,8 +473,9 @@ void ServiceControllerRouter::InitiateBandwidthUpgrade(
 }
 
 void ServiceControllerRouter::SendPayload(
-    ClientProxy* client, absl::Span<const std::string> endpoint_ids,
-    Payload payload, ResultCallback callback) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    absl::Span<const std::string> endpoint_ids, Payload payload,
+    ResultCallback callback) {
   const std::vector<std::string> endpoints =
       std::vector<std::string>(endpoint_ids.begin(), endpoint_ids.end());
 
@@ -320,9 +499,9 @@ void ServiceControllerRouter::SendPayload(
       });
 }
 
-void ServiceControllerRouter::CancelPayload(ClientProxy* client,
-                                            std::uint64_t payload_id,
-                                            ResultCallback callback) {
+void ServiceControllerRouter::CancelPayload(
+    ::nearby::Borrowable<ClientProxy*> client, std::uint64_t payload_id,
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-cancel-payload",
       [this, client, payload_id, callback = std::move(callback)]() mutable {
@@ -331,21 +510,47 @@ void ServiceControllerRouter::CancelPayload(ClientProxy* client,
 }
 
 void ServiceControllerRouter::DisconnectFromEndpoint(
-    ClientProxy* client, absl::string_view endpoint_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view endpoint_id,
     ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
   // Client can emit the cancellation at anytime, we need to execute the request
   // without further posting it.
-  client->CancelEndpoint(std::string(endpoint_id));
+  (*borrowed)->CancelEndpoint(std::string(endpoint_id));
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client| to the ServierController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-disconnect-endpoint",
       [this, client, endpoint_id = std::string(endpoint_id),
        callback = std::move(callback)]() mutable {
-        if (!client->IsConnectedToEndpoint(endpoint_id) &&
-            !client->HasPendingConnectionToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if (!(*borrowed)->IsConnectedToEndpoint(endpoint_id) &&
+            !(*borrowed)->HasPendingConnectionToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex
+        // deadlock in `DisconnectFromEndpoint()`.
+        borrowed.FinishBorrowing();
 
         GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
         callback({Status::kSuccess});
@@ -353,7 +558,7 @@ void ServiceControllerRouter::DisconnectFromEndpoint(
 }
 
 void ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     v3::ConnectionListener listener,
     const v3::ConnectionListeningOptions& options,
     v3::ListeningResultListener callback) {
@@ -361,19 +566,35 @@ void ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
       "scr-start-listening-for-incoming-connections",
       [this, client, callback = std::move(callback), service_id,
        listener = std::move(listener), options]() mutable {
-        if (client->IsListeningForIncomingConnections()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({{Status::kError}, {}});
+          return;
+        }
+
+        auto local_endpoint_id = (*borrowed)->GetLocalEndpointId();
+
+        if ((*borrowed)->IsListeningForIncomingConnections()) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({{Status::kAlreadyListening},
                     {
-                        .endpoint_id = client->GetLocalEndpointId(),
+                        .endpoint_id = local_endpoint_id,
                         .connection_info = {},
                     }});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `StartListeningForIncomingConnections()`.
+        borrowed.FinishBorrowing();
         auto pair =
             GetServiceController()->StartListeningForIncomingConnections(
                 client, service_id, std::move(listener), options);
         v3::ListeningResult result = {
-            .endpoint_id = client->GetLocalEndpointId(),
+            .endpoint_id = local_endpoint_id,
             .connection_info = pair.second,
         };
         callback(std::make_pair(pair.first, result));
@@ -381,34 +602,70 @@ void ServiceControllerRouter::StartListeningForIncomingConnectionsV3(
 }
 
 void ServiceControllerRouter::StopListeningForIncomingConnectionsV3(
-    ClientProxy* client) {
+    ::nearby::Borrowable<ClientProxy*> client) {
   RouteToServiceController(
       "scr-stop-listening-for-incoming-connections", [this, client]() {
-        if (!client->IsListeningForIncomingConnections()) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
           return;
         }
+
+        if (!(*borrowed)->IsListeningForIncomingConnections()) {
+          return;
+        }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+        // `StopListeningForIncomingConnections()`.
+        borrowed.FinishBorrowing();
         GetServiceController()->StopListeningForIncomingConnections(client);
       });
 }
 
 void ServiceControllerRouter::RequestConnectionV3(
-    ClientProxy* client, const NearbyDevice& remote_device,
-    v3::ConnectionRequestInfo info, const ConnectionOptions& connection_options,
-    ResultCallback callback) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& remote_device, v3::ConnectionRequestInfo info,
+    const ConnectionOptions& connection_options, ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
   // Cancellations can be fired from clients anytime, need to add the
   // CancellationListener as soon as possible.
-  client->AddCancellationFlag(remote_device.GetEndpointId());
+  (*borrowed)->AddCancellationFlag(remote_device.GetEndpointId());
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client| to the ServierController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-request-connection",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
        v3_info = std::move(info), connection_options,
        callback = std::move(callback)]() mutable {
-        if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
-            client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if ((*borrowed)->HasPendingConnectionToEndpoint(endpoint_id) ||
+            (*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex
+        // RequestConnection().
+        borrowed.FinishBorrowing();
 
         std::string endpoint_info;
         if (v3_info.local_device.GetType() ==
@@ -469,44 +726,72 @@ void ServiceControllerRouter::RequestConnectionV3(
                       bandwidth_info);
                 },
         };
+
         ConnectionRequestInfo old_info = {
             .endpoint_info = ByteArray(endpoint_info),
             .listener = std::move(listener),
         };
+
         Status status = GetServiceController()->RequestConnection(
             client, endpoint_id, std::move(old_info), connection_options);
+
         if (!status.Ok()) {
           NEARBY_LOGS(WARNING) << "Unable to request connection to endpoint "
                                << endpoint_id << ": " << status.ToString();
-          client->CancelEndpoint(endpoint_id);
+          ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+          if (!borrowed2) {
+            NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+            callback({Status::kError});
+            return;
+          }
+          (*borrowed2)->CancelEndpoint(endpoint_id);
+          borrowed2.FinishBorrowing();
         }
+
         callback(status);
       });
 }
 
 void ServiceControllerRouter::AcceptConnectionV3(
-    ClientProxy* client, const NearbyDevice& remote_device,
-    v3::PayloadListener listener, ResultCallback callback) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& remote_device, v3::PayloadListener listener,
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-accept-connection",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
        v3_listener = std::move(listener),
        callback = std::move(callback)]() mutable {
-        if (client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if ((*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
-        if (client->HasLocalEndpointResponded(endpoint_id)) {
+        if ((*borrowed)->HasLocalEndpointResponded(endpoint_id)) {
           NEARBY_LOGS(WARNING)
-              << "Client " << client->GetClientId()
+              << "Client " << (*borrowed)->GetClientId()
               << " invoked acceptConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
 
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `AcceptConnection()`.
+        borrowed.FinishBorrowing();
         PayloadListener old_listener = {
             .payload_cb =
                 [v3_received = std::move(v3_listener.payload_received_cb)](
@@ -527,44 +812,87 @@ void ServiceControllerRouter::AcceptConnectionV3(
 }
 
 void ServiceControllerRouter::RejectConnectionV3(
-    ClientProxy* client, const NearbyDevice& remote_device,
-    ResultCallback callback) {
-  client->CancelEndpoint(remote_device.GetEndpointId());
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& remote_device, ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
+  (*borrowed)->CancelEndpoint(remote_device.GetEndpointId());
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client| to the ServierController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-reject-connection",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
        callback = std::move(callback)]() mutable {
-        if (client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if ((*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
-        if (client->HasLocalEndpointResponded(endpoint_id)) {
+        if ((*borrowed)->HasLocalEndpointResponded(endpoint_id)) {
           NEARBY_LOGS(WARNING)
-              << "Client " << client->GetClientId()
+              << "Client " << (*borrowed)->GetClientId()
               << " invoked rejectConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
               << endpoint_id << ")";
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `RejectConnection()`.
+        borrowed.FinishBorrowing();
 
         callback(GetServiceController()->RejectConnection(client, endpoint_id));
       });
 }
 
 void ServiceControllerRouter::InitiateBandwidthUpgradeV3(
-    ClientProxy* client, const NearbyDevice& remote_device,
-    ResultCallback callback) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& remote_device, ResultCallback callback) {
   RouteToServiceController(
       "scr-init-bwu",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
        callback = std::move(callback)]() mutable {
-        if (!client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if (!(*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `InitiateBandwidthUpgrade()`.
+        borrowed.FinishBorrowing();
 
         GetServiceController()->InitiateBandwidthUpgrade(client, endpoint_id);
 
@@ -575,16 +903,31 @@ void ServiceControllerRouter::InitiateBandwidthUpgradeV3(
 }
 
 void ServiceControllerRouter::SendPayloadV3(
-    ClientProxy* client, const NearbyDevice& recipient_device, Payload payload,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& recipient_device, Payload payload,
     ResultCallback callback) {
   RouteToServiceController(
       "scr-send-payload", [this, client, payload = std::move(payload),
                            endpoint_id = recipient_device.GetEndpointId(),
                            callback = std::move(callback)]() mutable {
-        if (!client->IsConnectedToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if (!(*borrowed)->IsConnectedToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kEndpointUnknown});
           return;
         }
+
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `SendPayload()`.
+        borrowed.FinishBorrowing();
 
         GetServiceController()->SendPayload(
             client, std::vector<std::string>{endpoint_id}, std::move(payload));
@@ -598,8 +941,9 @@ void ServiceControllerRouter::SendPayloadV3(
 }
 
 void ServiceControllerRouter::CancelPayloadV3(
-    ClientProxy* client, const NearbyDevice& recipient_device,
-    uint64_t payload_id, ResultCallback callback) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& recipient_device, uint64_t payload_id,
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-cancel-payload",
       [this, client, payload_id, callback = std::move(callback)]() mutable {
@@ -608,29 +952,54 @@ void ServiceControllerRouter::CancelPayloadV3(
 }
 
 void ServiceControllerRouter::DisconnectFromDeviceV3(
-    ClientProxy* client, const NearbyDevice& remote_device,
-    ResultCallback callback) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const NearbyDevice& remote_device, ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
   // Client can emit the cancellation at anytime, we need to execute the request
   // without further posting it.
-  client->CancelEndpoint(remote_device.GetEndpointId());
+  (*borrowed)->CancelEndpoint(remote_device.GetEndpointId());
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client| to the ServierController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-disconnect-endpoint",
       [this, client, endpoint_id = remote_device.GetEndpointId(),
        callback = std::move(callback)]() mutable {
-        if (!client->IsConnectedToEndpoint(endpoint_id) &&
-            !client->HasPendingConnectionToEndpoint(endpoint_id)) {
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+
+        if (!(*borrowed)->IsConnectedToEndpoint(endpoint_id) &&
+            !(*borrowed)->HasPendingConnectionToEndpoint(endpoint_id)) {
+          // Mark |borrowed| as `FinishBorrowing()` to prevent potential Mutex
+          // deadlock in the callback code.
+          borrowed.FinishBorrowing();
           callback({Status::kOutOfOrderApiCall});
           return;
         }
 
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `DisconnectFromEndpoint()`.
+        borrowed.FinishBorrowing();
         GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
         callback({Status::kSuccess});
       });
 }
 
 void ServiceControllerRouter::UpdateAdvertisingOptionsV3(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const AdvertisingOptions& options, ResultCallback callback) {
   RouteToServiceController(
       "scr-update-advertising-options",
@@ -642,7 +1011,7 @@ void ServiceControllerRouter::UpdateAdvertisingOptionsV3(
 }
 
 void ServiceControllerRouter::UpdateDiscoveryOptionsV3(
-    ClientProxy* client, absl::string_view service_id,
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view service_id,
     const DiscoveryOptions& options, ResultCallback callback) {
   RouteToServiceController(
       "scr-update-discovery-options",
@@ -653,32 +1022,62 @@ void ServiceControllerRouter::UpdateDiscoveryOptionsV3(
       });
 }
 
-void ServiceControllerRouter::StopAllEndpoints(ClientProxy* client,
-                                               ResultCallback callback) {
+void ServiceControllerRouter::StopAllEndpoints(
+    ::nearby::Borrowable<ClientProxy*> client, ResultCallback callback) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    callback({Status::kError});
+    return;
+  }
+
   // Client can emit the cancellation at anytime, we need to execute the request
   // without further posting it.
-  client->CancelAllEndpoints();
+  (*borrowed)->CancelAllEndpoints();
+
+  // Mark |borrowed| as `FinishBorrowing()` to prevent Mutex deadlock in
+  // passing |client| to the ServierController thread because `Borrow()` is a
+  // blocking call.
+  borrowed.FinishBorrowing();
 
   RouteToServiceController(
       "scr-stop-all-endpoints",
       [this, client, callback = std::move(callback)]() mutable {
-        NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+        NEARBY_LOGS(INFO) << "Client " << (*borrowed)->GetClientId()
                           << " has requested us to stop all endpoints. We will "
                              "now reset the client.";
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `FinishClientSession()`.
+        borrowed.FinishBorrowing();
         FinishClientSession(client);
         callback({Status::kSuccess});
       });
 }
 
-void ServiceControllerRouter::SetCustomSavePath(ClientProxy* client,
-                                                absl::string_view path,
-                                                ResultCallback callback) {
+void ServiceControllerRouter::SetCustomSavePath(
+    ::nearby::Borrowable<ClientProxy*> client, absl::string_view path,
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-set-custom-save-path", [this, client, path = std::string(path),
                                    callback = std::move(callback)]() mutable {
-        NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+        ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+        if (!borrowed) {
+          NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+          callback({Status::kError});
+          return;
+        }
+        NEARBY_LOGS(INFO) << "Client " << (*borrowed)->GetClientId()
                           << " has requested us to set custom save path to "
                           << path;
+        // Mark |borrowed| as `FinishBorrowing()` to potential Mutex
+        // deadlock in `SetCustomSavePath()`.
+        borrowed.FinishBorrowing();
         GetServiceController()->SetCustomSavePath(client, path);
         callback({Status::kSuccess});
       });
@@ -696,13 +1095,35 @@ ServiceController* ServiceControllerRouter::GetServiceController() {
   return service_controller_.get();
 }
 
-void ServiceControllerRouter::FinishClientSession(ClientProxy* client) {
+void ServiceControllerRouter::FinishClientSession(
+    ::nearby::Borrowable<ClientProxy*> client) {
+  ::nearby::Borrowed<ClientProxy*> borrowed = client.Borrow();
+  if (!borrowed) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
   // Disconnect from all the connected endpoints tied to this clientProxy.
-  for (auto& endpoint_id : client->GetPendingConnectedEndpoints()) {
+  // Retrieve the pending connected endpoints before iteration to prevent
+  // Mutex deadlock in `DisconnectFromEndpoint()`.
+  auto pending_connected_endpoints =
+      (*borrowed)->GetPendingConnectedEndpoints();
+  borrowed.FinishBorrowing();
+  for (auto& endpoint_id : pending_connected_endpoints) {
     GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
   }
 
-  for (auto& endpoint_id : client->GetConnectedEndpoints()) {
+  ::nearby::Borrowed<ClientProxy*> borrowed2 = client.Borrow();
+  if (!borrowed2) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+
+  // Retrieve the connected endpoints before iteration to prevent
+  // Mutex deadlock in `DisconnectFromEndpoint()`.
+  auto connected_endpoints = (*borrowed2)->GetConnectedEndpoints();
+  borrowed.FinishBorrowing();
+  for (auto& endpoint_id : connected_endpoints) {
     GetServiceController()->DisconnectFromEndpoint(client, endpoint_id);
   }
 
@@ -712,7 +1133,12 @@ void ServiceControllerRouter::FinishClientSession(ClientProxy* client) {
   GetServiceController()->ShutdownBwuManagerExecutors();
 
   // Finally, clear all state maintained by this client.
-  client->Reset();
+  ::nearby::Borrowed<ClientProxy*> borrowed3 = client.Borrow();
+  if (!borrowed3) {
+    NEARBY_LOGS(ERROR) << __func__ << ": ClientProxy is gone";
+    return;
+  }
+  (*borrowed3)->Reset();
 }
 
 void ServiceControllerRouter::RouteToServiceController(const std::string& name,

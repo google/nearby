@@ -46,7 +46,7 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 // and establishes connection over WebRTC using this info.
 std::unique_ptr<EndpointChannel>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
-    ClientProxy* client, const std::string& service_id,
+    ::nearby::Borrowable<ClientProxy*> client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   return nullptr;
 }
@@ -58,8 +58,8 @@ void WebrtcBwuHandler::HandleRevertInitiatorStateForService(
 // and returns a upgrade path info (PeerId, LocationHint) for remote party to
 // perform discovery.
 ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    const std::string& endpoint_id) {
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id, const std::string& endpoint_id) {
   return {};
 }
 
@@ -67,7 +67,8 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 // Notifies that the remote party called WebRtc::Connect()
 // for this socket.
 void WebrtcBwuHandler::OnIncomingWebrtcConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
+    ::nearby::Borrowable<ClientProxy*> client,
+    const std::string& upgrade_service_id,
     mediums::WebRtcSocketWrapper socket) {}
 
 }  // namespace connections
