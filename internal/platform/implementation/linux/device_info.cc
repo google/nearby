@@ -101,7 +101,7 @@ std::optional<std::u16string> DeviceInfo::GetFullName() const {
   char *name = strtok(pwd->pw_gecos, ",");
 
   std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-  return convert.from_bytes(name == nullptr ? name : pwd->pw_gecos);
+  return convert.from_bytes(name != nullptr ? name : pwd->pw_gecos);
 }
 
 std::optional<std::string> DeviceInfo::GetProfileUserName() const {
