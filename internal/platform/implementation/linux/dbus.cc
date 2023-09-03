@@ -28,12 +28,18 @@ static std::unique_ptr<sdbus::IConnection> global_default_bus_connection =
     nullptr;
 static absl::once_flag bus_connection_init_;
 
+static void disconnectBus() {
+  global_system_bus_connection = nullptr;
+  global_default_bus_connection = nullptr;
+}
+
 static void initBusConnections() {
   global_system_bus_connection = sdbus::createSystemBusConnection();
   global_system_bus_connection->enterEventLoopAsync();
   global_default_bus_connection =
       sdbus::createDefaultBusConnection("com.google.nearby");
   global_default_bus_connection->enterEventLoopAsync();
+  atexit(disconnectBus);
 }
 
 sdbus::IConnection &getSystemBusConnection() {

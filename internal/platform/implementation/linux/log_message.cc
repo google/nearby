@@ -33,9 +33,14 @@ namespace nearby {
 static std::unique_ptr<linux::LogControl> global_log_control_;
 static absl::once_flag log_control_init_;
 
+static void cleanup_log_control() {
+ global_log_control_ = nullptr;
+}
+
 static void init_log_control(std::nullptr_t) {
   global_log_control_ =
       std::make_unique<linux::LogControl>(linux::getDefaultBusConnection());
+  atexit(cleanup_log_control);
 }
 
 namespace api {
