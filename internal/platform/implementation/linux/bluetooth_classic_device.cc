@@ -17,6 +17,7 @@
 #include <systemd/sd-bus.h>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/dbus.h"
@@ -36,6 +37,7 @@ BluetoothDevice::BluetoothDevice(sdbus::IConnection &system_bus,
   }
   try {
     last_known_address_ = Address();
+    unique_id_ = BluetoothUtils::ToNumber(last_known_address_);
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(this, "Address", e);
   }

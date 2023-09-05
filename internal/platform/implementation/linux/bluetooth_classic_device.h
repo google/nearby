@@ -24,6 +24,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/generated/dbus/bluez/device_client.h"
 
@@ -32,8 +33,11 @@ namespace linux {
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice
     : public api::BluetoothDevice,
-      public sdbus::ProxyInterfaces<org::bluez::Device1_proxy> {
+      public sdbus::ProxyInterfaces<org::bluez::Device1_proxy>,
+      public api::ble_v2::BlePeripheral {
  public:
+  using UniqueId = std::uint64_t;
+
   BluetoothDevice(const BluetoothDevice &) = delete;
   BluetoothDevice(BluetoothDevice &&) = delete;
   BluetoothDevice &operator=(const BluetoothDevice &) = delete;
@@ -42,11 +46,15 @@ class BluetoothDevice
                   sdbus::ObjectPath device_object_path);
   ~BluetoothDevice() override { unregisterProxy(); }
 
+  // BluetoothDevice methods
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const override;
-
   // Returns BT MAC address assigned to this device.
   std::string GetMacAddress() const override;
+
+  // BlePeripheral methods
+  std::string GetAddress() const override { return GetMacAddress(); }
+  UniqueId GetUniqueId() const override { return unique_id_; };
 
   bool ConnectToProfile(absl::string_view service_uuid);
 
@@ -72,6 +80,7 @@ class BluetoothDevice
   absl::Mutex pair_callback_lock_;
   absl::AnyInvocable<void(const sdbus::Error *)> on_pair_reply_cb_ =
       DefaultCallback<const sdbus::Error *>();
+  UniqueId unique_id_;
 
   mutable absl::Mutex properties_mutex_;
   mutable std::string last_known_name_ ABSL_GUARDED_BY(properties_mutex_);
