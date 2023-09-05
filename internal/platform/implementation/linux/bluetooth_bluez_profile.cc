@@ -62,7 +62,7 @@ void Profile::NewConnection(
 
   auto device = devices_.get_device_by_path(device_object_path);
 
-  if (!device.has_value()) {
+  if (device == nullptr) {
     NEARBY_LOGS(ERROR)
         << __func__
         << "NewConection called with a device object we don't know about: "
@@ -70,10 +70,10 @@ void Profile::NewConnection(
     throw sdbus::Error("org.bluez.Error.Rejected", "Unknown object");
   }
 
-  auto alias = device->get().Alias();
-  auto mac_addr = device->get().Address();
+  auto alias = device->Alias();
+  auto mac_addr = device->Address();
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
-                       << ": Connected to " << device->get().getObjectPath();
+                       << ": Connected to " << device->getObjectPath();
 
   FDProperties props(fd_props);
 
@@ -88,7 +88,7 @@ void Profile::NewConnection(
 void Profile::RequestDisconnection(
     const sdbus::ObjectPath &device_object_path) {
   auto device = devices_.get_device_by_path(device_object_path);
-  if (!device.has_value()) {
+  if (device == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
                        << ": RequestDisconnection called with a device object "
                           "we don't know about: "
@@ -96,7 +96,7 @@ void Profile::RequestDisconnection(
     throw sdbus::Error("org.bluez.Error.Rejected", "Unknown object");
   }
 
-  auto mac_addr = device->get().Address();
+  auto mac_addr = device->Address();
   NEARBY_LOGS(VERBOSE) << __func__ << ": Disconnection requested for device "
                        << device_object_path;
 
@@ -232,7 +232,7 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
 
 // Listen for a connected profile on any device, returning the connected device
 // with its FD.
-std::optional<std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
+std::optional<std::pair<std::shared_ptr<BluetoothDevice>, sdbus::UnixFd>>
 ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
                                    CancellationFlag *cancellation_flag) {
   if (!ProfileRegistered(service_uuid)) {
@@ -278,14 +278,14 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
   if (it->second.empty()) profile->connections_.erase(it);
   profile->connections_lock_.Unlock();
 
-  auto maybe_device = devices_.get_device_by_address(mac_addr);
-  if (!maybe_device.has_value()) {
+  auto device = devices_.get_device_by_address(mac_addr);
+  if (device == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": Device " << mac_addr
                        << " is no longer available";
     return std::nullopt;
   }
 
-  return std::pair(*maybe_device, std::move(fd));
+  return std::pair(device, std::move(fd));
 }
 
 }  // namespace linux

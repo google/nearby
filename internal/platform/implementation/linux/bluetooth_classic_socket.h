@@ -24,6 +24,7 @@
 
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
@@ -69,7 +70,7 @@ class BluetoothOutputStream : public nearby::OutputStream {
   explicit BluetoothOutputStream(sdbus::UnixFd fd) : fd_(std::move(fd)){};
 
   Exception Write(const ByteArray &data) override;
-  Exception Flush() override {return {Exception::kSuccess};}
+  Exception Flush() override { return {Exception::kSuccess}; }
   Exception Close() override;
 
  private:
@@ -78,8 +79,9 @@ class BluetoothOutputStream : public nearby::OutputStream {
 
 class BluetoothSocket final : public api::BluetoothSocket {
  public:
-  BluetoothSocket(api::BluetoothDevice &device, const sdbus::UnixFd &fd)
-      : device_(device), output_stream_(fd), input_stream_(fd) {}
+  BluetoothSocket(std::shared_ptr<BluetoothDevice> device,
+                  const sdbus::UnixFd &fd)
+      : device_(std::move(device)), output_stream_(fd), input_stream_(fd) {}
 
   nearby::InputStream &GetInputStream() override { return input_stream_; }
   nearby::OutputStream &GetOutputStream() override { return output_stream_; }
@@ -89,10 +91,10 @@ class BluetoothSocket final : public api::BluetoothSocket {
 
     return Exception{Exception::kSuccess};
   }
-  api::BluetoothDevice *GetRemoteDevice() override { return &device_; };
+  api::BluetoothDevice *GetRemoteDevice() override { return device_.get(); };
 
  private:
-  api::BluetoothDevice &device_;
+  std::shared_ptr<BluetoothDevice> device_;
   BluetoothOutputStream output_stream_;
   BluetoothInputStream input_stream_;
 };

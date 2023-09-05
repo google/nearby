@@ -48,7 +48,7 @@ class BluetoothClassicMedium final
   BluetoothClassicMedium &operator=(const BluetoothClassicMedium &) = delete;
   BluetoothClassicMedium &operator=(BluetoothClassicMedium &&) = delete;
   BluetoothClassicMedium(sdbus::IConnection &system_bus,
-                         const sdbus::ObjectPath &adapter_object_path);
+                         BluetoothAdapter &adapter);
   ~BluetoothClassicMedium() override { unregisterProxy(); };
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
@@ -119,7 +119,7 @@ class BluetoothClassicMedium final
                            const std::vector<std::string> &interfaces) override;
 
  private:
-  std::unique_ptr<BluetoothAdapter> adapter_;
+  BluetoothAdapter adapter_;
   std::unique_ptr<BluetoothDevices> devices_;
 
   std::optional<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;

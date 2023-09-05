@@ -128,8 +128,7 @@ class ProfileManager final
       api::BluetoothDevice &remote_device, absl::string_view service_uuid,
       CancellationFlag *cancellation_flag)
       ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);
-  std::optional<
-      std::pair<std::reference_wrapper<BluetoothDevice>, sdbus::UnixFd>>
+  std::optional<std::pair<std::shared_ptr<BluetoothDevice>, sdbus::UnixFd>>
   GetServiceRecordFD(absl::string_view service_uuid,
                      CancellationFlag *cancellation_flag)
       ABSL_LOCKS_EXCLUDED(registered_service_uuids_mutex_);

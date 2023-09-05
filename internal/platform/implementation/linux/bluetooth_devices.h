@@ -21,6 +21,7 @@
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Types.h>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -37,17 +38,18 @@ class BluetoothDevices final {
         observers_(observers),
         adapter_object_path_(std::move(adapter_object_path)) {}
 
-  std::optional<std::reference_wrapper<BluetoothDevice>> get_device_by_path(
-      const sdbus::ObjectPath &);
-  std::optional<std::reference_wrapper<BluetoothDevice>> get_device_by_address(
-      const std::string &);
-  void remove_device_by_path(const sdbus::ObjectPath &);
-  BluetoothDevice &add_new_device(sdbus::ObjectPath);
+  std::shared_ptr<BluetoothDevice> get_device_by_path(const sdbus::ObjectPath &)
+      ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
+  std::shared_ptr<BluetoothDevice> get_device_by_address(const std::string &);
+  void remove_device_by_path(const sdbus::ObjectPath &)
+      ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
+  std::shared_ptr<BluetoothDevice> add_new_device(sdbus::ObjectPath)
+      ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
 
  private:
   absl::Mutex devices_by_path_lock_;
-  std::map<std::string, std::unique_ptr<MonitoredBluetoothDevice>>
-      devices_by_path_;
+  absl::flat_hash_map<std::string, std::shared_ptr<MonitoredBluetoothDevice>>
+      devices_by_path_ ABSL_GUARDED_BY(devices_by_path_lock_);
 
   sdbus::IConnection &system_bus_;
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;
