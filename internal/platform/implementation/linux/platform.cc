@@ -190,9 +190,9 @@ ImplementationPlatform::CreateBluetoothAdapter() {
 std::unique_ptr<api::BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     BluetoothAdapter &adapter) {
-  auto path = static_cast<linux::BluetoothAdapter *>(&adapter)->GetObjectPath();
   return std::make_unique<linux::BluetoothClassicMedium>(
-      linux::getSystemBusConnection(), path);
+      linux::getSystemBusConnection(),
+      dynamic_cast<linux::BluetoothAdapter &>(adapter));
 }
 
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
@@ -205,6 +205,7 @@ ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
   return std::make_unique<linux::BleV2Medium>();
 }
 
+namespace {
 static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
     std::shared_ptr<linux::NetworkManager> nm) {
   std::vector<sdbus::ObjectPath> device_paths;
@@ -246,6 +247,7 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
                      << ": couldn't find a wireless device on this system";
   return nullptr;
 }
+}  // namespace
 
 std::unique_ptr<api::WifiMedium> ImplementationPlatform::CreateWifiMedium() {
   auto nm =
