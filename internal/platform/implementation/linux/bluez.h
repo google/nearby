@@ -43,6 +43,7 @@ static constexpr const char *DEVICE_PROP_ADDRESS = "Address";
 static constexpr const char *DEVICE_PROP_ALIAS = "Alias";
 static constexpr const char *DEVICE_PROP_PAIRED = "Paired";
 static constexpr const char *DEVICE_PROP_CONNECTED = "Connected";
+static constexpr const char *DEVICE_NAME = "Name";
 
 std::string device_object_path(const sdbus::ObjectPath &adapter_object_path,
                                absl::string_view mac_address);

@@ -122,7 +122,7 @@ class BluetoothClassicMedium final
   BluetoothAdapter adapter_;
   std::unique_ptr<BluetoothDevices> devices_;
 
-  std::optional<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
+  std::shared_ptr<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
 
   std::unique_ptr<ProfileManager> profile_manager_;
   ObserverList<Observer> observers_;
