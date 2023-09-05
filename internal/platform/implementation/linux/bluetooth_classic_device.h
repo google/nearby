@@ -96,6 +96,12 @@ class MonitoredBluetoothDevice final
       ObserverList<api::BluetoothClassicMedium::Observer> &observers);
   ~MonitoredBluetoothDevice() override { unregisterProxy(); }
 
+  void SetDiscoveryCallback(
+      std::shared_ptr<api::BluetoothClassicMedium::DiscoveryCallback>
+          &callback) {
+    discovery_cb_ = callback;
+  };
+
  protected:
   void onPropertiesChanged(
       const std::string &interfaceName,
@@ -104,6 +110,7 @@ class MonitoredBluetoothDevice final
 
  private:
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;
+  std::weak_ptr<api::BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
 };
 
 }  // namespace linux

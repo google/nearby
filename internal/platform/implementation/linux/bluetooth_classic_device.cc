@@ -163,6 +163,10 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
       for (auto &observer : observers_.GetObservers()) {
         observer->DeviceConnectedStateChanged(*this, it->second);
       }
+    } else if (it->first == bluez::DEVICE_NAME) {
+      auto callback = discovery_cb_.lock();
+      if (callback != nullptr && callback->device_name_changed_cb != nullptr)
+        callback->device_name_changed_cb(*this);
     }
   }
 }

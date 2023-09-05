@@ -64,9 +64,9 @@ void BluetoothClassicMedium::onInterfacesAdded(
     NEARBY_LOGS(INFO) << __func__ << ": Encountered new device at " << object;
 
     auto device = devices_->add_new_device(object);
-
-    if (discovery_cb_.has_value() &&
+    if (discovery_cb_ != nullptr &&
         discovery_cb_->device_discovered_cb != nullptr) {
+      device->SetDiscoveryCallback(discovery_cb_);
       discovery_cb_->device_discovered_cb(*device);
     }
 
@@ -98,7 +98,7 @@ void BluetoothClassicMedium::onInterfacesRemoved(
 
         NEARBY_LOGS(INFO) << __func__ << ": Device " << object
                           << " has been removed";
-        if (discovery_cb_.has_value() &&
+        if (discovery_cb_ != nullptr &&
             discovery_cb_->device_lost_cb != nullptr) {
           discovery_cb_->device_lost_cb(*device);
         }
@@ -114,7 +114,8 @@ void BluetoothClassicMedium::onInterfacesRemoved(
 
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
-  discovery_cb_ = std::move(discovery_callback);
+  discovery_cb_ =
+      std::make_shared<DiscoveryCallback>(std::move(discovery_callback));
 
   try {
     NEARBY_LOGS(INFO) << __func__ << ": Starting discovery on "

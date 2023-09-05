@@ -43,7 +43,7 @@ class BluetoothDevices final {
   std::shared_ptr<BluetoothDevice> get_device_by_address(const std::string &);
   void remove_device_by_path(const sdbus::ObjectPath &)
       ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
-  std::shared_ptr<BluetoothDevice> add_new_device(sdbus::ObjectPath)
+  std::shared_ptr<MonitoredBluetoothDevice> add_new_device(sdbus::ObjectPath)
       ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
 
  private:

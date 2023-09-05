@@ -49,7 +49,7 @@ void BluetoothDevices::remove_device_by_path(
   devices_by_path_.erase(device_object_path);
 }
 
-std::shared_ptr<BluetoothDevice> BluetoothDevices::add_new_device(
+std::shared_ptr<MonitoredBluetoothDevice> BluetoothDevices::add_new_device(
     sdbus::ObjectPath device_object_path) {
   absl::MutexLock l(&devices_by_path_lock_);
   auto pair = devices_by_path_.emplace(
