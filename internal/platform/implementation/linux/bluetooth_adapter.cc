@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
-#include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/logging.h"
@@ -95,8 +94,7 @@ std::string BluetoothAdapter::GetName() const {
   }
 }
 
-bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
-  persist_name_ = persist;
+bool BluetoothAdapter::SetName(absl::string_view name, bool  /*persist*/) {
   return SetName(name);
 }
 

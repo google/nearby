@@ -37,21 +37,17 @@ class BluezAdapter : public sdbus::ProxyInterfaces<org::bluez::Adapter1_proxy> {
 
 class BluetoothAdapter : public api::BluetoothAdapter {
  public:
+  BluetoothAdapter(const BluetoothAdapter &) = default;
+  BluetoothAdapter(BluetoothAdapter &&) = delete;
+  BluetoothAdapter &operator=(const BluetoothAdapter &) = default;
+  BluetoothAdapter &operator=(BluetoothAdapter &&) = delete;
+
   BluetoothAdapter(sdbus::IConnection &system_bus,
                    const sdbus::ObjectPath &adapter_object_path)
       : bluez_adapter_(
-            std::make_unique<BluezAdapter>(system_bus, adapter_object_path)) {}
+            std::make_shared<BluezAdapter>(system_bus, adapter_object_path)) {}
 
-  ~BluetoothAdapter() override {
-    if (!persist_name_) {
-      NEARBY_LOGS(INFO) << __func__ << "Resetting adapter Alias";
-      try {
-        bluez_adapter_->Alias("");
-      } catch (const sdbus::Error &e) {
-        DBUS_LOG_PROPERTY_SET_ERROR(bluez_adapter_, "Alias", e);
-      }
-    }
-  }
+  ~BluetoothAdapter() override = default;
 
   bool SetStatus(Status status) override;
   bool IsEnabled() const override;
@@ -82,8 +78,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   BluezAdapter &GetBluezAdapterObject() { return *bluez_adapter_; }
 
  private:
-  std::unique_ptr<BluezAdapter> bluez_adapter_;
-  bool persist_name_;
+  std::shared_ptr<BluezAdapter> bluez_adapter_;
 };
 }  // namespace linux
 }  // namespace nearby
