@@ -15,7 +15,9 @@
 #ifndef PLATFORM_IMPL_LINUX_DBUS_H_
 #define PLATFORM_IMPL_LINUX_DBUS_H_
 
+#include <sdbus-c++/AdaptorInterfaces.h>
 #include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/StandardInterfaces.h>
 #include "internal/platform/logging.h"
 
 #define DBUS_LOG_METHOD_CALL_ERROR(p, m, e)                            \
@@ -46,6 +48,17 @@ namespace nearby {
 namespace linux {
 extern sdbus::IConnection &getSystemBusConnection();
 extern sdbus::IConnection &getDefaultBusConnection();
+class RootObjectManager final
+    : public sdbus::AdaptorInterfaces<sdbus::ObjectManager_adaptor,
+                                      sdbus::Properties_adaptor> {
+ public:
+  explicit RootObjectManager(sdbus::IConnection &system_bus)
+      : AdaptorInterfaces(system_bus, "/") {
+    registerAdaptor();
+  }
+  ~RootObjectManager() { unregisterAdaptor(); }
+};
+
 }  // namespace linux
 }  // namespace nearby
 #endif
