@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <memory>
+#include <cstdlib>
 
 #include <sdbus-c++/IConnection.h>
 
@@ -36,8 +37,7 @@ static void disconnectBus() {
 static void initBusConnections() {
   global_system_bus_connection = sdbus::createSystemBusConnection();
   global_system_bus_connection->enterEventLoopAsync();
-  global_default_bus_connection =
-      sdbus::createDefaultBusConnection("com.google.nearby");
+  global_default_bus_connection = sdbus::createDefaultBusConnection();
   global_default_bus_connection->enterEventLoopAsync();
   atexit(disconnectBus);
 }
