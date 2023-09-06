@@ -728,7 +728,11 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
            packet.version);
   [_connectionConfirmTimer invalidate];
   _connectionConfirmTimer = nil;
-  _socket.packetSize = packet.packetSize;
+  // Weave is using `CBCharacteristicWriteWithResponse` for writes, so we must query max value since
+  // it can have a smaller value than the `GNSWeaveConnectionConfirmPacket` size.
+  NSUInteger maxWriteLength =
+      [_socket.peerAsPeripheral maximumWriteValueLengthForType:CBCharacteristicWriteWithResponse];
+  _socket.packetSize = MIN(packet.packetSize, maxWriteLength);
   [_socket didConnect];
   if (packet.data) {
     // According to the Weave BLE protocol the data received during the connection handshake should
