@@ -47,7 +47,8 @@ namespace linux {
 class ProfileManager;
 
 class Profile final
-    : public sdbus::AdaptorInterfaces<org::bluez::Profile1_adaptor> {
+    : public sdbus::AdaptorInterfaces<org::bluez::Profile1_adaptor,
+                                      sdbus::ManagedObject_adaptor> {
  public:
   Profile(const Profile &) = delete;
   Profile(Profile &&) = delete;

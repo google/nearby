@@ -15,9 +15,10 @@
 #ifndef PLATFORM_IMPL_LINUX_AVAHI_H_
 #define PLATFORM_IMPL_LINUX_AVAHI_H_
 
+#include <memory>
+
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/ProxyInterfaces.h>
-#include <memory>
 
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/generated/dbus/avahi/entrygroup_client.h"
@@ -28,7 +29,7 @@
 namespace nearby {
 namespace linux {
 namespace avahi {
-class Server
+class Server final
     : public sdbus::ProxyInterfaces<org::freedesktop::Avahi::Server2_proxy> {
  public:
   Server(sdbus::IConnection &system_bus)
@@ -42,7 +43,7 @@ class Server
   }
 };
 
-class EntryGroup
+class EntryGroup final
     : public sdbus::ProxyInterfaces<org::freedesktop::Avahi::EntryGroup_proxy> {
  public:
   EntryGroup(sdbus::IConnection &system_bus,
@@ -69,8 +70,9 @@ class EntryGroup
   }
 };
 
-class ServiceBrowser : public sdbus::ProxyInterfaces<
-                           org::freedesktop::Avahi::ServiceBrowser_proxy> {
+class ServiceBrowser final
+    : public sdbus::ProxyInterfaces<
+          org::freedesktop::Avahi::ServiceBrowser_proxy> {
  public:
   ServiceBrowser(sdbus::IConnection &system_bus,
                  const sdbus::ObjectPath &service_browser_object_path,

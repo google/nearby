@@ -25,23 +25,20 @@
 #include <sdbus-c++/ProxyInterfaces.h>
 #include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Types.h>
-#include <systemd/sd-bus.h>
 
-#include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_bluez_profile.h"
-#include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 
 namespace nearby {
 namespace linux {
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
-class BluetoothClassicMedium final
+class BluetoothClassicMedium
     : public api::BluetoothClassicMedium,
-      sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
+      protected sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
  public:
   BluetoothClassicMedium(const BluetoothClassicMedium &) = delete;
   BluetoothClassicMedium(BluetoothClassicMedium &&) = delete;
@@ -120,12 +117,14 @@ class BluetoothClassicMedium final
 
  private:
   BluetoothAdapter adapter_;
-  std::unique_ptr<BluetoothDevices> devices_;
-
-  std::shared_ptr<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
-
-  std::unique_ptr<ProfileManager> profile_manager_;
   ObserverList<Observer> observers_;
+
+ protected:
+  std::shared_ptr<BluetoothDevices> devices_;
+
+ private:
+  std::shared_ptr<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
+  std::unique_ptr<ProfileManager> profile_manager_;
 };
 
 }  // namespace linux
