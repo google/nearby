@@ -33,9 +33,10 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
 
   auto pair = profile_manager_.GetServiceRecordFD(service_uuid_, &stopped_);
   if (!pair.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << "Failed to get a new connection for profile "
-                       << service_uuid_;
+    if (!stopped_.Cancelled())
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Failed to get a new connection for profile "
+                         << service_uuid_;
     return nullptr;
   }
 

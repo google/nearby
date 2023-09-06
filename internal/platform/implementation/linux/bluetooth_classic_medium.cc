@@ -38,7 +38,7 @@ BluetoothClassicMedium::BluetoothClassicMedium(sdbus::IConnection &system_bus,
                                                BluetoothAdapter &adapter)
     : ProxyInterfaces(system_bus, "org.bluez", "/"),
       adapter_(adapter),
-      devices_(std::make_unique<BluetoothDevices>(
+      devices_(std::make_shared<BluetoothDevices>(
           system_bus, adapter.GetObjectPath(), observers_)),
       profile_manager_(
           std::make_unique<ProfileManager>(system_bus, *devices_)) {

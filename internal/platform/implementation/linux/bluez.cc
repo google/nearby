@@ -28,12 +28,26 @@ std::string device_object_path(const sdbus::ObjectPath &adapter_object_path,
 }
 
 sdbus::ObjectPath profile_object_path(absl::string_view service_uuid) {
-  return absl::Substitute("/com/google/nearby/profiles/$0",
-                          absl::StrReplaceAll(service_uuid, {{"-", "_"}}));
+  return absl::Substitute(
+      "/com/google/nearby/medium/bluetooth_classic/profiles/$0",
+      absl::StrReplaceAll(service_uuid, {{"-", "_"}}));
 }
 
 sdbus::ObjectPath adapter_object_path(absl::string_view name) {
   return absl::Substitute("/org/bluez/$0", name);
+}
+
+sdbus::ObjectPath gatt_service_path(size_t num) {
+  return absl::Substitute("$0/service$1", NEARBY_BLE_GATT_PATH_ROOT, num);
+}
+
+sdbus::ObjectPath gatt_characteristic_path(
+    const sdbus::ObjectPath &service_path, size_t num) {
+  return absl::Substitute("$0/char$1", service_path, num);
+}
+
+sdbus::ObjectPath ble_advertisement_path(absl::string_view uuid) {
+ return absl::Substitute("/com/google/nearby/medium/ble/advertisement/$0", uuid);
 }
 
 }  // namespace bluez
