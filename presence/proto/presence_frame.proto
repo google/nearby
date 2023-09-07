@@ -120,6 +120,7 @@ message UwbControleeCapabilities {
   repeated int32 supported_ranging_update_rates = 16 [packed = true];
   optional int32 chip_count = 17 [default = 1];
   repeated UwbMultiChipInfo multi_chip_info = 18;
+  optional bool is_background_ranging_supported = 19 [default = false];
 }
 
 /* A frame containing info needed per chip in a multi-chip environment. */
