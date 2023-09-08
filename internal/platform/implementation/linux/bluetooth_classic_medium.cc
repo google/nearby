@@ -117,13 +117,29 @@ bool BluetoothClassicMedium::StartDiscovery(
   discovery_cb_ =
       std::make_shared<DiscoveryCallback>(std::move(discovery_callback));
 
+  std::map<std::string, sdbus::Variant> filter;
+  filter["Transport"] = "bredr";
+  auto &adapter = adapter_.GetBluezAdapterObject();
+
   try {
-    NEARBY_LOGS(INFO) << __func__ << ": Starting discovery on "
-                      << adapter_.GetObjectPath();
-    adapter_.GetBluezAdapterObject().StartDiscovery();
+    adapter.SetDiscoveryFilter(filter);
   } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(&adapter_.GetBluezAdapterObject(),
-                               "StartDiscovery", e);
+    DBUS_LOG_METHOD_CALL_ERROR(&adapter, "SetDiscoveryFilter", e);
+    return false;
+  }
+  try {
+    adapter.StartDiscovery();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StartDiscovery", e);
+    return false;
+  }
+
+  try {
+    NEARBY_LOGS(INFO) << __func__ << ": Starting BR/EDR discovery on "
+                      << adapter_.GetObjectPath();
+    adapter.StartDiscovery();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StartDiscovery", e);
     discovery_cb_.reset();
     return false;
   }
