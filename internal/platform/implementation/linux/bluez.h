@@ -20,6 +20,7 @@
 #include <sdbus-c++/Types.h>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/ble_v2.h"
 
 #include <string>
 
@@ -55,7 +56,9 @@ sdbus::ObjectPath adapter_object_path(absl::string_view name);
 sdbus::ObjectPath gatt_service_path(size_t num);
 sdbus::ObjectPath gatt_characteristic_path(
     const sdbus::ObjectPath &service_path, size_t num);
-sdbus::ObjectPath ble_advertisement_path(absl::string_view uuid);
+sdbus::ObjectPath ble_advertisement_path(size_t num);
+sdbus::ObjectPath advertisement_monitor_path(absl::string_view uuid);
+int16_t TxPowerLevelDbm(api::ble_v2::TxPowerLevel level);
 
 class BluezObjectManager
     : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {

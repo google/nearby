@@ -12,19 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/bluez.h"
 #include <sdbus-c++/Types.h>
+
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
+#include "internal/platform/implementation/linux/bluez.h"
 
 namespace nearby {
 namespace linux {
 namespace bluez {
 std::string device_object_path(const sdbus::ObjectPath &adapter_object_path,
                                absl::string_view mac_address) {
-  return absl::Substitute("$0/dev_$1", adapter_object_path,
-                          absl::StrReplaceAll(mac_address, {{":", "_"}}));
+  return absl::Substitute(
+      "$0/dev_$1", adapter_object_path,
+      absl::StrReplaceAll(absl::AsciiStrToUpper(mac_address), {{":", "_"}}));
 }
 
 sdbus::ObjectPath profile_object_path(absl::string_view service_uuid) {
@@ -46,8 +48,30 @@ sdbus::ObjectPath gatt_characteristic_path(
   return absl::Substitute("$0/char$1", service_path, num);
 }
 
-sdbus::ObjectPath ble_advertisement_path(absl::string_view uuid) {
- return absl::Substitute("/com/google/nearby/medium/ble/advertisement/$0", uuid);
+sdbus::ObjectPath ble_advertisement_path(size_t num) {
+  return absl::Substitute("/com/google/nearby/medium/ble/advertisement/$0",
+                          num);
+}
+
+sdbus::ObjectPath advertisement_monitor_path(absl::string_view uuid) {
+  return absl::Substitute(
+      "/com/google/nearby/medium/ble/advertisement/monitor/$0",
+      absl::StrReplaceAll(uuid, {{"-", "_"}}));
+}
+
+int16_t TxPowerLevelDbm(api::ble_v2::TxPowerLevel level) {
+  switch (level) {
+    case api::ble_v2::TxPowerLevel::kUnknown:
+      return 0;
+    case api::ble_v2::TxPowerLevel::kUltraLow:
+      return -3;
+    case api::ble_v2::TxPowerLevel::kLow:
+      return 0;
+    case api::ble_v2::TxPowerLevel::kMedium:
+      return 3;
+    case api::ble_v2::TxPowerLevel::kHigh:
+      return 6;
+  }
 }
 
 }  // namespace bluez
