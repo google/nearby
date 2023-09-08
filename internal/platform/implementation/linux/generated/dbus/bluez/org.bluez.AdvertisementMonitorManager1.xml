@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+   <interface name="org.bluez.AdvertisementMonitorManager1">
+      <method name="RegisterMonitor">
+         <arg name="application" type="o" direction="in" />
+      </method>
+      <method name="UnregisterMonitor">
+         <arg name="application" type="o" direction="in" />
+      </method>
+      <property name="SupportedMonitorTypes" type="as" access="read" />
+      <property name="SupportedFeatures" type="as" access="read" />
+   </interface>
+</node>

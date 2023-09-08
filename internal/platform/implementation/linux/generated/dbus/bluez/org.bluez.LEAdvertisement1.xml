@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE node PUBLIC
+"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.bluez.LEAdvertisement1">
+    <method name="Release"/>
+    <property name="Type" type="s" access="read"/>
+    <property name="ServiceUUIDs" type="as" access="read"/>
+    <property name="ManufacturerData" type="a{sv}" access="read"/>
+    <property name="SolicitUUIDs" type="as" access="read"/>
+    <property name="ServiceData" type="a{sv}" access="read"/>
+    <property name="Includes" type="as" access="read"/>
+    <property name="LocalName" type="s" access="read"/>
+    <property name="Duration" type="q" access="read"/>
+    <property name="Timeout" type="q" access="read"/>
+    <property name="MinInterval" type="u" access="read"/>
+    <property name="MaxInterval" type="u" access="read"/>
+    <property name="TxPower" type="n" access="read"/>
+  </interface>
+</node>

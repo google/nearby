@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+   <interface name="org.bluez.LEAdvertisingManager1">
+      <method name="RegisterAdvertisement">
+         <arg name="advertisement" type="o" direction="in" />
+         <arg name="options" type="a{sv}" direction="in" />
+      </method>
+      <method name="UnregisterAdvertisement">
+         <arg name="service" type="o" direction="in" />
+      </method>
+      <property name="ActiveInstances" type="y" access="read" />
+      <property name="SupportedInstances" type="y" access="read" />
+      <property name="SupportedIncludes" type="as" access="read" />
+      <property name="SupportedSecondaryChannels" type="as" access="read" />
+      <property name="SupportedFeatures" type="as" access="read" />
+      <property name="SupportedCapabilities" type="a{sv}" access="read" />
+   </interface>
+</node>
