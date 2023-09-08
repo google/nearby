@@ -196,13 +196,15 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
 }
 
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
-    BluetoothAdapter &) {
-  return std::make_unique<linux::BleMedium>();
+    BluetoothAdapter &adapter) {
+ return nullptr;
 }
 
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
-  return std::make_unique<linux::BleV2Medium>();
+  return std::make_unique<linux::BleV2Medium>(
+      linux::getSystemBusConnection(),
+      dynamic_cast<linux::BluetoothAdapter &>(adapter));
 }
 
 namespace {
