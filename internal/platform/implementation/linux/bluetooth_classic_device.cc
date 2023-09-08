@@ -28,7 +28,8 @@ namespace linux {
 BluetoothDevice::BluetoothDevice(sdbus::IConnection &system_bus,
                                  sdbus::ObjectPath device_object_path)
     : ProxyInterfaces(system_bus, bluez::SERVICE_DEST,
-                      std::move(device_object_path)) {
+                      std::move(device_object_path)),
+      lost_(false) {
   registerProxy();
   try {
     last_known_name_ = Alias();

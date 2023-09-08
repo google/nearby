@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_DEVICE_H_
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_DEVICE_H_
 
+#include <atomic>
+
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/ProxyInterfaces.h>
@@ -69,6 +71,10 @@ class BluetoothDevice
     on_pair_reply_cb_ = DefaultCallback<const sdbus::Error *>();
   }
 
+  void MarkLost() { lost_ = true; }
+  void UnmarkLost() { lost_ = false; }
+  bool Lost() const { return lost_; }
+
  protected:
   void onConnectProfileReply(const sdbus::Error *error) override;
   void onPairReply(const sdbus::Error *error) override {
@@ -81,6 +87,7 @@ class BluetoothDevice
   absl::AnyInvocable<void(const sdbus::Error *)> on_pair_reply_cb_ =
       DefaultCallback<const sdbus::Error *>();
   UniqueId unique_id_;
+  std::atomic_bool lost_;
 
   mutable absl::Mutex properties_mutex_;
   mutable std::string last_known_name_ ABSL_GUARDED_BY(properties_mutex_);
