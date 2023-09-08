@@ -51,6 +51,7 @@ void SubmittableExecutor::Shutdown() {
   if (!shut_down_) {
     executor_->Shutdown();
     shut_down_ = true;
+    return;
   }
 
   NEARBY_LOGS(ERROR) << "Error: " << __func__
