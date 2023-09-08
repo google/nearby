@@ -448,6 +448,7 @@ enum OSType {
   CHROME_OS = 2;
   IOS = 3;
   WINDOWS = 4;
+  MACOS = 5;
 }
 
 // Relationship of remote device to sender device.
