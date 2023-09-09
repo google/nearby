@@ -21,19 +21,18 @@
 #include <sdbus-c++/Types.h>
 
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/linux/wifi_medium.h"
+#include "internal/platform/implementation/linux/network_manager.h"
 #include "internal/platform/implementation/wifi_lan.h"
 
 namespace nearby {
 namespace linux {
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  explicit WifiLanServerSocket(int socket,
-                               std::shared_ptr<NetworkManager> network_manager,
-                               sdbus::IConnection &system_bus)
+  explicit WifiLanServerSocket(int socket,                               
+                               std::shared_ptr<NetworkManager> network_manager)
       : fd_(sdbus::UnixFd(socket)),
         network_manager_(std::move(network_manager)),
-        system_bus_(system_bus) {}
+        system_bus_(network_manager_->GetConnection()) {}
 
   std::string GetIPAddress() const override;
   int GetPort() const override;
@@ -44,7 +43,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
  private:
   sdbus::UnixFd fd_;
   std::shared_ptr<NetworkManager> network_manager_;
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 }  // namespace linux
 }  // namespace nearby

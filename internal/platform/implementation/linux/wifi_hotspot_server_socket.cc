@@ -22,14 +22,12 @@
 namespace nearby {
 namespace linux {
 std::string NetworkManagerWifiHotspotServerSocket::GetIPAddress() const {
-  NetworkManagerActiveConnection active_conn(system_bus_,
-                                             active_connection_path_);
-  auto ip4addresses = active_conn.GetIP4Addresses();
+  auto ip4addresses = active_conn_->GetIP4Addresses();
   if (ip4addresses.empty()) {
     NEARBY_LOGS(ERROR)
         << __func__
         << ": Could not find any IPv4 addresses for active connection "
-        << active_connection_path_;
+        << active_conn_->getObjectPath();
     return {};
   }
   return ip4addresses[0];

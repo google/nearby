@@ -38,8 +38,7 @@ namespace linux {
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
-  BluetoothClassicMedium(sdbus::IConnection &system_bus,
-                         BluetoothAdapter &adapter);
+  explicit BluetoothClassicMedium(BluetoothAdapter &adapter);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
   //
@@ -101,7 +100,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   };
 
  private:
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
 
   BluetoothAdapter adapter_;
   std::shared_ptr<ObserverList<Observer>> observers_;

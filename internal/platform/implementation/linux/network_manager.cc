@@ -47,7 +47,7 @@ NetworkManagerObjectManager::GetActiveConnectionForAccessPoint(
           for (auto &path : devices) {
             if (path == device_path) {
               return std::make_unique<NetworkManagerActiveConnection>(
-                  getProxy().getConnection(), object_path);
+                  system_bus_, object_path);
             }
           }
         }
@@ -80,8 +80,8 @@ NetworkManagerObjectManager::GetIp4Config(
         sdbus::ObjectPath specific_object = props["SpecificObject"];
         if (specific_object == active_connection) {
           sdbus::ObjectPath ip4config = props["Ip4Config"];
-          return std::make_unique<NetworkManagerIP4Config>(
-              getProxy().getConnection(), ip4config);
+          return std::make_unique<NetworkManagerIP4Config>(system_bus_,
+                                                           ip4config);
         }
       }
     }

@@ -122,7 +122,7 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
   }
 
   return std::make_unique<NetworkManagerWifiHotspotServerSocket>(
-      sock, system_bus_, active_connection->getObjectPath(), network_manager_);
+      sock, std::move(active_connection), network_manager_);
 }
 
 bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(

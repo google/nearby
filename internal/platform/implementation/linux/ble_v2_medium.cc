@@ -33,17 +33,17 @@
 
 namespace nearby {
 namespace linux {
-BleV2Medium::BleV2Medium(sdbus::IConnection &system_bus,
-                         BluetoothAdapter &adapter)
-    : system_bus_(system_bus),
+BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
+    : system_bus_(adapter.GetConnection()),
       adapter_(adapter),
       devices_(std::make_unique<BluetoothDevices>(
-          system_bus_, adapter_.GetObjectPath(), observers_)),
+          *system_bus_, adapter_.GetObjectPath(), observers_)),
+      root_object_manager_(std::make_unique<RootObjectManager>(*system_bus_)),
       adv_monitor_manager_(
           bluez::AdvertisementMonitorManager::
-              DiscoverAdvertisementMonitorManager(system_bus, adapter_)),
-      adv_manager_(
-          std::make_unique<bluez::LEAdvertisementManager>(system_bus, adapter)),
+              DiscoverAdvertisementMonitorManager(*system_bus_, adapter_)),
+      adv_manager_(std::make_unique<bluez::LEAdvertisementManager>(*system_bus_,
+                                                                   adapter)),
       cur_adv_(nullptr) {
   if (adv_monitor_manager_) {
     NEARBY_LOGS(VERBOSE)
@@ -81,7 +81,7 @@ bool BleV2Medium::StartAdvertising(
   }
 
   cur_adv_ = bluez::LEAdvertisement::CreateLEAdvertisement(
-      system_bus_, advertising_data, advertise_set_parameters);
+      *system_bus_, advertising_data, advertise_set_parameters);
 
   NEARBY_LOGS(INFO) << __func__ << ": Registering advertisement "
                     << cur_adv_->getObjectPath() << " on bluetooth adapter "
@@ -136,7 +136,7 @@ BleV2Medium::StartAdvertising(
   }
 
   std::shared_ptr<sdbus::IProxy> proxy =
-      sdbus::createProxy(system_bus_, "org.bluez", adapter_.GetObjectPath());
+      sdbus::createProxy(*system_bus_, "org.bluez", adapter_.GetObjectPath());
   proxy->finishRegistration();
 
   std::shared_ptr<AdvertisingCallback> shared_cb =
@@ -144,7 +144,7 @@ BleV2Medium::StartAdvertising(
 
   absl::MutexLock lock(&advs_mutex_);
   advs_.push_front(bluez::LEAdvertisement::CreateLEAdvertisement(
-      system_bus_, advertising_data, advertise_set_parameters));
+      *system_bus_, advertising_data, advertise_set_parameters));
   auto adv_it = advs_.begin();
 
   auto pending_call =
@@ -201,7 +201,7 @@ BleV2Medium::StartAdvertising(
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
-  return std::make_unique<GattServer>(system_bus_, adapter_, devices_,
+  return std::make_unique<GattServer>(*system_bus_, adapter_, devices_,
                                       std::move(callback));
 }
 
@@ -264,7 +264,7 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
   }
 
   auto monitor = std::make_unique<bluez::AdvertisementMonitor>(
-      system_bus_, service_uuid, tx_power_level, "or_patterns", devices_,
+      *system_bus_, service_uuid, tx_power_level, "or_patterns", devices_,
       std::move(callback));
   try {
     monitor->emitInterfacesAddedSignal(
@@ -279,7 +279,7 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
   }
 
   auto device_watcher = std::make_unique<DeviceWatcher>(
-      system_bus_, adapter_.GetObjectPath(), devices_);
+      *system_bus_, adapter_.GetObjectPath(), devices_);
   if (!StartLEDiscovery()) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Could not start LE discovery on adapter "
@@ -360,7 +360,7 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
   }
 
   auto monitor = std::make_unique<bluez::AdvertisementMonitor>(
-      system_bus_, service_uuid, tx_power_level, "or_patterns", devices_,
+      *system_bus_, service_uuid, tx_power_level, "or_patterns", devices_,
       std::move(callback));
   try {
     monitor->emitInterfacesAddedSignal(
@@ -375,7 +375,7 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
   }
 
   auto device_watcher = std::make_unique<DeviceWatcher>(
-      system_bus_, adapter_.GetObjectPath(), devices_);
+      *system_bus_, adapter_.GetObjectPath(), devices_);
   if (!StartLEDiscovery()) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Could not start LE discovery on adapter "

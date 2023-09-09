@@ -33,21 +33,20 @@
 
 namespace nearby {
 namespace linux {
-BluetoothClassicMedium::BluetoothClassicMedium(sdbus::IConnection &system_bus,
-                                               BluetoothAdapter &adapter)
-    : system_bus_(system_bus),
+BluetoothClassicMedium::BluetoothClassicMedium(BluetoothAdapter &adapter)
+    : system_bus_(adapter.GetConnection()),
       adapter_(adapter),
       observers_(std::make_shared<ObserverList<Observer>>()),
       devices_(std::make_shared<BluetoothDevices>(
-          system_bus, adapter.GetObjectPath(), *observers_)),
+          *system_bus_, adapter.GetObjectPath(), *observers_)),
       device_watcher_(nullptr),
       profile_manager_(
-          std::make_unique<ProfileManager>(system_bus, *devices_)) {}
+          std::make_unique<ProfileManager>(*system_bus_, *devices_)) {}
 
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
   device_watcher_ = std::make_unique<DeviceWatcher>(
-      system_bus_, adapter_.GetObjectPath(), devices_,
+      *system_bus_, adapter_.GetObjectPath(), devices_,
       std::make_unique<DiscoveryCallback>(std::move(discovery_callback)),
       observers_);
 

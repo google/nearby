@@ -48,10 +48,11 @@ class NetworkManagerWifiMedium
       delete;
   NetworkManagerWifiMedium &operator=(NetworkManagerWifiMedium &&) = delete;
   NetworkManagerWifiMedium(std::shared_ptr<NetworkManager> network_manager,
-                           sdbus::IConnection &system_bus,
                            const sdbus::ObjectPath &wireless_device_object_path)
-      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
+      : ProxyInterfaces(*network_manager->GetConnection(),
+                        "org.freedesktop.NetworkManager",
                         wireless_device_object_path),
+        system_bus_(network_manager->GetConnection()),
         network_manager_(std::move(network_manager)),
         last_scan_(-1) {
     registerProxy();
@@ -111,6 +112,7 @@ class NetworkManagerWifiMedium
       std::vector<std::uint8_t> &ssid)
       ABSL_LOCKS_EXCLUDED(known_access_points_lock_);
 
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   std::shared_ptr<NetworkManager> network_manager_;
 
   api::WifiCapability capability_;

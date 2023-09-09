@@ -46,8 +46,7 @@
 
 namespace nearby {
 namespace linux {
-extern sdbus::IConnection &getSystemBusConnection();
-extern sdbus::IConnection &getDefaultBusConnection();
+extern std::shared_ptr<sdbus::IConnection> getSystemBusConnection();
 class RootObjectManager final
     : public sdbus::AdaptorInterfaces<sdbus::ObjectManager_adaptor,
                                       sdbus::Properties_adaptor> {

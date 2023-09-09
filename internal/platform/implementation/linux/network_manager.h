@@ -34,9 +34,10 @@ class NetworkManager final
   NetworkManager(NetworkManager &&) = delete;
   NetworkManager &operator=(const NetworkManager &) = delete;
   NetworkManager &operator=(NetworkManager &&) = delete;
-  explicit NetworkManager(sdbus::IConnection &system_bus)
-      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
+  explicit NetworkManager(std::shared_ptr<sdbus::IConnection> system_bus)
+      : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
                         "/org/freedesktop/NetworkManager"),
+        system_bus_(std::move(system_bus)),
         state_(kNMStateUnknown) {
     registerProxy();
     try {
@@ -60,6 +61,7 @@ class NetworkManager final
   };
 
   NMState getState() const { return state_; }
+  std::shared_ptr<sdbus::IConnection> GetConnection() { return system_bus_; }
 
  protected:
   void onCheckPermissions() override {}
@@ -90,6 +92,7 @@ class NetworkManager final
 #undef NM_STATE_CASE_SET
   };
 
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   std::atomic<NMState> state_;
 };
 
@@ -101,13 +104,17 @@ class NetworkManagerIP4Config
   NetworkManagerIP4Config(NetworkManagerIP4Config &&) = delete;
   NetworkManagerIP4Config &operator=(const NetworkManagerIP4Config &) = delete;
   NetworkManagerIP4Config &operator=(NetworkManagerIP4Config &&) = delete;
-  NetworkManagerIP4Config(sdbus::IConnection &system_bus,
+  NetworkManagerIP4Config(std::shared_ptr<sdbus::IConnection> system_bus,
                           const sdbus::ObjectPath &config_object_path)
-      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        config_object_path) {
+      : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
+                        config_object_path),
+        system_bus_(std::move(system_bus)) {
     registerProxy();
   }
   ~NetworkManagerIP4Config() { unregisterProxy(); }
+
+ private:
+  std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 
 class NetworkManagerObjectManager final
@@ -119,9 +126,11 @@ class NetworkManagerObjectManager final
       delete;
   NetworkManagerObjectManager &operator=(NetworkManagerObjectManager &&) =
       delete;
-  explicit NetworkManagerObjectManager(sdbus::IConnection &system_bus)
-      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
-                        "/org/freedesktop") {
+  explicit NetworkManagerObjectManager(
+      std::shared_ptr<sdbus::IConnection> system_bus)
+      : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
+                        "/org/freedesktop"),
+        system_bus_(std::move(system_bus)) {
     registerProxy();
   }
   ~NetworkManagerObjectManager() { unregisterProxy(); }
@@ -140,6 +149,9 @@ class NetworkManagerObjectManager final
   void onInterfacesRemoved(
       const sdbus::ObjectPath &objectPath,
       const std::vector<std::string> &interfaces) override {}
+
+ private:
+  std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 
 }  // namespace linux

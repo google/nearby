@@ -64,8 +64,8 @@ api::WifiInformation &NetworkManagerWifiMedium::GetInformation() {
       information_ = api::WifiInformation{false};
       return information_;
     }
-    active_access_point = std::make_unique<NetworkManagerAccessPoint>(
-        getProxy().getConnection(), ap_path);
+    active_access_point =
+        std::make_unique<NetworkManagerAccessPoint>(*system_bus_, ap_path);
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(this, "ActiveAccessPoint", e);
   }
@@ -77,7 +77,7 @@ api::WifiInformation &NetworkManagerWifiMedium::GetInformation() {
     information_ =
         api::WifiInformation{true, ssid, active_access_point->HwAddress(),
                              to_signed(active_access_point->Frequency())};
-    NetworkManagerObjectManager manager(getProxy().getConnection());
+    NetworkManagerObjectManager manager(system_bus_);
     auto ip4config = manager.GetIp4Config(active_access_point->getObjectPath());
 
     if (ip4config != nullptr) {
@@ -211,7 +211,6 @@ static inline std::pair<std::string, std::string> AuthAlgAndKeyMgmt(
     api::WifiAuthType auth_type) {
   switch (auth_type) {
     case api::WifiAuthType::kUnknown:
-      return {"open", "none"};
     case api::WifiAuthType::kOpen:
       return {"open", "none"};
     case api::WifiAuthType::kWpaPsk:
@@ -289,8 +288,8 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
 
   NEARBY_LOGS(INFO) << __func__ << ": " << getObjectPath()
                     << ": Added a new connection at " << connection_path;
-  auto active_connection = NetworkManagerActiveConnection(
-      getProxy().getConnection(), active_conn_path);
+  auto active_connection =
+      NetworkManagerActiveConnection(system_bus_, active_conn_path);
   auto [reason, timeout] = active_connection.WaitForConnection();
   if (timeout) {
     NEARBY_LOGS(ERROR)
@@ -345,7 +344,7 @@ NetworkManagerWifiMedium::GetActiveConnection() {
     return nullptr;
   }
 
-  auto object_manager = NetworkManagerObjectManager(getProxy().getConnection());
+  auto object_manager = NetworkManagerObjectManager(system_bus_);
   auto conn = object_manager.GetActiveConnectionForAccessPoint(active_ap_path,
                                                                getObjectPath());
 
@@ -357,6 +356,5 @@ NetworkManagerWifiMedium::GetActiveConnection() {
   }
   return conn;
 }
-
 }  // namespace linux
 }  // namespace nearby
