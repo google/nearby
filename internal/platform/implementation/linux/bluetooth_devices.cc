@@ -64,6 +64,7 @@ void BluetoothDevices::mark_peripheral_lost(
   if (devices_by_path_.count(device_object_path) == 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Device " << device_object_path
                        << " doesn't exist";
+    return;
   }
   devices_by_path_[device_object_path]->MarkLost();
 }
@@ -106,9 +107,9 @@ void DeviceWatcher::onInterfacesAdded(
   if (interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 0) return;
 
   auto device = devices_->add_new_device(object);
+  device->SetDiscoveryCallback(discovery_cb_);
   if (discovery_cb_ != nullptr &&
       discovery_cb_->device_discovered_cb != nullptr) {
-    device->SetDiscoveryCallback(discovery_cb_);
     discovery_cb_->device_discovered_cb(*device);
   }
 
@@ -127,32 +128,31 @@ void DeviceWatcher::onInterfacesRemoved(
     return;
   }
 
-  for (const auto &interface : interfaces) {
-    if (interface == org::bluez::Device1_proxy::INTERFACE_NAME) {
-      auto device = devices_->get_device_by_path(object);
-      if (device == nullptr) {
-        NEARBY_LOGS(WARNING) << __func__
-                             << ": received InterfacesRemoved for a device "
-                                "we don't know about: "
-                             << object;
-        return;
-      }
+  auto removed_device_it = std::find(interfaces.begin(), interfaces.end(),
+                                     org::bluez::Device1_proxy::INTERFACE_NAME);
+  if (removed_device_it != interfaces.end()) {
+    auto device = devices_->get_device_by_path(object);
+    if (device == nullptr) {
+      NEARBY_LOGS(WARNING) << __func__
+                           << ": received InterfacesRemoved for a device "
+                              "we don't know about: "
+                           << object;
+      return;
+    }
 
-      NEARBY_LOGS(INFO) << __func__ << ": Device " << object
-                        << " has been removed";
-      if (discovery_cb_ != nullptr &&
-          discovery_cb_->device_lost_cb != nullptr) {
-        discovery_cb_->device_lost_cb(*device);
-      }
+    NEARBY_LOGS(INFO) << __func__ << ": Device " << object
+                      << " has been removed";
+    if (discovery_cb_ != nullptr && discovery_cb_->device_lost_cb != nullptr) {
+      discovery_cb_->device_lost_cb(*device);
+    }
 
-      if (observers_ != nullptr) {
-        for (const auto &observer : observers_->GetObservers()) {
-          observer->DeviceRemoved(*device);
-        }
-        devices_->remove_device_by_path(object);
-      } else {
-        devices_->mark_peripheral_lost(object);
+    if (observers_ != nullptr) {
+      for (const auto &observer : observers_->GetObservers()) {
+        observer->DeviceRemoved(*device);
       }
+      devices_->remove_device_by_path(object);
+    } else {
+      devices_->mark_peripheral_lost(object);
     }
   }
 }
@@ -167,12 +167,8 @@ void DeviceWatcher::notifyExistingDevices() {
     DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
     return;
   }
-  auto device_it = std::find_if(
-      objects.begin(), objects.end(),
-      [&](std::pair<
-          sdbus::ObjectPath,
-          std::map<std::string, std::map<std::string, sdbus::Variant>>>
-              entry) {
+  auto device_it =
+      std::find_if(objects.begin(), objects.end(), [&](auto entry) {
         auto &[device_path, interfaces] = entry;
 
         return device_path.find(
@@ -183,7 +179,10 @@ void DeviceWatcher::notifyExistingDevices() {
   for (; device_it != objects.end(); device_it++) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Adding existing device "
                          << device_it->first;
-    devices_->add_new_device(device_it->first);
+    auto device = devices_->add_new_device(device_it->first);
+    if (discovery_cb_ != nullptr) {
+      device->SetDiscoveryCallback(discovery_cb_);
+    }
   }
 }
 
