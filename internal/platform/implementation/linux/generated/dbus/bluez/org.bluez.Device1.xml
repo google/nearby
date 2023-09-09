@@ -5,7 +5,6 @@
     <method name="Disconnect" />
     <method name="Connect" />
     <method name="ConnectProfile">
-       <annotation name="org.freedesktop.DBus.Method.Async" value="client"/>
       <arg name="UUID" type="s" direction="in" />
     </method>
     <method name="DisconnectProfile">
