@@ -25,6 +25,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -58,33 +59,34 @@ class BluetoothDevice
   std::string GetAddress() const override { return GetMacAddress(); }
   UniqueId GetUniqueId() const override { return unique_id_; };
 
-  bool ConnectToProfile(absl::string_view service_uuid);
-
   void set_pair_reply_callback(
-      absl::AnyInvocable<void(const sdbus::Error *)> cb) {
+      absl::AnyInvocable<void(const sdbus::Error *)> cb)
+      ABSL_LOCKS_EXCLUDED(pair_callback_lock_) {
     absl::MutexLock l(&pair_callback_lock_);
     on_pair_reply_cb_ = std::move(cb);
   }
 
-  void reset_pair_reply_callback() {
+  void reset_pair_reply_callback() ABSL_LOCKS_EXCLUDED(pair_callback_lock_) {
     absl::MutexLock l(&pair_callback_lock_);
-    on_pair_reply_cb_ = DefaultCallback<const sdbus::Error *>();
+    on_pair_reply_cb_ = nullptr;
   }
 
+  bool ConnectToProfile(absl::string_view service_uuid);
   void MarkLost() { lost_ = true; }
   void UnmarkLost() { lost_ = false; }
   bool Lost() const { return lost_; }
 
  protected:
-  void onPairReply(const sdbus::Error *error) override {
+  void onPairReply(const sdbus::Error *error) override
+      ABSL_LOCKS_EXCLUDED(pair_callback_lock_) {
     absl::ReaderMutexLock l(&pair_callback_lock_);
-    on_pair_reply_cb_(error);
+    if (on_pair_reply_cb_ != nullptr) on_pair_reply_cb_(error);
   };
 
  private:
   absl::Mutex pair_callback_lock_;
-  absl::AnyInvocable<void(const sdbus::Error *)> on_pair_reply_cb_ =
-      DefaultCallback<const sdbus::Error *>();
+  absl::AnyInvocable<void(const sdbus::Error *)> on_pair_reply_cb_
+      ABSL_GUARDED_BY(pair_callback_lock_) = nullptr;
   UniqueId unique_id_;
   std::atomic_bool lost_;
 
@@ -112,8 +114,9 @@ class MonitoredBluetoothDevice final
   ~MonitoredBluetoothDevice() override { unregisterProxy(); }
 
   void SetDiscoveryCallback(
-      std::shared_ptr<api::BluetoothClassicMedium::DiscoveryCallback>
-          &callback) {
+      std::shared_ptr<api::BluetoothClassicMedium::DiscoveryCallback> &callback)
+      ABSL_LOCKS_EXCLUDED(discovery_cb_mutex_) {
+    absl::MutexLock lock(&discovery_cb_mutex_);
     discovery_cb_ = callback;
   };
 
@@ -124,8 +127,19 @@ class MonitoredBluetoothDevice final
       const std::vector<std::string> &invalidatedProperties) override;
 
  private:
+  std::shared_ptr<api::BluetoothClassicMedium::DiscoveryCallback>
+  GetDiscoveryCallback() ABSL_LOCKS_EXCLUDED(discovery_cb_mutex_) {
+    discovery_cb_mutex_.ReaderLock();
+    auto callback = discovery_cb_.lock();
+    discovery_cb_mutex_.ReaderUnlock();
+
+    return callback;
+  }
+
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;
-  std::weak_ptr<api::BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
+  absl::Mutex discovery_cb_mutex_;
+  std::weak_ptr<api::BluetoothClassicMedium::DiscoveryCallback> discovery_cb_
+      ABSL_GUARDED_BY(discovery_cb_mutex_);
 };
 
 }  // namespace linux
