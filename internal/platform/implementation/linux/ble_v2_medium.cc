@@ -419,16 +419,17 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
               << "' and message '" << e.getMessage() << "'";
         }
 
-        active_adv_monitors_.erase(service_uuid);
-
         auto &adapter = adapter_.GetBluezAdapterObject();
+        absl::Status status;
         try {
           adapter.StopDiscovery();
+          status = absl::OkStatus();
         } catch (const sdbus::Error &e) {
           DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StopDiscovery", e);
-          return absl::InternalError(e.getMessage());
+          status = absl::InternalError(e.getMessage());
         }
-        return absl::OkStatus();
+        active_adv_monitors_.erase(service_uuid);
+        return status;
       }});
 }
 
