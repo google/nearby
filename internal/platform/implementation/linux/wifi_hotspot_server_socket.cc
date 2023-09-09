@@ -34,7 +34,7 @@ std::string NetworkManagerWifiHotspotServerSocket::GetIPAddress() const {
 }
 
 int NetworkManagerWifiHotspotServerSocket::GetPort() const {
-  struct sockaddr_in sin{};
+  struct sockaddr_in sin {};
   socklen_t len = sizeof(sin);
   auto ret =
       getsockname(fd_.get(), reinterpret_cast<struct sockaddr *>(&sin), &len);
@@ -49,7 +49,7 @@ int NetworkManagerWifiHotspotServerSocket::GetPort() const {
 
 std::unique_ptr<api::WifiHotspotSocket>
 NetworkManagerWifiHotspotServerSocket::Accept() {
-  struct sockaddr_in addr{};
+  struct sockaddr_in addr {};
   socklen_t len = sizeof(addr);
 
   auto conn =
@@ -65,10 +65,12 @@ NetworkManagerWifiHotspotServerSocket::Accept() {
 }
 
 Exception NetworkManagerWifiHotspotServerSocket::Close() {
+  int fd = fd_.release();
+  shutdown(fd, SHUT_RDWR);
   auto ret = close(fd_.release());
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket: "
-                       << std::strerror(errno);
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Error closing socket: " << std::strerror(errno);
     return {Exception::kFailed};
   }
 
