@@ -103,14 +103,6 @@ std::string BluetoothDevice::GetMacAddress() const {
   }
 }
 
-void BluetoothDevice::onConnectProfileReply(const sdbus::Error *error) {
-  if (error != nullptr && error->getName() != "org.bluez.Error.InProgress") {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << error->getName()
-                       << "' with message '" << error->getMessage()
-                       << " while connecting to profile.";
-  }
-}
-
 bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
                        << ": Attempting to connect to profile " << service_uuid;
@@ -120,7 +112,7 @@ bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
   } catch (const sdbus::Error &e) {
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
                        << "' with message '" << e.getMessage()
-                       << "' while trying to asynchronously connect to profile "
+                       << "' while trying to connect to profile "
                        << service_uuid << " on device " << getObjectPath();
     return false;
   }

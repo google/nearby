@@ -76,7 +76,6 @@ class BluetoothDevice
   bool Lost() const { return lost_; }
 
  protected:
-  void onConnectProfileReply(const sdbus::Error *error) override;
   void onPairReply(const sdbus::Error *error) override {
     absl::ReaderMutexLock l(&pair_callback_lock_);
     on_pair_reply_cb_(error);
