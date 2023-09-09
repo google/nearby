@@ -89,9 +89,6 @@ void ThreadPool::ShutDown() {
     absl::MutexLock l(&tasks_mutex_);
     shut_down_.store(true, std::memory_order_acquire);
   }
-  NEARBY_LOGS(INFO)
-      << __func__ << ": asked to shut down, waiting for active threads to stop";
-
   {
     absl::ReaderMutexLock l(&threads_mutex_);
     for (auto &thread : threads_) {
@@ -101,7 +98,6 @@ void ThreadPool::ShutDown() {
 
   absl::MutexLock l(&threads_mutex_);
   threads_.clear();
-  NEARBY_LOGS(INFO) << __func__ << ": shut down thread pool";
 }
 
 Runnable ThreadPool::NextTask() {
