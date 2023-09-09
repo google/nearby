@@ -28,7 +28,6 @@
 #include "internal/platform/implementation/linux/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_pairing.h"
-#include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -96,18 +95,21 @@ bool BluetoothClassicMedium::StopDiscovery() {
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice &remote_device, const std::string &service_uuid,
     CancellationFlag *cancellation_flag) {
-  auto device_object_path = bluez::device_object_path(
-      adapter_.GetObjectPath(), remote_device.GetMacAddress());
   if (!profile_manager_->ProfileRegistered(service_uuid)) {
-    if (!profile_manager_->Register("", service_uuid)) {
+    if (!profile_manager_->Register(std::nullopt, service_uuid)) {
       NEARBY_LOGS(ERROR) << __func__ << ": Could not register profile "
                          << service_uuid << " with Bluez";
       return nullptr;
     }
   }
 
-  auto device = devices_->get_device_by_path(device_object_path);
-  if (device == nullptr) return nullptr;
+  auto address = remote_device.GetMacAddress();
+  auto device = devices_->get_device_by_address(address);
+  if (device == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Device " << address
+                       << " is no longer known";
+    return nullptr;
+  }
 
   if (!device->ConnectToProfile(service_uuid)) {
     return nullptr;
@@ -118,8 +120,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   if (!fd.has_value()) {
     NEARBY_LOGS(WARNING) << __func__
                          << ": Failed to get a new connection for profile "
-                         << service_uuid << " for device "
-                         << device_object_path;
+                         << service_uuid << " for device " << address;
     return nullptr;
   }
 
