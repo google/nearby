@@ -106,6 +106,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
 
 Exception WifiLanServerSocket::Close() {
   int fd = fd_.release();
+  shutdown(fd, SHUT_RDWR);
   auto ret = close(fd);
   if (ret < 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket " << fd << ": "

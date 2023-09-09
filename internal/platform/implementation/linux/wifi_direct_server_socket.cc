@@ -66,6 +66,7 @@ NetworkManagerWifiDirectServerSocket::Accept() {
 
 Exception NetworkManagerWifiDirectServerSocket::Close() {
   int fd = fd_.release();
+  shutdown(fd, SHUT_RDWR);
   auto ret = close(fd);
   if (ret < 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket " << fd << ": "
