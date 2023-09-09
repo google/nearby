@@ -30,36 +30,12 @@
 #include "internal/platform/implementation/linux/log_message.h"
 
 namespace nearby {
-static std::unique_ptr<linux::LogControl> global_log_control_;
-static absl::once_flag log_control_init_;
-
-static void cleanup_log_control() {
- global_log_control_ = nullptr;
-}
-
-static void init_log_control(std::nullptr_t) {
-  global_log_control_ =
-      std::make_unique<linux::LogControl>(linux::getDefaultBusConnection());
-  atexit(cleanup_log_control);
-}
-
-namespace api {
-void LogMessage::SetMinLogSeverity(Severity severity) {
-  absl::call_once(log_control_init_, init_log_control, nullptr);
-  assert(global_log_control_ != nullptr);
-  global_log_control_->LogLevel(severity);
-}
-
-bool LogMessage::ShouldCreateLogMessage(Severity severity) {
-  absl::call_once(log_control_init_, init_log_control, nullptr);
-  assert(global_log_control_ != nullptr);
-  return severity >= global_log_control_->GetLogLevel();
-}
-
-}  // namespace api
 namespace linux {
-static inline google::LogSeverity ConvertSeverity(
-    api::LogMessage::Severity severity) {
+
+std::atomic<api::LogMessage::Severity> min_log_severity_ =
+    api::LogMessage::Severity::kInfo;
+
+inline google::LogSeverity ConvertSeverity(api::LogMessage::Severity severity) {
   switch (severity) {
     case api::LogMessage::Severity::kWarning:
       return google::GLOG_WARNING;
@@ -73,52 +49,9 @@ static inline google::LogSeverity ConvertSeverity(
       return google::GLOG_INFO;
   }
 }
-static inline int ConvertSeverityToSyslog(google::LogSeverity severity) {
-  switch (severity) {
-    case google::GLOG_WARNING:
-      return LOG_WARNING;
-    case google::GLOG_ERROR:
-      return LOG_ERR;
-    case google::GLOG_FATAL:
-      return LOG_EMERG;
-    case google::GLOG_INFO:
-    default:
-      return LOG_INFO;
-  }
-}
 
-// TODO: Set a LogSink depending on the target set by LogControl
 LogMessage::LogMessage(const char *file, int line, Severity severity)
-    : log_streamer_(file, line, ConvertSeverity(severity),
-                    global_log_control_.get(), false) {}
-
-static absl::Mutex cout_mutex;
-
-void LogControl::send(google::LogSeverity severity, const char *full_filename,
-                      const char *base_filename, int line,
-                      const struct ::tm *tm_time, const char *message,
-                      size_t message_len) {
-  switch (log_target_) {
-    case kJournal:
-      sd_journal_send("MESSAGE=%s", message, "PRIORITY=%d",
-                      ConvertSeverityToSyslog(severity), "CODE_FILE=%s",
-                      base_filename, "CODE_LINE=%d", line, NULL);
-      break;
-    case kSyslog: {
-      auto str = LogSink::ToString(severity, base_filename, line, tm_time,
-                                   message, message_len);
-      syslog(ConvertSeverityToSyslog(severity), "%s", str.c_str());
-      break;
-    }
-    case kConsole:
-    default:
-      absl::MutexLock l(&cout_mutex);
-      std::cout << LogSink::ToString(severity, base_filename, line, tm_time,
-                                     message, message_len)
-                << "\n";
-      break;
-  }
-}
+    : log_streamer_(file, line, ConvertSeverity(severity)) {}
 
 void LogMessage::Print(const char *format, ...) {
   char *buf = nullptr;
@@ -136,4 +69,15 @@ void LogMessage::Print(const char *format, ...) {
 std::ostream &LogMessage::Stream() { return log_streamer_.stream(); }
 
 }  // namespace linux
+
+namespace api {
+
+void LogMessage::SetMinLogSeverity(Severity severity) {
+  linux::min_log_severity_ = severity;
+}
+
+bool LogMessage::ShouldCreateLogMessage(Severity severity) {
+  return severity >= linux::min_log_severity_;
+}
+}  // namespace api
 }  // namespace nearby
