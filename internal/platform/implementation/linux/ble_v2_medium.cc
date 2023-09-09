@@ -207,7 +207,7 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
 
 bool BleV2Medium::StartLEDiscovery() {
   std::map<std::string, sdbus::Variant> filter;
-  filter["Transport"] = "le";
+  filter["Transport"] = "auto";
   auto &adapter = adapter_.GetBluezAdapterObject();
 
   try {
