@@ -18,8 +18,11 @@
 #include <chrono>
 #include <memory>
 
+#include <sdbus-c++/AdaptorInterfaces.h>
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/ProxyInterfaces.h>
+#include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Types.h>
 
 #include "absl/container/flat_hash_map.h"
@@ -69,6 +72,54 @@ class BluetoothDevices final {
   std::chrono::time_point<std::chrono::steady_clock> last_cleanup_
       ABSL_GUARDED_BY(devices_by_path_lock_);
 };
+
+class DeviceWatcher final : sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
+ public:
+  DeviceWatcher(const DeviceWatcher &) = delete;
+  DeviceWatcher(DeviceWatcher &&) = delete;
+  DeviceWatcher &operator=(const DeviceWatcher &) = delete;
+  DeviceWatcher &operator=(DeviceWatcher &&) = delete;
+
+  DeviceWatcher(
+      sdbus::IConnection &system_bus,
+      const sdbus::ObjectPath &adapter_object_path,
+      std::shared_ptr<BluetoothDevices> devices,
+      std::unique_ptr<api::BluetoothClassicMedium::DiscoveryCallback>
+          discovery_callback,
+      std::shared_ptr<ObserverList<api::BluetoothClassicMedium::Observer>>
+          observers)
+      : ProxyInterfaces(system_bus, "org.bluez", "/"),
+        adapter_object_path_(adapter_object_path),
+        devices_(std::move(devices)),
+        discovery_cb_(std::move(discovery_callback)),
+        observers_(std::move(observers)) {
+    notifyExistingDevices();
+    registerProxy();
+  }
+  DeviceWatcher(sdbus::IConnection &system_bus,
+                const sdbus::ObjectPath &adapter_object_path,
+                std::shared_ptr<BluetoothDevices> devices)
+      : DeviceWatcher(system_bus, adapter_object_path, std::move(devices),
+                      nullptr, nullptr) {}
+  ~DeviceWatcher() { unregisterProxy(); }
+
+  void onInterfacesAdded(
+      const sdbus::ObjectPath &object,
+      const std::map<std::string, std::map<std::string, sdbus::Variant>>
+          &interfaces) override;
+  void onInterfacesRemoved(const sdbus::ObjectPath &object,
+                           const std::vector<std::string> &interfaces) override;
+
+ private:
+  void notifyExistingDevices();
+
+  sdbus::ObjectPath adapter_object_path_;
+  std::shared_ptr<BluetoothDevices> devices_;
+  std::shared_ptr<api::BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
+  std::shared_ptr<ObserverList<api::BluetoothClassicMedium::Observer>>
+      observers_;
+};
+
 }  // namespace linux
 }  // namespace nearby
 

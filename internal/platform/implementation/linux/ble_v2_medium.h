@@ -120,7 +120,9 @@ class BleV2Medium final : public api::ble_v2::BleMedium {
 
   std::unique_ptr<bluez::AdvertisementMonitorManager> adv_monitor_manager_;
   absl::Mutex active_adv_monitors_mutex_;
-  absl::flat_hash_map<Uuid, std::unique_ptr<bluez::AdvertisementMonitor>>
+  absl::flat_hash_map<
+      Uuid,
+      std::pair<std::unique_ptr<bluez::AdvertisementMonitor>, std::unique_ptr<DeviceWatcher>>>
       active_adv_monitors_ ABSL_GUARDED_BY(active_adv_monitors_mutex_);
   // Used by the synchronous variant of StartScanning
   std::optional<Uuid> cur_monitored_service_uuid_;
