@@ -81,15 +81,16 @@ bool BluetoothClassicMedium::StopDiscovery() {
   auto &adapter = adapter_.GetBluezAdapterObject();
   NEARBY_LOGS(INFO) << __func__ << "Stopping discovery on "
                     << adapter.getObjectPath();
-  device_watcher_ = nullptr;
+  auto ret = true;
   try {
     adapter.StopDiscovery();
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StopDiscovery", e);
-    return false;
+    ret = false;
   }
+  device_watcher_ = nullptr;
 
-  return true;
+  return ret;
 }
 
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
