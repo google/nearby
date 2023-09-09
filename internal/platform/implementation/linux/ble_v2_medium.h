@@ -29,6 +29,7 @@
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor_manager.h"
 #include "internal/platform/implementation/linux/bluez_le_advertisement.h"
+#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -40,8 +41,7 @@ class BleV2Medium final : public api::ble_v2::BleMedium {
   BleV2Medium &operator=(const BleV2Medium &) = delete;
   BleV2Medium &operator=(BleV2Medium &&) = delete;
 
-  BleV2Medium(sdbus::IConnection &system_bus ABSL_ATTRIBUTE_LIFETIME_BOUND,
-              BluetoothAdapter &adapter);
+  explicit BleV2Medium(BluetoothAdapter &adapter);
   ~BleV2Medium() override = default;
 
   bool StartAdvertising(
@@ -113,11 +113,12 @@ class BleV2Medium final : public api::ble_v2::BleMedium {
            end;
   }
 
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   BluetoothAdapter adapter_;
   ObserverList<api::BluetoothClassicMedium::Observer> observers_ = {};
   std::shared_ptr<BluetoothDevices> devices_;
 
+  std::unique_ptr<RootObjectManager> root_object_manager_;  
   std::unique_ptr<bluez::AdvertisementMonitorManager> adv_monitor_manager_;
   absl::Mutex active_adv_monitors_mutex_;
   absl::flat_hash_map<

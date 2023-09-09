@@ -58,13 +58,13 @@ void CurrentUserSession::onUnlock() {
   }
 }
 
-DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus)
-    : system_bus_(system_bus),
-      current_user_session_(std::make_unique<CurrentUserSession>(system_bus_)),
-      login_manager_(std::make_unique<LoginManager>(system_bus_)) {}
+DeviceInfo::DeviceInfo(std::shared_ptr<sdbus::IConnection> system_bus)
+    : system_bus_(std::move(system_bus)),
+      current_user_session_(std::make_unique<CurrentUserSession>(*system_bus_)),
+      login_manager_(std::make_unique<LoginManager>(*system_bus_)) {}
 
 std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
-  avahi::Server avahi(system_bus_);
+  avahi::Server avahi(*system_bus_);
   try {
     std::string hostname = avahi.GetHostNameFqdn();
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
@@ -76,7 +76,7 @@ std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
 }
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
-  Hostnamed hostnamed(system_bus_);
+  Hostnamed hostnamed(*system_bus_);
   try {
     std::string chasis = hostnamed.Chassis();
     api::DeviceInfo::DeviceType device = api::DeviceInfo::DeviceType::kUnknown;

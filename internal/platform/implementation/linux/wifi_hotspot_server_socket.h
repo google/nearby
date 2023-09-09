@@ -17,6 +17,7 @@
 
 #include <sdbus-c++/IConnection.h>
 
+#include "internal/platform/implementation/linux/network_manager_active_connection.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 
@@ -26,12 +27,10 @@ class NetworkManagerWifiHotspotServerSocket
     : public api::WifiHotspotServerSocket {
  public:
   NetworkManagerWifiHotspotServerSocket(
-      int socket, sdbus::IConnection &system_bus,
-      sdbus::ObjectPath active_connection_path,
+      int socket, std::unique_ptr<NetworkManagerActiveConnection> active_conn,
       std::shared_ptr<NetworkManager> network_manager)
       : fd_(socket),
-        system_bus_(system_bus),
-        active_connection_path_(std::move(active_connection_path)),
+        active_conn_(std::move(active_conn)),
         network_manager_(std::move(network_manager)) {}
 
   std::string GetIPAddress() const override;
@@ -41,8 +40,7 @@ class NetworkManagerWifiHotspotServerSocket
 
  private:
   sdbus::UnixFd fd_;
-  sdbus::IConnection &system_bus_;
-  sdbus::ObjectPath active_connection_path_;
+  std::unique_ptr<NetworkManagerActiveConnection> active_conn_;
   std::shared_ptr<NetworkManager> network_manager_;
 };
 }  // namespace linux

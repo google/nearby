@@ -42,7 +42,7 @@ std::string WifiLanServerSocket::GetIPAddress() const {
   }
 
   for (auto &path : connection_paths) {
-    auto active_connection =
+    auto active_connection =        
         std::make_unique<NetworkManagerActiveConnection>(system_bus_, path);
     std::string conn_type;
     try {

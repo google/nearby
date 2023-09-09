@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/linux/atomic_boolean.h"
 #include "internal/platform/implementation/linux/atomic_uint32.h"
-#include "internal/platform/implementation/linux/ble_medium.h"
 #include "internal/platform/implementation/linux/ble_v2_medium.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
@@ -166,15 +165,14 @@ ImplementationPlatform::CreateScheduledExecutor() {
 
 std::unique_ptr<api::BluetoothAdapter>
 ImplementationPlatform::CreateBluetoothAdapter() {
-  auto manager =
-      linux::bluez::BluezObjectManager(linux::getSystemBusConnection());
+  auto system_bus = linux::getSystemBusConnection();
+  auto manager = linux::bluez::BluezObjectManager(*system_bus);
   try {
     auto interfaces = manager.GetManagedObjects();
     for (auto &[object, properties] : interfaces) {
       if (properties.count(org::bluez::Adapter1_proxy::INTERFACE_NAME) == 1) {
         NEARBY_LOGS(INFO) << __func__ << ": found bluetooth adapter " << object;
-        return std::make_unique<linux::BluetoothAdapter>(
-            linux::getSystemBusConnection(), object);
+        return std::make_unique<linux::BluetoothAdapter>(system_bus, object);
       }
     }
   } catch (const sdbus::Error &e) {
@@ -191,19 +189,17 @@ std::unique_ptr<api::BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     BluetoothAdapter &adapter) {
   return std::make_unique<linux::BluetoothClassicMedium>(
-      linux::getSystemBusConnection(),
       dynamic_cast<linux::BluetoothAdapter &>(adapter));
 }
 
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
     BluetoothAdapter &adapter) {
- return nullptr;
+  return nullptr;
 }
 
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
   return std::make_unique<linux::BleV2Medium>(
-      linux::getSystemBusConnection(),
       dynamic_cast<linux::BluetoothAdapter &>(adapter));
 }
 
@@ -219,8 +215,7 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
     return nullptr;
   }
 
-  auto manager =
-      linux::NetworkManagerObjectManager(linux::getSystemBusConnection());
+  auto manager = linux::NetworkManagerObjectManager(nm->GetConnection());
 
   std::map<sdbus::ObjectPath,
            std::map<std::string, std::map<std::string, sdbus::Variant>>>
@@ -239,8 +234,8 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
                            Wireless_proxy::INTERFACE_NAME) == 1) {
         NEARBY_LOGS(INFO) << __func__
                           << ": Found a wireless device at :" << device_path;
-        return std::make_unique<linux::NetworkManagerWifiMedium>(
-            nm, linux::getSystemBusConnection(), device_path);
+        return std::make_unique<linux::NetworkManagerWifiMedium>(nm,
+                                                                 device_path);
       }
     }
   }
@@ -259,8 +254,9 @@ std::unique_ptr<api::WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<api::WifiLanMedium>
 ImplementationPlatform::CreateWifiLanMedium() {
-  return std::make_unique<linux::WifiLanMedium>(
-      linux::getSystemBusConnection());
+  auto nm =
+      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+  return std::make_unique<linux::WifiLanMedium>(nm);
 }
 
 std::unique_ptr<api::WifiHotspotMedium>
@@ -275,7 +271,7 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
   }
 
   return std::make_unique<linux::NetworkManagerWifiHotspotMedium>(
-      linux::getSystemBusConnection(), nm, std::move(wifiMedium));
+      nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::WifiDirectMedium>
@@ -290,7 +286,7 @@ ImplementationPlatform::CreateWifiDirectMedium() {
   }
 
   return std::make_unique<linux::NetworkManagerWifiDirectMedium>(
-      linux::getSystemBusConnection(), nm, std::move(wifiMedium));
+      nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {

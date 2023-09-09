@@ -104,7 +104,7 @@ NetworkManagerWifiDirectMedium::ListenForService(int port) {
   }
 
   return std::make_unique<NetworkManagerWifiDirectServerSocket>(
-      sock, system_bus_, active_connection->getObjectPath(), network_manager_);
+      sock, std::move(active_connection), network_manager_);
 }
 
 bool NetworkManagerWifiDirectMedium::ConnectWifiDirect(
@@ -159,7 +159,8 @@ bool NetworkManagerWifiDirectMedium::StartWifiDirect(
   // medium is currently just a regular wifi hotspot.
   // auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
   //     network_manager_, system_bus_, wireless_device_->getObjectPath());
-  // auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_, network_manager_,
+  // auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_,
+  // network_manager_,
   //                                                std::move(wireless_device));
 
   // HotspotCredentials hotspot_creds;
@@ -168,17 +169,18 @@ bool NetworkManagerWifiDirectMedium::StartWifiDirect(
   // wifi_direct_credentials->SetSSID(hotspot_creds.GetSSID());
   // wifi_direct_credentials->SetPassword(hotspot_creds.GetPassword());
   // return true;
- return false;
+  return false;
 }
 
 bool NetworkManagerWifiDirectMedium::StopWifiDirect() {
   // auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
   //     network_manager_, system_bus_, wireless_device_->getObjectPath());
-  // auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_, network_manager_,
+  // auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_,
+  // network_manager_,
   //                                                std::move(wireless_device));
 
- // return hotspot.DisconnectWifiHotspot();
- return false;
+  // return hotspot.DisconnectWifiHotspot();
+  return false;
 }
 
 }  // namespace linux

@@ -28,10 +28,9 @@ namespace linux {
 class NetworkManagerWifiDirectMedium : public api::WifiDirectMedium {
  public:
   NetworkManagerWifiDirectMedium(
-      sdbus::IConnection &system_bus,
       std::shared_ptr<NetworkManager> network_manager,
       std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
-      : system_bus_(system_bus),
+      : system_bus_(network_manager->GetConnection()),
         network_manager_(std::move(network_manager)),
         wireless_device_(std::move(wireless_device)) {}
 
@@ -56,7 +55,7 @@ class NetworkManagerWifiDirectMedium : public api::WifiDirectMedium {
  private:
   bool ConnectedToWifi();
 
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   std::shared_ptr<NetworkManager> network_manager_;
   std::unique_ptr<NetworkManagerWifiMedium> wireless_device_;
 };

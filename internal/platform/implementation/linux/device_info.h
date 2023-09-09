@@ -119,7 +119,7 @@ class LoginManager final
 
 class DeviceInfo final : public api::DeviceInfo {
  public:
-  explicit DeviceInfo(sdbus::IConnection &system_bus);
+  explicit DeviceInfo(std::shared_ptr<sdbus::IConnection> system_bus);
 
   std::optional<std::u16string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
@@ -160,7 +160,7 @@ class DeviceInfo final : public api::DeviceInfo {
   bool AllowSleep() override;
 
  private:
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   std::unique_ptr<CurrentUserSession> current_user_session_;
   std::unique_ptr<LoginManager> login_manager_;
   std::optional<sdbus::UnixFd> inhibit_fd_;

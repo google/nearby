@@ -63,9 +63,11 @@ class NetworkManagerActiveConnection
   NetworkManagerActiveConnection &operator=(NetworkManagerActiveConnection &&) =
       delete;
   explicit NetworkManagerActiveConnection(
-      sdbus::IConnection &system_bus, sdbus::ObjectPath active_connection_path)
-      : ProxyInterfaces(system_bus, "org.freedesktop.NetworkManager",
+      std::shared_ptr<sdbus::IConnection> system_bus,
+      sdbus::ObjectPath active_connection_path)
+      : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
                         std::move(active_connection_path)),
+        system_bus_(std::move(system_bus)),
         state_(kStateUnknown),
         reason_(kStateReasonUnknown) {
     registerProxy();
@@ -99,6 +101,8 @@ class NetworkManagerActiveConnection
   std::vector<std::string> GetIP4Addresses();
 
  private:
+  std::shared_ptr<sdbus::IConnection> system_bus_;
+
   absl::Mutex state_mutex_;
   ActiveConnectionState state_ ABSL_GUARDED_BY(state_mutex_);
   ActiveConnectionStateReason reason_ ABSL_GUARDED_BY(state_mutex_);

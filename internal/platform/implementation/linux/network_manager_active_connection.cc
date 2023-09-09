@@ -79,7 +79,7 @@ std::vector<std::string> NetworkManagerActiveConnection::GetIP4Addresses() {
     return {};
   }
 
-  NetworkManagerIP4Config ip4config(getProxy().getConnection(), ip4config_path);
+  NetworkManagerIP4Config ip4config(system_bus_, ip4config_path);
   std::vector<std::map<std::string, sdbus::Variant>> address_data;
   try {
     address_data = ip4config.AddressData();

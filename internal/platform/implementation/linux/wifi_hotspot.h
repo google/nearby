@@ -26,22 +26,19 @@ namespace linux {
 class NetworkManagerWifiHotspotMedium : public api::WifiHotspotMedium {
  public:
   NetworkManagerWifiHotspotMedium(
-      sdbus::IConnection &system_bus,
       std::shared_ptr<NetworkManager> network_manager,
       sdbus::ObjectPath wireless_device_object_path)
-      : system_bus_(system_bus),
+      : system_bus_(network_manager->GetConnection()),
         wireless_device_(std::make_unique<NetworkManagerWifiMedium>(
-            network_manager, system_bus,
-            std::move(wireless_device_object_path))),
+            network_manager, std::move(wireless_device_object_path))),
         network_manager_(std::move(network_manager)) {}
   NetworkManagerWifiHotspotMedium(
-      sdbus::IConnection &system_bus,
       std::shared_ptr<NetworkManager> network_manager,
       std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
-      : system_bus_(system_bus),
+      : system_bus_(network_manager->GetConnection()),
         wireless_device_(std::move(wireless_device)),
         network_manager_(std::move(network_manager)) {}
-
+  
   bool IsInterfaceValid() const override { return true; }
   std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
       absl::string_view ip_address, int port,
@@ -64,7 +61,7 @@ class NetworkManagerWifiHotspotMedium : public api::WifiHotspotMedium {
   bool WifiHotspotActive();
   bool ConnectedToWifi();
 
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   std::unique_ptr<NetworkManagerWifiMedium> wireless_device_;
   std::shared_ptr<NetworkManager> network_manager_;
 };

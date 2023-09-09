@@ -37,15 +37,11 @@ class BluezAdapter : public sdbus::ProxyInterfaces<org::bluez::Adapter1_proxy> {
 
 class BluetoothAdapter : public api::BluetoothAdapter {
  public:
-  BluetoothAdapter(const BluetoothAdapter &) = default;
-  BluetoothAdapter(BluetoothAdapter &&) = delete;
-  BluetoothAdapter &operator=(const BluetoothAdapter &) = default;
-  BluetoothAdapter &operator=(BluetoothAdapter &&) = delete;
-
-  BluetoothAdapter(sdbus::IConnection &system_bus,
+  BluetoothAdapter(std::shared_ptr<sdbus::IConnection> system_bus,
                    const sdbus::ObjectPath &adapter_object_path)
-      : bluez_adapter_(
-            std::make_shared<BluezAdapter>(system_bus, adapter_object_path)) {}
+      : system_bus_(std::move(system_bus)),
+        bluez_adapter_(std::make_shared<BluezAdapter>(*system_bus_,
+                                                      adapter_object_path)) {}
 
   ~BluetoothAdapter() override = default;
 
@@ -76,8 +72,10 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   }
 
   BluezAdapter &GetBluezAdapterObject() { return *bluez_adapter_; }
+  std::shared_ptr<sdbus::IConnection> GetConnection() { return system_bus_; }
 
  private:
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   std::shared_ptr<BluezAdapter> bluez_adapter_;
 };
 }  // namespace linux

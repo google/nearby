@@ -14,6 +14,7 @@
 
 #ifndef PLATFORM_IMPL_LINUX_WIFI_LAN_H_
 #define PLATFORM_IMPL_LINUX_WIFI_LAN_H_
+#include <sdbus-c++/IConnection.h>
 #include <memory>
 
 #include "absl/container/flat_hash_map.h"
@@ -27,7 +28,7 @@ namespace nearby {
 namespace linux {
 class WifiLanMedium : public api::WifiLanMedium {
  public:
-  explicit WifiLanMedium(sdbus::IConnection &system_bus);
+  explicit WifiLanMedium(std::shared_ptr<linux::NetworkManager> network_manager);
 
   bool IsNetworkConnected() const override;
 
@@ -59,8 +60,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   }
 
  private:
-  sdbus::IConnection &system_bus_;
-
+  std::shared_ptr<sdbus::IConnection> system_bus_;  
   std::shared_ptr<NetworkManager> network_manager_;
 
   std::shared_ptr<avahi::Server> avahi_;
