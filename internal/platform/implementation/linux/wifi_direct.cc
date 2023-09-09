@@ -157,30 +157,27 @@ bool NetworkManagerWifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials *wifi_direct_credentials) {
   // According to the comments in the windows implementation, the wifi direct
   // medium is currently just a regular wifi hotspot.
-  // auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
-  //     network_manager_, system_bus_, wireless_device_->getObjectPath());
-  // auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_,
-  // network_manager_,
-  //                                                std::move(wireless_device));
+  auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
+      network_manager_, wireless_device_->getObjectPath());
+  auto hotspot = NetworkManagerWifiHotspotMedium(network_manager_,
+                                                 std::move(wireless_device));
 
-  // HotspotCredentials hotspot_creds;
-  // if (!hotspot.StartWifiHotspot(&hotspot_creds)) return false;
+  HotspotCredentials hotspot_creds;
+  if (!hotspot.StartWifiHotspot(&hotspot_creds)) return false;
 
-  // wifi_direct_credentials->SetSSID(hotspot_creds.GetSSID());
-  // wifi_direct_credentials->SetPassword(hotspot_creds.GetPassword());
-  // return true;
+  wifi_direct_credentials->SetSSID(hotspot_creds.GetSSID());
+  wifi_direct_credentials->SetPassword(hotspot_creds.GetPassword());
+  return true;
   return false;
 }
 
 bool NetworkManagerWifiDirectMedium::StopWifiDirect() {
-  // auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
-  //     network_manager_, system_bus_, wireless_device_->getObjectPath());
-  // auto hotspot = NetworkManagerWifiHotspotMedium(system_bus_,
-  // network_manager_,
-  //                                                std::move(wireless_device));
+  auto wireless_device = std::make_unique<NetworkManagerWifiMedium>(
+      network_manager_, wireless_device_->getObjectPath());
+  auto hotspot = NetworkManagerWifiHotspotMedium(network_manager_,
+                                                 std::move(wireless_device));
 
-  // return hotspot.DisconnectWifiHotspot();
-  return false;
+  return hotspot.DisconnectWifiHotspot();
 }
 
 }  // namespace linux
