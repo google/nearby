@@ -186,13 +186,9 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                {"security", "802-11-wireless-security"}}},
           {"802-11-wireless-security",
            std::map<std::string, sdbus::Variant>{
-               {"group", std::vector<std::string>{"ccmp"}},
+               {"pmf", static_cast<std::int32_t>(
+                           1)},  // NM_SETTING_WIRELESS_SECURITY_PMF_DISABLE
                {"key-mgmt", "wpa-psk"},
-               {
-                   "pairwise",
-                   std::vector<std::string>{"ccmp"},
-               },
-               {"proto", std::vector<std::string>{"rsn"}},
                {"psk", password}}},
           {"ipv4", std::map<std::string, sdbus::Variant>{{"method", "shared"}}},
           {"ipv6", std::map<std::string, sdbus::Variant>{
