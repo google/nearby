@@ -19,6 +19,7 @@ cc_library(
         "wininet.lib",
         "advapi32.lib",
         "bcrypt.lib",
+        "cfgmgr32.lib",
         "comdlg32.lib",
         "gdi32.lib",
         "kernel32.lib",
