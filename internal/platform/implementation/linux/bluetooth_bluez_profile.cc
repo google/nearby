@@ -121,11 +121,12 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
     std::map<std::string, sdbus::Variant> options;
     if (name.has_value()) {
       options["Name"] = std::string(*name);
-      options["RequireAuthorization"] = false;
-      options["RequireAuthentication"] = false;
-      options["Channel"] = static_cast<uint16_t>(0);
-      options["PSM"] = static_cast<uint16_t>(0);
     }
+    options["RequireAuthorization"] = false;
+    options["RequireAuthentication"] = false;
+    options["Channel"] = static_cast<uint16_t>(0);
+    options["PSM"] = static_cast<uint16_t>(0);
+
     RegisterProfile(profile->getObjectPath(), std::string(service_uuid),
                     options);
   } catch (const sdbus::Error &e) {
@@ -136,7 +137,7 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
   registered_services_.emplace(service_uuid, profile);
 
   NEARBY_LOGS(INFO) << __func__
-                    << ": Registered profile instancefor service uuid "
+                    << ": Registered profile instance for service uuid "
                     << service_uuid;
 
   return true;
