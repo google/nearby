@@ -35,7 +35,7 @@ std::unique_ptr<api::WifiHotspotSocket>
 NetworkManagerWifiHotspotMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag *cancellation_flag) {
-  if (!WifiHotspotActive()) {
+  if (!ConnectedToWifi()) {
     NEARBY_LOGS(ERROR)
         << __func__
         << ": Cannot connect to service without an active WiFi hotspot";
