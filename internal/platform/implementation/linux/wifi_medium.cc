@@ -207,14 +207,14 @@ NetworkManagerWifiMedium::SearchBySSID(absl::string_view ssid,
   return ap;
 }
 
-static inline std::pair<std::string, std::string> AuthAlgAndKeyMgmt(
-    api::WifiAuthType auth_type) {
+static inline std::pair<std::optional<std::string>, std::string>
+AuthAlgAndKeyMgmt(api::WifiAuthType auth_type) {
   switch (auth_type) {
     case api::WifiAuthType::kUnknown:
     case api::WifiAuthType::kOpen:
       return {"open", "none"};
     case api::WifiAuthType::kWpaPsk:
-      return {"shared", "wpa-psk"};
+      return {std::nullopt, "wpa-psk"};
     case api::WifiAuthType::kWep:
       return {"none", "wep"};
   }
@@ -267,11 +267,13 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
                {"assigned-mac-address", "random"},
            }},
           {"802-11-wireless-security",
-           std::map<std::string, sdbus::Variant>{{"auth-alg", auth_alg},
-                                                 {"key-mgmt", key_mgmt}}}};
+           std::map<std::string, sdbus::Variant>{{"key-mgmt", key_mgmt}}}};
   if (!password.empty()) {
     connection_settings["802-11-wireless-security"]["psk"] =
         std::string(password);
+  }
+  if (auth_alg.has_value()) {
+    connection_settings["802-11-wireless-security"]["auth-alg"] = *auth_alg;
   }
 
   sdbus::ObjectPath connection_path, active_conn_path;
@@ -310,6 +312,7 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
       return api::WifiConnectionStatus::kAuthFailure;
   }
 
+  NEARBY_LOGS(INFO) << __func__ << ": Activated connection " << connection_path;
   return api::WifiConnectionStatus::kConnected;
 }
 
