@@ -63,8 +63,8 @@ class LEAdvertisement final
   }
 
   // Properties
-  std::string Type() override { return "broadcast"; }
-  std::vector<std::string> ServiceUUIDs() override { return {}; }
+  std::string Type() override { return "peripheral"; }
+  std::vector<std::string> ServiceUUIDs() override { return service_uuids_; }
   std::map<std::string, sdbus::Variant> ManufacturerData() override {
     return {};
   }
