@@ -36,17 +36,10 @@ namespace nearby {
 namespace linux {
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
-class BluetoothClassicMedium
-    : public api::BluetoothClassicMedium,
-      protected sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
+class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
-  BluetoothClassicMedium(const BluetoothClassicMedium &) = delete;
-  BluetoothClassicMedium(BluetoothClassicMedium &&) = delete;
-  BluetoothClassicMedium &operator=(const BluetoothClassicMedium &) = delete;
-  BluetoothClassicMedium &operator=(BluetoothClassicMedium &&) = delete;
   BluetoothClassicMedium(sdbus::IConnection &system_bus,
                          BluetoothAdapter &adapter);
-  ~BluetoothClassicMedium() override { unregisterProxy(); };
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
   //
@@ -101,29 +94,20 @@ class BluetoothClassicMedium
       const std::string &mac_address) override;
 
   void AddObserver(Observer *observer) override {
-    observers_.AddObserver(observer);
+    observers_->AddObserver(observer);
   };
   void RemoveObserver(Observer *observer) override {
-    observers_.RemoveObserver(observer);
+    observers_->RemoveObserver(observer);
   };
 
- protected:
-  void onInterfacesAdded(
-      const sdbus::ObjectPath &objectPath,
-      const std::map<std::string, std::map<std::string, sdbus::Variant>>
-          &interfacesAndProperties) override;
-  void onInterfacesRemoved(const sdbus::ObjectPath &objectPath,
-                           const std::vector<std::string> &interfaces) override;
-
  private:
+  sdbus::IConnection &system_bus_;
+
   BluetoothAdapter adapter_;
-  ObserverList<Observer> observers_;
-
- protected:
+  std::shared_ptr<ObserverList<Observer>> observers_;
   std::shared_ptr<BluetoothDevices> devices_;
+  std::unique_ptr<DeviceWatcher> device_watcher_;
 
- private:
-  std::shared_ptr<BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
   std::unique_ptr<ProfileManager> profile_manager_;
 };
 

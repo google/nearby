@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <optional>
@@ -19,10 +20,13 @@
 #include <absl/time/clock.h>
 #include <sdbus-c++/Types.h>
 
+#include "absl/strings/substitute.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/generated/dbus/bluez/device_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -89,5 +93,99 @@ std::shared_ptr<MonitoredBluetoothDevice> BluetoothDevices::add_new_device(
   if (!inserted) device_it->second->UnmarkLost();
   return device_it->second;
 }
+
+void DeviceWatcher::onInterfacesAdded(
+    const sdbus::ObjectPath &object,
+    const std::map<std::string, std::map<std::string, sdbus::Variant>>
+        &interfaces) {
+  auto path_prefix = absl::Substitute("$0/dev_", adapter_object_path_);
+  if (object.find(path_prefix) != 0) {
+    return;
+  }
+
+  if (interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 0) return;
+
+  auto device = devices_->add_new_device(object);
+  if (discovery_cb_ != nullptr &&
+      discovery_cb_->device_discovered_cb != nullptr) {
+    device->SetDiscoveryCallback(discovery_cb_);
+    discovery_cb_->device_discovered_cb(*device);
+  }
+
+  if (observers_ != nullptr) {
+    for (const auto &observer : observers_->GetObservers()) {
+      observer->DeviceAdded(*device);
+    }
+  }
+}
+
+void DeviceWatcher::onInterfacesRemoved(
+    const sdbus::ObjectPath &object,
+    const std::vector<std::string> &interfaces) {
+  auto path_prefix = absl::Substitute("$0/dev_", adapter_object_path_);
+  if (object.find(path_prefix) != 0) {
+    return;
+  }
+
+  for (const auto &interface : interfaces) {
+    if (interface == org::bluez::Device1_proxy::INTERFACE_NAME) {
+      auto device = devices_->get_device_by_path(object);
+      if (device == nullptr) {
+        NEARBY_LOGS(WARNING) << __func__
+                             << ": received InterfacesRemoved for a device "
+                                "we don't know about: "
+                             << object;
+        return;
+      }
+
+      NEARBY_LOGS(INFO) << __func__ << ": Device " << object
+                        << " has been removed";
+      if (discovery_cb_ != nullptr &&
+          discovery_cb_->device_lost_cb != nullptr) {
+        discovery_cb_->device_lost_cb(*device);
+      }
+
+      if (observers_ != nullptr) {
+        for (const auto &observer : observers_->GetObservers()) {
+          observer->DeviceRemoved(*device);
+        }
+        devices_->remove_device_by_path(object);
+      } else {
+        devices_->mark_peripheral_lost(object);
+      }
+    }
+  }
+}
+
+void DeviceWatcher::notifyExistingDevices() {
+  std::map<sdbus::ObjectPath,
+           std::map<std::string, std::map<std::string, sdbus::Variant>>>
+      objects;
+  try {
+    objects = GetManagedObjects();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
+    return;
+  }
+  auto device_it = std::find_if(
+      objects.begin(), objects.end(),
+      [&](std::pair<
+          sdbus::ObjectPath,
+          std::map<std::string, std::map<std::string, sdbus::Variant>>>
+              entry) {
+        auto &[device_path, interfaces] = entry;
+
+        return device_path.find(
+                   absl::Substitute("$0/dev_", adapter_object_path_)) == 0 &&
+               interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 1;
+      });
+
+  for (; device_it != objects.end(); device_it++) {
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Adding existing device "
+                         << device_it->first;
+    devices_->add_new_device(device_it->first);
+  }
+}
+
 }  // namespace linux
 }  // namespace nearby

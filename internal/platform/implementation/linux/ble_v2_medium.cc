@@ -23,6 +23,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/linux/ble_gatt_server.h"
 #include "internal/platform/implementation/linux/ble_v2_medium.h"
+#include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor_manager.h"
 #include "internal/platform/implementation/linux/bluez_le_advertisement.h"
@@ -215,13 +216,16 @@ bool BleV2Medium::StartLEDiscovery() {
     DBUS_LOG_METHOD_CALL_ERROR(&adapter, "SetDiscoveryFilter", e);
     return false;
   }
+
   try {
     NEARBY_LOGS(INFO) << __func__ << ": Starting LE discovery on "
                       << adapter.getObjectPath();
     adapter.StartDiscovery();
   } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StartDiscovery", e);
-    return false;
+    if (e.getName() != "org.bluez.Error.InProgress") {
+      DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StartDiscovery", e);
+      return false;
+    }
   }
 
   return true;
@@ -274,10 +278,13 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
     return false;
   }
 
+  auto device_watcher = std::make_unique<DeviceWatcher>(
+      system_bus_, adapter_.GetObjectPath(), devices_);
   if (!StartLEDiscovery()) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Could not start LE discovery on adapter "
                        << adapter_.GetObjectPath();
+    device_watcher = nullptr;
     try {
       monitor->emitInterfacesRemovedSignal(
           {org::bluez::AdvertisementMonitor1_adaptor::INTERFACE_NAME});
@@ -291,7 +298,8 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
     return false;
   }
 
-  active_adv_monitors_[service_uuid] = std::move(monitor);
+  active_adv_monitors_[service_uuid] =
+      std::make_pair(std::move(monitor), std::move(device_watcher));
   cur_monitored_service_uuid_ = service_uuid;
   return true;
 }
@@ -320,12 +328,15 @@ bool BleV2Medium::StopScanning() {
   absl::MutexLock lock(&active_adv_monitors_mutex_);
   auto monitor_it = active_adv_monitors_.find(*cur_monitored_service_uuid_);
   assert(monitor_it != active_adv_monitors_.end());
+  {
+    auto &[_uuid, session] = *monitor_it;
+    auto &[adv_monitor, _watcher] = session;
 
-  auto &[_uuid, adv_monitor] = *monitor_it;
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Removing advertising monitor "
-                       << adv_monitor->getObjectPath();
-  adv_monitor->emitInterfacesRemovedSignal(
-      {org::bluez::AdvertisementMonitor1_adaptor::INTERFACE_NAME});
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Removing advertising monitor "
+                         << adv_monitor->getObjectPath();
+    adv_monitor->emitInterfacesRemovedSignal(
+        {org::bluez::AdvertisementMonitor1_adaptor::INTERFACE_NAME});
+  }
   active_adv_monitors_.erase(monitor_it);
   cur_monitored_service_uuid_ = std::nullopt;
 
@@ -363,6 +374,8 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
     return nullptr;
   }
 
+  auto device_watcher = std::make_unique<DeviceWatcher>(
+      system_bus_, adapter_.GetObjectPath(), devices_);
   if (!StartLEDiscovery()) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Could not start LE discovery on adapter "
@@ -380,7 +393,9 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
     return nullptr;
   }
 
-  active_adv_monitors_[service_uuid] = std::move(monitor);
+  active_adv_monitors_[service_uuid] =
+      std::make_pair(std::move(monitor), std::move(device_watcher));
+
   return std::make_unique<ScanningSession>(
       ScanningSession{.stop_scanning = [this, service_uuid]() {
         absl::MutexLock lock(&active_adv_monitors_mutex_);
@@ -392,7 +407,7 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
               "Advertising monitor for this service does not exist");
         }
 
-        auto &monitor = active_adv_monitors_[service_uuid];
+        auto &[monitor, watcher] = active_adv_monitors_[service_uuid];
         try {
           monitor->emitInterfacesRemovedSignal(
               {org::bluez::AdvertisementMonitor1_adaptor::INTERFACE_NAME});

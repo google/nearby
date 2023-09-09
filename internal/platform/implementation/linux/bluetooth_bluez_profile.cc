@@ -64,11 +64,7 @@ void Profile::NewConnection(
   auto device = devices_.get_device_by_path(device_object_path);
 
   if (device == nullptr) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": NewConection called with a device object we don't know about: "
-        << device_object_path;
-    throw sdbus::Error("org.bluez.Error.Rejected", "Unknown object");
+    device = devices_.add_new_device(device_object_path);
   }
 
   auto alias = device->Alias();
