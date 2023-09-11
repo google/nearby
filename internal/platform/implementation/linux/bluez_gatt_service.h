@@ -83,7 +83,7 @@ class GattService final
                          api::ble_v2::GattCharacteristic::Permission permission,
                          api::ble_v2::GattCharacteristic::Property property)
       ABSL_LOCKS_EXCLUDED(characterstics_mutex_);
-  std::shared_ptr<GattCharacteristic> GetCharacteristic(const Uuid &uuid)
+  std::shared_ptr<GattCharacteristicServer> GetCharacteristic(const Uuid &uuid)
       ABSL_LOCKS_EXCLUDED(characterstics_mutex_);
 
  private:
@@ -94,7 +94,7 @@ class GattService final
   std::vector<sdbus::ObjectPath> Includes() override { return {}; }
 
   absl::Mutex characterstics_mutex_;
-  absl::flat_hash_map<Uuid, std::shared_ptr<GattCharacteristic>>
+  absl::flat_hash_map<Uuid, std::shared_ptr<GattCharacteristicServer>>
       characteristics_ ABSL_GUARDED_BY(characterstics_mutex_);
 
   std::shared_ptr<BluetoothDevices> devices_;

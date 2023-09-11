@@ -24,7 +24,7 @@
 namespace nearby {
 namespace linux {
 namespace bluez {
-void GattCharacteristic::Update(const nearby::ByteArray &value) {
+void GattCharacteristicServer::Update(const nearby::ByteArray &value) {
   std::vector<uint8_t> bytes(value.size());
   const auto *buf = value.data();
   for (auto i = 0; i < value.size(); i++) bytes[i] = buf[i];
@@ -33,7 +33,7 @@ void GattCharacteristic::Update(const nearby::ByteArray &value) {
   static_value_ = std::move(bytes);
 }
 
-absl::Status GattCharacteristic::NotifyChanged(bool confirm,
+absl::Status GattCharacteristicServer::NotifyChanged(bool confirm,
                                                const ByteArray &new_value) {
   std::vector<uint8_t> bytes(new_value.size());
   const auto *buf = new_value.data();
@@ -69,7 +69,7 @@ absl::Status GattCharacteristic::NotifyChanged(bool confirm,
   }
 }
 
-void GattCharacteristic::ReadValue(
+void GattCharacteristicServer::ReadValue(
     sdbus::Result<std::vector<uint8_t>> &&result,
     std::map<std::string, sdbus::Variant> options) {
   {
@@ -127,7 +127,7 @@ void GattCharacteristic::ReadValue(
       });
 }
 
-void GattCharacteristic::WriteValue(
+void GattCharacteristicServer::WriteValue(
     sdbus::Result<> &&result, std::vector<uint8_t> value,
     std::map<std::string, sdbus::Variant> options) {
   uint16_t offset = options["offset"];
@@ -172,7 +172,7 @@ void GattCharacteristic::WriteValue(
   }
 }
 
-void GattCharacteristic::StartNotify() {
+void GattCharacteristicServer::StartNotify() {
   if ((characteristic_.property |
        api::ble_v2::GattCharacteristic::Property::kNotify) ==
       api::ble_v2::GattCharacteristic::Property::kNotify) {
@@ -183,7 +183,7 @@ void GattCharacteristic::StartNotify() {
   }
 }
 
-void GattCharacteristic::StopNotify() {
+void GattCharacteristicServer::StopNotify() {
   if ((characteristic_.property |
        api::ble_v2::GattCharacteristic::Property::kNotify) ==
       api::ble_v2::GattCharacteristic::Property::kNotify) {
@@ -194,7 +194,7 @@ void GattCharacteristic::StopNotify() {
   }
 }
 
-std::vector<std::string> GattCharacteristic::Flags() {
+std::vector<std::string> GattCharacteristicServer::Flags() {
   auto characteristic = characteristic_;
   std::vector<std::string> flags;
 

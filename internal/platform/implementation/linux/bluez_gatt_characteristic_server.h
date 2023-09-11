@@ -38,17 +38,17 @@
 namespace nearby {
 namespace linux {
 namespace bluez {
-class GattCharacteristic final
+class GattCharacteristicServer final
     : public sdbus::AdaptorInterfaces<org::bluez::GattCharacteristic1_adaptor,
                                       sdbus::Properties_adaptor,
                                       sdbus::ManagedObject_adaptor> {
  public:
-  GattCharacteristic(const GattCharacteristic &) = delete;
-  GattCharacteristic(GattCharacteristic &&) = delete;
-  GattCharacteristic &operator=(const GattCharacteristic &) = delete;
-  GattCharacteristic &operator=(GattCharacteristic &&) = delete;
+  GattCharacteristicServer(const GattCharacteristicServer &) = delete;
+  GattCharacteristicServer(GattCharacteristicServer &&) = delete;
+  GattCharacteristicServer &operator=(const GattCharacteristicServer &) = delete;
+  GattCharacteristicServer &operator=(GattCharacteristicServer &&) = delete;
 
-  GattCharacteristic(
+  GattCharacteristicServer(
       sdbus::IConnection &system_bus,
       const sdbus::ObjectPath &service_object_path, size_t num,
       const api::ble_v2::GattCharacteristic &characteristic,
@@ -68,7 +68,7 @@ class GattCharacteristic final
         << org::bluez::GattCharacteristic1_adaptor::INTERFACE_NAME
         << " object at " << getObjectPath();
   }
-  ~GattCharacteristic() { unregisterAdaptor(); }
+  ~GattCharacteristicServer() { unregisterAdaptor(); }
 
   void Update(const nearby::ByteArray &value)
       ABSL_LOCKS_EXCLUDED(static_value_mutex_);
