@@ -79,7 +79,7 @@ class DiscoveredPeripheralTracker {
   // advertisement.
   void StartTracking(
       const std::string& service_id,
-      const DiscoveredPeripheralCallback& discovered_peripheral_callback,
+      DiscoveredPeripheralCallback discovered_peripheral_callback,
       const Uuid& fast_advertisement_service_uuid) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops tracking discoveries for a particular service Id.
