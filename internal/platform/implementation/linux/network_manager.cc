@@ -20,8 +20,9 @@
 
 namespace nearby {
 namespace linux {
-std::unique_ptr<NetworkManagerActiveConnection>
-NetworkManagerObjectManager::GetActiveConnectionForAccessPoint(
+namespace networkmanager {
+std::unique_ptr<ActiveConnection>
+ObjectManager::GetActiveConnectionForAccessPoint(
     const sdbus::ObjectPath &access_point,
     const sdbus::ObjectPath &device_path) {
   std::map<sdbus::ObjectPath,
@@ -46,7 +47,7 @@ NetworkManagerObjectManager::GetActiveConnectionForAccessPoint(
           std::vector<sdbus::ObjectPath> devices = props["Devices"];
           for (auto &path : devices) {
             if (path == device_path) {
-              return std::make_unique<NetworkManagerActiveConnection>(
+              return std::make_unique<ActiveConnection>(
                   system_bus_, object_path);
             }
           }
@@ -57,8 +58,7 @@ NetworkManagerObjectManager::GetActiveConnectionForAccessPoint(
   return nullptr;
 }
 
-std::unique_ptr<NetworkManagerIP4Config>
-NetworkManagerObjectManager::GetIp4Config(
+std::unique_ptr<IP4Config> ObjectManager::GetIp4Config(
     const sdbus::ObjectPath &active_connection) {
   std::map<sdbus::ObjectPath,
            std::map<std::string, std::map<std::string, sdbus::Variant>>>
@@ -80,8 +80,7 @@ NetworkManagerObjectManager::GetIp4Config(
         sdbus::ObjectPath specific_object = props["SpecificObject"];
         if (specific_object == active_connection) {
           sdbus::ObjectPath ip4config = props["Ip4Config"];
-          return std::make_unique<NetworkManagerIP4Config>(system_bus_,
-                                                           ip4config);
+          return std::make_unique<IP4Config>(system_bus_, ip4config);
         }
       }
     }
@@ -89,5 +88,6 @@ NetworkManagerObjectManager::GetIp4Config(
 
   return nullptr;
 }
+}  // namespace networkmanager
 }  // namespace linux
 }  // namespace nearby

@@ -37,16 +37,16 @@
 namespace nearby {
 namespace linux {
 WifiLanMedium::WifiLanMedium(
-    std::shared_ptr<linux::NetworkManager> network_manager)
+    std::shared_ptr<networkmanager::NetworkManager> network_manager)
     : system_bus_(network_manager->GetConnection()),
-      network_manager_(std::move(network_manager)),     
+      network_manager_(std::move(network_manager)),
       avahi_(std::make_shared<avahi::Server>(*system_bus_)) {}
 
 bool WifiLanMedium::IsNetworkConnected() const {
   auto state = network_manager_->getState();
-  return state == NetworkManager::kNMStateConnectedLocal ||
-         state == NetworkManager::kNMStateConnectedSite ||
-         state == NetworkManager::kNMStateConnectedGlobal;
+  return state == networkmanager::NetworkManager::kNMStateConnectedLocal ||
+         state == networkmanager::NetworkManager::kNMStateConnectedSite ||
+         state == networkmanager::NetworkManager::kNMStateConnectedGlobal;
 }
 
 std::optional<std::pair<std::string, std::string>> entry_group_key(

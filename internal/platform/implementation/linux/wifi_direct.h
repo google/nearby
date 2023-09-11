@@ -20,6 +20,7 @@
 
 #include <sdbus-c++/IConnection.h>
 
+#include "internal/platform/implementation/linux/network_manager.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi_direct.h"
 
@@ -28,7 +29,7 @@ namespace linux {
 class NetworkManagerWifiDirectMedium : public api::WifiDirectMedium {
  public:
   NetworkManagerWifiDirectMedium(
-      std::shared_ptr<NetworkManager> network_manager,
+      std::shared_ptr<networkmanager::NetworkManager> network_manager,
       std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
       : system_bus_(network_manager->GetConnection()),
         network_manager_(std::move(network_manager)),
@@ -56,7 +57,7 @@ class NetworkManagerWifiDirectMedium : public api::WifiDirectMedium {
   bool ConnectedToWifi();
 
   std::shared_ptr<sdbus::IConnection> system_bus_;
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
   std::unique_ptr<NetworkManagerWifiMedium> wireless_device_;
 };
 }  // namespace linux

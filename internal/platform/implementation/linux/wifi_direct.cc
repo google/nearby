@@ -168,7 +168,6 @@ bool NetworkManagerWifiDirectMedium::StartWifiDirect(
   wifi_direct_credentials->SetSSID(hotspot_creds.GetSSID());
   wifi_direct_credentials->SetPassword(hotspot_creds.GetPassword());
   return true;
-  return false;
 }
 
 bool NetworkManagerWifiDirectMedium::StopWifiDirect() {

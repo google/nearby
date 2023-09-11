@@ -26,14 +26,14 @@ namespace linux {
 class NetworkManagerWifiHotspotMedium : public api::WifiHotspotMedium {
  public:
   NetworkManagerWifiHotspotMedium(
-      std::shared_ptr<NetworkManager> network_manager,
+      std::shared_ptr<networkmanager::NetworkManager> network_manager,
       sdbus::ObjectPath wireless_device_object_path)
       : system_bus_(network_manager->GetConnection()),
         wireless_device_(std::make_unique<NetworkManagerWifiMedium>(
             network_manager, std::move(wireless_device_object_path))),
         network_manager_(std::move(network_manager)) {}
   NetworkManagerWifiHotspotMedium(
-      std::shared_ptr<NetworkManager> network_manager,
+      std::shared_ptr<networkmanager::NetworkManager> network_manager,
       std::unique_ptr<NetworkManagerWifiMedium> wireless_device)
       : system_bus_(network_manager->GetConnection()),
         wireless_device_(std::move(wireless_device)),
@@ -63,7 +63,7 @@ class NetworkManagerWifiHotspotMedium : public api::WifiHotspotMedium {
 
   std::shared_ptr<sdbus::IConnection> system_bus_;
   std::unique_ptr<NetworkManagerWifiMedium> wireless_device_;
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
 };
 }  // namespace linux
 }  // namespace nearby

@@ -29,7 +29,7 @@ namespace linux {
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
   explicit WifiLanServerSocket(int socket,                               
-                               std::shared_ptr<NetworkManager> network_manager)
+                               std::shared_ptr<networkmanager::NetworkManager> network_manager)
       : fd_(sdbus::UnixFd(socket)),
         network_manager_(std::move(network_manager)),
         system_bus_(network_manager_->GetConnection()) {}
@@ -42,7 +42,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
 
  private:
   sdbus::UnixFd fd_;
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
   std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 }  // namespace linux

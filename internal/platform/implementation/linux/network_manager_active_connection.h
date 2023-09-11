@@ -26,7 +26,8 @@
 
 namespace nearby {
 namespace linux {
-class NetworkManagerActiveConnection
+namespace networkmanager {
+class ActiveConnection
     : public sdbus::ProxyInterfaces<
           org::freedesktop::NetworkManager::Connection::Active_proxy> {
  public:
@@ -55,16 +56,12 @@ class NetworkManagerActiveConnection
     kStateReasonDeviceRemoved = 14,
   };
 
-  NetworkManagerActiveConnection(const NetworkManagerActiveConnection &) =
-      delete;
-  NetworkManagerActiveConnection(NetworkManagerActiveConnection &&) = delete;
-  NetworkManagerActiveConnection &operator=(
-      const NetworkManagerActiveConnection &) = delete;
-  NetworkManagerActiveConnection &operator=(NetworkManagerActiveConnection &&) =
-      delete;
-  explicit NetworkManagerActiveConnection(
-      std::shared_ptr<sdbus::IConnection> system_bus,
-      sdbus::ObjectPath active_connection_path)
+  ActiveConnection(const ActiveConnection &) = delete;
+  ActiveConnection(ActiveConnection &&) = delete;
+  ActiveConnection &operator=(const ActiveConnection &) = delete;
+  ActiveConnection &operator=(ActiveConnection &&) = delete;
+  explicit ActiveConnection(std::shared_ptr<sdbus::IConnection> system_bus,
+                            sdbus::ObjectPath active_connection_path)
       : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
                         std::move(active_connection_path)),
         system_bus_(std::move(system_bus)),
@@ -80,7 +77,7 @@ class NetworkManagerActiveConnection
       DBUS_LOG_PROPERTY_GET_ERROR(this, "State", e);
     }
   }
-  virtual ~NetworkManagerActiveConnection() { unregisterProxy(); }
+  virtual ~ActiveConnection() { unregisterProxy(); }
 
  protected:
   void onStateChanged(const uint32_t &state, const uint32_t &reason) override
@@ -110,8 +107,9 @@ class NetworkManagerActiveConnection
 
 extern std::ostream &operator<<(
     std::ostream &stream,
-    const NetworkManagerActiveConnection::ActiveConnectionStateReason &reason);
+    const ActiveConnection::ActiveConnectionStateReason &reason);
 
+}  // namespace networkmanager
 }  // namespace linux
 }  // namespace nearby
 #endif

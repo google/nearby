@@ -25,8 +25,8 @@ class NetworkManagerWifiDirectServerSocket
     : public api::WifiDirectServerSocket {
  public:
   NetworkManagerWifiDirectServerSocket(
-      int socket, std::unique_ptr<NetworkManagerActiveConnection> active_conn,
-      std::shared_ptr<NetworkManager> network_manager)
+      int socket, std::unique_ptr<networkmanager::ActiveConnection> active_conn,
+      std::shared_ptr<networkmanager::NetworkManager> network_manager)
       : fd_(socket),
         active_conn_(std::move(active_conn)),
         network_manager_(std::move(network_manager)) {}
@@ -38,8 +38,8 @@ class NetworkManagerWifiDirectServerSocket
 
  private:
   sdbus::UnixFd fd_;
-  std::unique_ptr<NetworkManagerActiveConnection> active_conn_;
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::unique_ptr<networkmanager::ActiveConnection> active_conn_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
 };
 }  // namespace linux
 }  // namespace nearby

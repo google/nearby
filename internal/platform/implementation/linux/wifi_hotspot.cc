@@ -195,14 +195,14 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
                        {"addr-gen-mode", static_cast<std::int32_t>(1)},
                        {"method", "shared"},
                    }}};
-  std::unique_ptr<NetworkManagerActiveConnection> active_conn;
+  std::unique_ptr<networkmanager::ActiveConnection> active_conn;
   try {
     auto [path, active_path, result] =
         network_manager_->AddAndActivateConnection2(
             connection_settings, wireless_device_->getObjectPath(), "/",
             {{"persist", "volatile"}, {"bind-activation", "dbus-client"}});
-    active_conn = std::make_unique<NetworkManagerActiveConnection>(system_bus_,
-                                                                   active_path);
+    active_conn = std::make_unique<networkmanager::ActiveConnection>(
+        system_bus_, active_path);
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(network_manager_, "AddAndActivateConnection2",
                                e);
@@ -248,7 +248,7 @@ bool NetworkManagerWifiHotspotMedium::StopWifiHotspot() {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "ActiveAccessPoint", e);
   }
 
-  auto object_manager = NetworkManagerObjectManager(system_bus_);
+  auto object_manager = networkmanager::ObjectManager(system_bus_);
   auto active_connection = wireless_device_->GetActiveConnection();
   if (active_connection == nullptr) {
     NEARBY_LOGS(ERROR)

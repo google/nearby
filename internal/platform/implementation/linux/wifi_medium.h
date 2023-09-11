@@ -47,8 +47,9 @@ class NetworkManagerWifiMedium
   NetworkManagerWifiMedium &operator=(const NetworkManagerWifiMedium &) =
       delete;
   NetworkManagerWifiMedium &operator=(NetworkManagerWifiMedium &&) = delete;
-  NetworkManagerWifiMedium(std::shared_ptr<NetworkManager> network_manager,
-                           const sdbus::ObjectPath &wireless_device_object_path)
+  NetworkManagerWifiMedium(
+      std::shared_ptr<networkmanager::NetworkManager> network_manager,
+      const sdbus::ObjectPath &wireless_device_object_path)
       : ProxyInterfaces(*network_manager->GetConnection(),
                         "org.freedesktop.NetworkManager",
                         wireless_device_object_path),
@@ -85,7 +86,7 @@ class NetworkManagerWifiMedium
   bool VerifyInternetConnectivity() override;
   std::string GetIpAddress() override;
 
-  std::unique_ptr<NetworkManagerActiveConnection> GetActiveConnection();
+  std::unique_ptr<networkmanager::ActiveConnection> GetActiveConnection();
 
  protected:
   void onPropertiesChanged(
@@ -113,7 +114,7 @@ class NetworkManagerWifiMedium
       ABSL_LOCKS_EXCLUDED(known_access_points_lock_);
 
   std::shared_ptr<sdbus::IConnection> system_bus_;
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
 
   api::WifiCapability capability_;
   api::WifiInformation information_{false};
