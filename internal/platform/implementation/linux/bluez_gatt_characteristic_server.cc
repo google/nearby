@@ -211,8 +211,10 @@ std::vector<std::string> GattCharacteristicServer::Flags() {
           api::ble_v2::GattCharacteristic::Permission::kWrite ||
       (characteristic.property &
        api::ble_v2::GattCharacteristic::Property::kWrite) ==
-          api::ble_v2::GattCharacteristic::Property::kWrite)
+          api::ble_v2::GattCharacteristic::Property::kWrite) {
     flags.push_back("write");
+    flags.push_back("write-without-response");
+  }
 
   if ((characteristic.property &
        api::ble_v2::GattCharacteristic::Property::kIndicate) ==
