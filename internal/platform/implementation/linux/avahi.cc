@@ -52,6 +52,7 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
       size_t pos = attr_str.find('=');
       if (pos == 0 || pos == std::string::npos || pos == attr_str.size() - 1) {
         NEARBY_LOGS(WARNING) << " found invalid text attribute: " << attr_str;
+	continue;
       }
 
       info.SetTxtRecord(attr_str.substr(0, pos), attr_str.substr(pos + 1));
@@ -94,6 +95,7 @@ void ServiceBrowser::onItemRemove(
       size_t pos = attr_str.find('=');
       if (pos == 0 || pos == std::string::npos || pos == attr_str.size() - 1) {
         NEARBY_LOGS(WARNING) << " found invalid text attribute: " << attr_str;
+	continue;
       }
 
       info.SetTxtRecord(attr_str.substr(0, pos), attr_str.substr(pos + 1));
