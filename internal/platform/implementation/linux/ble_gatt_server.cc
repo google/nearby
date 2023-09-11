@@ -17,7 +17,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/linux/bluez_gatt_characteristic_server.h"
 #include "internal/platform/implementation/linux/bluez_gatt_manager.h"
-#include "internal/platform/implementation/linux/bluez_gatt_service.h"
+#include "internal/platform/implementation/linux/bluez_gatt_service_server.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/generated/dbus/bluez/gatt_service_server.h"
 #include "internal/platform/uuid.h"

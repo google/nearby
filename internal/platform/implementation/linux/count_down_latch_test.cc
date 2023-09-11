@@ -81,6 +81,10 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitSucceeds) {
   // Act
   nearby::Exception result = countDownLatch->Await();
 
+  for (auto& thread : threads) {
+    thread.join();
+  }
+
   // Assert
   EXPECT_EQ(result.value, nearby::Exception::kSuccess);
   EXPECT_EQ(count, 3);

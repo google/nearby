@@ -27,7 +27,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
-#include "internal/platform/implementation/linux/bluez_gatt_service.h"
+#include "internal/platform/implementation/linux/bluez_gatt_service_server.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
