@@ -18,7 +18,7 @@
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/linux/bluez_gatt_characteristic.h"
+#include "internal/platform/implementation/linux/bluez_gatt_characteristic_server.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
