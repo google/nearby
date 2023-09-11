@@ -80,7 +80,7 @@ GattServer::CreateCharacteristic(
 bool GattServer::UpdateCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     const nearby::ByteArray& value) {
-  std::shared_ptr<bluez::GattCharacteristic> chr = nullptr;
+  std::shared_ptr<bluez::GattCharacteristicServer> chr = nullptr;
   {
     absl::ReaderMutexLock lock(&services_mutex_);
     if (services_.count(characteristic.service_uuid) == 0) {
@@ -107,7 +107,7 @@ bool GattServer::UpdateCharacteristic(
 absl::Status GattServer::NotifyCharacteristicChanged(
     const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
     const ByteArray& new_value) {
-  std::shared_ptr<bluez::GattCharacteristic> chr = nullptr;
+  std::shared_ptr<bluez::GattCharacteristicServer> chr = nullptr;
   {
     absl::ReaderMutexLock lock(&services_mutex_);
     if (services_.count(characteristic.service_uuid) == 0) {

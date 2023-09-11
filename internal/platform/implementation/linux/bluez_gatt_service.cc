@@ -30,8 +30,8 @@ bool GattService::AddCharacteristic(
   api::ble_v2::GattCharacteristic characteristic{
       characteristic_uuid, service_uuid, permission, property};
   auto count = characteristics_.size();
-  std::shared_ptr<GattCharacteristic> chr =
-      std::make_shared<GattCharacteristic>(
+  std::shared_ptr<GattCharacteristicServer> chr =
+      std::make_shared<GattCharacteristicServer>(
           getObject().getConnection(), getObjectPath(), count, characteristic,
           server_cb_, devices_);
   try {
@@ -50,7 +50,7 @@ bool GattService::AddCharacteristic(
   return true;
 }
 
-std::shared_ptr<GattCharacteristic> GattService::GetCharacteristic(
+std::shared_ptr<GattCharacteristicServer> GattService::GetCharacteristic(
     const Uuid &uuid) {
   absl::ReaderMutexLock lock(&characterstics_mutex_);
   if (characteristics_.count(uuid) == 0) {
