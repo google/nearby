@@ -22,7 +22,7 @@
 namespace nearby {
 namespace linux {
 namespace bluez {
-bool GattService::AddCharacteristic(
+bool GattServiceServer::AddCharacteristic(
     const Uuid &service_uuid, const Uuid &characteristic_uuid,
     api::ble_v2::GattCharacteristic::Permission permission,
     api::ble_v2::GattCharacteristic::Property property) {
@@ -50,7 +50,7 @@ bool GattService::AddCharacteristic(
   return true;
 }
 
-std::shared_ptr<GattCharacteristicServer> GattService::GetCharacteristic(
+std::shared_ptr<GattCharacteristicServer> GattServiceServer::GetCharacteristic(
     const Uuid &uuid) {
   absl::ReaderMutexLock lock(&characterstics_mutex_);
   if (characteristics_.count(uuid) == 0) {

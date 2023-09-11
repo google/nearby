@@ -41,7 +41,7 @@ GattServer::CreateCharacteristic(
   }
 
   auto count = services_.size();
-  auto service = std::make_unique<bluez::GattService>(
+  auto service = std::make_unique<bluez::GattServiceServer>(
       system_bus_, count, service_uuid, server_cb_, devices_);
   try {
     service->emitInterfacesAddedSignal(
