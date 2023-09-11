@@ -45,7 +45,8 @@ class GattCharacteristicServer final
  public:
   GattCharacteristicServer(const GattCharacteristicServer &) = delete;
   GattCharacteristicServer(GattCharacteristicServer &&) = delete;
-  GattCharacteristicServer &operator=(const GattCharacteristicServer &) = delete;
+  GattCharacteristicServer &operator=(const GattCharacteristicServer &) =
+      delete;
   GattCharacteristicServer &operator=(GattCharacteristicServer &&) = delete;
 
   GattCharacteristicServer(
@@ -61,7 +62,8 @@ class GattCharacteristicServer final
         characteristic_(characteristic),
         service_object_path_(service_object_path),
         notifying_(false),
-        confirmed_(false) {
+        confirmed_(false),
+        notify_sessions_(0) {
     registerAdaptor();
     NEARBY_LOGS(VERBOSE)
         << __func__ << "Creating a "
@@ -116,6 +118,8 @@ class GattCharacteristicServer final
 
   absl::Mutex confirmed_mutex_;
   bool confirmed_;
+
+  std::atomic_size_t notify_sessions_;
 };
 
 }  // namespace bluez
