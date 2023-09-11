@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <cstring>
 #include <exception>
 
@@ -79,7 +80,8 @@ ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
         input_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
 
     if (ibuffer.Length() != size) {
-      NEARBY_LOGS(WARNING) << "Only got part of data of needed.";
+      NEARBY_LOGS(WARNING) << "Only read partial of data: [" << ibuffer.Length()
+                           << "/" << size << "].";
     }
 
     ByteArray data((char*)ibuffer.data(), ibuffer.Length());
@@ -146,7 +148,12 @@ Exception WifiLanSocket::SocketOutputStream::Write(const ByteArray& data) {
     Buffer buffer = Buffer(data.size());
     std::memcpy(buffer.data(), data.data(), data.size());
     buffer.Length(data.size());
-    output_stream_.WriteAsync(buffer).get();
+    uint32_t wrote_bytes = output_stream_.WriteAsync(buffer).get();
+    if (wrote_bytes != data.size()) {
+      NEARBY_LOGS(WARNING) << "Only wrote partial of data:[" << wrote_bytes
+                           << "/" << data.size() << "].";
+    }
+
     return {Exception::kSuccess};
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
