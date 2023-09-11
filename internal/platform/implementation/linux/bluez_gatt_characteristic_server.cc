@@ -33,8 +33,8 @@ void GattCharacteristicServer::Update(const nearby::ByteArray &value) {
   static_value_ = std::move(bytes);
 }
 
-absl::Status GattCharacteristicServer::NotifyChanged(bool confirm,
-                                               const ByteArray &new_value) {
+absl::Status GattCharacteristicServer::NotifyChanged(
+    bool confirm, const ByteArray &new_value) {
   std::vector<uint8_t> bytes(new_value.size());
   const auto *buf = new_value.data();
   for (auto i = 0; i < new_value.size(); i++) bytes[i] = buf[i];
@@ -187,8 +187,12 @@ void GattCharacteristicServer::StopNotify() {
   if ((characteristic_.property |
        api::ble_v2::GattCharacteristic::Property::kNotify) ==
       api::ble_v2::GattCharacteristic::Property::kNotify) {
-    server_cb_->characteristic_unsubscription_cb(characteristic_);
-    notifying_ = false;
+    if (notify_sessions_.fetch_sub(0) == 1) {
+      if (server_cb_->characteristic_unsubscription_cb != nullptr) {
+        server_cb_->characteristic_unsubscription_cb(characteristic_);
+      }
+      notifying_ = false;
+    }
   } else {
     throw(sdbus::Error("org.bluez.Error.Failed"));
   }
