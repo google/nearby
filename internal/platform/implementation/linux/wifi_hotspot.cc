@@ -22,6 +22,7 @@
 #include <systemd/sd-id128.h>
 
 #include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/network_manager.h"
 #include "internal/platform/implementation/linux/wifi_hotspot.h"
 #include "internal/platform/implementation/linux/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_hotspot_socket.h"
@@ -179,22 +180,23 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
           {"802-11-wireless",
            std::map<std::string, sdbus::Variant>{
                {"assigned-mac-address", "random"},
-               {"ap-isolation",
-                static_cast<std::int32_t>(0)},  // NM_TERNARY_FALSE
+               {"ap-isolation", networkmanager::constants::kNMTernaryFalse},
                {"mode", "ap"},
                {"ssid", ssid_bytes},
                {"security", "802-11-wireless-security"}}},
           {"802-11-wireless-security",
            std::map<std::string, sdbus::Variant>{
-               {"pmf", static_cast<std::int32_t>(
-                           1)},  // NM_SETTING_WIRELESS_SECURITY_PMF_DISABLE
+               {"pmf", networkmanager::constants::setting::
+                           kWirelessSecurityPMFDisable},
                {"key-mgmt", "wpa-psk"},
                {"psk", password}}},
           {"ipv4", std::map<std::string, sdbus::Variant>{{"method", "shared"}}},
-          {"ipv6", std::map<std::string, sdbus::Variant>{
-                       {"addr-gen-mode", static_cast<std::int32_t>(1)},
-                       {"method", "shared"},
-                   }}};
+          {"ipv6",
+           std::map<std::string, sdbus::Variant>{
+               {"addr-gen-mode", networkmanager::constants::setting::
+                                     kIP6ConfigAddrGenModeStablePrivacy},
+               {"method", "shared"},
+           }}};
   std::unique_ptr<networkmanager::ActiveConnection> active_conn;
   try {
     auto [path, active_path, result] =
@@ -311,7 +313,7 @@ bool NetworkManagerWifiHotspotMedium::DisconnectWifiHotspot() {
 bool NetworkManagerWifiHotspotMedium::WifiHotspotActive() {
   try {
     auto mode = wireless_device_->Mode();
-    return mode == 3;  // NM_802_11_MODE_AP
+    return mode == networkmanager::constants::kNM80211ModeAP;
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
     return false;
@@ -321,7 +323,7 @@ bool NetworkManagerWifiHotspotMedium::WifiHotspotActive() {
 bool NetworkManagerWifiHotspotMedium::ConnectedToWifi() {
   try {
     auto mode = wireless_device_->Mode();
-    return mode == 2;  // NM_802_11_MODE_INFRA
+    return mode == networkmanager::constants::kNM80211ModeInfra;
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(wireless_device_, "Mode", e);
     return false;
