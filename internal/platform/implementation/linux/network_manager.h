@@ -134,9 +134,9 @@ class ObjectManager final
 
   std::unique_ptr<IP4Config> GetIp4Config(
       const sdbus::ObjectPath &access_point);
-  std::unique_ptr<ActiveConnection>
-  GetActiveConnectionForAccessPoint(const sdbus::ObjectPath &access_point_path,
-                                    const sdbus::ObjectPath &device_path);
+  std::unique_ptr<ActiveConnection> GetActiveConnectionForAccessPoint(
+      const sdbus::ObjectPath &access_point_path,
+      const sdbus::ObjectPath &device_path);
 
  protected:
   void onInterfacesAdded(
@@ -151,6 +151,32 @@ class ObjectManager final
   std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 
+namespace constants {
+// Indicates the 802.11 mode an access point or device is currently in.
+enum NM80211Mode {
+  kNM80211ModeUnknown = 0,
+  kNM80211ModeAdHoc = 1,
+  kNM80211ModeInfra = 2,
+  kNM80211ModeAP = 3,
+  kNM80211ModeMesh = 4,
+};
+
+const int32_t kNMTernaryDefault = -1;
+const int32_t kNMTernaryFalse = 0;
+const int32_t kNMTernaryTrue = 1;
+
+namespace setting {
+const int32_t kWirelessSecurityPMFDefaut = 0;
+const int32_t kWirelessSecurityPMFDisable = 1;
+const int32_t kWirelessSecurityPMFOptional = 2;
+const int32_t kWirelessSecurityPMFRequired = 3;
+
+const int32_t kIP6ConfigAddrGenModeEUI64 = 0;
+const int32_t kIP6ConfigAddrGenModeStablePrivacy = 1;
+const int32_t kIP6ConfigAddrGenModeDefaultOrEUI64 = 2;
+const int32_t kIP6ConfigAddrGenModeDefault = 3;
+}  // namespace setting
+}  // namespace constants
 }  // namespace networkmanager
 }  // namespace linux
 }  // namespace nearby
