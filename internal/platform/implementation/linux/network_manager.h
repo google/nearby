@@ -27,6 +27,7 @@
 
 namespace nearby {
 namespace linux {
+namespace networkmanager {
 class NetworkManager final
     : public sdbus::ProxyInterfaces<org::freedesktop::NetworkManager_proxy> {
  public:
@@ -96,48 +97,44 @@ class NetworkManager final
   std::atomic<NMState> state_;
 };
 
-class NetworkManagerIP4Config
-    : public sdbus::ProxyInterfaces<
-          org::freedesktop::NetworkManager::IP4Config_proxy> {
+class IP4Config : public sdbus::ProxyInterfaces<
+                      org::freedesktop::NetworkManager::IP4Config_proxy> {
  public:
-  NetworkManagerIP4Config(const NetworkManagerIP4Config &) = delete;
-  NetworkManagerIP4Config(NetworkManagerIP4Config &&) = delete;
-  NetworkManagerIP4Config &operator=(const NetworkManagerIP4Config &) = delete;
-  NetworkManagerIP4Config &operator=(NetworkManagerIP4Config &&) = delete;
-  NetworkManagerIP4Config(std::shared_ptr<sdbus::IConnection> system_bus,
-                          const sdbus::ObjectPath &config_object_path)
+  IP4Config(const IP4Config &) = delete;
+  IP4Config(IP4Config &&) = delete;
+  IP4Config &operator=(const IP4Config &) = delete;
+  IP4Config &operator=(IP4Config &&) = delete;
+  IP4Config(std::shared_ptr<sdbus::IConnection> system_bus,
+            const sdbus::ObjectPath &config_object_path)
       : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
                         config_object_path),
         system_bus_(std::move(system_bus)) {
     registerProxy();
   }
-  ~NetworkManagerIP4Config() { unregisterProxy(); }
+  ~IP4Config() { unregisterProxy(); }
 
  private:
   std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 
-class NetworkManagerObjectManager final
+class ObjectManager final
     : public sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
  public:
-  NetworkManagerObjectManager(const NetworkManagerObjectManager &) = delete;
-  NetworkManagerObjectManager(NetworkManagerObjectManager &&) = delete;
-  NetworkManagerObjectManager &operator=(const NetworkManagerObjectManager &) =
-      delete;
-  NetworkManagerObjectManager &operator=(NetworkManagerObjectManager &&) =
-      delete;
-  explicit NetworkManagerObjectManager(
-      std::shared_ptr<sdbus::IConnection> system_bus)
+  ObjectManager(const ObjectManager &) = delete;
+  ObjectManager(ObjectManager &&) = delete;
+  ObjectManager &operator=(const ObjectManager &) = delete;
+  ObjectManager &operator=(ObjectManager &&) = delete;
+  explicit ObjectManager(std::shared_ptr<sdbus::IConnection> system_bus)
       : ProxyInterfaces(*system_bus, "org.freedesktop.NetworkManager",
                         "/org/freedesktop"),
         system_bus_(std::move(system_bus)) {
     registerProxy();
   }
-  ~NetworkManagerObjectManager() { unregisterProxy(); }
+  ~ObjectManager() { unregisterProxy(); }
 
-  std::unique_ptr<NetworkManagerIP4Config> GetIp4Config(
+  std::unique_ptr<IP4Config> GetIp4Config(
       const sdbus::ObjectPath &access_point);
-  std::unique_ptr<NetworkManagerActiveConnection>
+  std::unique_ptr<ActiveConnection>
   GetActiveConnectionForAccessPoint(const sdbus::ObjectPath &access_point_path,
                                     const sdbus::ObjectPath &device_path);
 
@@ -154,6 +151,7 @@ class NetworkManagerObjectManager final
   std::shared_ptr<sdbus::IConnection> system_bus_;
 };
 
+}  // namespace networkmanager
 }  // namespace linux
 }  // namespace nearby
 #endif

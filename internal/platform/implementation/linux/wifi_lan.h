@@ -28,7 +28,7 @@ namespace nearby {
 namespace linux {
 class WifiLanMedium : public api::WifiLanMedium {
  public:
-  explicit WifiLanMedium(std::shared_ptr<linux::NetworkManager> network_manager);
+  explicit WifiLanMedium(std::shared_ptr<networkmanager::NetworkManager> network_manager);
 
   bool IsNetworkConnected() const override;
 
@@ -61,7 +61,7 @@ class WifiLanMedium : public api::WifiLanMedium {
 
  private:
   std::shared_ptr<sdbus::IConnection> system_bus_;  
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
 
   std::shared_ptr<avahi::Server> avahi_;
 

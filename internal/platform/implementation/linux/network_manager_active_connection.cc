@@ -23,54 +23,55 @@
 
 namespace nearby {
 namespace linux {
+namespace networkmanager {
 std::ostream &operator<<(
     std::ostream &stream,
-    const NetworkManagerActiveConnection::ActiveConnectionStateReason &reason) {
+    const ActiveConnection::ActiveConnectionStateReason &reason) {
   switch (reason) {
-    case NetworkManagerActiveConnection::kStateReasonUnknown:
-      return stream
-             << "The reason for the active connection state change is unknown.";
-    case NetworkManagerActiveConnection::kStateReasonNone:
+    case ActiveConnection::kStateReasonUnknown:
+      return stream << "The reason for the active connection state change is "
+                       "unknown.";
+    case ActiveConnection::kStateReasonNone:
       return stream
              << "No reason was given for the active connection state change.";
-    case NetworkManagerActiveConnection::kStateReasonUserDisconnected:
+    case ActiveConnection::kStateReasonUserDisconnected:
       return stream << "The active connection changed state because the user "
                        "disconnected it.";
-    case NetworkManagerActiveConnection::kStateReasonDeviceDisconnected:
-      return stream
-             << "The active connection changed state because the device it was "
-                "using was disconnected.";
-    case NetworkManagerActiveConnection::kStateReasonServiceStopped:
+    case ActiveConnection::kStateReasonDeviceDisconnected:
+      return stream << "The active connection changed state because the "
+                       "device it was "
+                       "using was disconnected.";
+    case ActiveConnection::kStateReasonServiceStopped:
       return stream << "The service providing the VPN connection was stopped.";
-    case NetworkManagerActiveConnection::kStateReasonIPConfigInvalid:
+    case ActiveConnection::kStateReasonIPConfigInvalid:
       return stream << "The IP config of the active connection was invalid.";
-    case NetworkManagerActiveConnection::kStateReasonConnectTimeout:
+    case ActiveConnection::kStateReasonConnectTimeout:
       return stream << "The connection attempt to the VPN service timed out.";
-    case NetworkManagerActiveConnection::kStateReasonServiceStartTimeout:
+    case ActiveConnection::kStateReasonServiceStartTimeout:
       return stream
              << "A timeout occurred while starting the service providing the "
                 "VPN connection.";
-    case NetworkManagerActiveConnection::kStateReasonServiceStartFailed:
+    case ActiveConnection::kStateReasonServiceStartFailed:
       return stream
              << "Starting the service providing the VPN connection failed.";
-    case NetworkManagerActiveConnection::kStateReasonNoSecrets:
+    case ActiveConnection::kStateReasonNoSecrets:
       return stream
              << "Necessary secrets for the connection were not provided.";
-    case NetworkManagerActiveConnection::kStateReasonLoginFailed:
+    case ActiveConnection::kStateReasonLoginFailed:
       return stream << "Authentication to the server failed.";
-    case NetworkManagerActiveConnection::kStateReasonConnectionRemoved:
+    case ActiveConnection::kStateReasonConnectionRemoved:
       return stream << "The connection was deleted from settings.";
-    case NetworkManagerActiveConnection::kStateReasonDependencyFailed:
+    case ActiveConnection::kStateReasonDependencyFailed:
       return stream
              << "Master connection of this connection failed to activate.";
-    case NetworkManagerActiveConnection::kStateReasonDeviceRealizeFailed:
+    case ActiveConnection::kStateReasonDeviceRealizeFailed:
       return stream << "Could not create the software device link.";
-    case NetworkManagerActiveConnection::kStateReasonDeviceRemoved:
+    case ActiveConnection::kStateReasonDeviceRemoved:
       return stream << "The device this connection depended on disappeared.";
   }
 }
 
-std::vector<std::string> NetworkManagerActiveConnection::GetIP4Addresses() {
+std::vector<std::string> ActiveConnection::GetIP4Addresses() {
   sdbus::ObjectPath ip4config_path;
   try {
     ip4config_path = Ip4Config();
@@ -79,7 +80,7 @@ std::vector<std::string> NetworkManagerActiveConnection::GetIP4Addresses() {
     return {};
   }
 
-  NetworkManagerIP4Config ip4config(system_bus_, ip4config_path);
+  IP4Config ip4config(system_bus_, ip4config_path);
   std::vector<std::map<std::string, sdbus::Variant>> address_data;
   try {
     address_data = ip4config.AddressData();
@@ -97,8 +98,8 @@ std::vector<std::string> NetworkManagerActiveConnection::GetIP4Addresses() {
   return ip4addresses;
 }
 
-std::pair<std::optional<NetworkManagerActiveConnection::ActiveConnectionStateReason>, bool>
-NetworkManagerActiveConnection::WaitForConnection(absl::Duration timeout) {
+std::pair<std::optional<ActiveConnection::ActiveConnectionStateReason>, bool>
+ActiveConnection::WaitForConnection(absl::Duration timeout) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": Waiting for an update to "
                        << getObjectPath() << "'s state";
 
@@ -120,5 +121,6 @@ NetworkManagerActiveConnection::WaitForConnection(absl::Duration timeout) {
   return state == kStateActivated ? std::pair{std::nullopt, false}
                                   : std::pair{std::optional(reason), false};
 }
+}  // namespace networkmanager
 }  // namespace linux
 }  // namespace nearby

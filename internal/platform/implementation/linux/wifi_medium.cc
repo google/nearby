@@ -26,7 +26,6 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/linux/dbus.h"
-#include "internal/platform/implementation/linux/generated/dbus/networkmanager/connection_active_client.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/device_wireless_client.h"
 #include "internal/platform/implementation/linux/network_manager_active_connection.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
@@ -77,7 +76,7 @@ api::WifiInformation &NetworkManagerWifiMedium::GetInformation() {
     information_ =
         api::WifiInformation{true, ssid, active_access_point->HwAddress(),
                              to_signed(active_access_point->Frequency())};
-    NetworkManagerObjectManager manager(system_bus_);
+    networkmanager::ObjectManager manager(system_bus_);
     auto ip4config = manager.GetIp4Config(active_access_point->getObjectPath());
 
     if (ip4config != nullptr) {
@@ -291,7 +290,7 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
   NEARBY_LOGS(INFO) << __func__ << ": " << getObjectPath()
                     << ": Added a new connection at " << connection_path;
   auto active_connection =
-      NetworkManagerActiveConnection(system_bus_, active_conn_path);
+      networkmanager::ActiveConnection(system_bus_, active_conn_path);
   auto [reason, timeout] = active_connection.WaitForConnection();
   if (timeout) {
     NEARBY_LOGS(ERROR)
@@ -307,8 +306,8 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
                        << active_conn_path
                        << " failed to activate, NMActiveConnectionStateReason:"
                        << *reason;
-    if (*reason == NetworkManagerActiveConnection::kStateReasonNoSecrets ||
-        *reason == NetworkManagerActiveConnection::kStateReasonLoginFailed)
+    if (*reason == networkmanager::ActiveConnection::kStateReasonNoSecrets ||
+        *reason == networkmanager::ActiveConnection::kStateReasonLoginFailed)
       return api::WifiConnectionStatus::kAuthFailure;
   }
 
@@ -331,7 +330,7 @@ std::string NetworkManagerWifiMedium::GetIpAddress() {
   return information_.ip_address_dot_decimal;
 }
 
-std::unique_ptr<NetworkManagerActiveConnection>
+std::unique_ptr<networkmanager::ActiveConnection>
 NetworkManagerWifiMedium::GetActiveConnection() {
   sdbus::ObjectPath active_ap_path;
 
@@ -347,7 +346,7 @@ NetworkManagerWifiMedium::GetActiveConnection() {
     return nullptr;
   }
 
-  auto object_manager = NetworkManagerObjectManager(system_bus_);
+  auto object_manager = networkmanager::ObjectManager(system_bus_);
   auto conn = object_manager.GetActiveConnectionForAccessPoint(active_ap_path,
                                                                getObjectPath());
 

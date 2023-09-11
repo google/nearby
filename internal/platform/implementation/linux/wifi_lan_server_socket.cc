@@ -43,7 +43,7 @@ std::string WifiLanServerSocket::GetIPAddress() const {
 
   for (auto &path : connection_paths) {
     auto active_connection =        
-        std::make_unique<NetworkManagerActiveConnection>(system_bus_, path);
+        std::make_unique<networkmanager::ActiveConnection>(system_bus_, path);
     std::string conn_type;
     try {
       conn_type = active_connection->Type();
@@ -53,7 +53,7 @@ std::string WifiLanServerSocket::GetIPAddress() const {
     }
     if (conn_type == "802-11-wireless" || conn_type == "802-3-ethernet") {
       auto ip4config_path = active_connection->Ip4Config();
-      NetworkManagerIP4Config ip4config(system_bus_, ip4config_path);
+      networkmanager::IP4Config ip4config(system_bus_, ip4config_path);
       std::vector<std::map<std::string, sdbus::Variant>> address_data;
 
       try {

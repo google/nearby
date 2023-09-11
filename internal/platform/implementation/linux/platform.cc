@@ -205,7 +205,7 @@ ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
 
 namespace {
 static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
-    std::shared_ptr<linux::NetworkManager> nm) {
+    std::shared_ptr<linux::networkmanager::NetworkManager> nm) {
   std::vector<sdbus::ObjectPath> device_paths;
 
   try {
@@ -215,7 +215,7 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
     return nullptr;
   }
 
-  auto manager = linux::NetworkManagerObjectManager(nm->GetConnection());
+  auto manager = linux::networkmanager::ObjectManager(nm->GetConnection());
 
   std::map<sdbus::ObjectPath,
            std::map<std::string, std::map<std::string, sdbus::Variant>>>
@@ -248,21 +248,21 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
 
 std::unique_ptr<api::WifiMedium> ImplementationPlatform::CreateWifiMedium() {
   auto nm =
-      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
   return createWifiMedium(nm);
 }
 
 std::unique_ptr<api::WifiLanMedium>
 ImplementationPlatform::CreateWifiLanMedium() {
   auto nm =
-      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
   return std::make_unique<linux::WifiLanMedium>(nm);
 }
 
 std::unique_ptr<api::WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
   auto nm =
-      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
   auto wifiMedium = createWifiMedium(nm);
 
   if (wifiMedium == nullptr) {
@@ -277,7 +277,7 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
 std::unique_ptr<api::WifiDirectMedium>
 ImplementationPlatform::CreateWifiDirectMedium() {
   auto nm =
-      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
   auto wifiMedium = createWifiMedium(nm);
 
   if (wifiMedium == nullptr) {

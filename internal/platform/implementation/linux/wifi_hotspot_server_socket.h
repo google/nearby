@@ -17,8 +17,8 @@
 
 #include <sdbus-c++/IConnection.h>
 
+#include "internal/platform/implementation/linux/network_manager.h"
 #include "internal/platform/implementation/linux/network_manager_active_connection.h"
-#include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 
 namespace nearby {
@@ -27,8 +27,8 @@ class NetworkManagerWifiHotspotServerSocket
     : public api::WifiHotspotServerSocket {
  public:
   NetworkManagerWifiHotspotServerSocket(
-      int socket, std::unique_ptr<NetworkManagerActiveConnection> active_conn,
-      std::shared_ptr<NetworkManager> network_manager)
+      int socket, std::unique_ptr<networkmanager::ActiveConnection> active_conn,
+      std::shared_ptr<networkmanager::NetworkManager> network_manager)
       : fd_(socket),
         active_conn_(std::move(active_conn)),
         network_manager_(std::move(network_manager)) {}
@@ -40,8 +40,8 @@ class NetworkManagerWifiHotspotServerSocket
 
  private:
   sdbus::UnixFd fd_;
-  std::unique_ptr<NetworkManagerActiveConnection> active_conn_;
-  std::shared_ptr<NetworkManager> network_manager_;
+  std::unique_ptr<networkmanager::ActiveConnection> active_conn_;
+  std::shared_ptr<networkmanager::NetworkManager> network_manager_;
 };
 }  // namespace linux
 }  // namespace nearby
