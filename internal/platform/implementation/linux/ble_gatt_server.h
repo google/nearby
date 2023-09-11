@@ -87,7 +87,7 @@ class GattServer : public api::ble_v2::GattServer {
 
   std::shared_ptr<api::ble_v2::ServerGattConnectionCallback> server_cb_;
   absl::Mutex services_mutex_;
-  absl::flat_hash_map<Uuid, std::unique_ptr<bluez::GattService>> services_
+  absl::flat_hash_map<Uuid, std::unique_ptr<bluez::GattServiceServer>> services_
       ABSL_GUARDED_BY(services_mutex_);
 };
 

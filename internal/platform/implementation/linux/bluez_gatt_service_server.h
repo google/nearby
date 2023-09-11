@@ -34,17 +34,17 @@
 namespace nearby {
 namespace linux {
 namespace bluez {
-class GattService final
+class GattServiceServer final
     : public sdbus::AdaptorInterfaces<org::bluez::GattService1_adaptor,
                                       sdbus::ManagedObject_adaptor,
                                       sdbus::Properties_adaptor> {
  public:
-  GattService(const GattService &) = delete;
-  GattService(GattService &&) = delete;
-  GattService &operator=(const GattService &) = delete;
-  GattService &operator=(GattService &&) = delete;
+  GattServiceServer(const GattServiceServer &) = delete;
+  GattServiceServer(GattServiceServer &&) = delete;
+  GattServiceServer &operator=(const GattServiceServer &) = delete;
+  GattServiceServer &operator=(GattServiceServer &&) = delete;
 
-  GattService(
+  GattServiceServer(
       sdbus::IConnection &system_bus, size_t num, const Uuid &service_uuid,
       std::shared_ptr<api::ble_v2::ServerGattConnectionCallback> server_cb,
       std::shared_ptr<BluetoothDevices> devices)
@@ -59,7 +59,7 @@ class GattService final
                          << " object at " << getObjectPath();
   }
 
-  ~GattService() {
+  ~GattServiceServer() {
     absl::MutexLock lock(&characterstics_mutex_);
     for (auto &[_uuid, characteristic] : characteristics_) {
       NEARBY_LOGS(VERBOSE) << __func__ << ": Removing characteristic "
