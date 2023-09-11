@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/bluez_gatt_service.h"
+#include "internal/platform/implementation/linux/bluez_gatt_service_server.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/linux/bluez_gatt_characteristic_server.h"
