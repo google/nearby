@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@
 #include <string>
 
 #include "internal/base/observer_list.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
@@ -32,76 +34,11 @@
 namespace nearby {
 namespace windows {
 
-// Represents a device. This class allows access to well-known device properties
-// as well as additional properties specified during device enumeration.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceinformation?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceInformation;
-
-// Represents the kind of DeviceInformation object.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceinformationkind?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceInformationKind;
-
-// Contains updated properties for a DeviceInformation object.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceinformationupdate?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
-
-// Enumerates devices dynamically, so that the app receives notifications if
-// devices are added, removed, or changed after the initial enumeration is
-// complete.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceWatcher;
-
-// Writes data to an output stream.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datawriter?view=winrt-20348
-using winrt::Windows::Storage::Streams::DataWriter;
-
-// Specifies the type of character encoding for a stream.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.unicodeencoding?view=winrt-20348
-using winrt::Windows::Storage::Streams::UnicodeEncoding;
-
-// Describes the state of a DeviceWatcher object.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcherstatus?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
-
-// Represents an instance of a service on a Bluetooth basic rate device.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservice?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService;
-
-// Indicates the status of the access to a device.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceaccessstatus?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceAccessStatus;
-
-// Contains the information about access to a device.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceaccessinformation?view=winrt-20348
-using winrt::Windows::Devices::Enumeration::DeviceAccessInformation;
-
-// Represents an RFCOMM service ID.
-//  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceid?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
-
-// Represents an instance of a local RFCOMM service.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceprovider?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider;
-
-// Reads data from an input stream.
-//  https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-20348
-using winrt::Windows::Storage::Streams::DataReader;
-
-// Writes data to an output stream.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datawriter?view=winrt-20348
-using winrt::Windows::Storage::Streams::DataWriter;
-
-// Bluetooth protocol ID = \"{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}\"
-// https://docs.microsoft.com/en-us/windows/uwp/devices-sensors/aep-service-class-ids
-#define BLUETOOTH_SELECTOR \
-  L"System.Devices.Aep.ProtocolId:=\"{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}\""
-
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
-  explicit BluetoothClassicMedium(api::BluetoothAdapter& bluetoothAdapter);
-
+  explicit BluetoothClassicMedium(api::BluetoothAdapter& bluetooth_adapter);
   ~BluetoothClassicMedium() override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
@@ -166,56 +103,63 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   bool StopScanning();
   bool StartAdvertising(bool radio_discoverable);
   bool StopAdvertising();
-  bool InitializeServiceSdpAttributes(RfcommServiceProvider rfcomm_provider,
-                                      std::string service_name);
+  bool InitializeServiceSdpAttributes(
+      ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
+          rfcomm_provider,
+      std::string service_name);
   bool IsWatcherStarted();
   bool IsWatcherRunning();
   void InitializeDeviceWatcher();
-  void OnScanModeChanged(BluetoothAdapter::ScanMode scanMode);
+  void OnScanModeChanged(BluetoothAdapter::ScanMode scan_mode);
 
   // This is for a coroutine whose return type is winrt::fire_and_forget, which
   // handles async operations which don't have any dependencies.
   // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/fire-and-forget
-  winrt::fire_and_forget DeviceWatcher_Added(DeviceWatcher sender,
-                                             DeviceInformation deviceInfo);
+  winrt::fire_and_forget DeviceWatcher_Added(
+      ::winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      ::winrt::Windows::Devices::Enumeration::DeviceInformation device_info);
 
   winrt::fire_and_forget DeviceWatcher_Updated(
-      DeviceWatcher sender, DeviceInformationUpdate deviceInfo);
+      ::winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+          device_update_info);
 
   winrt::fire_and_forget DeviceWatcher_Removed(
-      DeviceWatcher sender, DeviceInformationUpdate deviceInfo);
+      ::winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+          device_update_info);
 
   // Check to make sure we can connect if we try
-  bool HaveAccess(winrt::hstring deviceId);
+  bool HaveAccess(::winrt::hstring device_id);
 
   // Get the service requested
   RfcommDeviceService GetRequestedService(BluetoothDevice* device,
-                                          winrt::guid service);
+                                          ::winrt::guid service);
 
   // Check to see that the device actually handles the requested service
-  bool CheckSdp(RfcommDeviceService requestedService);
+  bool CheckSdp(RfcommDeviceService requested_service);
 
   BluetoothClassicMedium::DiscoveryCallback discovery_callback_;
 
-  DeviceWatcher device_watcher_ = nullptr;
+  ::winrt::Windows::Devices::Enumeration::DeviceWatcher device_watcher_ =
+      nullptr;
 
   std::unique_ptr<BluetoothSocket> bluetooth_socket_;
 
   std::string service_name_;
   std::string service_uuid_;
 
-  // hstring is the only type of string winrt understands.
-  // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/hstring
-  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>
-      discovered_devices_by_id_;
+  // Map MAC address to bluetooth device.
+  std::map<std::string, std::unique_ptr<BluetoothDevice>>
+      mac_address_to_bluetooth_device_map_;
 
   BluetoothAdapter& bluetooth_adapter_;
 
   BluetoothAdapter::ScanMode scan_mode_ = BluetoothAdapter::ScanMode::kUnknown;
-  std::unique_ptr<BluetoothDevice> remote_device_to_connect_;
 
   // Used for advertising.
-  RfcommServiceProvider rfcomm_provider_ = nullptr;
+  ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
+      rfcomm_provider_ = nullptr;
   std::unique_ptr<BluetoothServerSocket> server_socket_ = nullptr;
   BluetoothServerSocket* raw_server_socket_ = nullptr;
   bool is_radio_discoverable_ = false;

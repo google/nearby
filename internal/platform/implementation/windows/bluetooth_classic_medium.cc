@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,9 @@
 
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
 
-#include <stdio.h>
 #include <windows.h>
 
 #include <codecvt>
-#include <fstream>
 #include <functional>
 #include <ios>
 #include <locale>
@@ -31,6 +29,8 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
@@ -49,12 +49,31 @@
 namespace nearby {
 namespace windows {
 namespace {
-using winrt::Windows::Foundation::IInspectable;
-using winrt::Windows::Foundation::Collections::IMapView;
+using ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService;
+using ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
+using ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider;
+using ::winrt::Windows::Devices::Enumeration::DeviceAccessInformation;
+using ::winrt::Windows::Devices::Enumeration::DeviceAccessStatus;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformation;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationKind;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
+using ::winrt::Windows::Devices::Enumeration::DeviceWatcher;
+using ::winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
+using ::winrt::Windows::Foundation::IInspectable;
+using ::winrt::Windows::Foundation::Collections::IMapView;
+using ::winrt::Windows::Storage::Streams::DataReader;
+using ::winrt::Windows::Storage::Streams::DataWriter;
+using ::winrt::Windows::Storage::Streams::UnicodeEncoding;
 
-// Used to cntrol the dump output for device information. It is only for debug
+// Used to control the dump output for device information. It is only for debug
 // purpose.
 constexpr bool kEnableDumpDeviceInfomation = false;
+// The maximum length of Bluetooth device name Android can discover.
+constexpr int kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
+// Used to select bluetooth devices.
+constexpr wchar_t kBluetoothSelector[] =
+    L"System.Devices.Aep.ProtocolId:=\"{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}"
+    L"\"";
 
 void DumpDeviceInformation(
     const IMapView<winrt::hstring, IInspectable>& properties) {
@@ -88,11 +107,9 @@ void DumpDeviceInformation(
 
 }  // namespace
 
-constexpr uint8_t kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
-
 BluetoothClassicMedium::BluetoothClassicMedium(
-    api::BluetoothAdapter& bluetoothAdapter)
-    : bluetooth_adapter_(dynamic_cast<BluetoothAdapter&>(bluetoothAdapter)) {
+    api::BluetoothAdapter& bluetooth_adapter)
+    : bluetooth_adapter_(dynamic_cast<BluetoothAdapter&>(bluetooth_adapter)) {
   InitializeDeviceWatcher();
   bluetooth_adapter_.RestoreRadioNameIfNecessary();
 
@@ -103,17 +120,17 @@ BluetoothClassicMedium::BluetoothClassicMedium(
 BluetoothClassicMedium::~BluetoothClassicMedium() {}
 
 void BluetoothClassicMedium::OnScanModeChanged(
-    BluetoothAdapter::ScanMode scanMode) {
+    BluetoothAdapter::ScanMode scan_mode) {
   NEARBY_LOGS(INFO) << __func__
                     << ": OnScanModeChanged is called with scanMode: "
-                    << static_cast<int>(scanMode);
+                    << static_cast<int>(scan_mode);
 
-  if (scanMode == scan_mode_) {
+  if (scan_mode == scan_mode_) {
     NEARBY_LOGS(INFO) << __func__ << ": No change of scan mode.";
     return;
   }
 
-  scan_mode_ = scanMode;
+  scan_mode_ = scan_mode;
   bool radio_discoverable =
       scan_mode_ == BluetoothAdapter::ScanMode::kConnectableDiscoverable;
 
@@ -130,7 +147,7 @@ void BluetoothClassicMedium::OnScanModeChanged(
   }
 
   if (rfcomm_provider_ == nullptr) {
-    NEARBY_LOGS(INFO) << __func__ << ": No advertising.";
+    NEARBY_LOGS(WARNING) << __func__ << ": No advertising.";
     return;
   }
 
@@ -184,14 +201,14 @@ bool BluetoothClassicMedium::StopDiscovery() {
 void BluetoothClassicMedium::InitializeDeviceWatcher() {
   try {
     // create watcher
-    const winrt::param::iterable<winrt::hstring> RequestedProperties =
+    const winrt::param::iterable<winrt::hstring> requested_properties =
         winrt::single_threaded_vector<winrt::hstring>(
             {winrt::to_hstring("System.Devices.Aep.IsPresent"),
              winrt::to_hstring("System.Devices.Aep.DeviceAddress")});
 
     device_watcher_ = DeviceInformation::CreateWatcher(
-        BLUETOOTH_SELECTOR,                           // aqsFilter
-        RequestedProperties,                          // additionalProperties
+        kBluetoothSelector,                           // aqsFilter
+        requested_properties,                         // additionalProperties
         DeviceInformationKind::AssociationEndpoint);  // kind
 
     //  An app must subscribe to all of the added, removed, and updated events
@@ -258,49 +275,18 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
       return nullptr;
     }
 
-    remote_device_to_connect_ =
-        std::make_unique<BluetoothDevice>(remote_device.GetMacAddress());
+    auto remote_device_to_connect_ = dynamic_cast<BluetoothDevice*>(
+        GetRemoteDevice(remote_device.GetMacAddress()));
 
-    // First try, check if the remote device that we want to request connection
-    // to has already been discovered by the Bluetooth Classic Device Watcher
-    // beforehand inside the discovered_devices_by_id_ map
-    std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
-        it = discovered_devices_by_id_.find(
-            winrt::to_hstring(remote_device_to_connect_->GetId()));
-
-    std::unique_ptr<BluetoothDevice> device = nullptr;
-    BluetoothDevice* current_device = nullptr;
-
-    if (it != discovered_devices_by_id_.end()) {
-      current_device = it->second.get();
-    } else {
-      // The remote device was not discovered by the Bluetooth Classic Device
-      // Watcher beforehand.
-      // Second try, request Windows to scan for nearby
-      // bluetooth devices that has this static mac address again in this
-      // instance
-      auto remote_bluetooth_device_from_mac_address =
-          winrt::Windows::Devices::Bluetooth::BluetoothDevice::
-              FromBluetoothAddressAsync(
-                  mac_address_string_to_uint64(remote_device.GetMacAddress()))
-                  .get();
-      if (remote_bluetooth_device_from_mac_address == nullptr) {
-        NEARBY_LOGS(ERROR) << __func__
-                           << ": Windows failed to get remote bluetooth device "
-                              "from static mac address.";
-        return nullptr;
-      }
-      device = std::make_unique<BluetoothDevice>(
-          remote_bluetooth_device_from_mac_address);
-      current_device = device.get();
-    }
-
-    if (current_device == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to get current device.";
+    if (remote_device_to_connect_ == nullptr ||
+        remote_device_to_connect_->GetId().empty()) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Failed to get remote device from MAC address.";
       return nullptr;
     }
 
-    winrt::hstring device_id = winrt::to_hstring(current_device->GetId());
+    winrt::hstring device_id =
+        winrt::to_hstring(remote_device_to_connect_->GetId());
 
     if (!HaveAccess(device_id)) {
       NEARBY_LOGS(ERROR) << __func__ << ": Failed to gain access to device: "
@@ -309,7 +295,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     }
 
     RfcommDeviceService requested_service(
-        GetRequestedService(current_device, service));
+        GetRequestedService(remote_device_to_connect_, service));
 
     if (!FeatureFlags::GetInstance()
              .GetFlags()
@@ -420,31 +406,32 @@ bool BluetoothClassicMedium::HaveAccess(winrt::hstring device_id) {
 
 RfcommDeviceService BluetoothClassicMedium::GetRequestedService(
     BluetoothDevice* device, winrt::guid service) {
-  RfcommServiceId rfcommServiceId = RfcommServiceId::FromUuid(service);
-  return device->GetRfcommServiceForIdAsync(rfcommServiceId);
+  RfcommServiceId rfcomm_service_id = RfcommServiceId::FromUuid(service);
+  return device->GetRfcommServiceForIdAsync(rfcomm_service_id);
 }
 
-bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
+bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requested_service) {
   // Do various checks of the SDP record to make sure you are talking to a
   // device that actually supports the Bluetooth Rfcomm Service
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservice.getsdprawattributesasync?view=winrt-20348
   try {
-    if (requestedService == nullptr) {
+    if (requested_service == nullptr) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Request service is empty.";
       return false;
     }
 
-    auto attributes = requestedService.GetSdpRawAttributesAsync().get();
+    auto attributes = requested_service.GetSdpRawAttributesAsync().get();
     if (!attributes.HasKey(Constants::SdpServiceNameAttributeId)) {
       NEARBY_LOGS(ERROR) << __func__ << ": Missing SdpServiceNameAttributeId.";
       return false;
     }
 
-    auto attributeReader = DataReader::FromBuffer(
+    auto attribute_reader = DataReader::FromBuffer(
         attributes.Lookup(Constants::SdpServiceNameAttributeId));
 
-    auto attributeType = attributeReader.ReadByte();
+    auto attribute_type = attribute_reader.ReadByte();
 
-    if (attributeType != Constants::SdpServiceNameAttributeType) {
+    if (attribute_type != Constants::SdpServiceNameAttributeType) {
       NEARBY_LOGS(ERROR) << __func__
                          << ": Missing SdpServiceNameAttributeType.";
       return false;
@@ -503,7 +490,22 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
-  return new BluetoothDevice(mac_address);
+  auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
+
+  if (it == mac_address_to_bluetooth_device_map_.end()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device " << mac_address
+                         << " is not in list. create it";
+    auto bluetooth_device = std::make_unique<BluetoothDevice>(mac_address);
+
+    mac_address_to_bluetooth_device_map_[mac_address] =
+        std::move(bluetooth_device);
+    return mac_address_to_bluetooth_device_map_[mac_address].get();
+  }
+
+  NEARBY_LOGS(INFO) << __func__ << ": Bluetooth device " << mac_address
+                    << " is in cache";
+
+  return it->second.get();
 }
 
 bool BluetoothClassicMedium::StartScanning() {
@@ -515,7 +517,7 @@ bool BluetoothClassicMedium::StartScanning() {
       return false;
     }
 
-    discovered_devices_by_id_.clear();
+    mac_address_to_bluetooth_device_map_.clear();
 
     // The Start method can only be called when the DeviceWatcher is in the
     // Created, Stopped or Aborted state.
@@ -548,9 +550,9 @@ bool BluetoothClassicMedium::StopScanning() {
 }
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
-    DeviceWatcher sender, DeviceInformation deviceInfo) {
-  NEARBY_LOGS(INFO) << "Device added " << winrt::to_string(deviceInfo.Id());
-  IMapView<winrt::hstring, IInspectable> properties = deviceInfo.Properties();
+    DeviceWatcher sender, DeviceInformation device_info) {
+  NEARBY_LOGS(INFO) << "Device added " << winrt::to_string(device_info.Id());
+  IMapView<winrt::hstring, IInspectable> properties = device_info.Properties();
   DumpDeviceInformation(properties);
 
   if (!IsWatcherStarted()) {
@@ -560,14 +562,14 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
   // If device no item name, ignore it.
   if (!properties.HasKey(L"System.ItemNameDisplay")) {
     NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
-                         << winrt::to_string(deviceInfo.Id())
+                         << winrt::to_string(device_info.Id())
                          << " due to no name.";
     return winrt::fire_and_forget();
   }
 
   if (properties.Lookup(L"System.ItemNameDisplay") == nullptr) {
     NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
-                         << winrt::to_string(deviceInfo.Id())
+                         << winrt::to_string(device_info.Id())
                          << " due to empty name.";
     return winrt::fire_and_forget();
   }
@@ -575,7 +577,7 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
   // If device doesn't support pair, ignore it.
   if (!properties.HasKey(L"System.Devices.Aep.CanPair")) {
     NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
-                         << winrt::to_string(deviceInfo.Id())
+                         << winrt::to_string(device_info.Id())
                          << " due to no pair property.";
     return winrt::fire_and_forget();
   }
@@ -583,61 +585,72 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
   if (!InspectableReader::ReadBoolean(
           properties.Lookup(L"System.Devices.Aep.CanPair"))) {
     NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
-                         << winrt::to_string(deviceInfo.Id())
+                         << winrt::to_string(device_info.Id())
                          << " due to not support pair.";
     return winrt::fire_and_forget();
   }
 
+  // Create a bluetooth device out of this id
+  auto native_bluetooth_device =
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
+          device_info.Id())
+          .get();
+
+  std::string mac_address =
+      uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
+
   // Create an iterator for the internal list
-  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
-      it = discovered_devices_by_id_.find(deviceInfo.Id());
+  auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
 
   // Add to our internal list if necessary
-  if (it != discovered_devices_by_id_.end()) {
+  if (it != mac_address_to_bluetooth_device_map_.end()) {
     // We're already tracking this one
-    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device "
-                         << winrt::to_string(deviceInfo.Id())
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device " << mac_address
                          << " is alreay added.";
     return winrt::fire_and_forget();
   }
 
-  // Create a bluetooth device out of this id
-  auto bluetoothDevice =
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
-          deviceInfo.Id())
-          .get();
-  auto bluetoothDeviceP = std::make_unique<BluetoothDevice>(bluetoothDevice);
+  auto bluetooth_device =
+      std::make_unique<BluetoothDevice>(native_bluetooth_device);
 
-  discovered_devices_by_id_[deviceInfo.Id()] = std::move(bluetoothDeviceP);
+  mac_address_to_bluetooth_device_map_[mac_address] =
+      std::move(bluetooth_device);
 
-  NEARBY_LOGS(INFO) << __func__ << ": Notifying bluetooth device added";
+  NEARBY_LOGS(INFO) << __func__ << ": Notifying bluetooth device "
+                    << mac_address << " added";
   if (discovery_callback_.device_discovered_cb != nullptr) {
     discovery_callback_.device_discovered_cb(
-        *discovered_devices_by_id_[deviceInfo.Id()]);
+        *mac_address_to_bluetooth_device_map_[mac_address]);
   }
   for (auto& observer : observers_.GetObservers()) {
-    observer->DeviceAdded(*discovered_devices_by_id_[deviceInfo.Id()]);
+    observer->DeviceAdded(*mac_address_to_bluetooth_device_map_[mac_address]);
   }
   return winrt::fire_and_forget();
 }
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
-    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  auto it = discovered_devices_by_id_.find(deviceInfoUpdate.Id());
+    DeviceWatcher sender, DeviceInformationUpdate device_update_info) {
+  auto native_bluetooth_device =
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
+          device_update_info.Id())
+          .get();
+  std::string mac_address =
+      uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
 
-  if (it == discovered_devices_by_id_.end()) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device "
-                         << winrt::to_string(deviceInfoUpdate.Id())
+  auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
+
+  if (it == mac_address_to_bluetooth_device_map_.end()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device " << mac_address
                          << " is not in list.";
     return winrt::fire_and_forget();
   }
 
   NEARBY_LOGS(INFO)
       << "Device updated name: "
-      << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName() << " ("
-      << winrt::to_string(deviceInfoUpdate.Id()) << ")";
+      << mac_address_to_bluetooth_device_map_[mac_address]->GetName() << " ("
+      << mac_address << ")";
   IMapView<winrt::hstring, IInspectable> properties =
-      deviceInfoUpdate.Properties();
+      device_update_info.Properties();
   DumpDeviceInformation(properties);
 
   if (!IsWatcherStarted()) {
@@ -659,10 +672,10 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 
       NEARBY_LOGS(INFO)
           << "Updated device name:"
-          << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName();
+          << mac_address_to_bluetooth_device_map_[mac_address]->GetName();
 
       discovery_callback_.device_name_changed_cb(
-          *discovered_devices_by_id_[deviceInfoUpdate.Id()]);
+          *mac_address_to_bluetooth_device_map_[mac_address]);
     }
   }
 
@@ -675,7 +688,8 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
                       << new_paired_status;
     for (auto& observer : observers_.GetObservers()) {
       observer->DevicePairedChanged(
-          *discovered_devices_by_id_[deviceInfoUpdate.Id()], new_paired_status);
+          *mac_address_to_bluetooth_device_map_[mac_address],
+          new_paired_status);
     }
   }
 
@@ -683,19 +697,25 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 }
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
-    DeviceWatcher sender, DeviceInformationUpdate deviceInfo) {
-  auto it = discovered_devices_by_id_.find(deviceInfo.Id());
+    DeviceWatcher sender, DeviceInformationUpdate device_update_info) {
+  auto native_bluetooth_device =
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
+          device_update_info.Id())
+          .get();
+  std::string mac_address =
+      uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
+  auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
 
-  if (it == discovered_devices_by_id_.end()) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device "
-                         << winrt::to_string(deviceInfo.Id())
+  if (it == mac_address_to_bluetooth_device_map_.end()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device " << mac_address
                          << " is not in list.";
     return winrt::fire_and_forget();
   }
 
-  NEARBY_LOGS(INFO) << "Device removed "
-                    << discovered_devices_by_id_[deviceInfo.Id()]->GetName()
-                    << " (" << winrt::to_string(deviceInfo.Id()) << ")";
+  NEARBY_LOGS(INFO)
+      << "Device removed "
+      << mac_address_to_bluetooth_device_map_[mac_address]->GetName() << " ("
+      << mac_address << ")";
 
   if (!IsWatcherStarted()) {
     return winrt::fire_and_forget();
@@ -704,14 +724,14 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
   NEARBY_LOGS(INFO) << __func__ << ": Notifying bluetooth device removed";
   if (discovery_callback_.device_lost_cb != nullptr) {
     discovery_callback_.device_lost_cb(
-        *discovered_devices_by_id_[deviceInfo.Id()]);
+        *mac_address_to_bluetooth_device_map_[mac_address]);
   }
 
   for (auto& observer : observers_.GetObservers()) {
-    observer->DeviceRemoved(*discovered_devices_by_id_[deviceInfo.Id()]);
+    observer->DeviceRemoved(*mac_address_to_bluetooth_device_map_[mac_address]);
   }
 
-  discovered_devices_by_id_.erase(deviceInfo.Id());
+  mac_address_to_bluetooth_device_map_.erase(mac_address);
 
   return winrt::fire_and_forget();
 }
@@ -870,21 +890,21 @@ bool BluetoothClassicMedium::StopAdvertising() {
 bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
     RfcommServiceProvider rfcomm_provider, std::string service_name) {
   try {
-    auto sdpWriter = DataWriter();
+    auto sdp_writer = DataWriter();
 
     // Write the Service Name Attribute.
-    sdpWriter.WriteByte(Constants::SdpServiceNameAttributeType);
+    sdp_writer.WriteByte(Constants::SdpServiceNameAttributeType);
 
     // The length of the UTF-8 encoded Service Name SDP Attribute.
-    sdpWriter.WriteByte(service_name.size());
+    sdp_writer.WriteByte(service_name.size());
 
     // The UTF-8 encoded Service Name value.
-    sdpWriter.UnicodeEncoding(UnicodeEncoding::Utf8);
-    sdpWriter.WriteString(winrt::to_hstring(service_name));
+    sdp_writer.UnicodeEncoding(UnicodeEncoding::Utf8);
+    sdp_writer.WriteString(winrt::to_hstring(service_name));
 
     // Set the SDP Attribute on the RFCOMM Service Provider.
     rfcomm_provider.SdpRawAttributes().Insert(
-        Constants::SdpServiceNameAttributeId, sdpWriter.DetachBuffer());
+        Constants::SdpServiceNameAttributeId, sdp_writer.DetachBuffer());
 
     return true;
   } catch (...) {
