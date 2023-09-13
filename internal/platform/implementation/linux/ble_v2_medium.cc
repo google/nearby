@@ -18,11 +18,12 @@
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Types.h>
 
-#include <absl/functional/any_invocable.h>
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/linux/ble_gatt_client.h"
 #include "internal/platform/implementation/linux/ble_gatt_server.h"
 #include "internal/platform/implementation/linux/ble_v2_medium.h"
+#include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor_manager.h"
@@ -38,6 +39,7 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
       adapter_(adapter),
       devices_(std::make_unique<BluetoothDevices>(
           *system_bus_, adapter_.GetObjectPath(), observers_)),
+      gatt_discovery_(std::make_shared<BluezGattDiscovery>(system_bus_)),
       root_object_manager_(std::make_unique<RootObjectManager>(*system_bus_)),
       adv_monitor_manager_(
           bluez::AdvertisementMonitorManager::
@@ -55,6 +57,10 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
     } catch (const sdbus::Error &e) {
       DBUS_LOG_METHOD_CALL_ERROR(adv_monitor_manager_, "RegisterMonitor", e);
     }
+  }
+  if (gatt_discovery_->InitializeKnownServices()) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Could not initialize known GATT services";
   }
 }
 
@@ -203,6 +209,17 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
   return std::make_unique<GattServer>(*system_bus_, adapter_, devices_,
                                       std::move(callback));
+}
+
+std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
+    api::ble_v2::BlePeripheral &peripheral,
+    api::ble_v2::TxPowerLevel tx_power_level,
+    api::ble_v2::ClientGattConnectionCallback callback) {
+  auto &device = dynamic_cast<BluetoothDevice &>(peripheral);
+
+  return std::make_unique<GattClient>(system_bus_, device.getObjectPath(),
+                                      gatt_discovery_,
+                                      std::move(callback.disconnected_cb));
 }
 
 bool BleV2Medium::StartLEDiscovery() {
