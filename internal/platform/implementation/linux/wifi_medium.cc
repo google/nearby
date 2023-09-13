@@ -238,7 +238,7 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
 
     if (auto ret = sd_id128_randomize(&id); ret < 0) {
       NEARBY_LOGS(ERROR) << __func__
-                         << ": could not generation a connection UUID";
+                         << ": could not generate a connection UUID";
       return api::WifiConnectionStatus::kUnknown;
     }
 
@@ -297,7 +297,7 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
         << __func__ << ": " << getObjectPath()
         << ": timed out while waiting for connection " << active_conn_path
         << " to be activated, last NMActiveConnectionStateReason: "
-        << reason.value();
+        << reason->ToString();
     return api::WifiConnectionStatus::kUnknown;
   }
 
@@ -305,9 +305,13 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
     NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath() << ": connection "
                        << active_conn_path
                        << " failed to activate, NMActiveConnectionStateReason:"
-                       << *reason;
-    if (*reason == networkmanager::ActiveConnection::kStateReasonNoSecrets ||
-        *reason == networkmanager::ActiveConnection::kStateReasonLoginFailed)
+                       << reason->ToString();
+    if (reason->value ==
+            networkmanager::ActiveConnection::ActiveConnectionStateReason::
+                kStateReasonNoSecrets ||
+        reason->value ==
+            networkmanager::ActiveConnection::ActiveConnectionStateReason::
+                kStateReasonLoginFailed)
       return api::WifiConnectionStatus::kAuthFailure;
   }
 
