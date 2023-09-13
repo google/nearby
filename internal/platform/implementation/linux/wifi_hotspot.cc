@@ -19,10 +19,9 @@
 #include <memory>
 #include <random>
 
-#include <systemd/sd-id128.h>
-
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/network_manager.h"
+#include "internal/platform/implementation/linux/utils.h"
 #include "internal/platform/implementation/linux/wifi_hotspot.h"
 #include "internal/platform/implementation/linux/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_hotspot_socket.h"
@@ -135,64 +134,41 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
     return false;
   }
 
-  sd_id128_t id;
-  if (auto ret = sd_id128_randomize(&id); ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": error generating a 128-bit ID: "
-                       << std::strerror(ret);
-    return false;
-  }
-
-  char id_cstr[SD_ID128_UUID_STRING_MAX];
-  sd_id128_to_string(id, id_cstr);
-
-  std::string ssid = absl::StrCat("DIRECT-", id_cstr);
-  ssid.resize(32);
+  std::string ssid = RandSSID();
   hotspot_credentials->SetSSID(ssid);
 
-  if (auto ret = sd_id128_randomize(&id); ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": error generating a 128-bit ID: "
-                       << std::strerror(ret);
-    return false;
-  }
-
-  sd_id128_to_string(id, id_cstr);
-  std::string password = std::string(id_cstr, 15);
+  std::string password = RandWPAPassphrase();
   hotspot_credentials->SetPassword(password);
 
-  if (auto ret = sd_id128_randomize(&id); ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": error generating a 128-bit ID: "
-                       << std::strerror(ret);
+  auto connection_id = NewUuidStr();
+  if (!connection_id.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": could not generate a connection UUID";
     return false;
   }
-  sd_id128_to_uuid_string(id, id_cstr);
 
-  std::vector<uint8_t> ssid_bytes(ssid.begin(), ssid.end());
   std::map<std::string, std::map<std::string, sdbus::Variant>>
       connection_settings{
           {
               "connection",
-              std::map<std::string, sdbus::Variant>{
-                  {"uuid", std::string(id_cstr)},
-                  {"id", "Google Nearby Hotspot"},
-                  {"type", "802-11-wireless"},
-                  {"zone", "Public"}},
+              {{"uuid", *connection_id},
+               {"id", "Google Nearby Hotspot"},
+               {"type", "802-11-wireless"},
+               {"zone", "Public"}},
           },
           {"802-11-wireless",
-           std::map<std::string, sdbus::Variant>{
-               {"assigned-mac-address", "random"},
-               {"ap-isolation", networkmanager::constants::kNMTernaryFalse},
-               {"mode", "ap"},
-               {"ssid", ssid_bytes},
-               {"security", "802-11-wireless-security"}}},
+           {{"assigned-mac-address", "random"},
+            {"ap-isolation", networkmanager::constants::kNMTernaryFalse},
+            {"mode", "ap"},
+            {"ssid", std::vector<uint8_t>(ssid.begin(), ssid.end())},
+            {"security", "802-11-wireless-security"}}},
           {"802-11-wireless-security",
-           std::map<std::string, sdbus::Variant>{
-               {"pmf", networkmanager::constants::setting::
-                           kWirelessSecurityPMFDisable},
-               {"key-mgmt", "wpa-psk"},
-               {"psk", password}}},
-          {"ipv4", std::map<std::string, sdbus::Variant>{{"method", "shared"}}},
+           {{"pmf",
+             networkmanager::constants::setting::kWirelessSecurityPMFDisable},
+            {"key-mgmt", "wpa-psk"},
+            {"psk", password}}},
+          {"ipv4", {{"method", "shared"}}},
           {"ipv6",
-           std::map<std::string, sdbus::Variant>{
+           {
                {"addr-gen-mode", networkmanager::constants::setting::
                                      kIP6ConfigAddrGenModeStablePrivacy},
                {"method", "shared"},

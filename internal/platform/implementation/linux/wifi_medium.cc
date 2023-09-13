@@ -28,6 +28,7 @@
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/device_wireless_client.h"
 #include "internal/platform/implementation/linux/network_manager_active_connection.h"
+#include "internal/platform/implementation/linux/utils.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/wifi.h"
 
@@ -229,21 +230,10 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
     return api::WifiConnectionStatus::kConnectionFailure;
   }
 
-  std::vector<std::uint8_t> ssid_bytes(ssid.begin(), ssid.end());
-  std::string connection_id;
-
-  {
-    sd_id128_t id;
-    char id_cstr[SD_ID128_UUID_STRING_MAX];
-
-    if (auto ret = sd_id128_randomize(&id); ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": could not generate a connection UUID";
-      return api::WifiConnectionStatus::kUnknown;
-    }
-
-    sd_id128_to_uuid_string(id, id_cstr);
-    connection_id = std::string(id_cstr);
+  auto connection_id = NewUuidStr();
+  if (!connection_id.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": could not generate a connection UUID";
+    return api::WifiConnectionStatus::kUnknown;
   }
 
   auto [auth_alg, key_mgmt] = AuthAlgAndKeyMgmt(auth_type);
@@ -251,22 +241,21 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
   std::map<std::string, std::map<std::string, sdbus::Variant>>
       connection_settings{
           {"connection",
-           std::map<std::string, sdbus::Variant>{
-               {"uuid", connection_id},
+           {
+               {"uuid", *connection_id},
                {"autoconnect", true},
                {"id", std::string(ssid)},
                {"type", "802-11-wireless"},
                {"zone", "Public"},
            }},
           {"802-11-wireless",
-           std::map<std::string, sdbus::Variant>{
-               {"ssid", ssid_bytes},
+           {
+               {"ssid", std::vector<uint8_t>(ssid.begin(), ssid.end())},
                {"mode", "infrastructure"},
                {"security", "802-11-wireless-security"},
                {"assigned-mac-address", "random"},
            }},
-          {"802-11-wireless-security",
-           std::map<std::string, sdbus::Variant>{{"key-mgmt", key_mgmt}}}};
+          {"802-11-wireless-security", {{"key-mgmt", key_mgmt}}}};
   if (!password.empty()) {
     connection_settings["802-11-wireless-security"]["psk"] =
         std::string(password);

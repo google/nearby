@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <random>
+
 #include <systemd/sd-id128.h>
 
+#include "absl/strings/str_cat.h"
 #include "internal/platform/implementation/linux/utils.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
@@ -46,6 +50,53 @@ std::optional<Uuid> UuidFromString(const std::string &uuid_str) {
   }
 
   return Uuid(uuid.qwords[0], uuid.qwords[1]);
+}
+
+std::optional<std::string> NewUuidStr() {
+  sd_id128_t id;
+  char id_cstr[SD_ID128_UUID_STRING_MAX];
+  if (auto ret = sd_id128_randomize(&id); ret < 0) {
+    NEARBY_LOGS(ERROR) << __func__ << ": could not generate a random UUID: "
+                       << std::strerror(ret);
+    return std::nullopt;
+  }
+
+  return std::string(sd_id128_to_uuid_string(id, id_cstr));
+}
+
+std::string RandString(std::string allowed_chars, size_t length) {
+  thread_local static std::random_device device{};
+
+  std::mt19937 gen{device()};
+  std::uniform_int_distribution<size_t> dist(0, allowed_chars.length() - 1);
+
+  std::string s;
+  s.reserve(length);
+
+  for (auto i = 0; i < length; i++) {
+    s += allowed_chars[dist(gen)];
+  }
+
+  return s;
+}
+
+std::string RandSSID() {
+  std::string allowed_chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz"
+      "0123456789";
+
+  return absl::StrCat("DIRECT-", RandString(allowed_chars, 25));
+}
+
+std::string RandWPAPassphrase() {
+  std::string allowed_chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz"
+      "0123456789"
+      "!\"#$%&'()*+,-./[\\]^_`~{|}";
+
+  return RandString(allowed_chars, 63);
 }
 }  // namespace linux
 }  // namespace nearby
