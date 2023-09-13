@@ -218,7 +218,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
         << ": timed out while waiting for connection "
         << active_conn->getObjectPath()
         << " to be activated, last NMActiveConnectionStateReason: "
-        << reason.value();
+        << reason->ToString();
     DisconnectWifiHotspot();
     return false;
   }

@@ -24,50 +24,54 @@
 namespace nearby {
 namespace linux {
 namespace networkmanager {
-std::ostream &operator<<(
-    std::ostream &stream,
-    const ActiveConnection::ActiveConnectionStateReason &reason) {
-  switch (reason) {
-    case ActiveConnection::kStateReasonUnknown:
-      return stream << "The reason for the active connection state change is "
-                       "unknown.";
-    case ActiveConnection::kStateReasonNone:
-      return stream
-             << "No reason was given for the active connection state change.";
-    case ActiveConnection::kStateReasonUserDisconnected:
-      return stream << "The active connection changed state because the user "
-                       "disconnected it.";
-    case ActiveConnection::kStateReasonDeviceDisconnected:
-      return stream << "The active connection changed state because the "
-                       "device it was "
-                       "using was disconnected.";
-    case ActiveConnection::kStateReasonServiceStopped:
-      return stream << "The service providing the VPN connection was stopped.";
-    case ActiveConnection::kStateReasonIPConfigInvalid:
-      return stream << "The IP config of the active connection was invalid.";
-    case ActiveConnection::kStateReasonConnectTimeout:
-      return stream << "The connection attempt to the VPN service timed out.";
-    case ActiveConnection::kStateReasonServiceStartTimeout:
-      return stream
-             << "A timeout occurred while starting the service providing the "
-                "VPN connection.";
-    case ActiveConnection::kStateReasonServiceStartFailed:
-      return stream
-             << "Starting the service providing the VPN connection failed.";
-    case ActiveConnection::kStateReasonNoSecrets:
-      return stream
-             << "Necessary secrets for the connection were not provided.";
-    case ActiveConnection::kStateReasonLoginFailed:
-      return stream << "Authentication to the server failed.";
-    case ActiveConnection::kStateReasonConnectionRemoved:
-      return stream << "The connection was deleted from settings.";
-    case ActiveConnection::kStateReasonDependencyFailed:
-      return stream
-             << "Master connection of this connection failed to activate.";
-    case ActiveConnection::kStateReasonDeviceRealizeFailed:
-      return stream << "Could not create the software device link.";
-    case ActiveConnection::kStateReasonDeviceRemoved:
-      return stream << "The device this connection depended on disappeared.";
+std::string ActiveConnection::ActiveConnectionStateReason::ToString() const {
+  switch (value) {
+    case ActiveConnection::ActiveConnectionStateReason::kStateReasonUnknown:
+      return "The reason for the active connection state change is "
+             "unknown.";
+    case ActiveConnection::ActiveConnectionStateReason::kStateReasonNone:
+      return "No reason was given for the active connection state change.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonUserDisconnected:
+      return "The active connection changed state because the user "
+             "disconnected it.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonDeviceDisconnected:
+      return "The active connection changed state because the "
+             "device it was "
+             "using was disconnected.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonServiceStopped:
+      return "The service providing the VPN connection was stopped.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonIPConfigInvalid:
+      return "The IP config of the active connection was invalid.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonConnectTimeout:
+      return "The connection attempt to the VPN service timed out.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonServiceStartTimeout:
+      return "A timeout occurred while starting the service providing the "
+             "VPN connection.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonServiceStartFailed:
+      return "Starting the service providing the VPN connection failed.";
+    case ActiveConnection::ActiveConnectionStateReason::kStateReasonNoSecrets:
+      return "Necessary secrets for the connection were not provided.";
+    case ActiveConnection::ActiveConnectionStateReason::kStateReasonLoginFailed:
+      return "Authentication to the server failed.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonConnectionRemoved:
+      return "The connection was deleted from settings.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonDependencyFailed:
+      return "Master connection of this connection failed to activate.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonDeviceRealizeFailed:
+      return "Could not create the software device link.";
+    case ActiveConnection::ActiveConnectionStateReason::
+        kStateReasonDeviceRemoved:
+      return "The device this connection depended on disappeared.";
   }
 }
 

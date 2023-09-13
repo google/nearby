@@ -38,22 +38,27 @@ class ActiveConnection
     kStateDeactivating = 3,
     kStateDeactivated = 4
   };
-  enum ActiveConnectionStateReason {
-    kStateReasonUnknown = 0,
-    kStateReasonNone = 1,
-    kStateReasonUserDisconnected = 2,
-    kStateReasonDeviceDisconnected = 3,
-    kStateReasonServiceStopped = 4,
-    kStateReasonIPConfigInvalid = 5,
-    kStateReasonConnectTimeout = 6,
-    kStateReasonServiceStartTimeout = 7,
-    kStateReasonServiceStartFailed = 8,
-    kStateReasonNoSecrets = 9,
-    kStateReasonLoginFailed = 10,
-    kStateReasonConnectionRemoved = 11,
-    kStateReasonDependencyFailed = 12,
-    kStateReasonDeviceRealizeFailed = 13,
-    kStateReasonDeviceRemoved = 14,
+  struct ActiveConnectionStateReason {
+    enum Value {
+      kStateReasonUnknown = 0,
+      kStateReasonNone = 1,
+      kStateReasonUserDisconnected = 2,
+      kStateReasonDeviceDisconnected = 3,
+      kStateReasonServiceStopped = 4,
+      kStateReasonIPConfigInvalid = 5,
+      kStateReasonConnectTimeout = 6,
+      kStateReasonServiceStartTimeout = 7,
+      kStateReasonServiceStartFailed = 8,
+      kStateReasonNoSecrets = 9,
+      kStateReasonLoginFailed = 10,
+      kStateReasonConnectionRemoved = 11,
+      kStateReasonDependencyFailed = 12,
+      kStateReasonDeviceRealizeFailed = 13,
+      kStateReasonDeviceRemoved = 14,
+    };
+
+    Value value{kStateReasonUnknown};
+    std::string ToString() const;
   };
 
   ActiveConnection(const ActiveConnection &) = delete;
@@ -66,7 +71,8 @@ class ActiveConnection
                         std::move(active_connection_path)),
         system_bus_(std::move(system_bus)),
         state_(kStateUnknown),
-        reason_(kStateReasonUnknown) {
+        reason_{ActiveConnection::ActiveConnectionStateReason::
+                    kStateReasonUnknown} {
     registerProxy();
     try {
       auto state = State();
@@ -86,8 +92,12 @@ class ActiveConnection
     if (state >= kStateUnknown && state <= kStateDeactivated) {
       state_ = static_cast<ActiveConnectionState>(state);
     }
-    if (reason >= kStateReasonUnknown && reason <= kStateReasonDeviceRemoved) {
-      reason_ = static_cast<ActiveConnectionStateReason>(reason);
+    if (reason >= ActiveConnection::ActiveConnectionStateReason::
+                      kStateReasonUnknown &&
+        reason <= ActiveConnection::ActiveConnectionStateReason::
+                      kStateReasonDeviceRemoved) {
+      reason_ = ActiveConnectionStateReason{
+          static_cast<ActiveConnectionStateReason::Value>(reason)};
     }
   }
 
