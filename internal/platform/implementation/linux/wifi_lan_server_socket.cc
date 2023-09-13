@@ -27,7 +27,6 @@
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/wifi_lan_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_lan_socket.h"
-#include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -75,46 +74,18 @@ std::string WifiLanServerSocket::GetIPAddress() const {
 }
 
 int WifiLanServerSocket::GetPort() const {
-  struct sockaddr_in sin;
-  socklen_t len = sizeof(sin);
-  auto ret =
-      getsockname(fd_.get(), reinterpret_cast<struct sockaddr *>(&sin), &len);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error getting information for socket "
-                       << fd_.get() << ": " << std::strerror(errno);
-    return 0;
-  }
-
-  return ntohs(sin.sin_port);
+ return server_socket_.GetPort();
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
-  struct sockaddr_in addr;
-  socklen_t len = sizeof(addr);
+  auto sock = server_socket_.Accept();
+  if (!sock.has_value()) return nullptr;
 
-  auto conn =
-      accept(fd_.get(), reinterpret_cast<struct sockaddr *>(&addr), &len);
-  if (conn < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error accepting incoming connections on socket "
-                       << fd_.get() << ": " << std::strerror(errno);
-    return nullptr;
-  }
-
-  return std::make_unique<WifiLanSocket>(sdbus::UnixFd(conn));
+  return std::make_unique<WifiLanSocket>(std::move(*sock));
 }
 
 Exception WifiLanServerSocket::Close() {
-  int fd = fd_.release();
-  shutdown(fd, SHUT_RDWR);
-  auto ret = close(fd);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket " << fd << ": "
-                       << std::strerror(errno);
-    return {Exception::kFailed};
-  }
-
-  return {Exception::kSuccess};
+  return server_socket_.Close();
 }
 }  // namespace linux
 }  // namespace nearby

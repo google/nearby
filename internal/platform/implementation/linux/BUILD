@@ -82,6 +82,7 @@ cc_library(
         "network_manager_active_connection.h",
         "network_manager_access_point.h",
         "stream.h",
+        "tcp_server_socket.h",
         "wifi_direct.h",
         "wifi_direct_server_socket.h",
         "wifi_direct_socket.h",

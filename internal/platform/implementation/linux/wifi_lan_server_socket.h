@@ -22,15 +22,17 @@
 
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/linux/network_manager.h"
+#include "internal/platform/implementation/linux/tcp_server_socket.h"
 #include "internal/platform/implementation/wifi_lan.h"
 
 namespace nearby {
 namespace linux {
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  explicit WifiLanServerSocket(int socket,                               
-                               std::shared_ptr<networkmanager::NetworkManager> network_manager)
-      : fd_(sdbus::UnixFd(socket)),
+  explicit WifiLanServerSocket(
+      TCPServerSocket socket,
+      std::shared_ptr<networkmanager::NetworkManager> network_manager)
+      : server_socket_(std::move(socket)),
         network_manager_(std::move(network_manager)),
         system_bus_(network_manager_->GetConnection()) {}
 
@@ -41,7 +43,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   Exception Close() override;
 
  private:
-  sdbus::UnixFd fd_;
+  TCPServerSocket server_socket_;
   std::shared_ptr<networkmanager::NetworkManager> network_manager_;
   std::shared_ptr<sdbus::IConnection> system_bus_;
 };

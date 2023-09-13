@@ -28,6 +28,7 @@
 #include "absl/strings/substitute.h"
 #include "internal/platform/implementation/linux/avahi.h"
 #include "internal/platform/implementation/linux/dbus.h"
+#include "internal/platform/implementation/linux/tcp_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/linux/wifi_lan_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_lan_socket.h"
@@ -204,64 +205,18 @@ bool WifiLanMedium::StopDiscovery(const std::string &service_type) {
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string &ip_address, int port,
     CancellationFlag *cancellation_flag) {
-  int sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error opening socket: " << std::strerror(errno);
-    return nullptr;
-  }
-
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
-                       << port;
-  struct sockaddr_in addr;
-  addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-
-  auto ret =
-      connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to socket: "
-                       << std::strerror(errno);
-    return nullptr;
-  }
-
-  sdbus::UnixFd fd(sock);
-  return std::make_unique<WifiLanSocket>(std::move(fd));
+  auto socket = TCPSocket::Connect(ip_address, port);
+  if (!socket.has_value()) return nullptr;
+  return std::make_unique<WifiLanSocket>(*socket);
 }
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     int port) {
-  auto sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error opening socket: " << std::strerror(errno);
-    return nullptr;
-  }
+  auto socket = TCPServerSocket::Listen(std::nullopt, port);
+  if (!socket.has_value()) return nullptr;
 
-  struct sockaddr_in addr;
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  addr.sin_port = htons(port);
-
-  auto ret =
-      bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error binding to socket: " << std::strerror(errno);
-    return nullptr;
-  }
-
-  ret = listen(sock, 0);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error listening on socket: "
-                       << std::strerror(errno);
-    return nullptr;
-  }
-
-  NEARBY_LOGS(VERBOSE) << __func__ << "Listening for services on port " << port;
-
-  return std::make_unique<WifiLanServerSocket>(sock, network_manager_);
+  return std::make_unique<WifiLanServerSocket>(std::move(*socket),
+                                               network_manager_);
 }
 
 absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {

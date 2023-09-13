@@ -20,6 +20,7 @@
 #include <sdbus-c++/Types.h>
 
 #include "internal/platform/implementation/linux/stream.h"
+#include "internal/platform/implementation/linux/tcp_server_socket.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
@@ -28,21 +29,18 @@ namespace nearby {
 namespace linux {
 class WifiLanSocket : public api::WifiLanSocket {
  public:
-  explicit WifiLanSocket(sdbus::UnixFd fd)
-      : output_stream_(fd), input_stream_(fd) {}
+  explicit WifiLanSocket(TCPSocket sock) : socket_(std::move(sock)) {}
 
-  nearby::InputStream &GetInputStream() override { return input_stream_; };
-  nearby::OutputStream &GetOutputStream() override { return output_stream_; };
-  Exception Close() override {
-    input_stream_.Close();
-    output_stream_.Close();
-
-    return Exception{Exception::kSuccess};
-  };
+  nearby::InputStream &GetInputStream() override {
+    return socket_.GetInputStream();
+  }
+  nearby::OutputStream &GetOutputStream() override {
+    return socket_.GetOutputStream();
+  }
+  Exception Close() override { return socket_.Close(); }
 
  private:
-  OutputStream output_stream_;
-  InputStream input_stream_;
+  TCPSocket socket_;
 };
 }  // namespace linux
 }  // namespace nearby
