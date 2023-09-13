@@ -34,47 +34,18 @@ std::string NetworkManagerWifiDirectServerSocket::GetIPAddress() const {
 }
 
 int NetworkManagerWifiDirectServerSocket::GetPort() const {
-  struct sockaddr_in sin;
-  socklen_t len = sizeof(sin);
-  auto ret =
-      getsockname(fd_.get(), reinterpret_cast<struct sockaddr *>(&sin), &len);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error getting information for socket "
-                       << fd_.get() << ": " << std::strerror(errno);
-    return 0;
-  }
-
-  return ntohs(sin.sin_port);
+  return server_socket_.GetPort();
 }
 
 std::unique_ptr<api::WifiDirectSocket>
 NetworkManagerWifiDirectServerSocket::Accept() {
-  struct sockaddr_in addr;
-  socklen_t len = sizeof(addr);
-
-  auto conn =
-      accept(fd_.get(), reinterpret_cast<struct sockaddr *>(&addr), &len);
-  if (conn < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error accepting incoming connections on socket "
-                       << fd_.get() << ": " << std::strerror(errno);
-    return nullptr;
-  }
-
-  return std::make_unique<WifiDirectSocket>(conn);
+  auto sock = server_socket_.Accept();
+  if (!sock.has_value()) return nullptr;
+  return std::make_unique<WifiDirectSocket>(std::move(*sock));
 }
 
 Exception NetworkManagerWifiDirectServerSocket::Close() {
-  int fd = fd_.release();
-  shutdown(fd, SHUT_RDWR);
-  auto ret = close(fd);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket " << fd << ": "
-                       << std::strerror(errno);
-    return {Exception::kFailed};
-  }
-
-  return {Exception::kSuccess};
+  return server_socket_.Close();
 }
 }  // namespace linux
 }  // namespace nearby

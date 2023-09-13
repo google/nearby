@@ -17,29 +17,22 @@
 
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/linux/stream.h"
+#include "internal/platform/implementation/linux/tcp_server_socket.h"
 #include "internal/platform/implementation/wifi_direct.h"
 
 namespace nearby {
 namespace linux {
 class WifiDirectSocket : public api::WifiDirectSocket {
  public:
-  explicit WifiDirectSocket(int socket)
-      : fd_(sdbus::UnixFd(socket)), output_stream_(fd_), input_stream_(fd_) {}
+  explicit WifiDirectSocket(TCPSocket socket) : socket_(std::move(socket)) {}
 
-  InputStream &GetInputStream() override { return input_stream_; };
-  OutputStream &GetOutputStream() override { return output_stream_; };
+  InputStream &GetInputStream() override { return socket_.GetInputStream(); }
+  OutputStream &GetOutputStream() override { return socket_.GetOutputStream(); }
 
-  Exception Close() override {
-    input_stream_.Close();
-    output_stream_.Close();
-
-    return Exception{Exception::kSuccess};
-  };
+  Exception Close() override { return socket_.Close(); };
 
  private:
-  sdbus::UnixFd fd_;
-  OutputStream output_stream_;
-  InputStream input_stream_;
+  TCPSocket socket_;
 };
 }  // namespace linux
 }  // namespace nearby

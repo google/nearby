@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <memory>
 
+#include "internal/platform/implementation/linux/tcp_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_direct.h"
 #include "internal/platform/implementation/linux/wifi_direct_server_socket.h"
 #include "internal/platform/implementation/linux/wifi_direct_socket.h"
@@ -31,29 +32,10 @@ std::unique_ptr<api::WifiDirectSocket>
 NetworkManagerWifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag *cancellation_flag) {
-  int sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error opening socket: " << std::strerror(errno);
-    return nullptr;
-  }
+  auto socket = TCPSocket::Connect(std::string(ip_address), port);
+  if (!socket.has_value()) return nullptr;
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
-                       << port;
-  struct sockaddr_in addr;
-  addr.sin_addr.s_addr = inet_addr(std::string(ip_address).c_str());
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-
-  auto ret =
-      connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to socket: "
-                       << std::strerror(errno);
-    return nullptr;
-  }
-
-  return std::make_unique<WifiDirectSocket>(sock);
+  return std::make_unique<WifiDirectSocket>(std::move(*socket));
 }
 
 std::unique_ptr<api::WifiDirectServerSocket>
@@ -72,39 +54,11 @@ NetworkManagerWifiDirectMedium::ListenForService(int port) {
     return nullptr;
   }
 
-  auto sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error opening socket: " << std::strerror(errno);
-    return nullptr;
-  }
-
-  struct sockaddr_in addr;
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = inet_addr(ip4addresses[0].c_str());
-  addr.sin_port = htons(port);
-
-  auto ret =
-      bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error binding to socket: " << std::strerror(errno);
-    return nullptr;
-  }
-
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Listening for services on "
-                       << ip4addresses[0] << ":" << port << " on device "
-                       << wireless_device_->getObjectPath();
-
-  ret = listen(sock, 0);
-  if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error listening on socket: "
-                       << std::strerror(errno);
-    return nullptr;
-  }
+  auto socket = TCPServerSocket::Listen(std::ref(ip4addresses[0]), port);
+  if (!socket.has_value()) return nullptr;
 
   return std::make_unique<NetworkManagerWifiDirectServerSocket>(
-      sock, std::move(active_connection), network_manager_);
+      std::move(*socket), std::move(active_connection), network_manager_);
 }
 
 bool NetworkManagerWifiDirectMedium::ConnectWifiDirect(
