@@ -27,6 +27,10 @@ namespace nearby {
 namespace linux {
 
 std::optional<Uuid> UuidFromString(const std::string &uuid_str);
+std::optional<std::string> NewUuidStr();
+
+std::string RandSSID();
+std::string RandWPAPassphrase();
 
 }  // namespace linux
 }  // namespace nearby
