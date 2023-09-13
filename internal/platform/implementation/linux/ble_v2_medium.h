@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/linux/ble_gatt_client.h"
 #include "internal/platform/implementation/linux/ble_v2_server_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
@@ -70,9 +71,7 @@ class BleV2Medium final : public api::ble_v2::BleMedium {
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
       api::ble_v2::BlePeripheral &peripheral,
       api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::ClientGattConnectionCallback callback) override {
-    return nullptr;
-  }
+      api::ble_v2::ClientGattConnectionCallback callback) override;
 
   std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
       const std::string &service_id) override {
@@ -117,6 +116,7 @@ class BleV2Medium final : public api::ble_v2::BleMedium {
   BluetoothAdapter adapter_;
   ObserverList<api::BluetoothClassicMedium::Observer> observers_ = {};
   std::shared_ptr<BluetoothDevices> devices_;
+  std::shared_ptr<BluezGattDiscovery> gatt_discovery_;
 
   std::unique_ptr<RootObjectManager> root_object_manager_;  
   std::unique_ptr<bluez::AdvertisementMonitorManager> adv_monitor_manager_;
