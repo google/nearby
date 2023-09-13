@@ -25,6 +25,7 @@
 #include "connections/params.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "internal/interop/device.h"
 
 namespace nearby {
 namespace connections {
@@ -106,6 +107,11 @@ class PcpHandler {
   // connection, update state on ClientProxy.
   virtual Status RequestConnection(
       ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) = 0;
+
+  virtual Status RequestConnectionV3(
+      ClientProxy* client, const NearbyDevice& remote_device,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) = 0;
 

@@ -27,6 +27,7 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/pcp_manager.h"
+#include "connections/v3/connections_device.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -127,6 +128,12 @@ class SimulationUser {
   // If latch is provided, latch->CountDown() will be called in the initiated_cb
   // callback.
   void RequestConnection(CountDownLatch* latch);
+
+  // Calls PcpManager::RequestConnectionV3.
+  // If latch is provided, latch->CountDown() will be called in the initiated_cb
+  // callback.
+  void RequestConnectionV3(CountDownLatch* latch,
+                           const NearbyDevice& remote_device);
 
   // Calls PcpManager::AcceptConnection.
   // If latch is provided, latch->CountDown() will be called in the accepted_cb

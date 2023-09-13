@@ -16,6 +16,7 @@
 
 #include "absl/functional/bind_front.h"
 #include "connections/listeners.h"
+#include "internal/interop/device.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/system_clock.h"
 
@@ -160,6 +161,29 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
                                  .listener = std::move(listener),
                              },
                              connection_options_)
+          .Ok());
+}
+
+void SimulationUser::RequestConnectionV3(CountDownLatch* latch,
+                                         const NearbyDevice& remote_device) {
+  initiated_latch_ = latch;
+  ConnectionListener listener = {
+      .initiated_cb =
+          std::bind(&SimulationUser::OnConnectionInitiated, this,
+                    std::placeholders::_1, std::placeholders::_2, true),
+      .accepted_cb =
+          absl::bind_front(&SimulationUser::OnConnectionAccepted, this),
+      .rejected_cb =
+          absl::bind_front(&SimulationUser::OnConnectionRejected, this),
+  };
+  client_.AddCancellationFlag(remote_device.GetEndpointId());
+  EXPECT_TRUE(
+      mgr_.RequestConnectionV3(&client_, remote_device,
+                               {
+                                   .endpoint_info = discovered_.endpoint_info,
+                                   .listener = std::move(listener),
+                               },
+                               connection_options_)
           .Ok());
 }
 

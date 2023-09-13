@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 65
+// Next id: 66
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -237,6 +237,9 @@ enum EventType {
 
   // Decrypt certificate failure
   DECRYPT_CERTIFICATE_FAILURE = 64;
+
+  // Show allow permission auto access UI
+  SHOW_ALLOW_PERMISSION_AUTO_ACCESS = 65;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -448,6 +451,7 @@ enum OSType {
   CHROME_OS = 2;
   IOS = 3;
   WINDOWS = 4;
+  MACOS = 5;
 }
 
 // Relationship of remote device to sender device.

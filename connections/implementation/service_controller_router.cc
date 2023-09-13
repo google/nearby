@@ -400,10 +400,10 @@ void ServiceControllerRouter::RequestConnectionV3(
   client->AddCancellationFlag(remote_device.GetEndpointId());
 
   RouteToServiceController(
-      "scr-request-connection",
-      [this, client, endpoint_id = remote_device.GetEndpointId(),
-       v3_info = std::move(info), connection_options,
-       callback = std::move(callback)]() mutable {
+      "scr-request-connection-v3",
+      [this, client, &remote_device, v3_info = std::move(info),
+       connection_options, callback = std::move(callback)]() mutable {
+        std::string endpoint_id = remote_device.GetEndpointId();
         if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
             client->IsConnectedToEndpoint(endpoint_id)) {
           callback({Status::kAlreadyConnectedToEndpoint});
@@ -420,7 +420,7 @@ void ServiceControllerRouter::RequestConnectionV3(
 
         ConnectionListener listener = {
             .initiated_cb =
-                [&v3_info](
+                [&v3_info, &remote_device](
                     const std::string& endpoint_id,
                     const ConnectionResponseInfo& response_info) mutable {
                   v3::InitialConnectionInfo new_info = {
@@ -431,10 +431,7 @@ void ServiceControllerRouter::RequestConnectionV3(
                       .is_incoming_connection =
                           response_info.is_incoming_connection,
                   };
-                  v3::ConnectionsDevice device(
-                      endpoint_id,
-                      response_info.remote_endpoint_info.AsStringView(), {});
-                  v3_info.listener.initiated_cb(device, new_info);
+                  v3_info.listener.initiated_cb(remote_device, new_info);
                 },
             .accepted_cb =
                 [result_cb = v3_info.listener.result_cb](
@@ -473,8 +470,8 @@ void ServiceControllerRouter::RequestConnectionV3(
             .endpoint_info = ByteArray(endpoint_info),
             .listener = std::move(listener),
         };
-        Status status = GetServiceController()->RequestConnection(
-            client, endpoint_id, std::move(old_info), connection_options);
+        Status status = GetServiceController()->RequestConnectionV3(
+            client, remote_device, std::move(old_info), connection_options);
         if (!status.Ok()) {
           NEARBY_LOGS(WARNING) << "Unable to request connection to endpoint "
                                << endpoint_id << ": " << status.ToString();

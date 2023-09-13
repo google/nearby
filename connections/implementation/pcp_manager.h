@@ -71,6 +71,11 @@ class PcpManager {
   Status RequestConnection(ClientProxy* client, const string& endpoint_id,
                            const ConnectionRequestInfo& info,
                            const ConnectionOptions& connection_options);
+
+  Status RequestConnectionV3(ClientProxy* client,
+                             const NearbyDevice& remote_device,
+                             const ConnectionRequestInfo& info,
+                             const ConnectionOptions& connection_options);
   Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
                           PayloadListener payload_listener);
   Status RejectConnection(ClientProxy* client, const string& endpoint_id);

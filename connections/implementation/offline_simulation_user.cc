@@ -17,6 +17,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "connections/listeners.h"
+#include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/system_clock.h"
@@ -184,6 +185,30 @@ Status OfflineSimulationUser::RequestConnection(CountDownLatch* latch) {
                                      .listener = std::move(listener),
                                  },
                                  connection_options_);
+}
+
+Status OfflineSimulationUser::RequestConnectionV3(
+    CountDownLatch* latch, const NearbyDevice& remote_device) {
+  initiated_latch_ = latch;
+  ConnectionListener listener = {
+      .initiated_cb =
+          std::bind(&OfflineSimulationUser::OnConnectionInitiated, this,
+                    std::placeholders::_1, std::placeholders::_2, true),
+      .accepted_cb =
+          absl::bind_front(&OfflineSimulationUser::OnConnectionAccepted, this),
+      .rejected_cb =
+          absl::bind_front(&OfflineSimulationUser::OnConnectionRejected, this),
+      .disconnected_cb =
+          absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
+  };
+  client_.AddCancellationFlag(remote_device.GetEndpointId());
+  return ctrl_.RequestConnectionV3(
+      &client_, remote_device,
+      {
+          .endpoint_info = discovered_.endpoint_info,
+          .listener = std::move(listener),
+      },
+      connection_options_);
 }
 
 Status OfflineSimulationUser::AcceptConnection(CountDownLatch* latch) {

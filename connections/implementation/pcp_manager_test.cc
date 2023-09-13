@@ -16,12 +16,14 @@
 
 #include <array>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/mock_device.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/medium_selector.h"
 #include "connections/v3/connection_listening_options.h"
@@ -31,6 +33,8 @@
 namespace nearby {
 namespace connections {
 namespace {
+
+using ::testing::Return;
 
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
 constexpr char kServiceId[] = "service-id";
@@ -200,6 +204,27 @@ TEST_P(PcpManagerTest, StartListeningForIncomingConnectionsFailsNoStrategy) {
   user_a.StartListeningForIncomingConnections(&start_latch, "service", options,
                                               {Status::kError});
   user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(PcpManagerTest, CanConnectV3) {
+  env_.Start();
+  SimulationUser user_a("device-a", GetParam());
+  SimulationUser user_b("device-b", GetParam());
+  CountDownLatch discovery_latch(1);
+  CountDownLatch connection_latch(2);
+  user_a.StartAdvertising(kServiceId, &connection_latch);
+  user_b.StartDiscovery(kServiceId, &discovery_latch);
+  EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
+  EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
+  auto remote_device = MockNearbyDevice();
+  EXPECT_CALL(remote_device, GetEndpointId)
+      .WillRepeatedly(Return(std::string(user_b.GetDiscovered().endpoint_id)));
+  user_b.RequestConnectionV3(&connection_latch, remote_device);
+  EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 

@@ -282,9 +282,9 @@ class ServiceControllerRouterTest : public testing::Test {
     // If we set check_result to false, we expect that RequestConnection will
     // not be called.
     if (check_result) {
-      EXPECT_CALL(*mock_, RequestConnection)
+      EXPECT_CALL(*mock_, RequestConnectionV3)
           .WillOnce([call_all_cb, endpoint_info_present, this](
-                        ClientProxy*, const std::string&,
+                        ClientProxy*, const NearbyDevice&,
                         const ConnectionRequestInfo& info,
                         const ConnectionOptions&) {
             EXPECT_EQ(info.endpoint_info.Empty(), !endpoint_info_present);

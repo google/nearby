@@ -15,9 +15,9 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_CALLBACK_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_CALLBACK_H_
 
-#include <functional>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 
@@ -27,14 +27,14 @@ namespace mediums {
 
 // Callback that is invoked when a {@link BlePeripheral} is discovered.
 struct DiscoveredPeripheralCallback {
-  std::function<void(BleV2Peripheral peripheral, const std::string& service_id,
-                     const ByteArray& advertisement_bytes,
-                     bool fast_advertisement)>
+  absl::AnyInvocable<void(
+      BleV2Peripheral peripheral, const std::string& service_id,
+      const ByteArray& advertisement_bytes, bool fast_advertisement)>
       peripheral_discovered_cb =
           [](BleV2Peripheral, const std::string&, const ByteArray&, bool) {};
-  std::function<void(BleV2Peripheral peripheral, const std::string& service_id,
-                     const ByteArray& advertisement_bytes,
-                     bool fast_advertisement)>
+  absl::AnyInvocable<void(
+      BleV2Peripheral peripheral, const std::string& service_id,
+      const ByteArray& advertisement_bytes, bool fast_advertisement)>
       peripheral_lost_cb =
           [](BleV2Peripheral, const std::string&, const ByteArray&, bool) {};
 };

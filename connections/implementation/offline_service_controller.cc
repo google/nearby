@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/strings/str_join.h"
+#include "internal/interop/device.h"
 
 namespace nearby {
 namespace connections {
@@ -99,6 +100,18 @@ Status OfflineServiceController::RequestConnection(
                     << " requested a connection to endpoint_id=" << endpoint_id;
   return pcp_manager_.RequestConnection(client, endpoint_id, info,
                                         connection_options);
+}
+
+Status OfflineServiceController::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  if (stop_) return {Status::kOutOfOrderApiCall};
+  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+                    << " requested a connection to endpoint_id="
+                    << remote_device.GetEndpointId();
+  return pcp_manager_.RequestConnectionV3(client, remote_device, info,
+                                          connection_options);
 }
 
 Status OfflineServiceController::AcceptConnection(
