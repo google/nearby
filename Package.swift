@@ -370,7 +370,6 @@ let package = Package(
         "presence",
         "embedded",
         "connections/c",
-        "connections/connectionsd",
         "connections/dart",
         "connections/clients/ios",
         "connections/README.md",
