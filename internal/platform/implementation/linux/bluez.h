@@ -67,14 +67,14 @@ class BluezObjectManager
       : ProxyInterfaces(system_bus, "org.bluez", "/") {
     registerProxy();
   }
-  ~BluezObjectManager() { unregisterProxy(); }
+  virtual ~BluezObjectManager() { unregisterProxy(); }
 
  protected:
-  void onInterfacesAdded(
+   void onInterfacesAdded(
       const sdbus::ObjectPath &objectPath,
       const std::map<std::string, std::map<std::string, sdbus::Variant>>
           &interfacesAndProperties) override {}
-  void onInterfacesRemoved(
+   void onInterfacesRemoved(
       const sdbus::ObjectPath &objectPath,
       const std::vector<std::string> &interfaces) override {}
 };
