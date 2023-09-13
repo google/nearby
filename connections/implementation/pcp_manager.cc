@@ -20,6 +20,7 @@
 #include "connections/implementation/p2p_point_to_point_pcp_handler.h"
 #include "connections/implementation/p2p_star_pcp_handler.h"
 #include "connections/implementation/pcp_handler.h"
+#include "internal/interop/device.h"
 
 namespace nearby {
 namespace connections {
@@ -125,6 +126,19 @@ Status PcpManager::RequestConnection(
 
   return current_->RequestConnection(client, endpoint_id, info,
                                      connection_options);
+}
+
+Status PcpManager::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  // TODO(b/300174495): Add test coverage for when |current_| is nullptr.
+  if (!current_) {
+    return {Status::kOutOfOrderApiCall};
+  }
+
+  return current_->RequestConnectionV3(client, remote_device, info,
+                                       connection_options);
 }
 
 Status PcpManager::AcceptConnection(ClientProxy* client,

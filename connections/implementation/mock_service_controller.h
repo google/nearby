@@ -21,6 +21,7 @@
 #include "gmock/gmock.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/v3/connection_listening_options.h"
+#include "internal/interop/device.h"
 
 namespace nearby {
 namespace connections {
@@ -68,6 +69,12 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(Status, RequestConnection,
               (ClientProxy * client, const std::string& endpoint_id,
+               const ConnectionRequestInfo& info,
+               const ConnectionOptions& connection_options),
+              (override));
+
+  MOCK_METHOD(Status, RequestConnectionV3,
+              (ClientProxy * client, const NearbyDevice& remote_device,
                const ConnectionRequestInfo& info,
                const ConnectionOptions& connection_options),
               (override));

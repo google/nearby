@@ -170,6 +170,7 @@ cc_library(
     hdrs = [
         "fake_bwu_handler.h",
         "fake_endpoint_channel.h",
+        "mock_device.h",
         "mock_service_controller.h",
         "mock_service_controller_router.h",
         "offline_simulation_user.h",
@@ -184,8 +185,8 @@ cc_library(
         "//connections/implementation/flags:connections_flags",
         "//connections/v3:v3_types",
         "//internal/flags:nearby_flags",
+        "//internal/interop:device",
         "//internal/platform:base",
-        "//internal/platform:test_util",
         "//internal/platform:types",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",

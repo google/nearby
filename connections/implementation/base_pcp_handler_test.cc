@@ -39,6 +39,7 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mock_device.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -71,8 +72,11 @@ using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Invoke;
 using ::testing::MockFunction;
+using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::StrictMock;
+
+constexpr absl::string_view kTestEndpointId = "REMOTETEST";
 
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
 
@@ -108,7 +112,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
 
 class FakePresenceDevice : public NearbyDevice {
  public:
-  std::string GetEndpointId() const override { return "TEST"; }
+  std::string GetEndpointId() const override { return "LOCALTEST"; }
   MOCK_METHOD(std::vector<ConnectionInfoVariant>, GetConnectionInfos, (),
               (const override));
   MOCK_METHOD(NearbyDevice::Type, GetType, (), (const override));
@@ -498,6 +502,10 @@ class BasePcpHandlerTest
                                                            std::move(output_b));
     auto channel_b = std::make_unique<MockEndpointChannel>(std::move(input_b),
                                                            std::move(output_a));
+    ON_CALL(mock_device_, GetType)
+        .WillByDefault(Return(NearbyDevice::Type::kUnknownDevice));
+    ON_CALL(mock_device_, GetEndpointId)
+        .WillByDefault(Return(std::string(kTestEndpointId)));
     // On initiator (A) side, we drop the first write, since this is a
     // connection establishment packet, and we don't have the peer entity, just
     // the peer channel. The rest of the exchange must happen for the benefit of
@@ -511,6 +519,46 @@ class BasePcpHandlerTest
             Invoke([channel = channel_a.get()](const ByteArray& data) {
               return channel->DoWrite(data);
             }));
+    EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(medium));
+    EXPECT_CALL(*channel_a, GetLastReadTimestamp)
+        .WillRepeatedly(Return(absl::Now()));
+    EXPECT_CALL(*channel_a, IsPaused).WillRepeatedly(Return(false));
+    EXPECT_CALL(*channel_b, Read())
+        .WillRepeatedly(Invoke(
+            [channel = channel_b.get()]() { return channel->DoRead(); }));
+    EXPECT_CALL(*channel_b, Write(_))
+        .WillRepeatedly(
+            Invoke([channel = channel_b.get()](const ByteArray& data) {
+              return channel->DoWrite(data);
+            }));
+    EXPECT_CALL(*channel_b, GetMedium).WillRepeatedly(Return(medium));
+    EXPECT_CALL(*channel_b, GetLastReadTimestamp)
+        .WillRepeatedly(Return(absl::Now()));
+    EXPECT_CALL(*channel_b, IsPaused).WillRepeatedly(Return(false));
+    return std::make_pair(std::move(channel_a), std::move(channel_b));
+  }
+
+  std::pair<std::unique_ptr<MockEndpointChannel>,
+            std::unique_ptr<MockEndpointChannel>>
+  SetupConnectionForConnectFailure(
+      location::nearby::proto::connections::Medium medium) {  // NOLINT
+    auto [input_a, output_a] = CreatePipe();
+    auto [input_b, output_b] = CreatePipe();
+    auto channel_a = std::make_unique<MockEndpointChannel>(std::move(input_a),
+                                                           std::move(output_b));
+    auto channel_b = std::make_unique<MockEndpointChannel>(std::move(input_b),
+                                                           std::move(output_a));
+    ON_CALL(mock_device_, GetType)
+        .WillByDefault(Return(NearbyDevice::Type::kUnknownDevice));
+    ON_CALL(mock_device_, GetEndpointId)
+        .WillByDefault(Return(std::string(kTestEndpointId)));
+    // On initiator (A) side, we drop the first write, since this is a
+    // connection establishment packet, and we don't have the peer entity, just
+    // the peer channel. The rest of the exchange must happen for the benefit of
+    // DH key exchange.
+    EXPECT_CALL(*channel_a, Read())
+        .WillRepeatedly(Invoke(
+            [channel = channel_a.get()]() { return channel->DoRead(); }));
     EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_a, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -599,6 +647,76 @@ class BasePcpHandlerTest
                                              connection_options),
               expected_result);
     NEARBY_LOG(INFO, "Stopping Encryption Runner");
+  }
+
+  void RequestConnectionV3(
+      const NearbyDevice& remote_device,
+      std::unique_ptr<MockEndpointChannel> channel_a,
+      MockEndpointChannel* channel_b, ClientProxy* client,
+      MockPcpHandler* pcp_handler,
+      location::nearby::proto::connections::Medium connect_medium,
+      std::atomic_int* flag = nullptr,
+      Status expected_result = {Status::kSuccess}) {
+    ConnectionRequestInfo info{
+        .endpoint_info = ByteArray{"ABCD"},
+        .listener = connection_listener_,
+    };
+    ConnectionOptions connection_options{
+        .remote_bluetooth_mac_address = ByteArray{"\x12\x34\x56\x78\x9a\xbc"},
+        .keep_alive_interval_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+        .keep_alive_timeout_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
+    };
+    EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+    EXPECT_CALL(*pcp_handler, CanSendOutgoingConnection)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*pcp_handler, GetStrategy)
+        .WillRepeatedly(Return(Strategy::kP2pCluster));
+    if (expected_result == Status{Status::kSuccess}) {
+      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+    }
+    // Simulate successful discovery.
+    auto encryption_runner = std::make_unique<EncryptionRunner>();
+    auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
+
+    EXPECT_CALL(*pcp_handler, ConnectImpl)
+        .WillRepeatedly(
+            Invoke([&channel_a, connect_medium](
+                       ClientProxy* client,
+                       MockPcpHandler::DiscoveredEndpoint* endpoint) {
+              return MockPcpHandler::ConnectImplResult{
+                  .medium = connect_medium,
+                  .status = {Status::kSuccess},
+                  .endpoint_channel = std::move(channel_a),
+              };
+            }));
+
+    for (const auto& discovered_medium : allowed_mediums) {
+      pcp_handler->OnEndpointFound(
+          client,
+          std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+              {
+                  remote_device.GetEndpointId(),
+                  info.endpoint_info,
+                  "service",
+                  discovered_medium,
+                  WebRtcState::kUndefined,
+              },
+              MockContext{flag},
+          }));
+    }
+    auto other_client = std::make_unique<ClientProxy>();
+
+    // Run peer crypto in advance, if channel_b is provided.
+    // Otherwise stay in not-encrypted state.
+    if (channel_b != nullptr) {
+      encryption_runner->StartServer(
+          other_client.get(), remote_device.GetEndpointId(), channel_b, {});
+    }
+    EXPECT_EQ(pcp_handler->RequestConnectionV3(client, remote_device, info,
+                                               connection_options),
+              expected_result);
   }
 
   void RequestConnectionWifiLanFail(
@@ -704,6 +822,7 @@ class BasePcpHandlerTest
   };
   SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
+  NiceMock<MockNearbyDevice> mock_device_;
 };
 
 TEST_P(BasePcpHandlerTest, ConstructorDestructorWorks) {
@@ -955,7 +1074,6 @@ TEST_P(BasePcpHandlerTest, CanRequestConnectionPresence) {
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
-  env_.Stop();
 }
 
 TEST_P(BasePcpHandlerTest, CanRequestConnectionLegacy) {
@@ -983,6 +1101,216 @@ TEST_P(BasePcpHandlerTest, CanRequestConnectionLegacy) {
   RequestConnection("1234", std::move(channel_a), channel_b.get(), &client,
                     &pcp_handler, connect_medium);
   NEARBY_LOG(INFO, "RequestConnection complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, RequestConnectionV3) {
+  env_.Start();
+  ClientProxy client;
+  FakePresenceDeviceProvider provider;
+  EXPECT_CALL(provider.local_device_, GetType)
+      .WillRepeatedly(Return(NearbyDevice::Type::kUnknownDevice));
+  EXPECT_CALL(provider.local_device_, ToProtoBytes);
+  client.RegisterDeviceProvider(&provider);
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  const auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnectionV3(mock_device_, std::move(channel_a), channel_b.get(),
+                      &client, &pcp_handler, connect_medium);
+  NEARBY_LOG(INFO, "RequestConnectionV3 complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, RequestConnectionV3_ConnectImplFailure) {
+  env_.Start();
+  ClientProxy client;
+  FakePresenceDeviceProvider provider;
+  EXPECT_CALL(provider.local_device_, GetType)
+      .WillRepeatedly(Return(NearbyDevice::Type::kUnknownDevice));
+  client.RegisterDeviceProvider(&provider);
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnectionForConnectFailure(connect_medium);
+  const auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  ConnectionRequestInfo info{
+      .endpoint_info = ByteArray{"ABCD"},
+      .listener = connection_listener_,
+  };
+  ConnectionOptions connection_options{
+      .remote_bluetooth_mac_address = ByteArray{"\x12\x34\x56\x78\x9a\xbc"},
+      .keep_alive_interval_millis =
+          FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+      .keep_alive_timeout_millis =
+          FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
+  };
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  EXPECT_CALL(pcp_handler, CanSendOutgoingConnection)
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(pcp_handler, GetStrategy)
+      .WillRepeatedly(Return(Strategy::kP2pCluster));
+  // Simulate successful discovery.
+  auto encryption_runner = std::make_unique<EncryptionRunner>();
+  auto allowed_mediums = pcp_handler.GetDiscoveryMediums(&client);
+
+  EXPECT_CALL(pcp_handler, ConnectImpl)
+      .WillRepeatedly(Invoke(
+          [connect_medium](ClientProxy* client,
+                           MockPcpHandler::DiscoveredEndpoint* endpoint) {
+            return MockPcpHandler::ConnectImplResult{
+                .medium = connect_medium,
+                .status = {Status::kError},
+                .endpoint_channel = nullptr,
+            };
+          }));
+
+  for (const auto& discovered_medium : allowed_mediums) {
+    pcp_handler.OnEndpointFound(
+        &client,
+        std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+            {
+                mock_device_.GetEndpointId(),
+                info.endpoint_info,
+                "service",
+                discovered_medium,
+                WebRtcState::kUndefined,
+            },
+            MockContext{nullptr},
+        }));
+  }
+
+  Status expected_result = {Status::kError};
+  EXPECT_EQ(pcp_handler.RequestConnectionV3(&client, mock_device_, info,
+                                            connection_options),
+            expected_result);
+  NEARBY_LOG(INFO, "RequestConnectionV3 complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, RequestConnection_ConnectImplFailure) {
+  env_.Start();
+  ClientProxy client;
+  FakePresenceDeviceProvider provider;
+  EXPECT_CALL(provider.local_device_, GetType)
+      .WillRepeatedly(Return(NearbyDevice::Type::kUnknownDevice));
+  client.RegisterDeviceProvider(&provider);
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnectionForConnectFailure(connect_medium);
+  const auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  ConnectionRequestInfo info{
+      .endpoint_info = ByteArray{"ABCD"},
+      .listener = connection_listener_,
+  };
+  ConnectionOptions connection_options{
+      .remote_bluetooth_mac_address = ByteArray{"\x12\x34\x56\x78\x9a\xbc"},
+      .keep_alive_interval_millis =
+          FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+      .keep_alive_timeout_millis =
+          FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
+  };
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  EXPECT_CALL(pcp_handler, CanSendOutgoingConnection)
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(pcp_handler, GetStrategy)
+      .WillRepeatedly(Return(Strategy::kP2pCluster));
+  // Simulate successful discovery.
+  auto encryption_runner = std::make_unique<EncryptionRunner>();
+  auto allowed_mediums = pcp_handler.GetDiscoveryMediums(&client);
+
+  EXPECT_CALL(pcp_handler, ConnectImpl)
+      .WillRepeatedly(Invoke(
+          [connect_medium](ClientProxy* client,
+                           MockPcpHandler::DiscoveredEndpoint* endpoint) {
+            return MockPcpHandler::ConnectImplResult{
+                .medium = connect_medium,
+                .status = {Status::kError},
+                .endpoint_channel = nullptr,
+            };
+          }));
+
+  for (const auto& discovered_medium : allowed_mediums) {
+    pcp_handler.OnEndpointFound(
+        &client,
+        std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+            {
+                std::string(kTestEndpointId),
+                info.endpoint_info,
+                "service",
+                discovered_medium,
+                WebRtcState::kUndefined,
+            },
+            MockContext{nullptr},
+        }));
+  }
+  Status expected_result = {Status::kError};
+  EXPECT_EQ(pcp_handler.RequestConnection(&client, std::string(kTestEndpointId),
+                                          info, connection_options),
+            expected_result);
+  NEARBY_LOG(INFO, "RequestConnection complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, IoError_RequestConnectionV3Fails) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_a, CloseImpl).Times(AtLeast(1));
+  EXPECT_CALL(*channel_b, CloseImpl).Times(AtLeast(1));
+  channel_b->broken_write_ = true;
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnectionV3(mock_device_, std::move(channel_a), channel_b.get(),
+                      &client, &pcp_handler, connect_medium, nullptr,
+                      {Status::kEndpointIoError});
+  NEARBY_LOG(INFO, "RequestConnectionV3 complete");
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();

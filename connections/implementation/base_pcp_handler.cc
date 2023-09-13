@@ -613,27 +613,140 @@ Status BasePcpHandler::RequestConnection(
        result]() RUN_ON_PCP_HANDLER_THREAD() {
         absl::Time start_time = SystemClock::ElapsedRealtime();
 
-        // If we already have a pending connection, then we shouldn't allow any
-        // more outgoing connections to this endpoint.
-        if (pending_connections_.count(endpoint_id)) {
+        DiscoveredEndpoint* endpoint = GetDiscoveredEndpoint(endpoint_id);
+        if (endpoint == nullptr) {
           NEARBY_LOGS(INFO)
-              << "In requestConnection(), connection requested with "
-                 "endpoint(id="
-              << endpoint_id
-              << "), but we already have a pending connection with them.";
-          result->Set({Status::kAlreadyConnectedToEndpoint});
+              << "Discovered endpoint not found: endpoint_id=" << endpoint_id;
+          result->Set({Status::kEndpointUnknown});
           return;
         }
 
-        // If our child class says we can't send any more outgoing connections,
-        // listen to them.
-        if (client->ShouldEnforceTopologyConstraints() &&
-            !CanSendOutgoingConnection(client)) {
+        auto remote_bluetooth_mac_address = BluetoothUtils::ToString(
+            connection_options.remote_bluetooth_mac_address);
+        if (!remote_bluetooth_mac_address.empty()) {
+          if (AppendRemoteBluetoothMacAddressEndpoint(
+                  endpoint_id, remote_bluetooth_mac_address,
+                  client->GetDiscoveryOptions()))
+            NEARBY_LOGS(INFO)
+                << "Appended remote Bluetooth MAC Address endpoint ["
+                << remote_bluetooth_mac_address << "]";
+        }
+
+        if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
+          NEARBY_LOGS(INFO) << "Appended Web RTC endpoint.";
+
+        auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
+        std::unique_ptr<EndpointChannel> channel;
+        ConnectImplResult connect_impl_result;
+
+        for (auto connect_endpoint : discovered_endpoints) {
+          if (!MediumSupportedByClientOptions(connect_endpoint->medium,
+                                              connection_options))
+            continue;
+          connect_impl_result = ConnectImpl(client, connect_endpoint);
+          if (connect_impl_result.status.Ok()) {
+            channel = std::move(connect_impl_result.endpoint_channel);
+            break;
+          }
+        }
+
+        Medium channel_medium =
+            channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
+        if (channel == nullptr) {
           NEARBY_LOGS(INFO)
-              << "In requestConnection(), client=" << client->GetClientId()
-              << " attempted a connection with endpoint(id=" << endpoint_id
-              << "), but outgoing connections are disallowed";
-          result->Set({Status::kOutOfOrderApiCall});
+              << "Endpoint channel not available: endpoint_id=" << endpoint_id;
+          ProcessPreConnectionInitiationFailure(
+              client, channel_medium, endpoint_id, channel.get(),
+              /* is_incoming = */ false, start_time, connect_impl_result.status,
+              result.get());
+          return;
+        }
+
+        NEARBY_LOGS(INFO)
+            << "In requestConnection(), wrote ConnectionRequestFrame "
+               "to endpoint_id="
+            << endpoint_id;
+
+        ConnectionInfo connection_info =
+            FillConnectionInfo(client, info, connection_options);
+
+        const NearbyDevice* local_device = client->GetLocalDevice();
+        Exception write_exception = WriteConnectionRequestFrame(
+            local_device->GetType(), local_device->ToProtoBytes(),
+            connection_info, channel.get());
+
+        if (!write_exception.Ok()) {
+          NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
+                            << endpoint_id;
+          ProcessPreConnectionInitiationFailure(
+              client, channel_medium, endpoint_id, channel.get(),
+              /* is_incoming = */ false, start_time, {Status::kEndpointIoError},
+              result.get());
+          return;
+        }
+
+        NEARBY_LOGS(INFO) << "Adding connection to pending set: endpoint_id="
+                          << endpoint_id;
+
+        // We've successfully connected to the device, and are now about to jump
+        // on to the EncryptionRunner thread to start running our encryption
+        // protocol. We'll mark ourselves as pending in case we get another call
+        // to RequestConnection or OnIncomingConnection, so that we can cancel
+        // the connection if needed.
+        // Not using designated initializers here since the VS C++ compiler
+        // errors out indicating that MediumSelector<bool> is not an aggregate
+        // TODO(b/300149127): Add test coverage to `PendingConnectionInfo`
+        // fields.
+        PendingConnectionInfo pendingConnectionInfo{};
+        pendingConnectionInfo.client = client;
+        pendingConnectionInfo.remote_endpoint_info = endpoint->endpoint_info;
+        pendingConnectionInfo.nonce = connection_info.nonce;
+        pendingConnectionInfo.is_incoming = false;
+        pendingConnectionInfo.start_time = start_time;
+        pendingConnectionInfo.listener = info.listener;
+        pendingConnectionInfo.connection_options = connection_options;
+        pendingConnectionInfo.result = result;
+        pendingConnectionInfo.channel = std::move(channel);
+
+        EndpointChannel* endpoint_channel =
+            pending_connections_
+                .emplace(endpoint_id, std::move(pendingConnectionInfo))
+                .first->second.channel.get();
+
+        NEARBY_LOGS(INFO) << "Initiating secure connection: endpoint_id="
+                          << endpoint_id;
+        // Next, we'll set up encryption. When it's done, our future will return
+        // and RequestConnection() will finish.
+        encryption_runner_.StartClient(client, endpoint_id, endpoint_channel,
+                                       GetResultListener());
+      });
+  NEARBY_LOGS(INFO) << "Waiting for connection to complete: endpoint_id="
+                    << endpoint_id;
+  auto status =
+      WaitForResult(absl::StrCat("RequestConnection(", endpoint_id, ")"),
+                    client->GetClientId(), result.get());
+  NEARBY_LOGS(INFO) << "Wait is complete: endpoint_id=" << endpoint_id
+                    << "; status=" << status.value;
+  return status;
+}
+
+Status BasePcpHandler::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  auto result = std::make_shared<Future<Status>>();
+  std::string endpoint_id = remote_device.GetEndpointId();
+  RunOnPcpHandlerThread(
+      "request-connection-v3",
+      [this, client, &info, connection_options, &remote_device,
+       result]() RUN_ON_PCP_HANDLER_THREAD() {
+        absl::Time start_time = SystemClock::ElapsedRealtime();
+        std::string endpoint_id = remote_device.GetEndpointId();
+
+        auto connection_request_verification_status =
+            VerifyConnectionRequest(endpoint_id, client);
+        if (!connection_request_verification_status.Ok()) {
+          result->Set(connection_request_verification_status);
           return;
         }
 
@@ -692,7 +805,7 @@ Status BasePcpHandler::RequestConnection(
         }
 
         NEARBY_LOGS(INFO)
-            << "In requestConnection(), wrote ConnectionRequestFrame "
+            << "In requestConnectionV3(), wrote ConnectionRequestFrame "
                "to endpoint_id="
             << endpoint_id;
 
@@ -1668,6 +1781,33 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
   }
 
   return false;
+}
+
+Status BasePcpHandler::VerifyConnectionRequest(const std::string& endpoint_id,
+                                               ClientProxy* client) {
+  // If we already have a pending connection, then we shouldn't allow any
+  // more outgoing connections to this endpoint.
+  if (pending_connections_.count(endpoint_id)) {
+    NEARBY_LOGS(INFO)
+        << "In requestConnection(), connection requested with "
+           "endpoint(id="
+        << endpoint_id
+        << "), but we already have a pending connection with them.";
+    return {Status::kAlreadyConnectedToEndpoint};
+  }
+
+  // If our child class says we can't send any more outgoing connections,
+  // listen to them.
+  if (client->ShouldEnforceTopologyConstraints() &&
+      !CanSendOutgoingConnection(client)) {
+    NEARBY_LOGS(INFO) << "In requestConnection(), client="
+                      << client->GetClientId()
+                      << " attempted a connection with endpoint(id="
+                      << endpoint_id
+                      << "), but outgoing connections are disallowed";
+    return {Status::kOutOfOrderApiCall};
+  }
+  return {Status::kSuccess};
 }
 
 void BasePcpHandler::ProcessTieBreakLoss(
