@@ -15,8 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WIFI_H_
 #define PLATFORM_IMPL_WINDOWS_WIFI_H_
 
-#include <objbase.h>
 #include <windows.h>
+#include <objbase.h>
 #include <wlanapi.h>
 #include <wtypes.h>
 

@@ -277,6 +277,8 @@ cc_test(
         "timer_test.cc",
         "utils_test.cc",
         "webrtc_test.cc",
+        "wifi_hotspot_test.cc",
+        "wifi_medium_test.cc",
     ],
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
     tags = ["notap"],
