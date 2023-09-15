@@ -14,14 +14,20 @@
 
 #include "internal/network/http_client_impl.h"
 
-#include <functional>
 #include <memory>
 #include <ostream>
 #include <sstream>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "internal/network/debug.h"
+#include "internal/network/http_request.h"
+#include "internal/network/http_response.h"
+#include "internal/network/http_status_code.h"
+#include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
@@ -31,10 +37,10 @@ namespace network {
 
 void NearbyHttpClient::StartRequest(
     const HttpRequest& request,
-    std::function<void(const absl::StatusOr<HttpResponse>&)> callback) {
+    absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
   MutexLock lock(&mutex_);
   executor_.Execute(
-      [request = std::move(request), callback = std::move(callback)]() {
+      [request = std::move(request), callback = std::move(callback)]() mutable {
         NEARBY_LOGS(INFO) << __func__ << ": Start async request to url="
                           << request.GetUrl().GetUrlPath();
         absl::StatusOr<HttpResponse> response = InternalGetResponse(request);
@@ -58,7 +64,7 @@ void NearbyHttpClient::StartRequest(
 
 void NearbyHttpClient::StartCancellableRequest(
     std::unique_ptr<CancellableRequest> cancellable_request,
-    std::function<void(const absl::StatusOr<HttpResponse>&)> callback) {
+    absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
   MutexLock lock(&mutex_);
   if (cancellable_request == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": invalid cancellable request.";
@@ -68,7 +74,7 @@ void NearbyHttpClient::StartCancellableRequest(
   executor_
       .Execute(
           [cancellable_request = std::move(cancellable_request),
-           callback = std::move(callback)]() {
+           callback = std::move(callback)]() mutable {
             NEARBY_LOGS(INFO)
                 << __func__ << ": Start async request to url="
                 << cancellable_request->http_request().GetUrl().GetUrlPath();

@@ -37,13 +37,14 @@ class NearbyHttpClient : public HttpClient {
   NearbyHttpClient(NearbyHttpClient&&) = default;
   NearbyHttpClient& operator=(NearbyHttpClient&&) = default;
 
-  void StartRequest(const HttpRequest& request,
-                    std::function<void(const absl::StatusOr<HttpResponse>&)>
-                        callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+  void StartRequest(
+      const HttpRequest& request,
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
+      override ABSL_LOCKS_EXCLUDED(mutex_);
 
   void StartCancellableRequest(
       std::unique_ptr<CancellableRequest> request,
-      std::function<void(const absl::StatusOr<HttpResponse>&)> callback)
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets HTTP response in synchronization mode.

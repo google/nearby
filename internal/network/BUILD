@@ -28,7 +28,9 @@ cc_library(
     ],
     deps = [
         "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -56,13 +58,12 @@ cc_library(
     deps = [
         ":types",
         "//internal/platform:types",
-        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:comm",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/strings",
     ],
 )
 
