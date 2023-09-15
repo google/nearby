@@ -1,0 +1,42 @@
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package nearby.sharing.proto;
+
+import "sharing/proto/rpc_resources.proto";
+
+option optimize_for = LITE_RUNTIME;
+
+// Request to list ContactRecord of a user.
+message ListContactPeopleRequest {
+  // Optional limit on the number of ContactRecord in
+  // [ListContactPeopleResponse.contact_records]. Defaults to 500 if not set.
+  int32 page_size = 1;
+
+  // Optional pagination token, returned earlier via
+  // [ListContactPeopleResponse.next_page_token]
+  string page_token = 2;
+}
+
+// Response from a ListContactPeopleRequest.
+message ListContactPeopleResponse {
+  // The ContactRecord in this collection.
+  repeated ContactRecord contact_records = 1;
+
+  // Optional. A token to retrieve the next page of results when used in
+  // [ListContactPeopleRequest]. Empty if no page is available.
+  string next_page_token = 2;
+}

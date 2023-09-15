@@ -37,6 +37,8 @@ jobs:
       run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections:core --spawn_strategy=standalone
     - name: Build Presence
       run: CC=clang CXX=clang++ bazel build --check_visibility=false //presence --spawn_strategy=standalone
+    - name: Build Sharing
+      run: CC=clang CXX=clang++ bazel build --check_visibility=false //sharing/proto:all --spawn_strategy=standalone
 
   build-rust-linux:
     name: Build Rust on Linux
