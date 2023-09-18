@@ -109,7 +109,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string registry_bluetooth_adapter_name_;
 
   IRadio windows_bluetooth_radio_;
-  char *GetGenericBluetoothAdapterInstanceID() const;
+  std::optional<std::string> GetGenericBluetoothAdapterInstanceID() const;
   void find_and_replace(char *source, const char *strFind,
                         const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
