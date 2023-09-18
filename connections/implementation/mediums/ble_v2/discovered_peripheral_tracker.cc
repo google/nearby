@@ -538,7 +538,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
                           advertisement_fetcher =
                               std::move(advertisement_fetcher),
                           advertisement_data =
-                              std::move(advertisement_data)]() {
+                              std::move(advertisement_data)]() mutable {
         {
           MutexLock lock(&mutex_);
           if (!IsInterestingAdvertisementHeader(advertisement_header)) {
@@ -680,9 +680,9 @@ DiscoveredPeripheralTracker::FetchRawAdvertisements(
   std::transform(service_id_infos_.begin(), service_id_infos_.end(),
                  std::back_inserter(service_ids),
                  [](auto& kv) { return kv.first; });
-  advertisement_fetcher.fetch_advertisements(
-      std::move(peripheral), advertisement_header.GetNumSlots(),
-      advertisement_header.GetPsm(), service_ids, *result);
+  advertisement_fetcher(std::move(peripheral),
+                        advertisement_header.GetNumSlots(),
+                        advertisement_header.GetPsm(), service_ids, *result);
 
   // Take those results and return all the advertisements we were able to
   // read.
@@ -709,9 +709,9 @@ DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
                    std::back_inserter(service_ids),
                    [](auto& kv) { return kv.first; });
   }
-  advertisement_fetcher.fetch_advertisements(
-      std::move(peripheral), advertisement_header.GetNumSlots(),
-      advertisement_header.GetPsm(), service_ids, *result);
+  advertisement_fetcher(std::move(peripheral),
+                        advertisement_header.GetNumSlots(),
+                        advertisement_header.GetPsm(), service_ids, *result);
 
   // Take those results and return all the advertisements we were able to
   // read.

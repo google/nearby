@@ -18,6 +18,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "internal/platform/ble_v2.h"
@@ -152,23 +153,19 @@ class DiscoveredPeripheralTrackerTest : public testing::Test {
   DiscoveredPeripheralTracker::AdvertisementFetcher GetAdvertisementFetcher(
       CountDownLatch& fetch_latch,
       const std::vector<ByteArray>& advertisement_bytes_list) {
-    return {
-        .fetch_advertisements =
-            [this, &fetch_latch, &advertisement_bytes_list](
-                BleV2Peripheral peripheral, int num_slots, int psm,
-                const std::vector<std::string>& interesting_service_ids,
-                mediums::AdvertisementReadResult& advertisement_read_result) {
-              MutexLock lock(&mutex_);
-              fetch_count_++;
-              int slot = 0;
-              for (const auto& advertisement_bytes : advertisement_bytes_list) {
-                advertisement_read_result.AddAdvertisement(slot++,
-                                                           advertisement_bytes);
-              }
-              advertisement_read_result.RecordLastReadStatus(
-                  /*is_success=*/true);
-              fetch_latch.CountDown();
-            },
+    return [this, &fetch_latch, &advertisement_bytes_list](
+               BleV2Peripheral peripheral, int num_slots, int psm,
+               const std::vector<std::string>& interesting_service_ids,
+               mediums::AdvertisementReadResult& advertisement_read_result) {
+      MutexLock lock(&mutex_);
+      fetch_count_++;
+      int slot = 0;
+      for (const auto& advertisement_bytes : advertisement_bytes_list) {
+        advertisement_read_result.AddAdvertisement(slot++, advertisement_bytes);
+      }
+      advertisement_read_result.RecordLastReadStatus(
+          /*is_success=*/true);
+      fetch_latch.CountDown();
     };
   }
 

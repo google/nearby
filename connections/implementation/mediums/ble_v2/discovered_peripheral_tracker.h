@@ -15,7 +15,6 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,13 +22,13 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums//lost_entity_tracker.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/lost_entity_tracker.h"
-#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
@@ -47,20 +46,15 @@ namespace mediums {
 class DiscoveredPeripheralTracker {
  public:
   // GATT advertisement fetcher.
-  struct AdvertisementFetcher {
-    // Fetches relevant GATT advertisements for the peripheral found in {@link
-    // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
-    //
-    // `advertisement_read_result` is in/out mutable reference that the caller
-    // should take of its life cycle and pass a valid reference.
-    std::function<void(
-        BleV2Peripheral peripheral, int num_slots, int psm,
-        const std::vector<std::string>& interesting_service_ids,
-        mediums::AdvertisementReadResult& advertisement_read_result)>
-        fetch_advertisements = [](BleV2Peripheral, int, int,
-                                  const std::vector<std::string>&,
-                                  mediums::AdvertisementReadResult&) {};
-  };
+  // Fetches relevant GATT advertisements for the peripheral found in {@link
+  // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
+  //
+  // `advertisement_read_result` is in/out mutable reference that the caller
+  // should take of its life cycle and pass a valid reference.
+  using AdvertisementFetcher = absl::AnyInvocable<void(
+      BleV2Peripheral peripheral, int num_slots, int psm,
+      const std::vector<std::string>& interesting_service_ids,
+      mediums::AdvertisementReadResult& advertisement_read_result)>;
 
   explicit DiscoveredPeripheralTracker(
       bool is_extended_advertisement_available = false);

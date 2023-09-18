@@ -24,6 +24,7 @@
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
@@ -273,25 +274,22 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
                       discovered_peripheral_tracker_
                           .ProcessFoundBleAdvertisement(
                               std::move(peripheral), advertisement_data,
-                              {
-                                  .fetch_advertisements =
-                                      [&](BleV2Peripheral peripheral,
-                                          int num_slots, int psm,
-                                          const std::vector<std::string>&
-                                              interesting_service_ids,
-                                          mediums::AdvertisementReadResult&
-                                              advertisement_read_result) {
-                                        // Th`mutex_` is already held here. Use
-                                        // `AssumeHeld` tell the thread
-                                        // annotation static analysis that
-                                        // `mutex_` is already exclusively
-                                        // locked.
-                                        AssumeHeld(mutex_);
-                                        ProcessFetchGattAdvertisementsRequest(
-                                            std::move(peripheral), num_slots,
-                                            psm, interesting_service_ids,
-                                            advertisement_read_result);
-                                      },
+                              [this](BleV2Peripheral peripheral, int num_slots,
+                                     int psm,
+                                     const std::vector<std::string>&
+                                         interesting_service_ids,
+                                     mediums::AdvertisementReadResult&
+                                         advertisement_read_result) {
+                                // Th`mutex_` is already held here. Use
+                                // `AssumeHeld` tell the thread
+                                // annotation static analysis that
+                                // `mutex_` is already exclusively
+                                // locked.
+                                AssumeHeld(mutex_);
+                                ProcessFetchGattAdvertisementsRequest(
+                                    std::move(peripheral), num_slots, psm,
+                                    interesting_service_ids,
+                                    advertisement_read_result);
                               });
                     });
                   },
