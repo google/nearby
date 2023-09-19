@@ -21,6 +21,7 @@ cc_library(
         "//third_party/leveldb:util",
         "//third_party/protobuf:protobuf_lite",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],

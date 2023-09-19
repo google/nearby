@@ -15,13 +15,13 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_DATA_MEMORY_DATA_SET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_DATA_MEMORY_DATA_SET_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/data/data_set.h"
@@ -37,13 +37,14 @@ class MemoryDataSet : public DataSet<T> {
   explicit MemoryDataSet(absl::string_view path) : path_(path) {}
   ~MemoryDataSet() override = default;
 
-  void Initialize(std::function<void(InitStatus)> callback) override;
-  void LoadEntries(std::function<void(bool, std::unique_ptr<std::vector<T>>)>
-                       callback) override;
+  void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) override;
+  void LoadEntries(
+      absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+          callback) override;
   void UpdateEntries(std::unique_ptr<KeyEntryVector> entries_to_save,
                      std::unique_ptr<std::vector<std::string>> keys_to_remove,
-                     std::function<void(bool)> callback) override;
-  void Destroy(std::function<void(bool)> callback) override;
+                     absl::AnyInvocable<void(bool) &&> callback) override;
+  void Destroy(absl::AnyInvocable<void(bool) &&> callback) override;
 
  private:
   std::string path_;
@@ -53,13 +54,15 @@ class MemoryDataSet : public DataSet<T> {
 };
 
 template <typename T>
-void MemoryDataSet<T>::Initialize(std::function<void(InitStatus)> callback) {
+void MemoryDataSet<T>::Initialize(
+    absl::AnyInvocable<void(InitStatus) &&> callback) {
   std::move(callback)(InitStatus::kOK);
 }
 
 template <typename T>
 void MemoryDataSet<T>::LoadEntries(
-    std::function<void(bool, std::unique_ptr<std::vector<T>>)> callback) {
+    absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+        callback) {
   auto result = std::make_unique<std::vector<T>>();
   auto it = entries_.begin();
   while (it != entries_.end()) {
@@ -74,7 +77,7 @@ template <typename T>
 void MemoryDataSet<T>::UpdateEntries(
     std::unique_ptr<KeyEntryVector> entries_to_save,
     std::unique_ptr<std::vector<std::string>> keys_to_remove,
-    std::function<void(bool)> callback) {
+    absl::AnyInvocable<void(bool) &&> callback) {
   if (entries_to_save != nullptr) {
     auto it = entries_to_save->begin();
     while (it != entries_to_save->end()) {
@@ -95,7 +98,7 @@ void MemoryDataSet<T>::UpdateEntries(
 }
 
 template <typename T>
-void MemoryDataSet<T>::Destroy(std::function<void(bool)> callback) {
+void MemoryDataSet<T>::Destroy(absl::AnyInvocable<void(bool) &&> callback) {
   entries_.clear();
   std::move(callback)(true);
 }

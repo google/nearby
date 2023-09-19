@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "internal/data/data_set.h"
 
 namespace nearby {
@@ -35,41 +36,42 @@ class FakeDataSet : public DataSet<T> {
   explicit FakeDataSet(const absl::flat_hash_map<std::string, T>& entries_map)
       : entries_map_(entries_map) {}
 
-  void Initialize(std::function<void(InitStatus)> callback) override {
+  void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) override {
     init_callback_ = std::move(callback);
   }
 
-  void LoadEntries(std::function<void(bool, std::unique_ptr<std::vector<T>>)>
-                       callback) override {
+  void LoadEntries(
+      absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+          callback) override {
     load_callback_ = std::move(callback);
   }
 
   void UpdateEntries(std::unique_ptr<KeyEntryVector> entries_to_save,
                      std::unique_ptr<std::vector<std::string>> keys_to_remove,
-                     std::function<void(bool)> callback) override {
+                     absl::AnyInvocable<void(bool) &&> callback) override {
     entries_to_save_ = std::move(entries_to_save);
     keys_to_remove_ = std::move(keys_to_remove);
     update_callback_ = std::move(callback);
   }
 
-  void Destroy(std::function<void(bool)> callback) override {
+  void Destroy(absl::AnyInvocable<void(bool) &&> callback) override {
     destroy_callback_ = std::move(callback);
   }
 
   // Mocked methods
   void InitStatusCallback(InitStatus status) {
-    if (init_callback_ != nullptr) {
-      init_callback_(status);
+    if (auto callback = std::move(init_callback_)) {
+      std::move(callback)(status);
     }
   }
 
   void LoadCallback(bool success) {
-    if (load_callback_ != nullptr) {
+    if (auto callback = std::move(load_callback_)) {
       auto entries = std::make_unique<std::vector<T>>();
       for (auto it = entries_map_.begin(); it != entries_map_.end(); ++it) {
         entries->push_back(it->second);
       }
-      load_callback_(success, std::move(entries));
+      std::move(callback)(success, std::move(entries));
     }
   }
 
@@ -97,8 +99,8 @@ class FakeDataSet : public DataSet<T> {
 
     entries_to_save_ = nullptr;
     keys_to_remove_ = nullptr;
-    if (update_callback_ != nullptr) {
-      update_callback_(success);
+    if (auto callback = std::move(update_callback_)) {
+      std::move(callback)(success);
     }
   }
 
@@ -106,9 +108,8 @@ class FakeDataSet : public DataSet<T> {
     if (success) {
       entries_map_.clear();
     }
-
-    if (destroy_callback_ != nullptr) {
-      destroy_callback_(success);
+    if (auto callback = std::move(destroy_callback_)) {
+      std::move(callback)(success);
     }
   }
 
@@ -116,13 +117,13 @@ class FakeDataSet : public DataSet<T> {
 
  private:
   absl::flat_hash_map<std::string, T> entries_map_ = nullptr;
-  std::function<void(InitStatus)> init_callback_ = nullptr;
-  std::function<void(bool, std::unique_ptr<std::vector<T>>)> load_callback_ =
-      nullptr;
+  absl::AnyInvocable<void(InitStatus) &&> init_callback_ = nullptr;
+  absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+      load_callback_ = nullptr;
   std::unique_ptr<KeyEntryVector> entries_to_save_ = nullptr;
   std::unique_ptr<std::vector<std::string>> keys_to_remove_ = nullptr;
-  std::function<void(bool)> update_callback_ = nullptr;
-  std::function<void(bool)> destroy_callback_ = nullptr;
+  absl::AnyInvocable<void(bool) &&> update_callback_ = nullptr;
+  absl::AnyInvocable<void(bool) &&> destroy_callback_ = nullptr;
 };
 
 }  // namespace data
