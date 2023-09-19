@@ -420,6 +420,9 @@ message ConnectionsLog {
 
     // The power level of this advertising
     optional location.nearby.proto.connections.PowerLevel power_level = 5;
+
+    // The dual band support status
+    optional bool supports_dual_band = 6;
   }
 
   // Some additional information to keep with the discovery phase.
