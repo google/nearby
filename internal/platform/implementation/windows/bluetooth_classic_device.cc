@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -117,6 +117,9 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
       }
     }
 
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Failed to get RfcommDeviceService due to no any services.";
     return nullptr;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService: "
