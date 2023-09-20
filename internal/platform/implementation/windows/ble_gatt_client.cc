@@ -122,6 +122,13 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
       return false;
     }
 
+    if (!windows_bluetooth_adapter_.IsCentralRoleSupported()) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Bluetooth Hardware does not support Central "
+                            "Role, which is required to start GATT client.";
+      return false;
+    }
+
     if (!NearbyFlags::GetInstance().GetBoolFlag(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableBleV2GattOnNonExtendedDevice)) {

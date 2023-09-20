@@ -98,6 +98,16 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
   // Advertising
   bool IsExtendedAdvertisingSupported() const;
+
+  // Returns true if the Bluetooth hardware supports BLE Central Role
+  bool IsCentralRoleSupported() const;
+
+  // Returns true if the Bluetooth hardware supports BLE Peripheral Role
+  bool IsPeripheralRoleSupported() const;
+
+  // Returns true if the Bluetooth hardware supports BLE
+  bool IsLowEnergySupported() const;
+
   void RestoreRadioNameIfNecessary();
 
  private:

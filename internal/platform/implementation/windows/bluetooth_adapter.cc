@@ -218,6 +218,75 @@ bool BluetoothAdapter::IsExtendedAdvertisingSupported() const {
   }
 }
 
+// Returns true if the Bluetooth hardware supports BLE Central Role
+bool BluetoothAdapter::IsCentralRoleSupported() const {
+  if (windows_bluetooth_adapter_ == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
+    return false;
+  }
+  try {
+    // Indicates whether the adapter supports the BLE Central Role
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.iscentralrolesupported?view=winrt-22621
+    return windows_bluetooth_adapter_.IsCentralRoleSupported();
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << exception.what();
+    return false;
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
+    return false;
+  }
+}
+
+// Returns true if the Bluetooth hardware supports BLE Peripheral Role
+bool BluetoothAdapter::IsPeripheralRoleSupported() const {
+  if (windows_bluetooth_adapter_ == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
+    return false;
+  }
+  try {
+    // Indicates whether the adapter supports the BLE Peripheral Role
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.isperipheralrolesupported?view=winrt-22621
+    return windows_bluetooth_adapter_.IsPeripheralRoleSupported();
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << exception.what();
+    return false;
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
+    return false;
+  }
+}
+
+// Returns true if the Bluetooth hardware supports BLE
+bool BluetoothAdapter::IsLowEnergySupported() const {
+  if (windows_bluetooth_adapter_ == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
+    return false;
+  }
+  try {
+    // Indicates whether the adapter supports BLE
+    // https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.islowenergysupported?view=winrt-22621
+    return windows_bluetooth_adapter_.IsLowEnergySupported();
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << exception.what();
+    return false;
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
+    return false;
+  }
+}
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
 //
 // Returns ScanMode::kUnknown on error.

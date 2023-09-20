@@ -226,6 +226,13 @@ bool BleGattServer::InitializeGattServer() {
       return false;
     }
 
+    if (!adapter_->IsLowEnergySupported()) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Bluetooth adapter does not support BLE, which "
+                            "is needed to start GATT server.";
+      return false;
+    }
+
     winrt::guid service_uuid = nearby_uuid_to_winrt_guid(service_uuid_);
     GattServiceProviderResult service_provider_result =
         GattServiceProvider::CreateAsync(service_uuid).get();
@@ -371,13 +378,36 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
       return false;
     }
 
-    is_advertising_ = true;
-
     if (!is_gatt_server_inited_ && !InitializeGattServer()) {
       NEARBY_LOGS(ERROR) << ":Failed to initalize GATT service.";
       is_advertising_ = false;
       return false;
     }
+
+    if (gatt_service_provider_ == nullptr) {
+      NEARBY_LOGS(WARNING) << __func__ << ": no GATT server is running.";
+      is_advertising_ = false;
+      return false;
+    }
+
+    if (gatt_service_provider_.AdvertisementStatus() ==
+        GattServiceProviderAdvertisementStatus::Started) {
+      NEARBY_LOGS(WARNING) << __func__
+                           << ": GATT server is already in advertising.";
+      is_advertising_ = true;
+      return false;
+    }
+
+    if (!adapter_->IsPeripheralRoleSupported()) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ": Bluetooth Hardware does not support Peripheral Role, which is "
+             "required to start GATT server.";
+      is_advertising_ = false;
+      return false;
+    }
+
+    is_advertising_ = true;
 
     // Start the GATT server advertising
     GattServiceProviderAdvertisingParameters advertisement_parameters;

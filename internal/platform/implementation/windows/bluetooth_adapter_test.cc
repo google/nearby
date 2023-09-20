@@ -183,6 +183,21 @@ TEST(BluetoothAdapter, DISABLED_IsExtendedAdvertisingSupported) {
   EXPECT_TRUE(bluetooth_adapter.IsExtendedAdvertisingSupported());
 }
 
+TEST(BluetoothAdapter, DISABLED_IsCentralRoleSupported) {
+  BluetoothAdapter bluetooth_adapter;
+  EXPECT_TRUE(bluetooth_adapter.IsCentralRoleSupported());
+}
+
+TEST(BluetoothAdapter, DISABLED_IsPeripheralRoleSupported) {
+  BluetoothAdapter bluetooth_adapter;
+  EXPECT_TRUE(bluetooth_adapter.IsPeripheralRoleSupported());
+}
+
+TEST(BluetoothAdapter, DISABLED_IsLowEnergySupported) {
+  BluetoothAdapter bluetooth_adapter;
+  EXPECT_TRUE(bluetooth_adapter.IsLowEnergySupported());
+}
+
 TEST(BluetoothAdapter, DISABLED_GetNameFromComputerName) {
   BluetoothAdapter bluetooth_adapter;
   EXPECT_TRUE(!bluetooth_adapter.GetNameFromComputerName().empty());
