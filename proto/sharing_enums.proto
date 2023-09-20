@@ -502,6 +502,9 @@ enum ServerActionName {
   LIST_REACHABLE_PHONE_NUMBERS = 9;
   LIST_MY_DEVICES = 10;
   LIST_CONTACT_PEOPLE = 11;
+
+  // used for analytics logger to record action name.
+  DOWNLOAD_CERTIFICATES_INFO = 12;
 }
 
 // The Fast Share server response state.
