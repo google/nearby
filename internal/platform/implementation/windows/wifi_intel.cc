@@ -185,6 +185,8 @@ uint8_t WifiIntel::GetGOChannel() {
   NEARBY_LOGS(VERBOSE)
       << "Load WifiPanQueryPreferredChannelSetting API completed successfully";
 
+  intelWifiHeader.dwSize =
+      sizeof(MurocDefs::INTEL_GO_OPERATION_CHANNEL_SETTING);
   murocApiRetVal = WifiPanQueryPreferredChannelSettingFunc(
       wifi_adapter_handle_, &intelWifiHeader, (void*)&intelGOChan);
 
