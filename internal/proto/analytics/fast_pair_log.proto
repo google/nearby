@@ -151,4 +151,20 @@ message FastPairLog {
 
   // For the CREATE_BOND event, add bonding transport
   optional uint32 bonding_transport = 18;
+
+  // Whether the current user is first day pairing a new device by fast pair.
+  // This is used for evaluating the A/B test of device pairing half sheet
+  // layout.
+  optional bool is_first_day_new_user = 19;
+
+  // Whether the current user is first seven days pairing a new device by fast
+  // pair. This is used for evaluating the A/B test of device pairing half sheet
+  // layout.
+  optional bool is_seven_days_new_user = 20;
+
+  // For the CREATE_BOND event, add bonded device count
+  optional uint32 bonded_device_count = 21;
+
+  // SASS connection state for the device. Not set for non-SASS devices.
+  optional int32 sass_connection_state = 22;
 }
