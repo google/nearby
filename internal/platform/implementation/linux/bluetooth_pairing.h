@@ -31,7 +31,8 @@ namespace nearby {
 namespace linux {
 class BluetoothPairing final : public api::BluetoothPairing {
  public:
-  BluetoothPairing(BluetoothAdapter &adapter, std::shared_ptr<BluetoothDevice> remote_device);
+  BluetoothPairing(BluetoothAdapter &adapter,
+                   std::shared_ptr<BluetoothDevice> remote_device);
 
   bool InitiatePairing(api::BluetoothPairingCallback pairing_cb) override;
   bool FinishPairing(std::optional<absl::string_view> pin_code) override;
@@ -45,7 +46,8 @@ class BluetoothPairing final : public api::BluetoothPairing {
   sdbus::PendingAsyncCall pair_async_call_;
 
   std::shared_ptr<BluetoothDevice> device_;
-  linux::BluetoothAdapter &adapter_;
+  sdbus::ObjectPath device_object_path_;
+  linux::BluetoothAdapter adapter_;
 
   api::BluetoothPairingCallback pairing_cb_;
 };

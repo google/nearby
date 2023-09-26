@@ -67,10 +67,10 @@ void Profile::NewConnection(
     device = devices_.add_new_device(device_object_path);
   }
 
-  auto alias = device->Alias();
-  auto mac_addr = device->Address();
+  auto alias = device->GetName();
+  auto mac_addr = device->GetAddress();
   NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
-                       << ": Connected to " << device->getObjectPath();
+                       << ": Connected to " << mac_addr;
 
   FDProperties props(fd_props);
 
@@ -89,7 +89,7 @@ void Profile::RequestDisconnection(
     throw sdbus::Error("org.bluez.Error.Rejected", "Unknown object");
   }
 
-  auto mac_addr = device->Address();
+  auto mac_addr = device->GetMacAddress();
   NEARBY_LOGS(VERBOSE) << __func__ << ": Disconnection requested for device "
                        << device_object_path;
 

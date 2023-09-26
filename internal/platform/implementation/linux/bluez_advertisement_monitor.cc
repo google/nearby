@@ -39,16 +39,11 @@ AdvertisementMonitor::AdvertisementMonitor(
 void AdvertisementMonitor::DeviceFound(const sdbus::ObjectPath &device) {
   devices_->cleanup_lost_peripherals();
   auto peripheral = devices_->add_new_device(device);
-  std::map<std::string, sdbus::Variant> service_data;
-  try {
-    service_data = peripheral->ServiceData();
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(peripheral, "ServiceData", e);
-    return;
-  }
+  auto service_data = peripheral->ServiceData();
+  if (!service_data.has_value()) return;
 
   struct api::ble_v2::BleAdvertisementData adv_data;
-  for (const auto &[uuid_str, data] : service_data) {
+  for (const auto &[uuid_str, data] : *service_data) {
     auto uuid = UuidFromString(uuid_str);
     if (!uuid.has_value()) {
       NEARBY_LOGS(ERROR)

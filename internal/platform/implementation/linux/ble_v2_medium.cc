@@ -25,6 +25,7 @@
 #include "internal/platform/implementation/linux/ble_v2_medium.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
+#include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor_manager.h"
 #include "internal/platform/implementation/linux/bluez_le_advertisement.h"
@@ -38,7 +39,7 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
     : system_bus_(adapter.GetConnection()),
       adapter_(adapter),
       devices_(std::make_unique<BluetoothDevices>(
-          *system_bus_, adapter_.GetObjectPath(), observers_)),
+          system_bus_, adapter_.GetObjectPath(), observers_)),
       gatt_discovery_(std::make_shared<BluezGattDiscovery>(system_bus_)),
       root_object_manager_(std::make_unique<RootObjectManager>(*system_bus_)),
       adv_monitor_manager_(
@@ -215,10 +216,10 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral &peripheral,
     api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  auto &device = dynamic_cast<BluetoothDevice &>(peripheral);
+  auto path = bluez::device_object_path(adapter_.GetObjectPath(),
+                                        peripheral.GetAddress());
 
-  return std::make_unique<GattClient>(system_bus_, device.getObjectPath(),
-                                      gatt_discovery_,
+  return std::make_unique<GattClient>(system_bus_, path, gatt_discovery_,
                                       std::move(callback.disconnected_cb));
 }
 

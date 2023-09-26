@@ -90,7 +90,9 @@ std::shared_ptr<MonitoredBluetoothDevice> BluetoothDevices::add_new_device(
   auto [device_it, inserted] = devices_by_path_.emplace(
       std::string(device_object_path),
       std::make_shared<MonitoredBluetoothDevice>(
-          system_bus_, std::move(device_object_path), observers_));
+          system_bus_,
+          std::make_shared<bluez::Device>(system_bus_, device_object_path),
+          observers_));
   if (!inserted) device_it->second->UnmarkLost();
   return device_it->second;
 }

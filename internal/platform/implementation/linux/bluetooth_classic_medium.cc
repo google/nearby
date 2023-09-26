@@ -37,7 +37,7 @@ BluetoothClassicMedium::BluetoothClassicMedium(BluetoothAdapter &adapter)
       adapter_(adapter),
       observers_(std::make_shared<ObserverList<Observer>>()),
       devices_(std::make_shared<BluetoothDevices>(
-          *system_bus_, adapter.GetObjectPath(), *observers_)),
+          system_bus_, adapter.GetObjectPath(), *observers_)),
       device_watcher_(nullptr),
       profile_manager_(
           std::make_unique<ProfileManager>(*system_bus_, *devices_)) {}
