@@ -563,6 +563,8 @@ enum SyncPurpose {
   SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE = 14;
   // When switching account.
   SYNC_PURPOSE_ACCOUNT_CHANGE = 15;
+  // When regenerate certificates
+  SYNC_PURPOSE_REGENERATE_CERTIFICATES = 16;
 }
 
 // The device role to trigger the server request.
