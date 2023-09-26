@@ -36,7 +36,7 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
                        << "Got error '" << error->getName()
                        << "' with message '" << error->getMessage()
                        << "' while pairing with device "
-                       << device_->getObjectPath();
+                       << device_->GetMacAddress();
 
     if (name == "org.bluez.Error.AuthenticationCanceled") {
       err = api::BluetoothPairingCallback::PairingError::kAuthCanceled;
@@ -61,7 +61,10 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
 
 BluetoothPairing::BluetoothPairing(
     BluetoothAdapter &adapter, std::shared_ptr<BluetoothDevice> remote_device)
-    : device_(std::move(remote_device)), adapter_(adapter) {}
+    : device_(std::move(remote_device)),
+      device_object_path_(bluez::device_object_path(adapter.GetObjectPath(),
+                                                    device_->GetAddress())),
+      adapter_(adapter) {}
 
 bool BluetoothPairing::InitiatePairing(
     api::BluetoothPairingCallback pairing_cb) {
@@ -75,66 +78,28 @@ bool BluetoothPairing::InitiatePairing(
 
 bool BluetoothPairing::FinishPairing(
     std::optional<absl::string_view> pin_code) {
-  device_->set_pair_reply_callback([this](const sdbus::Error *error) {
+  device_->SetPairReplyCallback([this](const sdbus::Error *error) {
     this->pairing_reply_handler(error);
   });
 
-  try {
-    pair_async_call_ = device_->Pair();
-  } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to initiate pairing for device "
-                       << device_->getObjectPath();
-    return false;
-  }
-
+  auto call = device_->Pair();
+  if (!call.has_value()) return false;
+  pair_async_call_ = *call;
   return true;
 }
 
 bool BluetoothPairing::CancelPairing() {
-  try {
-    if (pair_async_call_.isPending()) {
-      pair_async_call_.cancel();
-    }
-
-    device_->CancelPairing();
-  } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to cancel pairing for device "
-                       << device_->getObjectPath();
-    return false;
+  if (pair_async_call_.isPending()) {
+    pair_async_call_.cancel();
   }
 
-  return true;
+  return device_->CancelPairing();
 }
 
 bool BluetoothPairing::Unpair() {
-  try {
-    adapter_.RemoveDeviceByObjectPath(device_->getObjectPath());
-    return true;
-  } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to unpair device "
-                       << device_->getObjectPath() << " on adapter "
-                       << adapter_.GetObjectPath();
-    return false;
-  }
+  return adapter_.RemoveDeviceByObjectPath(device_object_path_);
 }
 
-bool BluetoothPairing::IsPaired() {
-  try {
-    bool bonded = device_->Bonded();
-    return bonded;
-  } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get Bonded state for device "
-                       << device_->getObjectPath();
-    return false;
-  }
-}
+bool BluetoothPairing::IsPaired() { return device_->Bonded(); }
 }  // namespace linux
 }  // namespace nearby

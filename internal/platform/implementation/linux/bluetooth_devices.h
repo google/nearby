@@ -37,9 +37,10 @@ namespace linux {
 class BluetoothDevices final {
  public:
   BluetoothDevices(
-      sdbus::IConnection &system_bus, sdbus::ObjectPath adapter_object_path,
+      std::shared_ptr<sdbus::IConnection> system_bus,
+      sdbus::ObjectPath adapter_object_path,
       ObserverList<api::BluetoothClassicMedium::Observer> &observers)
-      : system_bus_(system_bus),
+      : system_bus_(std::move(system_bus)),
         observers_(observers),
         adapter_object_path_(std::move(adapter_object_path)) {}
 
@@ -62,7 +63,7 @@ class BluetoothDevices final {
   void cleanup_lost_peripherals() ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
 
  private:
-  sdbus::IConnection &system_bus_;
+  std::shared_ptr<sdbus::IConnection> system_bus_;
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;
   sdbus::ObjectPath adapter_object_path_;
 

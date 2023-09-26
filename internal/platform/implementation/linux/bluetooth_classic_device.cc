@@ -12,118 +12,96 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
 #include <sdbus-c++/IObject.h>
 #include <sdbus-c++/ProxyInterfaces.h>
-#include <systemd/sd-bus.h>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/implementation/linux/bluez_device.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace linux {
-BluetoothDevice::BluetoothDevice(sdbus::IConnection &system_bus,
-                                 sdbus::ObjectPath device_object_path)
-    : ProxyInterfaces(system_bus, bluez::SERVICE_DEST,
-                      std::move(device_object_path)),
-      lost_(false) {
-  registerProxy();
+BluetoothDevice::BluetoothDevice(std::shared_ptr<bluez::Device> device)
+    : lost_(false), device_(device) {
   try {
-    last_known_name_ = Alias();
+    last_known_name_ = device->Alias();
   } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(this, "Alias", e);
+    DBUS_LOG_PROPERTY_GET_ERROR(device, "Alias", e);
   }
   try {
-    last_known_address_ = Address();
+    last_known_address_ = device->Address();
     unique_id_ = BluetoothUtils::ToNumber(last_known_address_);
   } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(this, "Address", e);
+    DBUS_LOG_PROPERTY_GET_ERROR(device, "Address", e);
   }
 }
 
 std::string BluetoothDevice::GetName() const {
-  auto bluez_device =
-      sdbus::createProxy(getProxy().getConnection(), bluez::SERVICE_DEST,
-                         getProxy().getObjectPath());
+  auto device = device_.lock();
+  if (device == nullptr) {
+    absl::ReaderMutexLock l(&properties_mutex_);
+    return last_known_name_;
+  }
 
   try {
-    std::string alias =
-        bluez_device->getProperty("Alias").onInterface(bluez::DEVICE_INTERFACE);
+    std::string alias = device->Alias();
     {
       absl::MutexLock l(&properties_mutex_);
       last_known_name_ = alias;
     }
     return alias;
   } catch (const sdbus::Error &e) {
-    if (e.getName() == "org.freedesktop.DBus.Error.UnknownObject") {
-      NEARBY_LOGS(VERBOSE)
-          << __func__ << ": " << getObjectPath()
-          << ": device is no longer known, returning last known name";
-      absl::ReaderMutexLock l(&properties_mutex_);
-      return last_known_name_;
-    }
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get Alias for device "
-                       << bluez_device->getObjectPath();
-    return std::string();
+    DBUS_LOG_PROPERTY_GET_ERROR(device, "Alias", e);
+    return {};
   }
 }
 
 std::string BluetoothDevice::GetMacAddress() const {
-  auto bluez_device =
-      sdbus::createProxy(getProxy().getConnection(), bluez::SERVICE_DEST,
-                         getProxy().getObjectPath());
+  auto device = device_.lock();
+  if (device == nullptr) {
+    absl::ReaderMutexLock l(&properties_mutex_);
+    return last_known_name_;
+  }
 
   try {
-    std::string addr = bluez_device->getProperty("Address").onInterface(
-        bluez::DEVICE_INTERFACE);
+    std::string addr = device->Address();
     {
       absl::MutexLock l(&properties_mutex_);
       last_known_address_ = addr;
     }
     return addr;
   } catch (const sdbus::Error &e) {
-    if (e.getName() == "org.freedesktop.DBus.Error.UnknownObject") {
-      NEARBY_LOGS(VERBOSE)
-          << __func__ << ": " << getObjectPath()
-          << ": device is no longer known, returning last known address";
-      absl::ReaderMutexLock l(&properties_mutex_);
-      return last_known_address_;
-    }
-
-    NEARBY_LOGS(ERROR) << __func__ << "Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to get Address for device "
-                       << bluez_device->getObjectPath();
+    DBUS_LOG_PROPERTY_GET_ERROR(device, "Address", e);
     return std::string();
   }
 }
 
 bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
-                       << ": Attempting to connect to profile " << service_uuid;
+  auto device = device_.lock();
+  if (device == nullptr) return false;
   try {
-    ConnectProfile(std::string(service_uuid));
+    device->ConnectProfile(std::string(service_uuid));
     return true;
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << e.getName()
-                       << "' with message '" << e.getMessage()
-                       << "' while trying to connect to profile "
-                       << service_uuid << " on device " << getObjectPath();
+    DBUS_LOG_METHOD_CALL_ERROR(device, "ConnectProfile", e);
     return false;
   }
 }
 
 MonitoredBluetoothDevice::MonitoredBluetoothDevice(
-    sdbus::IConnection &system_bus, const sdbus::ObjectPath &device_object_path,
+    std::shared_ptr<sdbus::IConnection> system_bus,
+    std::shared_ptr<bluez::Device> device,
     ObserverList<api::BluetoothClassicMedium::Observer> &observers)
-    : BluetoothDevice(system_bus, device_object_path),
-      ProxyInterfaces<sdbus::Properties_proxy>(system_bus, bluez::SERVICE_DEST,
-                                               std::string(device_object_path)),
+    : BluetoothDevice(std::move(device)),
+      ProxyInterfaces<sdbus::Properties_proxy>(*system_bus, bluez::SERVICE_DEST,
+                                               device->getObjectPath()),
+      system_bus_(std::move(system_bus)),
       observers_(observers) {
   registerProxy();
 }
@@ -142,20 +120,20 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
       NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
                            << ": Notifying observers about address change";
       std::string address = it->second;
-      for (auto &observer : observers_.GetObservers()) {
+      for (const auto &observer : observers_.GetObservers()) {
         observer->DeviceAddressChanged(*this, address);
       }
     } else if (it->first == bluez::DEVICE_PROP_PAIRED) {
       NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
                            << "Notifying observers about paired status change.";
-      for (auto &observer : observers_.GetObservers()) {
+      for (const auto &observer : observers_.GetObservers()) {
         observer->DevicePairedChanged(*this, it->second);
       }
     } else if (it->first == bluez::DEVICE_PROP_CONNECTED) {
       NEARBY_LOGS(VERBOSE)
           << __func__ << ": " << getObjectPath()
           << "Notifying observers about connected status change";
-      for (auto &observer : observers_.GetObservers()) {
+      for (const auto &observer : observers_.GetObservers()) {
         observer->DeviceConnectedStateChanged(*this, it->second);
       }
     } else if (it->first == bluez::DEVICE_NAME) {
