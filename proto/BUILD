@@ -15,6 +15,7 @@
 # Proto for Nearby products
 
 # Placeholder: load py_proto_library
+
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 licenses(["notice"])
