@@ -222,6 +222,16 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
                                       std::move(callback.disconnected_cb));
 }
 
+bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
+  try {
+    auto supported_channels = adv_manager_->SupportedSecondaryChannels();
+    return !supported_channels.empty();
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(adv_manager_, "SupportedSecondaryChannels", e);
+    return false;
+  }
+}
+
 bool BleV2Medium::StartLEDiscovery() {
   std::map<std::string, sdbus::Variant> filter;
   filter["Transport"] = "auto";

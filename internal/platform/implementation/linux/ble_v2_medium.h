@@ -84,7 +84,7 @@ class BleV2Medium final : public api::ble_v2::BleMedium {
       CancellationFlag *cancellation_flag) override {
     return nullptr;
   }
-  bool IsExtendedAdvertisementsAvailable() override { return false; }
+  bool IsExtendedAdvertisementsAvailable() override;
   bool GetRemotePeripheral(const std::string &mac_address,
                            GetRemotePeripheralCallback callback) override;
   bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
