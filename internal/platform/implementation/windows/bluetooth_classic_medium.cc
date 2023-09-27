@@ -702,6 +702,12 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
       ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
           device_update_info.Id())
           .get();
+
+  if (native_bluetooth_device == nullptr) {
+    NEARBY_LOGS(WARNING) << __func__ << ": cannot get native bluetooth device.";
+    return winrt::fire_and_forget();
+  }
+
   std::string mac_address =
       uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
   auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
