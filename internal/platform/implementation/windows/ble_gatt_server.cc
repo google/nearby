@@ -221,7 +221,12 @@ bool BleGattServer::InitializeGattServer() {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Create GATT service service_uuid="
                          << std::string(service_uuid_);
 
-    if (adapter_ == nullptr || !adapter_->IsEnabled()) {
+    if (adapter_ == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Bluetooth adapter is absent.";
+      return false;
+    }
+
+    if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(ERROR) << __func__ << ": Bluetooth adapter is disabled.";
       return false;
     }
