@@ -428,7 +428,7 @@ HINSTANCE WifiIntel::PIEDllLoader() {
     // load the library and get the handle
     murocApiDllHandle = LoadLibraryW(pDllPathValue);  // NOLINT
 
-    NEARBY_LOGS(INFO) << absl::StrFormat("Muroc Api Dll Handle is 0x%p ",
+    NEARBY_LOGS(VERBOSE) << absl::StrFormat("Muroc Api Dll Handle is 0x%p ",
                                          murocApiDllHandle);
   } else {
     NEARBY_LOGS(INFO) << "GetFullDllLoadPathFromPieRegistry fails eith error: "
@@ -458,7 +458,7 @@ HADAPTER WifiGetAdapterList(HINSTANCE murocApiDllHandle,
     return INVALID_HADAPTER;
   }
 
-  NEARBY_LOGS(INFO) << "GetProcAddress for WifiGetAdapterListFunction API "
+  NEARBY_LOGS(VERBOSE) << "GetProcAddress for WifiGetAdapterListFunction API "
                        "completed successfully";
   INTEL_WIFI_HEADER intelHeader = {INTEL_STRUCT_VERSION_V156,  // NOLINT
                                    sizeof(MurocDefs::INTEL_ADAPTER_LIST_V120)};
@@ -475,7 +475,7 @@ HADAPTER WifiGetAdapterList(HINSTANCE murocApiDllHandle,
   }
 
   firstAdapterOnTheList = (*ppAllAdapters)->adapter[0].hAdapter;
-  NEARBY_LOGS(INFO) << "Return WIFI Adapter: " << firstAdapterOnTheList;
+  NEARBY_LOGS(INFO) << "WIFI Adapter on the list: " << firstAdapterOnTheList;
 
   return firstAdapterOnTheList;
 }
@@ -532,7 +532,7 @@ void DeregisterIntelCallback(HINSTANCE murocApiDllHandle,
     murocApiRetVal = deregisterIntelCBFunc(fnCallback);
 
     if (murocApiRetVal == IWLAN_E_SUCCESS) {
-      NEARBY_LOGS(INFO) << "Calling DeregisterIntelCallback API succeeded.";
+      NEARBY_LOGS(VERBOSE) << "Calling DeregisterIntelCallback API succeeded.";
     } else {
       NEARBY_LOGS(INFO)
           << "Calling DeregisterIntelCallback API fails with error:"
@@ -566,7 +566,7 @@ void FreeMemoryList(HINSTANCE murocApiDllHandle, void* ptr) {
     murocApiRetVal = freeMemoryListFunction(ptr);
 
     if (murocApiRetVal == IWLAN_E_SUCCESS) {
-      NEARBY_LOGS(INFO) << "Calling FreeListMemory API succeeded.";
+      NEARBY_LOGS(VERBOSE) << "Calling FreeListMemory API succeeded.";
     } else {
       NEARBY_LOGS(INFO) << "Calling FreeListMemory API failed with error: "
                         << murocApiRetVal;

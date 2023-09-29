@@ -48,6 +48,7 @@ constexpr absl::string_view kWifiDirectPassword = "WIFIDIRECT123456";
 constexpr absl::string_view kGateway = "192.168.1.1";
 constexpr int kWifiDirectFrequency = 2412;
 constexpr int kPort = 1000;
+constexpr int kHotspotFrequency = 2412;
 constexpr bool kSupportsDisablingEncryption = true;
 constexpr std::array<Medium, 9> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
@@ -570,7 +571,7 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort,
+      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
       std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
 
@@ -584,7 +585,7 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort,
+      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
       std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();

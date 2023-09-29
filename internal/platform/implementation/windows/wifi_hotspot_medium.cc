@@ -20,16 +20,17 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
+#include "internal/platform/implementation/windows/wifi_intel.h"
 
 // Nearby connections headers
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 namespace windows {
@@ -256,6 +257,20 @@ bool WifiHotspotMedium::StartWifiHotspot(
         WiFiDirectAdvertisementPublisherStatus::Started) {
       NEARBY_LOGS(INFO) << __func__ << ": WiFi Hotspot created and started.";
       medium_status_ |= kMediumStatusBeaconing;
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              platform::config_package_nearby::nearby_platform_feature::
+                  kEnableIntelPieSdk)) {
+        WifiIntel& intel_wifi{WifiIntel::GetInstance()};
+        intel_wifi.Start();
+        int GO_channel = static_cast<int>(intel_wifi.GetGOChannel());
+        NEARBY_LOGS(INFO) << "Hotspot is running on channel: " << GO_channel;
+        intel_wifi.Stop();
+        hotspot_credentials_->SetFrequency(
+            WifiUtils::ConvertChannelToFrequencyMhz(GO_channel,
+                                                    WifiBandType::kUnknown));
+      } else {
+        hotspot_credentials_->SetFrequency(-1);
+      }
       return true;
     }
 

@@ -352,14 +352,15 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
             password: "password"
             port: 1234
             gateway: "0.0.0.0"
+            frequency: 2412
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiHotspotPathAvailable("ssid", "password", 1234,
-                                                   "0.0.0.0", false);
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
+      "ssid", "password", 1234, /*frequency=*/2412, "0.0.0.0", false);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

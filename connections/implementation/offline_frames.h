@@ -74,6 +74,7 @@ ByteArray ForBwuIntroductionAck();
 ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,
                                          std::int32_t port,
+                                         std::int32_t frequency,
                                          const std::string& gateway,
                                          bool supports_disabling_encryption);
 ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,

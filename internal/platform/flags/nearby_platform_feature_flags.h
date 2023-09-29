@@ -65,6 +65,10 @@ constexpr auto kWifiHotspotConnectionIntervalMillis =
 constexpr auto kWifiHotspotConnectionTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45415888", 10000);
 
+// Enable/Disable Intel PIe SDK to query/set WIFI feature.
+constexpr auto kEnableIntelPieSdk =
+    flags::Flag<bool>(kConfigPackage, "45428547", false);
+
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform

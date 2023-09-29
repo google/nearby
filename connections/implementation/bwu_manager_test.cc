@@ -870,7 +870,8 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
   ExceptionOr<OfflineFrame> hotspot_path_available_frame =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
           /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*gateway=*/"123.234.23.1", false));
+          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1",
+          false));
   OfflineFrame frame = hotspot_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();

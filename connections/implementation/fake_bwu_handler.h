@@ -143,7 +143,8 @@ class FakeBwuHandler : public BaseBwuHandler {
       case location::nearby::proto::connections::WIFI_HOTSPOT:
         return parser::ForBwuWifiHotspotPathAvailable(
             /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-            /*port=*/1234, /*gateway=*/"123.234.23.1", false);
+            /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1",
+            false);
       case location::nearby::proto::connections::WIFI_DIRECT:
         return parser::ForBwuWifiDirectPathAvailable(
             /*ssid=*/"Direct-12345678", /*password=*/"87654321", /*port=*/2143,

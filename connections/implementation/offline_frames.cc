@@ -228,6 +228,7 @@ ByteArray ForControlPayloadTransfer(
 ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,
                                          std::int32_t port,
+                                         std::int32_t frequency,
                                          const std::string& gateway,
                                          bool supports_disabling_encryption) {
   OfflineFrame frame;
@@ -248,6 +249,7 @@ ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
   wifi_hotspot_credentials->set_ssid(ssid);
   wifi_hotspot_credentials->set_password(password);
   wifi_hotspot_credentials->set_port(port);
+  wifi_hotspot_credentials->set_frequency(frequency);
   wifi_hotspot_credentials->set_gateway(gateway);
 
   return ToBytes(std::move(frame));
