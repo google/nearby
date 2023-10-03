@@ -89,6 +89,7 @@ using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEScanningMode;
 using ::winrt::Windows::Foundation::TimeSpan;
 using ::winrt::Windows::Storage::Streams::Buffer;
+using ::winrt::Windows::Storage::Streams::DataReader;
 using ::winrt::Windows::Storage::Streams::DataWriter;
 
 template <typename T>

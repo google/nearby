@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
@@ -30,28 +31,9 @@
 namespace nearby {
 namespace windows {
 
-// Supports listening for an incoming network connection using Bluetooth RFCOMM.
-// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocketlistener?view=winrt-20348
-using winrt::Windows::Networking::Sockets::StreamSocketListener;
-
-// Provides data for a ConnectionReceived event on a StreamSocketListener
-// object.
-// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocketlistenerconnectionreceivedeventargs?view=winrt-20348
-using winrt::Windows::Networking::Sockets::
-    StreamSocketListenerConnectionReceivedEventArgs;
-
-// Specifies the quality of service for a StreamSocket object.
-// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.socketqualityofservice?view=winrt-20348
-using winrt::Windows::Networking::Sockets::SocketQualityOfService;
-
-// Specifies the level of encryption to use on a StreamSocket object.
-// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.socketprotectionlevel?view=winrt-22000
-using winrt::Windows::Networking::Sockets::SocketProtectionLevel;
-
-// https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.
 class BluetoothServerSocket : public api::BluetoothServerSocket {
  public:
-  BluetoothServerSocket(absl::string_view service_name);
+  explicit BluetoothServerSocket(absl::string_view service_name);
 
   ~BluetoothServerSocket() override;
 
@@ -77,24 +59,28 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
 
   bool listen();
 
-  const StreamSocketListener& stream_socket_listener() const {
+  const ::winrt::Windows::Networking::Sockets::StreamSocketListener&
+  stream_socket_listener() const {
     return stream_socket_listener_;
   }
 
  private:
   // The listener is accepting incoming connections
   ::winrt::fire_and_forget Listener_ConnectionReceived(
-      StreamSocketListener listener,
-      StreamSocketListenerConnectionReceivedEventArgs const& args);
+      ::winrt::Windows::Networking::Sockets::StreamSocketListener listener,
+      ::winrt::Windows::Networking::Sockets::
+          StreamSocketListenerConnectionReceivedEventArgs const& args);
 
   // Retrieves IP addresses from local machine
   std::vector<std::string> GetIpAddresses() const;
 
   mutable absl::Mutex mutex_;
   absl::CondVar cond_;
-  std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
-  StreamSocketListener stream_socket_listener_{nullptr};
-  winrt::event_token listener_event_token_{};
+  std::deque<::winrt::Windows::Networking::Sockets::StreamSocket>
+      pending_sockets_ ABSL_GUARDED_BY(mutex_);
+  ::winrt::Windows::Networking::Sockets::StreamSocketListener
+      stream_socket_listener_{nullptr};
+  ::winrt::event_token listener_event_token_{};
 
   // Close notifier
   absl::AnyInvocable<void()> close_notifier_ = nullptr;

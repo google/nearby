@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,32 +14,41 @@
 
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 
+#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <memory>
 #include <utility>
 
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/windows/bluetooth_classic_device.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "winrt/Windows.Devices.Bluetooth.h"
-#include "winrt/Windows.Networking.Sockets.h"
-#include "winrt/base.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 using ::winrt::Windows::Devices::Bluetooth::BluetoothConnectionStatus;
-constexpr int kMaxConnectRetryCount = 3;
-constexpr absl::Duration kConnectInterval = absl::Seconds(3);
+using ::winrt::Windows::Networking::HostName;
+using ::winrt::Windows::Networking::Sockets::StreamSocket;
+using ::winrt::Windows::Storage::Streams::Buffer;
+using ::winrt::Windows::Storage::Streams::IInputStream;
+using ::winrt::Windows::Storage::Streams::InputStreamOptions;
+using ::winrt::Windows::Storage::Streams::IOutputStream;
 }  // namespace
 
-BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
-    : windows_socket_(streamSocket) {
+BluetoothSocket::BluetoothSocket(StreamSocket stream_socket)
+    : windows_socket_(stream_socket) {
   NEARBY_LOGS(INFO) << __func__ << ": Initialize bluetooth socket.";
   native_bluetooth_device_ =
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
           windows_socket_.Information().RemoteHostName())
           .get();
   if (FeatureFlags::GetInstance()
@@ -125,26 +134,18 @@ api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 // Starts an asynchronous operation on a StreamSocket object to connect to a
 // remote network destination specified by a remote hostname and a remote
 // service name.
-bool BluetoothSocket::Connect(HostName connectionHostName,
-                              winrt::hstring connectionServiceName) {
+bool BluetoothSocket::Connect(HostName connection_host_name,
+                              ::winrt::hstring connection_service_name) {
   NEARBY_LOGS(INFO) << __func__ << ": start to connect to bluetooth service:"
-                    << winrt::to_string(connectionServiceName);
+                    << winrt::to_string(connection_service_name);
 
-  connect_called_count_ = 0;
-  while (connect_called_count_ < kMaxConnectRetryCount) {
-    connect_called_count_ += 1;
-    bool connect_result =
-        InternalConnect(connectionHostName, connectionServiceName);
-    if (connect_result) {
-      return connect_result;
-    }
-
-    NEARBY_LOGS(WARNING) << __func__ << ": Failed to connect bluetooth at the "
-                         << connect_called_count_ << "th call.";
-
-    absl::SleepFor(kConnectInterval);
+  bool connect_result =
+      InternalConnect(connection_host_name, connection_service_name);
+  if (connect_result) {
+    return connect_result;
   }
 
+  NEARBY_LOGS(WARNING) << __func__ << ": Failed to connect bluetooth";
   return false;
 }
 
@@ -164,7 +165,8 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
 
     if (size > read_buffer_.Capacity()) {
       NEARBY_LOGS(WARNING) << __func__
-                         << ": resize receive buffer to packet size: " << size;
+                           << ": resize receive buffer to packet size: "
+                           << size;
       read_buffer_ = Buffer(size);
     }
 
@@ -225,8 +227,8 @@ Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
   try {
     if (data.size() > write_buffer_.Capacity()) {
       NEARBY_LOGS(WARNING) << __func__
-                         << ": resize write buffer to packet size: "
-                         << data.size();
+                           << ": resize write buffer to packet size: "
+                           << data.size();
       write_buffer_ = Buffer(data.size());
     }
 
@@ -290,10 +292,10 @@ Exception BluetoothSocket::BluetoothOutputStream::Close() {
   }
 }
 
-bool BluetoothSocket::InternalConnect(HostName connectionHostName,
-                                      winrt::hstring connectionServiceName) {
+bool BluetoothSocket::InternalConnect(HostName connection_host_name,
+                                      winrt::hstring connection_service_name) {
   try {
-    if (connectionHostName == nullptr || connectionServiceName.empty()) {
+    if (connection_host_name == nullptr || connection_service_name.empty()) {
       NEARBY_LOGS(ERROR)
           << __func__
           << ": Bluetooth socket connection failed. Attempting to "
@@ -303,14 +305,14 @@ bool BluetoothSocket::InternalConnect(HostName connectionHostName,
 
     NEARBY_LOGS(INFO) << __func__
                       << ": Bluetooth socket connection to host name:"
-                      << winrt::to_string(connectionHostName.DisplayName())
+                      << winrt::to_string(connection_host_name.DisplayName())
                       << ", service name:"
-                      << winrt::to_string(connectionServiceName);
+                      << winrt::to_string(connection_service_name);
 
     windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
 
     // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
-    windows_socket_.ConnectAsync(connectionHostName, connectionServiceName)
+    windows_socket_.ConnectAsync(connection_host_name, connection_service_name)
         .get();
 
     auto info = windows_socket_.Information();

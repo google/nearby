@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,14 @@
 
 namespace nearby {
 namespace windows {
+namespace {
+using ::winrt::Windows::Networking::Sockets::StreamSocket;
+using ::winrt::Windows::Networking::Sockets::SocketProtectionLevel;
+using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
+using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
+using ::winrt::Windows::Networking::Sockets::
+    StreamSocketListenerConnectionReceivedEventArgs;
+}  // namespace
 
 BluetoothServerSocket::BluetoothServerSocket(absl::string_view service_name)
     : service_name_(service_name) {}
