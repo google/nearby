@@ -76,6 +76,9 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
   local_safe_to_disconnect_version_ = NearbyFlags::GetInstance().GetInt64Flag(
       config_package_nearby::nearby_connections_feature::
           kSafeToDisconnectVersion);
+  NEARBY_LOGS(INFO) << "[safe-to-disconnect]: Local enabled: "
+                    << supports_safe_to_disconnect_
+                    << "; Version_: " << local_safe_to_disconnect_version_;
 }
 
 ClientProxy::~ClientProxy() { Reset(); }

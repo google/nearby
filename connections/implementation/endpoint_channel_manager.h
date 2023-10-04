@@ -22,6 +22,7 @@
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/feature_flags.h"
@@ -114,7 +115,8 @@ class EndpointChannelManager final {
                                         bool is_safe_to_disconnect,
                                         bool notify_stop_waiting)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id)
+  bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id,
+                                         absl::Duration timeout_millis)
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsSafeToDisconnect(const std::string& endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -193,7 +195,8 @@ class EndpointChannelManager final {
     void MarkEndpointStopWaitToDisconnect(const std::string& endpoint_id,
                                           bool is_safe_to_disconnect,
                                           bool notify_stop_waiting);
-    bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id);
+    bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id,
+                                           absl::Duration timeout_millis);
     bool IsSafeToDisconnect(const std::string& endpoint_id);
     void RemoveTimeoutDisconnectedState(const std::string& endpoint_id);
 

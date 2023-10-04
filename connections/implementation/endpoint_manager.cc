@@ -32,6 +32,7 @@
 #include "connections/implementation/service_id_constants.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
@@ -782,6 +783,10 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
                     << reason;
   bool is_safe_disconnection = false;
   bool send_disconnection_frame = true;
+  absl::Duration timeout_millis = FeatureFlags::GetInstance()
+                               .GetFlags()
+                               .safe_to_disconnect_ack_delay_millis;
+  bool is_wait_for_ack = true;
   switch (reason) {
     case DisconnectionReason::UPGRADED:
     case DisconnectionReason::SHUTDOWN:
@@ -796,6 +801,11 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
     case DisconnectionReason::REMOTE_DISCONNECTION:
       is_safe_disconnection = true;
       send_disconnection_frame = false;
+      timeout_millis =
+          FeatureFlags::GetInstance()
+              .GetFlags()
+              .safe_to_disconnect_remote_disc_delay_millis;
+      is_wait_for_ack = false;
       break;
     default:
       is_safe_disconnection = false;
@@ -820,8 +830,11 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
     }
   }
 
-  bool state =
-      channel_manager_->CreateNewTimeoutDisconnectedState(endpoint_id);
+  NEARBY_LOGS(WARNING) << "[safe-to-disconnect] Wait for "
+                       << (is_wait_for_ack ? "ack" : "disconnection")
+                       << ", timeout in " << timeout_millis;
+  bool state = channel_manager_->CreateNewTimeoutDisconnectedState(
+      endpoint_id, timeout_millis);
   if (!state) return is_safe_disconnection;
 
   return is_safe_disconnection ||

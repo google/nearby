@@ -135,8 +135,9 @@ void EndpointChannelManager::MarkEndpointStopWaitToDisconnect(
 }
 
 bool EndpointChannelManager::CreateNewTimeoutDisconnectedState(
-    const std::string& endpoint_id) {
-  return channel_state_.CreateNewTimeoutDisconnectedState(endpoint_id);
+    const std::string& endpoint_id, absl::Duration timeout_millis) {
+  return channel_state_.CreateNewTimeoutDisconnectedState(endpoint_id,
+                                                          timeout_millis);
 }
 
 bool EndpointChannelManager::IsSafeToDisconnect(
@@ -281,7 +282,7 @@ void EndpointChannelManager::ChannelState::MarkEndpointStopWaitToDisconnect(
 }
 
 bool EndpointChannelManager::ChannelState::CreateNewTimeoutDisconnectedState(
-    const std::string& endpoint_id) {
+    const std::string& endpoint_id, absl::Duration timeout_millis) {
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
   NEARBY_LOGS(INFO) << "[safe-to-disconnect] "
@@ -291,9 +292,7 @@ bool EndpointChannelManager::ChannelState::CreateNewTimeoutDisconnectedState(
     MutexLock lock(&item->second.timeout_to_disconnected_mutex);
     item->second.timeout_to_disconnected_enabled = true;
     item->second.timeout_to_disconnected_notified = false;
-    item->second.timeout_to_disconnected.Wait(FeatureFlags::GetInstance()
-                               .GetFlags()
-                               .safe_to_disconnect_ack_delay_millis);
+    item->second.timeout_to_disconnected.Wait(timeout_millis);
     NEARBY_LOGS(INFO) << "[safe-to-disconnect] Wait is done with "
                       << (item->second.timeout_to_disconnected_notified
                               ? "notification"

@@ -71,6 +71,8 @@ class FeatureFlags {
     // initiator will end the connection in 30s.
     absl::Duration safe_to_disconnect_ack_delay_millis =
         absl::Milliseconds(30000);
+    absl::Duration safe_to_disconnect_remote_disc_delay_millis =
+        absl::Milliseconds(10000);
     // If the receiver doesn't ack with payload_received_ack frame in 1s, the
     // sender will timeout the waiting.
     absl::Duration wait_payload_received_ack_millis = absl::Milliseconds(1000);
