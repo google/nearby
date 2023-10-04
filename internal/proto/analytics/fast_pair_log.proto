@@ -167,4 +167,6 @@ message FastPairLog {
 
   // SASS connection state for the device. Not set for non-SASS devices.
   optional int32 sass_connection_state = 22;
+
+  optional bool is_pair_triggered_by_settings = 23;
 }
