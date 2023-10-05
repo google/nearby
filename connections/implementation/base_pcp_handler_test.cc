@@ -471,7 +471,7 @@ class BasePcpHandlerTest
                 pcp_handler->GetMediumsFromSelector(discovery_options.allowed),
         }));
     EXPECT_EQ(pcp_handler->StartDiscovery(client, service_id, discovery_options,
-                                          discovery_listener_),
+                                          GetDiscoveryListener()),
               Status{Status::kSuccess});
     EXPECT_TRUE(client->IsDiscovering());
     for (const auto& discovered_medium :
@@ -812,14 +812,17 @@ class BasePcpHandlerTest
       .bandwidth_changed_cb =
           mock_connection_listener_.bandwidth_changed_cb.AsStdFunction(),
   };
-  DiscoveryListener discovery_listener_{
-      .endpoint_found_cb =
-          mock_discovery_listener_.endpoint_found_cb.AsStdFunction(),
-      .endpoint_lost_cb =
-          mock_discovery_listener_.endpoint_lost_cb.AsStdFunction(),
-      .endpoint_distance_changed_cb =
-          mock_discovery_listener_.endpoint_distance_changed_cb.AsStdFunction(),
-  };
+  DiscoveryListener GetDiscoveryListener() {
+    return DiscoveryListener{
+        .endpoint_found_cb =
+            mock_discovery_listener_.endpoint_found_cb.AsStdFunction(),
+        .endpoint_lost_cb =
+            mock_discovery_listener_.endpoint_lost_cb.AsStdFunction(),
+        .endpoint_distance_changed_cb =
+            mock_discovery_listener_.endpoint_distance_changed_cb
+                .AsStdFunction(),
+    };
+  }
   SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   NiceMock<MockNearbyDevice> mock_device_;
@@ -902,7 +905,7 @@ TEST_P(BasePcpHandlerTest, StartDiscoveryFails) {
           .mediums = {},
       }));
   EXPECT_EQ(pcp_handler.StartDiscovery(&client, "service", discovery_options,
-                                       discovery_listener_),
+                                       GetDiscoveryListener()),
             Status{Status::kError});
   bwu.Shutdown();
   env_.Stop();
@@ -985,7 +988,7 @@ TEST_F(BasePcpHandlerTest, WifiMediumFailFallBackToBT) {
       }));
 
   EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       discovery_listener_),
+                                       GetDiscoveryListener()),
             Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 
@@ -1566,7 +1569,7 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
           .mediums = allowed.GetMediums(true),
       }));
   EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
-                                       discovery_listener_),
+                                       GetDiscoveryListener()),
             Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());
 

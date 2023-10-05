@@ -199,13 +199,14 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
   DiscoveryOptions discovery_options = [discoveryOptions toCpp];
 
   DiscoveryListener listener;
-  listener.endpoint_found_cb = ^(const std::string &endpoint_id, const ByteArray &endpoint_info,
-                                 const std::string &service_id) {
+  listener.endpoint_found_cb = [delegate](const std::string &endpoint_id,
+                                          const ByteArray &endpoint_info,
+                                          const std::string &service_id) {
     NSString *endpointID = @(endpoint_id.c_str());
     NSData *info = [NSData dataWithBytes:endpoint_info.data() length:endpoint_info.size()];
     [delegate foundEndpoint:endpointID withEndpointInfo:info];
   };
-  listener.endpoint_lost_cb = ^(const std::string &endpoint_id) {
+  listener.endpoint_lost_cb = [delegate](const std::string &endpoint_id) {
     NSString *endpointID = @(endpoint_id.c_str());
     [delegate lostEndpoint:endpointID];
   };
@@ -290,30 +291,30 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
     GNCPayload *gncPayload = [GNCPayload fromCpp:std::move(payload)];
     [delegate receivedPayload:gncPayload fromEndpoint:endpointID];
   };
-  listener.payload_progress_cb =
-      [delegate](absl::string_view endpoint_id, const PayloadProgressInfo &info) {
-        NSString *endpointID = @(std::string(endpoint_id).c_str());
-        GNCPayloadStatus status;
-        switch (info.status) {
-          case PayloadProgressInfo::Status::kSuccess:
-            status = GNCPayloadStatusSuccess;
-            break;
-          case PayloadProgressInfo::Status::kFailure:
-            status = GNCPayloadStatusFailure;
-            break;
-          case PayloadProgressInfo::Status::kInProgress:
-            status = GNCPayloadStatusInProgress;
-            break;
-          case PayloadProgressInfo::Status::kCanceled:
-            status = GNCPayloadStatusCanceled;
-            break;
-        }
-        [delegate receivedProgressUpdateForPayload:info.payload_id
-                                        withStatus:status
-                                      fromEndpoint:endpointID
-                                   bytesTransfered:info.bytes_transferred
-                                        totalBytes:info.total_bytes];
-      };
+  listener.payload_progress_cb = [delegate](absl::string_view endpoint_id,
+                                            const PayloadProgressInfo &info) {
+    NSString *endpointID = @(std::string(endpoint_id).c_str());
+    GNCPayloadStatus status;
+    switch (info.status) {
+      case PayloadProgressInfo::Status::kSuccess:
+        status = GNCPayloadStatusSuccess;
+        break;
+      case PayloadProgressInfo::Status::kFailure:
+        status = GNCPayloadStatusFailure;
+        break;
+      case PayloadProgressInfo::Status::kInProgress:
+        status = GNCPayloadStatusInProgress;
+        break;
+      case PayloadProgressInfo::Status::kCanceled:
+        status = GNCPayloadStatusCanceled;
+        break;
+    }
+    [delegate receivedProgressUpdateForPayload:info.payload_id
+                                    withStatus:status
+                                  fromEndpoint:endpointID
+                               bytesTransfered:info.bytes_transferred
+                                    totalBytes:info.total_bytes];
+  };
 
   ResultListener result = [completionHandler](Status status) {
     NSError *err = NSErrorFromCppStatus(status);

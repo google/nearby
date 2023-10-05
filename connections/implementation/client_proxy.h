@@ -110,7 +110,7 @@ class ClientProxy final {
   // Marks this client as discovering with the given callback.
   void StartedDiscovery(
       const std::string& service_id, Strategy strategy,
-      const DiscoveryListener& discovery_listener,
+      DiscoveryListener discovery_listener,
       absl::Span<location::nearby::proto::connections::Medium> mediums,
       const DiscoveryOptions& discovery_options = DiscoveryOptions{});
   // Marks this client as not discovering at all.

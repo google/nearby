@@ -106,7 +106,7 @@ class BasePcpHandler : public PcpHandler,
   // DiscoveryListener will get called in case of any event.
   Status StartDiscovery(ClientProxy* client, const std::string& service_id,
                         const DiscoveryOptions& discovery_options,
-                        const DiscoveryListener& listener) override;
+                        DiscoveryListener listener) override;
 
   // Stops Discovery if it is active, and changes CLientProxy state,
   // otherwise does nothing.

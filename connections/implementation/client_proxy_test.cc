@@ -210,7 +210,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
         .info = ByteArray{"discovery endpoint name"},
         .id = client->GetLocalEndpointId(),
     };
-    client->StartedDiscovery(service_id_, strategy_, listener,
+    client->StartedDiscovery(service_id_, strategy_, std::move(listener),
                              absl::MakeSpan(mediums_));
     return endpoint;
   }
@@ -363,10 +363,12 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
       .bandwidth_changed_cb =
           mock_discovery_connection_.bandwidth_changed_cb.AsStdFunction(),
   };
-  DiscoveryListener discovery_listener_{
-      .endpoint_found_cb = mock_discovery_.endpoint_found_cb.AsStdFunction(),
-      .endpoint_lost_cb = mock_discovery_.endpoint_lost_cb.AsStdFunction(),
-  };
+  DiscoveryListener GetDiscoveryListener() {
+    return DiscoveryListener{
+        .endpoint_found_cb = mock_discovery_.endpoint_found_cb.AsStdFunction(),
+        .endpoint_lost_cb = mock_discovery_.endpoint_lost_cb.AsStdFunction(),
+    };
+  }
   ConnectionOptions connection_options_;
   AdvertisingOptions advertising_options_;
   DiscoveryOptions discovery_options_;
@@ -379,7 +381,7 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
 
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
@@ -415,7 +417,7 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
 
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
@@ -452,7 +454,7 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
   ConnectionListener advertising_connection_listener_3;
   ClientProxy client3;
 
-  StartDiscovery(&client1_, discovery_listener_);
+  StartDiscovery(&client1_, GetDiscoveryListener());
   Endpoint advertising_endpoint_2 =
       StartAdvertising(&client2_, advertising_connection_listener_2);
   Endpoint advertising_endpoint_3 =
@@ -558,14 +560,14 @@ TEST_F(ClientProxyTest, StartedDiscoveryChangesStateFromIdle) {
 TEST_F(ClientProxyTest, OnEndpointFoundFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnEndpointLostFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryEndpointLost(&client2_, advertising_endpoint);
 }
@@ -573,7 +575,7 @@ TEST_F(ClientProxyTest, OnEndpointLostFiresNotificationInDiscovery) {
 TEST_F(ClientProxyTest, OnConnectionInitiatedFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 }
@@ -581,7 +583,7 @@ TEST_F(ClientProxyTest, OnConnectionInitiatedFiresNotificationInDiscovery) {
 TEST_F(ClientProxyTest, OnBandwidthChangedFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
@@ -593,7 +595,7 @@ TEST_F(ClientProxyTest, OnBandwidthChangedFiresNotificationInDiscovery) {
 TEST_F(ClientProxyTest, OnDisconnectedFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
@@ -602,7 +604,7 @@ TEST_F(ClientProxyTest, OnDisconnectedFiresNotificationInDiscovery) {
 TEST_F(ClientProxyTest, LocalEndpointAcceptedConnectionChangesState) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
@@ -611,7 +613,7 @@ TEST_F(ClientProxyTest, LocalEndpointAcceptedConnectionChangesState) {
 TEST_F(ClientProxyTest, LocalEndpointRejectedConnectionChangesState) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionLocalRejected(&client2_, advertising_endpoint);
@@ -620,7 +622,7 @@ TEST_F(ClientProxyTest, LocalEndpointRejectedConnectionChangesState) {
 TEST_F(ClientProxyTest, RemoteEndpointAcceptedConnectionChangesState) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionRemoteAccepted(&client2_, advertising_endpoint);
@@ -629,7 +631,7 @@ TEST_F(ClientProxyTest, RemoteEndpointAcceptedConnectionChangesState) {
 TEST_F(ClientProxyTest, RemoteEndpointRejectedConnectionChangesState) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionRemoteRejected(&client2_, advertising_endpoint);
@@ -638,7 +640,7 @@ TEST_F(ClientProxyTest, RemoteEndpointRejectedConnectionChangesState) {
 TEST_F(ClientProxyTest, OnPayloadChangesState) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
@@ -650,7 +652,7 @@ TEST_F(ClientProxyTest, OnPayloadChangesState) {
 TEST_F(ClientProxyTest, OnPayloadProgressChangesState) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
   OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
@@ -770,7 +772,7 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
       &client1_, advertising_connection_listener_, advertising_options);
 
   StopAdvertising(&client1_);
-  StartDiscovery(&client1_, discovery_listener_);
+  StartDiscovery(&client1_, GetDiscoveryListener());
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -835,7 +837,7 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedAdvertisingWithConnection) {
       StartAdvertising(&client1_, advertising_connection_listener_);
   OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint);
 
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
@@ -874,7 +876,7 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
 
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
 
   // Before
@@ -894,7 +896,7 @@ TEST_F(ClientProxyTest,
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
 
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
 
   // Before
   EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
@@ -911,7 +913,7 @@ TEST_F(ClientProxyTest,
 TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
@@ -950,7 +952,7 @@ TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
       StartAdvertising(&client1_, advertising_connection_listener_);
   Endpoint advertising_endpoint_2 =
       StartAdvertising(&client2_, advertising_connection_listener_);
-  StartDiscovery(&client3, discovery_listener_);
+  StartDiscovery(&client3, GetDiscoveryListener());
 
   OnDiscoveryEndpointFound(&client3, advertising_endpoint_1);
   OnDiscoveryConnectionInitiated(&client3, advertising_endpoint_1);
@@ -976,7 +978,7 @@ TEST_F(ClientProxyTest,
        NotLogSessionOnDisconnectedForDiscoveringWithOnlyOneConnection) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
@@ -995,7 +997,7 @@ TEST_F(ClientProxyTest,
 TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
   Endpoint advertising_endpoint =
       StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(&client2_, GetDiscoveryListener());
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
@@ -1039,7 +1041,7 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
   std::int32_t nearby_connections_version = 2;
   client1_.SetRemoteOsInfo(advertising_endpoint.id, os_info);
   client1_.SetRemoteSafeToDisconnectVersion(advertising_endpoint.id,
-                                             nearby_connections_version);
+                                            nearby_connections_version);
 
   ASSERT_TRUE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
   EXPECT_EQ(client1_.GetRemoteOsInfo(advertising_endpoint.id).value().type(),

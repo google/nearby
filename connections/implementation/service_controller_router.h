@@ -76,7 +76,7 @@ class ServiceControllerRouter {
 
   virtual void StartDiscovery(ClientProxy* client, absl::string_view service_id,
                               const DiscoveryOptions& discovery_options,
-                              const DiscoveryListener& listener,
+                              DiscoveryListener listener,
                               ResultCallback callback);
 
   virtual void StopDiscovery(ClientProxy* client, ResultCallback callback);

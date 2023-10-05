@@ -104,20 +104,19 @@ class ServiceControllerRouterTest : public testing::Test {
 
   void StartDiscovery(ClientProxy* client, std::string service_id,
                       DiscoveryOptions discovery_options,
-                      const DiscoveryListener& listener,
-                      ResultCallback callback) {
+                      DiscoveryListener listener, ResultCallback callback) {
     EXPECT_CALL(*mock_, StartDiscovery)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
-      router_.StartDiscovery(client, kServiceId, discovery_options, listener,
+      router_.StartDiscovery(client, kServiceId, discovery_options, {},
                              std::move(callback));
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->StartedDiscovery(service_id, discovery_options.strategy, listener,
-                             absl::MakeSpan(mediums_));
+    client->StartedDiscovery(service_id, discovery_options.strategy,
+                             std::move(listener), absl::MakeSpan(mediums_));
     EXPECT_TRUE(client->IsDiscovering());
   }
 
@@ -185,8 +184,7 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->LocalEndpointAcceptedConnection(endpoint_id,
-                                            {});
+    client->LocalEndpointAcceptedConnection(endpoint_id, {});
     client->RemoteEndpointAcceptedConnection(endpoint_id);
     EXPECT_TRUE(client->IsConnectionAccepted(endpoint_id));
     client->OnConnectionAccepted(endpoint_id);
@@ -506,8 +504,6 @@ class ServiceControllerRouterTest : public testing::Test {
       .listener = ConnectionListener(),
   };
 
-  DiscoveryListener discovery_listener_;
-
   Mutex mutex_;
   ConditionVariable cond_{&mutex_};
   Status result_ ABSL_GUARDED_BY(mutex_) = {Status::kError};
@@ -561,7 +557,7 @@ TEST_F(ServiceControllerRouterTest, StopAdvertisingCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, StartDiscoveryCalled) {
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -571,7 +567,7 @@ TEST_F(ServiceControllerRouterTest, StartDiscoveryCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, StopDiscoveryCalled) {
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -587,7 +583,7 @@ TEST_F(ServiceControllerRouterTest, StopDiscoveryCalled) {
 }
 
 TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -611,7 +607,7 @@ TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -629,7 +625,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -655,7 +651,7 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -681,7 +677,7 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -714,7 +710,7 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
 
 TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -748,7 +744,7 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
 
 TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -783,7 +779,7 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
 
 TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -816,7 +812,7 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -870,7 +866,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -923,7 +919,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -967,7 +963,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
 
 TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -1001,7 +997,7 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -1035,7 +1031,7 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -1076,7 +1072,7 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -1118,7 +1114,7 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;
@@ -1159,7 +1155,7 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
 
 TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
                    MutexLock lock(&mutex_);
                    result_ = status;

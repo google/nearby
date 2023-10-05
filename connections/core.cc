@@ -102,8 +102,8 @@ void Core::StartDiscovery(absl::string_view service_id,
   CheckServiceId(service_id);
   CHECK(discovery_options.strategy.IsValid());
 
-  router_->StartDiscovery(&client_, service_id, discovery_options, listener,
-                          std::move(callback));
+  router_->StartDiscovery(&client_, service_id, discovery_options,
+                          std::move(listener), std::move(callback));
 }
 
 void Core::InjectEndpoint(absl::string_view service_id,
@@ -302,23 +302,26 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
                             ResultCallback callback) {
   DiscoveryListener old_listener = {
       .endpoint_found_cb =
-          [&listener](const std::string& endpoint_id,
-                      const ByteArray& endpoint_info,
-                      const std::string& service_id) {
+          [endpoint_found_cb = std::move(listener.endpoint_found_cb)](
+              const std::string& endpoint_id, const ByteArray& endpoint_info,
+              const std::string& service_id) mutable {
             auto remote_device = v3::ConnectionsDevice(
                 endpoint_id, endpoint_info.AsStringView(), {});
-            listener.endpoint_found_cb(remote_device, service_id);
+            endpoint_found_cb(remote_device, service_id);
           },
       .endpoint_lost_cb =
-          [&listener](const std::string& endpoint_id) {
+          [endpoint_lost_cb = std::move(listener.endpoint_lost_cb)](
+              const std::string& endpoint_id) mutable {
             auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-            listener.endpoint_lost_cb(remote_device);
+            endpoint_lost_cb(remote_device);
           },
       .endpoint_distance_changed_cb =
-          [&listener](const std::string& endpoint_id,
-                      DistanceInfo distance_info) {
+          [endpoint_distance_changed_cb =
+               std::move(listener.endpoint_distance_changed_cb)](
+              const std::string& endpoint_id,
+              DistanceInfo distance_info) mutable {
             auto remote = v3::ConnectionsDevice(endpoint_id, "", {});
-            listener.endpoint_distance_changed_cb(remote, distance_info);
+            endpoint_distance_changed_cb(remote, distance_info);
           },
   };
   DiscoveryOptions old_discovery_options = {
@@ -333,7 +336,7 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
       discovery_options.power_level == PowerLevel::kLowPower,
   };
   // TODO(b/291295755): Deeper refactor to use v3 options throughout.
-  StartDiscovery(service_id, old_discovery_options, old_listener,
+  StartDiscovery(service_id, old_discovery_options, std::move(old_listener),
                  std::move(callback));
 }
 

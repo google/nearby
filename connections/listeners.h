@@ -136,9 +136,9 @@ struct DiscoveryListener {
   // endpoint_id   - The ID of the remote endpoint that was discovered.
   // endpoint_info - The info of the remote endpoint representd by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
-  std::function<void(const std::string& endpoint_id,
-                     const ByteArray& endpoint_info,
-                     const std::string& service_id)>
+  absl::AnyInvocable<void(const std::string& endpoint_id,
+                          const ByteArray& endpoint_info,
+                          const std::string& service_id)>
       endpoint_found_cb =
           [](const std::string&, const ByteArray&, const std::string&) {};
 
@@ -147,7 +147,7 @@ struct DiscoveryListener {
   // #onEndpointFound(String, DiscoveredEndpointInfo)}.
   //
   // endpoint_id - The ID of the remote endpoint that was lost.
-  std::function<void(const std::string& endpoint_id)> endpoint_lost_cb =
+  absl::AnyInvocable<void(const std::string& endpoint_id)> endpoint_lost_cb =
       [](const std::string&) {};
 
   // Called when a remote endpoint is found with an updated distance.
@@ -155,7 +155,7 @@ struct DiscoveryListener {
   // arguments:
   //   endpoint_id - The ID of the remote endpoint that was lost.
   //   info        - The distance info, encoded as enum value.
-  std::function<void(const std::string& endpoint_id, DistanceInfo info)>
+  absl::AnyInvocable<void(const std::string& endpoint_id, DistanceInfo info)>
       endpoint_distance_changed_cb = [](const std::string&, DistanceInfo) {};
 };
 

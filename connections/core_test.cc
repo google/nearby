@@ -158,8 +158,8 @@ TEST(CoreV3Test, TestDiscoveryOptionsConversionWorks) {
       });
   EXPECT_CALL(mock, StartDiscovery)
       .WillOnce([](ClientProxy*, absl::string_view,
-                   const DiscoveryOptions& options,
-                   const DiscoveryListener& info, ResultCallback) {
+                   const DiscoveryOptions& options, DiscoveryListener,
+                   ResultCallback) {
         EXPECT_EQ(options.strategy, Strategy::kP2pCluster);
         EXPECT_FALSE(options.low_power);
         EXPECT_TRUE(options.auto_upgrade_bandwidth);
@@ -411,12 +411,12 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartDiscoveryV3) {
   MockServiceControllerRouter mock;
   EXPECT_CALL(mock, StartDiscovery)
       .WillOnce([&](ClientProxy*, absl::string_view, const DiscoveryOptions&,
-                    const DiscoveryListener& info, const ResultCallback&) {
+                    DiscoveryListener listener, const ResultCallback&) {
         // call all callbacks to make sure it all gets called correctly.
         NEARBY_LOGS(INFO) << "StartDiscovery called";
-        info.endpoint_distance_changed_cb("FAKE", {});
-        info.endpoint_found_cb("FAKE", ByteArray(), "");
-        info.endpoint_lost_cb("FAKE");
+        listener.endpoint_distance_changed_cb("FAKE", {});
+        listener.endpoint_found_cb("FAKE", ByteArray(), "");
+        listener.endpoint_lost_cb("FAKE");
       });
   EXPECT_CALL(mock, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {

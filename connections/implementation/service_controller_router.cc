@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/memory/memory.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "connections/listeners.h"
@@ -127,19 +128,20 @@ void ServiceControllerRouter::StopAdvertising(ClientProxy* client,
 
 void ServiceControllerRouter::StartDiscovery(
     ClientProxy* client, absl::string_view service_id,
-    const DiscoveryOptions& discovery_options,
-    const DiscoveryListener& listener, ResultCallback callback) {
+    const DiscoveryOptions& discovery_options, DiscoveryListener listener,
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-start-discovery",
       [this, client, service_id = std::string(service_id), discovery_options,
-       listener, callback = std::move(callback)]() mutable {
+       listener = std::move(listener),
+       callback = std::move(callback)]() mutable {
         if (client->IsDiscovering()) {
           callback({Status::kAlreadyDiscovering});
           return;
         }
 
         callback(GetServiceController()->StartDiscovery(
-            client, service_id, discovery_options, listener));
+            client, service_id, discovery_options, std::move(listener)));
       });
 }
 

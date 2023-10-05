@@ -31,6 +31,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/listeners.h"
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device_provider.h"
@@ -282,11 +283,11 @@ ConnectionListener ClientProxy::GetAdvertisingOrIncomingConnectionListener() {
 
 void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
-    const DiscoveryListener& listener,
+    DiscoveryListener listener,
     absl::Span<location::nearby::proto::connections::Medium> mediums,
     const DiscoveryOptions& discovery_options) {
   MutexLock lock(&mutex_);
-  discovery_info_ = DiscoveryInfo{service_id, listener};
+  discovery_info_ = DiscoveryInfo{service_id, std::move(listener)};
   discovery_options_ = discovery_options;
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
@@ -855,7 +856,6 @@ bool ClientProxy::IsPayloadReceivedAckEnabled(absl::string_view endpoint_id) {
               .GetFlags()
               .min_nc_version_supports_payload_received_ack);
 }
-
 
 void ClientProxy::CancelAllEndpoints() {
   for (const auto& item : cancellation_flags_) {

@@ -19,6 +19,8 @@
 #include <vector>
 
 #include "absl/strings/str_join.h"
+#include "connections/discovery_options.h"
+#include "connections/listeners.h"
 #include "internal/interop/device.h"
 
 namespace nearby {
@@ -54,13 +56,12 @@ void OfflineServiceController::StopAdvertising(ClientProxy* client) {
 
 Status OfflineServiceController::StartDiscovery(
     ClientProxy* client, const std::string& service_id,
-    const DiscoveryOptions& discovery_options,
-    const DiscoveryListener& listener) {
+    const DiscoveryOptions& discovery_options, DiscoveryListener listener) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " requested discovery to start.";
   return pcp_manager_.StartDiscovery(client, service_id, discovery_options,
-                                     listener);
+                                     std::move(listener));
 }
 
 void OfflineServiceController::StopDiscovery(ClientProxy* client) {

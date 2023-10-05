@@ -74,7 +74,7 @@ class ServiceController {
   virtual Status StartDiscovery(ClientProxy* client,
                                 const std::string& service_id,
                                 const DiscoveryOptions& discovery_options,
-                                const DiscoveryListener& listener) = 0;
+                                DiscoveryListener listener) = 0;
   virtual void StopDiscovery(ClientProxy* client) = 0;
 
   virtual void InjectEndpoint(ClientProxy* client,

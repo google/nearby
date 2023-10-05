@@ -20,6 +20,7 @@
 
 #include "gmock/gmock.h"
 #include "connections/implementation/service_controller.h"
+#include "connections/listeners.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
 
@@ -47,7 +48,7 @@ class MockServiceController : public ServiceController {
   MOCK_METHOD(Status, StartDiscovery,
               (ClientProxy * client, const std::string& service_id,
                const DiscoveryOptions& discovery_options,
-               const DiscoveryListener& listener),
+               DiscoveryListener listener),
               (override));
 
   MOCK_METHOD(void, StopDiscovery, (ClientProxy * client), (override));

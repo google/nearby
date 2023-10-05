@@ -95,9 +95,6 @@ void StartDiscovery(connections::Core *pCore, const char *service_id,
   if (pCore == nullptr) {
     return;
   }
-  connections::DiscoveryListener discoveryListener =
-      std::move(*listener.GetImpl());
-
   connections::DiscoveryOptions discovery_options;
 
   if (discovery_options_w.strategy == StrategyW::kNone)
@@ -125,7 +122,8 @@ void StartDiscovery(connections::Core *pCore, const char *service_id,
       discovery_options_w.allowed.wifi_hotspot;
   discovery_options.allowed.web_rtc = discovery_options_w.allowed.web_rtc;
 
-  pCore->StartDiscovery(service_id, discovery_options, discoveryListener,
+  pCore->StartDiscovery(service_id, discovery_options,
+                        std::move(*listener.GetImpl()),
                         std::move(*callback.GetImpl()));
 }
 

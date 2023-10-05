@@ -22,18 +22,20 @@
 #include <vector>
 
 #include "securegcm/ukey2_handshake.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
-#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
@@ -353,7 +355,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
                                       const std::string& service_id,
                                       const DiscoveryOptions& discovery_options,
-                                      const DiscoveryListener& listener) {
+                                      DiscoveryListener listener) {
   Future<Status> response;
   DiscoveryOptions stripped_discovery_options = discovery_options;
   StripOutUnavailableMediums(stripped_discovery_options);
@@ -362,9 +364,9 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
                            stripped_discovery_options);
   RunOnPcpHandlerThread(
       "start-discovery",
-      [this, client, service_id, stripped_discovery_options, &listener,
-       &response]() RUN_ON_PCP_HANDLER_THREAD()
-          ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_) {
+      [this, client, service_id, stripped_discovery_options,
+       listener = std::move(listener), &response]() RUN_ON_PCP_HANDLER_THREAD()
+          ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_) mutable {
             // Ask the implementation to attempt to start discovery.
             auto result = StartDiscoveryImpl(client, service_id,
                                              stripped_discovery_options);
@@ -379,9 +381,9 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
               MutexLock lock(&discovered_endpoint_mutex_);
               discovered_endpoints_.clear();
             }
-            client->StartedDiscovery(service_id, GetStrategy(), listener,
-                                     absl::MakeSpan(result.mediums),
-                                     stripped_discovery_options);
+            client->StartedDiscovery(
+                service_id, GetStrategy(), std::move(listener),
+                absl::MakeSpan(result.mediums), stripped_discovery_options);
             response.Set({Status::kSuccess});
           });
   return WaitForResult(absl::StrCat("StartDiscovery(", service_id, ")"),
@@ -1316,8 +1318,8 @@ void BasePcpHandler::OnIncomingFrame(
           client->SetRemoteSafeToDisconnectVersion(
               endpoint_id, connection_response.safe_to_disconnect_version());
         }
-        channel_manager_->UpdateSafeToDisconnectForEndpoint(endpoint_id,
-                         client->IsSafeToDisconnectEnabled(endpoint_id));
+        channel_manager_->UpdateSafeToDisconnectForEndpoint(
+            endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));
         EvaluateConnectionResult(client, endpoint_id,
                                  /* can_close_immediately= */ true);
 
@@ -1335,21 +1337,20 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
     barrier.CountDown();
     return;
   }
-  RunOnPcpHandlerThread("on-endpoint-disconnect",
-                        [this, client, endpoint_id, barrier, reason]()
-                            RUN_ON_PCP_HANDLER_THREAD() mutable {
-                              auto item = pending_alarms_.find(endpoint_id);
-                              if (item != pending_alarms_.end()) {
-                                auto& alarm = item->second;
-                                alarm->Cancel();
-                                pending_alarms_.erase(item);
-                              }
-                              ProcessPreConnectionResultFailure(
-                                  client, endpoint_id,
-                                  /* should_call_disconnect_endpoint= */ false,
-                                  reason);
-                              barrier.CountDown();
-                            });
+  RunOnPcpHandlerThread(
+      "on-endpoint-disconnect", [this, client, endpoint_id, barrier,
+                                 reason]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        auto item = pending_alarms_.find(endpoint_id);
+        if (item != pending_alarms_.end()) {
+          auto& alarm = item->second;
+          alarm->Cancel();
+          pending_alarms_.erase(item);
+        }
+        ProcessPreConnectionResultFailure(
+            client, endpoint_id,
+            /* should_call_disconnect_endpoint= */ false, reason);
+        barrier.CountDown();
+      });
 }
 
 BluetoothDevice BasePcpHandler::GetRemoteBluetoothDevice(
