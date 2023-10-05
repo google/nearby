@@ -169,6 +169,7 @@ enum DisconnectionReason {
   UPGRADED = 4;
   SHUTDOWN = 5;
   UNFINISHED = 6;
+  PREV_CHANNEL_DISCONNECTION_IN_RECONNECT = 7;
 }
 
 // The type of a Payload.
