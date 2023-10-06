@@ -656,29 +656,33 @@ bool ConnectionAttemptType_IsValid(int value) {
     case 0:
     case 1:
     case 2:
+    case 3:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionAttemptType_strings[3] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionAttemptType_strings[4] = {};
 
 static const char ConnectionAttemptType_names[] =
   "INITIAL"
+  "RECONNECT"
   "UNKNOWN_CONNECTION_ATTEMPT_TYPE"
   "UPGRADE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionAttemptType_entries[] = {
   { {ConnectionAttemptType_names + 0, 7}, 1 },
-  { {ConnectionAttemptType_names + 7, 31}, 0 },
-  { {ConnectionAttemptType_names + 38, 7}, 2 },
+  { {ConnectionAttemptType_names + 7, 9}, 3 },
+  { {ConnectionAttemptType_names + 16, 31}, 0 },
+  { {ConnectionAttemptType_names + 47, 7}, 2 },
 };
 
 static const int ConnectionAttemptType_entries_by_number[] = {
-  1, // 0 -> UNKNOWN_CONNECTION_ATTEMPT_TYPE
+  2, // 0 -> UNKNOWN_CONNECTION_ATTEMPT_TYPE
   0, // 1 -> INITIAL
-  2, // 2 -> UPGRADE
+  3, // 2 -> UPGRADE
+  1, // 3 -> RECONNECT
 };
 
 const std::string& ConnectionAttemptType_Name(
@@ -687,12 +691,12 @@ const std::string& ConnectionAttemptType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           ConnectionAttemptType_entries,
           ConnectionAttemptType_entries_by_number,
-          3, ConnectionAttemptType_strings);
+          4, ConnectionAttemptType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       ConnectionAttemptType_entries,
       ConnectionAttemptType_entries_by_number,
-      3, value);
+      4, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      ConnectionAttemptType_strings[idx].get();
 }
@@ -700,7 +704,7 @@ bool ConnectionAttemptType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionAttemptType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      ConnectionAttemptType_entries, 3, name, &int_value);
+      ConnectionAttemptType_entries, 4, name, &int_value);
   if (success) {
     *value = static_cast<ConnectionAttemptType>(int_value);
   }
@@ -715,17 +719,19 @@ bool DisconnectionReason_IsValid(int value) {
     case 4:
     case 5:
     case 6:
+    case 7:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DisconnectionReason_strings[7] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DisconnectionReason_strings[8] = {};
 
 static const char DisconnectionReason_names[] =
   "IO_ERROR"
   "LOCAL_DISCONNECTION"
+  "PREV_CHANNEL_DISCONNECTION_IN_RECONNECT"
   "REMOTE_DISCONNECTION"
   "SHUTDOWN"
   "UNFINISHED"
@@ -735,21 +741,23 @@ static const char DisconnectionReason_names[] =
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DisconnectionReason_entries[] = {
   { {DisconnectionReason_names + 0, 8}, 3 },
   { {DisconnectionReason_names + 8, 19}, 1 },
-  { {DisconnectionReason_names + 27, 20}, 2 },
-  { {DisconnectionReason_names + 47, 8}, 5 },
-  { {DisconnectionReason_names + 55, 10}, 6 },
-  { {DisconnectionReason_names + 65, 28}, 0 },
-  { {DisconnectionReason_names + 93, 8}, 4 },
+  { {DisconnectionReason_names + 27, 39}, 7 },
+  { {DisconnectionReason_names + 66, 20}, 2 },
+  { {DisconnectionReason_names + 86, 8}, 5 },
+  { {DisconnectionReason_names + 94, 10}, 6 },
+  { {DisconnectionReason_names + 104, 28}, 0 },
+  { {DisconnectionReason_names + 132, 8}, 4 },
 };
 
 static const int DisconnectionReason_entries_by_number[] = {
-  5, // 0 -> UNKNOWN_DISCONNECTION_REASON
+  6, // 0 -> UNKNOWN_DISCONNECTION_REASON
   1, // 1 -> LOCAL_DISCONNECTION
-  2, // 2 -> REMOTE_DISCONNECTION
+  3, // 2 -> REMOTE_DISCONNECTION
   0, // 3 -> IO_ERROR
-  6, // 4 -> UPGRADED
-  3, // 5 -> SHUTDOWN
-  4, // 6 -> UNFINISHED
+  7, // 4 -> UPGRADED
+  4, // 5 -> SHUTDOWN
+  5, // 6 -> UNFINISHED
+  2, // 7 -> PREV_CHANNEL_DISCONNECTION_IN_RECONNECT
 };
 
 const std::string& DisconnectionReason_Name(
@@ -758,12 +766,12 @@ const std::string& DisconnectionReason_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           DisconnectionReason_entries,
           DisconnectionReason_entries_by_number,
-          7, DisconnectionReason_strings);
+          8, DisconnectionReason_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       DisconnectionReason_entries,
       DisconnectionReason_entries_by_number,
-      7, value);
+      8, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      DisconnectionReason_strings[idx].get();
 }
@@ -771,7 +779,7 @@ bool DisconnectionReason_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DisconnectionReason* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      DisconnectionReason_entries, 7, name, &int_value);
+      DisconnectionReason_entries, 8, name, &int_value);
   if (success) {
     *value = static_cast<DisconnectionReason>(int_value);
   }

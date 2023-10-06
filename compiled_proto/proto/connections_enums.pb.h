@@ -273,11 +273,12 @@ bool ConnectionAttemptDirection_Parse(
 enum ConnectionAttemptType : int {
   UNKNOWN_CONNECTION_ATTEMPT_TYPE = 0,
   INITIAL = 1,
-  UPGRADE = 2
+  UPGRADE = 2,
+  RECONNECT = 3
 };
 bool ConnectionAttemptType_IsValid(int value);
 constexpr ConnectionAttemptType ConnectionAttemptType_MIN = UNKNOWN_CONNECTION_ATTEMPT_TYPE;
-constexpr ConnectionAttemptType ConnectionAttemptType_MAX = UPGRADE;
+constexpr ConnectionAttemptType ConnectionAttemptType_MAX = RECONNECT;
 constexpr int ConnectionAttemptType_ARRAYSIZE = ConnectionAttemptType_MAX + 1;
 
 const std::string& ConnectionAttemptType_Name(ConnectionAttemptType value);
@@ -297,11 +298,12 @@ enum DisconnectionReason : int {
   IO_ERROR = 3,
   UPGRADED = 4,
   SHUTDOWN = 5,
-  UNFINISHED = 6
+  UNFINISHED = 6,
+  PREV_CHANNEL_DISCONNECTION_IN_RECONNECT = 7
 };
 bool DisconnectionReason_IsValid(int value);
 constexpr DisconnectionReason DisconnectionReason_MIN = UNKNOWN_DISCONNECTION_REASON;
-constexpr DisconnectionReason DisconnectionReason_MAX = UNFINISHED;
+constexpr DisconnectionReason DisconnectionReason_MAX = PREV_CHANNEL_DISCONNECTION_IN_RECONNECT;
 constexpr int DisconnectionReason_ARRAYSIZE = DisconnectionReason_MAX + 1;
 
 const std::string& DisconnectionReason_Name(DisconnectionReason value);
