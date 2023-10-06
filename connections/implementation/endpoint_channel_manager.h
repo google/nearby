@@ -28,6 +28,7 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/mutex.h"
 #include "internal/proto/analytics/connections_log.pb.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
