@@ -28,9 +28,9 @@ namespace {
 
 constexpr uint32_t kNumThreads[] = {1, 10};
 
-class BaseTaskRunnerImplTest : public ::testing::TestWithParam<uint32_t> {};
+class TaskRunnerImplTest : public ::testing::TestWithParam<uint32_t> {};
 
-TEST_P(BaseTaskRunnerImplTest, PostTask) {
+TEST_P(TaskRunnerImplTest, PostTask) {
   TaskRunnerImpl task_runner{GetParam()};
   absl::Notification notification;
   bool called = false;
@@ -43,7 +43,7 @@ TEST_P(BaseTaskRunnerImplTest, PostTask) {
   EXPECT_TRUE(called);
 }
 
-TEST_F(BaseTaskRunnerImplTest, PostSequenceTasks) {
+TEST_F(TaskRunnerImplTest, PostSequenceTasks) {
   TaskRunnerImpl task_runner{1};
   std::vector<std::string> completed_tasks;
   absl::Notification notification;
@@ -71,7 +71,7 @@ TEST_F(BaseTaskRunnerImplTest, PostSequenceTasks) {
   EXPECT_EQ(completed_tasks[1], "task2");
 }
 
-TEST_P(BaseTaskRunnerImplTest, PostDelayedTask) {
+TEST_P(TaskRunnerImplTest, PostDelayedTask) {
   TaskRunnerImpl task_runner{GetParam()};
   std::atomic_bool first_task_started = false;
   CountDownLatch latch(2);
@@ -91,7 +91,7 @@ TEST_P(BaseTaskRunnerImplTest, PostDelayedTask) {
   latch.Await();
 }
 
-TEST_P(BaseTaskRunnerImplTest, PostTwoDelayedTasks) {
+TEST_P(TaskRunnerImplTest, PostTwoDelayedTasks) {
   TaskRunnerImpl task_runner{GetParam()};
   std::atomic_bool first_task_started = false;
   CountDownLatch latch(2);
@@ -111,7 +111,7 @@ TEST_P(BaseTaskRunnerImplTest, PostTwoDelayedTasks) {
   latch.Await();
 }
 
-TEST_P(BaseTaskRunnerImplTest, PostMultipleTasks) {
+TEST_P(TaskRunnerImplTest, PostMultipleTasks) {
   TaskRunnerImpl task_runner(GetParam());
   constexpr int kNumTasks = 10;
   CountDownLatch latch(kNumTasks);
@@ -126,14 +126,13 @@ TEST_P(BaseTaskRunnerImplTest, PostMultipleTasks) {
   EXPECT_TRUE(latch.Await());
 }
 
-TEST_P(BaseTaskRunnerImplTest, PostEmptyTask) {
+TEST_P(TaskRunnerImplTest, PostEmptyTask) {
   TaskRunnerImpl task_runner{GetParam()};
   EXPECT_TRUE(task_runner.PostTask(nullptr));
   EXPECT_TRUE(task_runner.PostDelayedTask(absl::Milliseconds(100), nullptr));
 }
 
-INSTANTIATE_TEST_SUITE_P(ParameterizedBasePcpHandlerTest,
-                         BaseTaskRunnerImplTest,
+INSTANTIATE_TEST_SUITE_P(ParameterizedTaskRunnerImplTest, TaskRunnerImplTest,
                          ::testing::ValuesIn(kNumThreads));
 
 }  // namespace
