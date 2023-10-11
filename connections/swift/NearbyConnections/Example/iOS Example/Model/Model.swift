@@ -120,10 +120,13 @@ class Model: ObservableObject {
 
 extension Model: DiscovererDelegate {
     func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, with context: Data) {
+        guard let endpointName = String(data: context, encoding: .utf8) else {
+            return
+        }
         let endpoint = DiscoveredEndpoint(
             id: UUID(),
             endpointID: endpointID,
-            endpointName: String(data: context, encoding: .utf8)!
+            endpointName: endpointName
         )
         endpoints.insert(endpoint, at: 0)
     }
@@ -138,10 +141,13 @@ extension Model: DiscovererDelegate {
 
 extension Model: AdvertiserDelegate {
     func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
+        guard let endpointName = String(data: context, encoding: .utf8) else {
+            return
+        }
         let endpoint = DiscoveredEndpoint(
             id: UUID(),
             endpointID: endpointID,
-            endpointName: String(data: context, encoding: .utf8)!
+            endpointName: endpointName
         )
         endpoints.insert(endpoint, at: 0)
         connectionRequestHandler(true)
