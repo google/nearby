@@ -30,6 +30,7 @@ namespace {
 using ::nearby::internal::Metadata;
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
+constexpr absl::string_view kManagerAppId = "test_app_id";
 
 Metadata CreateTestMetadata() {
   Metadata metadata;
@@ -67,6 +68,12 @@ TEST(PresenceDeviceProviderTest, DeviceProviderCanUpdateDevice) {
   provider.UpdateMetadata(new_metadata);
   EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
             new_metadata.SerializeAsString());
+}
+
+TEST(PresenceDeviceProviderTest, SetManagerAppId) {
+  PresenceDeviceProvider provider(CreateTestMetadata());
+  provider.SetManagerAppId(kManagerAppId);
+  EXPECT_EQ(provider.GetManagerAppId(), kManagerAppId);
 }
 
 }  // namespace

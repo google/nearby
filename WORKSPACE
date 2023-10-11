@@ -23,8 +23,8 @@ filegroup(
 
 http_archive(
     name = "com_google_absl",
-    strip_prefix = "abseil-cpp-master",
-    urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
+    strip_prefix = "abseil-cpp-20230802.1",
+    urls = ["https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.1.zip"],
 )
 
 # Using a protobuf javalite version that contains @com_google_protobuf_javalite//:javalite_toolchain

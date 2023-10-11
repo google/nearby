@@ -46,8 +46,17 @@ class PresenceDeviceProvider : public NearbyDeviceProvider {
     device_.SetMetadata(metadata);
   }
 
+  void SetManagerAppId(absl::string_view manager_app_id) {
+    manager_app_id_ = manager_app_id;
+  }
+
+  std::string GetManagerAppId() {
+    return manager_app_id_;
+  }
+
  private:
   PresenceDevice device_;
+  std::string manager_app_id_;
 };
 }  // namespace presence
 }  // namespace nearby
