@@ -42,6 +42,7 @@ cc_library(
     ],
     visibility = [
         "//:__subpackages__",
+        "//location/nearby/apps:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
     ],
     deps = [
