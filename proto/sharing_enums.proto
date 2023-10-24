@@ -565,6 +565,8 @@ enum SyncPurpose {
   SYNC_PURPOSE_ACCOUNT_CHANGE = 15;
   // When regenerate certificates
   SYNC_PURPOSE_REGENERATE_CERTIFICATES = 16;
+  // When Device Contacts consent changes
+  SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE = 17;
 }
 
 // The device role to trigger the server request.
