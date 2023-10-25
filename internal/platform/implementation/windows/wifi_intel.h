@@ -18,18 +18,22 @@
 // clang-format off
 #include <windows.h>
 #include <wtypes.h>
+#include <cstdint>
 // clang-format on
 
 // Intel WIFI PIE headers
+#ifndef NO_INTEL_PIE
 #include "third_party/intel/pie/include/IntelSdkVersionInfo.h"
 #include "third_party/intel/pie/include/PieApiErrors.h"
 #include "third_party/intel/pie/include/PieDefinitions.h"
+#endif
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
-
+#ifndef NO_INTEL_PIE
 using  ::MurocDefs::PINTEL_ADAPTER_LIST_V120;
+#endif
 
 // Container of Intel WIFI to utilize Intel PIE SDK API
 class WifiIntel {
@@ -42,6 +46,7 @@ class WifiIntel {
   void Start();
   void Stop();
   uint8_t GetGOChannel();
+
  private:
   // This is a singleton object, for which destructor will never be called.
   // Constructor will be invoked once from Instance() static method.
@@ -50,12 +55,14 @@ class WifiIntel {
   WifiIntel() = default;
   ~WifiIntel() = default;
 
+#ifndef NO_INTEL_PIE
   HINSTANCE PIEDllLoader();
 
-  bool intel_wifi_valid_ = false;
   HINSTANCE muroc_api_dll_handle_ = nullptr;
   HADAPTER wifi_adapter_handle_ = 0;
   PINTEL_ADAPTER_LIST_V120 p_all_adapters_ = nullptr;
+#endif
+  bool intel_wifi_valid_ = false;
 };
 
 }  // namespace windows
