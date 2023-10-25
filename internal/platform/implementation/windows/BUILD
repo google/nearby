@@ -105,6 +105,7 @@ cc_library(
         "wifi_intel.h",
         "wifi_lan.h",
     ],
+    copts = ["-DNO_INTEL_PIE"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
@@ -114,7 +115,6 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/windows/generated:types",
-        "//third_party/intel/pie",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -189,7 +189,10 @@ cc_library(
     ],
     # This is the temporary solution to solve compilation error of Win32 WFDxxx() related API.
     # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    copts = [
+        "-DNO_INTEL_PIE",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/generated -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
+    ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//connections:__subpackages__",
