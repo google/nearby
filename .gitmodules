@@ -24,3 +24,12 @@
 [submodule "third_party/micro-ecc"]
 	path = third_party/micro-ecc
 	url = https://github.com/kmackay/micro-ecc
+[submodule "third_party/json"]
+	path = third_party/json
+	url = https://github.com/nlohmann/json
+[submodule "third_party/smhasher"]
+	path = third_party/smhasher
+	url = https://github.com/aappleby/smhasher
+[submodule "third_party/ukey2"]
+	path = third_party/ukey2
+	url = https://github.com/google/ukey2
