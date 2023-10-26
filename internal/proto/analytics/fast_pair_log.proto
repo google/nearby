@@ -169,4 +169,13 @@ message FastPairLog {
   optional int32 sass_connection_state = 22;
 
   optional bool is_pair_triggered_by_settings = 23;
+
+  // The nearby mainline tethering module version.
+  optional int64 nearby_mainline_tethering_version = 24;
+
+  // The nearby nano app version for offload.
+  optional int64 nearby_nano_app_version = 25;
+
+  // For the SECRET_HANDSHAKE event, is the pairing device in paired history.
+  optional bool is_in_paired_history = 26;
 }
