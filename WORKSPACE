@@ -27,28 +27,28 @@ local_repository(
 )
 
 # Using a protobuf javalite version that contains @com_google_protobuf_javalite//:javalite_toolchain
-http_archive(
-    name = "com_google_protobuf_javalite",
-    strip_prefix = "protobuf-javalite",
-    urls = ["https://github.com/google/protobuf/archive/javalite.zip"],
-)
+# http_archive(
+#     name = "com_google_protobuf_javalite",
+#     strip_prefix = "protobuf-javalite",
+#     urls = ["https://github.com/google/protobuf/archive/javalite.zip"],
+# )
 
 local_repository(
     name = "com_google_protobuf",
     path = "third_party/protobuf",
 )
 
-http_archive(
-    name = "com_google_protobuf_cc",
-    strip_prefix = "protobuf-3.17.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
-)
+# http_archive(
+#     name = "com_google_protobuf_cc",
+#     strip_prefix = "protobuf-3.17.0",
+#     urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
+# )
 
-http_archive(
-    name = "com_google_protobuf_java",
-    strip_prefix = "protobuf-3.17.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
-)
+# http_archive(
+#     name = "com_google_protobuf_java",
+#     strip_prefix = "protobuf-3.17.0",
+#     urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
+# )
 
 local_repository(
     name = "com_google_glog",
@@ -112,13 +112,13 @@ local_repository(
     path = "third_party/gtest",
 )
 
-http_archive(
-    name = "com_google_webrtc",
-    build_file_content = """
-package(default_visibility = ["//visibility:public"])
-""",
-    urls = ["https://webrtc.googlesource.com/src/+archive/main.tar.gz"],
-)
+# http_archive(
+#     name = "com_google_webrtc",
+#     build_file_content = """
+# package(default_visibility = ["//visibility:public"])
+# """,
+#     urls = ["https://webrtc.googlesource.com/src/+archive/main.tar.gz"],
+# )
 
 # gflags needed by glog
 local_repository(
@@ -133,24 +133,30 @@ local_repository(
 # from the HEAD. See
 #   https://github.com/google-research/nisaba
 
-nisaba_version = "main"
+# nisaba_version = "main"
 
-http_archive(
-    name = "com_google_nisaba",
-    strip_prefix = "nisaba-%s" % nisaba_version,
-    url = "https://github.com/google-research/nisaba/archive/refs/heads/%s.zip" % nisaba_version,
-)
+# http_archive(
+#     name = "com_google_nisaba",
+#     strip_prefix = "nisaba-%s" % nisaba_version,
+#     url = "https://github.com/google-research/nisaba/archive/refs/heads/%s.zip" % nisaba_version,
+# )
 
-load("@com_google_nisaba//bazel:workspace.bzl", "nisaba_public_repositories")
+# load("@com_google_nisaba//bazel:workspace.bzl", "nisaba_public_repositories")
 
-nisaba_public_repositories()
+# nisaba_public_repositories()
 
-http_archive(
+local_repository(
     name = "boringssl",
-    sha256 = "5d299325d1db8b2f2db3d927c7bc1f9fcbd05a3f9b5c8239fa527c09bf97f995",  # Last updated 2022-10-19
-    strip_prefix = "boringssl-0acfcff4be10514aacb98eb8ab27bb60136d131b",
-    urls = ["https://github.com/google/boringssl/archive/0acfcff4be10514aacb98eb8ab27bb60136d131b.tar.gz"],
+    path = "third_party/boringssl",
 )
+
+# http_archive(
+#     name = "boringssl",
+#     sha256 = "5d299325d1db8b2f2db3d927c7bc1f9fcbd05a3f9b5c8239fa527c09bf97f995",  # Last updated 2022-10-19
+#     strip_prefix = "boringssl-0acfcff4be10514aacb98eb8ab27bb60136d131b",
+#     urls = ["https://github.com/google/boringssl/archive/0acfcff4be10514aacb98eb8ab27bb60136d131b.tar.gz"],
+# )
+
 # -------------------------------------------------------------------------
 # Protocol buffer matches (should be part of gmock and gtest, but not yet):
 #   https://github.com/inazarenko/protobuf-matchers
@@ -160,11 +166,11 @@ local_repository(
     path = "third_party/protobuf_matchers",
 )
 
-http_archive(
-    name = "com_googlesource_code_re2",
-    sha256 = "26155e050b10b5969e986dab35654247a3b1b295e0532880b5a9c13c0a700ceb",
-    strip_prefix = "re2-2021-06-01",
-    urls = [
-        "https://github.com/google/re2/archive/refs/tags/2021-06-01.tar.gz",
-    ],
-)
+# http_archive(
+#     name = "com_googlesource_code_re2",
+#     sha256 = "26155e050b10b5969e986dab35654247a3b1b295e0532880b5a9c13c0a700ceb",
+#     strip_prefix = "re2-2021-06-01",
+#     urls = [
+#         "https://github.com/google/re2/archive/refs/tags/2021-06-01.tar.gz",
+#     ],
+# )

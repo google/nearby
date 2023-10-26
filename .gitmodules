@@ -26,10 +26,19 @@
 	url = https://github.com/kmackay/micro-ecc
 [submodule "third_party/json"]
 	path = third_party/json
-	url = https://github.com/nlohmann/json
+	url = https://github.com/deling-google/json.git
 [submodule "third_party/smhasher"]
 	path = third_party/smhasher
 	url = https://github.com/aappleby/smhasher
 [submodule "third_party/ukey2"]
 	path = third_party/ukey2
 	url = https://github.com/google/ukey2
+[submodule "third_party/boringssl"]
+	path = third_party/boringssl
+	url = https://github.com/google/boringssl
+[submodule "third_party/glog"]
+	path = third_party/glog
+	url = https://github.com/google/glog
+[submodule "third_party/gflags"]
+	path = third_party/gflags
+	url = https://github.com/gflags/gflags.git
