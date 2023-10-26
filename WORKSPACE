@@ -33,10 +33,9 @@ http_archive(
     urls = ["https://github.com/google/protobuf/archive/javalite.zip"],
 )
 
-http_archive(
+local_repository(
     name = "com_google_protobuf",
-    strip_prefix = "protobuf-3.17.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
+    path = "third_party/protobuf",
 )
 
 http_archive(
@@ -51,61 +50,66 @@ http_archive(
     urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
 )
 
-http_archive(
+local_repository(
     name = "com_google_glog",
-    sha256 = "f28359aeba12f30d73d9e4711ef356dc842886968112162bc73002645139c39c",
-    strip_prefix = "glog-0.4.0",
-    urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
+    path = "third_party/glog",
 )
 
-http_archive(
+local_repository(
     name = "com_google_ukey2",
-    strip_prefix = "ukey2-master",
-    urls = ["https://github.com/google/ukey2/archive/master.zip"],
+    path = "third_party/ukey2",
 )
 
-http_archive(
-    name = "aappleby_smhasher",
-    build_file_content = """
-package(default_visibility = ["//visibility:public"])
-cc_library(
-    name = "libmurmur3",
-    srcs = ["src/MurmurHash3.cpp"],
-    hdrs = ["src/MurmurHash3.h"],
-    copts = ["-Wno-implicit-fallthrough"],
-    licenses = ["unencumbered"],  # MurmurHash is explicity public-domain
-)""",
-    strip_prefix = "smhasher-master",
-    urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
+local_repository(
+    name = "smhasher",
+    path = "third_party/smasher",
 )
 
-http_archive(
-    name = "nlohmann_json",
-    build_file_content = """
-cc_library(
-  name = "json",
-  hdrs = glob([
-    "include/nlohmann/**/*.hpp",
-  ]),
-  includes = ["include"],
-  visibility = ["//visibility:public"],
-  alwayslink = True,
-)""",
-    strip_prefix = "json-3.10.5",
-    urls = [
-        "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
-    ],
+# http_archive(
+#     name = "aappleby_smhasher",
+#     build_file_content = """
+# package(default_visibility = ["//visibility:public"])
+# cc_library(
+#     name = "libmurmur3",
+#     srcs = ["src/MurmurHash3.cpp"],
+#     hdrs = ["src/MurmurHash3.h"],
+#     copts = ["-Wno-implicit-fallthrough"],
+#     licenses = ["unencumbered"],  # MurmurHash is explicity public-domain
+# )""",
+#     strip_prefix = "smhasher-master",
+#     urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
+# )
+
+local_repository(
+    name = "json",
+    path = "third_party/json",
 )
+# http_archive(
+#     name = "nlohmann_json",
+#     build_file_content = """
+# cc_library(
+#   name = "json",
+#   hdrs = glob([
+#     "include/nlohmann/**/*.hpp",
+#   ]),
+#   includes = ["include"],
+#   visibility = ["//visibility:public"],
+#   alwayslink = True,
+# )""",
+#     strip_prefix = "json-3.10.5",
+#     urls = [
+#         "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
+#     ],
+# )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 # Load common dependencies.
 protobuf_deps()
 
-http_archive(
+local_repository(
     name = "com_google_googletest",
-    strip_prefix = "googletest-main",
-    urls = ["https://github.com/google/googletest/archive/main.zip"],
+    path = "third_party/gtest",
 )
 
 http_archive(
@@ -117,11 +121,9 @@ package(default_visibility = ["//visibility:public"])
 )
 
 # gflags needed by glog
-http_archive(
+local_repository(
     name = "com_github_gflags_gflags",
-    sha256 = "19713a36c9f32b33df59d1c79b4958434cb005b5b47dc5400a7a4b078111d9b5",
-    strip_prefix = "gflags-2.2.2",
-    url = "https://github.com/gflags/gflags/archive/v2.2.2.zip",
+    path = "third_party/gflags",
 )
 
 # ----------------------------------------------
@@ -153,10 +155,9 @@ http_archive(
 # Protocol buffer matches (should be part of gmock and gtest, but not yet):
 #   https://github.com/inazarenko/protobuf-matchers
 
-http_archive(
+local_repository(
     name = "com_github_protobuf_matchers",
-    strip_prefix = "protobuf-matchers-master",
-    urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
+    path = "third_party/protobuf_matchers",
 )
 
 http_archive(
