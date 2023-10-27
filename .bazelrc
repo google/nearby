@@ -1,3 +1,6 @@
-build --cxxopt=/std:c++17
+build --enable_platform_specific_config
+build:windows --cxxopt=/std:c++20
+build:linux --cxxopt=-std=c++20
+
 # Definition of --config=memcheck
 build:memcheck --strip=never --test_timeout=3600
