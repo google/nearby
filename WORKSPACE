@@ -61,8 +61,8 @@ local_repository(
 )
 
 local_repository(
-    name = "smhasher",
-    path = "third_party/smasher",
+    name = "aappleby_smhasher",
+    path = "third_party/smhasher",
 )
 
 # http_archive(
@@ -81,7 +81,7 @@ local_repository(
 # )
 
 local_repository(
-    name = "json",
+    name = "nlohmann_json",
     path = "third_party/json",
 )
 # http_archive(
