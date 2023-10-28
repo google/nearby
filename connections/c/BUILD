@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
+# load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+# load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 load("expand_version_template.bzl", "expand_version_template")
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = [
     "//connections:__subpackages__",
@@ -33,15 +33,15 @@ cc_library(
     deps = ["@com_google_absl//absl/strings"],
 )
 
-bzl_library(
-    name = "expand_version_template_bzl",
-    srcs = ["expand_version_template.bzl"],
-    parse_tests = False,
-    visibility = ["//visibility:private"],
-)
+# bzl_library(
+#     name = "expand_version_template_bzl",
+#     srcs = ["expand_version_template.bzl"],
+#     parse_tests = False,
+#     visibility = ["//visibility:private"],
+# )
 
 # Default version if none is provided.
-vardef("VERSION", "1.0.0.0")
+# vardef("VERSION", "1.0.0.0")
 
 # When built with rapid, a version value will be passed down from the build config via blaze
 # When built manually, invoke blaze with --define=VERSION=1.2.3.4
@@ -50,15 +50,17 @@ expand_version_template(
     name = "version_expanded",
     out = "version.rc",
     template = "version.rc.tpl",
-    version = varref("VERSION"),
+    # version = varref("VERSION"),
+    # TODO: use Starlark config settings
+    version = "1.0.0.0",
 )
 
-lexan.resource_files(
-    name = "resources",
-    rc_files = [
-        ":version_expanded",
-    ],
-)
+# lexan.resource_files(
+#     name = "resources",
+#     rc_files = [
+#         ":version_expanded",
+#     ],
+# )
 
 cc_library(
     name = "c",
@@ -100,16 +102,16 @@ cc_library(
 )
 
 # Build with --config=lexan
-lexan.cc_windows_dll(
-    name = "nearby_connections",
-    tags = ["windows-dll"],
-    deps = [
-        ":c",
-        ":types",
-        "//internal/platform/implementation/windows",
-        "@com_google_absl//absl/strings",
-    ],
-)
+# lexan.cc_windows_dll(
+#     name = "nearby_connections",
+#     tags = ["windows-dll"],
+#     deps = [
+#         ":c",
+#         ":types",
+#         "//internal/platform/implementation/windows",
+#         "@com_google_absl//absl/strings",
+#     ],
+# )
 
 cc_test(
     name = "connections_test",
