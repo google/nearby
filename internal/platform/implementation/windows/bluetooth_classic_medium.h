@@ -15,6 +15,10 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
+#include <winrt/Windows.Devices.Enumeration.h>
+#include <winrt/Windows.Networking.Sockets.h>
+#include <winrt/base.h>
+
 #include <map>
 #include <memory>
 #include <string>
@@ -27,9 +31,6 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 
 namespace nearby {
 namespace windows {
