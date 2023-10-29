@@ -42,3 +42,15 @@
 [submodule "third_party/gflags"]
 	path = third_party/gflags
 	url = https://github.com/gflags/gflags.git
+[submodule "third_party/bazel_skylib"]
+	path = third_party/bazel_skylib
+	url = https://github.com/bazelbuild/bazel-skylib
+[submodule "third_party/rules_foreign_cc"]
+	path = third_party/rules_foreign_cc
+	url = https://github.com/bazelbuild/rules_foreign_cc
+[submodule "third_party/dart_lang"]
+	path = third_party/dart_lang
+	url = https://github.com/deling-google/dart-lang.git
+[submodule "third_party/re2"]
+	path = third_party/re2
+	url = https://github.com/google/re2
