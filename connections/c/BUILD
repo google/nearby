@@ -14,7 +14,8 @@
 
 # load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 # load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
-load("expand_version_template.bzl", "expand_version_template")
+# load("expand_version_template.bzl", "expand_version_template")
+load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
 
 package(default_visibility = [
     "//connections:__subpackages__",
@@ -46,13 +47,26 @@ cc_library(
 # When built with rapid, a version value will be passed down from the build config via blaze
 # When built manually, invoke blaze with --define=VERSION=1.2.3.4
 # If VERSION is not passed from blaze, the default value defined above will be used.
-expand_version_template(
+# expand_version_template(
+#     name = "version_expanded",
+#     out = "version.rc",
+#     template = "version.rc.tpl",
+#     # version = varref("VERSION"),
+#
+#     version = "1.0.0.0",
+# )
+
+# TODO: use build settings to pass this value from the command line option --define
+version = "1.0.0.0"
+
+expand_template(
     name = "version_expanded",
     out = "version.rc",
+    substitutions = {
+        "$VERSION_STR": version,
+        "$VERSION": version.replace(".", ","),
+    },
     template = "version.rc.tpl",
-    # version = varref("VERSION"),
-    # TODO: use Starlark config settings
-    version = "1.0.0.0",
 )
 
 # lexan.resource_files(
@@ -112,6 +126,17 @@ cc_library(
 #         "@com_google_absl//absl/strings",
 #     ],
 # )
+
+cc_binary(
+    name = "nearby_connections",
+    linkshared = 1,
+    deps = [
+        ":c",
+        ":types",
+        "//internal/platform/implementation/windows",
+        "@com_google_absl//absl/strings",
+    ],
+)
 
 cc_test(
     name = "connections_test",
