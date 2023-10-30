@@ -39,3 +39,6 @@
 [submodule "third_party/protobuf_matchers"]
 	path = third_party/protobuf_matchers
 	url = https://github.com/inazarenko/protobuf-matchers
+[submodule "third_party/smhasher"]
+	path = third_party/smhasher
+	url = https://github.com/deling-google/smhasher.git
