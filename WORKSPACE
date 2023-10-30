@@ -93,6 +93,7 @@ local_repository(
 local_repository(
     name = "boringssl",
     path = "third_party/boringssl",
+    # git checkout 0acfcff4be10514aacb98eb8ab27bb60136d131b
 )
 
 # -------------------------------------------------------------------------
