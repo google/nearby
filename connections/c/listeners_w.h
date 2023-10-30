@@ -24,7 +24,7 @@
 // - a subset of listener callbacks may be overridden, while others may remain
 //   default-initialized.
 // - callbacks may be initialized with lambdas; lambda definitions are concize.
-
+#include "absl/functional/any_invocable.h"
 #include "connections/c/medium_selector_w.h"
 #include "connections/c/payload_w.h"
 #include "connections/status.h"

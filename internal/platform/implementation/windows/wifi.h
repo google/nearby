@@ -15,8 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WIFI_H_
 #define PLATFORM_IMPL_WINDOWS_WIFI_H_
 
-#include <windows.h>
 #include <objbase.h>
+#include <windows.h>
 #include <wlanapi.h>
 #include <wtypes.h>
 
@@ -25,9 +25,9 @@
 #include "internal/platform/wifi_utils.h"
 
 // WinRT headers
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Networking.Connectivity.h>
 
 namespace nearby {
 namespace windows {

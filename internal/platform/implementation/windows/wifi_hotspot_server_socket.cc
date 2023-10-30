@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <winsock2.h>
 #include <windows.h>
 
 #include <exception>
@@ -23,9 +24,10 @@
 #include "absl/strings/match.h"
 
 // Nearby connections headers
+#include <winrt/Windows.Networking.Sockets.h>
+
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/logging.h"

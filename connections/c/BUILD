@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
-load("expand_version_template.bzl", "expand_version_template")
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+# load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+# load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
+# load("expand_version_template.bzl", "expand_version_template")
+load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
 
 package(default_visibility = [
     "//connections:__subpackages__",
@@ -33,32 +34,47 @@ cc_library(
     deps = ["@com_google_absl//absl/strings"],
 )
 
-bzl_library(
-    name = "expand_version_template_bzl",
-    srcs = ["expand_version_template.bzl"],
-    parse_tests = False,
-    visibility = ["//visibility:private"],
-)
+# bzl_library(
+#     name = "expand_version_template_bzl",
+#     srcs = ["expand_version_template.bzl"],
+#     parse_tests = False,
+#     visibility = ["//visibility:private"],
+# )
 
 # Default version if none is provided.
-vardef("VERSION", "1.0.0.0")
+# vardef("VERSION", "1.0.0.0")
 
 # When built with rapid, a version value will be passed down from the build config via blaze
 # When built manually, invoke blaze with --define=VERSION=1.2.3.4
 # If VERSION is not passed from blaze, the default value defined above will be used.
-expand_version_template(
+# expand_version_template(
+#     name = "version_expanded",
+#     out = "version.rc",
+#     template = "version.rc.tpl",
+#     # version = varref("VERSION"),
+#
+#     version = "1.0.0.0",
+# )
+
+# TODO: use build settings to pass this value from the command line option --define
+version = "1.0.0.0"
+
+expand_template(
     name = "version_expanded",
     out = "version.rc",
+    substitutions = {
+        "$VERSION_STR": version,
+        "$VERSION": version.replace(".", ","),
+    },
     template = "version.rc.tpl",
-    version = varref("VERSION"),
 )
 
-lexan.resource_files(
-    name = "resources",
-    rc_files = [
-        ":version_expanded",
-    ],
-)
+# lexan.resource_files(
+#     name = "resources",
+#     rc_files = [
+#         ":version_expanded",
+#     ],
+# )
 
 cc_library(
     name = "c",
@@ -100,9 +116,20 @@ cc_library(
 )
 
 # Build with --config=lexan
-lexan.cc_windows_dll(
+# lexan.cc_windows_dll(
+#     name = "nearby_connections",
+#     tags = ["windows-dll"],
+#     deps = [
+#         ":c",
+#         ":types",
+#         "//internal/platform/implementation/windows",
+#         "@com_google_absl//absl/strings",
+#     ],
+# )
+
+cc_binary(
     name = "nearby_connections",
-    tags = ["windows-dll"],
+    linkshared = 1,
     deps = [
         ":c",
         ":types",
