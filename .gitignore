@@ -3,6 +3,8 @@
 build/**
 .build
 
+.vs
+
 bazel-*/
 .vs/
 
