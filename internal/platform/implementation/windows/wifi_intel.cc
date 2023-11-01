@@ -34,6 +34,7 @@
 
 #ifndef NO_INTEL_PIE
 #include "absl/strings/str_format.h"
+#include "third_party/intel/pie/include/PieApiErrors.h"
 #include "third_party/intel/pie/include/PieApiTypes.h"
 #include "third_party/intel/pie/include/PieDefinitions.h"
 #include "third_party/intel/pie/include/PieErrorMacro.h"
@@ -172,11 +173,11 @@ void WifiIntel::Stop() {
 #endif
 }
 
-uint8_t WifiIntel::GetGOChannel() {
+int8_t WifiIntel::GetGOChannel() {
 #ifndef NO_INTEL_PIE
   WIFIPANQUERYPREFFEDCHANNELSETTING WifiPanQueryPreferredChannelSettingFunc =
       nullptr;
-  uint8_t channel = 0;
+  int8_t channel = -1;
   DWORD dwError = ERROR_SUCCESS;  // NOLINT
   MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;  // NOLINT
   INTEL_WIFI_HEADER intelWifiHeader;
@@ -210,7 +211,7 @@ uint8_t WifiIntel::GetGOChannel() {
     if (intelGOChan.goState == MurocDefs::INTEL_GO_CURRENT_CHANNEL_ACTIVE) {
       channel = intelGOChan.channel;
     } else {
-      NEARBY_LOGS(INFO) << "No active GO found, return 0";
+      NEARBY_LOGS(INFO) << "No active GO found, return -1";
     }
   } else {
     NEARBY_LOGS(INFO) << "Calling WifiPanQueryPreferredChannelSetting API "
