@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "hello_cloud_wpf": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "PATH": "%PATH%;C:\\repo\\nearby\\bazel-bin\\connections\\dart"
+      },
+      "nativeDebugging": true
+    }
+  }
+}
