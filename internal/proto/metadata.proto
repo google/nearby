@@ -38,6 +38,10 @@ message DeviceIdentityMetaData {
 
   // The instance type (user profile) related to the metadata.
   InstanceType instance_type = 4;
+
+  // The device_id from the MultideviceParameters file of the broadcasting
+  // device
+  bytes device_id = 5;
 }
 
 // The metadata of a device.
