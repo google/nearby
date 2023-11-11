@@ -5,7 +5,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:hello_cloud_wpf"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-        <ListView Height="450" Margin="0,0,500,0" Name="endpoints">
+        Title="MainWindow" Height="440" Width="800"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
+    <WrapPanel>
+        <ListView Width="300" Height="400" Margin="12,13,10,0" Name="endpointListView" ItemsSource="{Binding Path=Endpoints}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <WrapPanel>
+                        <TextBlock Text="{Binding Key}"/>
+                        <TextBlock Text=" ("/>
+                        <TextBlock Text="{Binding Value}"/>
+                        <TextBlock Text=")"/>
+                    </WrapPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
         </ListView>
+    </WrapPanel>
 </Window>
