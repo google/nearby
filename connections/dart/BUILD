@@ -25,6 +25,8 @@ cc_binary(
     srcs = [
         "core_adapter_dart.cc",
         "core_adapter_dart.h",
+        "core_adapter_sharp.cc",
+        "core_adapter_sharp.h",
     ],
     linkshared = 1,
     tags = ["windows-dll"],
