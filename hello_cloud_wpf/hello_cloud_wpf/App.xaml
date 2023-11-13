@@ -1,7 +1,7 @@
-﻿<Application x:Class="hello_cloud_wpf.App"
+﻿<Application x:Class="HelloCloudWpf.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:hello_cloud_wpf"
+             xmlns:local="clr-namespace:HelloCloudWpf"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
          

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace hello_cloud_wpf
+namespace HelloCloudWpf
 {
     /// <summary>
     /// Interaction logic for App.xaml
