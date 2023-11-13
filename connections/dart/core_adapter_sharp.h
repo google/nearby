@@ -23,16 +23,14 @@
 namespace nearby::windows {
 
 using nearby::connections::AdvertisingOptions;
-using nearby::connections::ConnectionListener;
-using nearby::connections::ConnectionResponseInfo;
-using nearby::connections::DiscoveryListener;
+using nearby::connections::ConnectionOptions;
 using nearby::connections::DiscoveryOptions;
 using nearby::connections::DistanceInfo;
 using nearby::connections::Medium;
+using nearby::connections::ResultCallback;
 
 typedef void OperationResultCallback(Status);
 
-// Types for discovery
 typedef void EndpointFoundCallback(const char *endpoint_id,
                                    const char *endpoint_info,
                                    size_t endpoint_info_size,
@@ -40,20 +38,15 @@ typedef void EndpointFoundCallback(const char *endpoint_id,
 typedef void EndpointLostCallback(const char *endpoint_id);
 typedef void EndpointDistanceChangedCallback(const char *endpoint_id,
                                              DistanceInfo distance_info);
-
-struct DiscoveryListenerSharp {
-  EndpointFoundCallback *endpoint_found_callback;
-  EndpointLostCallback *endpoint_lost_callback;
-  EndpointDistanceChangedCallback *endpoint_distance_changed_callback;
-};
-
-// Types for advertising and connecting
-typedef void InitiatedCallback(const char *endpoint_id,
-                               const ConnectionResponseInfo &info);
+typedef void ConnectionInitiatedCallback(const char *endpoint_id,
+                                         const char *endpoint_info,
+                                         size_t endpoint_info_size);
 typedef void AcceptedCallback(const char *endpoint_id);
 typedef void RejectedCallback(const char *endpoint_id, Status status);
-typedef void DisconnectedCallback(const char *endpoint_id);
+typedef void ConnectionDisconnectedCallback(const char *endpoint_id);
 typedef void BandwidthChangedCallback(const char *endpoint_id, Medium medium);
+typedef void PayloadInitiatedCallback(const char *endpoint_id);
+typedef void PayloadProgressCallback(const char *endpoint_id);
 
 extern "C" {
 DLL_API void __stdcall StartDiscoverySharp(
@@ -65,9 +58,26 @@ DLL_API void __stdcall StartDiscoverySharp(
 
 DLL_API void __stdcall StartAdvertisingSharp(
     Core *pCore, const char *service_id, AdvertisingOptions advertising_options,
-    const char *endpoint_info,
+    const char *endpoint_info, ConnectionInitiatedCallback initiated_callback,
+    AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
+    ConnectionDisconnectedCallback disconnected_callback,
+    BandwidthChangedCallback bandwidth_changed_callback,
     OperationResultCallback start_advertising_callback);
+
+DLL_API void __stdcall RequestConnectionSharp(
+    Core *pCore, const char *endpoint_id, ConnectionOptions connection_options,
+    const char *endpoint_info, ConnectionInitiatedCallback initiated_callback,
+    AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
+    ConnectionDisconnectedCallback disconnected_callback,
+    BandwidthChangedCallback bandwidth_changed_callback,
+    OperationResultCallback request_connection_callback);
 }
+
+DLL_API void __stdcall AcceptConnectionSharp(
+    Core *pCore, const char *endpoint_id,
+    PayloadInitiatedCallback payload_initiated_callback,
+    PayloadProgressCallback payload_progress_callback,
+    OperationResultCallback accept_connection_callback);
 
 }  // namespace nearby::windows
 
