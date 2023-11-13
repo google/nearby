@@ -94,7 +94,25 @@ namespace HelloCloudWpf {
         byte[] localEndpointInfo;
 
         // Medium selection for advertising and connection
-        BooleanMediumSelector advertisingMediumsSelector = new() {
+        BooleanMediumSelector advertisingMediumSelector = new() {
+            ble = true,
+            bluetooth = true,
+            webRtc = true,
+            wifiDirect = true,
+            wifiHotspot = true,
+            wifiLan = true,
+        };
+
+        BooleanMediumSelector discoveryMediumSelector = new() {
+            ble = true,
+            bluetooth = true,
+            webRtc = true,
+            wifiDirect = true,
+            wifiHotspot = true,
+            wifiLan = true,
+        };
+
+        BooleanMediumSelector connectionMediumSelector = new() {
             ble = true,
             bluetooth = true,
             webRtc = true,
@@ -148,18 +166,9 @@ namespace HelloCloudWpf {
             GCHandle.Alloc(connectionStartedCallback);
 
             System.Console.WriteLine("Starting discovery...");
-            BooleanMediumSelector discoveryMediumsSelector = new() {
-                ble = true,
-                bluetooth = true,
-                webRtc = true,
-                wifiDirect = true,
-                wifiHotspot = true,
-                wifiLan = true,
-            };
-
             DiscoveryOptions discoveryOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
-                allowed = discoveryMediumsSelector,
+                allowed = discoveryMediumSelector,
                 autoUpgradeBandwidth = true,
                 enforceTopologyConstraints = true,
                 isOutOfBandConnection = false,
@@ -177,7 +186,7 @@ namespace HelloCloudWpf {
             System.Console.WriteLine("Starting advertising...");
             AdvertisingOptions advertisingOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
-                allowed = advertisingMediumsSelector,
+                allowed = advertisingMediumSelector,
                 autoUpgradeBandwidth = true,
                 enforceTopologyConstraints = true,
                 enableBluetoothListening = true,
@@ -292,7 +301,7 @@ namespace HelloCloudWpf {
             System.Console.WriteLine("Requesting connection...");
             ConnectionOptions connectionOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
-                allowed = advertisingMediumsSelector,
+                allowed = connectionMediumSelector,
                 autoUpgradeBandwidth = true,
                 enforceTopologyConstraints = true,
                 enableBluetoothListening = true,
