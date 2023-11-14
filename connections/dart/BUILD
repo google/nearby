@@ -36,6 +36,7 @@ cc_binary(
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation/windows",
+        "@com_google_absl//absl/synchronization",
         "@dart_lang//:dart_api_dl",
     ],
 )

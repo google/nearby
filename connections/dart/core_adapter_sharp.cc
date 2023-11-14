@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/synchronization/notification.h"
 #include "connections/core.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/payload.h"
@@ -38,17 +39,11 @@ using nearby::connections::PayloadListener;
 using nearby::connections::PayloadProgressInfo;
 using nearby::connections::Strategy;
 
-void StartDiscoverySharp(
+Status StartDiscoveringSharp(
     Core *pCore, const char *service_id, DiscoveryOptions discovery_options,
     EndpointFoundCallback endpoint_found_callback,
     EndpointLostCallback endpoint_lost_callback,
-    EndpointDistanceChangedCallback endpoint_distance_changed_callback,
-    OperationResultCallback start_discovery_callback) {
-  if (pCore == nullptr) {
-    start_discovery_callback({.value = Status::Value::kError});
-    return;
-  }
-
+    EndpointDistanceChangedCallback endpoint_distance_changed_callback) {
   DiscoveryListener listener;
   listener.endpoint_found_cb = [endpoint_found_callback](
                                    const std::string &endpoint_id,
@@ -81,28 +76,37 @@ void StartDiscoverySharp(
     endpoint_distance_changed_callback(endpoint_id.c_str(), distance_info);
   };
 
-  ResultCallback result_callback = [start_discovery_callback](Status status) {
-    start_discovery_callback(status);
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
   };
 
   pCore->StartDiscovery(service_id, discovery_options, std::move(listener),
                         std::move(result_callback));
+  done.WaitForNotification();
+  return result;
 }
 
-void StartAdvertisingSharp(Core *pCore, const char *service_id,
-                           AdvertisingOptions advertising_options,
-                           const char *endpoint_info,
-                           ConnectionInitiatedCallback initiated_callback,
-                           AcceptedCallback accepted_callback,
-                           RejectedCallback rejected_callback,
-                           ConnectionDisconnectedCallback disconnected_callback,
-                           BandwidthChangedCallback bandwidth_changed_callback,
-                           OperationResultCallback start_advertising_callback) {
-  if (pCore == nullptr) {
-    start_advertising_callback({.value = Status::Value::kError});
-    return;
-  }
+Status StopDiscoveringSharp(Core *pCore) {
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
+  };
+  pCore->StopDiscovery(std::move(result_callback));
+  done.WaitForNotification();
+  return result;
+}
 
+Status StartAdvertisingSharp(
+    Core *pCore, const char *service_id, AdvertisingOptions advertising_options,
+    const char *endpoint_info, ConnectionInitiatedCallback initiated_callback,
+    AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
+    ConnectionDisconnectedCallback disconnected_callback,
+    BandwidthChangedCallback bandwidth_changed_callback) {
   ConnectionListener listener;
   listener.initiated_cb = [initiated_callback](
                               const std::string &endpoint_id,
@@ -143,31 +147,36 @@ void StartAdvertisingSharp(Core *pCore, const char *service_id,
   info.endpoint_info = ByteArray(endpoint_info);
   info.listener = std::move(listener);
 
-  ResultCallback result_callback = [start_advertising_callback](Status status) {
-    start_advertising_callback(status);
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
   };
-
   pCore->StartAdvertising(service_id, advertising_options, info,
                           std::move(result_callback));
+  done.WaitForNotification();
+  return result;
 }
 
-void RequestConnectionSharp(
+Status StopAdvertisingSharp(Core *pCore) {
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
+  };
+  pCore->StopAdvertising(std::move(result_callback));
+  done.WaitForNotification();
+  return result;
+}
+
+Status RequestConnectionSharp(
     Core *pCore, const char *endpoint_id, ConnectionOptions connection_options,
     const char *endpoint_info, ConnectionInitiatedCallback initiated_callback,
     AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
     ConnectionDisconnectedCallback disconnected_callback,
-    BandwidthChangedCallback bandwidth_changed_callback,
-    OperationResultCallback request_connection_callback) {
-  int offset1 = offsetof(ConnectionOptions, remote_bluetooth_mac_address);
-  int offset2 = offsetof(ConnectionOptions, fast_advertisement_service_uuid);
-  int offset3 = offsetof(ConnectionOptions, keep_alive_interval_millis);
-  int offset4 = offsetof(ConnectionOptions, connection_info);
-
-  if (pCore == nullptr) {
-    request_connection_callback({.value = Status::Value::kError});
-    return;
-  }
-
+    BandwidthChangedCallback bandwidth_changed_callback) {
   ConnectionListener listener;
   listener.initiated_cb = [initiated_callback](
                               const std::string &endpoint_id,
@@ -207,21 +216,24 @@ void RequestConnectionSharp(
   ConnectionRequestInfo info;
   info.endpoint_info = ByteArray(endpoint_info);
   info.listener = std::move(listener);
-
-  ResultCallback result_callback =
-      [request_connection_callback](Status status) {
-        request_connection_callback(status);
-      };
-
   connection_options.remote_bluetooth_mac_address = ByteArray("");
+
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
+  };
   pCore->RequestConnection(endpoint_id, info, connection_options,
                            std::move(result_callback));
+  done.WaitForNotification();
+  return result;
 }
 
-void AcceptConnectionSharp(Core *pCore, const char *endpoint_id,
-                           PayloadInitiatedCallback payload_initiated_callback,
-                           PayloadProgressCallback payload_progress_callback,
-                           OperationResultCallback accept_connection_callback) {
+Status AcceptConnectionSharp(
+    Core *pCore, const char *endpoint_id,
+    PayloadInitiatedCallback payload_initiated_callback,
+    PayloadProgressCallback payload_progress_callback) {
   PayloadListener listener;
   listener.payload_cb = [payload_initiated_callback](
                             absl::string_view endpoint_id, Payload paylod) {
@@ -235,12 +247,16 @@ void AcceptConnectionSharp(Core *pCore, const char *endpoint_id,
         payload_progress_callback(endpoint_id.data());
       };
 
-  ResultCallback result_callback = [accept_connection_callback](Status status) {
-    accept_connection_callback(status);
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
   };
-
   pCore->AcceptConnection(endpoint_id, std::move(listener),
                           std::move(result_callback));
+  done.WaitForNotification();
+  return result;
 }
 
 }  // namespace nearby::windows

@@ -5,6 +5,9 @@ namespace HelloCloudWpf {
     public static class NearbyConnections {
         const string NearbyConnectionsDll = "nearby_connections_dart.dll";
 
+        // TODO: Use protobuf for all these structs on both sides
+        // TODO: Use pure C types for all other fields on the SDK side
+        // I.e. remove std::string and use char* instead.
         [StructLayout(LayoutKind.Sequential)]
         public struct Strategy {
             public enum ConnectionType {
@@ -177,18 +180,20 @@ namespace HelloCloudWpf {
         [DllImport(NearbyConnectionsDll)]
         public static extern void CloseCore(IntPtr core);
 
-        [DllImport(NearbyConnectionsDll, EntryPoint = "StartDiscoverySharp")]
-        public static extern void StartDiscovery(
+        [DllImport(NearbyConnectionsDll, EntryPoint = "StartDiscoveringSharp")]
+        public static extern Status StartDiscovering(
             IntPtr core,
             [MarshalAs(UnmanagedType.LPStr)] string serviceId,
             DiscoveryOptions discoveryOptions,
             EndpointFoundCallback endpointFoundCallback,
             EndpointLostCallback endpointLostCallback,
-            EndpointDistanceChangedCallback endpointDistanceChangedCallback,
-            OperationResultCallback startDiscoveryCallback);
+            EndpointDistanceChangedCallback endpointDistanceChangedCallback);
+
+        [DllImport(NearbyConnectionsDll, EntryPoint = "StopDiscoveringSharp")]
+        public static extern Status StopDiscovering(IntPtr core);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "StartAdvertisingSharp")]
-        public static extern void StartAdvertising(
+        public static extern Status StartAdvertising(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string serviceId,
             AdvertisingOptions advertisingOptions,
@@ -197,11 +202,13 @@ namespace HelloCloudWpf {
             ConnectionAcceptedCallback acceptedCallback,
             ConnectionRejectedCallback rejectedCallback,
             ConnectionDisconnectedCallback disconnectedCallback,
-            BandwidthUpgradedCallback bandwidthUpgradedCallback,
-            OperationResultCallback startAdvertisingCallback);
+            BandwidthUpgradedCallback bandwidthUpgradedCallback);
+
+        [DllImport(NearbyConnectionsDll, EntryPoint = "StopAdvertisingSharp")]
+        public static extern Status StopAdvertising(IntPtr core);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "RequestConnectionSharp")]
-        public static extern void RequestConnection(
+        public static extern Status RequestConnection(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string endpoint_id,
             ConnectionOptions connectionOptions,
@@ -210,16 +217,14 @@ namespace HelloCloudWpf {
             ConnectionAcceptedCallback acceptedCallback,
             ConnectionRejectedCallback rejectedCallback,
             ConnectionDisconnectedCallback disconnectedCallback,
-            BandwidthUpgradedCallback bandwidthUpgradedCallback,
-            OperationResultCallback startAdvertisingCallback);
+            BandwidthUpgradedCallback bandwidthUpgradedCallback);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "AcceptConnectionSharp")]
-        public static extern void AcceptConnection(
+        public static extern Status AcceptConnection(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string endpoint_id,
             PayloadInitiatedCallback payloadInitiatedCallback,
             PayloadProgressCallback payloadProgressCallback,
-            OperationResultCallback startAdvertisingCallback
-            );
+            OperationResultCallback startAdvertisingCallback);
     }
 }

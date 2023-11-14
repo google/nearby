@@ -49,35 +49,35 @@ typedef void PayloadInitiatedCallback(const char *endpoint_id);
 typedef void PayloadProgressCallback(const char *endpoint_id);
 
 extern "C" {
-DLL_API void __stdcall StartDiscoverySharp(
+DLL_API Status __stdcall StartDiscoveringSharp(
     Core *pCore, const char *service_id, DiscoveryOptions discovery_options,
     EndpointFoundCallback endpoint_found_callback,
     EndpointLostCallback endpoint_lost_callback,
-    EndpointDistanceChangedCallback endpoint_distance_changed_callback,
-    OperationResultCallback start_discovery_callback);
+    EndpointDistanceChangedCallback endpoint_distance_changed_callback);
 
-DLL_API void __stdcall StartAdvertisingSharp(
+DLL_API Status __stdcall StopDiscoveringSharp(Core *pCore);
+
+DLL_API Status __stdcall StartAdvertisingSharp(
     Core *pCore, const char *service_id, AdvertisingOptions advertising_options,
     const char *endpoint_info, ConnectionInitiatedCallback initiated_callback,
     AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
     ConnectionDisconnectedCallback disconnected_callback,
-    BandwidthChangedCallback bandwidth_changed_callback,
-    OperationResultCallback start_advertising_callback);
+    BandwidthChangedCallback bandwidth_changed_callback);
 
-DLL_API void __stdcall RequestConnectionSharp(
+DLL_API Status __stdcall StopAdvertisingSharp(Core *pCore);
+
+DLL_API Status __stdcall RequestConnectionSharp(
     Core *pCore, const char *endpoint_id, ConnectionOptions connection_options,
     const char *endpoint_info, ConnectionInitiatedCallback initiated_callback,
     AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
     ConnectionDisconnectedCallback disconnected_callback,
-    BandwidthChangedCallback bandwidth_changed_callback,
-    OperationResultCallback request_connection_callback);
+    BandwidthChangedCallback bandwidth_changed_callback);
 }
 
-DLL_API void __stdcall AcceptConnectionSharp(
+DLL_API Status __stdcall AcceptConnectionSharp(
     Core *pCore, const char *endpoint_id,
     PayloadInitiatedCallback payload_initiated_callback,
-    PayloadProgressCallback payload_progress_callback,
-    OperationResultCallback accept_connection_callback);
+    PayloadProgressCallback payload_progress_callback);
 
 }  // namespace nearby::windows
 

@@ -29,7 +29,15 @@ namespace HelloCloudWpf
         }
 
         private void isAdvertising_Unchecked(object sender, RoutedEventArgs e) {
+            (DataContext as MainWindowViewModel).StopAdvertising();
+        }
 
+        private void isDiscovering_Checked(object sender, RoutedEventArgs e) {
+            (DataContext as MainWindowViewModel).StartDiscovering();
+        }
+
+        private void isDiscovering_Unchecked(object sender, RoutedEventArgs e) {
+            (DataContext as MainWindowViewModel).StopDiscovering();
         }
     }
 }
