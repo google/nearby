@@ -14,24 +14,33 @@
             <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
-        <ListView Grid.Column="0" 
-                  Margin="10,10,10,10"
-                  Name="endpointListView" 
-                  SelectionMode="Single"
-                  FontFamily="consolas"
-                  ItemsSource="{Binding Endpoints}"
-                  SelectedItem="{Binding ActiveEndpoint}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <WrapPanel>
-                        <TextBlock Text="{Binding Id}"/>
-                        <TextBlock Text=" ("/>
-                        <TextBlock Text="{Binding Name}"/>
-                        <TextBlock Text=")"/>
-                    </WrapPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+        <StackPanel Grid.Column="0" Margin="10,10,10,10">
+            <UniformGrid  Margin="0,0,0,10">
+                <TextBox Margin="0,0,20,0"
+                         Text="{Binding LocalEndpointName}"
+                         FontFamily="consolas"/>
+                <CheckBox Content="Advertising" 
+                          Name="isAdvertising" 
+                          Checked="isAdvertising_Checked" 
+                          Unchecked="isAdvertising_Unchecked"/>
+            </UniformGrid>
+            <ListView Name="endpointListView" 
+                      SelectionMode="Single"
+                      FontFamily="consolas"
+                      ItemsSource="{Binding Endpoints}"
+                      SelectedItem="{Binding ActiveEndpoint}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <WrapPanel>
+                            <TextBlock Text="{Binding Id}"/>
+                            <TextBlock Text=" ("/>
+                            <TextBlock Text="{Binding Name}"/>
+                            <TextBlock Text=")"/>
+                        </WrapPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
         <StackPanel Orientation="Vertical" Grid.Column="1" Margin="10,10" DataContext="{Binding ActiveEndpoint}">
             <StackPanel Orientation="Horizontal" Margin="10,10">
                 <Label Content="ID:"/>

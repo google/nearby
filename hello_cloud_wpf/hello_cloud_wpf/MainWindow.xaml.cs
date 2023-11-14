@@ -23,5 +23,13 @@ namespace HelloCloudWpf
             AllocConsole();
             InitializeComponent();
         }
+
+        private void isAdvertising_Checked(object sender, RoutedEventArgs e) {
+            (DataContext as MainWindowViewModel).StartAdvertising();
+        }
+
+        private void isAdvertising_Unchecked(object sender, RoutedEventArgs e) {
+
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -76,6 +77,8 @@ namespace HelloCloudWpf {
         public ObservableCollection<EndpointViewModel> Endpoints { get { return endpoints; } }
         public EndpointViewModel ActiveEndpoint { get; set; }
 
+        public string LocalEndpointName { get; set; }
+
         EndpointFoundCallback endpointFoundCallback;
         EndpointLostCallback endpointLostCallback;
         EndpointDistanceChangedCallback endpointDistanceChangedCallback;
@@ -91,7 +94,7 @@ namespace HelloCloudWpf {
         OperationResultCallback connectionStartedCallback;
 
         // Local endpoint info. In our case, it's a UTF8 encoded name.
-        byte[] localEndpointInfo;
+        byte[]? localEndpointInfo;
 
         // Medium selection for advertising and connection
         BooleanMediumSelector advertisingMediumSelector = new() {
@@ -122,6 +125,8 @@ namespace HelloCloudWpf {
         };
 
         public MainWindowViewModel() {
+            LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
+
             Endpoints.Add(new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1"));
             Endpoints.Add(new EndpointViewModel(this, id: "1234", name: "Example endpoint 2"));
             ActiveEndpoint = Endpoints[0];
@@ -165,7 +170,7 @@ namespace HelloCloudWpf {
             connectionStartedCallback = OnConnectionStarted;
             GCHandle.Alloc(connectionStartedCallback);
 
-            System.Console.WriteLine("Starting discovery...");
+            Console.WriteLine("Starting discovery...");
             DiscoveryOptions discoveryOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = discoveryMediumSelector,
@@ -182,37 +187,6 @@ namespace HelloCloudWpf {
                 endpointLostCallback,
                 endpointDistanceChangedCallback,
                 discoveryStartedCallback);
-
-            System.Console.WriteLine("Starting advertising...");
-            AdvertisingOptions advertisingOptions = new() {
-                strategy = NearbyConnections.P2pCluster,
-                allowed = advertisingMediumSelector,
-                autoUpgradeBandwidth = true,
-                enforceTopologyConstraints = true,
-                enableBluetoothListening = true,
-                enableWebrtcListening = true,
-                isOutOfBandConnection = false,
-                lowPower = true,
-                deviceInfo = IntPtr.Zero,
-            };
-
-            string endpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
-            int len = Encoding.UTF8.GetByteCount(endpointName);
-            localEndpointInfo = new byte[len + 1];
-            Encoding.UTF8.GetBytes(endpointName, 0, endpointName.Length, localEndpointInfo, 0);
-            localEndpointInfo[len] = 0;
-
-            StartAdvertising(
-                core,
-                serviceId,
-                advertisingOptions,
-                localEndpointInfo,
-                initiatedCallback,
-                acceptedCallback,
-                rejectedCallback,
-                disconnectedCallback,
-                bandwidthUpgradedCallback,
-                advertisingStartedCallback);
         }
 
         void AddEndpointOnUIThread(string id, string name) {
@@ -234,71 +208,72 @@ namespace HelloCloudWpf {
         }
 
         void OnDiscoveryStarted(Status status) {
-            System.Console.WriteLine("OnDiscoveryStarted: ");
-            System.Console.WriteLine("  status: " + status.ToString());
+            Console.WriteLine("OnDiscoveryStarted: ");
+            Console.WriteLine("  status: " + status.ToString());
         }
 
         void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
             var _ = size;
             string endpointName = Encoding.UTF8.GetString(endpointInfo);
-            System.Console.WriteLine("OnEndPointFound: ");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
-            System.Console.WriteLine("  endpoint_info: " + endpointName);
-            System.Console.WriteLine("  service_id: " + serviceId);
+            Console.WriteLine("OnEndPointFound: ");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  endpoint_info: " + endpointName);
+            Console.WriteLine("  service_id: " + serviceId);
 
             AddEndpointOnUIThread(endpointId, endpointName);
         }
 
         void OnEndpointLost(string endpointId) {
-            System.Console.WriteLine("OnEndpointLost: " + endpointId);
+            Console.WriteLine("OnEndpointLost: " + endpointId);
             RemoveEndpointOnUIThread(endpointId);
         }
 
         void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
-            System.Console.WriteLine("OnEndpointDistanceChanged: ");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
-            System.Console.WriteLine("  distance_info: " + distanceInfo);
+            Console.WriteLine("OnEndpointDistanceChanged: ");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  distance_info: " + distanceInfo);
         }
 
         void OnAdvertisingStarted(Status status) {
-            System.Console.WriteLine("OnStartAdvertisingStarted:");
-            System.Console.WriteLine("  status: " + status.ToString());
+            Console.WriteLine("OnStartAdvertisingStarted:");
+            Console.WriteLine("  status: " + status.ToString());
         }
 
         void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
-            System.Console.WriteLine("OnInitiated:");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("OnInitiated:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
         }
 
         void OnConnectionAccepted(string endpointId) {
-            System.Console.WriteLine("OnAccepted:");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("OnAccepted:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
         }
 
         void OnConnectionRejected(string endpointId, Status status) {
-            System.Console.WriteLine("OnRejected:");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
-            System.Console.WriteLine("  status: " + status.ToString());
+            Console.WriteLine("OnRejected:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  status: " + status.ToString());
         }
 
         void OnConnectionDisconnected(string endpointId) {
-            System.Console.WriteLine("OnDisconnected:");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("OnDisconnected:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
         }
 
         void OnBandwidthUpgraded(string endpointId, Medium medium) {
-            System.Console.WriteLine("OnBandwidthUpgraded:");
-            System.Console.WriteLine("  endpoint_id: " + endpointId);
-            System.Console.WriteLine("  medium: " + medium.ToString());
+            Console.WriteLine("OnBandwidthUpgraded:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  medium: " + medium.ToString());
         }
 
         void OnConnectionStarted(Status status) {
-            System.Console.WriteLine("OnConnectionStarted:");
-            System.Console.WriteLine("  status: " + status.ToString());
+            Console.WriteLine("OnConnectionStarted:");
+            Console.WriteLine("  status: " + status.ToString());
         }
 
         public void RequestConnection(string remoteEndpointId) {
-            System.Console.WriteLine("Requesting connection...");
+            Console.WriteLine("Requesting connection...");
+            Debug.Assert(localEndpointInfo != null);
             ConnectionOptions connectionOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = connectionMediumSelector,
@@ -321,6 +296,38 @@ namespace HelloCloudWpf {
                 disconnectedCallback,
                 bandwidthUpgradedCallback,
                 connectionStartedCallback);
+        }
+
+        public void StartAdvertising() {
+            Console.WriteLine("Starting advertising...");
+            AdvertisingOptions advertisingOptions = new() {
+                strategy = NearbyConnections.P2pCluster,
+                allowed = advertisingMediumSelector,
+                autoUpgradeBandwidth = true,
+                enforceTopologyConstraints = true,
+                enableBluetoothListening = true,
+                enableWebrtcListening = true,
+                isOutOfBandConnection = false,
+                lowPower = true,
+                deviceInfo = IntPtr.Zero,
+            };
+
+            int len = Encoding.UTF8.GetByteCount(LocalEndpointName);
+            localEndpointInfo = new byte[len + 1];
+            Encoding.UTF8.GetBytes(LocalEndpointName, 0, LocalEndpointName.Length, localEndpointInfo, 0);
+            localEndpointInfo[len] = 0;
+
+            NearbyConnections.StartAdvertising(
+                core,
+                serviceId,
+                advertisingOptions,
+                localEndpointInfo,
+                initiatedCallback,
+                acceptedCallback,
+                rejectedCallback,
+                disconnectedCallback,
+                bandwidthUpgradedCallback,
+                advertisingStartedCallback);
         }
     }
 }
