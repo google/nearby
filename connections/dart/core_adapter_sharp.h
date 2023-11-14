@@ -27,6 +27,7 @@ using nearby::connections::ConnectionOptions;
 using nearby::connections::DiscoveryOptions;
 using nearby::connections::DistanceInfo;
 using nearby::connections::Medium;
+using nearby::connections::PayloadType;
 using nearby::connections::ResultCallback;
 
 typedef void OperationResultCallback(Status);
@@ -72,13 +73,17 @@ DLL_API Status __stdcall RequestConnectionSharp(
     AcceptedCallback accepted_callback, RejectedCallback rejected_callback,
     ConnectionDisconnectedCallback disconnected_callback,
     BandwidthChangedCallback bandwidth_changed_callback);
-}
 
 DLL_API Status __stdcall AcceptConnectionSharp(
     Core *pCore, const char *endpoint_id,
     PayloadInitiatedCallback payload_initiated_callback,
     PayloadProgressCallback payload_progress_callback);
 
+DLL_API Status __stdcall SendPayloadBytesSharp(Core *pCore,
+                                               const char *endpoint_id,
+                                               size_t payload_size,
+                                               const char *payload_content);
+}
 }  // namespace nearby::windows
 
 #endif

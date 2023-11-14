@@ -210,7 +210,7 @@ namespace HelloCloudWpf {
         [DllImport(NearbyConnectionsDll, EntryPoint = "RequestConnectionSharp")]
         public static extern Status RequestConnection(
             IntPtr pCore,
-            [MarshalAs(UnmanagedType.LPStr)] string endpoint_id,
+            [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             ConnectionOptions connectionOptions,
             byte[] endpointInfo,
             ConnectionInitiatedCallback initiatedCallback,
@@ -222,9 +222,15 @@ namespace HelloCloudWpf {
         [DllImport(NearbyConnectionsDll, EntryPoint = "AcceptConnectionSharp")]
         public static extern Status AcceptConnection(
             IntPtr pCore,
-            [MarshalAs(UnmanagedType.LPStr)] string endpoint_id,
+            [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             PayloadInitiatedCallback payloadInitiatedCallback,
-            PayloadProgressCallback payloadProgressCallback,
-            OperationResultCallback startAdvertisingCallback);
+            PayloadProgressCallback payloadProgressCallback);
+
+        [DllImport(NearbyConnectionsDll, EntryPoint = "SendPayloadBytesSharp")]
+        public static extern Status SendPayloadBytes(
+            IntPtr pCore,
+            [MarshalAs(UnmanagedType.LPStr)] string endpointId,
+            int payloadSize,
+            [MarshalAs(UnmanagedType.LPArray)] byte[] payloadContent);
     }
 }

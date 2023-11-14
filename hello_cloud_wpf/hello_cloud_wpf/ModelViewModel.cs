@@ -60,12 +60,16 @@ namespace HelloCloudWpf {
         private readonly ICommand connectCommand;
         public ICommand ConnectCommand { get { return connectCommand; } }
 
+        private readonly ICommand sendCommand;
+        public ICommand SendCommand { get { return sendCommand; } }
+
         private MainWindowViewModel mainWindowViewModel;
 
         public EndpointViewModel(MainWindowViewModel mainWindowViewModel, string id, string name) {
             this.mainWindowViewModel = mainWindowViewModel;
             model = new EndpointModel(id, name);
             connectCommand = new RelayCommand(param => this.Connect(param), param => this.CanConnect(param));
+            sendCommand = new RelayCommand(param => this.Send(param), param => this.CanSend(param));
             State = EndpointState.Discovered;
         }
 
@@ -77,6 +81,14 @@ namespace HelloCloudWpf {
 
         public bool CanConnect(object? param) {
             return State == EndpointState.Discovered;
+        }
+
+        public void Send(object? param) {
+            mainWindowViewModel.SendBytes(Id);
+        }
+
+        public bool CanSend(object? param) {
+            return true;
         }
     }
 
@@ -116,6 +128,9 @@ namespace HelloCloudWpf {
         ConnectionRejectedCallback rejectedCallback;
         ConnectionDisconnectedCallback disconnectedCallback;
         BandwidthUpgradedCallback bandwidthUpgradedCallback;
+
+        PayloadInitiatedCallback payloadInitiatedCallback;
+        PayloadProgressCallback payloadProgressCallback;
 
         OperationResultCallback discoveringStartedCallback;
         OperationResultCallback advertisingStartedCallback;
@@ -200,6 +215,11 @@ namespace HelloCloudWpf {
             GCHandle.Alloc(discoveringStoppedCallback);
             GCHandle.Alloc(advertisingStoppedCallback);
             GCHandle.Alloc(connectionStartedCallback);
+
+            payloadInitiatedCallback = OnPayloadInitiated;
+            payloadProgressCallback = OnPayloadProgress;
+            GCHandle.Alloc(payloadInitiatedCallback);
+            GCHandle.Alloc(payloadProgressCallback);
         }
 
         void AddEndpointOnUIThread(string id, string name) {
@@ -265,6 +285,9 @@ namespace HelloCloudWpf {
         void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
             Console.WriteLine("OnConnectionInitiated:");
             Console.WriteLine("  endpoint_id: " + endpointId);
+
+            Status status = AcceptConnection(
+                core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
         }
 
         void OnConnectionAccepted(string endpointId) {
@@ -292,6 +315,16 @@ namespace HelloCloudWpf {
         void OnConnectionStarted(Status status) {
             Console.WriteLine("OnConnectionStarted:");
             Console.WriteLine("  status: " + status.ToString());
+        }
+
+        void OnPayloadInitiated(string endpointId) { 
+            Console.WriteLine("OnPayloadInitiated:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+        }
+
+        void OnPayloadProgress(string endpointId) {
+            Console.WriteLine("OnPayloadProgress:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
         }
 
         public void RequestConnection(string remoteEndpointId) {
@@ -374,6 +407,16 @@ namespace HelloCloudWpf {
             Console.WriteLine("Stopping discovering...");
             NearbyConnections.StopDiscovering(core);
             Endpoints.Clear();
+        }
+
+        public void SendBytes(string endpointId) {
+            byte[] payload = new byte[10];
+            for (int i = 0; i < payload.Length; i++) {
+                payload[i] = (byte) i;
+            }
+
+            NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
+
         }
     }
 }

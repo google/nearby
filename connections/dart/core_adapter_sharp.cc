@@ -259,4 +259,27 @@ Status AcceptConnectionSharp(
   return result;
 }
 
+struct PayloadDeleter {
+  void operator()(Payload *p) { delete p; }
+};
+
+Status SendPayloadBytesSharp(Core *pCore, const char *endpoint_id,
+                             size_t payload_size, const char *payload_content) {
+  auto payload_id = nearby::connections::Payload::GenerateId();
+  std::unique_ptr<connections::Payload, connections::PayloadDeleter> payload(
+      new Payload(payload_id, ByteArray(payload_content, payload_size)));
+  std::string endpoint_id_ = std::string(endpoint_id);
+  absl::Span<const std::string> span{&endpoint_id_, 1};
+
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
+  };
+  pCore->SendPayload(span, std::move(*payload), std::move(result_callback));
+  done.WaitForNotification();
+  return result;
+}
+
 }  // namespace nearby::windows
