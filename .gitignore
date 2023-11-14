@@ -5,6 +5,7 @@ build/**
 
 .vs
 
+MODULE.bazel*
 bazel-*/
 .vs/
 bin/
