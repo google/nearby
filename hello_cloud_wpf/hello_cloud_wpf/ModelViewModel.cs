@@ -77,7 +77,22 @@ namespace HelloCloudWpf {
         public ObservableCollection<EndpointViewModel> Endpoints { get { return endpoints; } }
         public EndpointViewModel ActiveEndpoint { get; set; }
 
-        public string LocalEndpointName { get; set; }
+        // Local endpoint info. In our case, it's a UTF8 encoded name.
+        byte[]? localEndpointInfo;
+        string localEndpointName;
+        public string LocalEndpointName { 
+            get {
+                return localEndpointName;
+            }
+            set {
+                localEndpointName = value;
+
+                int len = Encoding.UTF8.GetByteCount(localEndpointName);
+                localEndpointInfo = new byte[len + 1];
+                Encoding.UTF8.GetBytes(localEndpointName, 0, localEndpointName.Length, localEndpointInfo, 0);
+                localEndpointInfo[len] = 0;
+            }
+        }
 
         EndpointFoundCallback endpointFoundCallback;
         EndpointLostCallback endpointLostCallback;
@@ -92,9 +107,6 @@ namespace HelloCloudWpf {
         OperationResultCallback advertisingStartedCallback;
 
         OperationResultCallback connectionStartedCallback;
-
-        // Local endpoint info. In our case, it's a UTF8 encoded name.
-        byte[]? localEndpointInfo;
 
         // Medium selection for advertising and connection
         BooleanMediumSelector advertisingMediumSelector = new() {
