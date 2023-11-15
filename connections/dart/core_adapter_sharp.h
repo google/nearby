@@ -51,7 +51,10 @@ typedef void PayloadInitiatedCallback(const char *endpoint_id,
                                       PayloadId payload_id, int payload_size,
                                       const char *payload_content);
 typedef void PayloadProgressCallback(const char *endpoint_id,
-                                     PayloadProgressInfo payload_progress);
+                                     int64_t payload_id,
+                                     PayloadProgressInfo::Status payload_status,
+                                     int64_t total_bytes,
+                                     int64_t bytes_transferred);
 
 extern "C" {
 DLL_API Status __stdcall StartDiscoveringSharp(

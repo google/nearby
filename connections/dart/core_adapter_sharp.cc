@@ -245,8 +245,11 @@ Status AcceptConnectionSharp(
   listener.payload_progress_cb =
       [payload_progress_callback](absl::string_view endpoint_id,
                                   PayloadProgressInfo payload_progress_info) {
-        NEARBY_LOG(INFO, "Payload progress: id=%s", endpoint_id);
-        payload_progress_callback(endpoint_id.data(), payload_progress_info);
+        NEARBY_LOG(INFO, "Payload progress: id=%s", endpoint_id.data());
+        payload_progress_callback(
+            endpoint_id.data(), payload_progress_info.payload_id,
+            payload_progress_info.status, payload_progress_info.total_bytes,
+            payload_progress_info.bytes_transferred);
       };
 
   absl::Notification done;

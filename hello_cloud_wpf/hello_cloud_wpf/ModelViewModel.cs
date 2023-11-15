@@ -2,12 +2,10 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
-using System.Xml.Linq;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
@@ -15,7 +13,6 @@ namespace HelloCloudWpf {
         readonly Action<object?> _execute;
         readonly Predicate<object?> _canExecute;
 
-        public RelayCommand(Action<object?> execute) : this(execute, canExecute: null) { }
         public RelayCommand(Action<object?> execute, Predicate<object?> canExecute) {
             _execute = execute ?? throw new ArgumentNullException("execute");
             _canExecute = canExecute;
@@ -72,11 +69,18 @@ namespace HelloCloudWpf {
 
         public EndpointViewModel(MainWindowViewModel mainWindowViewModel, string id, string name) {
             this.mainWindowViewModel = mainWindowViewModel;
-            model = new EndpointModel(id, name);
-            connectCommand = new RelayCommand(_ => mainWindowViewModel.RequestConnection(Id), _ => State == EndpointState.Discovered);
-            sendCommand = new RelayCommand(_ => mainWindowViewModel.SendBytes(Id), _ => true);
-            acceptCommand = new RelayCommand(_ => mainWindowViewModel.Accept(Id), _ => true);
             State = EndpointState.Discovered;
+
+            model = new EndpointModel(id, name);
+            connectCommand = new RelayCommand(
+                _ => mainWindowViewModel.RequestConnection(Id), 
+                _ => State == EndpointState.Discovered);
+            sendCommand = new RelayCommand(
+                _ => mainWindowViewModel.SendBytes(Id), 
+                _ => State == EndpointState.Connected);
+            acceptCommand = new RelayCommand(
+                _ => mainWindowViewModel.Accept(Id), 
+                _ => false);
         }
     }
 
@@ -119,12 +123,6 @@ namespace HelloCloudWpf {
 
         PayloadInitiatedCallback payloadInitiatedCallback;
         PayloadProgressCallback payloadProgressCallback;
-
-        OperationResultCallback discoveringStartedCallback;
-        OperationResultCallback advertisingStartedCallback;
-        OperationResultCallback discoveringStoppedCallback;
-        OperationResultCallback advertisingStoppedCallback;
-        OperationResultCallback connectionStartedCallback;
 
         // Medium selection for advertising and connection
         BooleanMediumSelector advertisingMediumSelector = new() {
@@ -173,6 +171,7 @@ namespace HelloCloudWpf {
 
             // Allocate memory these delegates so that they don't get GCed.
             // TODO: free up the memory in the destructor.
+
             endpointFoundCallback = OnEndpointFound;
             endpointLostCallback = OnEndpointLost;
             endpointDistanceChangedCallback = OnEndpointDistanceChanged;
@@ -193,19 +192,9 @@ namespace HelloCloudWpf {
             GCHandle.Alloc(disconnectedCallback);
             GCHandle.Alloc(bandwidthUpgradedCallback);
 
-            discoveringStartedCallback = OnDiscoveringStarted;
-            advertisingStartedCallback = OnAdvertisingStarted;
-            discoveringStoppedCallback = OnDiscoveringStopped;
-            advertisingStoppedCallback = OnAdvertisingStopped;
-            connectionStartedCallback = OnConnectionStarted;
-            GCHandle.Alloc(discoveringStartedCallback);
-            GCHandle.Alloc(advertisingStartedCallback);
-            GCHandle.Alloc(discoveringStoppedCallback);
-            GCHandle.Alloc(advertisingStoppedCallback);
-            GCHandle.Alloc(connectionStartedCallback);
-
             payloadInitiatedCallback = OnPayloadInitiated;
             payloadProgressCallback = OnPayloadProgress;
+
             GCHandle.Alloc(payloadInitiatedCallback);
             GCHandle.Alloc(payloadProgressCallback);
         }
@@ -217,6 +206,17 @@ namespace HelloCloudWpf {
                 }
             }
             return null;
+        }
+
+        void UpdateEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
+            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            if (endpoint == null) {
+                Console.WriteLine("End point {0} not found. Probably already lost.", endpointId);
+                return;
+            }
+
+            Console.WriteLine("Updating endpoint {0}'s state to {1}", endpointId, state);
+            endpoint.State = state;
         }
 
         void AddEndpointOnUIThread(string id, string name) {
@@ -235,157 +235,6 @@ namespace HelloCloudWpf {
                     }
                 },
                 id);
-        }
-
-        void OnDiscoveringStarted(Status status) {
-            Console.WriteLine("OnDiscoveringStarted:");
-            Console.WriteLine("  status: " + status.ToString());
-        }
-
-        void OnDiscoveringStopped(Status status) {
-            Console.WriteLine("OnDiscoveringStopped:");
-            Console.WriteLine("  status: " + status.ToString());
-        }
-
-        void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
-            var _ = size;
-            string endpointName = Encoding.UTF8.GetString(endpointInfo);
-            Console.WriteLine("OnEndPointFound:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  endpoint_info: " + endpointName);
-            Console.WriteLine("  service_id: " + serviceId);
-
-            AddEndpointOnUIThread(endpointId, endpointName);
-        }
-
-        void OnEndpointLost(string endpointId) {
-            Console.WriteLine("OnEndpointLost: " + endpointId);
-            RemoveEndpointOnUIThread(endpointId);
-        }
-
-        void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
-            Console.WriteLine("OnEndpointDistanceChanged: ");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  distance_info: " + distanceInfo);
-        }
-
-        void OnAdvertisingStarted(Status status) {
-            Console.WriteLine("OnAdvertisingStarted:");
-            Console.WriteLine("  status: " + status.ToString());
-        }
-
-        void OnAdvertisingStopped(Status status) {
-            Console.WriteLine("OnAdvertisingStopped:");
-            Console.WriteLine("  status: " + status.ToString());
-        }
-
-        void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
-            Console.WriteLine("OnConnectionInitiated:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            Application.Current.Dispatcher.BeginInvoke(
-                (string endpointId) => Accept(endpointId), endpointId);
-
-            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Requested;
-        }
-
-        void OnConnectionAccepted(string endpointId) {
-            Console.WriteLine("OnConnectionAccepted:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Connected;
-        }
-
-        void OnConnectionRejected(string endpointId, Status status) {
-            Console.WriteLine("OnConnectionRejected:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  status: " + status.ToString());
-
-            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Discovered;
-        }
-
-        void OnConnectionDisconnected(string endpointId) {
-            Console.WriteLine("OnConnectionDisconnected:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Discovered;
-        }
-
-        void OnBandwidthUpgraded(string endpointId, Medium medium) {
-            Console.WriteLine("OnBandwidthUpgraded:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  medium: " + medium.ToString());
-        }
-
-        void OnConnectionStarted(Status status) {
-            Console.WriteLine("OnConnectionStarted:");
-            Console.WriteLine("  status: " + status.ToString());
-        }
-
-        void OnPayloadInitiated(string endpointId, int payloadId, int payloadSize, byte[] payloadContent) {
-            Console.WriteLine("OnPayloadInitiated:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  payload_id: " + payloadId);
-            for (int i = 0; i < Math.Min(16, payloadSize); i++) {
-                Console.Write("{0:X} ", payloadContent[i]);
-            }
-            Console.WriteLine();
-
-            EndpointViewModel endpoint = GetEndpointById(endpointId);
-            if (endpoint.State != EndpointViewModel.EndpointState.Sending) {
-                endpoint.State = EndpointViewModel.EndpointState.Receiving;
-            }
-        }
-
-        void OnPayloadProgress(string endpointId, PayloadProgress payloadProgress) {
-            Console.WriteLine("OnPayloadProgress:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            //Console.WriteLine("  payload_progress: " + payloadProgress.ToString());
-
-            EndpointViewModel endpoint = GetEndpointById(endpointId);
-            //switch (payloadProgress.status) {
-            //    case PayloadProgress.Status.kSuccess:
-            //    endpoint.State = EndpointViewModel.EndpointState.Connected;
-            //    break;
-                
-            //    case PayloadProgress.Status.kFailure:
-            //    break;
-
-            //    case PayloadProgress.Status.kInProgress:
-            //    break;
-
-            //    case PayloadProgress.Status.kCanceled:
-            //    break;
-
-            //    default:
-            //    break;
-            //}
-        }
-
-        public void RequestConnection(string remoteEndpointId) {
-            Console.WriteLine("Requesting connection...");
-            Debug.Assert(localEndpointInfo != null);
-            ConnectionOptions connectionOptions = new() {
-                strategy = NearbyConnections.P2pCluster,
-                allowed = connectionMediumSelector,
-                autoUpgradeBandwidth = true,
-                enforceTopologyConstraints = true,
-                enableBluetoothListening = true,
-                enableWebrtcListening = true,
-                isOutOfBandConnection = false,
-                lowPower = true,
-                remoteBluetoothMacAddress = new byte[32],
-            };
-            NearbyConnections.RequestConnection(
-                core,
-                remoteEndpointId,
-                connectionOptions,
-                localEndpointInfo,
-                initiatedCallback,
-                acceptedCallback,
-                rejectedCallback,
-                disconnectedCallback,
-                bandwidthUpgradedCallback);
         }
 
         public void StartAdvertising() {
@@ -446,7 +295,7 @@ namespace HelloCloudWpf {
 
         public void Accept(string endpoindId) {
             Console.WriteLine("Accepting...");
-            Status status = NearbyConnections.AcceptConnection(core, endpoindId, payloadInitiatedCallback, payloadProgressCallback);
+            OperationResult status = NearbyConnections.AcceptConnection(core, endpoindId, payloadInitiatedCallback, payloadProgressCallback);
             Console.WriteLine("  status: " + status.ToString());
         }
 
@@ -454,13 +303,144 @@ namespace HelloCloudWpf {
             Console.WriteLine("Sending bytes...");
             Console.WriteLine("  endpoint_id: " + endpointId);
 
-            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Sending;
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
 
             byte[] payload = new byte[10];
             for (int i = 0; i < payload.Length; i++) {
                 payload[i] = (byte)i;
             }
             NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
+        }
+
+        void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
+            var _ = size;
+            string endpointName = Encoding.UTF8.GetString(endpointInfo);
+            Console.WriteLine("OnEndPointFound:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  endpoint_info: " + endpointName);
+            Console.WriteLine("  service_id: " + serviceId);
+
+            AddEndpointOnUIThread(endpointId, endpointName);
+        }
+
+        void OnEndpointLost(string endpointId) {
+            Console.WriteLine("OnEndpointLost: " + endpointId);
+            RemoveEndpointOnUIThread(endpointId);
+        }
+
+        void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
+            Console.WriteLine("OnEndpointDistanceChanged: ");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  distance_info: " + distanceInfo);
+        }
+
+        void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
+            Console.WriteLine("OnConnectionInitiated:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => Accept(endpointId), endpointId);
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Requested);
+        }
+
+        void OnConnectionAccepted(string endpointId) {
+            Console.WriteLine("OnConnectionAccepted:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+        }
+
+        void OnConnectionRejected(string endpointId, OperationResult status) {
+            Console.WriteLine("OnConnectionRejected:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  status: " + status.ToString());
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+        }
+
+        void OnConnectionDisconnected(string endpointId) {
+            Console.WriteLine("OnConnectionDisconnected:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+        }
+
+        void OnBandwidthUpgraded(string endpointId, Medium medium) {
+            Console.WriteLine("OnBandwidthUpgraded:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  medium: " + medium.ToString());
+        }
+
+        void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
+            Console.WriteLine("OnPayloadInitiated:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  payload_id: " + payloadId);
+            for (int i = 0; i < Math.Min(16, payloadSize); i++) {
+                Console.Write("{0:X} ", payloadContent[i]);
+            }
+            Console.WriteLine();
+
+            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            if (endpoint == null) {
+                Console.WriteLine("  Endpoint not found, probably already lost.");
+                return;
+            }
+
+            if (endpoint.State != EndpointViewModel.EndpointState.Sending) {
+                endpoint.State = EndpointViewModel.EndpointState.Receiving;
+            }
+        }
+
+        void OnPayloadProgress(string endpointId, long payloadId, PayloadStatus status,
+            long bytesTotal, long bytesTransferred) {
+            Console.WriteLine("OnPayloadProgress:");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  paylod_id: " + payloadId.ToString());
+            Console.WriteLine("  status: " + status.ToString());
+
+            switch (status) {
+            case PayloadStatus.kSuccess:
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                break;
+            case PayloadStatus.kFailure:
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                break;
+            case PayloadStatus.kInProgress:
+                break;
+            case PayloadStatus.kCanceled:
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                break;
+            default:
+                break;
+            }
+        }
+
+        public void RequestConnection(string remoteEndpointId) {
+            Console.WriteLine("Requesting connection to {0} ...", remoteEndpointId);
+            Debug.Assert(localEndpointInfo != null);
+            ConnectionOptions connectionOptions = new() {
+                strategy = NearbyConnections.P2pCluster,
+                allowed = connectionMediumSelector,
+                autoUpgradeBandwidth = true,
+                enforceTopologyConstraints = true,
+                enableBluetoothListening = true,
+                enableWebrtcListening = true,
+                isOutOfBandConnection = false,
+                lowPower = true,
+                remoteBluetoothMacAddress = new byte[32],
+            };
+            OperationResult result = NearbyConnections.RequestConnection(
+                core,
+                remoteEndpointId,
+                connectionOptions,
+                localEndpointInfo,
+                initiatedCallback,
+                acceptedCallback,
+                rejectedCallback,
+                disconnectedCallback,
+                bandwidthUpgradedCallback);
+            Console.WriteLine("Request to connect to {0} completed. Result: " + result.ToString());
         }
     }
 }

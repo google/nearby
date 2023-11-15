@@ -53,7 +53,7 @@ namespace HelloCloudWpf {
             [FieldOffset(56)][MarshalAs(UnmanagedType.U1)] public bool lowPower;
         };
 
-        public enum Status {
+        public enum OperationResult {
             kSuccess,
             kError,
             kOutOfOrderApiCall,
@@ -98,18 +98,25 @@ namespace HelloCloudWpf {
             kUsb = 11,
         };
 
-        [StructLayout(LayoutKind.Sequential)]
+        public enum PayloadStatus {
+            kSuccess,
+            kFailure,
+            kInProgress,
+            kCanceled,
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
         public struct PayloadProgress {
-            [MarshalAs(UnmanagedType.I8)] public Int64 payloadId;
+            [FieldOffset(0)][MarshalAs(UnmanagedType.I8)] public long payloadId;
             public enum Status {
                 kSuccess,
                 kFailure,
                 kInProgress,
                 kCanceled,
             };
-            [MarshalAs(UnmanagedType.I8)] public Status status;
-            [MarshalAs(UnmanagedType.I8)] public Int64 bytesTotal;
-            [MarshalAs(UnmanagedType.I8)] public Int64 bytesTransferred;
+            [FieldOffset(8)][MarshalAs(UnmanagedType.I8)] public Status status;
+            [FieldOffset(16)][MarshalAs(UnmanagedType.I8)] public long bytesTotal;
+            [FieldOffset(24)][MarshalAs(UnmanagedType.I8)] public long bytesTransferred;
         };
 
         [StructLayout(LayoutKind.Explicit)]
@@ -144,7 +151,7 @@ namespace HelloCloudWpf {
         };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void OperationResultCallback(Status status);
+        public delegate void OperationResultCallback(OperationResult result);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void EndpointFoundCallback(string endpointId,
@@ -168,7 +175,7 @@ namespace HelloCloudWpf {
         public delegate void ConnectionAcceptedCallback(string endpointId);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void ConnectionRejectedCallback(string endpointId, Status status);
+        public delegate void ConnectionRejectedCallback(string endpointId, OperationResult result);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void ConnectionDisconnectedCallback(string endpointId);
@@ -177,11 +184,16 @@ namespace HelloCloudWpf {
         public delegate void BandwidthUpgradedCallback(string endpointId, Medium medium);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void PayloadInitiatedCallback(string endpointId, int payloadId, int payloadSize,
+        public delegate void PayloadInitiatedCallback(string endpointId, long payloadId, long payloadSize,
             [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] payloadContent);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void PayloadProgressCallback(string endpointId, PayloadProgress payloadProgress);
+        public delegate void PayloadProgressCallback(
+            string endpointId,
+            long payloadId,
+            PayloadStatus status,
+            long bytesTotal,
+            long bytesTransferred);
 
         [DllImport(NearbyConnectionsDll)]
         public static extern IntPtr InitServiceControllerRouter();
@@ -196,7 +208,7 @@ namespace HelloCloudWpf {
         public static extern void CloseCore(IntPtr core);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "StartDiscoveringSharp")]
-        public static extern Status StartDiscovering(
+        public static extern OperationResult StartDiscovering(
             IntPtr core,
             [MarshalAs(UnmanagedType.LPStr)] string serviceId,
             DiscoveryOptions discoveryOptions,
@@ -205,10 +217,10 @@ namespace HelloCloudWpf {
             EndpointDistanceChangedCallback endpointDistanceChangedCallback);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "StopDiscoveringSharp")]
-        public static extern Status StopDiscovering(IntPtr core);
+        public static extern OperationResult StopDiscovering(IntPtr core);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "StartAdvertisingSharp")]
-        public static extern Status StartAdvertising(
+        public static extern OperationResult StartAdvertising(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string serviceId,
             AdvertisingOptions advertisingOptions,
@@ -220,10 +232,10 @@ namespace HelloCloudWpf {
             BandwidthUpgradedCallback bandwidthUpgradedCallback);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "StopAdvertisingSharp")]
-        public static extern Status StopAdvertising(IntPtr core);
+        public static extern OperationResult StopAdvertising(IntPtr core);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "RequestConnectionSharp")]
-        public static extern Status RequestConnection(
+        public static extern OperationResult RequestConnection(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             ConnectionOptions connectionOptions,
@@ -235,14 +247,14 @@ namespace HelloCloudWpf {
             BandwidthUpgradedCallback bandwidthUpgradedCallback);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "AcceptConnectionSharp")]
-        public static extern Status AcceptConnection(
+        public static extern OperationResult AcceptConnection(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             PayloadInitiatedCallback payloadInitiatedCallback,
             PayloadProgressCallback payloadProgressCallback);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "SendPayloadBytesSharp")]
-        public static extern Status SendPayloadBytes(
+        public static extern OperationResult SendPayloadBytes(
             IntPtr pCore,
             [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             int payloadSize,
