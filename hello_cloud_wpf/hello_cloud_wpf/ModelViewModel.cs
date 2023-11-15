@@ -2,10 +2,12 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using System.Xml.Linq;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
@@ -63,32 +65,18 @@ namespace HelloCloudWpf {
         private readonly ICommand sendCommand;
         public ICommand SendCommand { get { return sendCommand; } }
 
-        private MainWindowViewModel mainWindowViewModel;
+        private readonly ICommand acceptCommand;
+        public ICommand AcceptCommand { get { return acceptCommand; } }
+
+        private readonly MainWindowViewModel mainWindowViewModel;
 
         public EndpointViewModel(MainWindowViewModel mainWindowViewModel, string id, string name) {
             this.mainWindowViewModel = mainWindowViewModel;
             model = new EndpointModel(id, name);
-            connectCommand = new RelayCommand(param => this.Connect(param), param => this.CanConnect(param));
-            sendCommand = new RelayCommand(param => this.Send(param), param => this.CanSend(param));
+            connectCommand = new RelayCommand(_ => mainWindowViewModel.RequestConnection(Id), _ => State == EndpointState.Discovered);
+            sendCommand = new RelayCommand(_ => mainWindowViewModel.SendBytes(Id), _ => true);
+            acceptCommand = new RelayCommand(_ => mainWindowViewModel.Accept(Id), _ => true);
             State = EndpointState.Discovered;
-        }
-
-        public void Connect(object? param) {
-            mainWindowViewModel.RequestConnection(Id);
-            // If the request is delivered successfully, move to requested state
-            // Otherwise, display an error and move back to Discovered state
-        }
-
-        public bool CanConnect(object? param) {
-            return State == EndpointState.Discovered;
-        }
-
-        public void Send(object? param) {
-            mainWindowViewModel.SendBytes(Id);
-        }
-
-        public bool CanSend(object? param) {
-            return true;
         }
     }
 
@@ -122,7 +110,7 @@ namespace HelloCloudWpf {
         EndpointFoundCallback endpointFoundCallback;
         EndpointLostCallback endpointLostCallback;
         EndpointDistanceChangedCallback endpointDistanceChangedCallback;
-        
+
         ConnectionInitiatedCallback initiatedCallback;
         ConnectionAcceptedCallback acceptedCallback;
         ConnectionRejectedCallback rejectedCallback;
@@ -192,7 +180,7 @@ namespace HelloCloudWpf {
             GCHandle.Alloc(endpointFoundCallback);
             GCHandle.Alloc(endpointLostCallback);
             GCHandle.Alloc(endpointDistanceChangedCallback);
-            
+
             initiatedCallback = OnConnectionInitiated;
             acceptedCallback = OnConnectionAccepted;
             rejectedCallback = OnConnectionRejected;
@@ -203,7 +191,7 @@ namespace HelloCloudWpf {
             GCHandle.Alloc(acceptedCallback);
             GCHandle.Alloc(rejectedCallback);
             GCHandle.Alloc(disconnectedCallback);
-            GCHandle.Alloc(bandwidthUpgradedCallback);            
+            GCHandle.Alloc(bandwidthUpgradedCallback);
 
             discoveringStartedCallback = OnDiscoveringStarted;
             advertisingStartedCallback = OnAdvertisingStarted;
@@ -220,6 +208,15 @@ namespace HelloCloudWpf {
             payloadProgressCallback = OnPayloadProgress;
             GCHandle.Alloc(payloadInitiatedCallback);
             GCHandle.Alloc(payloadProgressCallback);
+        }
+
+        EndpointViewModel? GetEndpointById(string endpointId) {
+            foreach (EndpointViewModel endpoint in Endpoints) {
+                if (endpoint.Id == endpointId) {
+                    return endpoint;
+                }
+            }
+            return null;
         }
 
         void AddEndpointOnUIThread(string id, string name) {
@@ -286,24 +283,32 @@ namespace HelloCloudWpf {
             Console.WriteLine("OnConnectionInitiated:");
             Console.WriteLine("  endpoint_id: " + endpointId);
 
-            Status status = AcceptConnection(
-                core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => Accept(endpointId), endpointId);
+
+            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Requested;
         }
 
         void OnConnectionAccepted(string endpointId) {
             Console.WriteLine("OnConnectionAccepted:");
             Console.WriteLine("  endpoint_id: " + endpointId);
+
+            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Connected;
         }
 
         void OnConnectionRejected(string endpointId, Status status) {
             Console.WriteLine("OnConnectionRejected:");
             Console.WriteLine("  endpoint_id: " + endpointId);
             Console.WriteLine("  status: " + status.ToString());
+
+            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Discovered;
         }
 
         void OnConnectionDisconnected(string endpointId) {
             Console.WriteLine("OnConnectionDisconnected:");
             Console.WriteLine("  endpoint_id: " + endpointId);
+
+            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Discovered;
         }
 
         void OnBandwidthUpgraded(string endpointId, Medium medium) {
@@ -317,14 +322,44 @@ namespace HelloCloudWpf {
             Console.WriteLine("  status: " + status.ToString());
         }
 
-        void OnPayloadInitiated(string endpointId) { 
+        void OnPayloadInitiated(string endpointId, int payloadId, int payloadSize, byte[] payloadContent) {
             Console.WriteLine("OnPayloadInitiated:");
             Console.WriteLine("  endpoint_id: " + endpointId);
+            Console.WriteLine("  payload_id: " + payloadId);
+            for (int i = 0; i < Math.Min(16, payloadSize); i++) {
+                Console.Write("{0:X} ", payloadContent[i]);
+            }
+            Console.WriteLine();
+
+            EndpointViewModel endpoint = GetEndpointById(endpointId);
+            if (endpoint.State != EndpointViewModel.EndpointState.Sending) {
+                endpoint.State = EndpointViewModel.EndpointState.Receiving;
+            }
         }
 
-        void OnPayloadProgress(string endpointId) {
+        void OnPayloadProgress(string endpointId, PayloadProgress payloadProgress) {
             Console.WriteLine("OnPayloadProgress:");
             Console.WriteLine("  endpoint_id: " + endpointId);
+            //Console.WriteLine("  payload_progress: " + payloadProgress.ToString());
+
+            EndpointViewModel endpoint = GetEndpointById(endpointId);
+            //switch (payloadProgress.status) {
+            //    case PayloadProgress.Status.kSuccess:
+            //    endpoint.State = EndpointViewModel.EndpointState.Connected;
+            //    break;
+                
+            //    case PayloadProgress.Status.kFailure:
+            //    break;
+
+            //    case PayloadProgress.Status.kInProgress:
+            //    break;
+
+            //    case PayloadProgress.Status.kCanceled:
+            //    break;
+
+            //    default:
+            //    break;
+            //}
         }
 
         public void RequestConnection(string remoteEndpointId) {
@@ -409,14 +444,23 @@ namespace HelloCloudWpf {
             Endpoints.Clear();
         }
 
+        public void Accept(string endpoindId) {
+            Console.WriteLine("Accepting...");
+            Status status = NearbyConnections.AcceptConnection(core, endpoindId, payloadInitiatedCallback, payloadProgressCallback);
+            Console.WriteLine("  status: " + status.ToString());
+        }
+
         public void SendBytes(string endpointId) {
+            Console.WriteLine("Sending bytes...");
+            Console.WriteLine("  endpoint_id: " + endpointId);
+
+            GetEndpointById(endpointId).State = EndpointViewModel.EndpointState.Sending;
+
             byte[] payload = new byte[10];
             for (int i = 0; i < payload.Length; i++) {
-                payload[i] = (byte) i;
+                payload[i] = (byte)i;
             }
-
             NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
-
         }
     }
 }

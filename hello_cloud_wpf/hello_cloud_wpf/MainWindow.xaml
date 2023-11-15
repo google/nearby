@@ -54,8 +54,8 @@
             </StackPanel>
             <UniformGrid Rows="1">
                 <Button Content="Connect" Command="{Binding Path=ConnectCommand}" Margin="10,10"/>
+                <Button Content="Accept" Command="{Binding Path=AcceptCommand}" Margin="10,10"/>
                 <Button Content="Send" Command="{Binding Path=SendCommand}" Margin="10,10"/>
-                <Button Content="Reject" Margin="10,10"/>
             </UniformGrid>
             <StackPanel Orientation="Horizontal" Margin="10,10">
                 <Label Content="Status: "/>

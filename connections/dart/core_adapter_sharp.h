@@ -27,6 +27,7 @@ using nearby::connections::ConnectionOptions;
 using nearby::connections::DiscoveryOptions;
 using nearby::connections::DistanceInfo;
 using nearby::connections::Medium;
+using nearby::connections::PayloadProgressInfo;
 using nearby::connections::PayloadType;
 using nearby::connections::ResultCallback;
 
@@ -46,8 +47,11 @@ typedef void AcceptedCallback(const char *endpoint_id);
 typedef void RejectedCallback(const char *endpoint_id, Status status);
 typedef void ConnectionDisconnectedCallback(const char *endpoint_id);
 typedef void BandwidthChangedCallback(const char *endpoint_id, Medium medium);
-typedef void PayloadInitiatedCallback(const char *endpoint_id);
-typedef void PayloadProgressCallback(const char *endpoint_id);
+typedef void PayloadInitiatedCallback(const char *endpoint_id,
+                                      PayloadId payload_id, int payload_size,
+                                      const char *payload_content);
+typedef void PayloadProgressCallback(const char *endpoint_id,
+                                     PayloadProgressInfo payload_progress);
 
 extern "C" {
 DLL_API Status __stdcall StartDiscoveringSharp(

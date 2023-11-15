@@ -236,15 +236,17 @@ Status AcceptConnectionSharp(
     PayloadProgressCallback payload_progress_callback) {
   PayloadListener listener;
   listener.payload_cb = [payload_initiated_callback](
-                            absl::string_view endpoint_id, Payload paylod) {
-    NEARBY_LOG(INFO, "Payload initiated: id=%s", endpoint_id);
-    payload_initiated_callback(endpoint_id.data());
+                            absl::string_view endpoint_id, Payload payload) {
+    NEARBY_LOG(INFO, "Payload initiated: id=%s", endpoint_id.data());
+    ByteArray bytes = payload.AsBytes();
+    payload_initiated_callback(endpoint_id.data(), payload.GetId(),
+                               bytes.size(), bytes.data());
   };
   listener.payload_progress_cb =
       [payload_progress_callback](absl::string_view endpoint_id,
                                   PayloadProgressInfo payload_progress_info) {
         NEARBY_LOG(INFO, "Payload progress: id=%s", endpoint_id);
-        payload_progress_callback(endpoint_id.data());
+        payload_progress_callback(endpoint_id.data(), payload_progress_info);
       };
 
   absl::Notification done;

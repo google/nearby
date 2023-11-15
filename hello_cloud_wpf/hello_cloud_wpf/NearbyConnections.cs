@@ -98,6 +98,20 @@ namespace HelloCloudWpf {
             kUsb = 11,
         };
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PayloadProgress {
+            [MarshalAs(UnmanagedType.I8)] public Int64 payloadId;
+            public enum Status {
+                kSuccess,
+                kFailure,
+                kInProgress,
+                kCanceled,
+            };
+            [MarshalAs(UnmanagedType.I8)] public Status status;
+            [MarshalAs(UnmanagedType.I8)] public Int64 bytesTotal;
+            [MarshalAs(UnmanagedType.I8)] public Int64 bytesTransferred;
+        };
+
         [StructLayout(LayoutKind.Explicit)]
         public struct AdvertisingOptions {
             [FieldOffset(0)] public Strategy strategy;
@@ -163,10 +177,11 @@ namespace HelloCloudWpf {
         public delegate void BandwidthUpgradedCallback(string endpointId, Medium medium);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void PayloadInitiatedCallback(string endpointId);
+        public delegate void PayloadInitiatedCallback(string endpointId, int payloadId, int payloadSize,
+            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] payloadContent);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate void PayloadProgressCallback(string endpointId);
+        public delegate void PayloadProgressCallback(string endpointId, PayloadProgress payloadProgress);
 
         [DllImport(NearbyConnectionsDll)]
         public static extern IntPtr InitServiceControllerRouter();
