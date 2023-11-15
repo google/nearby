@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using System.Xml.Linq;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
@@ -44,9 +45,9 @@ namespace HelloCloudWpf {
     public class EndpointViewModel : INotifyPropertyChanged {
         public enum EndpointState {
             Discovered,  // Discovered, ready to connect
-            Requested, // Pending connection request
-            Accepted, // Connection request accepted
-            Connected, // Connection established, ready to send/receive payloads
+            Pending, // Pending connection
+            Accepted, // Connection request accepted by one party
+            Connected, // Connection request accepted by both parties. Ready to send/receive payloads
             Sending, // Sending a payload
             Receiving, // Receiving a payload
         }
@@ -229,6 +230,16 @@ namespace HelloCloudWpf {
             return null;
         }
 
+        EndpointViewModel.EndpointState? GetEndpointState(string endpointId) {
+            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            if (endpoint == null) {
+                Console.WriteLine("End point {0} not found. Probably already lost.", endpointId);
+                return null;
+            }
+            return endpoint.State;
+        }
+
+        // TODO: does this also need to happen on the UI thread?
         void UpdateEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
             EndpointViewModel? endpoint = GetEndpointById(endpointId);
             if (endpoint == null) {
@@ -240,10 +251,13 @@ namespace HelloCloudWpf {
             endpoint.State = state;
         }
 
-        void AddEndpointOnUIThread(string id, string name) {
-            Action<EndpointViewModel> addMethod = Endpoints.Add;
+        void AddEndpointOnUIThread(EndpointViewModel endpoint) {
             Application.Current.Dispatcher.BeginInvoke(
-                (string id, string name) => Endpoints.Add(new EndpointViewModel(this, id, name)), id, name);
+                (EndpointViewModel endpoint) => Endpoints.Add(endpoint), endpoint);
+        }
+
+        void AddEndpointOnUIThread(string id, string name) {
+            AddEndpointOnUIThread(new EndpointViewModel(this, id, name));
         }
 
         void RemoveEndpointOnUIThread(string id) {
@@ -363,7 +377,23 @@ namespace HelloCloudWpf {
             Application.Current.Dispatcher.BeginInvoke(
                 (string endpointId) => Accept(endpointId), endpointId);
 
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Requested);
+            if (GetEndpointById(endpointId) == null) {
+                string name = Encoding.UTF8.GetString(endpointInfo);
+                if (String.IsNullOrEmpty(name)) {
+                    Console.WriteLine("Endpoint {0} has an invalid name, discarding...", endpointId);
+                    return;
+                }
+
+
+                EndpointViewModel endpoint = new(this, endpointId, name) {
+                    State = EndpointViewModel.EndpointState.Pending
+                };
+                AddEndpointOnUIThread(endpoint);
+            } else {
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Pending);
+            }
+
+            // TODO: select this endpoint
         }
 
         void OnConnectionAccepted(string endpointId) {
@@ -403,14 +433,8 @@ namespace HelloCloudWpf {
             }
             Console.WriteLine();
 
-            EndpointViewModel? endpoint = GetEndpointById(endpointId);
-            if (endpoint == null) {
-                Console.WriteLine("  Endpoint not found, probably already lost.");
-                return;
-            }
-
-            if (endpoint.State != EndpointViewModel.EndpointState.Sending) {
-                endpoint.State = EndpointViewModel.EndpointState.Receiving;
+            if (GetEndpointState(endpointId) != EndpointViewModel.EndpointState.Sending) {
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Receiving);
             }
         }
 
@@ -442,7 +466,7 @@ namespace HelloCloudWpf {
         public void RequestConnection(string remoteEndpointId) {
             Console.WriteLine("Requesting connection to {0} ...", remoteEndpointId);
             Debug.Assert(localEndpointInfo != null);
-            UpdateEndpointState(SelectedEndpoint.Id, EndpointViewModel.EndpointState.Requested);
+            UpdateEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Pending);
 
             ConnectionOptions connectionOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
@@ -466,6 +490,10 @@ namespace HelloCloudWpf {
                 disconnectedCallback,
                 bandwidthUpgradedCallback);
             Console.WriteLine("Request to connect to {0} completed. Result: " + result.ToString());
+            if (result != OperationResult.kSuccess) {
+                // The request has not been sent by NC. We go back to Discovered state.
+                UpdateEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Discovered);
+            }
         }
     }
 }

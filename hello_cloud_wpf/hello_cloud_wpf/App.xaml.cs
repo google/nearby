@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,5 +14,10 @@ namespace HelloCloudWpf
     /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e) {
+            string path = Environment.GetEnvironmentVariable("PATH") ?? "";
+            Environment.SetEnvironmentVariable("PATH", path + @";C:\repo\nearby\bazel-bin\connections\dart");
+            base.OnStartup(e);
+        }
     }
 }
