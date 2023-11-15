@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -40,7 +41,7 @@ namespace HelloCloudWpf {
         }
     }
 
-    public class EndpointViewModel {
+    public class EndpointViewModel : INotifyPropertyChanged {
         public enum EndpointState {
             Discovered,  // Discovered, ready to connect
             Requested, // Pending connection request
@@ -54,7 +55,15 @@ namespace HelloCloudWpf {
 
         public string Id { get { return model.id; } }
         public string Name { get { return model.name; } }
-        public EndpointState State { get; set; }
+
+        private EndpointState state;
+        public EndpointState State {
+            get { return state; }
+            set {
+                state = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(State)));
+            }
+        }
 
         private readonly ICommand connectCommand;
         public ICommand ConnectCommand { get { return connectCommand; } }
@@ -67,24 +76,26 @@ namespace HelloCloudWpf {
 
         private readonly MainWindowViewModel mainWindowViewModel;
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public EndpointViewModel(MainWindowViewModel mainWindowViewModel, string id, string name) {
             this.mainWindowViewModel = mainWindowViewModel;
             State = EndpointState.Discovered;
 
             model = new EndpointModel(id, name);
             connectCommand = new RelayCommand(
-                _ => mainWindowViewModel.RequestConnection(Id), 
+                _ => mainWindowViewModel.RequestConnection(Id),
                 _ => State == EndpointState.Discovered);
             sendCommand = new RelayCommand(
-                _ => mainWindowViewModel.SendBytes(Id), 
+                _ => mainWindowViewModel.SendBytes(Id),
                 _ => State == EndpointState.Connected);
             acceptCommand = new RelayCommand(
-                _ => mainWindowViewModel.Accept(Id), 
+                _ => mainWindowViewModel.Accept(Id),
                 _ => false);
         }
     }
 
-    public class MainWindowViewModel {
+    public class MainWindowViewModel : INotifyPropertyChanged {
         static readonly string serviceId = "com.google.location.nearby.apps.helloconnections";
 
         private readonly IntPtr router = IntPtr.Zero;
@@ -92,7 +103,15 @@ namespace HelloCloudWpf {
         private readonly ObservableCollection<EndpointViewModel> endpoints = new();
 
         public ObservableCollection<EndpointViewModel> Endpoints { get { return endpoints; } }
-        public EndpointViewModel ActiveEndpoint { get; set; }
+
+        private EndpointViewModel selectedViewModel;
+        public EndpointViewModel SelectedEndpoint {
+            get { return selectedViewModel; }
+            set {
+                selectedViewModel = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedEndpoint)));
+            }
+        }
 
         // Local endpoint info. In our case, it's a UTF8 encoded name.
         byte[]? localEndpointInfo;
@@ -152,12 +171,14 @@ namespace HelloCloudWpf {
             wifiLan = true,
         };
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public MainWindowViewModel() {
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
             Endpoints.Add(new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1"));
             Endpoints.Add(new EndpointViewModel(this, id: "1234", name: "Example endpoint 2"));
-            ActiveEndpoint = Endpoints[0];
+            SelectedEndpoint = Endpoints[0];
 
             router = InitServiceControllerRouter();
             if (router == IntPtr.Zero) {
@@ -293,9 +314,10 @@ namespace HelloCloudWpf {
             Endpoints.Clear();
         }
 
-        public void Accept(string endpoindId) {
+        public void Accept(string endpointId) {
             Console.WriteLine("Accepting...");
-            OperationResult status = NearbyConnections.AcceptConnection(core, endpoindId, payloadInitiatedCallback, payloadProgressCallback);
+            Console.WriteLine("  endpoint_id: " + endpointId);
+            OperationResult status = NearbyConnections.AcceptConnection(core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
             Console.WriteLine("  status: " + status.ToString());
         }
 
@@ -398,6 +420,7 @@ namespace HelloCloudWpf {
             Console.WriteLine("  endpoint_id: " + endpointId);
             Console.WriteLine("  paylod_id: " + payloadId.ToString());
             Console.WriteLine("  status: " + status.ToString());
+            Console.WriteLine("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal);
 
             switch (status) {
             case PayloadStatus.kSuccess:
@@ -419,6 +442,8 @@ namespace HelloCloudWpf {
         public void RequestConnection(string remoteEndpointId) {
             Console.WriteLine("Requesting connection to {0} ...", remoteEndpointId);
             Debug.Assert(localEndpointInfo != null);
+            UpdateEndpointState(SelectedEndpoint.Id, EndpointViewModel.EndpointState.Requested);
+
             ConnectionOptions connectionOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = connectionMediumSelector,

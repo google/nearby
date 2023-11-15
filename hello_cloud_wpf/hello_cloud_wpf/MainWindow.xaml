@@ -32,7 +32,7 @@
                       SelectionMode="Single"
                       FontFamily="consolas"
                       ItemsSource="{Binding Endpoints}"
-                      SelectedItem="{Binding ActiveEndpoint}">
+                      SelectedItem="{Binding SelectedEndpoint}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <WrapPanel>
@@ -45,21 +45,21 @@
                 </ListView.ItemTemplate>
             </ListView>
         </StackPanel>
-        <StackPanel Orientation="Vertical" Grid.Column="1" Margin="10,10">
+        <StackPanel Orientation="Vertical" Grid.Column="1" Margin="10,10" DataContext="{Binding SelectedEndpoint}">
             <StackPanel Orientation="Horizontal" Margin="10,10">
                 <Label Content="ID:"/>
-                <Label Content="{Binding ActiveEndpoint.Id}"/>
+                <Label Content="{Binding Id}"/>
                 <Label Content="Name:"/>
-                <Label Content="{Binding ActiveEndpoint.Name}"/>
+                <Label Content="{Binding Name}"/>
             </StackPanel>
             <UniformGrid Rows="1">
-                <Button Content="Connect" Command="{Binding ActiveEndpoint.ConnectCommand}" Margin="10,10"/>
-                <Button Content="Accept" Command="{Binding ActiveEndpoint.AcceptCommand}" Margin="10,10"/>
-                <Button Content="Send" Command="{Binding ActiveEndpoint.SendCommand}" Margin="10,10"/>
+                <Button Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
+                <Button Content="Accept" Command="{Binding AcceptCommand}" Margin="10,10"/>
+                <Button Content="Send" Command="{Binding SendCommand}" Margin="10,10"/>
             </UniformGrid>
             <StackPanel Orientation="Horizontal" Margin="10,10">
                 <Label Content="State: "/>
-                <Label Content="{Binding ActiveEndpoint.State}"/>
+                <Label Content="{Binding State}"/>
             </StackPanel>
             <ListView Margin="10,10"></ListView>
         </StackPanel>
