@@ -221,7 +221,7 @@ namespace HelloCloudWpf {
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "StartAdvertisingSharp")]
         public static extern OperationResult StartAdvertising(
-            IntPtr pCore,
+            IntPtr core,
             [MarshalAs(UnmanagedType.LPStr)] string serviceId,
             AdvertisingOptions advertisingOptions,
             byte[] endpointInfo,
@@ -236,7 +236,7 @@ namespace HelloCloudWpf {
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "RequestConnectionSharp")]
         public static extern OperationResult RequestConnection(
-            IntPtr pCore,
+            IntPtr core,
             [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             ConnectionOptions connectionOptions,
             byte[] endpointInfo,
@@ -248,16 +248,21 @@ namespace HelloCloudWpf {
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "AcceptConnectionSharp")]
         public static extern OperationResult AcceptConnection(
-            IntPtr pCore,
+            IntPtr core,
             [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             PayloadInitiatedCallback payloadInitiatedCallback,
             PayloadProgressCallback payloadProgressCallback);
 
         [DllImport(NearbyConnectionsDll, EntryPoint = "SendPayloadBytesSharp")]
         public static extern OperationResult SendPayloadBytes(
-            IntPtr pCore,
+            IntPtr core,
             [MarshalAs(UnmanagedType.LPStr)] string endpointId,
             int payloadSize,
             [MarshalAs(UnmanagedType.LPArray)] byte[] payloadContent);
+
+        [DllImport(NearbyConnectionsDll, EntryPoint = "DisconnectSharp")]
+        public static extern OperationResult Disconnect(
+            IntPtr core, 
+            [MarshalAs(UnmanagedType.LPStr)] string endpointId);
     }
 }

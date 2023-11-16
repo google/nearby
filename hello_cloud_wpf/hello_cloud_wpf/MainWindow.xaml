@@ -1,38 +1,53 @@
 ﻿<Window x:Class="HelloCloudWpf.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:gif="http://wpfanimatedgif.codeplex.com"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HelloCloudWpf"
         mc:Ignorable="d"
-        Title="MainWindow" Height="440" Width="800">
+        Title="MainWindow" 
+        Height="768" Width="1024">
     <Window.DataContext>
         <local:MainWindowViewModel/>
     </Window.DataContext>
-    <Grid>
+    <Grid Cursor="{Binding Cursor}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0" Margin="10,10,10,10">
-            <UniformGrid  Margin="0,0,0,10" Rows="1">
-                <TextBox Margin="0,0,20,0"
-                         Text="{Binding LocalEndpointName}"
-                         FontFamily="consolas"/>
-                <CheckBox Content="Advertising" 
-                          Name="isAdvertising" 
-                          Checked="isAdvertising_Checked" 
-                          Unchecked="isAdvertising_Unchecked"/>
-                <CheckBox Content="Discovering" 
-                          Name="isDiscovering" 
-                          Checked="isDiscovering_Checked" 
-                          Unchecked="isDiscovering_Unchecked"/>
-            </UniformGrid>
+        <DockPanel Grid.Column="0" Margin="10,10,10,10">
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="0.9*" />
+                    <ColumnDefinition Width="0.9*" />
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" Grid.Row="0" Content="Local endpoint" FontWeight="Bold"/>
+                <TextBox Grid.Column="1" Grid.Row="0"
+                         Margin="5,5" Text="{Binding LocalEndpointName}"
+                            FontFamily="consolas"/>
+                <CheckBox Grid.Column="2" Grid.Row="0"
+                    Content="Advertising"
+                            VerticalAlignment="Center"
+                            Name="isAdvertising" 
+                            Checked="isAdvertising_Checked" 
+                            Unchecked="isAdvertising_Unchecked"/>
+                <CheckBox Grid.Column="3" Grid.Row="0"
+                    Content="Discovering" 
+                            VerticalAlignment="Center"
+                            Name="isDiscovering" 
+                            Checked="isDiscovering_Checked" 
+                            Unchecked="isDiscovering_Unchecked"/>
+            </Grid>
+            <Label DockPanel.Dock="Top" Content="Remote endpoints" FontWeight="Bold"/>
             <ListView Name="endpointListView" 
+                      DockPanel.Dock="Top"
                       SelectionMode="Single"
                       FontFamily="consolas"
                       ItemsSource="{Binding Endpoints}"
-                      SelectedItem="{Binding SelectedEndpoint}">
+                      SelectedItem="{Binding SelectedEndpoint}" Height="100">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <WrapPanel>
@@ -44,24 +59,49 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-        </StackPanel>
-        <StackPanel Orientation="Vertical" Grid.Column="1" Margin="10,10" DataContext="{Binding SelectedEndpoint}">
-            <StackPanel Orientation="Horizontal" Margin="10,10">
-                <Label Content="ID:"/>
-                <Label Content="{Binding Id}"/>
-                <Label Content="Name:"/>
-                <Label Content="{Binding Name}"/>
-            </StackPanel>
-            <UniformGrid Rows="1">
-                <Button Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
-                <Button Content="Accept" Command="{Binding AcceptCommand}" Margin="10,10"/>
-                <Button Content="Send" Command="{Binding SendCommand}" Margin="10,10"/>
+            <Label DockPanel.Dock="Top" Content="Log" FontWeight="Bold"/>
+            <ListView ItemsSource="{Binding LogEntries}"/>
+        </DockPanel>
+        <DockPanel Grid.Column="1" Margin="10,10" DataContext="{Binding SelectedEndpoint}">
+            <UniformGrid DockPanel.Dock="Top" Rows="2" Margin="0,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Label FontWeight="Bold" Content="Id"/>
+                    <Label Content="{Binding Id}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Label FontWeight="Bold" Content="Name"/>
+                    <Label Content="{Binding Name}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Label FontWeight="Bold" Content="Medium"/>
+                    <Label Content="{Binding Medium}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Label FontWeight="Bold" Content="State"/>
+                    <Grid>
+                        <Image Grid.Column="0" Grid.Row="0"
+                               Height="24" Width="24" 
+                               Visibility="{Binding SpinnerVisibility}" 
+                               gif:ImageBehavior.AnimatedSource="/Resources/Spinner.gif"/>
+                        <Image Grid.Column="0" Grid.Row="0"
+                               Height="24" Width="24"
+                               Visibility="{Binding CheckMarkVisibility}"
+                               Source="/Resources/Green.png"/>
+                        <Image Grid.Column="0" Grid.Row="0"
+                               Height="24" Width="24"
+                               Visibility="{Binding GrayDotVisibility}"
+                               Source="/Resources/Gray.png"/>
+                    </Grid>
+                    <Label Content="{Binding State}"/>
+                </StackPanel>
             </UniformGrid>
-            <StackPanel Orientation="Horizontal" Margin="10,10">
-                <Label Content="State: "/>
-                <Label Content="{Binding State}"/>
-            </StackPanel>
-            <ListView Margin="10,10"></ListView>
-        </StackPanel>
+            <UniformGrid DockPanel.Dock="Top" Rows="1">
+                <Button Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
+                <Button Content="Send" Command="{Binding SendCommand}" Margin="10,10"/>
+                <Button Content="Disconnect" Command="{Binding DisconnectCommand}" Margin="10,10"/>
+            </UniformGrid>
+            <Label DockPanel.Dock="Top" Content="Transfers" FontWeight="Bold"/>
+            <ListView DockPanel.Dock="Bottom" Margin="0,0"/>
+        </DockPanel>
     </Grid>
 </Window>

@@ -111,7 +111,7 @@ Status StartAdvertisingSharp(
   listener.initiated_cb = [initiated_callback](
                               const std::string &endpoint_id,
                               const ConnectionResponseInfo &info) {
-    NEARBY_LOG(INFO, "Advertising initiated: id=%s", endpoint_id.c_str());
+    NEARBY_LOG(INFO, "Connection initiated: id=%s", endpoint_id.c_str());
 
     // Allocate memory to marshal endpoint_info to managed code.
     // It will be freed on the managed side.
@@ -122,24 +122,24 @@ Status StartAdvertisingSharp(
     initiated_callback(endpoint_id.c_str(), data, size);
   };
   listener.accepted_cb = [accepted_callback](const std::string &endpoint_id) {
-    NEARBY_LOG(INFO, "Advertising accepted: id=%s", endpoint_id.c_str());
+    NEARBY_LOG(INFO, "Connection accepted: id=%s", endpoint_id.c_str());
     accepted_callback(endpoint_id.c_str());
   };
   listener.rejected_cb = [rejected_callback](const std::string &endpoint_id,
                                              Status status) {
-    NEARBY_LOG(INFO, "Advertising rejected: id=%s, status: %s",
+    NEARBY_LOG(INFO, "Connection rejected: id=%s, status: %s",
                endpoint_id.c_str(), status.ToString());
     rejected_callback(endpoint_id.c_str(), status);
   };
   listener.disconnected_cb =
       [disconnected_callback](const std::string &endpoint_id) {
-        NEARBY_LOG(INFO, "Advertising disconnected: id=%s", endpoint_id);
+        NEARBY_LOG(INFO, "Connection disconnected: id=%s", endpoint_id);
         disconnected_callback(endpoint_id.c_str());
       };
   listener.bandwidth_changed_cb = [bandwidth_changed_callback](
                                       const std::string &endpoint_id,
                                       Medium medium) {
-    NEARBY_LOG(INFO, "Advertising bandwidth changed: id=%s", endpoint_id);
+    NEARBY_LOG(INFO, "Bandwidth changed: id=%s", endpoint_id);
     bandwidth_changed_callback(endpoint_id.c_str(), medium);
   };
 
@@ -283,6 +283,18 @@ Status SendPayloadBytesSharp(Core *pCore, const char *endpoint_id,
     done.Notify();
   };
   pCore->SendPayload(span, std::move(*payload), std::move(result_callback));
+  done.WaitForNotification();
+  return result;
+}
+
+Status DisconnectSharp(Core *pCore, const char *endpoint_id) {
+  absl::Notification done;
+  Status result;
+  ResultCallback result_callback = [&done, &result](Status status) {
+    result = status;
+    done.Notify();
+  };
+  pCore->DisconnectFromEndpoint(endpoint_id, std::move(result_callback));
   done.WaitForNotification();
   return result;
 }

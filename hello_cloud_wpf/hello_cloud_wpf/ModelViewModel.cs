@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
-using System.Xml.Linq;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
@@ -46,53 +45,92 @@ namespace HelloCloudWpf {
         public enum EndpointState {
             Discovered,  // Discovered, ready to connect
             Pending, // Pending connection
-            Accepted, // Connection request accepted by one party
+            // Accepted, // Connection request accepted by one party
             Connected, // Connection request accepted by both parties. Ready to send/receive payloads
             Sending, // Sending a payload
             Receiving, // Receiving a payload
         }
 
-        public EndpointModel model;
+        public Visibility SpinnerVisibility {
+            get {
+                return state == EndpointState.Pending
+                    || state == EndpointState.Receiving
+                    || state == EndpointState.Sending
+                    ? Visibility.Visible
+                    : Visibility.Hidden;
+            }
+        }
+
+        public Visibility CheckMarkVisibility {
+            get {
+                return state == EndpointState.Connected
+                    ? Visibility.Visible : Visibility.Hidden;
+            }
+        }
+
+        public Visibility GrayDotVisibility {
+            get {
+                return state == EndpointState.Discovered
+                    ? Visibility.Visible : Visibility.Hidden;
+            }
+        }
+
+        public Medium Medium {
+            get {
+                return medium;
+            }
+            set {
+                medium = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Medium)));
+            }
+        }
 
         public string Id { get { return model.id; } }
+
         public string Name { get { return model.name; } }
 
-        private EndpointState state;
         public EndpointState State {
             get { return state; }
             set {
                 state = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(State)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SpinnerVisibility)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CheckMarkVisibility)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GrayDotVisibility)));
             }
         }
 
-        private readonly ICommand connectCommand;
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public ICommand ConnectCommand { get { return connectCommand; } }
-
-        private readonly ICommand sendCommand;
         public ICommand SendCommand { get { return sendCommand; } }
+        public ICommand DisconnectCommand { get { return disconnectCommand; } }
 
-        private readonly ICommand acceptCommand;
-        public ICommand AcceptCommand { get { return acceptCommand; } }
-
+        private readonly EndpointModel model;
         private readonly MainWindowViewModel mainWindowViewModel;
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        private EndpointState state;
+        private Medium medium;
+
+        private readonly ICommand connectCommand;
+        private readonly ICommand sendCommand;
+        private readonly ICommand disconnectCommand;
 
         public EndpointViewModel(MainWindowViewModel mainWindowViewModel, string id, string name) {
             this.mainWindowViewModel = mainWindowViewModel;
+            this.model = new EndpointModel(id, name);
+            this.medium = Medium.kUnknown;
             State = EndpointState.Discovered;
 
-            model = new EndpointModel(id, name);
             connectCommand = new RelayCommand(
-                _ => mainWindowViewModel.RequestConnection(Id),
+                _ => this.mainWindowViewModel.RequestConnection(Id),
                 _ => State == EndpointState.Discovered);
             sendCommand = new RelayCommand(
-                _ => mainWindowViewModel.SendBytes(Id),
+                _ => this.mainWindowViewModel.SendBytes(Id),
                 _ => State == EndpointState.Connected);
-            acceptCommand = new RelayCommand(
-                _ => mainWindowViewModel.Accept(Id),
-                _ => false);
+            disconnectCommand = new RelayCommand(
+                _ => this.mainWindowViewModel.Disconnect(Id),
+                _ => State == EndpointState.Connected);
         }
     }
 
@@ -105,17 +143,31 @@ namespace HelloCloudWpf {
 
         public ObservableCollection<EndpointViewModel> Endpoints { get { return endpoints; } }
 
-        private EndpointViewModel selectedViewModel;
-        public EndpointViewModel SelectedEndpoint {
-            get { return selectedViewModel; }
+        private EndpointViewModel? selectedEndpoint;
+        public EndpointViewModel? SelectedEndpoint {
+            get { return selectedEndpoint; }
             set {
-                selectedViewModel = value;
+                selectedEndpoint = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedEndpoint)));
             }
         }
 
+        public Cursor Cursor {
+            get {
+                return busy ? Cursors.Wait : Cursors.Arrow;
+            }
+        }
+
+        // Whether we are in the middle of an operation. Used for showing the hourglass cursor.
+        private bool busy;
+
+        private void SetBusy(bool value) {
+            busy = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Cursor)));
+        }
+
         // Local endpoint info. In our case, it's a UTF8 encoded name.
-        byte[]? localEndpointInfo;
+        byte[] localEndpointInfo;
         string localEndpointName;
         public string LocalEndpointName {
             get {
@@ -130,6 +182,8 @@ namespace HelloCloudWpf {
                 localEndpointInfo[len] = 0;
             }
         }
+
+        public ObservableCollection<string> LogEntries { get; set; }
 
         EndpointFoundCallback endpointFoundCallback;
         EndpointLostCallback endpointLostCallback;
@@ -174,7 +228,9 @@ namespace HelloCloudWpf {
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+#pragma warning disable CS8618
         public MainWindowViewModel() {
+            LogEntries = new ObservableCollection<string>();
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
             Endpoints.Add(new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1"));
@@ -220,6 +276,7 @@ namespace HelloCloudWpf {
             GCHandle.Alloc(payloadInitiatedCallback);
             GCHandle.Alloc(payloadProgressCallback);
         }
+#pragma warning restore CS8618
 
         EndpointViewModel? GetEndpointById(string endpointId) {
             foreach (EndpointViewModel endpoint in Endpoints) {
@@ -233,7 +290,7 @@ namespace HelloCloudWpf {
         EndpointViewModel.EndpointState? GetEndpointState(string endpointId) {
             EndpointViewModel? endpoint = GetEndpointById(endpointId);
             if (endpoint == null) {
-                Console.WriteLine("End point {0} not found. Probably already lost.", endpointId);
+                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
                 return null;
             }
             return endpoint.State;
@@ -243,17 +300,30 @@ namespace HelloCloudWpf {
         void UpdateEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
             EndpointViewModel? endpoint = GetEndpointById(endpointId);
             if (endpoint == null) {
-                Console.WriteLine("End point {0} not found. Probably already lost.", endpointId);
+                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
                 return;
             }
 
-            Console.WriteLine("Updating endpoint {0}'s state to {1}", endpointId, state);
+            Log(String.Format("Updating endpoint {0}'s state to {1}", endpointId, state));
             endpoint.State = state;
+        }
+
+        #region Operations on the UI thread
+        void SelectEndpointOnUIThread(string endpointId) {
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => {
+                    EndpointViewModel? endpoint = GetEndpointById(endpointId);
+                    Debug.Assert(endpoint != null);
+                    SelectedEndpoint = endpoint;
+                }, endpointId);
         }
 
         void AddEndpointOnUIThread(EndpointViewModel endpoint) {
             Application.Current.Dispatcher.BeginInvoke(
-                (EndpointViewModel endpoint) => Endpoints.Add(endpoint), endpoint);
+                (EndpointViewModel endpoint) => {
+                    Endpoints.Add(endpoint);
+                    SelectedEndpoint = endpoint;
+                }, endpoint);
         }
 
         void AddEndpointOnUIThread(string id, string name) {
@@ -263,17 +333,40 @@ namespace HelloCloudWpf {
         void RemoveEndpointOnUIThread(string id) {
             Application.Current.Dispatcher.BeginInvoke(
                 (string id) => {
-                    EndpointViewModel? endpoint =
-                    Endpoints.FirstOrDefault(endpoint => endpoint.Id == id);
+                    EndpointViewModel? endpoint = Endpoints.FirstOrDefault(endpoint => endpoint.Id == id);
                     if (endpoint != null) {
                         Endpoints.Remove(endpoint);
+                        // If we have just removed the previously selected item, set selection to the first entry
+                        if (SelectedEndpoint == endpoint && Endpoints.Count > 0) {
+                            SelectedEndpoint = Endpoints[0];
+                        }
                     }
                 },
                 id);
         }
 
+        public void Accept(string endpointId) {
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => {
+                    Log("Accepting...");
+                    Log("  endpoint_id: " + endpointId);
+                    OperationResult status = NearbyConnections.AcceptConnection(core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
+                    Log("  status: " + status.ToString());
+                }, endpointId);
+        }
+
+        void Log(string message) {
+            Application.Current.Dispatcher.BeginInvoke(
+                (string message) => { LogEntries.Add(message); },
+                message);
+        }
+        #endregion
+
+        #region NearbyConnections operations.
         public void StartAdvertising() {
-            Console.WriteLine("Starting advertising...");
+            Log("Starting advertising...");
+            // StartAdvertising is a sync call. Show hourglass icon before it's done.
+            SetBusy(true);
             AdvertisingOptions advertisingOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = advertisingMediumSelector,
@@ -286,7 +379,7 @@ namespace HelloCloudWpf {
                 deviceInfo = IntPtr.Zero,
             };
             Debug.Assert(localEndpointInfo != null);
-            NearbyConnections.StartAdvertising(
+            OperationResult result = NearbyConnections.StartAdvertising(
                 core,
                 serviceId,
                 advertisingOptions,
@@ -296,15 +389,21 @@ namespace HelloCloudWpf {
                 rejectedCallback,
                 disconnectedCallback,
                 bandwidthUpgradedCallback);
+            Log("StartAdvertising finished. Result: " + result);
+            SetBusy(false);
         }
 
         public void StopAdvertising() {
-            Console.WriteLine("Stopping advertising...");
-            NearbyConnections.StopAdvertising(core);
+            Log("Stopping advertising...");
+            SetBusy(true);
+            OperationResult result = NearbyConnections.StopAdvertising(core);
+            Log("StopAdvertising finished. Result: " + result);
+            SetBusy(false);
         }
 
         public void StartDiscovering() {
-            Console.WriteLine("Starting discovering...");
+            Log("Starting discovering...");
+            SetBusy(true);
             DiscoveryOptions discoveryOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = discoveryMediumSelector,
@@ -313,159 +412,27 @@ namespace HelloCloudWpf {
                 isOutOfBandConnection = false,
                 lowPower = true,
             };
-            NearbyConnections.StartDiscovering(
+            OperationResult result = NearbyConnections.StartDiscovering(
                 core,
                 serviceId,
                 discoveryOptions,
                 endpointFoundCallback,
                 endpointLostCallback,
                 endpointDistanceChangedCallback);
+            Log("StartDiscovering finished. Result: " + result);
+            SetBusy(false);
         }
 
         public void StopDiscovering() {
-            Console.WriteLine("Stopping discovering...");
+            Log("Stopping discovering...");
             NearbyConnections.StopDiscovering(core);
             Endpoints.Clear();
         }
 
-        public void Accept(string endpointId) {
-            Console.WriteLine("Accepting...");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            OperationResult status = NearbyConnections.AcceptConnection(core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
-            Console.WriteLine("  status: " + status.ToString());
-        }
-
-        public void SendBytes(string endpointId) {
-            Console.WriteLine("Sending bytes...");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
-
-            byte[] payload = new byte[10];
-            for (int i = 0; i < payload.Length; i++) {
-                payload[i] = (byte)i;
-            }
-            NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
-        }
-
-        void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
-            var _ = size;
-            string endpointName = Encoding.UTF8.GetString(endpointInfo);
-            Console.WriteLine("OnEndPointFound:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  endpoint_info: " + endpointName);
-            Console.WriteLine("  service_id: " + serviceId);
-
-            AddEndpointOnUIThread(endpointId, endpointName);
-        }
-
-        void OnEndpointLost(string endpointId) {
-            Console.WriteLine("OnEndpointLost: " + endpointId);
-            RemoveEndpointOnUIThread(endpointId);
-        }
-
-        void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
-            Console.WriteLine("OnEndpointDistanceChanged: ");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  distance_info: " + distanceInfo);
-        }
-
-        void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
-            Console.WriteLine("OnConnectionInitiated:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            Application.Current.Dispatcher.BeginInvoke(
-                (string endpointId) => Accept(endpointId), endpointId);
-
-            if (GetEndpointById(endpointId) == null) {
-                string name = Encoding.UTF8.GetString(endpointInfo);
-                if (String.IsNullOrEmpty(name)) {
-                    Console.WriteLine("Endpoint {0} has an invalid name, discarding...", endpointId);
-                    return;
-                }
-
-
-                EndpointViewModel endpoint = new(this, endpointId, name) {
-                    State = EndpointViewModel.EndpointState.Pending
-                };
-                AddEndpointOnUIThread(endpoint);
-            } else {
-                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Pending);
-            }
-
-            // TODO: select this endpoint
-        }
-
-        void OnConnectionAccepted(string endpointId) {
-            Console.WriteLine("OnConnectionAccepted:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
-        }
-
-        void OnConnectionRejected(string endpointId, OperationResult status) {
-            Console.WriteLine("OnConnectionRejected:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  status: " + status.ToString());
-
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
-        }
-
-        void OnConnectionDisconnected(string endpointId) {
-            Console.WriteLine("OnConnectionDisconnected:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
-        }
-
-        void OnBandwidthUpgraded(string endpointId, Medium medium) {
-            Console.WriteLine("OnBandwidthUpgraded:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  medium: " + medium.ToString());
-        }
-
-        void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
-            Console.WriteLine("OnPayloadInitiated:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  payload_id: " + payloadId);
-            for (int i = 0; i < Math.Min(16, payloadSize); i++) {
-                Console.Write("{0:X} ", payloadContent[i]);
-            }
-            Console.WriteLine();
-
-            if (GetEndpointState(endpointId) != EndpointViewModel.EndpointState.Sending) {
-                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Receiving);
-            }
-        }
-
-        void OnPayloadProgress(string endpointId, long payloadId, PayloadStatus status,
-            long bytesTotal, long bytesTransferred) {
-            Console.WriteLine("OnPayloadProgress:");
-            Console.WriteLine("  endpoint_id: " + endpointId);
-            Console.WriteLine("  paylod_id: " + payloadId.ToString());
-            Console.WriteLine("  status: " + status.ToString());
-            Console.WriteLine("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal);
-
-            switch (status) {
-            case PayloadStatus.kSuccess:
-                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
-                break;
-            case PayloadStatus.kFailure:
-                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
-                break;
-            case PayloadStatus.kInProgress:
-                break;
-            case PayloadStatus.kCanceled:
-                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
-                break;
-            default:
-                break;
-            }
-        }
-
         public void RequestConnection(string remoteEndpointId) {
-            Console.WriteLine("Requesting connection to {0} ...", remoteEndpointId);
+            Log(String.Format("Requesting connection to {0} ...", remoteEndpointId));
             Debug.Assert(localEndpointInfo != null);
+            SetBusy(true);
             UpdateEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Pending);
 
             ConnectionOptions connectionOptions = new() {
@@ -489,11 +456,161 @@ namespace HelloCloudWpf {
                 rejectedCallback,
                 disconnectedCallback,
                 bandwidthUpgradedCallback);
-            Console.WriteLine("Request to connect to {0} completed. Result: " + result.ToString());
+            Log(String.Format("Request to connect to {0} completed. Result: {1}", remoteEndpointId, result));
             if (result != OperationResult.kSuccess) {
                 // The request has not been sent by NC. We go back to Discovered state.
                 UpdateEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Discovered);
             }
+            SetBusy(false);
         }
+
+        public void SendBytes(string endpointId) {
+            Log("Sending bytes...");
+            Log("  endpoint_id: " + endpointId);
+            SetBusy(true);
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
+
+            byte[] payload = new byte[10];
+            for (int i = 0; i < payload.Length; i++) {
+                payload[i] = (byte)i;
+            }
+            OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
+            Log("SendBytes finished. Result: " + result);
+            SetBusy(false);
+
+        }
+
+        public void Disconnect(string endpointId) {
+            Log("Disconnecting...");
+            Log("  endpoint_id: " + endpointId);
+            SetBusy(true);
+            OperationResult result = NearbyConnections.Disconnect(core, endpointId);
+            Log("Disconnect finished. Result: " + result);
+            SetBusy(false);
+
+        }
+        #endregion
+
+        #region Callbacks
+        void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
+            var _ = size;
+            string endpointName = Encoding.UTF8.GetString(endpointInfo);
+            Log("OnEndPointFound:");
+            Log("  endpoint_id: " + endpointId);
+            Log("  endpoint_info: " + endpointName);
+            Log("  service_id: " + serviceId);
+
+            AddEndpointOnUIThread(endpointId, endpointName);
+        }
+
+        void OnEndpointLost(string endpointId) {
+            Log("OnEndpointLost: " + endpointId);
+            RemoveEndpointOnUIThread(endpointId);
+        }
+
+        void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
+            Log("OnEndpointDistanceChanged: ");
+            Log("  endpoint_id: " + endpointId);
+            Log("  distance_info: " + distanceInfo);
+        }
+
+        void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
+            Log("OnConnectionInitiated:");
+            Log("  endpoint_id: " + endpointId);
+
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => Accept(endpointId), endpointId);
+
+            if (GetEndpointById(endpointId) == null) {
+                string name = Encoding.UTF8.GetString(endpointInfo);
+                if (String.IsNullOrEmpty(name)) {
+                    Log(String.Format("Endpoint {0} has an invalid name, discarding...", endpointId));
+                    return;
+                }
+
+                EndpointViewModel endpoint = new(this, endpointId, name) {
+                    State = EndpointViewModel.EndpointState.Pending
+                };
+                AddEndpointOnUIThread(endpoint);
+            } else {
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Pending);
+            }
+
+            SelectEndpointOnUIThread(endpointId);
+        }
+
+        void OnConnectionAccepted(string endpointId) {
+            Log("OnConnectionAccepted:");
+            Log("  endpoint_id: " + endpointId);
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+        }
+
+        void OnConnectionRejected(string endpointId, OperationResult result) {
+            Log("OnConnectionRejected:");
+            Log("  endpoint_id: " + endpointId);
+            Log("  result: " + result.ToString());
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+        }
+
+        void OnConnectionDisconnected(string endpointId) {
+            Log("OnConnectionDisconnected:");
+            Log("  endpoint_id: " + endpointId);
+
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+        }
+
+        void OnBandwidthUpgraded(string endpointId, Medium medium) {
+            Log("OnBandwidthUpgraded:");
+            Log("  endpoint_id: " + endpointId);
+            Log("  medium: " + medium.ToString());
+
+            var endpoint = GetEndpointById(endpointId);
+            if (endpoint != null) {
+                endpoint.Medium = medium;
+            }
+        }
+
+        void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
+            Log("OnPayloadInitiated:");
+            Log("  endpoint_id: " + endpointId);
+            Log("  payload_id: " + payloadId);
+            StringBuilder stringBuilder = new();
+            for (int i = 0; i < Math.Min(16, payloadSize); i++) {
+                stringBuilder.AppendFormat("{0:X} ", payloadContent[i]);
+            }
+            Log(stringBuilder.ToString());
+
+            if (GetEndpointState(endpointId) != EndpointViewModel.EndpointState.Sending) {
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Receiving);
+            }
+        }
+
+        void OnPayloadProgress(string endpointId, long payloadId, PayloadStatus status,
+            long bytesTotal, long bytesTransferred) {
+            Log("OnPayloadProgress:");
+            Log("  endpoint_id: " + endpointId);
+            Log("  paylod_id: " + payloadId.ToString());
+            Log("  status: " + status.ToString());
+            Log(String.Format("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal));
+
+            switch (status) {
+            case PayloadStatus.kSuccess:
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                break;
+            case PayloadStatus.kFailure:
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                break;
+            case PayloadStatus.kInProgress:
+                break;
+            case PayloadStatus.kCanceled:
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                break;
+            default:
+                break;
+            }
+        }
+        #endregion
     }
 }

@@ -90,6 +90,8 @@ DLL_API Status __stdcall SendPayloadBytesSharp(Core *pCore,
                                                const char *endpoint_id,
                                                size_t payload_size,
                                                const char *payload_content);
+
+DLL_API Status __stdcall DisconnectSharp(Core *pCore, const char *endpoint_id);
 }
 }  // namespace nearby::windows
 

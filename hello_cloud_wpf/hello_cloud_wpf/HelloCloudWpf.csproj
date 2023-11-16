@@ -7,4 +7,20 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Resources\Gray.png" />
+    <None Remove="Resources\Green.png" />
+    <None Remove="Resources\spinner.gif" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Gray.png" />
+    <Resource Include="Resources\Green.png" />
+    <Resource Include="Resources\Spinner.gif" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
+  </ItemGroup>
+
 </Project>

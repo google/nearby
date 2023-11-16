@@ -1,5 +1,13 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Drawing;
+using System.Globalization;
+using System;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Data;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
 
 namespace HelloCloudWpf
 {
@@ -20,24 +28,24 @@ namespace HelloCloudWpf
 
         public MainWindow()
         {
-            AllocConsole();
             InitializeComponent();
         }
 
         private void isAdvertising_Checked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel).StartAdvertising();
+            (DataContext as MainWindowViewModel)?.StartAdvertising();
         }
 
         private void isAdvertising_Unchecked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel).StopAdvertising();
+            (DataContext as MainWindowViewModel)?.StopAdvertising();
         }
 
         private void isDiscovering_Checked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel).StartDiscovering();
+            (DataContext as MainWindowViewModel)?.StartDiscovering();
         }
 
         private void isDiscovering_Unchecked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel).StopDiscovering();
+            (DataContext as MainWindowViewModel)?.StopDiscovering();
+
         }
     }
 }
