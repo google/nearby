@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
     public static class NearbyConnections {

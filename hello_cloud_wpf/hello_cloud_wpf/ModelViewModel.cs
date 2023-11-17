@@ -1,26 +1,55 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Input;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
+    // Normally, we should use an enum class so that we can bake behaviours into the enum.
+    // But we will eventually use protobuf to generate Medium enum. So we use extension
+    // methods to add behaviours to this enum.
+    public static class MediumToString {
+        static readonly IReadOnlyDictionary<Medium, string> mediumNames =
+            new Dictionary<Medium, string>() {
+                {Medium.kUnknown, "Unknown"},
+                {Medium.kMdns, "mDNS"},
+                {Medium.kBluetooth, "Bluetooth Classic"},
+                {Medium.kWiFiHotSpot, "Wi-Fi hotspot"},
+                {Medium.kBle, "Bluetooth Low Energy"},
+                {Medium.kWiFiLan, "Wi-Fi LAN"},
+                {Medium.kWifiAware, "Wi-Fi Aware"},
+                {Medium.kNfc, "NFC"},
+                {Medium.kWiFiDirect, "Wi-Fi Direct"},
+                {Medium.kWebRtc, "Web RTC"},
+                {Medium.kBleL2Cap, "BLE L2CAP"},
+                {Medium.kUsb, "USB"},
+            };
+
+        public static string ReadableName(this Medium medium) {
+
+            return mediumNames[medium];
+        }
+    }
+
     public class RelayCommand : ICommand {
-        readonly Action<object?> _execute;
-        readonly Predicate<object?> _canExecute;
+        readonly Action<object?> execute;
+        readonly Predicate<object?> canExecute;
 
         public RelayCommand(Action<object?> execute, Predicate<object?> canExecute) {
-            _execute = execute ?? throw new ArgumentNullException("execute");
-            _canExecute = canExecute;
+            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            this.canExecute = canExecute;
         }
 
         public bool CanExecute(object? parameter) {
-            return _canExecute == null ? true : _canExecute(parameter);
+            return canExecute == null ? true : canExecute(parameter);
         }
 
         public event EventHandler? CanExecuteChanged {
@@ -28,16 +57,43 @@ namespace HelloCloudWpf {
             remove { CommandManager.RequerySuggested -= value; }
         }
 
-        public void Execute(object? parameter) { _execute(parameter); }
+        public void Execute(object? parameter) { execute(parameter); }
     }
 
-    public class EndpointModel {
+    public struct EndpointModel {
         public string id;
         public string name;
 
         public EndpointModel(string id, string name) {
             this.id = id;
             this.name = name;
+        }
+    }
+
+    public struct TransferModel {
+        public enum Direction { Send, Receive }
+        public enum Result { Success, Failure, Canceled }
+
+        public Direction direction;
+        public Result result;
+        public long payloadId;
+        public long payloadSize;
+    }
+
+    public class TransferViewModel {
+        private TransferModel model;
+        public TransferViewModel(TransferModel model) {
+            this.model = model;
+        }
+
+        public override string ToString() {
+            StringBuilder sb = new();
+            sb.Append(model.direction == TransferModel.Direction.Send ? "↑" : "↓");
+            sb.Append(" Id:");
+            sb.Append(model.payloadId);
+            sb.Append(" Bytes: ");
+            sb.Append(model.payloadSize);
+            return sb.ToString();
         }
     }
 
@@ -51,7 +107,7 @@ namespace HelloCloudWpf {
             Receiving, // Receiving a payload
         }
 
-        public Visibility SpinnerVisibility {
+        public Visibility SpinnerIconVisibility {
             get {
                 return state == EndpointState.Pending
                     || state == EndpointState.Receiving
@@ -61,44 +117,50 @@ namespace HelloCloudWpf {
             }
         }
 
-        public Visibility CheckMarkVisibility {
+        public Visibility GreenIconVisibility {
             get {
                 return state == EndpointState.Connected
                     ? Visibility.Visible : Visibility.Hidden;
             }
         }
 
-        public Visibility GrayDotVisibility {
+        public Visibility GrayIconVisibility {
             get {
                 return state == EndpointState.Discovered
                     ? Visibility.Visible : Visibility.Hidden;
             }
         }
 
-        public Medium Medium {
+        public string MediumReadableName { get { return medium?.ReadableName() ?? "Unknown"; } }
+
+        // TODO: does this belong to the model or the viewmodel?
+        public Medium? Medium {
             get {
                 return medium;
             }
             set {
                 medium = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Medium)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MediumReadableName)));
             }
         }
 
         public string Id { get { return model.id; } }
 
+        // TODO: does this belong to the model or the viewmodel?
         public string Name { get { return model.name; } }
 
-        public EndpointState State {
+        public EndpointState? State {
             get { return state; }
             set {
                 state = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(State)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SpinnerVisibility)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CheckMarkVisibility)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GrayDotVisibility)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SpinnerIconVisibility)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GreenIconVisibility)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GrayIconVisibility)));
             }
         }
+
+        public ObservableCollection<TransferViewModel> Transfers { get { return transfers; } }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -109,18 +171,21 @@ namespace HelloCloudWpf {
         private readonly EndpointModel model;
         private readonly MainWindowViewModel mainWindowViewModel;
 
-        private EndpointState state;
-        private Medium medium;
-
+        private readonly ObservableCollection<TransferViewModel> transfers = new();
         private readonly ICommand connectCommand;
         private readonly ICommand sendCommand;
         private readonly ICommand disconnectCommand;
 
-        public EndpointViewModel(MainWindowViewModel mainWindowViewModel, string id, string name) {
+        private EndpointState? state = null;
+        private Medium? medium;
+
+        public EndpointViewModel(
+            MainWindowViewModel mainWindowViewModel,
+            string id, string name, EndpointState? state = null) {
             this.mainWindowViewModel = mainWindowViewModel;
             this.model = new EndpointModel(id, name);
-            this.medium = Medium.kUnknown;
-            State = EndpointState.Discovered;
+            this.medium = null;
+            this.state = state;
 
             connectCommand = new RelayCommand(
                 _ => this.mainWindowViewModel.RequestConnection(Id),
@@ -131,48 +196,68 @@ namespace HelloCloudWpf {
             disconnectCommand = new RelayCommand(
                 _ => this.mainWindowViewModel.Disconnect(Id),
                 _ => State == EndpointState.Connected);
+
+            connectCommand.CanExecuteChanged += ConnectCommand_CanExecuteChanged;
+        }
+
+        private void ConnectCommand_CanExecuteChanged(object? sender, EventArgs e) {
+            
+        }
+
+        public static void UpdateCanExecute() {
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
     public class MainWindowViewModel : INotifyPropertyChanged {
-        static readonly string serviceId = "com.google.location.nearby.apps.helloconnections";
+        private static readonly string serviceId = "com.google.location.nearby.apps.helloconnections";
 
-        private readonly IntPtr router = IntPtr.Zero;
-        private readonly IntPtr core = IntPtr.Zero;
-        private readonly ObservableCollection<EndpointViewModel> endpoints = new();
+        // Medium selection for advertising and connection
+        private static readonly BooleanMediumSelector advertisingMediumSelector = new() {
+            ble = true,
+            bluetooth = true,
+            webRtc = true,
+            wifiDirect = true,
+            wifiHotspot = true,
+            wifiLan = true,
+        };
 
-        public ObservableCollection<EndpointViewModel> Endpoints { get { return endpoints; } }
+        private static readonly BooleanMediumSelector discoveryMediumSelector = new() {
+            ble = true,
+            bluetooth = true,
+            webRtc = true,
+            wifiDirect = true,
+            wifiHotspot = true,
+            wifiLan = true,
+        };
 
-        private EndpointViewModel? selectedEndpoint;
+        private static readonly BooleanMediumSelector connectionMediumSelector = new() {
+            ble = true,
+            bluetooth = true,
+            webRtc = true,
+            wifiDirect = true,
+            wifiHotspot = true,
+            wifiLan = true,
+        };
+
+        public ObservableCollection<EndpointViewModel> Endpoints => endpoints;
+
         public EndpointViewModel? SelectedEndpoint {
-            get { return selectedEndpoint; }
+            get => selectedEndpoint;
             set {
                 selectedEndpoint = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedEndpoint)));
             }
         }
 
+        public static EndpointViewModel NullSelectedEndpoint { get { return nullSelectedEndpoint!; } }
+
         public Cursor Cursor {
-            get {
-                return busy ? Cursors.Wait : Cursors.Arrow;
-            }
+            get => busy ? Cursors.Wait : Cursors.Arrow;
         }
 
-        // Whether we are in the middle of an operation. Used for showing the hourglass cursor.
-        private bool busy;
-
-        private void SetBusy(bool value) {
-            busy = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Cursor)));
-        }
-
-        // Local endpoint info. In our case, it's a UTF8 encoded name.
-        byte[] localEndpointInfo;
-        string localEndpointName;
         public string LocalEndpointName {
-            get {
-                return localEndpointName;
-            }
+            get => localEndpointName;
             set {
                 localEndpointName = value;
 
@@ -183,59 +268,66 @@ namespace HelloCloudWpf {
             }
         }
 
+        public bool IsNotAdvertising {
+            get => isNotAdvertising;
+            set {
+                isNotAdvertising = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsNotAdvertising)));
+            }
+        }
+
         public ObservableCollection<string> LogEntries { get; set; }
-
-        EndpointFoundCallback endpointFoundCallback;
-        EndpointLostCallback endpointLostCallback;
-        EndpointDistanceChangedCallback endpointDistanceChangedCallback;
-
-        ConnectionInitiatedCallback initiatedCallback;
-        ConnectionAcceptedCallback acceptedCallback;
-        ConnectionRejectedCallback rejectedCallback;
-        ConnectionDisconnectedCallback disconnectedCallback;
-        BandwidthUpgradedCallback bandwidthUpgradedCallback;
-
-        PayloadInitiatedCallback payloadInitiatedCallback;
-        PayloadProgressCallback payloadProgressCallback;
-
-        // Medium selection for advertising and connection
-        BooleanMediumSelector advertisingMediumSelector = new() {
-            ble = true,
-            bluetooth = true,
-            webRtc = true,
-            wifiDirect = true,
-            wifiHotspot = true,
-            wifiLan = true,
-        };
-
-        BooleanMediumSelector discoveryMediumSelector = new() {
-            ble = true,
-            bluetooth = true,
-            webRtc = true,
-            wifiDirect = true,
-            wifiHotspot = true,
-            wifiLan = true,
-        };
-
-        BooleanMediumSelector connectionMediumSelector = new() {
-            ble = true,
-            bluetooth = true,
-            webRtc = true,
-            wifiDirect = true,
-            wifiHotspot = true,
-            wifiLan = true,
-        };
-
         public event PropertyChangedEventHandler? PropertyChanged;
+        public ICommand ClearLogCommand { get { return clearLogCommand; } }
+
+        private readonly IntPtr router = IntPtr.Zero;
+        private readonly IntPtr core = IntPtr.Zero;
+
+        private static EndpointViewModel? nullSelectedEndpoint = null;
+
+        private readonly ObservableCollection<EndpointViewModel> endpoints = new();
+        private EndpointViewModel? selectedEndpoint;
+        // Local endpoint info. In our case, it's a UTF8 encoded name.
+        private byte[] localEndpointInfo;
+        private string localEndpointName;
+        private bool isNotAdvertising = true;
+
+        private readonly ICommand clearLogCommand;
+
+        // Whether we are in the middle of an operation. Used for showing the hourglass cursor.
+        private bool busy;
+
+        private readonly EndpointFoundCallback endpointFoundCallback;
+        private readonly EndpointLostCallback endpointLostCallback;
+        private readonly EndpointDistanceChangedCallback endpointDistanceChangedCallback;
+
+        private readonly ConnectionInitiatedCallback initiatedCallback;
+        private readonly ConnectionAcceptedCallback acceptedCallback;
+        private readonly ConnectionRejectedCallback rejectedCallback;
+        private readonly ConnectionDisconnectedCallback disconnectedCallback;
+        private readonly BandwidthUpgradedCallback bandwidthUpgradedCallback;
+
+        private readonly PayloadInitiatedCallback payloadInitiatedCallback;
+        private readonly PayloadProgressCallback payloadProgressCallback;
 
 #pragma warning disable CS8618
         public MainWindowViewModel() {
             LogEntries = new ObservableCollection<string>();
+
+            clearLogCommand = new RelayCommand(
+                _ => ClearLog(),
+                _ => CanClearLog());
+
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
-            Endpoints.Add(new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1"));
-            Endpoints.Add(new EndpointViewModel(this, id: "1234", name: "Example endpoint 2"));
-            SelectedEndpoint = Endpoints[0];
+            SelectedEndpoint = null;
+            nullSelectedEndpoint = new EndpointViewModel(this, string.Empty, string.Empty);
+
+            //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
+            //    Medium = Medium.kBluetooth
+            //};
+            //Endpoints.Add(endpoint);
+            //SelectedEndpoint = endpoint;
 
             router = InitServiceControllerRouter();
             if (router == IntPtr.Zero) {
@@ -278,95 +370,12 @@ namespace HelloCloudWpf {
         }
 #pragma warning restore CS8618
 
-        EndpointViewModel? GetEndpointById(string endpointId) {
-            foreach (EndpointViewModel endpoint in Endpoints) {
-                if (endpoint.Id == endpointId) {
-                    return endpoint;
-                }
-            }
-            return null;
-        }
-
-        EndpointViewModel.EndpointState? GetEndpointState(string endpointId) {
-            EndpointViewModel? endpoint = GetEndpointById(endpointId);
-            if (endpoint == null) {
-                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
-                return null;
-            }
-            return endpoint.State;
-        }
-
-        // TODO: does this also need to happen on the UI thread?
-        void UpdateEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
-            EndpointViewModel? endpoint = GetEndpointById(endpointId);
-            if (endpoint == null) {
-                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
-                return;
-            }
-
-            Log(String.Format("Updating endpoint {0}'s state to {1}", endpointId, state));
-            endpoint.State = state;
-        }
-
-        #region Operations on the UI thread
-        void SelectEndpointOnUIThread(string endpointId) {
-            Application.Current.Dispatcher.BeginInvoke(
-                (string endpointId) => {
-                    EndpointViewModel? endpoint = GetEndpointById(endpointId);
-                    Debug.Assert(endpoint != null);
-                    SelectedEndpoint = endpoint;
-                }, endpointId);
-        }
-
-        void AddEndpointOnUIThread(EndpointViewModel endpoint) {
-            Application.Current.Dispatcher.BeginInvoke(
-                (EndpointViewModel endpoint) => {
-                    Endpoints.Add(endpoint);
-                    SelectedEndpoint = endpoint;
-                }, endpoint);
-        }
-
-        void AddEndpointOnUIThread(string id, string name) {
-            AddEndpointOnUIThread(new EndpointViewModel(this, id, name));
-        }
-
-        void RemoveEndpointOnUIThread(string id) {
-            Application.Current.Dispatcher.BeginInvoke(
-                (string id) => {
-                    EndpointViewModel? endpoint = Endpoints.FirstOrDefault(endpoint => endpoint.Id == id);
-                    if (endpoint != null) {
-                        Endpoints.Remove(endpoint);
-                        // If we have just removed the previously selected item, set selection to the first entry
-                        if (SelectedEndpoint == endpoint && Endpoints.Count > 0) {
-                            SelectedEndpoint = Endpoints[0];
-                        }
-                    }
-                },
-                id);
-        }
-
-        public void Accept(string endpointId) {
-            Application.Current.Dispatcher.BeginInvoke(
-                (string endpointId) => {
-                    Log("Accepting...");
-                    Log("  endpoint_id: " + endpointId);
-                    OperationResult status = NearbyConnections.AcceptConnection(core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
-                    Log("  status: " + status.ToString());
-                }, endpointId);
-        }
-
-        void Log(string message) {
-            Application.Current.Dispatcher.BeginInvoke(
-                (string message) => { LogEntries.Add(message); },
-                message);
-        }
-        #endregion
-
         #region NearbyConnections operations.
         public void StartAdvertising() {
             Log("Starting advertising...");
             // StartAdvertising is a sync call. Show hourglass icon before it's done.
             SetBusy(true);
+            IsNotAdvertising = false;
             AdvertisingOptions advertisingOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = advertisingMediumSelector,
@@ -398,6 +407,7 @@ namespace HelloCloudWpf {
             SetBusy(true);
             OperationResult result = NearbyConnections.StopAdvertising(core);
             Log("StopAdvertising finished. Result: " + result);
+            IsNotAdvertising = true;
             SetBusy(false);
         }
 
@@ -491,8 +501,126 @@ namespace HelloCloudWpf {
         }
         #endregion
 
+        private EndpointViewModel? GetEndpointById(string endpointId) {
+            foreach (EndpointViewModel endpoint in Endpoints) {
+                if (endpoint.Id == endpointId) {
+                    return endpoint;
+                }
+            }
+            return null;
+        }
+
+        private EndpointViewModel.EndpointState? GetEndpointState(string endpointId) {
+            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            if (endpoint == null) {
+                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
+                return null;
+            }
+            return endpoint.State;
+        }
+
+        // TODO: does this also need to happen on the UI thread?
+        private void UpdateEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
+            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            if (endpoint == null) {
+                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
+                return;
+            }
+
+            Log(String.Format("Updating endpoint {0}'s state to {1}", endpointId, state));
+            endpoint.State = state;
+
+            // Refresh CanExecute of the endpoint commands
+            EndpointViewModel.UpdateCanExecute();
+            Log("***UpdateCanExecute");
+        }
+
+        #region Operations on the UI thread
+        private void SelectEndpoint(string endpointId) {
+            // Checking for the existence of the endpoint needs to happen on the UI thread
+            // instead of the caller thread here, because we could call SelectEndpoint()
+            // immediately after AddEndpoint().
+            // In this case, adding the endpoint has been scheduled but has not been executed.
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => {
+                    EndpointViewModel? endpoint = GetEndpointById(endpointId);
+
+                    if (endpoint == null) {
+                        Log("Trying to select an endpoint that has already been removed. Id: " + endpointId);
+                        return;
+                    }
+                    SelectedEndpoint = endpoint;
+                },
+                endpointId);
+        }
+
+        private void AddEndpoint(EndpointViewModel endpoint) {
+            Application.Current.Dispatcher.BeginInvoke(
+                (EndpointViewModel endpoint) => {
+                    Endpoints.Add(endpoint);
+                    SelectedEndpoint = endpoint;
+                },
+                endpoint);
+        }
+
+        private void RemoveEndpoint(string id) {
+            EndpointViewModel? endpoint = Endpoints.FirstOrDefault(endpoint => endpoint.Id == id);
+            if (endpoint == null) {
+                Log("Trying to remove an endpoint that has already been removed. Id: " + id);
+                return;
+            }
+
+            Application.Current.Dispatcher.BeginInvoke(
+                (EndpointViewModel endpoint) => {
+                    bool removingSelected = SelectedEndpoint == endpoint;
+                    Endpoints.Remove(endpoint);
+                    // If we have just removed the previously selected item, set selection to the first entry if it exists
+                    if (removingSelected) {
+                        SelectedEndpoint = Endpoints.FirstOrDefault();
+                    }
+                },
+                endpoint);
+        }
+
+        private void AddTransfer(String endpointId, TransferModel transfer) {
+            TransferViewModel transferViewModel = new(transfer);
+            EndpointViewModel? endpoint = Endpoints.FirstOrDefault(endpoint => endpoint.Id == endpointId);
+            if (endpoint == null) {
+                Log("Trying to add a transfer from/to an endpoint that has already been removed.");
+                Log("  endpoint_id: " + endpointId);
+                Log("  transfer: " + transferViewModel);
+                return;
+            }
+            Application.Current.Dispatcher.BeginInvoke(endpoint.Transfers.Add, transferViewModel);
+        }
+
+        private void Accept(string endpointId) {
+            Application.Current.Dispatcher.BeginInvoke(
+                (string endpointId) => {
+                    Log("Accepting...");
+                    Log("  endpoint_id: " + endpointId);
+                    OperationResult status = NearbyConnections.AcceptConnection(
+                        core, endpointId, payloadInitiatedCallback, payloadProgressCallback);
+                    Log("  status: " + status.ToString());
+                },
+                endpointId);
+        }
+
+        private void Log(string message) {
+            Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, message);
+        }
+
+        private void ClearLog() {
+            LogEntries.Clear();
+        }
+
+        private bool CanClearLog() {
+            return LogEntries.Count > 0;
+        }
+        #endregion
+
         #region Callbacks
-        void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
+        private void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
             var _ = size;
             string endpointName = Encoding.UTF8.GetString(endpointInfo);
             Log("OnEndPointFound:");
@@ -500,21 +628,22 @@ namespace HelloCloudWpf {
             Log("  endpoint_info: " + endpointName);
             Log("  service_id: " + serviceId);
 
-            AddEndpointOnUIThread(endpointId, endpointName);
+            AddEndpoint(new EndpointViewModel(
+                this, endpointId, endpointName, EndpointViewModel.EndpointState.Discovered));
         }
 
-        void OnEndpointLost(string endpointId) {
+        private void OnEndpointLost(string endpointId) {
             Log("OnEndpointLost: " + endpointId);
-            RemoveEndpointOnUIThread(endpointId);
+            RemoveEndpoint(endpointId);
         }
 
-        void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
+        private void OnEndpointDistanceChanged(string endpointId, DistanceInfo distanceInfo) {
             Log("OnEndpointDistanceChanged: ");
             Log("  endpoint_id: " + endpointId);
             Log("  distance_info: " + distanceInfo);
         }
 
-        void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
+        private void OnConnectionInitiated(string endpointId, byte[] endpointInfo, int size) {
             Log("OnConnectionInitiated:");
             Log("  endpoint_id: " + endpointId);
 
@@ -531,22 +660,22 @@ namespace HelloCloudWpf {
                 EndpointViewModel endpoint = new(this, endpointId, name) {
                     State = EndpointViewModel.EndpointState.Pending
                 };
-                AddEndpointOnUIThread(endpoint);
+                AddEndpoint(endpoint);
             } else {
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Pending);
             }
 
-            SelectEndpointOnUIThread(endpointId);
+            SelectEndpoint(endpointId);
         }
 
-        void OnConnectionAccepted(string endpointId) {
+        private void OnConnectionAccepted(string endpointId) {
             Log("OnConnectionAccepted:");
             Log("  endpoint_id: " + endpointId);
 
             UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
         }
 
-        void OnConnectionRejected(string endpointId, OperationResult result) {
+        private void OnConnectionRejected(string endpointId, OperationResult result) {
             Log("OnConnectionRejected:");
             Log("  endpoint_id: " + endpointId);
             Log("  result: " + result.ToString());
@@ -554,14 +683,14 @@ namespace HelloCloudWpf {
             UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
         }
 
-        void OnConnectionDisconnected(string endpointId) {
+        private void OnConnectionDisconnected(string endpointId) {
             Log("OnConnectionDisconnected:");
             Log("  endpoint_id: " + endpointId);
 
             UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
         }
 
-        void OnBandwidthUpgraded(string endpointId, Medium medium) {
+        private void OnBandwidthUpgraded(string endpointId, Medium medium) {
             Log("OnBandwidthUpgraded:");
             Log("  endpoint_id: " + endpointId);
             Log("  medium: " + medium.ToString());
@@ -572,7 +701,7 @@ namespace HelloCloudWpf {
             }
         }
 
-        void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
+        private void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
             Log("OnPayloadInitiated:");
             Log("  endpoint_id: " + endpointId);
             Log("  payload_id: " + payloadId);
@@ -587,7 +716,7 @@ namespace HelloCloudWpf {
             }
         }
 
-        void OnPayloadProgress(string endpointId, long payloadId, PayloadStatus status,
+        private void OnPayloadProgress(string endpointId, long payloadId, PayloadStatus status,
             long bytesTotal, long bytesTransferred) {
             Log("OnPayloadProgress:");
             Log("  endpoint_id: " + endpointId);
@@ -595,16 +724,29 @@ namespace HelloCloudWpf {
             Log("  status: " + status.ToString());
             Log(String.Format("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal));
 
+            bool isSending = GetEndpointState(endpointId) == EndpointViewModel.EndpointState.Sending;
+            TransferModel transfer = new() {
+                direction = isSending ? TransferModel.Direction.Send : TransferModel.Direction.Receive,
+                payloadId = payloadId,
+                payloadSize = bytesTotal
+            };
+
             switch (status) {
+            case PayloadStatus.kInProgress:
+                break;
             case PayloadStatus.kSuccess:
+                transfer.result = TransferModel.Result.Success;
+                AddTransfer(endpointId, transfer);
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
                 break;
             case PayloadStatus.kFailure:
+                transfer.result = TransferModel.Result.Failure;
+                AddTransfer(endpointId, transfer);
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
                 break;
-            case PayloadStatus.kInProgress:
-                break;
             case PayloadStatus.kCanceled:
+                transfer.result = TransferModel.Result.Canceled;
+                AddTransfer(endpointId, transfer);
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
                 break;
             default:
@@ -612,5 +754,10 @@ namespace HelloCloudWpf {
             }
         }
         #endregion
+
+        private void SetBusy(bool value) {
+            busy = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Cursor)));
+        }
     }
 }

@@ -8,12 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Delete.png" />
     <None Remove="Resources\Gray.png" />
     <None Remove="Resources\Green.png" />
     <None Remove="Resources\spinner.gif" />
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\Delete.png" />
     <Resource Include="Resources\Gray.png" />
     <Resource Include="Resources\Green.png" />
     <Resource Include="Resources\Spinner.gif" />

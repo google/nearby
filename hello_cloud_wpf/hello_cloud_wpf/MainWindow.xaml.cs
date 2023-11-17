@@ -1,16 +1,7 @@
-﻿using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
-using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Data;
-using System.Windows.Interop;
-using System.Windows.Media.Imaging;
-using System.Windows.Media;
 
-namespace HelloCloudWpf
-{
+namespace HelloCloudWpf {
     public struct EndpointEntry
     {
         public string id;
@@ -31,19 +22,19 @@ namespace HelloCloudWpf
             InitializeComponent();
         }
 
-        private void isAdvertising_Checked(object sender, RoutedEventArgs e) {
+        private void IsAdvertisingChecked(object sender, RoutedEventArgs e) {
             (DataContext as MainWindowViewModel)?.StartAdvertising();
         }
 
-        private void isAdvertising_Unchecked(object sender, RoutedEventArgs e) {
+        private void IsAdvertisingUnchecked(object sender, RoutedEventArgs e) {
             (DataContext as MainWindowViewModel)?.StopAdvertising();
         }
 
-        private void isDiscovering_Checked(object sender, RoutedEventArgs e) {
+        private void IsDiscoveringChecked(object sender, RoutedEventArgs e) {
             (DataContext as MainWindowViewModel)?.StartDiscovering();
         }
 
-        private void isDiscovering_Unchecked(object sender, RoutedEventArgs e) {
+        private void IsDiscoveringUnchecked(object sender, RoutedEventArgs e) {
             (DataContext as MainWindowViewModel)?.StopDiscovering();
 
         }
