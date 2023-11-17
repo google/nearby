@@ -4,11 +4,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
-using System.Windows.Data;
 using System.Windows.Input;
 using static HelloCloudWpf.NearbyConnections;
 
@@ -33,10 +31,7 @@ namespace HelloCloudWpf {
                 {Medium.kUsb, "USB"},
             };
 
-        public static string ReadableName(this Medium medium) {
-
-            return mediumNames[medium];
-        }
+        public static string ReadableName(this Medium medium) => mediumNames[medium];
     }
 
     public class RelayCommand : ICommand {
@@ -144,10 +139,12 @@ namespace HelloCloudWpf {
             }
         }
 
-        public string Id { get { return model.id; } }
+        public string Id { get => model.id; }
 
         // TODO: does this belong to the model or the viewmodel?
-        public string Name { get { return model.name; } }
+        public string Name { get => model.name; }
+        // An incoming endpoint is one that we didn't discover, but one that has discovered us and connected to us.
+        public bool IsIncoming { get; set; }
 
         public EndpointState? State {
             get { return state; }
@@ -196,16 +193,10 @@ namespace HelloCloudWpf {
             disconnectCommand = new RelayCommand(
                 _ => this.mainWindowViewModel.Disconnect(Id),
                 _ => State == EndpointState.Connected);
-
-            connectCommand.CanExecuteChanged += ConnectCommand_CanExecuteChanged;
-        }
-
-        private void ConnectCommand_CanExecuteChanged(object? sender, EventArgs e) {
-            
         }
 
         public static void UpdateCanExecute() {
-            CommandManager.InvalidateRequerySuggested();
+            Application.Current.Dispatcher.BeginInvoke(CommandManager.InvalidateRequerySuggested);
         }
     }
 
@@ -312,6 +303,11 @@ namespace HelloCloudWpf {
 
 #pragma warning disable CS8618
         public MainWindowViewModel() {
+            // Note: any operation that changes a property that has a binding from the UI, e.g. the busy state,
+            // needs to happen on the UI thread. But since some can only be triggered from the UI, e.g.
+            // StartDiscovering(), we're not ensure to make these changes in the UI thread. But we probably should
+            // do that rather than rely on that we're already on the UI thread. Right now it's very messy. If there
+            // is any weird UI related bugs, they are probably due to this. We'll clean it up later after prototyping.
             LogEntries = new ObservableCollection<string>();
 
             clearLogCommand = new RelayCommand(
@@ -435,8 +431,10 @@ namespace HelloCloudWpf {
 
         public void StopDiscovering() {
             Log("Stopping discovering...");
+            SetBusy(true);
             NearbyConnections.StopDiscovering(core);
             Endpoints.Clear();
+            SetBusy(false);
         }
 
         public void RequestConnection(string remoteEndpointId) {
@@ -530,9 +528,10 @@ namespace HelloCloudWpf {
             Log(String.Format("Updating endpoint {0}'s state to {1}", endpointId, state));
             endpoint.State = state;
 
-            // Refresh CanExecute of the endpoint commands
-            EndpointViewModel.UpdateCanExecute();
-            Log("***UpdateCanExecute");
+            // Refresh the states of the buttons if the endpoint is currently selected.
+            if (endpointId == SelectedEndpoint?.Id) {
+                EndpointViewModel.UpdateCanExecute();
+            }
         }
 
         #region Operations on the UI thread
@@ -651,14 +650,17 @@ namespace HelloCloudWpf {
                 (string endpointId) => Accept(endpointId), endpointId);
 
             if (GetEndpointById(endpointId) == null) {
+                // We didn't discover this endpoint. Add it to the list of remote endpoints.
                 string name = Encoding.UTF8.GetString(endpointInfo);
                 if (String.IsNullOrEmpty(name)) {
                     Log(String.Format("Endpoint {0} has an invalid name, discarding...", endpointId));
                     return;
                 }
-
+                // Since we didn't discover this endpoint, we should remove it after we
+                // disconnect from it later. So let's mark it as "incoming".
                 EndpointViewModel endpoint = new(this, endpointId, name) {
-                    State = EndpointViewModel.EndpointState.Pending
+                    State = EndpointViewModel.EndpointState.Pending,
+                    IsIncoming = true,
                 };
                 AddEndpoint(endpoint);
             } else {
@@ -675,19 +677,28 @@ namespace HelloCloudWpf {
             UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
         }
 
+        private void RemoveOrChangeState(string endpointId) {
+            // If the endpoint wasn't discovered by us in the first place, remove it.
+            // Otherwise, keep it and change its state to Discovered.
+            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            if (endpoint?.IsIncoming ?? false) {
+                Application.Current.Dispatcher.BeginInvoke(Endpoints.Remove, endpoint);
+            } else {
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+            }
+        }
+
         private void OnConnectionRejected(string endpointId, OperationResult result) {
             Log("OnConnectionRejected:");
             Log("  endpoint_id: " + endpointId);
             Log("  result: " + result.ToString());
-
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+            RemoveOrChangeState(endpointId);
         }
 
         private void OnConnectionDisconnected(string endpointId) {
             Log("OnConnectionDisconnected:");
             Log("  endpoint_id: " + endpointId);
-
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+            RemoveOrChangeState(endpointId);
         }
 
         private void OnBandwidthUpgraded(string endpointId, Medium medium) {
