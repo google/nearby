@@ -1,0 +1,33 @@
+﻿<Window x:Class="HelloFirebaseWpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HelloFirebaseWpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="300" Width="400"
+        DataContext="{Binding RelativeSource={RelativeSource Mode=Self}}">
+    <DockPanel>
+        <UniformGrid DockPanel.Dock="Top" Rows="1">
+            <Button Margin="5"
+                    Content="Choose"
+                    Command="{Binding PickFilesCommand}"
+                    />
+            <Button Margin="5"
+                Content="Upload"></Button>
+        </UniformGrid>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+            <Label Content="Url: "/>
+            <Label Content="blah"/>
+        </StackPanel>
+        <ListView Margin="5" d:ItemsSource="{d:SampleData ItemCount=5}" 
+                  DockPanel.Dock="Bottom"
+                  ItemsSource="{Binding PickedFileNames}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</Window>
