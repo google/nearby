@@ -4,8 +4,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -177,17 +180,22 @@ namespace HelloCloudWpf {
                 _ => this.mainWindowViewModel.RequestConnection(Id),
                 _ => State == EndpointState.Discovered);
             sendCommand = new RelayCommand(
-                _ => this.mainWindowViewModel.SendBytes(Id),
-                _ => State == EndpointState.Connected);
+                _ => this.mainWindowViewModel.SendUrls(Id, files.Select(file => file.Url!)),
+                _ => State == EndpointState.Connected && files.Any() && files.All(file => !string.IsNullOrEmpty(file.Url)));
             disconnectCommand = new RelayCommand(
                 _ => this.mainWindowViewModel.Disconnect(Id),
                 _ => State == EndpointState.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
-                _ => !isUploading /* && State == EndpointState.Connected*/ );
+                _ => !isUploading && State == EndpointState.Connected);
             beginUploadCommand = new RelayCommand(
                 _ => BeginUpload(),
                 _ => CanUpload());
+        }
+
+
+        public void ClearFiles() {
+            Application.Current.Dispatcher.BeginInvoke(Files.Clear);
         }
 
         public static void UpdateCanExecute() {
@@ -575,7 +583,56 @@ namespace HelloCloudWpf {
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
             Log("SendBytes finished. Result: " + result);
             SetBusy(false);
+        }
 
+        public void SendUrls(string endpointId, IEnumerable<string> urls) {
+            // Buffer format: 
+            // int: url count
+            // Each url:
+            //   int: url length, including the \x0 at the end, not including this int
+            //   url content, encoded in UTF8
+            //   \x0
+
+            MemoryStream stream = new ();
+            byte[] buffer;
+            int byteCount = 0;
+            int urlCount = 0;
+
+            // Url count placeholder, since we haven't counted yet
+            buffer = BitConverter.GetBytes(0);
+            stream.Write(buffer, 0, buffer.Length);
+            byteCount += buffer.Length;
+
+            foreach (string url in urls) {
+                int len = url.Length;
+                
+                // Url length, with the terminating \x0
+                buffer = BitConverter.GetBytes(len+1);
+                stream.Write(buffer, 0, buffer.Length);
+
+                buffer = Encoding.UTF8.GetBytes(url);
+                stream.Write(buffer, 0, buffer.Length);
+                stream.WriteByte(0);
+
+                byteCount += sizeof(int) + buffer.Length + 1;
+                urlCount++;
+            }
+
+            // Now write the actual url count
+            stream.Position = 0;
+            buffer = BitConverter.GetBytes(urlCount);
+            stream.Write(buffer, 0, buffer.Length);
+            byte[] payload = stream.ToArray();
+
+            Log(string.Format("Sending {0} URL(s), {1} bytes in total ...", urlCount, payload.Length));
+            SetBusy(true);
+            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
+            OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
+            if (result != OperationResult.kSuccess) {
+                UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+            }
+            Log("SendBytes finished. Result: " + result);
+            SetBusy(false);
         }
 
         public void Disconnect(string endpointId) {
@@ -807,6 +864,11 @@ namespace HelloCloudWpf {
             }
         }
 
+        // It's weird that NC passes the payload content before updating the progress.
+        // We are supposed to monitor the progress and wait till it's completed to
+        // consume the payload content. But I'm not sure how it'd work for any managed
+        // code.
+        // TODO: investigate how this works for Dart and Java
         private void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
             Log("OnPayloadInitiated:");
             Log("  endpoint_id: " + endpointId);
@@ -816,6 +878,8 @@ namespace HelloCloudWpf {
                 stringBuilder.AppendFormat("{0:X} ", payloadContent[i]);
             }
             Log(stringBuilder.ToString());
+
+            DecodePayload(payloadContent);
 
             if (GetEndpointState(endpointId) != EndpointViewModel.EndpointState.Sending) {
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Receiving);
@@ -844,6 +908,8 @@ namespace HelloCloudWpf {
                 transfer.result = TransferModel.Result.Success;
                 AddTransfer(endpointId, transfer);
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                EndpointViewModel? endpoint = GetEndpointById(endpointId);
+                endpoint?.ClearFiles();
                 break;
             case PayloadStatus.kFailure:
                 transfer.result = TransferModel.Result.Failure;
@@ -857,6 +923,25 @@ namespace HelloCloudWpf {
                 break;
             default:
                 break;
+            }
+        }
+
+        private void DecodePayload(byte[] payload) {
+            List<string> urls = new();
+
+            int offset = 0; ;
+            int urlCount = BitConverter.ToInt32(payload, 0);
+            offset += sizeof(int);
+
+            for (int i = 0; i < urlCount; i++) {
+                int len = BitConverter.ToInt32(payload, offset);
+                offset += sizeof(int);
+
+                string url = Encoding.UTF8.GetString(payload, offset, len-1);
+                offset += len;
+                urls.Add(url);
+
+                Log("Url: " + url);
             }
         }
         #endregion
