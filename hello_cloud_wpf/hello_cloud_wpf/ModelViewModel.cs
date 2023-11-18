@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -6,6 +7,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using static HelloCloudWpf.NearbyConnections;
@@ -75,23 +78,6 @@ namespace HelloCloudWpf {
         public long payloadSize;
     }
 
-    public class TransferViewModel {
-        private TransferModel model;
-        public TransferViewModel(TransferModel model) {
-            this.model = model;
-        }
-
-        public override string ToString() {
-            StringBuilder sb = new();
-            sb.Append(model.direction == TransferModel.Direction.Send ? "↑" : "↓");
-            sb.Append(" Id:");
-            sb.Append(model.payloadId);
-            sb.Append(" Bytes: ");
-            sb.Append(model.payloadSize);
-            return sb.ToString();
-        }
-    }
-
     public class EndpointViewModel : INotifyPropertyChanged {
         public enum EndpointState {
             Discovered,  // Discovered, ready to connect
@@ -103,36 +89,27 @@ namespace HelloCloudWpf {
         }
 
         public Visibility SpinnerIconVisibility {
-            get {
-                return state == EndpointState.Pending
-                    || state == EndpointState.Receiving
-                    || state == EndpointState.Sending
-                    ? Visibility.Visible
-                    : Visibility.Hidden;
-            }
+            get => state == EndpointState.Pending
+                || state == EndpointState.Receiving
+                || state == EndpointState.Sending
+                ? Visibility.Visible : Visibility.Hidden;
         }
 
         public Visibility GreenIconVisibility {
-            get {
-                return state == EndpointState.Connected
-                    ? Visibility.Visible : Visibility.Hidden;
-            }
+            get => state == EndpointState.Connected
+                ? Visibility.Visible : Visibility.Hidden;
         }
 
         public Visibility GrayIconVisibility {
-            get {
-                return state == EndpointState.Discovered
-                    ? Visibility.Visible : Visibility.Hidden;
-            }
+            get => state == EndpointState.Discovered ?
+                Visibility.Visible : Visibility.Hidden;
         }
 
-        public string MediumReadableName { get { return medium?.ReadableName() ?? "Unknown"; } }
+        public string MediumReadableName { get => medium?.ReadableName() ?? "Unknown"; }
 
         // TODO: does this belong to the model or the viewmodel?
         public Medium? Medium {
-            get {
-                return medium;
-            }
+            get => medium;
             set {
                 medium = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MediumReadableName)));
@@ -143,11 +120,12 @@ namespace HelloCloudWpf {
 
         // TODO: does this belong to the model or the viewmodel?
         public string Name { get => model.name; }
+
         // An incoming endpoint is one that we didn't discover, but one that has discovered us and connected to us.
         public bool IsIncoming { get; set; }
 
         public EndpointState? State {
-            get { return state; }
+            get => state;
             set {
                 state = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(State)));
@@ -157,24 +135,35 @@ namespace HelloCloudWpf {
             }
         }
 
-        public ObservableCollection<TransferViewModel> Transfers { get { return transfers; } }
+        public ObservableCollection<FileViewModel> Files { get => files; }
+
+        public bool FilesUploaded { get; set; }
+
+        public ObservableCollection<TransferViewModel> Transfers { get => transfers; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public ICommand ConnectCommand { get { return connectCommand; } }
-        public ICommand SendCommand { get { return sendCommand; } }
-        public ICommand DisconnectCommand { get { return disconnectCommand; } }
+        public ICommand ConnectCommand { get => connectCommand; }
+        public ICommand SendCommand { get => sendCommand; }
+        public ICommand DisconnectCommand { get => disconnectCommand; }
+        public ICommand PickFilesCommand { get => pickFilesCommand; }
+        public ICommand BeginUploadCommand { get => beginUploadCommand; }
 
         private readonly EndpointModel model;
         private readonly MainWindowViewModel mainWindowViewModel;
 
         private readonly ObservableCollection<TransferViewModel> transfers = new();
+        private readonly ObservableCollection<FileViewModel> files = new();
+
         private readonly ICommand connectCommand;
         private readonly ICommand sendCommand;
         private readonly ICommand disconnectCommand;
+        private readonly ICommand pickFilesCommand;
+        private readonly ICommand beginUploadCommand;
 
         private EndpointState? state = null;
         private Medium? medium;
+        private bool isUploading;
 
         public EndpointViewModel(
             MainWindowViewModel mainWindowViewModel,
@@ -193,10 +182,111 @@ namespace HelloCloudWpf {
             disconnectCommand = new RelayCommand(
                 _ => this.mainWindowViewModel.Disconnect(Id),
                 _ => State == EndpointState.Connected);
+            pickFilesCommand = new RelayCommand(
+                _ => PickFiles(),
+                _ => !isUploading /* && State == EndpointState.Connected*/ );
+            beginUploadCommand = new RelayCommand(
+                _ => BeginUpload(),
+                _ => CanUpload());
         }
 
         public static void UpdateCanExecute() {
             Application.Current.Dispatcher.BeginInvoke(CommandManager.InvalidateRequerySuggested);
+        }
+
+        private void PickFiles() {
+            OpenFileDialog openFileDialog = new() { Multiselect = true };
+            bool? result = openFileDialog.ShowDialog();
+            if (result == true) {
+                files.Clear();
+                foreach (string fileName in openFileDialog.FileNames) {
+                    files.Add(new FileViewModel(fileName));
+                }
+            }
+        }
+
+        private bool CanUpload() {
+            // not currently uploading, and there's at least one file not uploaded
+            return !isUploading && files.Any(file => !file.IsUploaded);
+        }
+
+        private void BeginUpload() {
+            isUploading = true;
+            Thread thread = new(UploadWorker);
+            thread.Start();
+        }
+
+        private void UploadWorker() {
+            // TODO: only upload files that haven't been uploaded successfully
+            List<Task<bool>> uploadingTasks = new();
+            foreach (FileViewModel file in Files) {
+                uploadingTasks.Add(file.Upload());
+            }
+            Task.WaitAll(uploadingTasks.ToArray());
+
+            foreach (var (task, file) in uploadingTasks.Zip(files)) {
+                bool result = task.Result;
+                string fileName = file.FileName;
+                mainWindowViewModel.Log("Uploading completed.");
+                mainWindowViewModel.Log("  file name: " + fileName);
+                mainWindowViewModel.Log("  result: " +  (result ? "Success" : "Failure"));
+            }
+            isUploading = false;
+            UpdateCanExecute();
+        }
+    }
+
+    public class TransferViewModel {
+        private TransferModel model;
+        public TransferViewModel(TransferModel model) {
+            this.model = model;
+        }
+
+        public override string ToString() {
+            StringBuilder sb = new();
+            sb.Append(model.direction == TransferModel.Direction.Send ? "↑" : "↓");
+            sb.Append(" Id:");
+            sb.Append(model.payloadId);
+            sb.Append(" Bytes: ");
+            sb.Append(model.payloadSize);
+            return sb.ToString();
+        }
+    }
+
+    public class FileViewModel : INotifyPropertyChanged {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public string FileName { get => fileName; }
+        public string? Url { get => url; }
+        public bool IsUploaded { get => !String.IsNullOrEmpty(Url); }
+
+        public Visibility UploadedIconVisibility { get => IsUploaded ?  Visibility.Visible : Visibility.Hidden; }
+        public Visibility UploadingIconVisibility {  get => isUploading ? Visibility.Visible : Visibility.Hidden; }
+        public Visibility NotUploadedIconVisibility { get => IsUploaded || isUploading ? Visibility.Hidden : Visibility.Visible; }
+
+        private readonly string fileName;
+        private string? url = null;
+        private bool isUploading;
+
+        public FileViewModel(string fileName) {
+            this.fileName = fileName;
+        }
+
+        public async Task<bool> Upload() {
+            isUploading = true;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotUploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadingIconVisibility)));
+
+            await Task.Delay(1000);
+            url = "http://foo.bar/awesome.jpg";
+            isUploading = false;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotUploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadingIconVisibility)));
+
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Url)));
+            return true;
         }
     }
 
@@ -319,11 +409,11 @@ namespace HelloCloudWpf {
             SelectedEndpoint = null;
             nullSelectedEndpoint = new EndpointViewModel(this, string.Empty, string.Empty);
 
-            //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
-            //    Medium = Medium.kBluetooth
-            //};
-            //Endpoints.Add(endpoint);
-            //SelectedEndpoint = endpoint;
+            var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
+                Medium = Medium.kBluetooth
+            };
+            Endpoints.Add(endpoint);
+            SelectedEndpoint = endpoint;
 
             router = InitServiceControllerRouter();
             if (router == IntPtr.Zero) {
@@ -499,6 +589,15 @@ namespace HelloCloudWpf {
         }
         #endregion
 
+        public void SetBusy(bool value) {
+            busy = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Cursor)));
+        }
+
+        public void Log(string message) {
+            Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, message);
+        }
+
         private EndpointViewModel? GetEndpointById(string endpointId) {
             foreach (EndpointViewModel endpoint in Endpoints) {
                 if (endpoint.Id == endpointId) {
@@ -603,10 +702,6 @@ namespace HelloCloudWpf {
                     Log("  status: " + status.ToString());
                 },
                 endpointId);
-        }
-
-        private void Log(string message) {
-            Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, message);
         }
 
         private void ClearLog() {
@@ -765,10 +860,5 @@ namespace HelloCloudWpf {
             }
         }
         #endregion
-
-        private void SetBusy(bool value) {
-            busy = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Cursor)));
-        }
     }
 }

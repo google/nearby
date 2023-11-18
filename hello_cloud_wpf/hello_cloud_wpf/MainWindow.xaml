@@ -105,10 +105,56 @@
                 </StackPanel>
             </UniformGrid>
             <UniformGrid DockPanel.Dock="Top" Rows="1">
-                <Button Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
-                <Button Content="Send" Command="{Binding SendCommand}" Margin="10,10"/>
-                <Button Content="Disconnect" Command="{Binding DisconnectCommand}" Margin="10,10"/>
+                <Button Padding="10,2" Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
+                <Button Padding="10,2" Content="Send" Command="{Binding SendCommand}" Margin="10,10"/>
+                <Button Padding="10,2" Content="Disconnect" Command="{Binding DisconnectCommand}" Margin="10,10"/>
             </UniformGrid>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,5">
+                <Label Content="Outgoing files" FontWeight="Bold"/>
+                <Button Content="Pick" Padding="10,0" Margin="5,0"
+                        Command="{Binding PickFilesCommand}"/>
+                <Button Content="Upload" Padding="10,0" Margin="5,0"
+                        Command="{Binding BeginUploadCommand}"/>
+            </StackPanel>
+            <ListView DockPanel.Dock="Top" 
+                      Margin="0,0"
+                      Height="250"
+                      d:ItemsSource="{d:SampleData}"
+                      ItemsSource="{Binding Files}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Width="32">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Center">
+                                        <Image Grid.Column="0" Grid.Row="0"
+                                               HorizontalAlignment="Center"
+                                               Height="24" Width="24" 
+                                               Visibility="{Binding UploadingIconVisibility}" 
+                                               gif:ImageBehavior.AnimatedSource="/Resources/Spinner.gif"/>
+                                        <Image Grid.Column="0" Grid.Row="0"
+                                               HorizontalAlignment="Center"
+                                               Height="24" Width="24"
+                                               Visibility="{Binding UploadedIconVisibility}"
+                                               Source="/Resources/Green.png"/>
+                                        <Image Grid.Column="0" Grid.Row="0"
+                                               HorizontalAlignment="Center"
+                                               Height="24" Width="24"
+                                               Visibility="{Binding NotUploadedIconVisibility}"
+                                               Source="/Resources/Gray.png"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Name" 
+                                        Width="250"
+                                        DisplayMemberBinding="{Binding FileName}"/>
+                        <GridViewColumn Header="Url" 
+                                        Width="250"
+                                        DisplayMemberBinding="{Binding Url}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
             <Label DockPanel.Dock="Top" Content="Transfers" FontWeight="Bold"/>
             <ListView DockPanel.Dock="Bottom" Margin="0,0"
                       FontFamily="Consolas"

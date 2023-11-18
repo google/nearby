@@ -19,7 +19,7 @@ namespace HelloCloudWpf {
 
         public MainWindow()
         {
-            AllocConsole();
+            //AllocConsole();
             InitializeComponent();
         }
 
@@ -37,6 +37,10 @@ namespace HelloCloudWpf {
 
         private void IsDiscoveringUnchecked(object sender, RoutedEventArgs e) {
             (DataContext as MainWindowViewModel)?.StopDiscovering();
+
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e) {
 
         }
     }
