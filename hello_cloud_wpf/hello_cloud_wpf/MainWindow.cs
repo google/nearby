@@ -1,5 +1,4 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -8,36 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using static HelloCloudWpf.EndpointModel;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
-    // Normally, we should use an enum class so that we can bake behaviours into the enum.
-    // But we will eventually use protobuf to generate Medium enum. So we use extension
-    // methods to add behaviours to this enum.
-    public static class MediumToString {
-        static readonly IReadOnlyDictionary<Medium, string> mediumNames =
-            new Dictionary<Medium, string>() {
-                {Medium.kUnknown, "Unknown"},
-                {Medium.kMdns, "mDNS"},
-                {Medium.kBluetooth, "Bluetooth Classic"},
-                {Medium.kWiFiHotSpot, "Wi-Fi hotspot"},
-                {Medium.kBle, "Bluetooth Low Energy"},
-                {Medium.kWiFiLan, "Wi-Fi LAN"},
-                {Medium.kWifiAware, "Wi-Fi Aware"},
-                {Medium.kNfc, "NFC"},
-                {Medium.kWiFiDirect, "Wi-Fi Direct"},
-                {Medium.kWebRtc, "Web RTC"},
-                {Medium.kBleL2Cap, "BLE L2CAP"},
-                {Medium.kUsb, "USB"},
-            };
-
-        public static string ReadableName(this Medium medium) => mediumNames[medium];
-    }
-
     public class RelayCommand : ICommand {
         readonly Action<object?> execute;
         readonly Predicate<object?> canExecute;
@@ -48,7 +23,7 @@ namespace HelloCloudWpf {
         }
 
         public bool CanExecute(object? parameter) {
-            return canExecute == null ? true : canExecute(parameter);
+            return canExecute == null || canExecute(parameter);
         }
 
         public event EventHandler? CanExecuteChanged {
@@ -59,358 +34,7 @@ namespace HelloCloudWpf {
         public void Execute(object? parameter) { execute(parameter); }
     }
 
-    public struct EndpointModel {
-        public string id;
-        public string name;
-
-        public EndpointModel(string id, string name) {
-            this.id = id;
-            this.name = name;
-        }
-    }
-
-    public class EndpointViewModel : INotifyPropertyChanged {
-        public enum EndpointState {
-            Discovered,  // Discovered, ready to connect
-            Pending, // Pending connection
-            // Accepted, // Connection request accepted by one party
-            Connected, // Connection request accepted by both parties. Ready to send/receive payloads
-            Sending, // Sending a payload
-            Receiving, // Receiving a payload
-        }
-
-        public Visibility SpinnerIconVisibility {
-            get => state == EndpointState.Pending
-                || state == EndpointState.Receiving
-                || state == EndpointState.Sending
-                ? Visibility.Visible : Visibility.Hidden;
-        }
-
-        public Visibility GreenIconVisibility {
-            get => state == EndpointState.Connected
-                ? Visibility.Visible : Visibility.Hidden;
-        }
-
-        public Visibility GrayIconVisibility {
-            get => state == EndpointState.Discovered ?
-                Visibility.Visible : Visibility.Hidden;
-        }
-
-        public string MediumReadableName { get => medium?.ReadableName() ?? "Unknown"; }
-
-        // TODO: does this belong to the model or the viewmodel?
-        public Medium? Medium {
-            get => medium;
-            set {
-                medium = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MediumReadableName)));
-            }
-        }
-
-        public string Id { get => model.id; }
-
-        // TODO: does this belong to the model or the viewmodel?
-        public string Name { get => model.name; }
-
-        // An incoming endpoint is one that we didn't discover, but one that has discovered us and connected to us.
-        public bool IsIncoming { get; set; }
-
-        public EndpointState? State {
-            get => state;
-            set {
-                state = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(State)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SpinnerIconVisibility)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GreenIconVisibility)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GrayIconVisibility)));
-
-                // Refresh the states of the buttons if the endpoint is currently selected.
-                if (this == mainWindowViewModel.SelectedEndpoint) {
-                    UpdateCanExecute();
-                }
-            }
-        }
-
-        public ObservableCollection<OutgoingFileViewModel> OutgoingFiles { get => outgoingFiles; }
-        public ObservableCollection<IncomingFileViewModel> IncomingFiles { get => incomingFiles; }
-
-        public ObservableCollection<TransferViewModel> Transfers { get => transfers; }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public ICommand ConnectCommand { get => connectCommand; }
-        public ICommand SendCommand { get => sendCommand; }
-        public ICommand DisconnectCommand { get => disconnectCommand; }
-        public ICommand PickFilesCommand { get => pickFilesCommand; }
-        public ICommand BeginUploadCommand { get => beginUploadCommand; }
-        public ICommand BeginDownloadCommand { get => beginDownloadCommand; }
-
-        private readonly EndpointModel model;
-        private readonly MainWindowViewModel mainWindowViewModel;
-
-        private readonly ObservableCollection<TransferViewModel> transfers = new();
-        private readonly ObservableCollection<OutgoingFileViewModel> outgoingFiles = new();
-        private readonly ObservableCollection<IncomingFileViewModel> incomingFiles = new();
-
-        private readonly ICommand connectCommand;
-        private readonly ICommand sendCommand;
-        private readonly ICommand disconnectCommand;
-        private readonly ICommand pickFilesCommand;
-        private readonly ICommand beginUploadCommand;
-        private readonly ICommand beginDownloadCommand;
-
-        private EndpointState? state = null;
-        private Medium? medium;
-
-        public EndpointViewModel(
-            MainWindowViewModel mainWindowViewModel,
-            string id, string name, EndpointState? state = null) {
-            this.mainWindowViewModel = mainWindowViewModel;
-            this.model = new EndpointModel(id, name);
-            this.medium = null;
-            this.state = state;
-
-            connectCommand = new RelayCommand(
-                _ => this.mainWindowViewModel.RequestConnection(Id),
-                _ => State == EndpointState.Discovered);
-            sendCommand = new RelayCommand(
-                _ => this.mainWindowViewModel.SendFiles(Id, outgoingFiles.Select(file => (file.FileName, file.Url!))),
-                _ => State == EndpointState.Connected && outgoingFiles.Any() && outgoingFiles.All(file => file.IsUploaded));
-            disconnectCommand = new RelayCommand(
-                _ => this.mainWindowViewModel.Disconnect(Id),
-                _ => State == EndpointState.Connected);
-            pickFilesCommand = new RelayCommand(
-                _ => PickFiles(),
-                _ => outgoingFiles.All(file => !file.IsUploading) && State == EndpointState.Connected);
-            beginUploadCommand = new RelayCommand(
-                _ => BeginUpload(),
-                _ => outgoingFiles.All(file => !file.IsUploading) && outgoingFiles.Any(file => !file.IsUploaded));
-            beginDownloadCommand = new RelayCommand(
-                _ => BeginDownload(),
-                _ => incomingFiles.All(file => !file.IsDownloading) && incomingFiles.Any(file => !file.IsDownloaded));
-        }
-
-        public void AddIncomingFile(IncomingFileViewModel file) {
-            Application.Current.Dispatcher.BeginInvoke(IncomingFiles.Add, file);
-        }
-
-        public void AddTransfer(TransferViewModel transfer) {
-            Application.Current.Dispatcher.BeginInvoke(Transfers.Add, transfer);
-        }
-
-        public void ClearOutgoingFiles() {
-            Application.Current.Dispatcher.BeginInvoke(OutgoingFiles.Clear);
-        }
-
-        public void ClearIncomingFiles() {
-            Application.Current.Dispatcher.BeginInvoke(IncomingFiles.Clear);
-        }
-
-        public void ClearTransfers() {
-            Application.Current.Dispatcher.BeginInvoke(Transfers.Clear);
-        }
-
-        public static void UpdateCanExecute() {
-            Application.Current.Dispatcher.BeginInvoke(CommandManager.InvalidateRequerySuggested);
-        }
-
-        private void PickFiles() {
-            OpenFileDialog openFileDialog = new() { Multiselect = true };
-            bool? result = openFileDialog.ShowDialog();
-            if (result == true) {
-                outgoingFiles.Clear();
-                foreach (string fileName in openFileDialog.FileNames) {
-                    outgoingFiles.Add(new OutgoingFileViewModel(fileName));
-                }
-            }
-        }
-
-        private void BeginUpload() {
-            Thread thread = new(UploadWorker);
-            thread.Start();
-        }
-
-        private void UploadWorker() {
-            // TODO: only upload files that haven't been uploaded successfully
-            List<Task<bool>> uploadingTasks = new();
-            foreach (OutgoingFileViewModel file in OutgoingFiles) {
-                uploadingTasks.Add(file.Upload());
-            }
-            Task.WaitAll(uploadingTasks.ToArray());
-
-            foreach (var (task, file) in uploadingTasks.Zip(outgoingFiles)) {
-                mainWindowViewModel.Log("Uploading completed.");
-                mainWindowViewModel.Log("  file name: " + file.FileName);
-                mainWindowViewModel.Log("  url: " + file.Url);
-                mainWindowViewModel.Log("  result: " + (task.Result ? "Success" : "Failure"));
-            }
-            UpdateCanExecute();
-
-            // TODO: only add successful uploads
-            foreach (OutgoingFileViewModel file in OutgoingFiles) {
-                TransferViewModel transfer = new(
-                direction: TransferViewModel.Direction.Upload,
-                fileName: file.FileName, url: file.Url!, result: TransferViewModel.Result.Success);
-                AddTransfer(transfer);
-            }
-        }
-
-        private void BeginDownload() {
-            Thread thread = new(DownloadWorker);
-            thread.Start();
-        }
-
-        private void DownloadWorker() {
-            List<IncomingFileViewModel> filesToDownload = 
-                incomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
-
-            List<Task<bool>> downloadingTasks = new();
-            foreach (IncomingFileViewModel file in filesToDownload) {
-                downloadingTasks.Add(file.Download());
-            }
-            Task.WaitAll(downloadingTasks.ToArray());
-
-            foreach (var (task, file) in downloadingTasks.Zip(filesToDownload)) {
-                mainWindowViewModel.Log("Downloading completed.");
-                mainWindowViewModel.Log("  file name: " + file.FileName);
-                mainWindowViewModel.Log("  url: " + file.Url);
-                mainWindowViewModel.Log("  result: " + (task.Result ? "Success" : "Failure"));
-            }
-
-            foreach (IncomingFileViewModel file in filesToDownload) {
-                TransferViewModel transfer = new(
-                direction: TransferViewModel.Direction.Download,
-                fileName: file.FileName, url: file.Url, result: TransferViewModel.Result.Success);
-                AddTransfer(transfer);
-            }
-        }
-    }
-
-    public class TransferViewModel {
-        public enum Direction { Send, Receive, Upload, Download }
-        public enum Result { Success, Failure, Canceled }
-
-        public Direction direction;
-        public Result result;
-        public string fileName;
-        public string url;
-
-        public TransferViewModel(Direction direction, string fileName, string url, Result result) {
-            this.direction = direction;
-            this.fileName = fileName;
-            this.url = url;
-            this.result = result;
-        }
-
-        public override string ToString() {
-            StringBuilder sb = new();
-            sb.Append(DirectionToChar(direction))
-                .Append(ResultToChar(result))
-                .Append(' ')
-                .Append(fileName)
-                .Append(" | ")
-                .Append(url);
-            return sb.ToString();
-        }
-
-        private static char DirectionToChar(Direction direction) {
-            return direction switch {
-                Direction.Send => '↖',
-                Direction.Receive => '↘',
-                Direction.Upload => '↑',
-                Direction.Download => '↓',
-                _ => '⚠',
-            };
-        }
-
-        private static char ResultToChar(Result result) {
-            return result switch {
-                Result.Success => '✓',
-                Result.Failure => '✕',
-                Result.Canceled => '⚠',
-                _ => ' ',
-            };
-        }
-    }
-
-    public class OutgoingFileViewModel : INotifyPropertyChanged {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public string FileName { get => fileName; }
-        public string? Url { get => url; }
-        public bool IsUploaded { get => !String.IsNullOrEmpty(Url); }
-        public bool IsUploading { get => isUploading; }
-
-        public Visibility UploadedIconVisibility { get => IsUploaded ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility UploadingIconVisibility { get => isUploading ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility NotUploadedIconVisibility { get => IsUploaded || isUploading ? Visibility.Hidden : Visibility.Visible; }
-
-        private readonly string fileName;
-        private string? url = null;
-        private bool isUploading;
-
-        public OutgoingFileViewModel(string fileName) {
-            this.fileName = fileName;
-        }
-
-        public async Task<bool> Upload() {
-            isUploading = true;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotUploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadingIconVisibility)));
-
-            await Task.Delay(1000);
-            url = "http://foo.bar/awesome.jpg";
-            isUploading = false;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotUploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadingIconVisibility)));
-
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Url)));
-            return true;
-        }
-    }
-
-    public class IncomingFileViewModel : INotifyPropertyChanged {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public string FileName { get => fileName; }
-        public string Url { get => url; }
-        public bool IsDownloaded { get => isDownloaded; }
-        public bool IsDownloading { get => isDownloading; }
-
-        public Visibility DownloadedIconVisibility { get => IsDownloaded ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility DownloadingIconVisibility { get => isDownloading ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility NotDownloadedIconVisibility { get => IsDownloaded || isDownloading ? Visibility.Hidden : Visibility.Visible; }
-
-        private readonly string fileName;
-        private readonly string url;
-        private bool isDownloading;
-        private bool isDownloaded;
-
-        public IncomingFileViewModel(string fileName, string url) {
-            this.fileName = fileName;
-            this.url = url;
-        }
-
-        public async Task<bool> Download() {
-            isDownloading = true;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DownloadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotDownloadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DownloadingIconVisibility)));
-
-            await Task.Delay(1000);
-            isDownloading = false;
-            isDownloaded = true;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DownloadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotDownloadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DownloadingIconVisibility)));
-
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Url)));
-            return true;
-        }
-    }
-
+    // TODO: split it into a model class and a viewmodel class
     public class MainWindowViewModel : INotifyPropertyChanged {
         private static readonly string serviceId = "com.google.location.nearby.apps.helloconnections";
 
@@ -528,7 +152,10 @@ namespace HelloCloudWpf {
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
             SelectedEndpoint = null;
-            nullSelectedEndpoint = new EndpointViewModel(this, string.Empty, string.Empty);
+            nullSelectedEndpoint = new EndpointViewModel(this, 
+                new EndpointModel(
+                    id: string.Empty, 
+                    name: string.Empty));
 
             //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
             //    Medium = Medium.kBluetooth
@@ -661,7 +288,7 @@ namespace HelloCloudWpf {
             Log(string.Format("Requesting connection to {0} ...", remoteEndpointId));
             Debug.Assert(localEndpointInfo != null);
             SetBusy(true);
-            SetEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Pending);
+            SetEndpointState(remoteEndpointId, State.Pending);
 
             // TODO: keep alive is probably not properly set.
             ConnectionOptions connectionOptions = new() {
@@ -688,7 +315,7 @@ namespace HelloCloudWpf {
             Log(string.Format("Request to connect to {0} completed. Result: {1}", remoteEndpointId, result));
             if (result != OperationResult.kSuccess) {
                 // The request has not been sent by NC. We go back to Discovered state.
-                SetEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Discovered);
+                SetEndpointState(remoteEndpointId, State.Discovered);
             }
             SetBusy(false);
         }
@@ -698,10 +325,10 @@ namespace HelloCloudWpf {
 
             Log($"Sending {endpointId} {fileCount} file(s), {payload.Length} bytes in total ...");
             SetBusy(true);
-            SetEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
+            SetEndpointState(endpointId, State.Sending);
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
             if (result != OperationResult.kSuccess) {
-                SetEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
+                SetEndpointState(endpointId, State.Discovered);
             }
             Log($"Sending files to {endpointId} finished. Result: {result}");
             SetBusy(false);
@@ -736,7 +363,7 @@ namespace HelloCloudWpf {
         }
 
         // TODO: does this also need to happen on the UI thread?
-        private void SetEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
+        private void SetEndpointState(string endpointId, State state) {
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint == null) {
                 Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
@@ -771,13 +398,13 @@ namespace HelloCloudWpf {
                 endpointId);
         }
 
-        private void AddEndpoint(EndpointViewModel endpoint) {
+        private void AddEndpoint(EndpointModel endpoint) {
             Application.Current.Dispatcher.BeginInvoke(
                 (EndpointViewModel endpoint) => {
                     Endpoints.Add(endpoint);
                     SelectedEndpoint = endpoint;
                 },
-                endpoint);
+                new EndpointViewModel(this, endpoint));
         }
 
         private void RemoveEndpoint(string endpointId) {
@@ -829,8 +456,10 @@ namespace HelloCloudWpf {
             Log("  endpoint_info: " + endpointName);
             Log("  service_id: " + serviceId);
 
-            AddEndpoint(new EndpointViewModel(
-                this, endpointId, endpointName, EndpointViewModel.EndpointState.Discovered));
+            AddEndpoint(new EndpointModel(
+                id: endpointId, 
+                name: endpointName, 
+                state: State.Discovered));
         }
 
         private void OnEndpointLost(string endpointId) {
@@ -860,13 +489,14 @@ namespace HelloCloudWpf {
                 }
                 // Since we didn't discover this endpoint, we should remove it after we
                 // disconnect from it later. So let's mark it as "incoming".
-                EndpointViewModel endpoint = new(this, endpointId, name) {
-                    State = EndpointViewModel.EndpointState.Pending,
-                    IsIncoming = true,
-                };
+                EndpointModel endpoint = new EndpointModel(
+                    id: endpointId, 
+                    name: name, 
+                    state: State.Pending, 
+                    isIncoming: true);
                 AddEndpoint(endpoint);
             } else {
-                SetEndpointState(endpointId, EndpointViewModel.EndpointState.Pending);
+                SetEndpointState(endpointId, State.Pending);
             }
 
             SelectEndpoint(endpointId);
@@ -876,7 +506,7 @@ namespace HelloCloudWpf {
             Log("OnConnectionAccepted:");
             Log("  endpoint_id: " + endpointId);
 
-            SetEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+            SetEndpointState(endpointId, State.Connected);
         }
 
         private void RemoveOrChangeState(EndpointViewModel? endpoint) {
@@ -886,7 +516,7 @@ namespace HelloCloudWpf {
                 if (endpoint.IsIncoming) {
                     Application.Current.Dispatcher.BeginInvoke(Endpoints.Remove, endpoint);
                 } else {
-                    endpoint.State = EndpointViewModel.EndpointState.Discovered;
+                    endpoint.State = State.Discovered;
                 }
             }
         }
@@ -936,17 +566,19 @@ namespace HelloCloudWpf {
                 return;
             }
 
-            if (endpoint.State != EndpointViewModel.EndpointState.Sending) {
-                endpoint.State = EndpointViewModel.EndpointState.Receiving;
+            if (endpoint.State != State.Sending) {
+                endpoint.State = State.Receiving;
                 IEnumerable<(string fileName, string url)> files = DecodePayload(payloadContent);
-                // TODO: do we want to clear them though? Maybe we should implement only downloading files that
-                // haven't been downloaded
-                //endpoint.ClearIncomingFiles();
                 foreach ((string fileName, string url) in files) {
                     TransferViewModel transfer =
-                        new(TransferViewModel.Direction.Receive, fileName, url, result: TransferViewModel.Result.Success);
+                        new(
+                            direction: TransferViewModel.Direction.Receive, 
+                            fileName: fileName, 
+                            url: url, 
+                            result: TransferViewModel.Result.Success);
                     endpoint.AddTransfer(transfer);
-                    endpoint.AddIncomingFile(new(fileName, url));
+                    endpoint.AddIncomingFile(
+                        new IncomingFileViewModel(new IncomingFileModel(fileName: fileName, url: url)));
                 }
             }
         }
@@ -959,7 +591,7 @@ namespace HelloCloudWpf {
             Log("  status: " + status.ToString());
             Log(string.Format("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal));
 
-            bool isSending = GetEndpoint(endpointId)?.State == EndpointViewModel.EndpointState.Sending;
+            bool isSending = GetEndpoint(endpointId)?.State == State.Sending;
             TransferViewModel.Result result;
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
 
@@ -968,18 +600,18 @@ namespace HelloCloudWpf {
                 return;
             case PayloadStatus.kSuccess:
                 result = TransferViewModel.Result.Success;
-                SetEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                SetEndpointState(endpointId, State.Connected);
                 if (isSending) {
                     endpoint?.ClearOutgoingFiles();
                 }
                 break;
             case PayloadStatus.kFailure:
                 result = TransferViewModel.Result.Failure;
-                SetEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                SetEndpointState(endpointId, State.Connected);
                 break;
             case PayloadStatus.kCanceled:
                 result = TransferViewModel.Result.Canceled;
-                SetEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
+                SetEndpointState(endpointId, State.Connected);
                 break;
             default:
                 return;
