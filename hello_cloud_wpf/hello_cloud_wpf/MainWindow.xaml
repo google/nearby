@@ -119,7 +119,7 @@
             </StackPanel>
             <ListView DockPanel.Dock="Top" 
                       Margin="0,0"
-                      Height="250"
+                      Height="200"
                       d:ItemsSource="{d:SampleData}"
                       ItemsSource="{Binding OutgoingFiles}">
                 <ListView.View>
@@ -153,6 +153,51 @@
                         <GridViewColumn Header="Url" 
                                         Width="250"
                                         DisplayMemberBinding="{Binding Url}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,5">
+                <Label Content="Incoming files" FontWeight="Bold"
+                       Width="100"/>
+                <Button Content="Download" Padding="10,0" Margin="5,0" Width="100"
+                        Command="{Binding BeginDownloadCommand}"/>
+            </StackPanel>
+            <ListView DockPanel.Dock="Top" 
+                      Margin="0,0"
+                      Height="200"
+                      d:ItemsSource="{d:SampleData}"
+                      ItemsSource="{Binding IncomingFiles}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Width="32">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Center">
+                                        <Image Grid.Column="0" Grid.Row="0"
+                                               HorizontalAlignment="Center"
+                                               Height="24" Width="24" 
+                                               Visibility="{Binding DownloadingIconVisibility}" 
+                                               gif:ImageBehavior.AnimatedSource="/Resources/Spinner.gif"/>
+                                        <Image Grid.Column="0" Grid.Row="0"
+                                               HorizontalAlignment="Center"
+                                               Height="24" Width="24"
+                                               Visibility="{Binding DownloadedIconVisibility}"
+                                               Source="/Resources/Green.png"/>
+                                        <Image Grid.Column="0" Grid.Row="0"
+                                               HorizontalAlignment="Center"
+                                               Height="24" Width="24"
+                                               Visibility="{Binding NotDownloadedIconVisibility}"
+                                               Source="/Resources/Gray.png"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Name" 
+                            Width="250"
+                            DisplayMemberBinding="{Binding FileName}"/>
+                        <GridViewColumn Header="Url" 
+                            Width="250"
+                            DisplayMemberBinding="{Binding Url}"/>
                     </GridView>
                 </ListView.View>
             </ListView>
