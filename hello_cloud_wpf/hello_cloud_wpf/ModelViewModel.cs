@@ -579,6 +579,7 @@ namespace HelloCloudWpf {
             SetBusy(true);
             UpdateEndpointState(remoteEndpointId, EndpointViewModel.EndpointState.Pending);
 
+            // TODO: keep alive is probably not properly set.
             ConnectionOptions connectionOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = connectionMediumSelector,
