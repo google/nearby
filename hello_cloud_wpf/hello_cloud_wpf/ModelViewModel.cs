@@ -6,18 +6,13 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
-using System.Security.Policy;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Threading;
 using static HelloCloudWpf.NearbyConnections;
-using static System.Net.WebRequestMethods;
 
 namespace HelloCloudWpf {
     // Normally, we should use an enum class so that we can bake behaviours into the enum.
