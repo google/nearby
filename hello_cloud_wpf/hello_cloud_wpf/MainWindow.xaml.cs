@@ -40,8 +40,8 @@ namespace HelloCloudWpf {
 
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
-
+        private void Window_Closed(object sender, System.EventArgs e) {
+            (DataContext as MainWindowViewModel)?.Deinit();
         }
     }
 }

@@ -493,6 +493,15 @@ namespace HelloCloudWpf {
         }
 #pragma warning restore CS8618
 
+        public void Deinit() {
+            if (core != IntPtr.Zero) {
+                NearbyConnections.CloseCore(core);
+            }
+            if (router != IntPtr.Zero) {
+                NearbyConnections.CloseServiceControllerRouter(router);
+            }
+        }
+
         #region NearbyConnections operations.
         public void StartAdvertising() {
             Log("Starting advertising...");

@@ -6,8 +6,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HelloCloudWpf"
         mc:Ignorable="d"
-        Title="MainWindow" 
-        Height="768" Width="1024">
+        Title="MainWindow"
+        Height="768" Width="1024"
+        Closed="Window_Closed">
     <Window.DataContext>
         <local:MainWindowViewModel/>
     </Window.DataContext>
