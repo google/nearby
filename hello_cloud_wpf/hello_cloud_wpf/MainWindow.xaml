@@ -82,6 +82,7 @@
                     <Label FontWeight="Bold" Content="Name"/>
                     <Label Content="{Binding Name}" FontFamily="Consolas"/>
                 </StackPanel>
+                <Button Padding="10,2" Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Label FontWeight="Bold" Content="Medium"/>
                     <Label Content="{Binding MediumReadableName}"/>
@@ -104,18 +105,17 @@
                     </Grid>
                     <Label Content="{Binding State}"/>
                 </StackPanel>
-            </UniformGrid>
-            <UniformGrid DockPanel.Dock="Top" Rows="1">
-                <Button Padding="10,2" Content="Connect" Command="{Binding ConnectCommand}" Margin="10,10"/>
-                <Button Padding="10,2" Content="Send" Command="{Binding SendCommand}" Margin="10,10"/>
                 <Button Padding="10,2" Content="Disconnect" Command="{Binding DisconnectCommand}" Margin="10,10"/>
             </UniformGrid>
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,5">
-                <Label Content="Outgoing files" FontWeight="Bold"/>
-                <Button Content="Pick" Padding="10,0" Margin="5,0"
+                <Label Content="Outgoing files" FontWeight="Bold"
+                       Width="100"/>
+                <Button Content="Pick" Padding="10,0" Margin="5,0" Width="100"
                         Command="{Binding PickFilesCommand}"/>
-                <Button Content="Upload" Padding="10,0" Margin="5,0"
+                <Button Content="Upload" Padding="10,0" Margin="5,0" Width="100"
                         Command="{Binding BeginUploadCommand}"/>
+                <Button Content="Send" Padding="10,0" Margin="5,0" Width="100"
+                        Command="{Binding SendCommand}"/>
             </StackPanel>
             <ListView DockPanel.Dock="Top" 
                       Margin="0,0"
