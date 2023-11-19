@@ -121,7 +121,7 @@
                       Margin="0,0"
                       Height="250"
                       d:ItemsSource="{d:SampleData}"
-                      ItemsSource="{Binding Files}">
+                      ItemsSource="{Binding OutgoingFiles}">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Width="32">
