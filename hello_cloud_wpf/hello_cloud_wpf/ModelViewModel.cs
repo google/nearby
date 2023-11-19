@@ -6,15 +6,18 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Policy;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using static HelloCloudWpf.NearbyConnections;
+using static System.Net.WebRequestMethods;
 
 namespace HelloCloudWpf {
     // Normally, we should use an enum class so that we can bake behaviours into the enum.
@@ -69,16 +72,6 @@ namespace HelloCloudWpf {
             this.id = id;
             this.name = name;
         }
-    }
-
-    public struct TransferModel {
-        public enum Direction { Send, Receive }
-        public enum Result { Success, Failure, Canceled }
-
-        public Direction direction;
-        public Result result;
-        public long payloadId;
-        public long payloadSize;
     }
 
     public class EndpointViewModel : INotifyPropertyChanged {
@@ -140,8 +133,6 @@ namespace HelloCloudWpf {
 
         public ObservableCollection<FileViewModel> Files { get => files; }
 
-        public bool FilesUploaded { get; set; }
-
         public ObservableCollection<TransferViewModel> Transfers { get => transfers; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -180,8 +171,8 @@ namespace HelloCloudWpf {
                 _ => this.mainWindowViewModel.RequestConnection(Id),
                 _ => State == EndpointState.Discovered);
             sendCommand = new RelayCommand(
-                _ => this.mainWindowViewModel.SendUrls(Id, files.Select(file => file.Url!)),
-                _ => State == EndpointState.Connected && files.Any() && files.All(file => !string.IsNullOrEmpty(file.Url)));
+                _ => this.mainWindowViewModel.SendFiles(Id, files.Select(file => (file.FileName, file.Url!))),
+                _ => State == EndpointState.Connected && files.Any() && files.All(file => file.IsUploaded));
             disconnectCommand = new RelayCommand(
                 _ => this.mainWindowViewModel.Disconnect(Id),
                 _ => State == EndpointState.Connected);
@@ -237,27 +228,65 @@ namespace HelloCloudWpf {
                 string fileName = file.FileName;
                 mainWindowViewModel.Log("Uploading completed.");
                 mainWindowViewModel.Log("  file name: " + fileName);
-                mainWindowViewModel.Log("  result: " +  (result ? "Success" : "Failure"));
+                mainWindowViewModel.Log("  result: " + (result ? "Success" : "Failure"));
             }
             isUploading = false;
             UpdateCanExecute();
+
+            // TODO: only add successful uploads
+            foreach (FileViewModel file in Files) {
+                TransferViewModel transfer = new(
+                direction: TransferViewModel.Direction.Upload,
+                fileName: file.FileName, url: file.Url!, result: TransferViewModel.Result.Success);
+                this.mainWindowViewModel.AddTransfer(Id, transfer);
+            }
         }
     }
 
     public class TransferViewModel {
-        private TransferModel model;
-        public TransferViewModel(TransferModel model) {
-            this.model = model;
+        public enum Direction { Send, Receive, Upload, Download }
+        public enum Result { Success, Failure, Canceled }
+
+        public Direction direction;
+        public Result result;
+        public string fileName;
+        public string url;
+
+        public TransferViewModel(Direction direction, string fileName, string url, Result result) {
+            this.direction = direction;
+            this.fileName = fileName;
+            this.url = url;
+            this.result = result;
         }
 
         public override string ToString() {
             StringBuilder sb = new();
-            sb.Append(model.direction == TransferModel.Direction.Send ? "↑" : "↓");
-            sb.Append(" Id:");
-            sb.Append(model.payloadId);
-            sb.Append(" Bytes: ");
-            sb.Append(model.payloadSize);
+            sb.Append(DirectionToChar(direction))
+                .Append(ResultToChar(result))
+                .Append(' ')
+                .Append(fileName)
+                .Append(" | ")
+                .Append(url);
             return sb.ToString();
+        }
+
+        private static char DirectionToChar(Direction direction) {
+            return direction switch {
+                Direction.Send => '↖',
+                Direction.Receive => '↘',
+                Direction.Upload => '↑',
+                Direction.Download => '↓',
+                _ => '⚠',
+            };
+        }
+
+        private static char ResultToChar(Result result) {
+            return result switch {
+                Result.Success => '✓',
+                Result.Failure => '✕',
+                Result.Canceled => '⚠',
+                _ => ' ',
+            };
         }
     }
 
@@ -268,8 +297,8 @@ namespace HelloCloudWpf {
         public string? Url { get => url; }
         public bool IsUploaded { get => !String.IsNullOrEmpty(Url); }
 
-        public Visibility UploadedIconVisibility { get => IsUploaded ?  Visibility.Visible : Visibility.Hidden; }
-        public Visibility UploadingIconVisibility {  get => isUploading ? Visibility.Visible : Visibility.Hidden; }
+        public Visibility UploadedIconVisibility { get => IsUploaded ? Visibility.Visible : Visibility.Hidden; }
+        public Visibility UploadingIconVisibility { get => isUploading ? Visibility.Visible : Visibility.Hidden; }
         public Visibility NotUploadedIconVisibility { get => IsUploaded || isUploading ? Visibility.Hidden : Visibility.Visible; }
 
         private readonly string fileName;
@@ -417,11 +446,11 @@ namespace HelloCloudWpf {
             SelectedEndpoint = null;
             nullSelectedEndpoint = new EndpointViewModel(this, string.Empty, string.Empty);
 
-            var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
-                Medium = Medium.kBluetooth
-            };
-            Endpoints.Add(endpoint);
-            SelectedEndpoint = endpoint;
+            //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
+            //    Medium = Medium.kBluetooth
+            //};
+            //Endpoints.Add(endpoint);
+            //SelectedEndpoint = endpoint;
 
             router = InitServiceControllerRouter();
             if (router == IntPtr.Zero) {
@@ -570,68 +599,17 @@ namespace HelloCloudWpf {
             SetBusy(false);
         }
 
-        public void SendBytes(string endpointId) {
-            Log("Sending bytes...");
-            Log("  endpoint_id: " + endpointId);
-            SetBusy(true);
-            UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
+        public void SendFiles(string endpointId, IEnumerable<(string fileName, string url)> files) {
+            (int fileCount, byte[] payload) = EncodePayload(files);
 
-            byte[] payload = new byte[10];
-            for (int i = 0; i < payload.Length; i++) {
-                payload[i] = (byte)i;
-            }
-            OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
-            Log("SendBytes finished. Result: " + result);
-            SetBusy(false);
-        }
-
-        public void SendUrls(string endpointId, IEnumerable<string> urls) {
-            // Buffer format: 
-            // int: url count
-            // Each url:
-            //   int: url length, including the \x0 at the end, not including this int
-            //   url content, encoded in UTF8
-            //   \x0
-
-            MemoryStream stream = new ();
-            byte[] buffer;
-            int byteCount = 0;
-            int urlCount = 0;
-
-            // Url count placeholder, since we haven't counted yet
-            buffer = BitConverter.GetBytes(0);
-            stream.Write(buffer, 0, buffer.Length);
-            byteCount += buffer.Length;
-
-            foreach (string url in urls) {
-                int len = url.Length;
-                
-                // Url length, with the terminating \x0
-                buffer = BitConverter.GetBytes(len+1);
-                stream.Write(buffer, 0, buffer.Length);
-
-                buffer = Encoding.UTF8.GetBytes(url);
-                stream.Write(buffer, 0, buffer.Length);
-                stream.WriteByte(0);
-
-                byteCount += sizeof(int) + buffer.Length + 1;
-                urlCount++;
-            }
-
-            // Now write the actual url count
-            stream.Position = 0;
-            buffer = BitConverter.GetBytes(urlCount);
-            stream.Write(buffer, 0, buffer.Length);
-            byte[] payload = stream.ToArray();
-
-            Log(string.Format("Sending {0} URL(s), {1} bytes in total ...", urlCount, payload.Length));
+            Log($"Sending {endpointId} {fileCount} file(s), {payload.Length} bytes in total ...");
             SetBusy(true);
             UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Sending);
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
             if (result != OperationResult.kSuccess) {
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Discovered);
             }
-            Log("SendBytes finished. Result: " + result);
+            Log($"Sending files to {endpointId} finished. Result: {result}");
             SetBusy(false);
         }
 
@@ -655,7 +633,18 @@ namespace HelloCloudWpf {
             Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, message);
         }
 
-        private EndpointViewModel? GetEndpointById(string endpointId) {
+        public void AddTransfer(string endpointId, TransferViewModel transfer) {
+            EndpointViewModel? endpoint = Endpoints.FirstOrDefault(endpoint => endpoint.Id == endpointId);
+            if (endpoint == null) {
+                Log("Trying to add a transfer from/to an endpoint that has already been removed.");
+                Log("  endpoint_id: " + endpointId);
+                Log("  transfer: " + transfer);
+                return;
+            }
+            Application.Current.Dispatcher.BeginInvoke(endpoint.Transfers.Add, transfer);
+        }
+
+        private EndpointViewModel? GetEndpoint(string endpointId) {
             foreach (EndpointViewModel endpoint in Endpoints) {
                 if (endpoint.Id == endpointId) {
                     return endpoint;
@@ -665,7 +654,7 @@ namespace HelloCloudWpf {
         }
 
         private EndpointViewModel.EndpointState? GetEndpointState(string endpointId) {
-            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint == null) {
                 Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
                 return null;
@@ -675,7 +664,7 @@ namespace HelloCloudWpf {
 
         // TODO: does this also need to happen on the UI thread?
         private void UpdateEndpointState(string endpointId, EndpointViewModel.EndpointState state) {
-            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint == null) {
                 Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
                 return;
@@ -698,7 +687,7 @@ namespace HelloCloudWpf {
             // In this case, adding the endpoint has been scheduled but has not been executed.
             Application.Current.Dispatcher.BeginInvoke(
                 (string endpointId) => {
-                    EndpointViewModel? endpoint = GetEndpointById(endpointId);
+                    EndpointViewModel? endpoint = GetEndpoint(endpointId);
 
                     if (endpoint == null) {
                         Log("Trying to select an endpoint that has already been removed. Id: " + endpointId);
@@ -735,18 +724,6 @@ namespace HelloCloudWpf {
                     }
                 },
                 endpoint);
-        }
-
-        private void AddTransfer(String endpointId, TransferModel transfer) {
-            TransferViewModel transferViewModel = new(transfer);
-            EndpointViewModel? endpoint = Endpoints.FirstOrDefault(endpoint => endpoint.Id == endpointId);
-            if (endpoint == null) {
-                Log("Trying to add a transfer from/to an endpoint that has already been removed.");
-                Log("  endpoint_id: " + endpointId);
-                Log("  transfer: " + transferViewModel);
-                return;
-            }
-            Application.Current.Dispatcher.BeginInvoke(endpoint.Transfers.Add, transferViewModel);
         }
 
         private void Accept(string endpointId) {
@@ -801,7 +778,7 @@ namespace HelloCloudWpf {
             Application.Current.Dispatcher.BeginInvoke(
                 (string endpointId) => Accept(endpointId), endpointId);
 
-            if (GetEndpointById(endpointId) == null) {
+            if (GetEndpoint(endpointId) == null) {
                 // We didn't discover this endpoint. Add it to the list of remote endpoints.
                 string name = Encoding.UTF8.GetString(endpointInfo);
                 if (String.IsNullOrEmpty(name)) {
@@ -832,7 +809,7 @@ namespace HelloCloudWpf {
         private void RemoveOrChangeState(string endpointId) {
             // If the endpoint wasn't discovered by us in the first place, remove it.
             // Otherwise, keep it and change its state to Discovered.
-            EndpointViewModel? endpoint = GetEndpointById(endpointId);
+            EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint?.IsIncoming ?? false) {
                 Application.Current.Dispatcher.BeginInvoke(Endpoints.Remove, endpoint);
             } else {
@@ -858,31 +835,30 @@ namespace HelloCloudWpf {
             Log("  endpoint_id: " + endpointId);
             Log("  medium: " + medium.ToString());
 
-            var endpoint = GetEndpointById(endpointId);
+            var endpoint = GetEndpoint(endpointId);
             if (endpoint != null) {
                 endpoint.Medium = medium;
             }
         }
 
         // It's weird that NC passes the payload content before updating the progress.
-        // We are supposed to monitor the progress and wait till it's completed to
-        // consume the payload content. But I'm not sure how it'd work for any managed
-        // code.
+        // We are supposed to monitor the progress and wait till it's completed before
+        // consuming the payload content. But I'm not sure how it'd work for managed
+        // code, since we cannot hold on to the buffer.
         // TODO: investigate how this works for Dart and Java
         private void OnPayloadInitiated(string endpointId, long payloadId, long payloadSize, byte[] payloadContent) {
             Log("OnPayloadInitiated:");
             Log("  endpoint_id: " + endpointId);
             Log("  payload_id: " + payloadId);
-            StringBuilder stringBuilder = new();
-            for (int i = 0; i < Math.Min(16, payloadSize); i++) {
-                stringBuilder.AppendFormat("{0:X} ", payloadContent[i]);
-            }
-            Log(stringBuilder.ToString());
-
-            DecodePayload(payloadContent);
 
             if (GetEndpointState(endpointId) != EndpointViewModel.EndpointState.Sending) {
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Receiving);
+                IEnumerable<(string fileName, string url)> files = DecodePayload(payloadContent);
+                foreach ((string fileName, string url) in files) {
+                    TransferViewModel transfer = 
+                        new(TransferViewModel.Direction.Receive, fileName, url, result: TransferViewModel.Result.Success);
+                    AddTransfer(endpointId, transfer);
+                }
             }
         }
 
@@ -895,54 +871,106 @@ namespace HelloCloudWpf {
             Log(String.Format("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal));
 
             bool isSending = GetEndpointState(endpointId) == EndpointViewModel.EndpointState.Sending;
-            TransferModel transfer = new() {
-                direction = isSending ? TransferModel.Direction.Send : TransferModel.Direction.Receive,
-                payloadId = payloadId,
-                payloadSize = bytesTotal
-            };
+            TransferViewModel.Result result;
+            EndpointViewModel? endpoint = GetEndpoint(endpointId);
 
             switch (status) {
             case PayloadStatus.kInProgress:
-                break;
+                return;
             case PayloadStatus.kSuccess:
-                transfer.result = TransferModel.Result.Success;
-                AddTransfer(endpointId, transfer);
+                result = TransferViewModel.Result.Success;
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
-                EndpointViewModel? endpoint = GetEndpointById(endpointId);
-                endpoint?.ClearFiles();
+                if (isSending) {
+                    endpoint?.ClearFiles();
+                }
                 break;
             case PayloadStatus.kFailure:
-                transfer.result = TransferModel.Result.Failure;
-                AddTransfer(endpointId, transfer);
+                result = TransferViewModel.Result.Failure;
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
                 break;
             case PayloadStatus.kCanceled:
-                transfer.result = TransferModel.Result.Canceled;
-                AddTransfer(endpointId, transfer);
+                result = TransferViewModel.Result.Canceled;
                 UpdateEndpointState(endpointId, EndpointViewModel.EndpointState.Connected);
                 break;
             default:
-                break;
+                return;
+            }
+
+            if (isSending && endpoint != null) {
+                foreach (FileViewModel file in endpoint!.Files) {
+                    TransferViewModel transfer = 
+                        new(TransferViewModel.Direction.Send, file.FileName, file.Url!, result: result);
+                    AddTransfer(endpointId, transfer);
+                }
             }
         }
 
-        private void DecodePayload(byte[] payload) {
-            List<string> urls = new();
+        private static (int, byte[]) EncodePayload(IEnumerable<(string fileName, string url)> files) {
+            // Buffer format: 
+            // int32: file count
+            // Each file:
+            //   int32: file name length including the \x0 at the end, not including this int
+            //   file name string content, encoded in UTF8
+            //   \x0
+            //   int32: url length, including the \x0 at the end, not including this int
+            //   url content, encoded in UTF8
+            //   \x0
+            // In other words, file names and URLs are in both Pascal and C styles, to make
+            // decoding a bit easier.
 
-            int offset = 0; ;
-            int urlCount = BitConverter.ToInt32(payload, 0);
-            offset += sizeof(int);
+            static void WriteStringToStream(MemoryStream stream, string s) {
+                int len = s.Length;
+                byte[] buffer = BitConverter.GetBytes(len + 1);
+                stream.Write(buffer, 0, buffer.Length);
 
-            for (int i = 0; i < urlCount; i++) {
+                buffer = Encoding.UTF8.GetBytes(s);
+                stream.Write(buffer, 0, buffer.Length);
+                stream.WriteByte(0);
+            }
+
+            MemoryStream stream = new();
+            byte[] buffer;
+            int fileCount = 0;
+
+            // File count placeholder, since we haven't counted yet
+            buffer = BitConverter.GetBytes(0);
+            stream.Write(buffer, 0, buffer.Length);
+
+            foreach ((string fileName, string url) in files) {
+                WriteStringToStream(stream, fileName);
+                WriteStringToStream(stream, url!);
+                fileCount++;
+            }
+
+            // Now write the actual file count
+            stream.Position = 0;
+            buffer = BitConverter.GetBytes(fileCount);
+            stream.Write(buffer, 0, buffer.Length);
+            return (fileCount, stream.ToArray());
+        }
+
+        private static IList<(string fileName, string url)> DecodePayload(byte[] payload) {
+            static string ReadString(byte[] payload, ref int offset) {
                 int len = BitConverter.ToInt32(payload, offset);
                 offset += sizeof(int);
-
-                string url = Encoding.UTF8.GetString(payload, offset, len-1);
+                string s = Encoding.UTF8.GetString(payload, offset, len - 1);
                 offset += len;
-                urls.Add(url);
-
-                Log("Url: " + url);
+                return s;
             }
+
+            List<(string fileName, string url)> files = new();
+
+            int offset = 0;
+            int fileCount = BitConverter.ToInt32(payload, 0);
+            offset += sizeof(int);
+
+            for (int i = 0; i < fileCount; i++) {
+                string fileName = ReadString(payload, ref offset);
+                string url = ReadString(payload, ref offset);
+                files.Add((fileName, url));
+            }
+
+            return files;
         }
         #endregion
     }

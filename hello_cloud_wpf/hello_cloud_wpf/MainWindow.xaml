@@ -155,7 +155,9 @@
                     </GridView>
                 </ListView.View>
             </ListView>
-            <Label DockPanel.Dock="Top" Content="Transfers" FontWeight="Bold"/>
+            <Label DockPanel.Dock="Top" 
+                   Content="Transfers ↖:Send, ↘:Receive ↑:Upload ↓:Download ✓:Success ✕:Failure ⚠:Canceled" 
+                   FontWeight="Bold"/>
             <ListView DockPanel.Dock="Bottom" Margin="0,0"
                       FontFamily="Consolas"
                       ItemsSource="{Binding Transfers}"/>
