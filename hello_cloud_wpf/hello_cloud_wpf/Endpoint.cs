@@ -161,12 +161,12 @@ namespace HelloCloudWpf {
                 _ => incomingFiles.All(file => !file.IsDownloading) && incomingFiles.Any(file => !file.IsDownloaded));
         }
 
-        public void AddIncomingFile(IncomingFileViewModel file) {
-            Application.Current.Dispatcher.BeginInvoke(IncomingFiles.Add, file);
+        public void AddIncomingFile(IncomingFileModel file) {
+            Application.Current.Dispatcher.BeginInvoke(IncomingFiles.Add, new IncomingFileViewModel(file));
         }
 
-        public void AddTransfer(TransferViewModel transfer) {
-            Application.Current.Dispatcher.BeginInvoke(Transfers.Add, transfer);
+        public void AddTransfer(TransferModel transfer) {
+            Application.Current.Dispatcher.BeginInvoke(Transfers.Add, new TransferViewModel(transfer));
         }
 
         public void ClearOutgoingFiles() {
@@ -218,11 +218,12 @@ namespace HelloCloudWpf {
             }
             UpdateCanExecute();
 
-            // TODO: only add successful uploads
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
-                TransferViewModel transfer = new(
-                direction: TransferViewModel.Direction.Upload,
-                fileName: file.FileName, url: file.Url!, result: TransferViewModel.Result.Success);
+                TransferModel transfer = new(
+                    direction: TransferModel.Direction.Upload,
+                    fileName: file.FileName,
+                    url: file.Url!,
+                    result: TransferModel.Result.Success);
                 AddTransfer(transfer);
             }
         }
@@ -250,9 +251,11 @@ namespace HelloCloudWpf {
             }
 
             foreach (IncomingFileViewModel file in filesToDownload) {
-                TransferViewModel transfer = new(
-                direction: TransferViewModel.Direction.Download,
-                fileName: file.FileName, url: file.Url, result: TransferViewModel.Result.Success);
+                TransferModel transfer = new (
+                    direction: TransferModel.Direction.Download,
+                    fileName: file.FileName,
+                    url: file.Url,
+                    result: TransferModel.Result.Success);
                 AddTransfer(transfer);
             }
         }

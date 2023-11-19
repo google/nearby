@@ -152,9 +152,9 @@ namespace HelloCloudWpf {
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
             SelectedEndpoint = null;
-            nullSelectedEndpoint = new EndpointViewModel(this, 
+            nullSelectedEndpoint = new EndpointViewModel(this,
                 new EndpointModel(
-                    id: string.Empty, 
+                    id: string.Empty,
                     name: string.Empty));
 
             //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
@@ -457,8 +457,8 @@ namespace HelloCloudWpf {
             Log("  service_id: " + serviceId);
 
             AddEndpoint(new EndpointModel(
-                id: endpointId, 
-                name: endpointName, 
+                id: endpointId,
+                name: endpointName,
                 state: State.Discovered));
         }
 
@@ -490,9 +490,9 @@ namespace HelloCloudWpf {
                 // Since we didn't discover this endpoint, we should remove it after we
                 // disconnect from it later. So let's mark it as "incoming".
                 EndpointModel endpoint = new EndpointModel(
-                    id: endpointId, 
-                    name: name, 
-                    state: State.Pending, 
+                    id: endpointId,
+                    name: name,
+                    state: State.Pending,
                     isIncoming: true);
                 AddEndpoint(endpoint);
             } else {
@@ -570,15 +570,13 @@ namespace HelloCloudWpf {
                 endpoint.State = State.Receiving;
                 IEnumerable<(string fileName, string url)> files = DecodePayload(payloadContent);
                 foreach ((string fileName, string url) in files) {
-                    TransferViewModel transfer =
-                        new(
-                            direction: TransferViewModel.Direction.Receive, 
-                            fileName: fileName, 
-                            url: url, 
-                            result: TransferViewModel.Result.Success);
+                    TransferModel transfer = new (
+                        direction: TransferModel.Direction.Receive,
+                        fileName: fileName,
+                        url: url,
+                        result: TransferModel.Result.Success);
                     endpoint.AddTransfer(transfer);
-                    endpoint.AddIncomingFile(
-                        new IncomingFileViewModel(new IncomingFileModel(fileName: fileName, url: url)));
+                    endpoint.AddIncomingFile(new IncomingFileModel(fileName: fileName, url: url));
                 }
             }
         }
@@ -592,25 +590,25 @@ namespace HelloCloudWpf {
             Log(string.Format("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal));
 
             bool isSending = GetEndpoint(endpointId)?.State == State.Sending;
-            TransferViewModel.Result result;
+            TransferModel.Result result;
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
 
             switch (status) {
             case PayloadStatus.kInProgress:
                 return;
             case PayloadStatus.kSuccess:
-                result = TransferViewModel.Result.Success;
+                result = TransferModel.Result.Success;
                 SetEndpointState(endpointId, State.Connected);
                 if (isSending) {
                     endpoint?.ClearOutgoingFiles();
                 }
                 break;
             case PayloadStatus.kFailure:
-                result = TransferViewModel.Result.Failure;
+                result = TransferModel.Result.Failure;
                 SetEndpointState(endpointId, State.Connected);
                 break;
             case PayloadStatus.kCanceled:
-                result = TransferViewModel.Result.Canceled;
+                result = TransferModel.Result.Canceled;
                 SetEndpointState(endpointId, State.Connected);
                 break;
             default:
@@ -619,8 +617,11 @@ namespace HelloCloudWpf {
 
             if (isSending && endpoint != null) {
                 foreach (OutgoingFileViewModel file in endpoint!.OutgoingFiles) {
-                    TransferViewModel transfer =
-                        new(TransferViewModel.Direction.Send, file.FileName, file.Url!, result: result);
+                    TransferModel transfer = new(
+                        direction: TransferModel.Direction.Send, 
+                        fileName: file.FileName, 
+                        url: file.Url!, 
+                        result: result);
                     endpoint.AddTransfer(transfer);
                 }
             }

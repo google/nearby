@@ -16,51 +16,42 @@ namespace HelloCloudWpf {
             this.url = url;
             this.result = result;
         }
-
 }
 
     public class TransferViewModel {
-        public enum Direction { Send, Receive, Upload, Download }
-        public enum Result { Success, Failure, Canceled }
 
-        public Direction direction;
-        public Result result;
-        public string fileName;
-        public string url;
+        private TransferModel model;
 
-        public TransferViewModel(Direction direction, string fileName, string url, Result result) {
-            this.direction = direction;
-            this.fileName = fileName;
-            this.url = url;
-            this.result = result;
+        public TransferViewModel(TransferModel model) {
+            this.model = model;
         }
 
         public override string ToString() {
             StringBuilder sb = new();
-            sb.Append(DirectionToChar(direction))
-                .Append(ResultToChar(result))
+            sb.Append(DirectionToChar(model.direction))
+                .Append(ResultToChar(model.result))
                 .Append(' ')
-                .Append(fileName)
+                .Append(model.fileName)
                 .Append(" | ")
-                .Append(url);
+                .Append(model.url);
             return sb.ToString();
         }
 
-        private static char DirectionToChar(Direction direction) {
+        private static char DirectionToChar(TransferModel.Direction direction) {
             return direction switch {
-                Direction.Send => '↖',
-                Direction.Receive => '↘',
-                Direction.Upload => '↑',
-                Direction.Download => '↓',
+                TransferModel.Direction.Send => '↖',
+                TransferModel.Direction.Receive => '↘',
+                TransferModel.Direction.Upload => '↑',
+                TransferModel.Direction.Download => '↓',
                 _ => '⚠',
             };
         }
 
-        private static char ResultToChar(Result result) {
+        private static char ResultToChar(TransferModel.Result result) {
             return result switch {
-                Result.Success => '✓',
-                Result.Failure => '✕',
-                Result.Canceled => '⚠',
+                TransferModel.Result.Success => '✓',
+                TransferModel.Result.Failure => '✕',
+                TransferModel.Result.Canceled => '⚠',
                 _ => ' ',
             };
         }
