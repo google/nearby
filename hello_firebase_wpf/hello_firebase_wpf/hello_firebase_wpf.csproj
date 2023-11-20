@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="FirebaseAuthentication.net" Version="4.1.0" />
     <PackageReference Include="FirebaseStorage.net" Version="1.0.3" />
+    <PackageReference Include="Google.Cloud.Storage.V1" Version="4.7.0" />
   </ItemGroup>
 
 </Project>

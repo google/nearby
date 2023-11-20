@@ -11,10 +11,10 @@
         <UniformGrid DockPanel.Dock="Top" Rows="1">
             <Button Margin="5"
                     Content="Choose"
-                    Command="{Binding PickFilesCommand}"
-                    />
+                    Command="{Binding PickFilesCommand}"/>
             <Button Margin="5"
-                Content="Upload"></Button>
+                Content="Upload"
+                Command="{Binding UploadCommand}"/>
         </UniformGrid>
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
             <Label Content="Url: "/>
