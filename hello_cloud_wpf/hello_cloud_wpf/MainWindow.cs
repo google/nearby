@@ -339,13 +339,8 @@ namespace HelloCloudWpf {
             Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, message);
         }
 
-        private EndpointViewModel? GetEndpoint(string endpointId) {
-            var result = Endpoints.FirstOrDefault(endpoint => endpoint.Id == endpointId);
-            if (result == null) {
-                Log($"Endpoint {endpointId} does not exist yet/anymore.");
-            }
-            return result;
-        }
+        private EndpointViewModel? GetEndpoint(string endpointId) =>
+            Endpoints.FirstOrDefault(endpoint => endpoint.Id == endpointId);
 
         // TODO: does this also need to happen on the UI thread?
         private void SetEndpointState(string endpointId, EndpointModel.State state) {
@@ -443,6 +438,11 @@ namespace HelloCloudWpf {
             Log("  endpoint_id: " + endpointId);
             Log("  endpoint_info: " + endpointName);
             Log("  service_id: " + serviceId);
+
+            if (GetEndpoint(endpointId) != null) {
+                Log("  endpoint already in the list!");
+                return;
+            }
 
             AddEndpoint(new EndpointModel(
                 id: endpointId,
