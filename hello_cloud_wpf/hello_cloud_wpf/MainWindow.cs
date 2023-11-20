@@ -351,11 +351,11 @@ namespace HelloCloudWpf {
         private void SetEndpointState(string endpointId, EndpointModel.State state) {
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint == null) {
-                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
+                Log(string.Format("End point {0} not found. Probably already lost.", endpointId));
                 return;
             }
 
-            Log(String.Format("Setting endpoint {0}'s state to {1}", endpointId, state));
+            Log(string.Format("Setting endpoint {0}'s state to {1}", endpointId, state));
             endpoint.State = state;
 
             // Refresh the states of the buttons if the endpoint is currently selected.
@@ -472,7 +472,7 @@ namespace HelloCloudWpf {
                 // We didn't discover this endpoint. Add it to the list of remote endpoints.
                 string name = Encoding.UTF8.GetString(endpointInfo);
                 if (String.IsNullOrEmpty(name)) {
-                    Log(String.Format("Endpoint {0} has an invalid name, discarding...", endpointId));
+                    Log(string.Format("Endpoint {0} has an invalid name, discarding...", endpointId));
                     return;
                 }
                 // Since we didn't discover this endpoint, we should remove it after we
@@ -550,13 +550,20 @@ namespace HelloCloudWpf {
 
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint == null) {
-                Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
+                Log(string.Format("End point {0} not found. Probably already lost.", endpointId));
                 return;
             }
 
             if (endpoint.State != EndpointModel.State.Sending) {
                 endpoint.State = EndpointModel.State.Receiving;
-                IEnumerable<(string fileName, string url)> files = DecodePayload(payloadContent);
+                IEnumerable<(string fileName, string url)>? files = DecodePayload(payloadContent);
+                if (files == null) {
+                    Log("Invalid payload:");
+                    Log("  endpoint_id: " + endpointId);
+                    Log("  payload_id: " + payloadId);
+                    return;
+                }
+
                 foreach ((string fileName, string url) in files) {
                     TransferModel transfer = new(
                         direction: TransferModel.Direction.Receive,
@@ -659,8 +666,7 @@ namespace HelloCloudWpf {
             return (fileCount, stream.ToArray());
         }
 
-        private static IList<(string fileName, string url)> DecodePayload(byte[] payload) {
-            // TODO: error handling
+        private static IList<(string fileName, string url)>? DecodePayload(byte[] payload) {
             static string ReadString(byte[] payload, ref int offset) {
                 int len = BitConverter.ToInt32(payload, offset);
                 offset += sizeof(int);
@@ -671,17 +677,20 @@ namespace HelloCloudWpf {
 
             List<(string fileName, string url)> files = new();
 
-            int offset = 0;
-            int fileCount = BitConverter.ToInt32(payload, 0);
-            offset += sizeof(int);
+            try {
+                int offset = 0;
+                int fileCount = BitConverter.ToInt32(payload, 0);
+                offset += sizeof(int);
 
-            for (int i = 0; i < fileCount; i++) {
-                string fileName = ReadString(payload, ref offset);
-                string url = ReadString(payload, ref offset);
-                files.Add((fileName, url));
-            }
+                for (int i = 0; i < fileCount; i++) {
+                    string fileName = ReadString(payload, ref offset);
+                    string url = ReadString(payload, ref offset);
+                    files.Add((fileName!, url!));
+                }
 
-            return files;
+                return files;
+            } catch (Exception) { return null; }
+
         }
         #endregion
     }
