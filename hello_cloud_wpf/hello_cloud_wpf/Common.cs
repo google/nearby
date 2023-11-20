@@ -53,12 +53,12 @@ namespace HelloCloudWpf {
         }
 
         protected override void InsertItem(int index, TViewModel item) {
-            models.Insert(index, item.Model);
+            models.Insert(index, item.Model!);
             base.InsertItem(index, item);
         }
 
         protected override void SetItem(int index, TViewModel item) {
-            models[index] = item.Model;
+            models[index] = item.Model!;
             base.SetItem(index, item);
         }
     }

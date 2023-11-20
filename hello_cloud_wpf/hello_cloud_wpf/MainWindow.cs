@@ -22,6 +22,8 @@ namespace HelloCloudWpf {
     }
 
     public class MainViewModel : INotifyPropertyChanged, IViewModel<MainModel> {
+        public static MainViewModel Instance;
+
         private static readonly string serviceId = "com.google.location.nearby.apps.helloconnections";
 
         // Medium selection for advertising and connection
@@ -125,13 +127,14 @@ namespace HelloCloudWpf {
         private readonly List<GCHandle> callbackHandles = new();
 
         public MainViewModel() {
+            Instance = this;
+
             Model = new MainModel();
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
             endpoints = new(Model.endpoints);
 
             nullSelectedEndpoint ??= new EndpointViewModel() {
-                MainWindow = this,
                 Model = new EndpointModel(
                         id: string.Empty,
                         name: string.Empty)
@@ -149,7 +152,6 @@ namespace HelloCloudWpf {
                 _ => CanClearLog());
 
             EndpointViewModel endpoint = new() {
-                MainWindow = this,
                 Model = new EndpointModel("ABCD", "My PC", EndpointModel.State.Connected),
                 Medium = Medium.kBluetooth,
             };
@@ -334,7 +336,7 @@ namespace HelloCloudWpf {
 
         public void SetBusy(bool value) {
             busy = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Cursor)));
+            PropertyChanged?.Invoke(this, new (nameof(Cursor)));
         }
 
         public void Log(string message) {
@@ -387,7 +389,6 @@ namespace HelloCloudWpf {
                     SelectedEndpoint = endpoint;
                 },
                 new EndpointViewModel() {
-                    MainWindow = this,
                     Model = endpoint
                 });
         }
@@ -573,7 +574,7 @@ namespace HelloCloudWpf {
                         url: url,
                         result: TransferModel.Result.Success);
                     endpoint.AddTransfer(transfer);
-                    endpoint.AddIncomingFile(new IncomingFileModel(fileName: fileName, url: url));
+                    endpoint.AddIncomingFile(new IncomingFileModel(localPath: fileName, remotePath: url));
                 }
             }
         }
@@ -616,8 +617,8 @@ namespace HelloCloudWpf {
                 foreach (OutgoingFileViewModel file in endpoint!.OutgoingFiles) {
                     TransferModel transfer = new(
                         direction: TransferModel.Direction.Send,
-                        fileName: file.FileName,
-                        url: file.Url!,
+                        fileName: file.LocalPath,
+                        url: file.RemotePath!,
                         result: result);
                     endpoint.AddTransfer(transfer);
                 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using Google.Cloud.Storage.V1;
+using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -101,7 +102,7 @@ namespace HelloCloudWpf {
                 PropertyChanged?.Invoke(this, new(nameof(GrayIconVisibility)));
 
                 // Refresh the states of the buttons if the endpoint is currently selected.
-                if (this == MainWindow!.SelectedEndpoint) {
+                if (this == MainViewModel.Instance.SelectedEndpoint) {
                     UpdateCanExecute();
                 }
             }
@@ -122,7 +123,6 @@ namespace HelloCloudWpf {
         public ICommand BeginUploadCommand => beginUploadCommand;
         public ICommand BeginDownloadCommand => beginDownloadCommand;
 
-        public MainViewModel? MainWindow { get; set; }
         public EndpointModel? Model {
             get => model;
             set {
@@ -148,16 +148,16 @@ namespace HelloCloudWpf {
 
         public EndpointViewModel() {
             connectCommand = new RelayCommand(
-                _ => MainWindow!.RequestConnection(Id),
+                _ => MainViewModel.Instance.RequestConnection(Id),
                 _ => State == EndpointModel.State.Discovered);
             sendCommand = new RelayCommand(
-                _ => MainWindow!.SendFiles(
-                    Id, OutgoingFiles.Select(file => (file.FileName, file.Url!))),
+                _ => MainViewModel.Instance.SendFiles(
+                    Id, OutgoingFiles.Select(file => (file.LocalPath, file.RemotePath!))),
                 _ => State == EndpointModel.State.Connected
                     && OutgoingFiles.Any()
                     && OutgoingFiles.All(file => file.IsUploaded));
             disconnectCommand = new RelayCommand(
-                _ => MainWindow!.Disconnect(Id),
+                _ => MainViewModel.Instance.Disconnect(Id),
                 _ => State == EndpointModel.State.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
@@ -216,30 +216,35 @@ namespace HelloCloudWpf {
         }
 
         private void BeginUpload() {
+            MainViewModel.Instance.SetBusy(true);
             Thread thread = new(UploadWorker);
             thread.Start();
+            MainViewModel.Instance.SetBusy(false);
         }
 
         private void UploadWorker() {
-            List<Task<bool>> uploadingTasks = new();
+            // See https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev
+            // for setting up adc
+            StorageClient client = StorageClient.Create();
+
+            List<Task<string?>> uploadingTasks = new();
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
-                uploadingTasks.Add(file.Upload());
+                uploadingTasks.Add(file.Upload(client));
             }
             Task.WaitAll(uploadingTasks.ToArray());
 
             foreach (var (task, file) in uploadingTasks.Zip(OutgoingFiles)) {
-                MainWindow!.Log("Uploading completed.");
-                MainWindow!.Log("  file name: " + file.FileName);
-                MainWindow!.Log("  url: " + file.Url);
-                MainWindow!.Log("  result: " + (task.Result ? "Success" : "Failure"));
+                MainViewModel.Instance.Log("Uploading completed.");
+                MainViewModel.Instance.Log("  local path: " + file.LocalPath);
+                MainViewModel.Instance.Log("  remote path: " + task.Result);
             }
             UpdateCanExecute();
 
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
                 TransferModel transfer = new(
                     direction: TransferModel.Direction.Upload,
-                    fileName: file.FileName,
-                    url: file.Url!,
+                    fileName: file.LocalPath,
+                    url: file.RemotePath!,
                     result: TransferModel.Result.Success);
                 AddTransfer(transfer);
             }
@@ -251,27 +256,30 @@ namespace HelloCloudWpf {
         }
 
         private void DownloadWorker() {
+            // See https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev
+            // for setting up adc
+            StorageClient client = StorageClient.Create();
+
             List<IncomingFileViewModel> filesToDownload =
                 IncomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
 
-            List<Task<bool>> downloadingTasks = new();
+            List<Task<string?>> downloadingTasks = new();
             foreach (IncomingFileViewModel file in filesToDownload) {
-                downloadingTasks.Add(file.Download());
+                downloadingTasks.Add(file.Download(client));
             }
             Task.WaitAll(downloadingTasks.ToArray());
 
             foreach (var (task, file) in downloadingTasks.Zip(filesToDownload)) {
-                MainWindow!.Log("Downloading completed.");
-                MainWindow!.Log("  file name: " + file.FileName);
-                MainWindow!.Log("  url: " + file.Url);
-                MainWindow!.Log("  result: " + (task.Result ? "Success" : "Failure"));
+                MainViewModel.Instance.Log("Downloading completed.");
+                MainViewModel.Instance.Log("  remote path: " + file.RemotePath);
+                MainViewModel.Instance.Log("  local path: " + task.Result);
             }
 
             foreach (IncomingFileViewModel file in filesToDownload) {
                 TransferModel transfer = new(
                     direction: TransferModel.Direction.Download,
-                    fileName: file.FileName,
-                    url: file.Url,
+                    fileName: file.Path,
+                    url: file.RemotePath,
                     result: TransferModel.Result.Success);
                 AddTransfer(transfer);
             }
