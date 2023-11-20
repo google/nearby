@@ -18,22 +18,19 @@ namespace HelloCloudWpf {
         }
 }
 
-    public class TransferViewModel {
+    public class TransferViewModel : IViewModel<TransferModel> {
+        public TransferModel? Model { get; set; }
 
-        private TransferModel model;
-
-        public TransferViewModel(TransferModel model) {
-            this.model = model;
-        }
+        public TransferViewModel() { }
 
         public override string ToString() {
             StringBuilder sb = new();
-            sb.Append(DirectionToChar(model.direction))
-                .Append(ResultToChar(model.result))
+            sb.Append(DirectionToChar(Model!.direction))
+                .Append(ResultToChar(Model!.result))
                 .Append(' ')
-                .Append(model.fileName)
+                .Append(Model!.fileName)
                 .Append(" | ")
-                .Append(model.url);
+                .Append(Model.url);
             return sb.ToString();
         }
 

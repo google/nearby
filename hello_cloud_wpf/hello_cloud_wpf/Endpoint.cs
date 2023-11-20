@@ -33,7 +33,7 @@ namespace HelloCloudWpf {
         public static string ReadableName(this Medium medium) => mediumNames[medium];
     }
 
-    public struct EndpointModel {
+    public class EndpointModel {
         public enum State {
             Discovered,  // Discovered, ready to connect
             Pending, // Pending connection
@@ -43,12 +43,17 @@ namespace HelloCloudWpf {
             Receiving, // Receiving a payload
         }
 
-        public string id;
-        public string name;
+        public string id = string.Empty;
+        public string name = string.Empty;
         public Medium? medium = null;
         public State? state = null;
-        // An incoming endpoint is one that we didn't discover, but one that has discovered us and connected to us.
+        // An incoming endpoint is one that we didn't discover,
+        // but one that has discovered us and connected to us.
         public bool isIncoming;
+
+        public Collection<OutgoingFileModel> outgoingFiles = new();
+        public Collection<IncomingFileModel> incomingFiles = new();
+        public Collection<TransferModel> transfers = new();
 
         public EndpointModel(string id, string name, State? state = null, bool isIncoming = false) {
             this.id = id;
@@ -58,48 +63,42 @@ namespace HelloCloudWpf {
         }
     }
 
-    public class EndpointViewModel : INotifyPropertyChanged {
-        public Visibility SpinnerIconVisibility {
-            get => model.state == EndpointModel.State.Pending
-                || model.state == EndpointModel.State.Receiving
-                || model.state == EndpointModel.State.Sending
+    public class EndpointViewModel : INotifyPropertyChanged, IViewModel<EndpointModel> {
+        public Visibility SpinnerIconVisibility => Model!.state is EndpointModel.State.Pending
+                or EndpointModel.State.Receiving
+                or EndpointModel.State.Sending
                 ? Visibility.Visible : Visibility.Hidden;
-        }
 
-        public Visibility GreenIconVisibility {
-            get => model.state == EndpointModel.State.Connected
+        public Visibility GreenIconVisibility => Model!.state == EndpointModel.State.Connected
                 ? Visibility.Visible : Visibility.Hidden;
-        }
 
-        public Visibility GrayIconVisibility {
-            get => model.state == EndpointModel.State.Discovered ?
+        public Visibility GrayIconVisibility => Model!.state == EndpointModel.State.Discovered ?
                 Visibility.Visible : Visibility.Hidden;
-        }
 
-        public string MediumReadableName { get => model.medium?.ReadableName() ?? ""; }
+        public string MediumReadableName { get => Model!.medium?.ReadableName() ?? ""; }
 
         public Medium? Medium {
-            get => model.medium;
+            get => Model!.medium;
             set {
-                model.medium = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MediumReadableName)));
+                Model!.medium = value;
+                PropertyChanged?.Invoke(this, new(nameof(MediumReadableName)));
             }
         }
 
-        public string Id { get => model.id; }
+        public string Id { get => Model!.id; }
 
-        public string Name { get => model.name; }
+        public string Name { get => Model!.name; }
 
-        public bool IsIncoming { get => model.isIncoming; }
+        public bool IsIncoming { get => Model!.isIncoming; }
 
         public EndpointModel.State? State {
-            get => model.state;
+            get => Model!.state;
             set {
-                model.state = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(State)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SpinnerIconVisibility)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GreenIconVisibility)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GrayIconVisibility)));
+                Model!.state = value;
+                PropertyChanged?.Invoke(this, new(nameof(State)));
+                PropertyChanged?.Invoke(this, new(nameof(SpinnerIconVisibility)));
+                PropertyChanged?.Invoke(this, new(nameof(GreenIconVisibility)));
+                PropertyChanged?.Invoke(this, new(nameof(GrayIconVisibility)));
 
                 // Refresh the states of the buttons if the endpoint is currently selected.
                 if (this == mainWindow.SelectedEndpoint) {
@@ -108,26 +107,28 @@ namespace HelloCloudWpf {
             }
         }
 
-        public ObservableCollection<OutgoingFileViewModel> OutgoingFiles { get => outgoingFiles; }
-        public ObservableCollection<IncomingFileViewModel> IncomingFiles { get => incomingFiles; }
+        public ObservableCollection<OutgoingFileViewModel> OutgoingFiles => outgoingFiles;
 
-        public ObservableCollection<TransferViewModel> Transfers { get => transfers; }
+        public ObservableCollection<IncomingFileViewModel> IncomingFiles => incomingFiles;
+
+        public ObservableCollection<TransferViewModel> Transfers => transfers;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public ICommand ConnectCommand { get => connectCommand; }
-        public ICommand SendCommand { get => sendCommand; }
-        public ICommand DisconnectCommand { get => disconnectCommand; }
-        public ICommand PickFilesCommand { get => pickFilesCommand; }
-        public ICommand BeginUploadCommand { get => beginUploadCommand; }
-        public ICommand BeginDownloadCommand { get => beginDownloadCommand; }
+        public ICommand ConnectCommand => connectCommand;
+        public ICommand SendCommand => sendCommand;
+        public ICommand DisconnectCommand => disconnectCommand;
+        public ICommand PickFilesCommand => pickFilesCommand;
+        public ICommand BeginUploadCommand => beginUploadCommand;
+        public ICommand BeginDownloadCommand => beginDownloadCommand;
 
-        private EndpointModel model;
+        public EndpointModel? Model { get; set; }
+
         private readonly MainWindowViewModel mainWindow;
 
-        private readonly ObservableCollection<TransferViewModel> transfers = new();
-        private readonly ObservableCollection<OutgoingFileViewModel> outgoingFiles = new();
-        private readonly ObservableCollection<IncomingFileViewModel> incomingFiles = new();
+        private readonly ViewModelCollection<OutgoingFileViewModel, OutgoingFileModel> outgoingFiles;
+        private readonly ViewModelCollection<IncomingFileViewModel, IncomingFileModel> incomingFiles;
+        private readonly ViewModelCollection<TransferViewModel, TransferModel> transfers;
 
         private readonly ICommand connectCommand;
         private readonly ICommand sendCommand;
@@ -138,35 +139,49 @@ namespace HelloCloudWpf {
 
         public EndpointViewModel(
             MainWindowViewModel mainWindowViewModel, EndpointModel model) {
-            this.mainWindow = mainWindowViewModel;
-            this.model = model;
+            mainWindow = mainWindowViewModel;
+            Model = model;
+
+            outgoingFiles = new(Model.outgoingFiles);
+            incomingFiles = new(Model.incomingFiles);
+            transfers = new(Model.transfers);
 
             connectCommand = new RelayCommand(
                 _ => mainWindow.RequestConnection(Id),
                 _ => State == EndpointModel.State.Discovered);
             sendCommand = new RelayCommand(
-                _ => mainWindow.SendFiles(Id, outgoingFiles.Select(file => (file.FileName, file.Url!))),
-                _ => State == EndpointModel.State.Connected && outgoingFiles.Any() && outgoingFiles.All(file => file.IsUploaded));
+                _ => mainWindow.SendFiles(
+                    Id, OutgoingFiles.Select(file => (file.FileName, file.Url!))),
+                _ => State == EndpointModel.State.Connected
+                    && OutgoingFiles.Any()
+                    && OutgoingFiles.All(file => file.IsUploaded));
             disconnectCommand = new RelayCommand(
                 _ => mainWindow.Disconnect(Id),
                 _ => State == EndpointModel.State.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
-                _ => outgoingFiles.All(file => !file.IsUploading) && State == EndpointModel.State.Connected);
+                _ => OutgoingFiles.All(file => !file.IsUploading)
+                    && State == EndpointModel.State.Connected);
             beginUploadCommand = new RelayCommand(
                 _ => BeginUpload(),
-                _ => outgoingFiles.All(file => !file.IsUploading) && outgoingFiles.Any(file => !file.IsUploaded));
+                _ => OutgoingFiles.All(file => !file.IsUploading)
+                    && OutgoingFiles.Any(file => !file.IsUploaded));
             beginDownloadCommand = new RelayCommand(
                 _ => BeginDownload(),
-                _ => incomingFiles.All(file => !file.IsDownloading) && incomingFiles.Any(file => !file.IsDownloaded));
+                _ => IncomingFiles.All(file => !file.IsDownloading)
+                    && IncomingFiles.Any(file => !file.IsDownloaded));
         }
 
         public void AddIncomingFile(IncomingFileModel file) {
-            Application.Current.Dispatcher.BeginInvoke(IncomingFiles.Add, new IncomingFileViewModel(file));
+            Application.Current.Dispatcher.BeginInvoke(
+                IncomingFiles.Add,
+                new IncomingFileViewModel() { Model = file });
         }
 
         public void AddTransfer(TransferModel transfer) {
-            Application.Current.Dispatcher.BeginInvoke(Transfers.Add, new TransferViewModel(transfer));
+            Application.Current.Dispatcher.BeginInvoke(
+                Transfers.Add,
+                new TransferViewModel() { Model = transfer });
         }
 
         public void ClearOutgoingFiles() {
@@ -189,10 +204,12 @@ namespace HelloCloudWpf {
             OpenFileDialog openFileDialog = new() { Multiselect = true };
             bool? result = openFileDialog.ShowDialog();
             if (result == true) {
-                outgoingFiles.Clear();
+                OutgoingFiles.Clear();
                 foreach (string fileName in openFileDialog.FileNames) {
-                    outgoingFiles.Add(
-                        new OutgoingFileViewModel(new OutgoingFileModel(fileName)));
+                    OutgoingFiles.Add(
+                        new OutgoingFileViewModel() {
+                            Model = new OutgoingFileModel(fileName)
+                        });
                 }
             }
         }
@@ -203,14 +220,13 @@ namespace HelloCloudWpf {
         }
 
         private void UploadWorker() {
-            // TODO: only upload files that haven't been uploaded successfully
             List<Task<bool>> uploadingTasks = new();
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
                 uploadingTasks.Add(file.Upload());
             }
             Task.WaitAll(uploadingTasks.ToArray());
 
-            foreach (var (task, file) in uploadingTasks.Zip(outgoingFiles)) {
+            foreach (var (task, file) in uploadingTasks.Zip(OutgoingFiles)) {
                 mainWindow.Log("Uploading completed.");
                 mainWindow.Log("  file name: " + file.FileName);
                 mainWindow.Log("  url: " + file.Url);
@@ -235,7 +251,7 @@ namespace HelloCloudWpf {
 
         private void DownloadWorker() {
             List<IncomingFileViewModel> filesToDownload =
-                incomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
+                IncomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
 
             List<Task<bool>> downloadingTasks = new();
             foreach (IncomingFileViewModel file in filesToDownload) {
@@ -251,7 +267,7 @@ namespace HelloCloudWpf {
             }
 
             foreach (IncomingFileViewModel file in filesToDownload) {
-                TransferModel transfer = new (
+                TransferModel transfer = new(
                     direction: TransferModel.Direction.Download,
                     fileName: file.FileName,
                     url: file.Url,

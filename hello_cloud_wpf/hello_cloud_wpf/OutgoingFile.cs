@@ -13,38 +13,42 @@ namespace HelloCloudWpf {
         }
     }
 
-    public class OutgoingFileViewModel : INotifyPropertyChanged {
+    public class OutgoingFileViewModel : INotifyPropertyChanged, IViewModel<OutgoingFileModel> {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string FileName { get => model.fileName; }
-        public string? Url { get => model.url; }
+        public string FileName { get => Model!.fileName; }
+        public string? Url { get => Model!.url; }
         public bool IsUploaded { get => !string.IsNullOrEmpty(Url); }
-        public bool IsUploading { get => model.isUploading; }
+        public bool IsUploading { get => Model!.isUploading; }
 
-        public Visibility UploadedIconVisibility { get => IsUploaded ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility UploadingIconVisibility { get => IsUploading ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility NotUploadedIconVisibility { get => IsUploaded || IsUploading ? Visibility.Hidden : Visibility.Visible; }
-
-        private readonly OutgoingFileModel model;
-
-        public OutgoingFileViewModel(OutgoingFileModel model) {
-            this.model = model;
+        public Visibility UploadedIconVisibility { 
+            get => IsUploaded ? Visibility.Visible : Visibility.Hidden; 
+        }
+        public Visibility UploadingIconVisibility { 
+            get => IsUploading ? Visibility.Visible : Visibility.Hidden; 
+        }
+        public Visibility NotUploadedIconVisibility { 
+            get => IsUploaded || IsUploading ? Visibility.Hidden : Visibility.Visible; 
         }
 
+        public OutgoingFileModel? Model { get; set; }
+
+        public OutgoingFileViewModel() { }
+
         public async Task<bool> Upload() {
-            model.isUploading = true;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotUploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadingIconVisibility)));
+            Model!.isUploading = true;
+            PropertyChanged?.Invoke(this, new (nameof(UploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new (nameof(NotUploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new (nameof(UploadingIconVisibility)));
 
             await Task.Delay(1000);
-            model.url = "http://foo.bar/awesome.jpg";
-            model.isUploading = false;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotUploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadingIconVisibility)));
+            Model!.url = "http://foo.bar/awesome.jpg";
+            Model!.isUploading = false;
+            PropertyChanged?.Invoke(this, new (nameof(UploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new (nameof(NotUploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new (nameof(UploadingIconVisibility)));
 
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Url)));
+            PropertyChanged?.Invoke(this, new (nameof(Url)));
             return true;
         }
     }

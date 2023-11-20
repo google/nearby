@@ -76,7 +76,15 @@ namespace HelloCloudWpf {
             }
         }
 
-        public static EndpointViewModel NullSelectedEndpoint { get { return nullSelectedEndpoint!; } }
+        public EndpointViewModel NullSelectedEndpoint {
+            get {
+                nullSelectedEndpoint ??= nullSelectedEndpoint = new EndpointViewModel(this,
+                new EndpointModel(
+                    id: string.Empty,
+                    name: string.Empty));
+                return nullSelectedEndpoint!;
+            }
+        }
 
         public Cursor Cursor {
             get => busy ? Cursors.Wait : Cursors.Arrow;
@@ -150,12 +158,6 @@ namespace HelloCloudWpf {
                 _ => CanClearLog());
 
             LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
-
-            SelectedEndpoint = null;
-            nullSelectedEndpoint = new EndpointViewModel(this,
-                new EndpointModel(
-                    id: string.Empty,
-                    name: string.Empty));
 
             //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
             //    Medium = Medium.kBluetooth
