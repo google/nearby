@@ -148,11 +148,13 @@ namespace HelloCloudWpf {
                 _ => ClearLog(),
                 _ => CanClearLog());
 
-            //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
-            //    Medium = Medium.kBluetooth
-            //};
-            //Endpoints.Add(endpoint);
-            //SelectedEndpoint = endpoint;
+            EndpointViewModel endpoint = new() {
+                MainWindow = this,
+                Model = new EndpointModel("ABCD", "My PC", EndpointModel.State.Connected),
+                Medium = Medium.kBluetooth,
+            };
+            Endpoints.Add(endpoint);
+            SelectedEndpoint = endpoint;
 
             router = InitServiceControllerRouter();
             if (router == IntPtr.Zero) {
