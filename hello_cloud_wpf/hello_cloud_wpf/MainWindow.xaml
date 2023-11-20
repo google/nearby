@@ -10,7 +10,7 @@
         Height="768" Width="1024"
         Closed="Window_Closed">
     <Window.DataContext>
-        <local:MainWindowViewModel/>
+        <local:MainViewModel/>
     </Window.DataContext>
     <Grid Cursor="{Binding Cursor}">
         <Grid.ColumnDefinitions>
@@ -72,7 +72,7 @@
             <ListView ItemsSource="{Binding LogEntries}" FontFamily="Consolas"/>
         </DockPanel>
         <DockPanel Grid.Column="1" Margin="10,10" 
-                   DataContext="{Binding SelectedEndpoint, TargetNullValue=NullSelectedEndpoint}">
+                   DataContext="{Binding SelectedEndpoint, TargetNullValue={x:Static local:MainViewModel.NullSelectedEndpoint}}">
             <UniformGrid DockPanel.Dock="Top" Rows="2" Margin="0,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Label FontWeight="Bold" Content="Id"/>

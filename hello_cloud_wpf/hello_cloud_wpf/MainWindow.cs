@@ -2,40 +2,26 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
-using static HelloCloudWpf.EndpointModel;
 using static HelloCloudWpf.NearbyConnections;
 
 namespace HelloCloudWpf {
-    public class RelayCommand : ICommand {
-        readonly Action<object?> execute;
-        readonly Predicate<object?> canExecute;
+    public class MainModel {
+        public Collection<EndpointModel> endpoints = new();
 
-        public RelayCommand(Action<object?> execute, Predicate<object?> canExecute) {
-            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            this.canExecute = canExecute;
+        public string LocalEndpointName { get; set; }
+
+        public MainModel() {
+            LocalEndpointName = string.Empty;
         }
-
-        public bool CanExecute(object? parameter) {
-            return canExecute == null || canExecute(parameter);
-        }
-
-        public event EventHandler? CanExecuteChanged {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public void Execute(object? parameter) { execute(parameter); }
     }
 
-    // TODO: split it into a model class and a viewmodel class
-    public class MainWindowViewModel : INotifyPropertyChanged {
+    public class MainViewModel : INotifyPropertyChanged, IViewModel<MainModel> {
         private static readonly string serviceId = "com.google.location.nearby.apps.helloconnections";
 
         // Medium selection for advertising and connection
@@ -72,32 +58,23 @@ namespace HelloCloudWpf {
             get => selectedEndpoint;
             set {
                 selectedEndpoint = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedEndpoint)));
+                PropertyChanged?.Invoke(this, new(nameof(SelectedEndpoint)));
             }
         }
 
-        public EndpointViewModel NullSelectedEndpoint {
-            get {
-                nullSelectedEndpoint ??= nullSelectedEndpoint = new EndpointViewModel(this,
-                new EndpointModel(
-                    id: string.Empty,
-                    name: string.Empty));
-                return nullSelectedEndpoint!;
-            }
-        }
+        public static EndpointViewModel NullSelectedEndpoint => nullSelectedEndpoint!;
 
         public Cursor Cursor {
             get => busy ? Cursors.Wait : Cursors.Arrow;
         }
 
         public string LocalEndpointName {
-            get => localEndpointName;
+            get => Model!.LocalEndpointName;
             set {
-                localEndpointName = value;
-
-                int len = Encoding.UTF8.GetByteCount(localEndpointName);
+                Model!.LocalEndpointName = value;
+                int len = Encoding.UTF8.GetByteCount(value);
                 localEndpointInfo = new byte[len + 1];
-                Encoding.UTF8.GetBytes(localEndpointName, 0, localEndpointName.Length, localEndpointInfo, 0);
+                Encoding.UTF8.GetBytes(value, 0, value.Length, localEndpointInfo, 0);
                 localEndpointInfo[len] = 0;
             }
         }
@@ -114,16 +91,17 @@ namespace HelloCloudWpf {
         public event PropertyChangedEventHandler? PropertyChanged;
         public ICommand ClearLogCommand { get { return clearLogCommand; } }
 
+        public MainModel? Model { get; set; }
+
         private readonly IntPtr router = IntPtr.Zero;
         private readonly IntPtr core = IntPtr.Zero;
 
-        private static EndpointViewModel? nullSelectedEndpoint = null;
+        private static EndpointViewModel? nullSelectedEndpoint;
 
-        private readonly ObservableCollection<EndpointViewModel> endpoints = new();
+        private readonly ViewModelCollection<EndpointViewModel, EndpointModel> endpoints;
         private EndpointViewModel? selectedEndpoint;
         // Local endpoint info. In our case, it's a UTF8 encoded name.
-        private byte[] localEndpointInfo;
-        private string localEndpointName;
+        private byte[] localEndpointInfo = Array.Empty<byte>();
         private bool isNotAdvertising = true;
 
         private readonly ICommand clearLogCommand;
@@ -144,8 +122,21 @@ namespace HelloCloudWpf {
         private readonly PayloadInitiatedCallback payloadInitiatedCallback;
         private readonly PayloadProgressCallback payloadProgressCallback;
 
-#pragma warning disable CS8618
-        public MainWindowViewModel() {
+        private readonly List<GCHandle> callbackHandles = new();
+
+        public MainViewModel() {
+            Model = new MainModel();
+            LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
+
+            endpoints = new(Model.endpoints);
+
+            nullSelectedEndpoint ??= new EndpointViewModel() {
+                MainWindow = this,
+                Model = new EndpointModel(
+                        id: string.Empty,
+                        name: string.Empty)
+            };
+
             // Note: any operation that changes a property that has a binding from the UI, e.g. the busy state,
             // needs to happen on the UI thread. But since some can only be triggered from the UI, e.g.
             // StartDiscovering(), we're not ensure to make these changes in the UI thread. But we probably should
@@ -156,8 +147,6 @@ namespace HelloCloudWpf {
             clearLogCommand = new RelayCommand(
                 _ => ClearLog(),
                 _ => CanClearLog());
-
-            LocalEndpointName = Environment.GetEnvironmentVariable("COMPUTERNAME") ?? "Windows";
 
             //var endpoint = new EndpointViewModel(this, id: "ABCD", name: "Example endpoint 1") {
             //    Medium = Medium.kBluetooth
@@ -176,15 +165,13 @@ namespace HelloCloudWpf {
             }
 
             // Allocate memory these delegates so that they don't get GCed.
-            // TODO: free up the memory in the destructor.
-
             endpointFoundCallback = OnEndpointFound;
             endpointLostCallback = OnEndpointLost;
             endpointDistanceChangedCallback = OnEndpointDistanceChanged;
 
-            GCHandle.Alloc(endpointFoundCallback);
-            GCHandle.Alloc(endpointLostCallback);
-            GCHandle.Alloc(endpointDistanceChangedCallback);
+            callbackHandles.Add(GCHandle.Alloc(endpointFoundCallback));
+            callbackHandles.Add(GCHandle.Alloc(endpointLostCallback));
+            callbackHandles.Add(GCHandle.Alloc(endpointDistanceChangedCallback));
 
             initiatedCallback = OnConnectionInitiated;
             acceptedCallback = OnConnectionAccepted;
@@ -192,26 +179,24 @@ namespace HelloCloudWpf {
             disconnectedCallback = OnConnectionDisconnected;
             bandwidthUpgradedCallback = OnBandwidthUpgraded;
 
-            GCHandle.Alloc(initiatedCallback);
-            GCHandle.Alloc(acceptedCallback);
-            GCHandle.Alloc(rejectedCallback);
-            GCHandle.Alloc(disconnectedCallback);
-            GCHandle.Alloc(bandwidthUpgradedCallback);
+            callbackHandles.Add(GCHandle.Alloc(initiatedCallback));
+            callbackHandles.Add(GCHandle.Alloc(acceptedCallback));
+            callbackHandles.Add(GCHandle.Alloc(rejectedCallback));
+            callbackHandles.Add(GCHandle.Alloc(disconnectedCallback));
+            callbackHandles.Add(GCHandle.Alloc(bandwidthUpgradedCallback));
 
             payloadInitiatedCallback = OnPayloadInitiated;
             payloadProgressCallback = OnPayloadProgress;
 
-            GCHandle.Alloc(payloadInitiatedCallback);
-            GCHandle.Alloc(payloadProgressCallback);
+            callbackHandles.Add(GCHandle.Alloc(payloadInitiatedCallback));
+            callbackHandles.Add(GCHandle.Alloc(payloadProgressCallback));
         }
-#pragma warning restore CS8618
 
         public void Deinit() {
-            if (core != IntPtr.Zero) {
-                NearbyConnections.CloseCore(core);
-            }
-            if (router != IntPtr.Zero) {
-                NearbyConnections.CloseServiceControllerRouter(router);
+            NearbyConnections.CloseCore(core);
+            NearbyConnections.CloseServiceControllerRouter(router);
+            foreach (GCHandle callbackHandle in callbackHandles) {
+                callbackHandle.Free();
             }
         }
 
@@ -232,7 +217,6 @@ namespace HelloCloudWpf {
                 lowPower = true,
                 deviceInfo = IntPtr.Zero,
             };
-            Debug.Assert(localEndpointInfo != null);
             OperationResult result = NearbyConnections.StartAdvertising(
                 core,
                 serviceId,
@@ -288,9 +272,8 @@ namespace HelloCloudWpf {
 
         public void RequestConnection(string remoteEndpointId) {
             Log(string.Format("Requesting connection to {0} ...", remoteEndpointId));
-            Debug.Assert(localEndpointInfo != null);
             SetBusy(true);
-            SetEndpointState(remoteEndpointId, State.Pending);
+            SetEndpointState(remoteEndpointId, EndpointModel.State.Pending);
 
             // TODO: keep alive is probably not properly set.
             ConnectionOptions connectionOptions = new() {
@@ -317,7 +300,7 @@ namespace HelloCloudWpf {
             Log(string.Format("Request to connect to {0} completed. Result: {1}", remoteEndpointId, result));
             if (result != OperationResult.kSuccess) {
                 // The request has not been sent by NC. We go back to Discovered state.
-                SetEndpointState(remoteEndpointId, State.Discovered);
+                SetEndpointState(remoteEndpointId, EndpointModel.State.Discovered);
             }
             SetBusy(false);
         }
@@ -327,10 +310,10 @@ namespace HelloCloudWpf {
 
             Log($"Sending {endpointId} {fileCount} file(s), {payload.Length} bytes in total ...");
             SetBusy(true);
-            SetEndpointState(endpointId, State.Sending);
+            SetEndpointState(endpointId, EndpointModel.State.Sending);
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
             if (result != OperationResult.kSuccess) {
-                SetEndpointState(endpointId, State.Discovered);
+                SetEndpointState(endpointId, EndpointModel.State.Discovered);
             }
             Log($"Sending files to {endpointId} finished. Result: {result}");
             SetBusy(false);
@@ -365,7 +348,7 @@ namespace HelloCloudWpf {
         }
 
         // TODO: does this also need to happen on the UI thread?
-        private void SetEndpointState(string endpointId, State state) {
+        private void SetEndpointState(string endpointId, EndpointModel.State state) {
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
             if (endpoint == null) {
                 Log(String.Format("End point {0} not found. Probably already lost.", endpointId));
@@ -406,7 +389,10 @@ namespace HelloCloudWpf {
                     Endpoints.Add(endpoint);
                     SelectedEndpoint = endpoint;
                 },
-                new EndpointViewModel(this, endpoint));
+                new EndpointViewModel() {
+                    MainWindow = this,
+                    Model = endpoint
+                });
         }
 
         private void RemoveEndpoint(string endpointId) {
@@ -461,7 +447,7 @@ namespace HelloCloudWpf {
             AddEndpoint(new EndpointModel(
                 id: endpointId,
                 name: endpointName,
-                state: State.Discovered));
+                state: EndpointModel.State.Discovered));
         }
 
         private void OnEndpointLost(string endpointId) {
@@ -494,11 +480,11 @@ namespace HelloCloudWpf {
                 EndpointModel endpoint = new EndpointModel(
                     id: endpointId,
                     name: name,
-                    state: State.Pending,
+                    state: EndpointModel.State.Pending,
                     isIncoming: true);
                 AddEndpoint(endpoint);
             } else {
-                SetEndpointState(endpointId, State.Pending);
+                SetEndpointState(endpointId, EndpointModel.State.Pending);
             }
 
             SelectEndpoint(endpointId);
@@ -508,7 +494,7 @@ namespace HelloCloudWpf {
             Log("OnConnectionAccepted:");
             Log("  endpoint_id: " + endpointId);
 
-            SetEndpointState(endpointId, State.Connected);
+            SetEndpointState(endpointId, EndpointModel.State.Connected);
         }
 
         private void RemoveOrChangeState(EndpointViewModel? endpoint) {
@@ -518,7 +504,7 @@ namespace HelloCloudWpf {
                 if (endpoint.IsIncoming) {
                     Application.Current.Dispatcher.BeginInvoke(Endpoints.Remove, endpoint);
                 } else {
-                    endpoint.State = State.Discovered;
+                    endpoint.State = EndpointModel.State.Discovered;
                 }
             }
         }
@@ -568,11 +554,11 @@ namespace HelloCloudWpf {
                 return;
             }
 
-            if (endpoint.State != State.Sending) {
-                endpoint.State = State.Receiving;
+            if (endpoint.State != EndpointModel.State.Sending) {
+                endpoint.State = EndpointModel.State.Receiving;
                 IEnumerable<(string fileName, string url)> files = DecodePayload(payloadContent);
                 foreach ((string fileName, string url) in files) {
-                    TransferModel transfer = new (
+                    TransferModel transfer = new(
                         direction: TransferModel.Direction.Receive,
                         fileName: fileName,
                         url: url,
@@ -591,7 +577,7 @@ namespace HelloCloudWpf {
             Log("  status: " + status.ToString());
             Log(string.Format("  bytes transferred: {0}/{1}", bytesTransferred, bytesTotal));
 
-            bool isSending = GetEndpoint(endpointId)?.State == State.Sending;
+            bool isSending = GetEndpoint(endpointId)?.State == EndpointModel.State.Sending;
             TransferModel.Result result;
             EndpointViewModel? endpoint = GetEndpoint(endpointId);
 
@@ -600,18 +586,18 @@ namespace HelloCloudWpf {
                 return;
             case PayloadStatus.kSuccess:
                 result = TransferModel.Result.Success;
-                SetEndpointState(endpointId, State.Connected);
+                SetEndpointState(endpointId, EndpointModel.State.Connected);
                 if (isSending) {
                     endpoint?.ClearOutgoingFiles();
                 }
                 break;
             case PayloadStatus.kFailure:
                 result = TransferModel.Result.Failure;
-                SetEndpointState(endpointId, State.Connected);
+                SetEndpointState(endpointId, EndpointModel.State.Connected);
                 break;
             case PayloadStatus.kCanceled:
                 result = TransferModel.Result.Canceled;
-                SetEndpointState(endpointId, State.Connected);
+                SetEndpointState(endpointId, EndpointModel.State.Connected);
                 break;
             default:
                 return;
@@ -620,9 +606,9 @@ namespace HelloCloudWpf {
             if (isSending && endpoint != null) {
                 foreach (OutgoingFileViewModel file in endpoint!.OutgoingFiles) {
                     TransferModel transfer = new(
-                        direction: TransferModel.Direction.Send, 
-                        fileName: file.FileName, 
-                        url: file.Url!, 
+                        direction: TransferModel.Direction.Send,
+                        fileName: file.FileName,
+                        url: file.Url!,
                         result: result);
                     endpoint.AddTransfer(transfer);
                 }

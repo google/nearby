@@ -101,7 +101,7 @@ namespace HelloCloudWpf {
                 PropertyChanged?.Invoke(this, new(nameof(GrayIconVisibility)));
 
                 // Refresh the states of the buttons if the endpoint is currently selected.
-                if (this == mainWindow.SelectedEndpoint) {
+                if (this == MainWindow!.SelectedEndpoint) {
                     UpdateCanExecute();
                 }
             }
@@ -122,13 +122,20 @@ namespace HelloCloudWpf {
         public ICommand BeginUploadCommand => beginUploadCommand;
         public ICommand BeginDownloadCommand => beginDownloadCommand;
 
-        public EndpointModel? Model { get; set; }
+        public MainViewModel? MainWindow { get; set; }
+        public EndpointModel? Model {
+            get => model;
+            set {
+                model = value;
+                outgoingFiles = new(model!.outgoingFiles);
+                incomingFiles = new(model!.incomingFiles);
+                transfers = new(model!.transfers);
+            }
+        }
 
-        private readonly MainWindowViewModel mainWindow;
-
-        private readonly ViewModelCollection<OutgoingFileViewModel, OutgoingFileModel> outgoingFiles;
-        private readonly ViewModelCollection<IncomingFileViewModel, IncomingFileModel> incomingFiles;
-        private readonly ViewModelCollection<TransferViewModel, TransferModel> transfers;
+        private ViewModelCollection<OutgoingFileViewModel, OutgoingFileModel> outgoingFiles;
+        private ViewModelCollection<IncomingFileViewModel, IncomingFileModel> incomingFiles;
+        private ViewModelCollection<TransferViewModel, TransferModel> transfers;
 
         private readonly ICommand connectCommand;
         private readonly ICommand sendCommand;
@@ -137,26 +144,20 @@ namespace HelloCloudWpf {
         private readonly ICommand beginUploadCommand;
         private readonly ICommand beginDownloadCommand;
 
-        public EndpointViewModel(
-            MainWindowViewModel mainWindowViewModel, EndpointModel model) {
-            mainWindow = mainWindowViewModel;
-            Model = model;
+        private EndpointModel? model;
 
-            outgoingFiles = new(Model.outgoingFiles);
-            incomingFiles = new(Model.incomingFiles);
-            transfers = new(Model.transfers);
-
+        public EndpointViewModel() {
             connectCommand = new RelayCommand(
-                _ => mainWindow.RequestConnection(Id),
+                _ => MainWindow!.RequestConnection(Id),
                 _ => State == EndpointModel.State.Discovered);
             sendCommand = new RelayCommand(
-                _ => mainWindow.SendFiles(
+                _ => MainWindow!.SendFiles(
                     Id, OutgoingFiles.Select(file => (file.FileName, file.Url!))),
                 _ => State == EndpointModel.State.Connected
                     && OutgoingFiles.Any()
                     && OutgoingFiles.All(file => file.IsUploaded));
             disconnectCommand = new RelayCommand(
-                _ => mainWindow.Disconnect(Id),
+                _ => MainWindow!.Disconnect(Id),
                 _ => State == EndpointModel.State.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
@@ -227,10 +228,10 @@ namespace HelloCloudWpf {
             Task.WaitAll(uploadingTasks.ToArray());
 
             foreach (var (task, file) in uploadingTasks.Zip(OutgoingFiles)) {
-                mainWindow.Log("Uploading completed.");
-                mainWindow.Log("  file name: " + file.FileName);
-                mainWindow.Log("  url: " + file.Url);
-                mainWindow.Log("  result: " + (task.Result ? "Success" : "Failure"));
+                MainWindow!.Log("Uploading completed.");
+                MainWindow!.Log("  file name: " + file.FileName);
+                MainWindow!.Log("  url: " + file.Url);
+                MainWindow!.Log("  result: " + (task.Result ? "Success" : "Failure"));
             }
             UpdateCanExecute();
 
@@ -260,10 +261,10 @@ namespace HelloCloudWpf {
             Task.WaitAll(downloadingTasks.ToArray());
 
             foreach (var (task, file) in downloadingTasks.Zip(filesToDownload)) {
-                mainWindow.Log("Downloading completed.");
-                mainWindow.Log("  file name: " + file.FileName);
-                mainWindow.Log("  url: " + file.Url);
-                mainWindow.Log("  result: " + (task.Result ? "Success" : "Failure"));
+                MainWindow!.Log("Downloading completed.");
+                MainWindow!.Log("  file name: " + file.FileName);
+                MainWindow!.Log("  url: " + file.Url);
+                MainWindow!.Log("  result: " + (task.Result ? "Success" : "Failure"));
             }
 
             foreach (IncomingFileViewModel file in filesToDownload) {

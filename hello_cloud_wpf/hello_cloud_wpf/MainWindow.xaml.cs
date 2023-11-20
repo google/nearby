@@ -24,24 +24,24 @@ namespace HelloCloudWpf {
         }
 
         private void IsAdvertisingChecked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel)?.StartAdvertising();
+            (DataContext as MainViewModel)?.StartAdvertising();
         }
 
         private void IsAdvertisingUnchecked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel)?.StopAdvertising();
+            (DataContext as MainViewModel)?.StopAdvertising();
         }
 
         private void IsDiscoveringChecked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel)?.StartDiscovering();
+            (DataContext as MainViewModel)?.StartDiscovering();
         }
 
         private void IsDiscoveringUnchecked(object sender, RoutedEventArgs e) {
-            (DataContext as MainWindowViewModel)?.StopDiscovering();
+            (DataContext as MainViewModel)?.StopDiscovering();
 
         }
 
         private void Window_Closed(object sender, System.EventArgs e) {
-            (DataContext as MainWindowViewModel)?.Deinit();
+            (DataContext as MainViewModel)?.Deinit();
         }
     }
 }
