@@ -336,7 +336,7 @@ namespace HelloCloudWpf {
         }
 
         public void Log(string message) {
-            Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, message);
+            Application.Current.Dispatcher.BeginInvoke(LogEntries.Add, DateTime.Now.ToString("HH:mm:ss ") + message);
         }
 
         private EndpointViewModel? GetEndpoint(string endpointId) =>
