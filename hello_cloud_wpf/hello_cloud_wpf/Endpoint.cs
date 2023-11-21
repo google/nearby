@@ -21,9 +21,9 @@ namespace HelloCloudWpf {
             new Dictionary<Medium, string>() {
                 {Medium.kUnknown, "Unknown"},
                 {Medium.kMdns, "mDNS"},
-                {Medium.kBluetooth, "Bluetooth Classic"},
+                {Medium.kBluetooth, "BT Classic"},
                 {Medium.kWiFiHotSpot, "Wi-Fi hotspot"},
-                {Medium.kBle, "Bluetooth Low Energy"},
+                {Medium.kBle, "BLE"},
                 {Medium.kWiFiLan, "Wi-Fi LAN"},
                 {Medium.kWifiAware, "Wi-Fi Aware"},
                 {Medium.kNfc, "NFC"},

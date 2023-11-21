@@ -158,6 +158,7 @@ namespace HelloCloudWpf {
         public delegate void EndpointFoundCallback(string endpointId,
             [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] endpointInfo,
             int size,
+            Medium medium,
             string serviceId);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]

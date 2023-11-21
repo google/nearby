@@ -49,7 +49,7 @@ namespace HelloCloudWpf {
         };
 
         private static readonly BooleanMediumSelector connectionMediumSelector = new() {
-            ble = true,
+            ble = false,
             bluetooth = true,
             webRtc = true,
             wifiDirect = true,
@@ -225,7 +225,7 @@ namespace HelloCloudWpf {
                 enableBluetoothListening = true,
                 enableWebrtcListening = true,
                 isOutOfBandConnection = false,
-                lowPower = true,
+                lowPower = false,
                 deviceInfo = IntPtr.Zero,
             };
             OperationResult result = NearbyConnections.StartAdvertising(
@@ -441,12 +441,13 @@ namespace HelloCloudWpf {
         #endregion
 
         #region Callbacks
-        private void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, string serviceId) {
+        private void OnEndpointFound(string endpointId, byte[] endpointInfo, int size, Medium medium, string serviceId) {
             var _ = size;
             string endpointName = Encoding.UTF8.GetString(endpointInfo);
             Log("OnEndPointFound:");
             Log("  endpoint_id: " + endpointId);
             Log("  endpoint_info: " + endpointName);
+            Log("  medium: " + medium);
             Log("  service_id: " + serviceId);
 
             if (GetEndpoint(endpointId) != null) {
@@ -457,7 +458,9 @@ namespace HelloCloudWpf {
             AddEndpoint(new EndpointModel(
                 id: endpointId,
                 name: endpointName,
-                state: EndpointModel.State.Discovered));
+                state: EndpointModel.State.Discovered) {
+                    medium = medium,
+            });
         }
 
         private void OnEndpointLost(string endpointId) {
