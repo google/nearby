@@ -86,10 +86,13 @@ namespace HelloCloudWpf {
             }
         }
 
-        public bool IsNotAdvertising {
-            get => isNotAdvertising;
+        // Enable endpoint name editing if true
+        public bool IsNotAdvertising => !IsAdvertising;
+
+        public bool IsAdvertising {
+            get => isAdvertising;
             set {
-                isNotAdvertising = value;
+                isAdvertising = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsNotAdvertising)));
             }
         }
@@ -109,7 +112,8 @@ namespace HelloCloudWpf {
         private EndpointViewModel? selectedEndpoint;
         // Local endpoint info. In our case, it's a UTF8 encoded name.
         private byte[] localEndpointInfo = Array.Empty<byte>();
-        private bool isNotAdvertising = true;
+        private bool isAdvertising = false;
+        private bool isDiscovering = false;
 
         private readonly ICommand clearLogCommand;
 
@@ -216,7 +220,7 @@ namespace HelloCloudWpf {
             Log("Starting advertising...");
             // StartAdvertising is a sync call. Show hourglass icon before it's done.
             SetBusy(true);
-            IsNotAdvertising = false;
+            IsAdvertising = true;
             AdvertisingOptions advertisingOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = advertisingMediumSelector,
@@ -247,13 +251,14 @@ namespace HelloCloudWpf {
             SetBusy(true);
             OperationResult result = NearbyConnections.StopAdvertising(core);
             Log("StopAdvertising finished. Result: " + result);
-            IsNotAdvertising = true;
+            IsAdvertising = false;
             SetBusy(false);
         }
 
         public void StartDiscovering() {
             Log("Starting discovering...");
             SetBusy(true);
+            isDiscovering = true;
             DiscoveryOptions discoveryOptions = new() {
                 strategy = NearbyConnections.P2pCluster,
                 allowed = discoveryMediumSelector,
@@ -277,7 +282,12 @@ namespace HelloCloudWpf {
             Log("Stopping discovering...");
             SetBusy(true);
             NearbyConnections.StopDiscovering(core);
-            Endpoints.Clear();
+            foreach (EndpointViewModel endpoint in Endpoints) {
+                if (endpoint.State is EndpointModel.State.Discovered) {
+                    Endpoints.Remove(endpoint);
+                }
+            }
+            isDiscovering = false;
             SetBusy(false);
         }
 
@@ -343,7 +353,7 @@ namespace HelloCloudWpf {
 
         public void SetBusy(bool value) {
             busy = value;
-            PropertyChanged?.Invoke(this, new (nameof(Cursor)));
+            PropertyChanged?.Invoke(this, new(nameof(Cursor)));
         }
 
         public void Log(string message) {
@@ -459,7 +469,7 @@ namespace HelloCloudWpf {
                 id: endpointId,
                 name: endpointName,
                 state: EndpointModel.State.Discovered) {
-                    medium = medium,
+                medium = medium,
             });
         }
 
@@ -511,14 +521,16 @@ namespace HelloCloudWpf {
         }
 
         private void RemoveOrChangeState(EndpointViewModel? endpoint) {
+            if (endpoint == null) {
+                return;
+            }
+
             // If the endpoint wasn't discovered by us in the first place, remove it.
             // Otherwise, keep it and change its state to Discovered.
-            if (endpoint != null) {
-                if (endpoint.IsIncoming) {
-                    Application.Current.Dispatcher.BeginInvoke(Endpoints.Remove, endpoint);
-                } else {
-                    endpoint.State = EndpointModel.State.Discovered;
-                }
+            if (endpoint.IsIncoming || !isDiscovering) {
+                Application.Current.Dispatcher.BeginInvoke(Endpoints.Remove, endpoint);
+            } else {
+                endpoint.State = EndpointModel.State.Discovered;
             }
         }
 
@@ -703,7 +715,7 @@ namespace HelloCloudWpf {
                     string remotePath = ReadString(payload, ref offset);
                     long fileSize = BitConverter.ToInt64(payload, offset);
                     offset += sizeof(long);
-                    files.Add(new (path, remotePath, fileSize));
+                    files.Add(new(path, remotePath, fileSize));
                 }
 
                 return files;

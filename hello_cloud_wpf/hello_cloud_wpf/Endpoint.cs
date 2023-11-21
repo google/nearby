@@ -150,7 +150,7 @@ namespace HelloCloudWpf {
 
         // See https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev
         // for setting up adc
-        StorageClient storageClient = StorageClient.Create();
+        readonly StorageClient storageClient = StorageClient.Create();
 
         public EndpointViewModel() {
             connectCommand = new RelayCommand(
