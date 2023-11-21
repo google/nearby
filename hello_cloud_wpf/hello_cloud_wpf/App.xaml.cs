@@ -7,8 +7,10 @@ namespace HelloCloudWpf {
     /// </summary>
     public partial class App : Application
     {
-        public static string GcsBucketName = "hello-cloud-5b73c.appspot.com";
-        public static string DocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\";
+        public readonly static string GcsBucketName = 
+            "hello-cloud-5b73c.appspot.com";
+        public readonly static string DocumentsPath = 
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\";
 
         protected override void OnStartup(StartupEventArgs e) {
             string path = Environment.GetEnvironmentVariable("PATH") ?? "";

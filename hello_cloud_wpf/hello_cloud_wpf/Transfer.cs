@@ -7,13 +7,13 @@ namespace HelloCloudWpf {
 
         public Direction direction;
         public Result result;
-        public string fileName;
-        public string url;
+        public string localPath;
+        public string remotePath;
 
         public TransferModel (Direction direction, string fileName, string url, Result result) {
             this.direction = direction;
-            this.fileName = fileName;
-            this.url = url;
+            this.localPath = fileName;
+            this.remotePath = url;
             this.result = result;
         }
 }
@@ -28,9 +28,9 @@ namespace HelloCloudWpf {
             sb.Append(DirectionToChar(Model!.direction))
                 .Append(ResultToChar(Model!.result))
                 .Append(' ')
-                .Append(Model!.fileName)
+                .Append(Model!.localPath)
                 .Append(" | ")
-                .Append(Model.url);
+                .Append(Model.remotePath);
             return sb.ToString();
         }
 

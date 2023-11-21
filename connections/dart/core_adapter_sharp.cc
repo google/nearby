@@ -15,6 +15,7 @@
 #include "connections/dart/core_adapter_sharp.h"
 
 #include <combaseapi.h>
+#include <strsafe.h>
 
 #include <cstdint>
 #include <string>
@@ -299,4 +300,11 @@ Status DisconnectSharp(Core *pCore, const char *endpoint_id) {
   return result;
 }
 
+const char *GetLocalEndpointIdSharp(Core *pCore) {
+  std::string src = pCore->GetLocalEndpointId();
+  int len = src.length() + 1;
+  char *result = reinterpret_cast<char *>(CoTaskMemAlloc(len));
+  StringCchCopyA(result, len, src.c_str());
+  return result;
+}
 }  // namespace nearby::windows

@@ -265,5 +265,8 @@ namespace HelloCloudWpf {
         public static extern OperationResult Disconnect(
             IntPtr core, 
             [MarshalAs(UnmanagedType.LPStr)] string endpointId);
+
+        [DllImport(NearbyConnectionsDll, EntryPoint = "GetLocalEndpointIdSharp", CharSet = CharSet.Ansi)]
+        public static extern string GetLocalEndpointId(IntPtr core);
     }
 }

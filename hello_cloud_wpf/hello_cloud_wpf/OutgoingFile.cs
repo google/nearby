@@ -9,11 +9,13 @@ using System.Windows;
 namespace HelloCloudWpf {
     public class OutgoingFileModel {
         public readonly string localPath;
+        public readonly long fileSize;
         public string? remotePath = null;
         public bool isUploading = false;
 
-        public OutgoingFileModel(string localPath) {
+        public OutgoingFileModel(string localPath, long fileSize) {
             this.localPath = localPath;
+            this.fileSize = fileSize;
         }
     }
 
@@ -23,10 +25,11 @@ namespace HelloCloudWpf {
         IProgress<IUploadProgress> {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string LocalPath { get => Model!.localPath; }
-        public string? RemotePath { get => Model!.remotePath; }
-        public bool IsUploaded { get => !string.IsNullOrEmpty(RemotePath); }
-        public bool IsUploading { get => Model!.isUploading; }
+        public string LocalPath => Model!.localPath;
+        public string? RemotePath => Model!.remotePath;
+        public long FileSize => Model!.fileSize;
+        public bool IsUploaded => !string.IsNullOrEmpty(RemotePath);
+        public bool IsUploading => Model!.isUploading;
 
         public Visibility UploadedIconVisibility { 
             get => IsUploaded ? Visibility.Visible : Visibility.Hidden; 
@@ -43,7 +46,7 @@ namespace HelloCloudWpf {
         public OutgoingFileViewModel() { }
 
         public async Task<string?> Upload(StorageClient client) {
-            MainViewModel.Instance.Log("Begin uploading " + LocalPath);
+            MainViewModel.Instance.Log("Beginning uploading " + LocalPath);
 
             Model!.isUploading = true;
             PropertyChanged?.Invoke(this, new (nameof(UploadedIconVisibility)));

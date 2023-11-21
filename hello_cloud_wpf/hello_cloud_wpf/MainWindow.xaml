@@ -20,24 +20,30 @@
         <DockPanel Grid.Column="0" Margin="10,10,10,10">
             <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="0.3*" />
                     <ColumnDefinition Width="1.2*" />
-                    <ColumnDefinition Width="0.9*" />
-                    <ColumnDefinition Width="0.9*" />
+                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="0.8*" />
                 </Grid.ColumnDefinitions>
-                <Label Grid.Column="0" Grid.Row="0" Content="Local endpoint" FontWeight="Bold"/>
-                <TextBox Grid.Column="1" Grid.Row="0"
+                <Label Grid.Column="0" Grid.Row="0" Content="Local endpoint:" FontWeight="Bold"/>
+                <TextBlock Grid.Column="1" Grid.Row="0" 
+                           VerticalAlignment="Center"
+                           FontFamily="Consolas" 
+                           FontWeight="Bold" 
+                           Text="{Binding LocalEndpointId}"/>
+                <TextBox Grid.Column="2" Grid.Row="0"
                          IsEnabled="{Binding IsNotAdvertising}"
                          Margin="5,5" 
                          Text="{Binding LocalEndpointName}"
                          FontFamily="consolas"/>
-                <CheckBox Grid.Column="2" Grid.Row="0"
+                <CheckBox Grid.Column="3" Grid.Row="0"
                     Content="Advertising"
                             VerticalAlignment="Center"
                             Name="isAdvertising" 
                             Checked="IsAdvertisingChecked" 
                             Unchecked="IsAdvertisingUnchecked"/>
-                <CheckBox Grid.Column="3" Grid.Row="0"
+                <CheckBox Grid.Column="4" Grid.Row="0"
                     Content="Discovering" 
                             VerticalAlignment="Center"
                             Name="isDiscovering" 
@@ -49,16 +55,18 @@
                       Name="endpointListView"
                       DockPanel.Dock="Top"
                       SelectionMode="Single"
-                      FontFamily="Consolas"
                       ItemsSource="{Binding Endpoints}"
                       SelectedItem="{Binding SelectedEndpoint}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <WrapPanel>
-                            <TextBlock Text="{Binding Id}"/>
-                            <TextBlock Text=" ("/>
-                            <TextBlock Text="{Binding Name}"/>
-                            <TextBlock Text=")"/>
+                        <WrapPanel VerticalAlignment="Center">
+                            <TextBlock FontFamily="Consolas" 
+                                       FontWeight="Bold" 
+                                       VerticalAlignment="Center"
+                                       Text="{Binding Id}"/>
+                            <TextBlock Margin="5,0"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding Name}"/>
                         </WrapPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -192,9 +200,9 @@
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Path" 
+                        <GridViewColumn Header="Local Path" 
                             Width="250"
-                            DisplayMemberBinding="{Binding Path}"/>
+                            DisplayMemberBinding="{Binding LocalPath}"/>
                         <GridViewColumn Header="Remote Path" 
                             Width="250"
                             DisplayMemberBinding="{Binding RemotePath}"/>

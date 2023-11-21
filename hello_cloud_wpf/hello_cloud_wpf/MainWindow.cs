@@ -16,8 +16,11 @@ namespace HelloCloudWpf {
 
         public string LocalEndpointName { get; set; }
 
+        public string LocalEndpointId { get; set; }
+
         public MainModel() {
             LocalEndpointName = string.Empty;
+            LocalEndpointId = string.Empty;
         }
     }
 
@@ -69,6 +72,8 @@ namespace HelloCloudWpf {
         public Cursor Cursor {
             get => busy ? Cursors.Wait : Cursors.Arrow;
         }
+
+        public string LocalEndpointId => Model!.LocalEndpointId;
 
         public string LocalEndpointName {
             get => Model!.LocalEndpointName;
@@ -152,7 +157,7 @@ namespace HelloCloudWpf {
                 _ => CanClearLog());
 
             EndpointViewModel endpoint = new() {
-                Model = new EndpointModel("ABCD", "My PC", EndpointModel.State.Connected),
+                Model = new EndpointModel("R2D2", "Debug droid", EndpointModel.State.Connected),
                 Medium = Medium.kBluetooth,
             };
             Endpoints.Add(endpoint);
@@ -167,6 +172,8 @@ namespace HelloCloudWpf {
             if (core == IntPtr.Zero) {
                 throw new Exception("Failed: InitCore");
             }
+
+            Model.LocalEndpointId = GetLocalEndpointId(core);
 
             // Allocate memory these delegates so that they don't get GCed.
             endpointFoundCallback = OnEndpointFound;
@@ -309,7 +316,7 @@ namespace HelloCloudWpf {
             SetBusy(false);
         }
 
-        public void SendFiles(string endpointId, IEnumerable<(string fileName, string url)> files) {
+        public void SendFiles(string endpointId, IEnumerable<OutgoingFileModel> files) {
             (int fileCount, byte[] payload) = EncodePayload(files);
 
             Log($"Sending {endpointId} {fileCount} file(s), {payload.Length} bytes in total ...");
@@ -559,7 +566,7 @@ namespace HelloCloudWpf {
 
             if (endpoint.State != EndpointModel.State.Sending) {
                 endpoint.State = EndpointModel.State.Receiving;
-                IEnumerable<(string fileName, string url)>? files = DecodePayload(payloadContent);
+                IEnumerable<IncomingFileModel>? files = DecodePayload(payloadContent);
                 if (files == null) {
                     Log("Invalid payload:");
                     Log("  endpoint_id: " + endpointId);
@@ -567,14 +574,14 @@ namespace HelloCloudWpf {
                     return;
                 }
 
-                foreach ((string fileName, string url) in files) {
+                foreach (IncomingFileModel file in files) {
                     TransferModel transfer = new(
                         direction: TransferModel.Direction.Receive,
-                        fileName: fileName,
-                        url: url,
+                        fileName: file.localPath,
+                        url: file.remotePath,
                         result: TransferModel.Result.Success);
                     endpoint.AddTransfer(transfer);
-                    endpoint.AddIncomingFile(new IncomingFileModel(localPath: fileName, remotePath: url));
+                    endpoint.AddIncomingFile(file);
                 }
             }
         }
@@ -625,7 +632,7 @@ namespace HelloCloudWpf {
             }
         }
 
-        private static (int, byte[]) EncodePayload(IEnumerable<(string fileName, string url)> files) {
+        private static (int, byte[]) EncodePayload(IEnumerable<OutgoingFileModel> files) {
             // Buffer format: 
             // int32: file count
             // Each file:
@@ -635,6 +642,7 @@ namespace HelloCloudWpf {
             //   int32: url length, including the \x0 at the end, not including this int
             //   url content, encoded in UTF8
             //   \x0
+            //   int64: file size, in bytes
             // In other words, file names and URLs are in both Pascal and C styles, to make
             // decoding a bit easier.
 
@@ -656,9 +664,11 @@ namespace HelloCloudWpf {
             buffer = BitConverter.GetBytes(0);
             stream.Write(buffer, 0, buffer.Length);
 
-            foreach ((string fileName, string url) in files) {
-                WriteStringToStream(stream, fileName);
-                WriteStringToStream(stream, url!);
+            foreach (OutgoingFileModel file in files) {
+                WriteStringToStream(stream, file.localPath);
+                WriteStringToStream(stream, file.remotePath!);
+                buffer = BitConverter.GetBytes(file.fileSize);
+                stream.Write(buffer);
                 fileCount++;
             }
 
@@ -669,7 +679,7 @@ namespace HelloCloudWpf {
             return (fileCount, stream.ToArray());
         }
 
-        private static IList<(string fileName, string url)>? DecodePayload(byte[] payload) {
+        private static IList<IncomingFileModel>? DecodePayload(byte[] payload) {
             static string ReadString(byte[] payload, ref int offset) {
                 int len = BitConverter.ToInt32(payload, offset);
                 offset += sizeof(int);
@@ -678,7 +688,7 @@ namespace HelloCloudWpf {
                 return s;
             }
 
-            List<(string fileName, string url)> files = new();
+            List<IncomingFileModel> files = new();
 
             try {
                 int offset = 0;
@@ -686,9 +696,11 @@ namespace HelloCloudWpf {
                 offset += sizeof(int);
 
                 for (int i = 0; i < fileCount; i++) {
-                    string fileName = ReadString(payload, ref offset);
-                    string url = ReadString(payload, ref offset);
-                    files.Add((fileName!, url!));
+                    string path = ReadString(payload, ref offset);
+                    string remotePath = ReadString(payload, ref offset);
+                    long fileSize = BitConverter.ToInt64(payload, offset);
+                    offset += sizeof(long);
+                    files.Add(new (path, remotePath, fileSize));
                 }
 
                 return files;

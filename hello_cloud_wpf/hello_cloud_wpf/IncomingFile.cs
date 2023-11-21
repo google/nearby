@@ -6,36 +6,39 @@ using System.Windows;
 
 namespace HelloCloudWpf {
     public class IncomingFileModel {
-        // the path of the file when it was uploaded, not necessarily
-        // the path for downloading.
-        public readonly string path;
+        // the path of the file when it was uploaded, not necessarily the path for downloading.
+        public readonly string localPath;
         public readonly string remotePath;
+        public readonly long fileSize;
+
         public bool isDownloading = false;
         public bool isDownloaded = false;
 
-        public IncomingFileModel(string localPath, string remotePath) {
-            this.path = localPath;
+        public IncomingFileModel(string localPath, string remotePath, long fileSize) {
+            this.localPath = localPath;
             this.remotePath = remotePath;
+            this.fileSize = fileSize;
         }
     }
 
     public class IncomingFileViewModel : INotifyPropertyChanged, IViewModel<IncomingFileModel> {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string Path { get => Model!.path; }
-        public string RemotePath { get => Model!.remotePath; }
-        public bool IsDownloaded { get => Model!.isDownloaded; }
-        public bool IsDownloading { get => Model!.isDownloading; }
+        public string LocalPath => Model!.localPath;
+        public string RemotePath => Model!.remotePath;
+        public long FileSize => Model!.fileSize;
+        public bool IsDownloaded => Model!.isDownloaded;
+        public bool IsDownloading => Model!.isDownloading;
 
-        public Visibility DownloadedIconVisibility { get => IsDownloaded ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility DownloadingIconVisibility { get => IsDownloading ? Visibility.Visible : Visibility.Hidden; }
-        public Visibility NotDownloadedIconVisibility { get => IsDownloaded || IsDownloading ? Visibility.Hidden : Visibility.Visible; }
+        public Visibility DownloadedIconVisibility => IsDownloaded ? Visibility.Visible : Visibility.Hidden;
+        public Visibility DownloadingIconVisibility => IsDownloading ? Visibility.Visible : Visibility.Hidden;
+        public Visibility NotDownloadedIconVisibility => IsDownloaded || IsDownloading ? Visibility.Hidden : Visibility.Visible;
         public IncomingFileModel? Model { get; set; }
 
         public IncomingFileViewModel() { }
 
         public async Task<string?> Download(StorageClient storageClient) {
-            MainViewModel.Instance.Log("Begin uploading " + RemotePath);
+            MainViewModel.Instance.Log("Beginning downloading " + RemotePath);
 
             Model!.isDownloading = true;
             PropertyChanged?.Invoke(this, new(nameof(DownloadedIconVisibility)));
@@ -44,14 +47,14 @@ namespace HelloCloudWpf {
 
             // Quick and dirty way to get a local path
             string localPath;
-            int index = Path.LastIndexOf('/');
+            int index = LocalPath.LastIndexOf('/');
             if (index == -1) {
-                index = Path.LastIndexOf("\\");
+                index = LocalPath.LastIndexOf("\\");
             }
             if (index == -1) {
-                localPath = Path;
+                localPath = LocalPath;
             } else {
-                localPath = App.DocumentsPath + Path[(index + 1)..];
+                localPath = App.DocumentsPath + LocalPath[(index + 1)..];
             }
             if (File.Exists(localPath)) {
                 string basePath;
@@ -91,7 +94,7 @@ namespace HelloCloudWpf {
             PropertyChanged?.Invoke(this, new(nameof(DownloadingIconVisibility)));
 
             PropertyChanged?.Invoke(this, new(nameof(RemotePath)));
-            return result == null ? null :localPath;
+            return result == null ? null : localPath;
         }
     }
 }

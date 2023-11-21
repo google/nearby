@@ -1,8 +1,10 @@
 ﻿using Google.Cloud.Storage.V1;
 using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -146,13 +148,17 @@ namespace HelloCloudWpf {
 
         private EndpointModel? model;
 
+        // See https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev
+        // for setting up adc
+        StorageClient storageClient = StorageClient.Create();
+
         public EndpointViewModel() {
             connectCommand = new RelayCommand(
                 _ => MainViewModel.Instance.RequestConnection(Id),
                 _ => State == EndpointModel.State.Discovered);
             sendCommand = new RelayCommand(
                 _ => MainViewModel.Instance.SendFiles(
-                    Id, OutgoingFiles.Select(file => (file.LocalPath, file.RemotePath!))),
+                    Id, OutgoingFiles.Select(file => file.Model!)),
                 _ => State == EndpointModel.State.Connected
                     && OutgoingFiles.Any()
                     && OutgoingFiles.All(file => file.IsUploaded));
@@ -207,9 +213,10 @@ namespace HelloCloudWpf {
             if (result == true) {
                 OutgoingFiles.Clear();
                 foreach (string fileName in openFileDialog.FileNames) {
+                    FileInfo info = new FileInfo(fileName);
                     OutgoingFiles.Add(
                         new OutgoingFileViewModel() {
-                            Model = new OutgoingFileModel(fileName)
+                            Model = new OutgoingFileModel(fileName, info.Length)
                         });
                 }
             }
@@ -223,13 +230,13 @@ namespace HelloCloudWpf {
         }
 
         private void UploadWorker() {
-            // See https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev
-            // for setting up adc
-            StorageClient client = StorageClient.Create();
+            long startTime = DateTime.Now.Ticks;
+            long totalBytes = 0;
 
             List<Task<string?>> uploadingTasks = new();
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
-                uploadingTasks.Add(file.Upload(client));
+                uploadingTasks.Add(file.Upload(storageClient));
+                totalBytes += file.FileSize;
             }
             Task.WaitAll(uploadingTasks.ToArray());
 
@@ -238,7 +245,9 @@ namespace HelloCloudWpf {
                 MainViewModel.Instance.Log("  local path: " + file.LocalPath);
                 MainViewModel.Instance.Log("  remote path: " + task.Result);
             }
-            UpdateCanExecute();
+
+            long endTime = DateTime.Now.Ticks;
+            LogTransferRate(totalBytes, (int)new TimeSpan(endTime - startTime).TotalMilliseconds);
 
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
                 TransferModel transfer = new(
@@ -248,6 +257,8 @@ namespace HelloCloudWpf {
                     result: TransferModel.Result.Success);
                 AddTransfer(transfer);
             }
+
+            UpdateCanExecute();
         }
 
         private void BeginDownload() {
@@ -256,16 +267,16 @@ namespace HelloCloudWpf {
         }
 
         private void DownloadWorker() {
-            // See https://cloud.google.com/docs/authentication/provide-credentials-adc#local-dev
-            // for setting up adc
-            StorageClient client = StorageClient.Create();
+            long startTime = DateTime.Now.Ticks;
+            long totalBytes = 0;
 
             List<IncomingFileViewModel> filesToDownload =
                 IncomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
 
             List<Task<string?>> downloadingTasks = new();
             foreach (IncomingFileViewModel file in filesToDownload) {
-                downloadingTasks.Add(file.Download(client));
+                downloadingTasks.Add(file.Download(storageClient));
+                totalBytes += file.FileSize;
             }
             Task.WaitAll(downloadingTasks.ToArray());
 
@@ -275,13 +286,26 @@ namespace HelloCloudWpf {
                 MainViewModel.Instance.Log("  local path: " + task.Result);
             }
 
+            long endTime = DateTime.Now.Ticks;
+            LogTransferRate(totalBytes, (int)new TimeSpan(endTime - startTime).TotalMilliseconds);
+
             foreach (IncomingFileViewModel file in filesToDownload) {
                 TransferModel transfer = new(
                     direction: TransferModel.Direction.Download,
-                    fileName: file.Path,
+                    fileName: file.LocalPath,
                     url: file.RemotePath,
                     result: TransferModel.Result.Success);
                 AddTransfer(transfer);
+            }
+
+            UpdateCanExecute();
+        }
+
+        private static void LogTransferRate(long bytes, int milliseconds) {
+            if (bytes != 0) {
+                // Transfer rate in kilobytes per second (KB/s). 1K = 1024, 1s = 1000ms
+                double transferRate = bytes / milliseconds / 1024.0 * 1000.0;
+                MainViewModel.Instance.Log($"Transferred {bytes} in {milliseconds} ms. {(int)transferRate:N0} KB/s");
             }
         }
     }
