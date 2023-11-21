@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "connections/c/listeners_w.h"
+
 #include <memory>
 #include <utility>
-
-#include "connections/c/listeners_w.h"
 
 #include "connections/listeners.h"
 
@@ -154,9 +154,9 @@ DiscoveryListenerW::DiscoveryListenerW(
   CHECK(endpoint_found_cb != nullptr);
   auto epf = endpoint_found_cb;
   impl_->endpoint_found_cb = [epf](const std::string &endpoint_id,
-                                   ByteArray endpoint_info,
+                                   ByteArray endpoint_info, MediumW medium,
                                    const std::string &service_id) {
-    epf(endpoint_id.c_str(), endpoint_info.data(), endpoint_info.size(),
+    epf(endpoint_id.c_str(), endpoint_info.data(), endpoint_info.size(), medium,
         service_id.c_str());
   };
 

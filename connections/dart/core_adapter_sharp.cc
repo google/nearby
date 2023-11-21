@@ -46,23 +46,23 @@ Status StartDiscoveringSharp(
     EndpointLostCallback endpoint_lost_callback,
     EndpointDistanceChangedCallback endpoint_distance_changed_callback) {
   DiscoveryListener listener;
-  listener.endpoint_found_cb = [endpoint_found_callback](
-                                   const std::string &endpoint_id,
-                                   const ByteArray &endpoint_info,
-                                   const std::string &service_id) {
-    NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id);
-    NEARBY_LOG(INFO, "Device discovered: service_id=%s", service_id);
-    NEARBY_LOG(INFO, "Device discovered: info=%s", endpoint_info);
+  listener.endpoint_found_cb =
+      [endpoint_found_callback](const std::string &endpoint_id,
+                                const ByteArray &endpoint_info, Medium medium,
+                                const std::string &service_id) {
+        NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id);
+        NEARBY_LOG(INFO, "Device discovered: service_id=%s", service_id);
+        NEARBY_LOG(INFO, "Device discovered: info=%s", endpoint_info);
 
-    // Allocate memory to marshal endpoint_info to managed code.
-    // It will be freed on the managed side.
-    int size = endpoint_info.size();
-    char *data = (char *)CoTaskMemAlloc(size);
-    memcpy(data, endpoint_info.data(), size);
+        // Allocate memory to marshal endpoint_info to managed code.
+        // It will be freed on the managed side.
+        int size = endpoint_info.size();
+        char *data = (char *)CoTaskMemAlloc(size);
+        memcpy(data, endpoint_info.data(), size);
 
-    endpoint_found_callback(endpoint_id.c_str(), data, size,
-                            service_id.c_str());
-  };
+        endpoint_found_callback(endpoint_id.c_str(), data, size, medium,
+                                service_id.c_str());
+      };
 
   listener.endpoint_lost_cb =
       [endpoint_lost_callback](const std::string &endpoint_id) {

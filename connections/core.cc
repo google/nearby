@@ -304,7 +304,7 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
       .endpoint_found_cb =
           [endpoint_found_cb = std::move(listener.endpoint_found_cb)](
               const std::string& endpoint_id, const ByteArray& endpoint_info,
-              const std::string& service_id) mutable {
+              Medium medium, const std::string& service_id) mutable {
             auto remote_device = v3::ConnectionsDevice(
                 endpoint_id, endpoint_info.AsStringView(), {});
             endpoint_found_cb(remote_device, service_id);

@@ -67,7 +67,7 @@ void DefaultConstructor(T t) {}
 template <class T, class C>
 void DefaultConstructor(T t, C c) {}
 template <class T, class C, class D>
-void DefaultConstructor(T t, C c, size_t size, D d) {}
+void DefaultConstructor(T t, C c, size_t size, MediumW medium, D d) {}
 
 extern "C" {
 
@@ -199,7 +199,7 @@ struct DLL_API ConnectionListenerW {
 struct DLL_API DiscoveryListenerW {
   typedef void (*EndpointFoundCB)(const char* endpoint_id,
                                   const char* endpoint_info,
-                                  size_t endpoint_info_size,
+                                  size_t endpoint_info_size, MediumW medium,
                                   const char* service_id);
   typedef void (*EndpointLostCB)(const char* endpoint_id);
   typedef void (*EndpointDistanceChangedCB)(const char* endpoint_id,

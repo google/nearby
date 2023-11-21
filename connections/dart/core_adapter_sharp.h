@@ -35,7 +35,7 @@ typedef void OperationResultCallback(Status);
 
 typedef void EndpointFoundCallback(const char *endpoint_id,
                                    const char *endpoint_info,
-                                   size_t endpoint_info_size,
+                                   size_t endpoint_info_size, Medium medium,
                                    const char *service_id);
 typedef void EndpointLostCallback(const char *endpoint_id);
 typedef void EndpointDistanceChangedCallback(const char *endpoint_id,
