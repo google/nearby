@@ -1,0 +1,25 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    style="@style/ListItemStyle">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/nearbyDeviceMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/DetailTextStyle" />
+        <TextView
+            android:id="@+id/nearbyDeviceName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            style="@style/SubheaderTextStyle" />
+    </LinearLayout>
+    <Button
+        android:id="@+id/disconnectButton"
+        android:text="@string/button_disconnect"
+        style="@style/ButtonStyle" />
+</LinearLayout>
