@@ -14,6 +14,7 @@
 
 #include "connections/implementation/mediums/ble.h"
 
+#include <array>
 #include <memory>
 #include <string>
 #include <utility>
@@ -76,7 +77,7 @@ bool Ble::StartAdvertising(const std::string& service_id,
 
   if (!radio_.IsEnabled()) {
     NEARBY_LOGS(INFO)
-        << "Can't start BLE scanning because Bluetooth was never turned on";
+        << "Can't start BLE adveertising because Bluetooth was never turned on";
     return false;
   }
 
@@ -130,6 +131,79 @@ bool Ble::StopAdvertising(const std::string& service_id) {
   }
 
   NEARBY_LOGS(INFO) << "Turned off BLE advertising with service id="
+                    << service_id;
+  bool ret = medium_.StopAdvertising(service_id);
+  // Reset our bundle of advertising state to mark that we're no longer
+  // advertising.
+  advertising_info_.Remove(service_id);
+  return ret;
+}
+
+bool Ble::StartLegacyAdvertising(
+    const std::string& input_service_id, const std::string& local_endpoint_id,
+    const std::string& fast_advertisement_service_uuid) {
+  NEARBY_LOGS(INFO) << "StartLegacyAdvertising: " << input_service_id.c_str()
+                    << ", local_endpoint_id: " << local_endpoint_id.c_str();
+  MutexLock lock(&mutex_);
+  std::string service_id = input_service_id + "-Legacy";
+
+  if (IsAdvertisingLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Failed to BLE legacy advertise because we're already advertising.";
+    return false;
+  }
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO) << "Can't start BLE legacy advertising because Bluetooth "
+                         "was never turned on";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn on BLE legacy advertising. BLE is not available.";
+    return false;
+  }
+  // TODO(hais) improve working dummy set to feed proper hash value.
+  std::array<char, 23> encoded_legacy_char_array = {
+      0x51, 0x43, 0x41, 0x41, 0x41, 0x42, 0x41, 0x43, 0x41, 0x41, 0x41, 0x44,
+      0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41};
+  ByteArray encoded_bytes{encoded_legacy_char_array};
+
+  NEARBY_LOGS(INFO) << "Turning on BLE advertising (advertisement size="
+                    << encoded_bytes.size()
+                    << "): " << absl::BytesToHexString(encoded_bytes.data())
+                    << ", service id=" << service_id
+                    << ", fast advertisement service uuid="
+                    << fast_advertisement_service_uuid;
+
+  if (!medium_.StartAdvertising(service_id, encoded_bytes,
+                                fast_advertisement_service_uuid)) {
+    NEARBY_LOGS(ERROR)
+        << "Failed to turn on BLE advertising with advertisement bytes="
+        << absl::BytesToHexString(encoded_bytes.data())
+        << ", size=" << encoded_bytes.size()
+        << ", fast advertisement service uuid="
+        << fast_advertisement_service_uuid;
+    return false;
+  }
+
+  advertising_info_.Add(service_id);
+  return true;
+}
+
+bool Ble::StopLegacyAdvertising(const std::string& input_service_id) {
+  NEARBY_LOGS(INFO) << "StopLegacyAdvertising:" << input_service_id.c_str();
+  MutexLock lock(&mutex_);
+
+  std::string service_id = input_service_id + "-Legacy";
+  if (!IsAdvertisingLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn off BLE legacy advertising; it is already off";
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned off BLE legacy advertising with service id="
                     << service_id;
   bool ret = medium_.StopAdvertising(service_id);
   // Reset our bundle of advertising state to mark that we're no longer

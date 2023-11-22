@@ -36,8 +36,10 @@
 #include "connections/status.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/types.h"
 #include "proto/connections_enums.pb.h"
 
@@ -140,9 +142,35 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
         local_endpoint_info, web_rtc_state);
     if (bluetooth_medium !=
         location::nearby::proto::connections::UNKNOWN_MEDIUM) {
-      NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
-      mediums_started_successfully.push_back(bluetooth_medium);
-      bluetooth_classic_advertiser_client_id_ = client->GetClientId();
+      NEARBY_LOG(INFO,
+                 "P2pClusterPcpHandler::StartAdvertisingImpl: BT started");
+
+      // TODO(hais): update this after ble_v2 refactor.
+      if (api::ImplementationPlatform::GetCurrentOS() ==
+          api::OSName::kChromeOS) {
+        if (ble_medium_.StartLegacyAdvertising(
+                service_id, local_endpoint_id,
+                advertising_options.fast_advertisement_service_uuid)) {
+          NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: "
+                               "Ble legacy started advertising";
+          NEARBY_LOG(INFO,
+                     "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
+          mediums_started_successfully.push_back(bluetooth_medium);
+          bluetooth_classic_advertiser_client_id_ = client->GetClientId();
+        } else {
+          // TODO(hais): update this after ble_v2 refactor.
+          NEARBY_LOG(WARNING,
+                     "P2pClusterPcpHandler::StartAdvertisingImpl: BLE legacy "
+                     "failed, revert BTC");
+          bluetooth_medium_.TurnOffDiscoverability();
+          bluetooth_medium_.StopAcceptingConnections(service_id);
+        }
+      } else {
+        NEARBY_LOG(INFO,
+                   "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
+        mediums_started_successfully.push_back(bluetooth_medium);
+        bluetooth_classic_advertiser_client_id_ = client->GetClientId();
+      }
     }
   }
 
@@ -192,6 +220,10 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   if (client->GetClientId() == bluetooth_classic_advertiser_client_id_) {
     bluetooth_medium_.TurnOffDiscoverability();
+    // TODO(hais): update this after ble_v2 refactor.
+    if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS) {
+      ble_medium_.StopLegacyAdvertising(client->GetAdvertisingServiceId());
+    }
     bluetooth_classic_advertiser_client_id_ = 0;
   } else {
     NEARBY_LOGS(INFO) << "Skipped BT TurnOffDiscoverability for client="
@@ -1235,6 +1267,10 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
     mediums_->GetBluetoothClassic().TurnOffDiscoverability();
     mediums_->GetBluetoothClassic().StopAcceptingConnections(
         std::string(service_id));
+    // TODO(hais): update this after ble_v2 refactor.
+    if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS) {
+      mediums_->GetBle().StopLegacyAdvertising(std::string(service_id));
+    }
   }
 
   // restart
@@ -1300,7 +1336,30 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
                                     std::string(local_endpoint_id),
                                     ByteArray(std::string(local_endpoint_info)),
                                     web_rtc_state) != Medium::UNKNOWN_MEDIUM) {
-        restarted_mediums.push_back(Medium::BLUETOOTH);
+        // TODO(hais): update this after ble_v2 refactor.
+        if (api::ImplementationPlatform::GetCurrentOS() ==
+            api::OSName::kChromeOS) {
+          if (ble_medium_.StartLegacyAdvertising(
+                  std::string(service_id), std::string(local_endpoint_id),
+                  advertising_options.fast_advertisement_service_uuid)) {
+            NEARBY_LOGS(INFO)
+                << "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: "
+                   "Ble legacy started advertising";
+            NEARBY_LOG(
+                INFO,
+                "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: BT added");
+            restarted_mediums.push_back(Medium::BLUETOOTH);
+          } else {
+            NEARBY_LOG(WARNING,
+                       "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: "
+                       "BLE legacy "
+                       "failed, revert BTC");
+            bluetooth_medium_.TurnOffDiscoverability();
+            bluetooth_medium_.StopAcceptingConnections(std::string(service_id));
+          }
+        } else {
+          restarted_mediums.push_back(Medium::BLUETOOTH);
+        }
       } else {
         return StartOperationResult{.status = {Status::kBluetoothError},
                                     .mediums = restarted_mediums};
@@ -1726,7 +1785,8 @@ Medium P2pClusterPcpHandler::StartBleAdvertising(
                     << absl::BytesToHexString(local_endpoint_info.data())
                     << "), client=" << client->GetClientId()
                     << " generated BleAdvertisement with service_id="
-                    << service_id;
+                    << service_id << ", bytes: "
+                    << absl::BytesToHexString(advertisement_bytes.data());
 
   if (!ble_medium_.StartAdvertising(
           service_id, advertisement_bytes,
@@ -1742,6 +1802,7 @@ Medium P2pClusterPcpHandler::StartBleAdvertising(
   }
   NEARBY_LOGS(INFO) << "In startBleAdvertising("
                     << absl::BytesToHexString(local_endpoint_info.data())
+                    << ", fast_advertisement: " << fast_advertisement
                     << "), client=" << client->GetClientId()
                     << " started BLE Advertising with BleAdvertisement "
                     << absl::BytesToHexString(advertisement_bytes.data());
