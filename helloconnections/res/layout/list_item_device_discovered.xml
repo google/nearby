@@ -1,0 +1,23 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ListItemStyle"
+    android:orientation="horizontal">
+    <TextView
+        android:id="@+id/nearbyDeviceName"
+        style="@style/SubheaderTextStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxLines="1" />
+    <Button
+        android:id="@+id/connectButton"
+        style="@style/ButtonStyle"
+        android:text="@string/button_connect" />
+    <ImageButton
+        android:id="@+id/connectionOptions"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center_vertical"
+        android:background="@mipmap/ic_settings"
+        android:contentDescription="@string/label_connection_options"
+        android:src="?android:attr/selectableItemBackground" />
+</LinearLayout>
