@@ -40,6 +40,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -349,7 +350,7 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
                                       DisconnectionReason reason) {
   NEARBY_LOGS(INFO)
       << "BwuManager has processed endpoint disconnection for endpoint "
-      << endpoint_id;
+      << endpoint_id << " with reason " << DisconnectionReason_Name(reason);
   RunOnBwuManagerThread("bwu-on-endpoint-disconnect", [this, client, service_id,
                                                        endpoint_id,
                                                        barrier]() mutable {

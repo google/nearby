@@ -263,12 +263,16 @@ bool WifiHotspotMedium::StartWifiHotspot(
         WifiIntel& intel_wifi{WifiIntel::GetInstance()};
         intel_wifi.Start();
         int GO_channel = static_cast<int>(intel_wifi.GetGOChannel());
-        NEARBY_LOGS(INFO) << "Hotspot is running on channel: " << GO_channel;
+        NEARBY_LOGS(INFO)
+            << "Intel PIE enabled, Hotspot is running on channel: "
+            << GO_channel;
         intel_wifi.Stop();
         hotspot_credentials_->SetFrequency(
             WifiUtils::ConvertChannelToFrequencyMhz(GO_channel,
                                                     WifiBandType::kUnknown));
       } else {
+        NEARBY_LOGS(INFO)
+            << "Intel PIE disabled, Can't extract Hotspot channel info!";
         hotspot_credentials_->SetFrequency(-1);
       }
       return true;

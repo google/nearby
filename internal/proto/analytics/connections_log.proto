@@ -63,6 +63,9 @@ message ConnectionsLog {
 
     // Zero or more StrategySessions.
     repeated StrategySession strategy_session = 2;
+
+    // The client session flow id.
+    optional int64 client_flow_id = 3 /* type = ST_SESSION_ID */;
   }
 
   // One round of a particular Strategy done by a client.

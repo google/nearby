@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/interop/device.h"
@@ -90,6 +91,9 @@ int ConvertToAndroidIdentityType(nearby::internal::IdentityType identity_type) {
   }
 }
 }  // namespace
+
+PresenceDevice::PresenceDevice(absl::string_view endpoint_id) noexcept
+    : endpoint_id_(endpoint_id) {}
 
 PresenceDevice::PresenceDevice(Metadata metadata) noexcept
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),

@@ -41,6 +41,7 @@ constexpr float kTestConfidence = 0.1;
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 constexpr int kDataElementType = DataElement::kBatteryFieldType;
 constexpr absl::string_view kDataElementValue = "15";
+constexpr char kEndpointId[] = "endpoint_id";
 constexpr int kTestAction = 3;
 
 Metadata CreateTestMetadata() {
@@ -51,6 +52,11 @@ Metadata CreateTestMetadata() {
   metadata.set_bluetooth_mac_address(kMacAddr);
   metadata.set_device_type(internal::DEVICE_TYPE_LAPTOP);
   return metadata;
+}
+
+TEST(PresenceDeviceTest, EndpointIdConstructor) {
+  PresenceDevice device(kEndpointId);
+  EXPECT_EQ(device.GetEndpointId(), kEndpointId);
 }
 
 TEST(PresenceDeviceTest, DefaultMotionEquals) {

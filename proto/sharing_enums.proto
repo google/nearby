@@ -30,7 +30,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 66
+// Next id: 67
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -240,6 +240,10 @@ enum EventType {
 
   // Show allow permission auto access UI
   SHOW_ALLOW_PERMISSION_AUTO_ACCESS = 65;
+
+  // UI events for transferring files with desktop applications. It includes
+  // event types such as DESKTOP_TRANSFER_EVENT_SEND_TYPE_SELECT_A_DEVICE.
+  SEND_DESKTOP_TRANSFER_EVENT = 66;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }

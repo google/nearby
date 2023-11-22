@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/interop/device.h"
 #include "internal/proto/credential.pb.h"
@@ -35,6 +36,7 @@ class PresenceDevice : public nearby::NearbyDevice {
   using Metadata = ::nearby::internal::Metadata;
 
  public:
+  explicit PresenceDevice(absl::string_view endpoint_id) noexcept;
   explicit PresenceDevice(Metadata metadata) noexcept;
   explicit PresenceDevice(DeviceMotion device_motion,
                           Metadata metadata) noexcept;

@@ -76,6 +76,8 @@ bool BluetoothClassic::IsAvailableLocked() const {
 }
 
 bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
+  NEARBY_LOGS(INFO) << "Turning on BT discoverability with device_name="
+                    << device_name;
   MutexLock lock(&mutex_);
 
   if (device_name.empty()) {
@@ -126,6 +128,7 @@ bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
 }
 
 bool BluetoothClassic::TurnOffDiscoverability() {
+  NEARBY_LOGS(INFO) << "Turning off Bluetooth discoverability.";
   MutexLock lock(&mutex_);
 
   if (!IsDiscoverable()) {
@@ -136,7 +139,7 @@ bool BluetoothClassic::TurnOffDiscoverability() {
   RestoreScanMode();
   RestoreDeviceName();
 
-  NEARBY_LOGS(INFO) << "Turned Bluetooth discoverability off";
+  NEARBY_LOGS(INFO) << "Turned Bluetooth discoverability off.";
   return true;
 }
 
