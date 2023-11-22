@@ -15,6 +15,7 @@ licenses(["notice"])
 
 cc_library(
     name = "types",
+    features = ["windows_dynamic_runtime"],
     linkopts = [
         "wininet.lib",
         "advapi32.lib",
