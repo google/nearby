@@ -15,8 +15,9 @@
 #include "internal/platform/implementation/windows/log_message.h"
 
 #include <algorithm>
+#include <cstdarg>
 
-#include "strings/strappendv.h"
+#include "absl/base/log_severity.h"
 
 namespace nearby {
 namespace windows {
@@ -38,20 +39,28 @@ inline absl::LogSeverity ConvertSeverity(api::LogMessage::Severity severity) {
     case api::LogMessage::Severity::kFatal:
       return absl::LogSeverity::kFatal;
   }
+  return absl::LogSeverity::kInfo;
 }
 
-LogMessage::LogMessage(const char* file, int line, Severity severity)
+LogMessage::LogMessage(const char* file, int line,
+                       api::LogMessage::Severity severity)
     : log_streamer_(ConvertSeverity(severity), file, line) {}
 
 LogMessage::~LogMessage() = default;
 
 void LogMessage::Print(const char* format, ...) {
-  va_list ap;
-  va_start(ap, format);
+  va_list args1;
+  va_start(args1, format);
+  va_list args2;
+  va_copy(args2, args1);
+  int len = vsnprintf(nullptr, 0, format, args1);
+  va_end(args1);
+
   std::string result;
-  strings::StrAppendV(&result, format, ap);
+  result.resize(len + 1);
+  vsnprintf(result.data(), len + 1, format, args2);
   log_streamer_.stream() << result;
-  va_end(ap);
+  va_end(args2);
 }
 
 std::ostream& LogMessage::Stream() { return log_streamer_.stream(); }

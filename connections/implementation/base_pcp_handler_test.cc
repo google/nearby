@@ -1601,6 +1601,122 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest,
+       TestEndpointInfoChangedWhenEndpointDiscoveredOnMultipleMediums) {
+  env_.Start();
+  std::string service_id{"service"};
+  std::string endpoint_id{"ABCD"};
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+      .ble = true,
+  };
+  DiscoveryOptions discovery_options{
+      {
+          Strategy::kP2pPointToPoint,
+          allowed,
+      },
+      false,  // auto_upgrade_bandwidth;
+      false,  // enforce_topology_constraints;
+  };
+
+  EXPECT_CALL(pcp_handler, StartDiscoveryImpl)
+      .WillOnce(Return(MockPcpHandler::StartOperationResult{
+          .status = {Status::kSuccess},
+          .mediums = allowed.GetMediums(true),
+      }));
+
+  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
+                                       GetDiscoveryListener()),
+            Status{Status::kSuccess});
+  EXPECT_TRUE(client.IsDiscovering());
+
+  ::testing::InSequence seq;
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call)
+      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id,
+                                          const ByteArray& endpoint_info,
+                                          const std::string& service_id) {
+        EXPECT_EQ(endpoint_id, id);
+        EXPECT_EQ(endpoint_info, ByteArray{"ABCD"});
+      }));
+
+  EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call)
+      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id) {
+        EXPECT_EQ(endpoint_id, id);
+      }));
+
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call)
+      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id,
+                                          const ByteArray& endpoint_info,
+                                          const std::string& service_id) {
+        EXPECT_EQ(endpoint_id, id);
+        EXPECT_EQ(endpoint_info, ByteArray{"ABCDEF"});
+      }));
+
+  EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call)
+      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id) {
+        EXPECT_EQ(endpoint_id, id);
+      }));
+
+  // Found endpoint on Bluetooth
+  pcp_handler.OnEndpointFound(
+      &client, std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                   {
+                       endpoint_id,
+                       /*endpoint_info=*/ByteArray{"ABCD"},
+                       service_id,
+                       Medium::BLUETOOTH,
+                       WebRtcState::kUndefined,
+                   },
+                   MockContext{nullptr},
+               }));
+  // Found endpoint on BLE
+  pcp_handler.OnEndpointFound(
+      &client, std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                   {
+                       endpoint_id,
+                       /*endpoint_info=*/ByteArray{"ABCD"},
+                       service_id,
+                       Medium::BLE,
+                       WebRtcState::kUndefined,
+                   },
+                   MockContext{nullptr},
+               }));
+
+  // Endpoint info changed on BLE
+  pcp_handler.OnEndpointFound(
+      &client, std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                   {
+                       endpoint_id,
+                       /*endpoint_info=*/ByteArray{"ABCDEF"},
+                       service_id,
+                       Medium::BLE,
+                       WebRtcState::kUndefined,
+                   },
+                   MockContext{nullptr},
+               }));
+
+  pcp_handler.OnEndpointLost(&client,
+                             MockDiscoveredEndpoint{
+                                 {
+                                     endpoint_id,
+                                     /*endpoint_info=*/ByteArray{"ABCDEF"},
+                                     service_id,
+                                     Medium::BLE,
+                                     WebRtcState::kUndefined,
+                                 },
+                                 MockContext{nullptr},
+                             });
+
+  env_.Sync(false);
+  env_.Stop();
+}
+
 TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
   env_.Start();
   std::string service_id{"service"};

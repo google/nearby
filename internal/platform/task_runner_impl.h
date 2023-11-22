@@ -24,13 +24,13 @@
 #endif
 
 #include <memory>
-#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/atomic_boolean.h"
+#include "internal/platform/submittable_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 
@@ -50,9 +50,10 @@ class TaskRunnerImpl : public TaskRunner {
   uint64_t GenerateId();
 
   mutable absl::Mutex mutex_;
-  std::unique_ptr<::nearby::SubmittableExecutor> executor_;
+  std::unique_ptr<SubmittableExecutor> executor_;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map_
       ABSL_GUARDED_BY(mutex_);
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace nearby

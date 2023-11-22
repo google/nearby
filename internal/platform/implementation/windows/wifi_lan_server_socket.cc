@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include <windows.h>
+#include <winrt/Windows.Networking.Sockets.h>
 
 #include <exception>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"

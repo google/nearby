@@ -62,6 +62,7 @@ void PresenceServiceImpl::UpdateLocalDeviceMetadata(
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsResultCallback credentials_generated_cb) {
   provider_->UpdateMetadata(metadata);
+  provider_->SetManagerAppId(manager_app_id);
   service_controller_->UpdateLocalDeviceMetadata(
       metadata, regen_credentials, manager_app_id, identity_types,
       credential_life_cycle_days, contiguous_copy_of_credentials,

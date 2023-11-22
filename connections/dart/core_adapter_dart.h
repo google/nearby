@@ -15,9 +15,9 @@
 #ifndef LOCATION_NEARBY_CONNECTIONS_DART_CORE_ADAPTER_DART_H_
 #define LOCATION_NEARBY_CONNECTIONS_DART_CORE_ADAPTER_DART_H_
 
-#include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
-#include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "connections/c/core_adapter.h"
+#include "runtime/include/dart_api_dl.h"
+#include "runtime/include/dart_native_api.h"
 
 namespace nearby::windows {
 

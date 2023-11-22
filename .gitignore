@@ -3,6 +3,14 @@
 build/**
 .build
 
+.vs
+
+MODULE.bazel*
+bazel-*/
+.vs/
+bin/
+obj/
+
 # We might want to create a real project config at some point, but for now we
 # want to ignore adding the auto-generated one.
 .vscode/

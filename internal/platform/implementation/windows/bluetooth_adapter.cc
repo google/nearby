@@ -31,6 +31,7 @@
 #include <setupapi.h>
 #include <stdio.h>
 #include <usbiodef.h>
+#include <winrt/Windows.Foundation.h>
 
 #include <cstring>
 #include <exception>
@@ -38,11 +39,10 @@
 #include <string>
 
 #include "absl/strings/str_format.h"
-#include "third_party/json/src/json.hpp"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "nlohmann/json.hpp"
 
 typedef std::basic_string<TCHAR> tstring;
 

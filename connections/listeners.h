@@ -137,10 +137,10 @@ struct DiscoveryListener {
   // endpoint_info - The info of the remote endpoint representd by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
   absl::AnyInvocable<void(const std::string& endpoint_id,
-                          const ByteArray& endpoint_info,
+                          const ByteArray& endpoint_info, Medium medium,
                           const std::string& service_id)>
-      endpoint_found_cb =
-          [](const std::string&, const ByteArray&, const std::string&) {};
+      endpoint_found_cb = [](const std::string&, const ByteArray&, Medium,
+                             const std::string&) {};
 
   // Called when a remote endpoint is no longer discoverable; only called for
   // endpoints that previously had been passed to {@link

@@ -1,0 +1,29 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    style="@style/ListItemStyle">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/nearbyDeviceAuthToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/DetailTextStyle" />
+        <TextView
+            android:id="@+id/nearbyDeviceName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            style="@style/SubheaderTextStyle" />
+    </LinearLayout>
+    <Button
+        android:id="@+id/acceptButton"
+        android:text="@string/button_accept"
+        style="@style/ButtonStyle" />
+    <Button
+        android:id="@+id/rejectButton"
+        android:text="@string/button_reject"
+        style="@style/ButtonStyle" />
+</LinearLayout>

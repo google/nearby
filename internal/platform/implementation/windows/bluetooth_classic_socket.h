@@ -16,6 +16,9 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 
 #include <windows.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Networking.Sockets.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 #include <cstdint>
 #include <memory>
@@ -24,9 +27,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 

@@ -352,7 +352,7 @@ void ClientProxy::OnEndpointFound(
   }
 
   discovered_endpoint_ids_.insert(endpoint_id);
-  discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info,
+  discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info, medium,
                                              service_id);
   analytics_recorder_->OnEndpointFound(medium);
 }

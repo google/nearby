@@ -32,11 +32,13 @@
 #include <string>
 #include <type_traits>
 
+#ifndef NO_INTEL_PIE
 #include "absl/strings/str_format.h"
 #include "third_party/intel/pie/include/PieApiTypes.h"
 #include "third_party/intel/pie/include/PieDefinitions.h"
 #include "third_party/intel/pie/include/PieErrorMacro.h"
 #include "internal/platform/logging.h"
+#endif
 
 namespace nearby {
 namespace windows {
@@ -81,12 +83,14 @@ namespace {
     }                                                            \
   }
 
+#ifndef NO_INTEL_PIE
 #define PIE_API_DLL L"\\MurocApi.dll"
 #define ERROR_
 const wchar_t PIE_HW_ID_[] = L"SWC\\VID_8086&PID_PIE&SID_0001\0";
 const wchar_t PIE_DLL_PATH_HINT[] = L"PiePathHint";
+#endif
 }  // namespace
-
+#ifndef NO_INTEL_PIE
 typedef MUROC_RET(APIENTRY* WIFIGETADAPTERLIST)(  // NOLINT
     PINTEL_WIFI_HEADER pHeader, void** pAdapterList);
 typedef MUROC_RET(APIENTRY* REGISTERINTELCB)(
@@ -124,6 +128,7 @@ void WINAPI IntelEventHandler(MurocDefs::INTEL_EVENT iEvent,  // NOLINT
 // because the CB comes from another thread
 MurocDefs::INTEL_CALLBACK g_intel_event_cb_handle = {IntelEventHandler,
                                                      nullptr};
+#endif
 
 WifiIntel& WifiIntel::GetInstance() {
   static std::aligned_storage_t<sizeof(WifiIntel), alignof(WifiIntel)> storage;
@@ -133,6 +138,7 @@ WifiIntel& WifiIntel::GetInstance() {
 
 void WifiIntel::Start() {
   NEARBY_LOGS(INFO) << "WifiIntel::Start()";
+#ifndef NO_INTEL_PIE
   muroc_api_dll_handle_ = PIEDllLoader();
   if ((muroc_api_dll_handle_ != nullptr)) {
     NEARBY_LOGS(INFO) << "Load PIE_API_DLL completed successfully";
@@ -146,10 +152,14 @@ void WifiIntel::Start() {
       SAFEFREELIBRARY(muroc_api_dll_handle_);
     }
   }
+#else
+  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, skip";
+#endif
 }
 
 void WifiIntel::Stop() {
   NEARBY_LOGS(INFO) << "WifiIntel::Stop()";
+#ifndef NO_INTEL_PIE
   if (intel_wifi_valid_) {
     NEARBY_LOGS(INFO) << "Deregister Intel Callback, free Adapters Memory "
                          "List, free Muroc Api Dll handler.";
@@ -157,9 +167,13 @@ void WifiIntel::Stop() {
     FreeMemoryList(muroc_api_dll_handle_, p_all_adapters_);
     SAFEFREELIBRARY(muroc_api_dll_handle_);
   }
+#else
+  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, skip";
+#endif
 }
 
 uint8_t WifiIntel::GetGOChannel() {
+#ifndef NO_INTEL_PIE
   WIFIPANQUERYPREFFEDCHANNELSETTING WifiPanQueryPreferredChannelSettingFunc =
       nullptr;
   uint8_t channel = 0;
@@ -205,8 +219,13 @@ uint8_t WifiIntel::GetGOChannel() {
   }
 
   return channel;
+#else
+  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
+  return -1;
+#endif
 }
 
+#ifndef NO_INTEL_PIE
 wchar_t* GetEntireRegistryDeviceList() {
   CONFIGRET configRet = CR_SUCCESS;
   wchar_t* pDeviceList = nullptr;
@@ -573,6 +592,6 @@ void FreeMemoryList(HINSTANCE murocApiDllHandle, void* ptr) {
     }
   }
 }
-
+#endif
 }  // namespace windows
 }  // namespace nearby
