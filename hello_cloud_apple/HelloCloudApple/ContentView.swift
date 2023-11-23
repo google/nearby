@@ -18,7 +18,7 @@ import SwiftUI
 import NearbyConnections
 
 struct ContentView: View {
-    @EnvironmentObject private var model: Model
+    @EnvironmentObject private var model: MainModel
 
     let strategies: [Strategy: String] = [
         .cluster: "Cluster",

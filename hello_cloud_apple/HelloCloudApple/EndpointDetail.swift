@@ -19,7 +19,7 @@ import SwiftUI
 struct EndpointDetail: View {
     var endpointID: String
 
-    @EnvironmentObject private var model: Model
+    @EnvironmentObject private var model: MainModel
 
     var body: some View {
         let endpoint = model.endpoints.first { $0.endpointID == endpointID }

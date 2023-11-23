@@ -20,7 +20,7 @@
 		23D1FD3029D8AC2E00620802 /* ConnectionRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2F29D8AC2E00620802 /* ConnectionRequestView.swift */; };
 		23D1FD3229D8AC4900620802 /* ConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD3129D8AC4900620802 /* ConnectedView.swift */; };
 		23D1FD3429D8AC5E00620802 /* PayloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD3329D8AC5E00620802 /* PayloadView.swift */; };
-		23F6A70829D7621F00558F56 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* Model.swift */; };
+		23F6A70829D7621F00558F56 /* MainModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* MainModel.swift */; };
 		23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 23F6A71029D772B800558F56 /* NearbyConnections */; };
 		23F6A71329D7ADCE00558F56 /* EndpointDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointDetail.swift */; };
 /* End PBXBuildFile section */
@@ -41,8 +41,8 @@
 		23D1FD2F29D8AC2E00620802 /* ConnectionRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionRequestView.swift; sourceTree = "<group>"; };
 		23D1FD3129D8AC4900620802 /* ConnectedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedView.swift; sourceTree = "<group>"; };
 		23D1FD3329D8AC5E00620802 /* PayloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayloadView.swift; sourceTree = "<group>"; };
-		23F6A70729D7621F00558F56 /* Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
-		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ../../../..; sourceTree = "<group>"; };
+		23F6A70729D7621F00558F56 /* MainModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainModel.swift; sourceTree = "<group>"; };
+		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ..; sourceTree = "<group>"; };
 		23F6A71229D7ADCE00558F56 /* EndpointDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointDetail.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -120,7 +120,7 @@
 		23F6A71429D7B0AB00558F56 /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				23F6A70729D7621F00558F56 /* Model.swift */,
+				23F6A70729D7621F00558F56 /* MainModel.swift */,
 				23D1FD2B29D8AA5100620802 /* Payload.swift */,
 				23D1FD2929D8AA3E00620802 /* ConnectedEndpoint.swift */,
 				23D1FD2729D8AA2200620802 /* ConnectionRequest.swift */,
@@ -149,7 +149,7 @@
 			packageProductDependencies = (
 				23F6A71029D772B800558F56 /* NearbyConnections */,
 			);
-			productName = "HelloCloudApple";
+			productName = HelloCloudApple;
 			productReference = 23252B5229D739E400BB0370 /* HelloCloudApple.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -204,7 +204,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				23252B5829D739E400BB0370 /* ContentView.swift in Sources */,
-				23F6A70829D7621F00558F56 /* Model.swift in Sources */,
+				23F6A70829D7621F00558F56 /* MainModel.swift in Sources */,
 				23D1FD2429D8A73200620802 /* Config.swift in Sources */,
 				23D1FD2E29D8AC0C00620802 /* DiscoveredEndpointView.swift in Sources */,
 				23D1FD3429D8AC5E00620802 /* PayloadView.swift in Sources */,

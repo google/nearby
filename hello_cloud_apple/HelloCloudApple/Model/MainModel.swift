@@ -17,7 +17,7 @@
 import Foundation
 import NearbyConnections
 
-class Model: ObservableObject {
+class MainModel: ObservableObject {
     @Published var endpointName = Config.defaultEndpointName {
         didSet {
             invalidateAdvertising()
@@ -49,8 +49,9 @@ class Model: ObservableObject {
     var discoverer: Discoverer?
 
     init() {
-        invalidateAdvertising()
-        invalidateDiscovery()
+         invalidateAdvertising()
+         invalidateDiscovery()
+        self.endpoints.append(DiscoveredEndpoint(id: UUID(), endpointID: "R2D2", endpointName: "Debug droid"))
     }
 
     private var isAdvertising = Config.defaultAdvertisingState
@@ -118,7 +119,7 @@ class Model: ObservableObject {
     }
 }
 
-extension Model: DiscovererDelegate {
+extension MainModel: DiscovererDelegate {
     func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, with context: Data) {
         guard let endpointName = String(data: context, encoding: .utf8) else {
             return
@@ -139,7 +140,7 @@ extension Model: DiscovererDelegate {
     }
 }
 
-extension Model: AdvertiserDelegate {
+extension MainModel: AdvertiserDelegate {
     func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
         guard let endpointName = String(data: context, encoding: .utf8) else {
             return
@@ -154,7 +155,7 @@ extension Model: AdvertiserDelegate {
     }
 }
 
-extension Model: ConnectionManagerDelegate {
+extension MainModel: ConnectionManagerDelegate {
     func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointID: EndpointID, verificationHandler: @escaping (Bool) -> Void) {
         guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
             return

@@ -18,7 +18,7 @@ import SwiftUI
 
 @main
 struct HelloConnectionsApp: App {
-    @StateObject private var model = Model()
+    @StateObject private var model = MainModel()
 
     var body: some Scene {
         WindowGroup {
