@@ -53,12 +53,6 @@ http_archive(
 )
 
 http_archive(
-    name = "com_google_glog",
-    strip_prefix = "glog-931323df212c46e3a01b743d761c6ab8dc9f0d09",
-    urls = ["https://github.com/google/glog/archive/931323df212c46e3a01b743d761c6ab8dc9f0d09.tar.gz"],
-)
-
-http_archive(
     name = "com_google_ukey2",
     strip_prefix = "ukey2-master",
     urls = ["https://github.com/google/ukey2/archive/master.zip"],
@@ -116,14 +110,6 @@ http_archive(
 package(default_visibility = ["//visibility:public"])
 """,
     urls = ["https://webrtc.googlesource.com/src/+archive/main.tar.gz"],
-)
-
-# gflags needed by glog
-http_archive(
-    name = "com_github_gflags_gflags",
-    sha256 = "19713a36c9f32b33df59d1c79b4958434cb005b5b47dc5400a7a4b078111d9b5",
-    strip_prefix = "gflags-2.2.2",
-    url = "https://github.com/gflags/gflags/archive/v2.2.2.zip",
 )
 
 # ----------------------------------------------
