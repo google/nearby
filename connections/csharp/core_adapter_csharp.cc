@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef _WIN32
 #include "core_adapter_csharp.h"
 
 #include <combaseapi.h>
@@ -308,3 +309,4 @@ const char *GetLocalEndpointIdSharp(Core *pCore) {
   return result;
 }
 }  // namespace nearby::windows
+#endif
