@@ -15,8 +15,6 @@
 #ifndef LOCATION_NEARBY_CONNECTIONS_SHARP_CORE_ADAPTER_CSHARP_H_
 #define LOCATION_NEARBY_CONNECTIONS_SHARP_CORE_ADAPTER_CSHARP_H_
 
-#ifdef _WIN32
-
 #include "connections/advertising_options.h"
 #include "connections/c/core_adapter.h"
 #include "connections/discovery_options.h"
@@ -99,5 +97,4 @@ DLL_API const char *GetLocalEndpointIdSharp(Core *pCore);
 }
 }  // namespace nearby::windows
 
-#endif  // #ifdef _WIN32
-#endif  // #define LOCATION_NEARBY_CONNECTIONS_SHARP_CORE_ADAPTER_CSHARP_H_
+#endif
