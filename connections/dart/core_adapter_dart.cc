@@ -147,7 +147,7 @@ void ListenerBandwidthChangedCB(const char *endpoint_id, MediumW medium) {
 }
 
 void ListenerEndpointFoundCB(const char *endpoint_id, const char *endpoint_info,
-                             size_t endpoint_info_size,
+                             size_t endpoint_info_size, MediumW medium,
                              const char *str_service_id) {
   NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id);
   NEARBY_LOG(INFO, "Device discovered: service_id=%s", str_service_id);
