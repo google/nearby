@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Windows;
 
-namespace HelloCloudWpf {
+namespace HelloCloudWpf
+{
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
@@ -12,7 +13,8 @@ namespace HelloCloudWpf {
         public readonly static string DocumentsPath =
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\";
 
-        protected override void OnStartup(StartupEventArgs e) {
+        protected override void OnStartup(StartupEventArgs e)
+        {
             string path = Environment.GetEnvironmentVariable("PATH") ?? "";
             Environment.SetEnvironmentVariable("PATH", path + @";C:\repo\cloud_transfer\bazel-bin\connections\csharp");
             base.OnStartup(e);
