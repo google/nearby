@@ -62,7 +62,7 @@
 			isa = PBXGroup;
 			children = (
 				23F6A70D29D76DC400558F56 /* Packages */,
-				23252B5429D739E400BB0370 /* iOS Example */,
+				23252B5429D739E400BB0370 /* HelloCloudApple */,
 				23252B5329D739E400BB0370 /* Products */,
 				23F6A70F29D772B800558F56 /* Frameworks */,
 			);
@@ -76,7 +76,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		23252B5429D739E400BB0370 /* iOS Example */ = {
+		23252B5429D739E400BB0370 /* HelloCloudApple */ = {
 			isa = PBXGroup;
 			children = (
 				236C727829F83A1F00E54333 /* HelloCloudApple-Info.plist */,
@@ -91,7 +91,7 @@
 				23252B5929D739E500BB0370 /* Assets.xcassets */,
 				23252B5B29D739E500BB0370 /* Preview Content */,
 			);
-			path = "iOS Example";
+			path = HelloCloudApple;
 			sourceTree = "<group>";
 		};
 		23252B5B29D739E500BB0370 /* Preview Content */ = {
@@ -149,7 +149,7 @@
 			packageProductDependencies = (
 				23F6A71029D772B800558F56 /* NearbyConnections */,
 			);
-			productName = "iOS Example";
+			productName = "HelloCloudApple";
 			productReference = 23252B5229D739E400BB0370 /* HelloCloudApple.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -343,7 +343,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"iOS Example/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
 				DEVELOPMENT_TEAM = C2D8V6M23S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -375,7 +375,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"iOS Example/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
 				DEVELOPMENT_TEAM = C2D8V6M23S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
