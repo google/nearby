@@ -66,6 +66,10 @@ message ConnectionsLog {
 
     // The client session flow id.
     optional int64 client_flow_id = 3 /* type = ST_SESSION_ID */;
+
+    // All the connection tokens used in this client session.
+    optional string connection_token = 4
+        /* type = ST_SESSION_ID */;
   }
 
   // One round of a particular Strategy done by a client.
