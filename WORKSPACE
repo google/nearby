@@ -13,12 +13,12 @@ load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_depende
 # https://github.com/bazelbuild/rules_foreign_cc/tree/main/docs#rules_foreign_cc_dependencies
 rules_foreign_cc_dependencies()
 
-_ALL_CONTENT = """\
-filegroup(
-    name = "all_srcs",
-    srcs = glob(["**"]),
-    visibility = ["//visibility:public"],
-)
+_ALL_CONTENT = """\\\r
+filegroup(\r
+    name = "all_srcs",\r
+    srcs = glob(["**"]),\r
+    visibility = ["//visibility:public"],\r
+)\r
 """
 
 http_archive(
@@ -54,9 +54,8 @@ http_archive(
 
 http_archive(
     name = "com_google_glog",
-    sha256 = "f28359aeba12f30d73d9e4711ef356dc842886968112162bc73002645139c39c",
-    strip_prefix = "glog-0.4.0",
-    urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
+    strip_prefix = "glog-931323df212c46e3a01b743d761c6ab8dc9f0d09",
+    urls = ["https://github.com/google/glog/archive/931323df212c46e3a01b743d761c6ab8dc9f0d09.tar.gz"],
 )
 
 http_archive(
@@ -67,22 +66,23 @@ http_archive(
 
 http_archive(
     name = "aappleby_smhasher",
-    strip_prefix = "smhasher-master",
     build_file_content = """
 package(default_visibility = ["//visibility:public"])
+
 cc_library(
     name = "libmurmur3",
     srcs = ["src/MurmurHash3.cpp"],
     hdrs = ["src/MurmurHash3.h"],
-    copts = ["-Wno-implicit-fallthrough"],
+    # copts = ["-Wno-implicit-fallthrough"],
+    copts = ["/wd26819"],  # https://learn.microsoft.com/en-us/cpp/code-quality/c26819
     licenses = ["unencumbered"],  # MurmurHash is explicity public-domain
 )""",
+    strip_prefix = "smhasher-master",
     urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
 )
 
 http_archive(
     name = "nlohmann_json",
-    strip_prefix = "json-3.10.5",
     build_file_content = """
 cc_library(
   name = "json",
@@ -93,12 +93,14 @@ cc_library(
   visibility = ["//visibility:public"],
   alwayslink = True,
 )""",
+    strip_prefix = "json-3.10.5",
     urls = [
         "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
     ],
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
 # Load common dependencies.
 protobuf_deps()
 
@@ -119,8 +121,8 @@ package(default_visibility = ["//visibility:public"])
 # gflags needed by glog
 http_archive(
     name = "com_github_gflags_gflags",
-    strip_prefix = "gflags-2.2.2",
     sha256 = "19713a36c9f32b33df59d1c79b4958434cb005b5b47dc5400a7a4b078111d9b5",
+    strip_prefix = "gflags-2.2.2",
     url = "https://github.com/gflags/gflags/archive/v2.2.2.zip",
 )
 
@@ -135,13 +137,14 @@ nisaba_version = "main"
 
 http_archive(
     name = "com_google_nisaba",
-    url = "https://github.com/google-research/nisaba/archive/refs/heads/%s.zip" % nisaba_version,
     strip_prefix = "nisaba-%s" % nisaba_version,
+    url = "https://github.com/google-research/nisaba/archive/refs/heads/%s.zip" % nisaba_version,
 )
 
 load("@com_google_nisaba//bazel:workspace.bzl", "nisaba_public_repositories")
 
 nisaba_public_repositories()
+
 http_archive(
     name = "boringssl",
     sha256 = "5d299325d1db8b2f2db3d927c7bc1f9fcbd05a3f9b5c8239fa527c09bf97f995",  # Last updated 2022-10-19
@@ -154,8 +157,8 @@ http_archive(
 
 http_archive(
     name = "com_github_protobuf_matchers",
-    urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
     strip_prefix = "protobuf-matchers-master",
+    urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
 )
 
 http_archive(
@@ -165,4 +168,35 @@ http_archive(
     urls = [
         "https://github.com/google/re2/archive/refs/tags/2021-06-01.tar.gz",
     ],
+)
+
+http_archive(
+    name = "dart_lang",
+    build_file_content = """
+# APIs exposed with dynamic linking. Useful for Dart FFI.
+cc_library(
+    name = "dart_api_dl",
+    srcs = ["runtime/include/dart_api_dl.c"],
+    hdrs = [
+        "runtime/include/dart_api.h",
+        "runtime/include/dart_api_dl.h",
+        "runtime/include/dart_native_api.h",
+        "runtime/include/dart_version.h",
+        "runtime/include/internal/dart_api_dl_impl.h",
+    ],
+    copts = [
+        # Required for __declspec(dllexport) on Windows.
+        "-DDART_SHARED_LIB",
+        # TODO: select based on the compiler
+        # "-Wno-implicit-fallthrough",
+        "/wd26819",
+    ],
+    includes = [
+        "runtime/",
+        "runtime/include/",
+    ],
+    visibility = ["//visibility:public"],
+)""",
+    strip_prefix = "sdk-3.2.1",
+    urls = ["https://github.com/dart-lang/sdk/archive/refs/tags/3.2.1.tar.gz"],
 )

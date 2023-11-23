@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 #define PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 
+#ifndef NO_WEBRTC
+
 #include <string>
 
 #include "internal/account/account_manager.h"
@@ -73,5 +75,7 @@ class WebRtcMedium : public api::WebRtcMedium {
 
 }  // namespace windows
 }  // namespace nearby
+
+#endif
 
 #endif  // PLATFORM_IMPL_WINDOWS_WEBRTC_H_
