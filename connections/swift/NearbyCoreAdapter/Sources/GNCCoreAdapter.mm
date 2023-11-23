@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "connections/core.h"
+#include "connections/medium_selector.h"
 
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCAdvertisingOptions+CppConversions.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCConnectionOptions+CppConversions.h"
@@ -46,6 +47,7 @@ using ::nearby::connections::ConnectionResponseInfo;
 using ::nearby::connections::Core;
 using ::nearby::connections::DiscoveryListener;
 using ::nearby::connections::DiscoveryOptions;
+using ::nearby::connections::Medium;
 using ::nearby::connections::Payload;
 using ::nearby::connections::PayloadListener;
 using ::nearby::connections::PayloadProgressInfo;
@@ -201,6 +203,7 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
   DiscoveryListener listener;
   listener.endpoint_found_cb = [delegate](const std::string &endpoint_id,
                                           const ByteArray &endpoint_info,
+                                          Medium medium,
                                           const std::string &service_id) {
     NSString *endpointID = @(endpoint_id.c_str());
     NSData *info = [NSData dataWithBytes:endpoint_info.data() length:endpoint_info.size()];
