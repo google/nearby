@@ -18,11 +18,11 @@ import SwiftUI
 
 @main
 struct HelloConnectionsApp: App {
-    @StateObject private var model = MainModel()
+    @StateObject private var model = Main()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
                 .environmentObject(model)
         }
     }

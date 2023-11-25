@@ -15,11 +15,20 @@
 //
 
 import Foundation
-import NearbyConnections
 
-struct ConnectedEndpoint: Identifiable {
-    let id: UUID
-    let endpointID: EndpointID
-    let endpointName: String
-    var payloads: [Payload] = []
+struct Transfer: Identifiable, Hashable {
+  enum Direction {
+    case send, receive, upload, download
+  }
+
+  enum Result {
+    case success, failure, cancaled
+  }
+
+  let id: UUID = UUID()
+
+  let direction: Direction
+  let localPath: String
+  let remotePath: String
+  let result: Result
 }

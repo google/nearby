@@ -15,10 +15,16 @@
 //
 
 import Foundation
-import NearbyConnections
 
-struct DiscoveredEndpoint: Identifiable {
-    let id: UUID
-    let endpointID: EndpointID
-    let endpointName: String
+struct OutgoingFile: Identifiable, Hashable {
+  let id: UUID = UUID()
+
+  let localPath: String
+  var remotePath: String?
+  let fileSize: UInt64
+
+  var isUploading: Bool
+  var isUploaded: Bool {
+    remotePath != nil
+  }
 }

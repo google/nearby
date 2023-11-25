@@ -15,19 +15,14 @@
 //
 
 import Foundation
-import NearbyConnections
 
-struct Payload: Identifiable {
-    let id: PayloadID
-    var type: PayloadType
-    var status: Status
-    let isIncoming: Bool
-    let cancellationToken: CancellationToken?
+struct IncomingFile: Identifiable, Hashable {
+  let id: UUID = UUID()
 
-    enum PayloadType {
-        case bytes, stream, file
-    }
-    enum Status {
-        case inProgress(Progress), success, failure, canceled
-    }
+  let localPath: String
+  let remotePath: String
+  let fileSize: Int64
+  
+  var isDownloading: Bool
+  var isDownloaded: Bool
 }

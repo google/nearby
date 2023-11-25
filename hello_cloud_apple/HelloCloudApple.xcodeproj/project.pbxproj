@@ -8,42 +8,40 @@
 
 /* Begin PBXBuildFile section */
 		23252B5629D739E400BB0370 /* HelloConnectionsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */; };
-		23252B5829D739E400BB0370 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5729D739E400BB0370 /* ContentView.swift */; };
+		23252B5829D739E400BB0370 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5729D739E400BB0370 /* MainView.swift */; };
 		23252B5A29D739E500BB0370 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23252B5929D739E500BB0370 /* Assets.xcassets */; };
 		23252B5D29D739E500BB0370 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23252B5C29D739E500BB0370 /* Preview Assets.xcassets */; };
 		23D1FD2429D8A73200620802 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2329D8A73200620802 /* Config.swift */; };
-		23D1FD2629D8A9FF00620802 /* DiscoveredEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2529D8A9FF00620802 /* DiscoveredEndpoint.swift */; };
-		23D1FD2829D8AA2200620802 /* ConnectionRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2729D8AA2200620802 /* ConnectionRequest.swift */; };
-		23D1FD2A29D8AA3E00620802 /* ConnectedEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2929D8AA3E00620802 /* ConnectedEndpoint.swift */; };
-		23D1FD2C29D8AA5100620802 /* Payload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2B29D8AA5100620802 /* Payload.swift */; };
-		23D1FD2E29D8AC0C00620802 /* DiscoveredEndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2D29D8AC0C00620802 /* DiscoveredEndpointView.swift */; };
-		23D1FD3029D8AC2E00620802 /* ConnectionRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2F29D8AC2E00620802 /* ConnectionRequestView.swift */; };
-		23D1FD3229D8AC4900620802 /* ConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD3129D8AC4900620802 /* ConnectedView.swift */; };
-		23D1FD3429D8AC5E00620802 /* PayloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD3329D8AC5E00620802 /* PayloadView.swift */; };
-		23F6A70829D7621F00558F56 /* MainModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* MainModel.swift */; };
+		23D1FD2629D8A9FF00620802 /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2529D8A9FF00620802 /* Endpoint.swift */; };
+		23F6A70829D7621F00558F56 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* Main.swift */; };
 		23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 23F6A71029D772B800558F56 /* NearbyConnections */; };
-		23F6A71329D7ADCE00558F56 /* EndpointDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointDetail.swift */; };
+		23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointView.swift */; };
+		77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C742B110CA600838C24 /* IncomingFile.swift */; };
+		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
+		77E09C792B110CC500838C24 /* Transfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C782B110CC500838C24 /* Transfer.swift */; };
+		77E09C7B2B119B1600838C24 /* TransfersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7A2B119B1600838C24 /* TransfersView.swift */; };
+		77E09C7D2B11C13300838C24 /* OutgoingFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7C2B11C13300838C24 /* OutgoingFilesView.swift */; };
+		77E09C7F2B11D45F00838C24 /* IncomingFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		23252B5229D739E400BB0370 /* HelloCloudApple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HelloCloudApple.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloConnectionsApp.swift; sourceTree = "<group>"; };
-		23252B5729D739E400BB0370 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		23252B5729D739E400BB0370 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		23252B5929D739E500BB0370 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		23252B5C29D739E500BB0370 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		236C727829F83A1F00E54333 /* HelloCloudApple-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "HelloCloudApple-Info.plist"; sourceTree = SOURCE_ROOT; };
 		23D1FD2329D8A73200620802 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
-		23D1FD2529D8A9FF00620802 /* DiscoveredEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredEndpoint.swift; sourceTree = "<group>"; };
-		23D1FD2729D8AA2200620802 /* ConnectionRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionRequest.swift; sourceTree = "<group>"; };
-		23D1FD2929D8AA3E00620802 /* ConnectedEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedEndpoint.swift; sourceTree = "<group>"; };
-		23D1FD2B29D8AA5100620802 /* Payload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Payload.swift; sourceTree = "<group>"; };
-		23D1FD2D29D8AC0C00620802 /* DiscoveredEndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredEndpointView.swift; sourceTree = "<group>"; };
-		23D1FD2F29D8AC2E00620802 /* ConnectionRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionRequestView.swift; sourceTree = "<group>"; };
-		23D1FD3129D8AC4900620802 /* ConnectedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedView.swift; sourceTree = "<group>"; };
-		23D1FD3329D8AC5E00620802 /* PayloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayloadView.swift; sourceTree = "<group>"; };
-		23F6A70729D7621F00558F56 /* MainModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainModel.swift; sourceTree = "<group>"; };
+		23D1FD2529D8A9FF00620802 /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
+		23F6A70729D7621F00558F56 /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
 		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ..; sourceTree = "<group>"; };
-		23F6A71229D7ADCE00558F56 /* EndpointDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointDetail.swift; sourceTree = "<group>"; };
+		23F6A71229D7ADCE00558F56 /* EndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointView.swift; sourceTree = "<group>"; };
+		77E09C742B110CA600838C24 /* IncomingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFile.swift; sourceTree = "<group>"; };
+		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
+		77E09C782B110CC500838C24 /* Transfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer.swift; sourceTree = "<group>"; };
+		77E09C7A2B119B1600838C24 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
+		77E09C7C2B11C13300838C24 /* OutgoingFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFilesView.swift; sourceTree = "<group>"; };
+		77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFilesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,12 +80,11 @@
 				236C727829F83A1F00E54333 /* HelloCloudApple-Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
 				23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */,
-				23252B5729D739E400BB0370 /* ContentView.swift */,
-				23F6A71229D7ADCE00558F56 /* EndpointDetail.swift */,
-				23D1FD3329D8AC5E00620802 /* PayloadView.swift */,
-				23D1FD3129D8AC4900620802 /* ConnectedView.swift */,
-				23D1FD2F29D8AC2E00620802 /* ConnectionRequestView.swift */,
-				23D1FD2D29D8AC0C00620802 /* DiscoveredEndpointView.swift */,
+				23252B5729D739E400BB0370 /* MainView.swift */,
+				23F6A71229D7ADCE00558F56 /* EndpointView.swift */,
+				77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */,
+				77E09C7C2B11C13300838C24 /* OutgoingFilesView.swift */,
+				77E09C7A2B119B1600838C24 /* TransfersView.swift */,
 				23252B5929D739E500BB0370 /* Assets.xcassets */,
 				23252B5B29D739E500BB0370 /* Preview Content */,
 			);
@@ -120,12 +117,12 @@
 		23F6A71429D7B0AB00558F56 /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				23F6A70729D7621F00558F56 /* MainModel.swift */,
-				23D1FD2B29D8AA5100620802 /* Payload.swift */,
-				23D1FD2929D8AA3E00620802 /* ConnectedEndpoint.swift */,
-				23D1FD2729D8AA2200620802 /* ConnectionRequest.swift */,
-				23D1FD2529D8A9FF00620802 /* DiscoveredEndpoint.swift */,
+				23F6A70729D7621F00558F56 /* Main.swift */,
+				23D1FD2529D8A9FF00620802 /* Endpoint.swift */,
 				23D1FD2329D8A73200620802 /* Config.swift */,
+				77E09C742B110CA600838C24 /* IncomingFile.swift */,
+				77E09C762B110CB300838C24 /* OutgoingFile.swift */,
+				77E09C782B110CC500838C24 /* Transfer.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -203,19 +200,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				23252B5829D739E400BB0370 /* ContentView.swift in Sources */,
-				23F6A70829D7621F00558F56 /* MainModel.swift in Sources */,
+				77E09C7F2B11D45F00838C24 /* IncomingFilesView.swift in Sources */,
+				77E09C7D2B11C13300838C24 /* OutgoingFilesView.swift in Sources */,
+				23252B5829D739E400BB0370 /* MainView.swift in Sources */,
+				23F6A70829D7621F00558F56 /* Main.swift in Sources */,
 				23D1FD2429D8A73200620802 /* Config.swift in Sources */,
-				23D1FD2E29D8AC0C00620802 /* DiscoveredEndpointView.swift in Sources */,
-				23D1FD3429D8AC5E00620802 /* PayloadView.swift in Sources */,
-				23D1FD2C29D8AA5100620802 /* Payload.swift in Sources */,
+				77E09C7B2B119B1600838C24 /* TransfersView.swift in Sources */,
 				23252B5629D739E400BB0370 /* HelloConnectionsApp.swift in Sources */,
-				23D1FD2629D8A9FF00620802 /* DiscoveredEndpoint.swift in Sources */,
-				23D1FD3029D8AC2E00620802 /* ConnectionRequestView.swift in Sources */,
-				23D1FD3229D8AC4900620802 /* ConnectedView.swift in Sources */,
-				23D1FD2829D8AA2200620802 /* ConnectionRequest.swift in Sources */,
-				23D1FD2A29D8AA3E00620802 /* ConnectedEndpoint.swift in Sources */,
-				23F6A71329D7ADCE00558F56 /* EndpointDetail.swift in Sources */,
+				23D1FD2629D8A9FF00620802 /* Endpoint.swift in Sources */,
+				77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */,
+				77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */,
+				77E09C792B110CC500838C24 /* Transfer.swift in Sources */,
+				23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
