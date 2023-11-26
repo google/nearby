@@ -16,15 +16,31 @@
 
 import Foundation
 
-struct OutgoingFile: Identifiable, Hashable {
+@Observable class OutgoingFile: Identifiable, Hashable {
   let id: UUID = UUID()
-
+  
   let localPath: String
-  var remotePath: String?
   let fileSize: UInt64
 
+  var remotePath: String?
   var isUploading: Bool
   var isUploaded: Bool {
     remotePath != nil
   }
+
+  init(localPath: String, fileSize: UInt64, remotePath: String? = nil, isUploading: Bool) {
+    self.localPath = localPath
+    self.fileSize = fileSize
+    self.remotePath = remotePath
+    self.isUploading = isUploading
+  }
+
+  func upload() -> Void {
+    // TODO: async this and actually upload
+    isUploading = false
+    remotePath = "1234567890ABCDEF"
+  }
+
+  static func == (lhs: OutgoingFile, rhs: OutgoingFile) -> Bool { lhs.id == rhs.id }
+  func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
 }

@@ -17,17 +17,28 @@
 import SwiftUI
 
 struct IncomingFilesView: View {
-  var model: Endpoint
+  let model: Endpoint
 
-  let download: () -> Void = {}
+  init(model: Endpoint) {
+    self.model = model
+  }
+
+  func download() -> Void  {
+    // TODO: async this
+    for file in model.incomingFiles {
+      file.download()
+
+      model.transfers.append(Transfer(direction: .download, localPath: file.localPath, remotePath: file.remotePath, result: .success))
+    }
+  }
 
   var body: some View {
     // TODO: make the button float at the button; add a vertical scrollbar
     Form {
       Section(header: Text("Incoming Files")) {
-            Button(action: download) {
-              Label("Download", systemImage: "arrow.down.circle.fill")
-            }
+        Button(action: download) {
+          Label("Download", systemImage: "arrow.down.circle.fill")
+        }.disabled(model.incomingFiles.isEmpty || model.incomingFiles.allSatisfy({$0.isDownloaded || $0.isDownloading}))
 
         ForEach(model.incomingFiles) {file in
           HStack {
@@ -49,14 +60,13 @@ struct IncomingFilesView: View {
   }
 }
 
-struct IncomingFilesView__Previews: PreviewProvider {
+struct IncomingFilesView_Previews: PreviewProvider {
   static var previews: some View {
     IncomingFilesView(
       model: Endpoint(
         id: "R2D2",
         name: "Debug droid",
-        state: Endpoint.State.discovered,
-        isIncoming: false,
+        isIncoming: false, state: .discovered,
         incomingFiles: [
           IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", fileSize: 4000000, isDownloading: true, isDownloaded: false),
           IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: false),

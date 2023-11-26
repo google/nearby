@@ -16,13 +16,30 @@
 
 import Foundation
 
-struct IncomingFile: Identifiable, Hashable {
+@Observable class IncomingFile: Identifiable, Hashable {
   let id: UUID = UUID()
-
+  
   let localPath: String
   let remotePath: String
   let fileSize: Int64
-  
+
   var isDownloading: Bool
   var isDownloaded: Bool
+
+  init(localPath: String, remotePath: String, fileSize: Int64, isDownloading: Bool, isDownloaded: Bool) {
+    self.localPath = localPath
+    self.remotePath = remotePath
+    self.fileSize = fileSize
+    self.isDownloading = isDownloading
+    self.isDownloaded = isDownloaded
+  }
+
+  func download () -> Void {
+    // TODO: async this and actually download
+    isDownloading = false;
+    isDownloaded = true;
+  }
+  
+  static func == (lhs: IncomingFile, rhs: IncomingFile) -> Bool { lhs.id == rhs.id }
+  func hash(into hasher: inout Hasher){ hasher.combine(self.id) }
 }

@@ -64,8 +64,7 @@ struct TransferView_Previews: PreviewProvider {
       model: Endpoint(
         id: "R2D2",
         name: "Debug droid",
-        state: Endpoint.State.discovered,
-        isIncoming: false,
+        isIncoming: false, state: .discovered,
         transfers: [
           Transfer(
             direction: Transfer.Direction.upload, 

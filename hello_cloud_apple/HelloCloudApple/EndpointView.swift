@@ -17,15 +17,21 @@
 import SwiftUI
 
 struct EndpointView: View {
-  // @EnvironmentObject
   var model: Endpoint
 
-  let connect: () -> Void = {}
-  let disconnect: () -> Void = {}
+  func connect() -> Void {
+    model.state = .connected
+    print("Connected")
+  }
+
+  func disconnect() -> Void {
+    model.state = .discovered
+    print("Disconnected")
+  }
 
   var body: some View {
     Form {
-      Section(header: Text("Remote Endpoint")) {
+      Section {
         Grid(horizontalSpacing: 20, verticalSpacing: 20) {
           GridRow{
             Text("ID:").gridColumnAlignment(.leading)
@@ -39,34 +45,42 @@ struct EndpointView: View {
             Text("State:").gridColumnAlignment(.leading)
             HStack {
               switch model.state {
-              case Endpoint.State.pending, Endpoint.State.sending, Endpoint.State.receiving:
+              case .pending, .sending, .receiving:
                 ProgressView()
-              case Endpoint.State.connected:
+              case .connected:
                 Image(systemName: "circle.fill").foregroundColor(.green)
-              case Endpoint.State.discovered:
+              case .discovered:
                 Image(systemName: "circle.fill").foregroundColor(.gray)
               }
               Text(String(describing: model.state)).gridColumnAlignment(.leading)
             }
           }
         }
+      }
+
+      Section {
         Button(action: connect) {
-          Label("Connect", systemImage: "phone.connection.fill").foregroundColor(.green)
+          Label("Connect", systemImage: "phone.connection.fill")
+            .foregroundColor(model.state == .discovered ? .green : .gray)
         }
+        .disabled(model.state != .discovered)
         Button(action: disconnect) {
-          Label("Disconnect", systemImage: "phone.down.fill").foregroundColor(.red)
-        }
-        NavigationLink { }
+          Label("Disconnect", systemImage: "phone.down.fill")
+            .foregroundColor(model.state == .connected ? .red : .gray)
+        }.disabled(model.state != .connected)
+      }
+      Section {
+        NavigationLink { OutgoingFilesView(model: model) }
           label: {
             Label("Outgoing Files", systemImage: "arrow.up.doc.fill")
           }
-        NavigationLink{} label: {
+        NavigationLink{ IncomingFilesView(model: model) } label: {
           Label("Incoming Files", systemImage: "arrow.down.doc.fill")
         }
         NavigationLink{ TransfersView(model: model) } label: {
           Label("Transfer Log", systemImage: "list.bullet.clipboard.fill")
         }
-      }.headerProminence(.increased)
+      }
     }
     .navigationTitle(model.name)
   }
@@ -106,13 +120,13 @@ struct EndpointView: View {
 
 struct EndpointView_Previews: PreviewProvider {
   static var previews: some View {
-    EndpointView(
-      model: Endpoint(
-        id: "R2D2",
-        name: "Debug droid",
-        state: Endpoint.State.discovered,
-        isIncoming: false
+    Group {
+      EndpointView(
+        model: Endpoint(
+          id: "R2D2",
+          name: "Nice droid"
+        )
       )
-    )
+    }
   }
 }

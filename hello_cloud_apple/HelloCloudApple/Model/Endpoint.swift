@@ -16,39 +16,47 @@
 
 import Foundation
 import NearbyConnections
+import SwiftUI
 
-struct Endpoint: Identifiable, Hashable {
-  enum State: Int {
+@Observable class Endpoint: Identifiable, Hashable {
+  enum State: Int, CustomStringConvertible {
     case discovered, pending, connected, sending, receiving
+
+      var description: String {
+        return switch self {
+        case .discovered: "Discovered"
+        case .pending: "Pending"
+        case .connected: "Connected"
+        case .sending: "Sending"
+        case .receiving: "Receiving"
+        }
+      }
   }
 
-  enum Medium: Int {
-    case unknown, mDns, bluetooth, wifiHotspot, ble, wifiLan, wifiAware, nfc, wifiDirect, webRtc, bleL2Cap, usb
-  }
+//  enum Medium: Int {
+//    case unknown, mDns, bluetooth, wifiHotspot, ble, wifiLan, wifiAware, nfc, wifiDirect, webRtc, bleL2Cap, usb
+//  }
 
-  let id: EndpointID
+  let id: String
   let name: String
-  // let medium: Medium
-  let state: State
   let isIncoming: Bool
 
+  // var medium: Medium
+  var state: State
   var outgoingFiles: [OutgoingFile] = []
   var incomingFiles: [IncomingFile] = []
   var transfers: [Transfer] = []
 
-  static func == (lhs: Endpoint, rhs: Endpoint) -> Bool {
-    return lhs.id == rhs.id
-  }
-}
+  static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }
+  func hash(into hasher: inout Hasher){ hasher.combine(id) }
 
-extension Endpoint.State: CustomStringConvertible {
-  var description: String {
-    return switch self {
-    case .discovered: "Discovered"
-    case .pending: "Pending"
-    case .connected: "Connected"
-    case .sending: "Sending"
-    case .receiving: "Receiving"
-    }
+  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered, outgoingFiles: [OutgoingFile] = [], incomingFiles: [IncomingFile] = [], transfers: [Transfer] = []) {
+    self.id = id
+    self.name = name
+    self.isIncoming = isIncoming
+    self.state = state
+    self.outgoingFiles = outgoingFiles
+    self.incomingFiles = incomingFiles
+    self.transfers = transfers
   }
 }

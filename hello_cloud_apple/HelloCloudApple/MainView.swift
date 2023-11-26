@@ -18,45 +18,68 @@ import SwiftUI
 import NearbyConnections
 
 struct MainView: View {
-  @EnvironmentObject private var model: Main
+  @ObservedObject var model: Main
+
+  func toggleIsAdvertising() -> Void {
+    model.isAdvertising.toggle();
+  }
 
   var body: some View {
-    NavigationSplitView {
+    NavigationStack {
       Form {
-        HStack{
-          Label("Local Endpoint ID:", systemImage: "network")
-          Text(model.localEndpointId)
-        }
-        TextField("Endpoint Name", text: $model.localEndpointName)
-        Toggle("Advertising", isOn: $model.isAdvertisingEnabled)
-        Toggle("Discovery", isOn: $model.isDiscoveryEnabled)
-        Section(header: Text("Endpoints")) {
-          ForEach(model.endpoints) { endpoint in
-            NavigationLink(value: endpoint) {
-              Text(endpoint.id)
-              Text("(" + endpoint.name + ")")
+        Section{
+          Grid (horizontalSpacing: 20, verticalSpacing: 10) {
+            GridRow {
+              Label("ID:", systemImage: "1.square.fill").gridColumnAlignment(.leading)
+              Text(model.localEndpointId).font(.custom("Menlo", fixedSize: 15)).gridColumnAlignment(.leading)
+            }
+            GridRow {
+              Label("Name:", systemImage: "a.square.fill").gridColumnAlignment(.leading)
+              TextField("Local Endpoint Name", text: $model.localEndpointName)
             }
           }
+        } header: {
+          Text("Local endpoint")
         }
-      }
-      .navigationDestination(for: String.self) { endpointId in
-        // TODO: guard here?
-        let endpoint = model.endpoints.first(where: { $0.id == endpointId})
-        EndpointView(model: endpoint!)
-      }
-      .navigationTitle("Hello Cloud")
-    } detail: {
-      Text("No Endpoints Selected")
-        .font(.headline)
-        .foregroundColor(.secondary)
+
+        Section {
+          Button(action: {model.isAdvertising.toggle()}) {
+            model.isAdvertising
+            ? Label("Stop advertising", systemImage: "stop.circle")
+            : Label("Start advertising", systemImage: "play.circle")
+          }.foregroundColor(model.isAdvertising ? .red : .green)
+          Button(action: {model.isDiscovering.toggle()}) {
+            model.isDiscovering
+            ? Label("Stop discovering", systemImage: "stop.circle")
+            : Label("Start discovering", systemImage: "play.circle")
+          }.foregroundColor(model.isDiscovering ? .red : .green)
+        }
+
+        List {
+          Section {
+            ForEach(model.endpoints) { endpoint in
+              HStack{
+                NavigationLink(value: endpoint) {
+                  Text(endpoint.id).font(.custom("Menlo", fixedSize: 15))
+                  Text("(" + endpoint.name + ")")
+                }
+              }
+            }
+          } header: {
+            Text("Remote endpoints")
+          }
+        }
+      }.navigationDestination(for: Endpoint.self) { endpoint in
+        EndpointView(model: endpoint)
+      }.navigationTitle("Hello Cloud")
     }
   }
 }
 
 struct MainView_Previews: PreviewProvider {
-  static let model = Main()
+  static let model = Main.createDebugModel()
 
   static var previews: some View {
-    MainView ().environmentObject(model)
+    MainView(model: model)
   }
 }

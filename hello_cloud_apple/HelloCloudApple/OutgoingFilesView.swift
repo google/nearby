@@ -17,30 +17,42 @@
 import SwiftUI
 
 struct OutgoingFilesView: View {
-  var model: Endpoint
+  let model: Endpoint
 
-  let upload: () -> Void = {}
-  let send: () -> Void = {}
+  func upload () -> Void {
+    for file in model.outgoingFiles {
+      // TODO: async this
+      file.upload()
+
+      model.transfers.append(Transfer(direction: .upload, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
+    }
+  }
+
+  func send () -> Void {
+    // TODO: encode and send payload
+    for file in model.outgoingFiles {
+      model.transfers.append(Transfer(direction: .send, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
+    }
+  }
+
   let pick: () -> Void = {}
 
   var body: some View {
     // TODO: make the buttons float at the button; add a vertical scrollbar
     Form {
       Section(header: Text("Outgoing Files")) {
-        Grid{
-          GridRow {
-            Button(action: pick) {
-              Label("Pick", systemImage: "doc.fill.badge.plus")
-            }
-            Spacer()
-            Button(action: upload) {
-              Label("Upload", systemImage: "arrow.up.circle.fill")
-            }
-            Spacer()
-            Button(action: send) {
-              Label("Send", systemImage: "arrow.up.backward.circle.fill")
-            }
+        HStack{
+          Button(action: pick) {
+            Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
           }
+          Spacer()
+          Button(action: upload) {
+            Label("Upload", systemImage: "arrow.up.circle.fill").frame(maxWidth: .infinity)
+          }.disabled(model.outgoingFiles.isEmpty || model.outgoingFiles.allSatisfy({$0.isUploaded || $0.isUploading}))
+          Spacer()
+          Button(action: send) {
+            Label("Send", systemImage: "arrow.up.backward.circle.fill").frame(maxWidth: .infinity)
+          }.disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.isUploaded}))
         }
 
         ForEach(model.outgoingFiles) {file in
@@ -63,18 +75,17 @@ struct OutgoingFilesView: View {
   }
 }
 
-struct OutgoingFilesView__Previews: PreviewProvider {
+struct OutgoingFilesView_Previews: PreviewProvider {
   static var previews: some View {
     OutgoingFilesView(
       model: Endpoint(
         id: "R2D2",
         name: "Debug droid",
-        state: Endpoint.State.discovered,
-        isIncoming: false,
+        isIncoming: false, state: .discovered,
         outgoingFiles: [
           OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, isUploading: false),
           OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, isUploading: true),
-          OutgoingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isUploading: false)
+          OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, remotePath: "1234567890ABCDEF", isUploading: false)
         ]
       )
     )

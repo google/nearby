@@ -17,78 +17,135 @@
 import Foundation
 import NearbyConnections
 
-class Main: ObservableObject {
+@Observable class Main: ObservableObject {
   let localEndpointId: String
-  @Published var localEndpointName: String = ""
-  @Published var isAdvertisingEnabled = Config.defaultAdvertisingState {
+
+  var localEndpointName: String = ""
+
+  var isAdvertising = false {
     didSet {
-      invalidateAdvertising()
+      print (isAdvertising ? "Starting advertising..." : "Stopping advertising")
+
+      if !isAdvertising {
+        // advertiser?.stopAdvertising()
+        return
+      } else {
+        if  connectionManager == nil {
+          connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: Config.defaultStategy)
+          connectionManager.delegate = self
+        }
+        if advertiser == nil {
+          // TODO: String.data does not include the null character at the end. Add one
+          advertiser = Advertiser(connectionManager: connectionManager)
+          advertiser.delegate = self
+        }
+        // advertiser.startAdvertising(using: localEndpointName.data(using: .utf8)!)
+      }
     }
   }
-  @Published var isDiscoveryEnabled = Config.defaultDiscoveryState {
+
+  var isDiscovering = false {
     didSet {
-      invalidateDiscovery()
+      print (isDiscovering ? "Starting discovering..." : "Stopping discovering")
+      
+      if !isDiscovering {
+        // discoverer.stopDiscovery()
+        return
+      } else {
+        if connectionManager == nil {
+          connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: Config.defaultStategy)
+          connectionManager.delegate = self
+        }
+        if discoverer == nil {
+          discoverer = Discoverer(connectionManager: connectionManager)
+          discoverer.delegate = self
+        }
+        // discoverer.startDiscovery()
+      }
     }
   }
-  @Published private(set) var endpoints: [Endpoint] = []
+
+  private(set) var endpoints: [Endpoint] = []
 
   private var connectionManager: ConnectionManager!
-  private var advertiser: Advertiser?
-  private var discoverer: Discoverer?
-  private var isAdvertising = Config.defaultAdvertisingState
-  private var isDiscovering = Config.defaultDiscoveryState
+  private var advertiser: Advertiser!
+  private var discoverer: Discoverer!
 
   init() {
+    // TODO: expose the API to retrieve local endpoint ID
     localEndpointId = "ABCD"
-    invalidateAdvertising()
-    invalidateDiscovery()
-    endpoints.append(Endpoint(
+//    invalidateAdvertising()
+//    invalidateDiscovery()
+//    endpoints.append(Endpoint(
+//      id: "R2D2",
+//      name: "Debug droid",
+//      // medium: Endpoint.Medium.bluetooth,
+//      state: Endpoint.State.discovered,
+//      isIncoming: false
+//    ))
+  }
+
+  static func createDebugModel() -> Main {
+    let model = Main();
+    model.localEndpointName = "iPhone"
+
+    model.endpoints.append(Endpoint(
       id: "R2D2",
-      name: "Debug droid",
+      name: "Nice droid",
       // medium: Endpoint.Medium.bluetooth,
-      state: Endpoint.State.discovered,
-      isIncoming: false
+      isIncoming: false, state: .discovered
     ))
+
+    model.endpoints.append(Endpoint(
+      id: "C3P0",
+      name: "Fussy droid",
+      // medium: Endpoint.Medium.bluetooth,
+      isIncoming: false, state: .discovered,
+      outgoingFiles: [
+        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, isUploading: false),
+        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, isUploading: true),
+        OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, remotePath: "1234567890ABCDEF", isUploading: false)
+      ],
+      incomingFiles: [
+        IncomingFile(localPath: "IMG_0004.jpg", remotePath: "1234567890ABCDEF", fileSize: 4000000, isDownloading: true, isDownloaded: false),
+        IncomingFile(localPath: "IMG_0005.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: false),
+        IncomingFile(localPath: "IMG_0006.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: true)
+      ],
+      transfers: [
+        Transfer(
+          direction: Transfer.Direction.upload,
+          localPath: "IMG_0001.jpg",
+          remotePath: "1234567890ABCDEF",
+          result: .success
+        ),
+        Transfer(
+          direction: Transfer.Direction.download,
+          localPath: "IMG_0002.jpg",
+          remotePath: "1234567890ABCDEF",
+          result: .failure
+        ),
+        Transfer(
+          direction: Transfer.Direction.send,
+          localPath: "IMG_0003.jpg",
+          remotePath: "1234567890ABCDEF",
+          result: .success
+        ),
+        Transfer(
+          direction: Transfer.Direction.receive,
+          localPath: "IMG_0004.jpg",
+          remotePath: "1234567890ABCDEF",
+          result: .cancaled
+        )
+      ]
+    ))
+
+    return model;
   }
 
-  private func invalidateAdvertising() {
-    defer {
-      isAdvertising = isAdvertisingEnabled
-    }
-    if isAdvertising {
-      advertiser?.stopAdvertising()
-    }
-    if !isAdvertisingEnabled {
-      return
-    }
-    connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: Config.defaultStategy)
-    connectionManager.delegate = self
-
-    // TODO: String.data does not include the null character at the end. Add one
-    advertiser = Advertiser(connectionManager: connectionManager)
-    advertiser?.delegate = self
-    advertiser?.startAdvertising(using: localEndpointName.data(using: .utf8)!)
+  public func endpoint(id: String) -> Endpoint? {
+    return endpoints.first(where: {$0.id == id})
   }
-
-
-  private func invalidateDiscovery() {
-    defer {
-      isDiscovering = isDiscoveryEnabled
-    }
-    if isDiscovering {
-      discoverer?.stopDiscovery()
-    }
-    if !isDiscoveryEnabled {
-      return
-    }
-    connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: Config.defaultStategy)
-    connectionManager.delegate = self
-
-    discoverer = Discoverer(connectionManager: connectionManager)
-    discoverer?.delegate = self
-    discoverer?.startDiscovery()
-  }
-
+  
   func requestConnection(to endpointID: EndpointID) {
     discoverer?.requestConnection(to: endpointID, using: localEndpointName.data(using: .utf8)!)
   }
@@ -121,7 +178,9 @@ class Main: ObservableObject {
 }
 
 extension Main: DiscovererDelegate {
+  // on endpoint found
   func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, /*medium: Endpoint.Medium,*/ with context: Data) {
+    // TODO: add a null at the end of the string
     guard let endpointName = String(data: context, encoding: .utf8) else {
       return
     }
@@ -129,18 +188,21 @@ extension Main: DiscovererDelegate {
       id: endpointID,
       name: endpointName,
       // medium: "",
-      state: Endpoint.State.discovered,
-      isIncoming: false
+      isIncoming: false, state: .discovered
     )
     endpoints.append(endpoint)
   }
 
+  // on endpoint lost
   func discoverer(_ discoverer: Discoverer, didLose endpointID: EndpointID) {
+    // TODO: if the endpoint is currently selected, update the selection to
+    // nil or the first endpoint
     endpoints.removeAll(where: {$0.id == endpointID})
   }
 }
 
 extension Main: AdvertiserDelegate {
+  // on connection reuqested
   func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
     guard let endpointName = String(data: context, encoding: .utf8) else {
       return
@@ -148,10 +210,10 @@ extension Main: AdvertiserDelegate {
     let endpoint = Endpoint(
       id: endpointID,
       name: endpointName,
-      state: Endpoint.State.pending,
-      isIncoming: true
+      isIncoming: true, state: .pending
     )
     endpoints.append(endpoint)
+    // TODO: auto accept
     connectionRequestHandler(true)
   }
 }
