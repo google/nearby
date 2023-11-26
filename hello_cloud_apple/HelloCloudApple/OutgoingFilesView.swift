@@ -45,15 +45,15 @@ struct OutgoingFilesView: View {
           Button(action: pick) {
             Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
           }
-          Spacer()
+
           Button(action: upload) {
             Label("Upload", systemImage: "arrow.up.circle.fill").frame(maxWidth: .infinity)
           }.disabled(model.outgoingFiles.isEmpty || model.outgoingFiles.allSatisfy({$0.isUploaded || $0.isUploading}))
-          Spacer()
+
           Button(action: send) {
             Label("Send", systemImage: "arrow.up.backward.circle.fill").frame(maxWidth: .infinity)
           }.disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.isUploaded}))
-        }
+        }.buttonStyle(.bordered).fixedSize()
 
         ForEach(model.outgoingFiles) {file in
           HStack {

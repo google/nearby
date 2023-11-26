@@ -30,59 +30,61 @@ struct EndpointView: View {
   }
 
   var body: some View {
-    Form {
-      Section {
-        Grid(horizontalSpacing: 20, verticalSpacing: 20) {
-          GridRow{
-            Text("ID:").gridColumnAlignment(.leading)
-            Text(model.id).gridColumnAlignment(.leading)
-          }
-          GridRow{
-            Text("Name:").gridColumnAlignment(.leading)
-            Text(model.name).gridColumnAlignment(.leading)
-          }
-          GridRow{
-            Text("State:").gridColumnAlignment(.leading)
-            HStack {
-              switch model.state {
-              case .pending, .sending, .receiving:
-                ProgressView()
-              case .connected:
-                Image(systemName: "circle.fill").foregroundColor(.green)
-              case .discovered:
-                Image(systemName: "circle.fill").foregroundColor(.gray)
+    NavigationStack {
+      Form {
+        Section {
+          Grid(horizontalSpacing: 20, verticalSpacing: 20) {
+            GridRow{
+              Text("ID:").gridColumnAlignment(.leading)
+              Text(model.id).gridColumnAlignment(.leading)
+            }
+            GridRow{
+              Text("Name:").gridColumnAlignment(.leading)
+              Text(model.name).gridColumnAlignment(.leading)
+            }
+            GridRow{
+              Text("State:").gridColumnAlignment(.leading)
+              HStack {
+                switch model.state {
+                case .pending, .sending, .receiving:
+                  ProgressView()
+                case .connected:
+                  Image(systemName: "circle.fill").foregroundColor(.green)
+                case .discovered:
+                  Image(systemName: "circle.fill").foregroundColor(.gray)
+                }
+                Text(String(describing: model.state)).gridColumnAlignment(.leading)
               }
-              Text(String(describing: model.state)).gridColumnAlignment(.leading)
             }
           }
         }
-      }
 
-      Section {
-        Button(action: connect) {
-          Label("Connect", systemImage: "phone.connection.fill")
-            .foregroundColor(model.state == .discovered ? .green : .gray)
-        }
-        .disabled(model.state != .discovered)
-        Button(action: disconnect) {
-          Label("Disconnect", systemImage: "phone.down.fill")
-            .foregroundColor(model.state == .connected ? .red : .gray)
-        }.disabled(model.state != .connected)
-      }
-      Section {
-        NavigationLink { OutgoingFilesView(model: model) }
-          label: {
+        Section {
+            Button(action: connect) {
+              Label("Connect", systemImage: "phone.connection.fill")
+                .foregroundColor(model.state == .discovered ? .green : .gray)
+            }.disabled(model.state != .discovered)
+
+            Button(action: disconnect) {
+              Label("Disconnect", systemImage: "phone.down.fill")
+                .foregroundColor(model.state == .connected ? .red : .gray)
+            }.disabled(model.state != .connected)
+
+        }.buttonStyle(.plain).fixedSize()
+        Section {
+          NavigationLink { OutgoingFilesView(model: model) } label: {
             Label("Outgoing Files", systemImage: "arrow.up.doc.fill")
           }
-        NavigationLink{ IncomingFilesView(model: model) } label: {
-          Label("Incoming Files", systemImage: "arrow.down.doc.fill")
-        }
-        NavigationLink{ TransfersView(model: model) } label: {
-          Label("Transfer Log", systemImage: "list.bullet.clipboard.fill")
+          NavigationLink{ IncomingFilesView(model: model) } label: {
+            Label("Incoming Files", systemImage: "arrow.down.doc.fill")
+          }
+          NavigationLink{ TransfersView(model: model) } label: {
+            Label("Transfer Log", systemImage: "list.bullet.clipboard.fill")
+          }
         }
       }
+      .navigationTitle(model.name)
     }
-    .navigationTitle(model.name)
   }
 
 //    var body: some View {

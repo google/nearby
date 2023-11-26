@@ -59,7 +59,7 @@ struct MainView: View {
           Section {
             ForEach(model.endpoints) { endpoint in
               HStack{
-                NavigationLink(value: endpoint) {
+                NavigationLink {EndpointView(model: endpoint)} label: {
                   Text(endpoint.id).font(.custom("Menlo", fixedSize: 15))
                   Text("(" + endpoint.name + ")")
                 }
@@ -69,8 +69,6 @@ struct MainView: View {
             Text("Remote endpoints")
           }
         }
-      }.navigationDestination(for: Endpoint.self) { endpoint in
-        EndpointView(model: endpoint)
       }.navigationTitle("Hello Cloud")
     }
   }

@@ -28,7 +28,8 @@ struct IncomingFilesView: View {
     for file in model.incomingFiles {
       file.download()
 
-      model.transfers.append(Transfer(direction: .download, localPath: file.localPath, remotePath: file.remotePath, result: .success))
+      model.transfers.append(Transfer(direction: .download, localPath: file.localPath, 
+                                      remotePath: file.remotePath, result: .success))
     }
   }
 
@@ -38,7 +39,10 @@ struct IncomingFilesView: View {
       Section(header: Text("Incoming Files")) {
         Button(action: download) {
           Label("Download", systemImage: "arrow.down.circle.fill")
-        }.disabled(model.incomingFiles.isEmpty || model.incomingFiles.allSatisfy({$0.isDownloaded || $0.isDownloading}))
+        }
+        .buttonStyle(.bordered)
+        .disabled(model.incomingFiles.isEmpty ||
+                  model.incomingFiles.allSatisfy({$0.isDownloaded || $0.isDownloading}))
 
         ForEach(model.incomingFiles) {file in
           HStack {
@@ -68,9 +72,12 @@ struct IncomingFilesView_Previews: PreviewProvider {
         name: "Debug droid",
         isIncoming: false, state: .discovered,
         incomingFiles: [
-          IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", fileSize: 4000000, isDownloading: true, isDownloaded: false),
-          IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: false),
-          IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: true)
+          IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", 
+                       fileSize: 4000000, isDownloading: true, isDownloaded: false),
+          IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF", 
+                       fileSize: 5000000, isDownloading: false, isDownloaded: false),
+          IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF", 
+                       fileSize: 5000000, isDownloading: false, isDownloaded: true)
         ]
       )
     )
