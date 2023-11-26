@@ -21,7 +21,7 @@ struct TransfersView: View {
 
   var body: some View {
     Form {
-      Section(header: Text("Transfers")) {
+      Section {
         ForEach(model.transfers) {transfer in
           HStack {
             Label(transfer.localPath, systemImage: String(describing: transfer.direction))
@@ -31,9 +31,8 @@ struct TransfersView: View {
           }
         }
       }
-      .headerProminence(.increased)
     }
-    .navigationTitle(model.name)
+    .navigationTitle("Transfers")
   }
 }
 

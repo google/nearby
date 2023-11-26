@@ -16,11 +16,35 @@
 
 import SwiftUI
 import PhotosUI
+import Atomics
 
 struct OutgoingFilesView: View {
   let model: Endpoint
 
-  @State private var photosPicked: PhotosPickerItem?
+  @State private var busy: Bool = false
+  @State private var photosPicked: [PhotosPickerItem] = []
+
+  func updateFileList() -> Void {
+    print("Starting loading photos")
+    busy = true
+    model.outgoingFiles.removeAll()
+    
+    let counter = ManagedAtomic<Int>(photosPicked.count)
+    
+    for photo in photosPicked {
+      Task { [counter] in
+        // TODO: handle failure
+        let data = try? await photo.loadTransferable(type: Data.self)
+        // TODO: is this running on the main/UI thread? Or does Swift make sure updating the UI
+        // happens on the UI thread?
+        model.outgoingFiles.append(OutgoingFile(localPath: "Photo1", fileSize: UInt64(data!.count)))
+        counter.wrappingDecrement(ordering: .relaxed)
+        if counter.load(ordering: .relaxed) == 0 {
+          busy = false
+        }
+      }
+    }
+  }
 
   func upload () -> Void {
     for file in model.outgoingFiles {
@@ -38,23 +62,16 @@ struct OutgoingFilesView: View {
     }
   }
 
-  let pick: () -> Void = {}
-
   var body: some View {
     // TODO: make the buttons float at the button; add a vertical scrollbar
     Form {
-      Section(header: Text("Outgoing Files")) {
+      Section {
         HStack{
-          Button(action: pick) {
-            PhotosPicker("Select avatar", selection: $photosPicked, matching: .images)
-
-
-//            PhotosPicker(selection: $photosPicked,
-//                         matching: .images,
-//                         photoLibrary: .shared()) {
-//              Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
-//            }
+          PhotosPicker(selection: $photosPicked, matching: .images) {
+            Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
           }
+          .disabled(busy)
+          .onChange(of: photosPicked, updateFileList)
 
           Button(action: upload) {
             Label("Upload", systemImage: "arrow.up.circle.fill").frame(maxWidth: .infinity)
@@ -65,23 +82,28 @@ struct OutgoingFilesView: View {
           }.disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.isUploaded}))
         }.buttonStyle(.bordered).fixedSize()
 
-        ForEach(model.outgoingFiles) {file in
-          HStack {
-            Label(file.localPath, systemImage: "doc")
-            Spacer()
-            if (file.isUploaded) {
-              Image(systemName: "circle.fill").foregroundColor(.green)
-            } else if (file.isUploading) {
-              ProgressView()
-            } else {
-              Image(systemName: "circle.fill").foregroundColor(.gray)
+        if busy {
+          ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+          List {
+            ForEach(model.outgoingFiles) {file in
+              HStack {
+                Label(file.localPath, systemImage: "doc")
+                Spacer()
+                if (file.isUploaded) {
+                  Image(systemName: "circle.fill").foregroundColor(.green)
+                } else if (file.isUploading) {
+                  ProgressView()
+                } else {
+                  Image(systemName: "circle.fill").foregroundColor(.gray)
+                }
+              }
             }
           }
         }
       }
-      .headerProminence(.increased)
     }
-    .navigationTitle(model.name)
+    .navigationTitle("Outgoing files")
   }
 }
 

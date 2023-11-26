@@ -18,32 +18,32 @@ import SwiftUI
 
 struct IncomingFilesView: View {
   let model: Endpoint
-
+  
   init(model: Endpoint) {
     self.model = model
   }
-
+  
   func download() -> Void  {
     // TODO: async this
     for file in model.incomingFiles {
       file.download()
-
+      
       model.transfers.append(Transfer(direction: .download, localPath: file.localPath, 
                                       remotePath: file.remotePath, result: .success))
     }
   }
-
+  
   var body: some View {
     // TODO: make the button float at the button; add a vertical scrollbar
     Form {
-      Section(header: Text("Incoming Files")) {
+      Section {
         Button(action: download) {
           Label("Download", systemImage: "arrow.down.circle.fill")
         }
         .buttonStyle(.bordered)
         .disabled(model.incomingFiles.isEmpty ||
                   model.incomingFiles.allSatisfy({$0.isDownloaded || $0.isDownloading}))
-
+        
         ForEach(model.incomingFiles) {file in
           HStack {
             Label(file.localPath, systemImage: "doc")
@@ -58,9 +58,8 @@ struct IncomingFilesView: View {
           }
         }
       }
-      .headerProminence(.increased)
     }
-    .navigationTitle(model.name)
+    .navigationTitle("Incoming files")
   }
 }
 

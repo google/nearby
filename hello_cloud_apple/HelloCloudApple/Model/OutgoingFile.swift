@@ -28,7 +28,7 @@ import Foundation
     remotePath != nil
   }
 
-  init(localPath: String, fileSize: UInt64, remotePath: String? = nil, isUploading: Bool) {
+  init(localPath: String, fileSize: UInt64, remotePath: String? = nil, isUploading: Bool = false) {
     self.localPath = localPath
     self.fileSize = fileSize
     self.remotePath = remotePath

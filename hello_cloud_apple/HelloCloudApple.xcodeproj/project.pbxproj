@@ -16,6 +16,7 @@
 		23F6A70829D7621F00558F56 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* Main.swift */; };
 		23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 23F6A71029D772B800558F56 /* NearbyConnections */; };
 		23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointView.swift */; };
+		7714A1032B13F78900DC3833 /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = 7714A1022B13F78900DC3833 /* Atomics */; };
 		77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C742B110CA600838C24 /* IncomingFile.swift */; };
 		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
 		77E09C792B110CC500838C24 /* Transfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C782B110CC500838C24 /* Transfer.swift */; };
@@ -50,6 +51,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */,
+				7714A1032B13F78900DC3833 /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +147,7 @@
 			name = HelloCloudApple;
 			packageProductDependencies = (
 				23F6A71029D772B800558F56 /* NearbyConnections */,
+				7714A1022B13F78900DC3833 /* Atomics */,
 			);
 			productName = HelloCloudApple;
 			productReference = 23252B5229D739E400BB0370 /* HelloCloudApple.app */;
@@ -174,6 +177,9 @@
 				Base,
 			);
 			mainGroup = 23252B4929D739E400BB0370;
+			packageReferences = (
+				7714A1012B13F78900DC3833 /* XCRemoteSwiftPackageReference "swift-atomics" */,
+			);
 			productRefGroup = 23252B5329D739E400BB0370 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -421,10 +427,26 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		7714A1012B13F78900DC3833 /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-atomics.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		23F6A71029D772B800558F56 /* NearbyConnections */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NearbyConnections;
+		};
+		7714A1022B13F78900DC3833 /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7714A1012B13F78900DC3833 /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
