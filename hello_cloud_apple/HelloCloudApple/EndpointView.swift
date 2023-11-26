@@ -120,15 +120,11 @@ struct EndpointView: View {
 //    }
 }
 
-struct EndpointView_Previews: PreviewProvider {
-  static var previews: some View {
-    Group {
-      EndpointView(
-        model: Endpoint(
-          id: "R2D2",
-          name: "Nice droid"
-        )
-      )
-    }
-  }
+#Preview {
+  EndpointView(
+    model: Endpoint(
+      id: "R2D2",
+      name: "Nice droid"
+    )
+  )
 }

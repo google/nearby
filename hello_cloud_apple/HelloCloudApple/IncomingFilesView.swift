@@ -64,22 +64,20 @@ struct IncomingFilesView: View {
   }
 }
 
-struct IncomingFilesView_Previews: PreviewProvider {
-  static var previews: some View {
-    IncomingFilesView(
-      model: Endpoint(
-        id: "R2D2",
-        name: "Debug droid",
-        isIncoming: false, state: .discovered,
-        incomingFiles: [
-          IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", 
-                       fileSize: 4000000, isDownloading: true, isDownloaded: false),
-          IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF", 
-                       fileSize: 5000000, isDownloading: false, isDownloaded: false),
-          IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF", 
-                       fileSize: 5000000, isDownloading: false, isDownloaded: true)
-        ]
-      )
+#Preview {
+  IncomingFilesView(
+    model: Endpoint(
+      id: "R2D2",
+      name: "Debug droid",
+      isIncoming: false, state: .discovered,
+      incomingFiles: [
+        IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", 
+                     fileSize: 4000000, isDownloading: true, isDownloaded: false),
+        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF", 
+                     fileSize: 5000000, isDownloading: false, isDownloaded: false),
+        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF", 
+                     fileSize: 5000000, isDownloading: false, isDownloaded: true)
+      ]
     )
-  }
+  )
 }

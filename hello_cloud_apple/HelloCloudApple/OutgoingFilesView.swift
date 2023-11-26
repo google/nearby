@@ -15,9 +15,12 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct OutgoingFilesView: View {
   let model: Endpoint
+
+  @State private var photosPicked: PhotosPickerItem?
 
   func upload () -> Void {
     for file in model.outgoingFiles {
@@ -43,7 +46,14 @@ struct OutgoingFilesView: View {
       Section(header: Text("Outgoing Files")) {
         HStack{
           Button(action: pick) {
-            Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
+            PhotosPicker("Select avatar", selection: $photosPicked, matching: .images)
+
+
+//            PhotosPicker(selection: $photosPicked,
+//                         matching: .images,
+//                         photoLibrary: .shared()) {
+//              Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
+//            }
           }
 
           Button(action: upload) {
@@ -75,20 +85,17 @@ struct OutgoingFilesView: View {
   }
 }
 
-struct OutgoingFilesView_Previews: PreviewProvider {
-  static var previews: some View {
-    OutgoingFilesView(
-      model: Endpoint(
-        id: "R2D2",
-        name: "Debug droid",
-        isIncoming: false, state: .discovered,
-        outgoingFiles: [
-          OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, isUploading: false),
-          OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, isUploading: true),
-          OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, remotePath: "1234567890ABCDEF", isUploading: false)
-        ]
-      )
+#Preview {
+  OutgoingFilesView(
+    model: Endpoint(
+      id: "R2D2",
+      name: "Debug droid",
+      isIncoming: false, state: .discovered,
+      outgoingFiles: [
+        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, isUploading: false),
+        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, isUploading: true),
+        OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, remotePath: "1234567890ABCDEF", isUploading: false)
+      ]
     )
-  }
+  )
 }
-

@@ -58,40 +58,38 @@ extension Transfer.Result {
   }
 }
 
-struct TransferView_Previews: PreviewProvider {
-  static var previews: some View {
-    TransfersView(
-      model: Endpoint(
-        id: "R2D2",
-        name: "Debug droid",
-        isIncoming: false, state: .discovered,
-        transfers: [
-          Transfer(
-            direction: Transfer.Direction.upload, 
-            localPath: "IMG_0001.jpg",
-            remotePath: "1234567890ABCDEF",
-            result: .success
-          ),
-          Transfer(
-            direction: Transfer.Direction.download, 
-            localPath: "IMG_0002.jpg",
-            remotePath: "XYZ",
-            result: .failure
-          ),
-          Transfer(
-            direction: Transfer.Direction.send,
-            localPath: "IMG_0003.jpg",
-            remotePath: "XYZ",
-            result: .success
-          ),
-          Transfer(
-            direction: Transfer.Direction.receive,
-            localPath: "IMG_0004.jpg",
-            remotePath: "XYZ",
-            result: .cancaled
-          )
-        ]
-      )
+#Preview {
+  TransfersView(
+    model: Endpoint(
+      id: "R2D2",
+      name: "Debug droid",
+      isIncoming: false, state: .discovered,
+      transfers: [
+        Transfer(
+          direction: Transfer.Direction.upload, 
+          localPath: "IMG_0001.jpg",
+          remotePath: "1234567890ABCDEF",
+          result: .success
+        ),
+        Transfer(
+          direction: Transfer.Direction.download, 
+          localPath: "IMG_0002.jpg",
+          remotePath: "XYZ",
+          result: .failure
+        ),
+        Transfer(
+          direction: Transfer.Direction.send,
+          localPath: "IMG_0003.jpg",
+          remotePath: "XYZ",
+          result: .success
+        ),
+        Transfer(
+          direction: Transfer.Direction.receive,
+          localPath: "IMG_0004.jpg",
+          remotePath: "XYZ",
+          result: .cancaled
+        )
+      ]
     )
-  }
+  )
 }
