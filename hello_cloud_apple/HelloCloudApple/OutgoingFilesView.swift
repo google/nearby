@@ -28,10 +28,12 @@ struct OutgoingFilesView: View {
     print("Starting loading photos")
     busy = true
     model.outgoingFiles.removeAll()
-    
+
+    // TODO: is there something in swift similar to Task.waitAll in .NET?
     let counter = ManagedAtomic<Int>(photosPicked.count)
-    
+
     for photo in photosPicked {
+      print (photo.itemIdentifier ?? "no item identifier")
       Task { [counter] in
         // TODO: handle failure
         let data = try? await photo.loadTransferable(type: Data.self)
@@ -75,11 +77,11 @@ struct OutgoingFilesView: View {
 
           Button(action: upload) {
             Label("Upload", systemImage: "arrow.up.circle.fill").frame(maxWidth: .infinity)
-          }.disabled(model.outgoingFiles.isEmpty || model.outgoingFiles.allSatisfy({$0.isUploaded || $0.isUploading}))
+          }.disabled(model.outgoingFiles.isEmpty || model.outgoingFiles.allSatisfy({$0.state == .loaded}))
 
           Button(action: send) {
             Label("Send", systemImage: "arrow.up.backward.circle.fill").frame(maxWidth: .infinity)
-          }.disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.isUploaded}))
+          }.disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.state == .uploaded}))
         }.buttonStyle(.bordered).fixedSize()
 
         if busy {
@@ -90,13 +92,20 @@ struct OutgoingFilesView: View {
               HStack {
                 Label(file.localPath, systemImage: "doc")
                 Spacer()
-                if (file.isUploaded) {
-                  Image(systemName: "circle.fill").foregroundColor(.green)
-                } else if (file.isUploading) {
-                  ProgressView()
-                } else {
-                  Image(systemName: "circle.fill").foregroundColor(.gray)
+                switch file.state {
+                case .uploaded: Image(systemName: "circle.fill").foregroundColor(.green)
+                case .loading, .uploading: ProgressView()
+                case .picked: Image(systemName: "circle.dotted").foregroundColor(.gray)
+                case .loaded: Image(systemName: "circle.fill").foregroundColor(.gray)
                 }
+
+//                if (file.state == .uploaded) {
+//                  Image(systemName: "circle.fill").foregroundColor(.green)
+//                } else if (file.state == .uploading) {
+//                  ProgressView()
+//                } else {
+//                  Image(systemName: "circle.fill").foregroundColor(.gray)
+//                }
               }
             }
           }
@@ -114,9 +123,11 @@ struct OutgoingFilesView: View {
       name: "Debug droid",
       isIncoming: false, state: .discovered,
       outgoingFiles: [
-        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, isUploading: false),
-        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, isUploading: true),
-        OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, remotePath: "1234567890ABCDEF", isUploading: false)
+        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
+        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
+        OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
+        OutgoingFile(localPath: "IMG_0004.jpg", fileSize: 4000000, state: .loaded),
+        OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
       ]
     )
   )

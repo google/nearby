@@ -17,27 +17,28 @@
 import Foundation
 
 @Observable class OutgoingFile: Identifiable, Hashable {
+  enum State: Int {
+    case picked, loading, loaded, uploading, uploaded
+  }
+
   let id: UUID = UUID()
   
   let localPath: String
   let fileSize: UInt64
 
+  var state: State
   var remotePath: String?
-  var isUploading: Bool
-  var isUploaded: Bool {
-    remotePath != nil
-  }
 
-  init(localPath: String, fileSize: UInt64, remotePath: String? = nil, isUploading: Bool = false) {
+  init(localPath: String, fileSize: UInt64, state: State = .picked, remotePath: String? = nil) {
     self.localPath = localPath
     self.fileSize = fileSize
+    self.state = state
     self.remotePath = remotePath
-    self.isUploading = isUploading
   }
 
   func upload() -> Void {
     // TODO: async this and actually upload
-    isUploading = false
+    state = .uploaded
     remotePath = "1234567890ABCDEF"
   }
 
