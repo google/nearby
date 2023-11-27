@@ -24,8 +24,8 @@ let package = Package(
   dependencies: [
     // Dependencies declare other packages that this package depends on.
     .package(
-      name: "abseil",
-      url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
+      name: "abseil-swift",
+      url: "https://github.com/deling-google/abseil-cpp-SwiftPM.git",
       branch: "cxx17"
     ),
     .package(
@@ -147,7 +147,7 @@ let package = Package(
       name: "ukey2",
       dependencies: [
         "protobuf",
-        .product(name: "abseil", package: "abseil"),
+        .product(name: "abseil-swift", package: "abseil-swift"),
         .product(name: "openssl_grpc", package: "BoringSSL-GRPC"),
       ],
       path: "third_party/ukey2",
@@ -336,7 +336,7 @@ let package = Package(
         "smhasher",
         "ukey2",
         "protobuf",
-        .product(name: "abseil", package: "abseil"),
+        .product(name: "abseil-swift", package: "abseil-swift"),
       ],
       path: ".",
       exclude: [
