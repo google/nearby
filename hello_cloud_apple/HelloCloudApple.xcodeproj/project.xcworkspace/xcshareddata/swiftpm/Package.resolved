@@ -2,11 +2,11 @@
   "object": {
     "pins": [
       {
-        "package": "abseil",
-        "repositoryURL": "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
+        "package": "abseil-deling",
+        "repositoryURL": "/Users/deling/repo/abseil-cpp-SwiftPM",
         "state": {
           "branch": "cxx17",
-          "revision": "a7042563d167160f56e614cd1e2a32616510d9ec",
+          "revision": "3d00c4c78f239bcdec4477a03704ff89444c57e9",
           "version": null
         }
       },
