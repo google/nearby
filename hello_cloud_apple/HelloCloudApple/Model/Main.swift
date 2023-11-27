@@ -102,8 +102,8 @@ import NearbyConnections
       // medium: Endpoint.Medium.bluetooth,
       isIncoming: false, state: .discovered,
       outgoingFiles: [
-        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
-        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
+//        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
+//        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
         OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
         OutgoingFile(localPath: "IMG_0004.jpg", fileSize: 4000000, state: .loaded),
         OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)

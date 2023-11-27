@@ -20,50 +20,48 @@ import Atomics
 
 struct OutgoingFilesView: View {
   let model: Endpoint
-
-  @State private var busy: Bool = false
+  
   @State private var photosPicked: [PhotosPickerItem] = []
-
+  
   func updateFileList() -> Void {
-    print("Starting loading photos")
-    busy = true
     model.outgoingFiles.removeAll()
-
-    // TODO: is there something in swift similar to Task.waitAll in .NET?
-    let counter = ManagedAtomic<Int>(photosPicked.count)
-
+    
     for photo in photosPicked {
-      print (photo.itemIdentifier ?? "no item identifier")
-      Task { [counter] in
-        // TODO: handle failure
-        let data = try? await photo.loadTransferable(type: Data.self)
-        // TODO: is this running on the main/UI thread? Or does Swift make sure updating the UI
-        // happens on the UI thread?
-        model.outgoingFiles.append(OutgoingFile(localPath: "Photo1", fileSize: UInt64(data!.count)))
-        counter.wrappingDecrement(ordering: .relaxed)
-        if counter.load(ordering: .relaxed) == 0 {
-          busy = false
+      let file = OutgoingFile(localPath: UUID().uuidString + ".png", fileSize: 0, state: .loading)
+      model.outgoingFiles.append(file)
+      
+      Task { [file] in
+        guard let data = try? await photo.loadTransferable(type: Data.self) else {
+          return
         }
+        guard let uiImage = UIImage(data: data) else {
+          return
+        }
+        guard let pngData = uiImage.pngData() else {
+          return
+        }
+        file.state = .loaded
+        file.fileSize = UInt64(pngData.count)
       }
     }
   }
-
-  func upload () -> Void {
+  
+  func upload() -> Void {
     for file in model.outgoingFiles {
       // TODO: async this
       file.upload()
-
+      
       model.transfers.append(Transfer(direction: .upload, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
     }
   }
-
-  func send () -> Void {
+  
+  func send() -> Void {
     // TODO: encode and send payload
     for file in model.outgoingFiles {
       model.transfers.append(Transfer(direction: .send, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
     }
   }
-
+  
   var body: some View {
     // TODO: make the buttons float at the button; add a vertical scrollbar
     Form {
@@ -71,41 +69,39 @@ struct OutgoingFilesView: View {
         HStack{
           PhotosPicker(selection: $photosPicked, matching: .images) {
             Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
-          }
-          .disabled(busy)
+          } // Can pick files only when no files are loading or uploading
+          .disabled(!model.outgoingFiles.allSatisfy({$0.state != .loading && $0.state != .uploading}))
           .onChange(of: photosPicked, updateFileList)
-
+          
           Button(action: upload) {
             Label("Upload", systemImage: "arrow.up.circle.fill").frame(maxWidth: .infinity)
-          }.disabled(model.outgoingFiles.isEmpty || model.outgoingFiles.allSatisfy({$0.state == .loaded}))
-
+          } // Can upload only when all files are loaded in memory
+          .disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.state == .loaded}))
+          
           Button(action: send) {
             Label("Send", systemImage: "arrow.up.backward.circle.fill").frame(maxWidth: .infinity)
-          }.disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.state == .uploaded}))
+          } // Can send only when all files are uploaded to the cloud
+          .disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.state == .uploaded}))
         }.buttonStyle(.bordered).fixedSize()
-
-        if busy {
-          ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-          List {
-            ForEach(model.outgoingFiles) {file in
-              HStack {
-                Label(file.localPath, systemImage: "doc")
-                Spacer()
-                switch file.state {
-                case .uploaded: Image(systemName: "circle.fill").foregroundColor(.green)
-                case .loading, .uploading: ProgressView()
-                case .picked: Image(systemName: "circle.dotted").foregroundColor(.gray)
-                case .loaded: Image(systemName: "circle.fill").foregroundColor(.gray)
-                }
-
-//                if (file.state == .uploaded) {
-//                  Image(systemName: "circle.fill").foregroundColor(.green)
-//                } else if (file.state == .uploading) {
-//                  ProgressView()
-//                } else {
-//                  Image(systemName: "circle.fill").foregroundColor(.gray)
-//                }
+        
+        List {
+          ForEach(model.outgoingFiles) {file in
+            HStack {
+              // TODO: replace placholder with thumbnail
+              Image(systemName: "photo")
+              Text(file.localPath)
+              Spacer()
+              switch file.state {
+              case .picked:
+                Image(systemName: "circle.dotted").foregroundColor(.gray)
+              case .loading:
+                ProgressView()
+              case .loaded:
+                Image(systemName: "circle.fill").foregroundColor(.gray)
+              case .uploading:
+                ProgressView()
+              case .uploaded:
+                Image(systemName: "circle.fill").foregroundColor(.green)
               }
             }
           }

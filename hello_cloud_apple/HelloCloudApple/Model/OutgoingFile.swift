@@ -24,8 +24,8 @@ import Foundation
   let id: UUID = UUID()
   
   let localPath: String
-  let fileSize: UInt64
 
+  var fileSize: UInt64
   var state: State
   var remotePath: String?
 
