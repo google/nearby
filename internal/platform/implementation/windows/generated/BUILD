@@ -15,6 +15,7 @@ licenses(["notice"])
 
 cc_library(
     name = "types",
+    copts = ["-Wno-non-virtual-dtor"],
     linkopts = [
         "wininet.lib",
         "advapi32.lib",

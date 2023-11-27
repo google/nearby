@@ -44,7 +44,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
   }
 
   // Cleans completed tasks
-  std::remove_if(
+  (void)std::remove_if(
       scheduled_tasks_.begin(), scheduled_tasks_.end(),
       [](std::shared_ptr<ScheduledTask>& task) { return task->IsDone(); });
 
