@@ -336,6 +336,7 @@ let package = Package(
         "smhasher",
         "ukey2",
         "protobuf",
+        .product(name: "abseil-swift", package: "abseil-swift"),
       ],
       path: ".",
       exclude: [
