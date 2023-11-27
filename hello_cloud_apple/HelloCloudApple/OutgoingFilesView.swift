@@ -27,21 +27,34 @@ struct OutgoingFilesView: View {
     model.outgoingFiles.removeAll()
     
     for photo in photosPicked {
-      let file = OutgoingFile(localPath: UUID().uuidString + ".png", fileSize: 0, state: .loading)
+      let type = photo.supportedContentTypes.first(where: {$0.preferredMIMEType == "image/jpeg"})
+      let ext = type?.preferredFilenameExtension
+      if ext == nil {
+        print("Picked photo does not support jpeg format, using raw format")
+      }
+      let path = UUID().uuidString + (ext == nil ? "" : "." + ext!)
+      let file = OutgoingFile(localPath: path, fileSize: 0, state: .loading)
       model.outgoingFiles.append(file)
       
-      Task { [file] in
+      Task { [file, ext] in
         guard let data = try? await photo.loadTransferable(type: Data.self) else {
           return
         }
-        guard let uiImage = UIImage(data: data) else {
-          return
-        }
-        guard let pngData = uiImage.pngData() else {
-          return
+
+        if ext != nil {
+          guard let uiImage = UIImage(data: data) else {
+            return
+          }
+          guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
+            return
+          }
+          file.data  = jpegData
+          file.fileSize = UInt64(jpegData.count)
+        } else {
+          file.data = data
+          file.fileSize = UInt64(data.count)
         }
         file.state = .loaded
-        file.fileSize = UInt64(pngData.count)
       }
     }
   }

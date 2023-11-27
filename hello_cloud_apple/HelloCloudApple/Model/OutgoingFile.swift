@@ -24,12 +24,13 @@ import Foundation
   let id: UUID = UUID()
   
   let localPath: String
-
-  var fileSize: UInt64
   var state: State
-  var remotePath: String?
 
-  init(localPath: String, fileSize: UInt64, state: State = .picked, remotePath: String? = nil) {
+  @ObservationIgnored var fileSize: UInt64
+  @ObservationIgnored var data: Data?
+  @ObservationIgnored var remotePath: String?
+
+  init(localPath: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
     self.localPath = localPath
     self.fileSize = fileSize
     self.state = state
