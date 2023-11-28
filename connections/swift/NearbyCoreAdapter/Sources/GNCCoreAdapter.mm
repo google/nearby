@@ -167,9 +167,11 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
 
   ConnectionRequestInfo connection_request_info;
   connection_request_info.endpoint_info =
-      ByteArray((const char *)endpointInfo.bytes, endpointInfo.length);
+    ByteArray((const char *)endpointInfo.bytes, endpointInfo.length);
   connection_request_info.listener = std::move(listener);
 
+  // TODO: I tried to convert this into sync, like I did with C#. Somehow I got a deadlock in
+  // BleMedium::OpenServerSocket in ble_medium.mm. Let's investigate it a bit later.
   ResultListener result = [completionHandler](Status status) {
     NSError *err = NSErrorFromCppStatus(status);
     if (completionHandler) {
