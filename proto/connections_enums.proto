@@ -829,6 +829,8 @@ enum OperationResultDetail {
   CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3554;
   // BT server socket creation failure (SecurityException)
   CONNECTIVITY_BT_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3555;
+  // Failed to create L2CAP outgoing socket (TimeoutException on socket#connect)
+  CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE = 3556;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
