@@ -43,9 +43,12 @@ class WifiIntel {
 
   static WifiIntel& GetInstance();
   bool IsValid() const { return intel_wifi_valid_; }
-  void Start();
+  bool Start();
   void Stop();
   int8_t GetGOChannel();
+  bool SetScanFilter(int channel);
+  bool ResetScanFilter();
+
 
  private:
   // This is a singleton object, for which destructor will never be called.

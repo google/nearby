@@ -28,6 +28,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -97,9 +98,13 @@ typedef MUROC_RET(APIENTRY* WIFIGETADAPTERLIST)(  // NOLINT
 typedef MUROC_RET(APIENTRY* REGISTERINTELCB)(
     MurocDefs::PINTEL_CALLBACK pIntelCallback);
 typedef MUROC_RET(APIENTRY* GETRADIOSTATE)(HADAPTER hAdapter, bool* bEnabled);
-typedef MUROC_RET(APIENTRY* WIFIPANQUERYPREFFEDCHANNELSETTING)(
+typedef MUROC_RET(APIENTRY* WIFIPANQUERYPREFERREDCHANNELSETTING)(
     HADAPTER hAdapter, PINTEL_WIFI_HEADER pHeader,
     void* pOutQueryPreferredChannel);
+typedef MUROC_RET(APIENTRY* WIFILEGACYGOSETSCANFILTER)(
+    HADAPTER hAdapter, PINTEL_WIFI_HEADER pHeader, void* pInputData);
+typedef MUROC_RET(APIENTRY* WIFIPANRESETLEGACYGOSCANFILTER)(
+    HADAPTER hAdapter, PINTEL_WIFI_HEADER pHeader);
 typedef MUROC_RET(APIENTRY* DEREGISTERINTELCB)(
     MurocDefs::INTEL_EVENT_CALLBACK fnCallbac);
 typedef MUROC_RET(APIENTRY* FREELISTMEMORY)(void* pList);
@@ -137,7 +142,7 @@ WifiIntel& WifiIntel::GetInstance() {
   return *instance;
 }
 
-void WifiIntel::Start() {
+bool WifiIntel::Start() {
   NEARBY_LOGS(INFO) << "WifiIntel::Start()";
 #ifndef NO_INTEL_PIE
   muroc_api_dll_handle_ = PIEDllLoader();
@@ -156,6 +161,7 @@ void WifiIntel::Start() {
 #else
   NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, skip";
 #endif
+  return intel_wifi_valid_;
 }
 
 void WifiIntel::Stop() {
@@ -175,7 +181,7 @@ void WifiIntel::Stop() {
 
 int8_t WifiIntel::GetGOChannel() {
 #ifndef NO_INTEL_PIE
-  WIFIPANQUERYPREFFEDCHANNELSETTING WifiPanQueryPreferredChannelSettingFunc =
+  WIFIPANQUERYPREFERREDCHANNELSETTING WifiPanQueryPreferredChannelSettingFunc =
       nullptr;
   int8_t channel = -1;
   DWORD dwError = ERROR_SUCCESS;  // NOLINT
@@ -186,7 +192,7 @@ int8_t WifiIntel::GetGOChannel() {
   if (!intel_wifi_valid_) return channel;
 
   WifiPanQueryPreferredChannelSettingFunc =
-      (WIFIPANQUERYPREFFEDCHANNELSETTING)GetProcAddress(  // NOLINT
+      (WIFIPANQUERYPREFERREDCHANNELSETTING)GetProcAddress(  // NOLINT
           muroc_api_dll_handle_,
           "WifiPanQueryPreferredChannelSetting");
 
@@ -223,6 +229,101 @@ int8_t WifiIntel::GetGOChannel() {
 #else
   NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
   return -1;
+#endif
+}
+
+bool WifiIntel::SetScanFilter(int channel) {
+#ifndef NO_INTEL_PIE
+  WIFILEGACYGOSETSCANFILTER WifiLegacyGoSetScanFilterFunc =
+      nullptr;
+  DWORD dwError = ERROR_SUCCESS;  // NOLINT
+  MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;  // NOLINT
+  INTEL_WIFI_HEADER intelWifiHeader;
+  MurocDefs::WIFI_LEGACY_GO_SCAN_FILTER scanFilter;
+
+  if (channel <= 0) return false;
+  if (!intel_wifi_valid_) return false;
+
+  NEARBY_LOGS(INFO) << "Set scan channel:" << channel;
+  WifiLegacyGoSetScanFilterFunc =
+      (WIFILEGACYGOSETSCANFILTER)GetProcAddress(  // NOLINT
+          muroc_api_dll_handle_,
+          "WifiLegacyGoSetScanFilter");
+
+  if (WifiLegacyGoSetScanFilterFunc == nullptr) {
+    dwError = GetLastError();  // NOLINT
+    NEARBY_LOGS(INFO)
+        << "GetProcAddress WifiLegacyGoSetScanFilterFunc error: "
+        << dwError;
+    return false;
+  }
+  NEARBY_LOGS(VERBOSE)
+      << "Load WifiLegacyGoSetScanFilterFunc API completed successfully";
+
+  intelWifiHeader.dwSize =
+      sizeof(MurocDefs::WIFI_LEGACY_GO_SCAN_FILTER);
+  memset(&scanFilter, 0, sizeof(scanFilter));
+  scanFilter.channel = (UINT8)channel;
+  murocApiRetVal = WifiLegacyGoSetScanFilterFunc(
+      wifi_adapter_handle_, &intelWifiHeader, (void*)&scanFilter);
+
+  if (murocApiRetVal == IWLAN_E_SUCCESS) {  // NOLINT
+    NEARBY_LOGS(INFO) << "Calling WifiLegacyGoSetScanFilter API "
+                         "succeeded, set scan channel to "
+                      << channel;
+    return true;
+  }
+  NEARBY_LOGS(INFO) << "Calling WifiLegacyGoSetScanFilter API "
+                       "failed with error: "
+                    << murocApiRetVal;
+
+  return false;
+#else
+  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
+  return false;
+#endif
+}
+
+bool WifiIntel::ResetScanFilter() {
+#ifndef NO_INTEL_PIE
+  WIFIPANRESETLEGACYGOSCANFILTER WifiPanReSetLegacyGoScanFilterFunc =
+      nullptr;
+  DWORD dwError = ERROR_SUCCESS;  // NOLINT
+  MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;  // NOLINT
+  INTEL_WIFI_HEADER intelWifiHeader;
+
+  if (!intel_wifi_valid_) return false;
+
+  WifiPanReSetLegacyGoScanFilterFunc =
+      (WIFIPANRESETLEGACYGOSCANFILTER)GetProcAddress(  // NOLINT
+          muroc_api_dll_handle_,
+          "WifiPanReSetLegacyGoScanFilter");
+
+  if (WifiPanReSetLegacyGoScanFilterFunc == nullptr) {
+    dwError = GetLastError();  // NOLINT
+    NEARBY_LOGS(INFO)
+        << "GetProcAddress WifiPanReSetLegacyGoScanFilterFunc error: "
+        << dwError;
+    return false;
+  }
+  NEARBY_LOGS(VERBOSE)
+      << "Load WifiPanReSetLegacyGoScanFilterFunc API completed successfully";
+  intelWifiHeader.dwSize = 0;
+  murocApiRetVal = WifiPanReSetLegacyGoScanFilterFunc(
+      wifi_adapter_handle_, &intelWifiHeader);
+
+  if (murocApiRetVal == IWLAN_E_SUCCESS) {  // NOLINT
+    NEARBY_LOGS(INFO) << "Calling WifiPanReSetLegacyGoScanFilter API succeeded";
+    return true;
+  }
+  NEARBY_LOGS(INFO) << "Calling WifiPanQueryPreferredChannelSetting API "
+                       "failed with error: "
+                    << murocApiRetVal;
+
+  return false;
+#else
+  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
+  return false;
 #endif
 }
 
