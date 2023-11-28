@@ -22,7 +22,7 @@ struct HelloConnectionsApp: App {
 
   var body: some Scene {
     WindowGroup {
-      MainView(model: model)
+      MainView().environment(model)
     }
   }
 }

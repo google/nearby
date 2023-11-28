@@ -19,6 +19,9 @@ import SwiftUI
 struct IncomingFilesView: View {
   let model: Endpoint
   
+  @EnvironmentObject var mainModel: Main
+  @Environment(\.dismiss) var dismiss
+  
   init(model: Endpoint) {
     self.model = model
   }
@@ -28,8 +31,7 @@ struct IncomingFilesView: View {
     for file in model.incomingFiles {
       file.download()
       
-      model.transfers.append(Transfer(direction: .download, localPath: file.localPath, 
-                                      remotePath: file.remotePath, result: .success))
+      model.transfers.append(Transfer(direction: .download, localPath: file.localPath, remotePath: file.remotePath, result: .success))
     }
   }
   
@@ -60,6 +62,9 @@ struct IncomingFilesView: View {
       }
     }
     .navigationTitle("Incoming files")
+    .onChange(of: mainModel.endpoints) { _, endpoints in
+      if !endpoints.contains(model) { dismiss() }
+    }
   }
 }
 
@@ -78,5 +83,5 @@ struct IncomingFilesView: View {
                      fileSize: 5000000, isDownloading: false, isDownloaded: true)
       ]
     )
-  )
+  ).environment(Main.createDebugModel())
 }

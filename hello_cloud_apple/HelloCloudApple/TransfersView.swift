@@ -19,6 +19,9 @@ import SwiftUI
 struct TransfersView: View {
   let model: Endpoint
 
+  @EnvironmentObject var mainModel: Main
+  @Environment(\.dismiss) var dismiss
+
   var body: some View {
     Form {
       Section {
@@ -33,6 +36,9 @@ struct TransfersView: View {
       }
     }
     .navigationTitle("Transfers")
+    .onChange(of: mainModel.endpoints) { _, endpoints in
+      if !endpoints.contains(model) { dismiss() }
+    }
   }
 }
 

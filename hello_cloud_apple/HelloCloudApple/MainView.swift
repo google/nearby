@@ -18,7 +18,7 @@ import SwiftUI
 import NearbyConnections
 
 struct MainView: View {
-  @ObservedObject var model: Main
+  @EnvironmentObject var model: Main
 
   func toggleIsAdvertising() -> Void {
     model.isAdvertising.toggle();
@@ -78,6 +78,6 @@ struct MainView_Previews: PreviewProvider {
   static let model = Main.createDebugModel()
 
   static var previews: some View {
-    MainView(model: model)
+    MainView().environment(model)
   }
 }

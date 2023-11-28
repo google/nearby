@@ -18,16 +18,17 @@ import Foundation
 import NearbyConnections
 
 @Observable class Main: ObservableObject {
+  static let shared = createDebugModel()
+
   private(set) var localEndpointId: String = ""
   var localEndpointName: String = ""
-
+  
   var isAdvertising = false {
     didSet {
       if !isAdvertising {
-        // advertiser?.stopAdvertising()
-        return
+        advertiser?.stopAdvertising()
       } else {
-        // advertiser.startAdvertising(using: localEndpointName.data(using: .utf8)!)
+        advertiser.startAdvertising(using: localEndpointName.data(using: .utf8)!)
       }
     }
   }
@@ -35,10 +36,10 @@ import NearbyConnections
   var isDiscovering = false {
     didSet {
       if !isDiscovering {
-        // discoverer.stopDiscovery()
+        discoverer.stopDiscovery()
         return
       } else {
-        // discoverer.startDiscovery()
+        discoverer.startDiscovery()
       }
     }
   }
@@ -48,35 +49,35 @@ import NearbyConnections
   private var connectionManager: ConnectionManager!
   private var advertiser: Advertiser!
   private var discoverer: Discoverer!
-
+  
   init() {
     connectionManager = ConnectionManager(
       serviceID: Config.serviceId, strategy: Config.defaultStategy, delegate: self)
     advertiser = Advertiser(connectionManager: connectionManager, delegate: self)
     discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
-
+    
     localEndpointId = advertiser.localEndpointID
   }
-
+  
   static func createDebugModel() -> Main {
     let model = Main();
     model.localEndpointName = "iPhone"
-
+    
     model.endpoints.append(Endpoint(
       id: "R2D2",
       name: "Nice droid",
       // medium: Endpoint.Medium.bluetooth,
       isIncoming: false, state: .discovered
     ))
-
+    
     model.endpoints.append(Endpoint(
       id: "C3P0",
       name: "Fussy droid",
       // medium: Endpoint.Medium.bluetooth,
       isIncoming: false, state: .discovered,
       outgoingFiles: [
-//        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
-//        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
+        //        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
+        //        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
         OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
         OutgoingFile(localPath: "IMG_0004.jpg", fileSize: 4000000, state: .loaded),
         OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
@@ -113,10 +114,10 @@ import NearbyConnections
         )
       ]
     ))
-
+    
     return model;
   }
-
+  
   public func endpoint(id: String) -> Endpoint? {
     return endpoints.first(where: {$0.id == id})
   }
@@ -124,32 +125,34 @@ import NearbyConnections
   func requestConnection(to endpointID: EndpointID) {
     discoverer?.requestConnection(to: endpointID, using: localEndpointName.data(using: .utf8)!)
   }
-
+  
   func disconnect(from endpointID: EndpointID) {
     connectionManager.disconnect(from: endpointID)
   }
-
+  
   func sendFiles(to endpointId: EndpointID) {
-
+    //        let payloadID = PayloadID.unique()
+    //        let token = connectionManager.send(Config.bytePayload.data(using: .utf8)!, to: endpointIDs, id: payloadID)
+    //        let payload = Payload(
+    //            id: payloadID,
+    //            type: .bytes,
+    //            status: .inProgress(Progress()),
+    //            isIncoming: false,
+    //            cancellationToken: token
+    //        )
+    //        for endpointID in endpointIDs {
+    //            guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
+    //                return
+    //            }
+    //            connections[index].payloads.insert(payload, at: 0)
+    //        }
+    //    }
+    
   }
 
-  //    func sendBytes(to endpointIDs: [EndpointID]) {
-  //        let payloadID = PayloadID.unique()
-  //        let token = connectionManager.send(Config.bytePayload.data(using: .utf8)!, to: endpointIDs, id: payloadID)
-  //        let payload = Payload(
-  //            id: payloadID,
-  //            type: .bytes,
-  //            status: .inProgress(Progress()),
-  //            isIncoming: false,
-  //            cancellationToken: token
-  //        )
-  //        for endpointID in endpointIDs {
-  //            guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
-  //                return
-  //            }
-  //            connections[index].payloads.insert(payload, at: 0)
-  //        }
-  //    }
+  func removeEndpoint(endpointId: String) {
+    endpoints.removeAll(where: {$0.id == endpointId})
+  }
 }
 
 extension Main: DiscovererDelegate {
@@ -194,9 +197,6 @@ extension Main: AdvertiserDelegate {
 }
 
 extension Main: ConnectionManagerDelegate {
-//  func connectionManager(_ connectionManager: NearbyConnections.ConnectionManager, didChangeTo state: NearbyConnections.ConnectionState, for endpointID: NearbyConnections.EndpointID) {
-//  }
-
   func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointID: EndpointID, verificationHandler: @escaping (Bool) -> Void) {
     //        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
     //            return

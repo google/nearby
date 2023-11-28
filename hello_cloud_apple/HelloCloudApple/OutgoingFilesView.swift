@@ -19,7 +19,10 @@ import PhotosUI
 
 struct OutgoingFilesView: View {
   let model: Endpoint
-  
+
+  @EnvironmentObject var mainModel: Main
+  @Environment(\.dismiss) var dismiss
+
   @State private var photosPicked: [PhotosPickerItem] = []
   
   func updateFileList() -> Void {
@@ -121,6 +124,9 @@ struct OutgoingFilesView: View {
       }
     }
     .navigationTitle("Outgoing files")
+    .onChange(of: mainModel.endpoints) { _, endpoints in
+      if !endpoints.contains(model) { dismiss() }
+    }
   }
 }
 
@@ -138,5 +144,5 @@ struct OutgoingFilesView: View {
         OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
       ]
     )
-  )
+  ).environment(Main.createDebugModel())
 }

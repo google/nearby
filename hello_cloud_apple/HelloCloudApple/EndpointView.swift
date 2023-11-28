@@ -17,7 +17,10 @@
 import SwiftUI
 
 struct EndpointView: View {
-  var model: Endpoint
+  let model: Endpoint
+
+  @EnvironmentObject var mainModel: Main
+  @Environment(\.dismiss) var dismiss
 
   func connect() -> Void {
     model.state = .connected
@@ -60,15 +63,15 @@ struct EndpointView: View {
         }
 
         Section {
-            Button(action: connect) {
-              Label("Connect", systemImage: "phone.connection.fill")
-                .foregroundColor(model.state == .discovered ? .green : .gray)
-            }.disabled(model.state != .discovered)
+          Button(action: connect) {
+            Label("Connect", systemImage: "phone.connection.fill")
+              .foregroundColor(model.state == .discovered ? .green : .gray)
+          }.disabled(model.state != .discovered)
 
-            Button(action: disconnect) {
-              Label("Disconnect", systemImage: "phone.down.fill")
-                .foregroundColor(model.state == .connected ? .red : .gray)
-            }.disabled(model.state != .connected)
+          Button(action: disconnect) {
+            Label("Disconnect", systemImage: "phone.down.fill")
+              .foregroundColor(model.state == .connected ? .red : .gray)
+          }.disabled(model.state != .connected)
 
         }.buttonStyle(.plain).fixedSize()
         Section {
@@ -85,8 +88,10 @@ struct EndpointView: View {
       }
       .navigationTitle(model.name)
     }
+    .onChange(of: mainModel.endpoints) { _, endpoints in
+      if !endpoints.contains(model) { dismiss() }
+    }
   }
-
 //    var body: some View {
 //        let endpoint = model.endpoints.first { $0.endpointID == endpointID }
 //        let connectionRequest = model.requests.first { $0.endpointID == endpointID }
@@ -126,5 +131,5 @@ struct EndpointView: View {
       id: "R2D2",
       name: "Nice droid"
     )
-  )
+  ).environment(Main.createDebugModel())
 }
