@@ -16,7 +16,6 @@
 
 import SwiftUI
 import PhotosUI
-import Atomics
 
 struct OutgoingFilesView: View {
   let model: Endpoint

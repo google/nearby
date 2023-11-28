@@ -18,27 +18,15 @@ import Foundation
 import NearbyConnections
 
 @Observable class Main: ObservableObject {
-  let localEndpointId: String
-
+  private(set) var localEndpointId: String = ""
   var localEndpointName: String = ""
 
   var isAdvertising = false {
     didSet {
-      print (isAdvertising ? "Starting advertising..." : "Stopping advertising")
-
       if !isAdvertising {
         // advertiser?.stopAdvertising()
         return
       } else {
-        if  connectionManager == nil {
-          connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: Config.defaultStategy)
-          connectionManager.delegate = self
-        }
-        if advertiser == nil {
-          // TODO: String.data does not include the null character at the end. Add one
-          advertiser = Advertiser(connectionManager: connectionManager)
-          advertiser.delegate = self
-        }
         // advertiser.startAdvertising(using: localEndpointName.data(using: .utf8)!)
       }
     }
@@ -46,20 +34,10 @@ import NearbyConnections
 
   var isDiscovering = false {
     didSet {
-      print (isDiscovering ? "Starting discovering..." : "Stopping discovering")
-      
       if !isDiscovering {
         // discoverer.stopDiscovery()
         return
       } else {
-        if connectionManager == nil {
-          connectionManager = ConnectionManager(serviceID: Config.serviceId, strategy: Config.defaultStategy)
-          connectionManager.delegate = self
-        }
-        if discoverer == nil {
-          discoverer = Discoverer(connectionManager: connectionManager)
-          discoverer.delegate = self
-        }
         // discoverer.startDiscovery()
       }
     }
@@ -72,17 +50,12 @@ import NearbyConnections
   private var discoverer: Discoverer!
 
   init() {
-    // TODO: expose the API to retrieve local endpoint ID
-    localEndpointId = "ABCD"
-//    invalidateAdvertising()
-//    invalidateDiscovery()
-//    endpoints.append(Endpoint(
-//      id: "R2D2",
-//      name: "Debug droid",
-//      // medium: Endpoint.Medium.bluetooth,
-//      state: Endpoint.State.discovered,
-//      isIncoming: false
-//    ))
+    connectionManager = ConnectionManager(
+      serviceID: Config.serviceId, strategy: Config.defaultStategy, delegate: self)
+    advertiser = Advertiser(connectionManager: connectionManager, delegate: self)
+    discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
+
+    localEndpointId = advertiser.localEndpointID
   }
 
   static func createDebugModel() -> Main {

@@ -39,8 +39,9 @@ public class Discoverer {
   /// Initializes the discoverer object.
   ///
   /// - Parameter connectionManager: The connection manager for this instance.
-  public init(connectionManager: ConnectionManager) {
+  public init(connectionManager: ConnectionManager, delegate: DiscovererDelegate) {
     self.connectionManager = connectionManager
+    self.delegate = delegate
   }
 
   /// Starts searching for nearby remote endpoints.
