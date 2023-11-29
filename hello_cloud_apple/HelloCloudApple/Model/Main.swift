@@ -211,6 +211,73 @@ extension Main: AdvertiserDelegate {
 }
 
 extension Main: ConnectionManagerDelegate {
+  // Payload buffer format:
+  // int32: file count
+  // Each file:
+  //   int32: file name length including the \x0 at the end, not including this int
+  //   file name string content, encoded in UTF8
+  //   \x0
+  //   int32: url length, including the \x0 at the end, not including this int
+  //   url content, encoded in UTF8
+  //   \x0
+  //   int64: file size, in bytes
+  // In other words, file names and URLs are in both Pascal and C styles, to make
+  // decoding a bit easier.
+
+  func decodePayload(payload: Data) -> [IncomingFile] {
+    func readString(from payload: Data, at offset: inout Int) -> String? {
+      guard let len = try? payload.withUnsafeBytes<Int64>({
+        pointer in pointer.load(fromByteOffset: offset, as: Int64.self)
+      }) else {
+        return nil
+      }
+      offset += MemoryLayout.size(ofValue:len)
+
+      let range = offset..<(offset+Int(len))
+      offset += Int(len)
+      // If offset is not aligned, bump it up
+      offset = Int(ceil(Double((offset - 1) / 8) + 1)) * 8
+
+      let data = payload.subdata(in: range)
+      let string = String(data: data, encoding: .utf8)
+
+      return string
+    }
+
+    var result: [IncomingFile] = []
+    var offset = 0
+
+    guard let fileCount = try? payload.withUnsafeBytes<Int64>({
+      pointer in pointer.load(fromByteOffset:offset, as: UInt64.self)
+    }) else {
+      print("Invalid payload. Failed to parse file count.")
+      return []
+    }
+    offset += MemoryLayout.size(ofValue:fileCount)
+
+    for _ in 1...fileCount {
+      guard let path = readString(from: payload, at: &offset) else {
+        print("Invalid payload. Failed to parse local path.")
+        return []
+      }
+      guard let remotePath = readString(from: payload, at: &offset) else {
+        print("Invalid payload. Failed to parse remote path.")
+        return []
+      }
+      guard let fileSize = try? payload.withUnsafeBytes<Int64>({
+        pointer in pointer.load(fromByteOffset: offset, as: Int64.self)
+      }) else {
+        print("Invalid payload. Failed to parse file length.")
+        return []
+      }
+      offset += MemoryLayout.size(ofValue:fileSize);
+      result.append(IncomingFile(
+        localPath: path, remotePath: remotePath, fileSize: fileSize))
+    }
+
+    return result
+  }
+
   func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointId: String, verificationHandler: @escaping (Bool) -> Void) {
     print("OnConnectionVerification token received: " + verificationCode + ". Accepting connection request.")
     verificationHandler(true)
@@ -223,13 +290,13 @@ extension Main: ConnectionManagerDelegate {
     }
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
-      // TODO: decode payload content
 
-      // TODO: add each file to Endpoint.transfers
-      let transfer = Transfer(direction: .receive, localPath: "foo", remotePath: "bar", result: .success)
-      endpoint.transfers.append(transfer)
-
-      // TODO: add each file to Endpoint.incomoing file
+      let files = decodePayload(payload: data)
+      for file in files {
+        endpoint.incomingFiles.append(file)
+        let transfer = Transfer(direction: .receive, localPath: file.localPath, remotePath: file.remotePath, result: .success)
+        endpoint.transfers.append(transfer)
+      }
     }
   }
 

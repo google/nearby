@@ -26,7 +26,7 @@ import Foundation
   var isDownloading: Bool
   var isDownloaded: Bool
 
-  init(localPath: String, remotePath: String, fileSize: Int64, isDownloading: Bool, isDownloaded: Bool) {
+  init(localPath: String, remotePath: String, fileSize: Int64, isDownloading: Bool = false, isDownloaded: Bool = false) {
     self.localPath = localPath
     self.remotePath = remotePath
     self.fileSize = fileSize
