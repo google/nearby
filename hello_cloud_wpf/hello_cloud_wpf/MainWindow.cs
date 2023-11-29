@@ -177,8 +177,6 @@ namespace HelloCloudWpf {
                 throw new Exception("Failed: InitCore");
             }
 
-            Model.LocalEndpointId = GetLocalEndpointId(core);
-
             // Allocate memory these delegates so that they don't get GCed.
             endpointFoundCallback = OnEndpointFound;
             endpointLostCallback = OnEndpointLost;
@@ -242,6 +240,10 @@ namespace HelloCloudWpf {
                 rejectedCallback,
                 disconnectedCallback,
                 bandwidthUpgradedCallback);
+
+            Model!.LocalEndpointId = GetLocalEndpointId(core);
+            PropertyChanged?.Invoke(this, new(nameof(LocalEndpointId)));
+
             Log("StartAdvertising finished. Result: " + result);
             SetBusy(false);
         }
@@ -250,6 +252,10 @@ namespace HelloCloudWpf {
             Log("Stopping advertising...");
             SetBusy(true);
             OperationResult result = NearbyConnections.StopAdvertising(core);
+            
+            Model!.LocalEndpointId = String.Empty;
+            PropertyChanged?.Invoke(this, new(nameof(LocalEndpointId)));
+
             Log("StopAdvertising finished. Result: " + result);
             IsAdvertising = false;
             SetBusy(false);
