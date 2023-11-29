@@ -23,13 +23,17 @@ struct EndpointView: View {
   @Environment(\.dismiss) var dismiss
 
   func connect() -> Void {
-    model.state = .connected
-    print("Connected")
+    mainModel.requestConnection(to: model.id) {
+      error in
+      print("RequestConnection completed: " + (error?.localizedDescription ?? ""))
+    }
   }
 
   func disconnect() -> Void {
-    model.state = .discovered
-    print("Disconnected")
+    mainModel.disconnect(from: model.id) {
+      error in
+      print("Disconnect completed: " + (error?.localizedDescription ?? ""))
+    }
   }
 
   var body: some View {

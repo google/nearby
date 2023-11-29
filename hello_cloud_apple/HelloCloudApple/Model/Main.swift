@@ -16,6 +16,7 @@
 
 import Foundation
 import NearbyConnections
+import UIKit
 
 @Observable class Main: ObservableObject {
   static let shared = createDebugModel()
@@ -27,8 +28,15 @@ import NearbyConnections
     didSet {
       if !isAdvertising {
         advertiser?.stopAdvertising()
+        localEndpointId = ""
       } else {
-        advertiser.startAdvertising(using: localEndpointName.data(using: .utf8)!)
+        guard var name = localEndpointName.data(using: .utf8) else {
+          print("Device name is invalid. This shouldn't happen!")
+          return
+        }
+        advertiser.startAdvertising(using: name)
+        localEndpointId = advertiser.getLocalEndpointId()
+        print("Starting advertising local endpoint id: " + localEndpointId)
       }
     }
   }
@@ -55,14 +63,12 @@ import NearbyConnections
       serviceID: Config.serviceId, strategy: Config.defaultStategy, delegate: self)
     advertiser = Advertiser(connectionManager: connectionManager, delegate: self)
     discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
-    
-    localEndpointId = advertiser.localEndpointID
   }
   
   static func createDebugModel() -> Main {
     let model = Main();
-    model.localEndpointName = "iPhone"
-    
+    model.localEndpointName = Config.defaultEndpointName
+
     model.endpoints.append(Endpoint(
       id: "R2D2",
       name: "Nice droid",
@@ -122,12 +128,15 @@ import NearbyConnections
     return endpoints.first(where: {$0.id == id})
   }
   
-  func requestConnection(to endpointID: EndpointID) {
-    discoverer?.requestConnection(to: endpointID, using: localEndpointName.data(using: .utf8)!)
+  func requestConnection(to endpointId: String, _ completionHandler: ((Error?) -> Void)?) {
+    discoverer?.requestConnection(
+      to: endpointId,
+      using: localEndpointName.data(using: .utf8)!,
+      completionHandler: completionHandler)
   }
   
-  func disconnect(from endpointID: EndpointID) {
-    connectionManager.disconnect(from: endpointID)
+  func disconnect(from endpointId: String, _ completionHandler: ((Error?) -> Void)?) {
+    connectionManager.disconnect(from: endpointId, completionHandler: completionHandler)
   }
   
   func sendFiles(to endpointId: EndpointID) {
@@ -149,21 +158,17 @@ import NearbyConnections
     //    }
     
   }
-
-  func removeEndpoint(endpointId: String) {
-    endpoints.removeAll(where: {$0.id == endpointId})
-  }
 }
 
 extension Main: DiscovererDelegate {
-  // on endpoint found
-  func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, /*medium: Endpoint.Medium,*/ with context: Data) {
-    // TODO: add a null at the end of the string
+  func discoverer(_ discoverer: Discoverer, didFind endpointId: String, /*medium: Endpoint.Medium,*/ with context: Data) {
+    print("OnEndpointFound: " + endpointId)
     guard let endpointName = String(data: context, encoding: .utf8) else {
+      print("Failed to parse endpointInfo.")
       return
     }
     let endpoint = Endpoint(
-      id: endpointID,
+      id: endpointId,
       name: endpointName,
       // medium: "",
       isIncoming: false, state: .discovered
@@ -171,132 +176,114 @@ extension Main: DiscovererDelegate {
     endpoints.append(endpoint)
   }
 
-  // on endpoint lost
-  func discoverer(_ discoverer: Discoverer, didLose endpointID: EndpointID) {
-    // TODO: if the endpoint is currently selected, update the selection to
-    // nil or the first endpoint
-    endpoints.removeAll(where: {$0.id == endpointID})
+  func discoverer(_ discoverer: Discoverer, didLose endpointId: String) {
+    print("OnEndpointLost: " + endpointId)
+    endpoints.removeAll(where: {$0.id == endpointId})
   }
 }
 
 extension Main: AdvertiserDelegate {
-  // on connection reuqested
-  func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
-    guard let endpointName = String(data: context, encoding: .utf8) else {
+  func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointId: String, with endpoindInfo: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
+    print("OnConnectionInitiated from " + endpointId);
+
+    guard let endpointName = String(data: endpoindInfo, encoding: .utf8) else {
+      print("Failed to parse endpointInfo.")
       return
     }
-    let endpoint = Endpoint(
-      id: endpointID,
-      name: endpointName,
-      isIncoming: true, state: .pending
-    )
-    endpoints.append(endpoint)
-    // TODO: auto accept
+
+    if endpoints.first(where: {$0.id == endpointId}) == nil {
+      endpoints.append(Endpoint(
+        id: endpointId,
+        name: endpointName,
+        isIncoming: true,
+        state: .pending
+      ))
+    }
+
     connectionRequestHandler(true)
   }
 }
 
 extension Main: ConnectionManagerDelegate {
-  func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointID: EndpointID, verificationHandler: @escaping (Bool) -> Void) {
-    //        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //            return
-    //        }
-    //        let endpoint = endpoints.remove(at: index)
-    //        let request = ConnectionRequest(
-    //            id: endpoint.id,
-    //            endpointID: endpointID,
-    //            endpointName: endpoint.endpointName,
-    //            pin: verificationCode,
-    //            shouldAccept: { accept in
-    //                verificationHandler(accept)
-    //            }
-    //        )
-    //        requests.insert(request, at: 0)
+  func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointId: String, verificationHandler: @escaping (Bool) -> Void) {
+    print("OnConnectionVerification token received: " + verificationCode + ". Accepting connection request.")
+    verificationHandler(true)
   }
 
-  func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointID: EndpointID) {
-    //        let payload = Payload(
-    //            id: payloadID,
-    //            type: .bytes,
-    //            status: .success,
-    //            isIncoming: true,
-    //            cancellationToken: nil
-    //        )
-    //        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //            return
-    //        }
-    //        endpoints[index].payloads.insert(payload, at: 0)
+  func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointId: String) {
+    guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
+      print("Endpoint not found. " + endpointId)
+      return
+    }
+    if (endpoint.state != .sending) {
+      endpoint.state = .receiving
+      // TODO: decode payload content
+
+      // TODO: add each file to Endpoint.transfers
+      let transfer = Transfer(direction: .receive, localPath: "foo", remotePath: "bar", result: .success)
+      endpoint.transfers.append(transfer)
+
+      // TODO: add each file to Endpoint.incomoing file
+    }
   }
 
-  func connectionManager(_ connectionManager: ConnectionManager, didReceive stream: InputStream, withID payloadID: PayloadID, from endpointID: EndpointID, cancellationToken token: CancellationToken) {
-    //        let payload = Payload(
-    //            id: payloadID,
-    //            type: .stream,
-    //            status: .success,
-    //            isIncoming: true,
-    //            cancellationToken: token
-    //        )
-    //        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //            return
-    //        }
-    //        endpoints[index].payloads.insert(payload, at: 0)
+  func connectionManager(_ connectionManager: ConnectionManager, didReceive stream: InputStream, withID payloadID: PayloadID, from endpointId: String, cancellationToken token: CancellationToken) {
+    print("OnPayloadReceived. Payload type: stream.")
   }
 
-  func connectionManager(_ connectionManager: ConnectionManager, didStartReceivingResourceWithID payloadID: PayloadID, from endpointID: EndpointID, at localURL: URL, withName name: String, cancellationToken token: CancellationToken) {
-    //        let payload = Payload(
-    //            id: payloadID,
-    //            type: .file,
-    //            status: .inProgress(Progress()),
-    //            isIncoming: true,
-    //            cancellationToken: token
-    //        )
-    //        guard let index = endpoints.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //            return
-    //        }
-    //        endpoints[index].payloads.insert(payload, at: 0)
+  func connectionManager(_ connectionManager: ConnectionManager, didStartReceivingResourceWithID payloadID: PayloadID, from endpointId: String, at localURL: URL, withName name: String, cancellationToken token: CancellationToken) {
+    print("OnPayloadReceived. Payload type: file.")
   }
 
-  func connectionManager(_ connectionManager: ConnectionManager, didReceiveTransferUpdate update: TransferUpdate, from endpointID: EndpointID, forPayload payloadID: PayloadID) {
-    //        guard let connectionIndex = connections.firstIndex(where: { $0.endpointID == endpointID }),
-    //              let payloadIndex = connections[connectionIndex].payloads.firstIndex(where: { $0.id == payloadID }) else {
-    //            return
-    //        }
-    //        switch update {
-    //        case .success:
-    //            endpoints[connectionIndex].payloads[payloadIndex].status = .success
-    //        case .canceled:
-    //            endpoints[connectionIndex].payloads[payloadIndex].status = .canceled
-    //        case .failure:
-    //            endpoints[connectionIndex].payloads[payloadIndex].status = .failure
-    //        case let .progress(progress):
-    //            endpoints[connectionIndex].payloads[payloadIndex].status = .inProgress(progress)
+  func connectionManager(_ connectionManager: ConnectionManager, didReceiveTransferUpdate update: TransferUpdate, from endpointId: String, forPayload payloadID: PayloadID) {
+    print("OnPayloadProgress: " + endpointId)
+    
+    guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
+      print("Endpoint not found. " + endpointId)
+      return
+    }
+    
+    switch update {
+    case .progress(let progress):
+      print(String(format: "Transfer progress: %d/%d transferred.",
+                   progress.completedUnitCount,
+                   progress.totalUnitCount))
+      return
+    case .success:
+      print("Transferred succeeded.")
+      endpoint.state = .connected
+    case .canceled, .failure:
+      print("Transfer failed or canceled.")
+      endpoint.state = .connected
+    }
   }
 
-  func connectionManager(_ connectionManager: ConnectionManager, didChangeTo state: ConnectionState, for endpointID: EndpointID) {
-    //        switch (state) {
-    //        case .connecting:
-    //            break
-    //        case .connected:
-    //            guard let index = requests.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //                return
-    //            }
-    //            let request = requests.remove(at: index)
-    //            let connection = ConnectedEndpoint(
-    //                id: request.id,
-    //                endpointID: endpointID,
-    //                endpointName: request.endpointName
-    //            )
-    //            endpoints.insert(connection, at: 0)
-    //        case .disconnected:
-    //            guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //                return
-    //            }
-    //            endpoints.remove(at: index)
-    //        case .rejected:
-    //            guard let index = requests.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //                return
-    //            }
-    //            endpoints.remove(at: index)
-    //        }
+  func connectionManager(_ connectionManager: ConnectionManager, didChangeTo state: ConnectionState, for endpointId: String) {
+    func removeOrChangeState (_ endpoint: Endpoint) -> Void {
+      // If the endpoint wasn't discovered by us in the first place, remove it.
+      // Otherwise, keep it and change its state to Discovered.
+      if endpoint.isIncoming || !isDiscovering {
+        endpoints.removeAll(where: {$0.id == endpointId})
+      } else {
+        endpoint.state = .discovered
+      }
+    }
+
+    print("OnEndpointStateChange: " + endpointId)
+    guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
+      print("Endpoint not found.")
+      return
+    }
+    switch (state) {
+    case .connecting:
+      endpoint.state = .pending
+      break
+    case .connected:
+      endpoint.state = .connected
+    case .disconnected:
+      removeOrChangeState(endpoint)
+    case .rejected:
+      removeOrChangeState(endpoint)
+    }
   }
 }

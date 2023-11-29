@@ -25,8 +25,6 @@ public class Advertiser {
   /// The connection manager for this instance.
   public let connectionManager: ConnectionManager
 
-  public let localEndpointID: String = GNCCoreAdapter.shared.localEndpointID;
-
   lazy var connection: InternalConnection? = {
     let connection = InternalConnection()
     connection.delegate = self
@@ -39,6 +37,10 @@ public class Advertiser {
   public init(connectionManager: ConnectionManager, delegate: AdvertiserDelegate) {
     self.connectionManager = connectionManager
     self.delegate = delegate
+  }
+
+  public func getLocalEndpointId() -> String {
+    GNCCoreAdapter.shared.localEndpointID;
   }
 
   /// Starts advertising the local endpoint.
