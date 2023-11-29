@@ -282,7 +282,11 @@ namespace HelloCloudWpf {
             Log("Stopping discovering...");
             SetBusy(true);
             NearbyConnections.StopDiscovering(core);
-            foreach (EndpointViewModel endpoint in Endpoints) {
+            // Make a copy of Endpoints since we're changing it in the loop.
+            // It would throw an exception if the collection is changed in the loop.
+            // Alternatively, we could do a reverse loop. But we're dealing with
+            // just a few endpoints. So the cost is not very high.
+            foreach (EndpointViewModel endpoint in Endpoints.ToList()) {
                 if (endpoint.State is EndpointModel.State.Discovered) {
                     Endpoints.Remove(endpoint);
                 }
