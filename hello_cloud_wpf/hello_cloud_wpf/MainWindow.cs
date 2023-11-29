@@ -253,6 +253,7 @@ namespace HelloCloudWpf {
             SetBusy(true);
             OperationResult result = NearbyConnections.StopAdvertising(core);
             
+
             Model!.LocalEndpointId = String.Empty;
             PropertyChanged?.Invoke(this, new(nameof(LocalEndpointId)));
 
@@ -344,7 +345,7 @@ namespace HelloCloudWpf {
             SetEndpointState(endpointId, EndpointModel.State.Sending);
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
             if (result != OperationResult.kSuccess) {
-                SetEndpointState(endpointId, EndpointModel.State.Discovered);
+                SetEndpointState(endpointId, EndpointModel.State.Connected);
             }
             Log($"Sending files to {endpointId} finished. Result: {result}");
             SetBusy(false);
@@ -663,26 +664,28 @@ namespace HelloCloudWpf {
 
         private static (int, byte[]) EncodePayload(IEnumerable<OutgoingFileModel> files) {
             // Buffer format:
-            // int32: file count
+            // int64: file count
             // Each file:
-            //   int32: file name length including the \x0 at the end, not including this int
+            //   int64: file name length including the \x0 at the end, not including this int
             //   file name string content, encoded in UTF8
-            //   \x0
-            //   int32: url length, including the \x0 at the end, not including this int
+            //   padding to align at a multiple of 8
+            //   int64: url length, including the \x0 at the end, not including this int
             //   url content, encoded in UTF8
-            //   \x0
+            //   padding
             //   int64: file size, in bytes
-            // In other words, file names and URLs are in both Pascal and C styles, to make
-            // decoding a bit easier.
 
             static void WriteStringToStream(MemoryStream stream, string s) {
                 int len = s.Length;
-                byte[] buffer = BitConverter.GetBytes(len + 1);
+                int padding = (int)((len - 1) / 8 + 1) * 8 - len;
+
+                byte[] buffer = BitConverter.GetBytes((Int64)len);
                 stream.Write(buffer, 0, buffer.Length);
 
                 buffer = Encoding.UTF8.GetBytes(s);
                 stream.Write(buffer, 0, buffer.Length);
-                stream.WriteByte(0);
+                for (int i = 0; i < padding; i++) {
+                    stream.WriteByte(0);
+                }
             }
 
             MemoryStream stream = new();
@@ -690,7 +693,7 @@ namespace HelloCloudWpf {
             int fileCount = 0;
 
             // File count placeholder, since we haven't counted yet
-            buffer = BitConverter.GetBytes(0);
+            buffer = BitConverter.GetBytes((Int64)fileCount);
             stream.Write(buffer, 0, buffer.Length);
 
             foreach (OutgoingFileModel file in files) {
@@ -703,17 +706,18 @@ namespace HelloCloudWpf {
 
             // Now write the actual file count
             stream.Position = 0;
-            buffer = BitConverter.GetBytes(fileCount);
+            buffer = BitConverter.GetBytes((Int64)fileCount);
             stream.Write(buffer, 0, buffer.Length);
             return (fileCount, stream.ToArray());
         }
 
         private static IList<IncomingFileModel>? DecodePayload(byte[] payload) {
             static string ReadString(byte[] payload, ref int offset) {
-                int len = BitConverter.ToInt32(payload, offset);
-                offset += sizeof(int);
-                string s = Encoding.UTF8.GetString(payload, offset, len - 1);
-                offset += len;
+                int len = (int)BitConverter.ToInt64(payload, offset);
+                offset += sizeof(Int64);
+                string s = Encoding.UTF8.GetString(payload, offset, len);
+                // Align to multiple of 8
+                offset += (int)((len - 1) / 8 + 1) * 8;
                 return s;
             }
 
@@ -721,8 +725,8 @@ namespace HelloCloudWpf {
 
             try {
                 int offset = 0;
-                int fileCount = BitConverter.ToInt32(payload, 0);
-                offset += sizeof(int);
+                int fileCount = (int)BitConverter.ToInt64(payload, 0);
+                offset += sizeof(Int64);
 
                 for (int i = 0; i < fileCount; i++) {
                     string path = ReadString(payload, ref offset);
