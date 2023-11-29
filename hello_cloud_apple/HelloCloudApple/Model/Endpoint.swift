@@ -39,7 +39,7 @@ import SwiftUI
 
   let id: String
   let name: String
-  let isIncoming: Bool
+  @ObservationIgnored var isIncoming: Bool
 
   // var medium: Medium
   var state: State

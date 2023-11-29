@@ -167,13 +167,19 @@ extension Main: DiscovererDelegate {
       print("Failed to parse endpointInfo.")
       return
     }
-    let endpoint = Endpoint(
-      id: endpointId,
-      name: endpointName,
-      // medium: "",
-      isIncoming: false, state: .discovered
-    )
-    endpoints.append(endpoint)
+
+    let endpoint = endpoints.first(where: {$0.id == endpointId})
+    if endpoint == nil {
+      let endpoint = Endpoint(
+        id: endpointId,
+        name: endpointName,
+        // medium: "",
+        isIncoming: false, state: .discovered
+      )
+      endpoints.append(endpoint)
+    } else {
+      endpoint?.isIncoming = false
+    }
   }
 
   func discoverer(_ discoverer: Discoverer, didLose endpointId: String) {
@@ -237,12 +243,12 @@ extension Main: ConnectionManagerDelegate {
 
   func connectionManager(_ connectionManager: ConnectionManager, didReceiveTransferUpdate update: TransferUpdate, from endpointId: String, forPayload payloadID: PayloadID) {
     print("OnPayloadProgress: " + endpointId)
-    
+
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
       print("Endpoint not found. " + endpointId)
       return
     }
-    
+
     switch update {
     case .progress(let progress):
       print(String(format: "Transfer progress: %d/%d transferred.",
