@@ -470,8 +470,12 @@ namespace HelloCloudWpf {
             Log("  medium: " + medium);
             Log("  service_id: " + serviceId);
 
-            if (GetEndpoint(endpointId) != null) {
+            EndpointViewModel endpoint = GetEndpoint(endpointId);
+            if (endpoint != null) {
                 Log("  endpoint already in the list!");
+                // Mark is as not incoming so that we don't delete it after
+                // disconnecting from it.
+                endpoint.Model.isIncoming = false;
                 return;
             }
 
