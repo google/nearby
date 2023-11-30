@@ -73,6 +73,9 @@ struct OutgoingFilesView: View {
       print("Failed to encode outgoing files. This should not happen.")
       return
     }
+
+    Main.shared.sendFiles(payload, to: model.id)
+
     for file in model.outgoingFiles {
       model.transfers.append(Transfer(direction: .send, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
     }
