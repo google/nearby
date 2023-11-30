@@ -1,6 +1,9 @@
 ﻿using Google.Cloud.Storage.V1;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -11,15 +14,20 @@ namespace HelloCloudWpf {
         }
 
         // the path of the file when it was uploaded, not necessarily the path for downloading.
-        public readonly string localPath;
-        public readonly string remotePath;
-        public readonly long fileSize;
+        [JsonInclude] public readonly string localPath;
+        [JsonInclude] public readonly string remotePath;
+        [JsonInclude] public readonly long fileSize;
+
         public State state = State.Received;
 
         public IncomingFileModel(string localPath, string remotePath, long fileSize) {
             this.localPath = localPath;
             this.remotePath = remotePath;
             this.fileSize = fileSize;
+        }
+
+        public static IList<IncomingFileModel>? DecodeIncomingFiles(byte[] payload) {
+            return JsonSerializer.Deserialize<List<IncomingFileModel>>(payload);
         }
     }
 

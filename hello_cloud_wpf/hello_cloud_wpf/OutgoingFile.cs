@@ -1,25 +1,39 @@
 ﻿using Google.Apis.Upload;
 using Google.Cloud.Storage.V1;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace HelloCloudWpf {
+
     public class OutgoingFileModel {
         public enum State {
             Picked, Uploading, Uploaded
         }
 
-        public readonly string localPath;
-        public readonly long fileSize;
-        public string? remotePath = null;
+        [JsonInclude] public readonly string localPath;
+        [JsonInclude] public readonly long fileSize;
+        [JsonInclude] public string? remotePath = null;
+
         public State state = State.Picked;
 
         public OutgoingFileModel(string localPath, long fileSize) {
             this.localPath = localPath;
             this.fileSize = fileSize;
+        }
+
+        public static byte[] EncodeOutgoingFiles(IEnumerable<OutgoingFileModel> files) {
+            JsonSerializerOptions options = new() {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+            string jsonString = JsonSerializer.Serialize(files, options);
+            return Encoding.UTF8.GetBytes(jsonString);
         }
     }
 
