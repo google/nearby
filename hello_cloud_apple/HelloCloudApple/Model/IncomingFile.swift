@@ -16,30 +16,40 @@
 
 import Foundation
 
-@Observable class IncomingFile: Identifiable, Hashable {
+@Observable class IncomingFile: Identifiable, Hashable, Decodable {
+  enum State: Int {
+    case received, downloading, downloaded
+  }
+
   let id: UUID = UUID()
   
   let localPath: String
-  let remotePath: String
-  let fileSize: Int64
+  @ObservationIgnored let remotePath: String
+  @ObservationIgnored let fileSize: Int64
 
-  var isDownloading: Bool
-  var isDownloaded: Bool
+  var state: State = .received
 
-  init(localPath: String, remotePath: String, fileSize: Int64, isDownloading: Bool = false, isDownloaded: Bool = false) {
+  init(localPath: String, remotePath: String, fileSize: Int64, state: State) {
     self.localPath = localPath
     self.remotePath = remotePath
     self.fileSize = fileSize
-    self.isDownloading = isDownloading
-    self.isDownloaded = isDownloaded
   }
 
   func download () -> Void {
     // TODO: async this and actually download
-    isDownloading = false;
-    isDownloaded = true;
+    state = .downloaded
   }
   
   static func == (lhs: IncomingFile, rhs: IncomingFile) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(self.id) }
+
+  enum CodingKeys: String, CodingKey {
+    case localPath, remotePath, fileSize
+  }
+
+  static func decodeIncomingFiles(fromJson json: Data) -> [IncomingFile]? {
+    let decoder = JSONDecoder()
+    let result = try? decoder.decode([IncomingFile]?.self, from: json) ?? nil
+    return result
+  }
 }
