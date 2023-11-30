@@ -35,12 +35,12 @@
 		23252B5729D739E400BB0370 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		23252B5929D739E500BB0370 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		23252B5C29D739E500BB0370 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		236C727829F83A1F00E54333 /* HelloCloudApple-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "HelloCloudApple-Info.plist"; sourceTree = SOURCE_ROOT; };
 		23D1FD2329D8A73200620802 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		23D1FD2529D8A9FF00620802 /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		23F6A70729D7621F00558F56 /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
 		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ..; sourceTree = "<group>"; };
 		23F6A71229D7ADCE00558F56 /* EndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointView.swift; sourceTree = "<group>"; };
+		77CD19D02B19442100654BA2 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		77E09C742B110CA600838C24 /* IncomingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFile.swift; sourceTree = "<group>"; };
 		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
 		77E09C782B110CC500838C24 /* Transfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer.swift; sourceTree = "<group>"; };
@@ -87,7 +87,7 @@
 		23252B5429D739E400BB0370 /* HelloCloudApple */ = {
 			isa = PBXGroup;
 			children = (
-				236C727829F83A1F00E54333 /* HelloCloudApple-Info.plist */,
+				77CD19D02B19442100654BA2 /* Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
 				23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */,
 				23252B5729D739E400BB0370 /* MainView.swift */,
@@ -361,7 +361,7 @@
 				DEVELOPMENT_TEAM = C2D8V6M23S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "HelloCloudApple-Info.plist";
+				INFOPLIST_FILE = HelloCloudApple/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Bluetooth.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Local Network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -396,7 +396,7 @@
 				DEVELOPMENT_TEAM = C2D8V6M23S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "HelloCloudApple-Info.plist";
+				INFOPLIST_FILE = HelloCloudApple/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Bluetooth.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Local Network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
