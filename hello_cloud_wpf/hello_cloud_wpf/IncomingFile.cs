@@ -6,13 +6,15 @@ using System.Windows;
 
 namespace HelloCloudWpf {
     public class IncomingFileModel {
+        public enum State {
+            Received, Downloading, Downloaded
+        }
+
         // the path of the file when it was uploaded, not necessarily the path for downloading.
         public readonly string localPath;
         public readonly string remotePath;
         public readonly long fileSize;
-
-        public bool isDownloading = false;
-        public bool isDownloaded = false;
+        public State state = State.Received;
 
         public IncomingFileModel(string localPath, string remotePath, long fileSize) {
             this.localPath = localPath;
@@ -27,22 +29,23 @@ namespace HelloCloudWpf {
         public string LocalPath => Model!.localPath;
         public string RemotePath => Model!.remotePath;
         public long FileSize => Model!.fileSize;
-        public bool IsDownloaded => Model!.isDownloaded;
-        public bool IsDownloading => Model!.isDownloading;
 
-        public Visibility DownloadedIconVisibility => IsDownloaded ? Visibility.Visible : Visibility.Hidden;
-        public Visibility DownloadingIconVisibility => IsDownloading ? Visibility.Visible : Visibility.Hidden;
-        public Visibility NotDownloadedIconVisibility => IsDownloaded || IsDownloading ? Visibility.Hidden : Visibility.Visible;
+        public Visibility DownloadedIconVisibility => Model?.state == IncomingFileModel.State.Downloaded? Visibility.Visible : Visibility.Hidden;
+        public Visibility DownloadingIconVisibility => Model?.state == IncomingFileModel.State.Downloading ? Visibility.Visible : Visibility.Hidden;
+        public Visibility ReceivedIconVisibility => Model?.state == IncomingFileModel.State.Received ? Visibility.Visible : Visibility.Hidden;
+
         public IncomingFileModel? Model { get; set; }
+
+        public IncomingFileModel.State State => Model?.state ?? IncomingFileModel.State.Received;
 
         public IncomingFileViewModel() { }
 
         public async Task<string?> Download(StorageClient storageClient) {
             MainViewModel.Instance.Log("Beginning downloading " + RemotePath);
 
-            Model!.isDownloading = true;
+            Model!.state = IncomingFileModel.State.Downloading;
             PropertyChanged?.Invoke(this, new(nameof(DownloadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new(nameof(NotDownloadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(ReceivedIconVisibility)));
             PropertyChanged?.Invoke(this, new(nameof(DownloadingIconVisibility)));
 
             // Quick and dirty way to get a local path
@@ -87,11 +90,10 @@ namespace HelloCloudWpf {
                 MainViewModel.Instance.Log("Finished downloading " + RemotePath + ", failed.");
             }
 
-            Model.isDownloading = false;
-            Model.isDownloaded = true;
+            Model.state = IncomingFileModel.State.Downloaded;
             PropertyChanged?.Invoke(this, new(nameof(DownloadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new(nameof(NotDownloadedIconVisibility)));
             PropertyChanged?.Invoke(this, new(nameof(DownloadingIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(ReceivedIconVisibility)));
 
             PropertyChanged?.Invoke(this, new(nameof(RemotePath)));
             return result == null ? null : localPath;

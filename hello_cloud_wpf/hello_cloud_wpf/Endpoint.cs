@@ -175,8 +175,7 @@ namespace HelloCloudWpf {
                     && OutgoingFiles.Any(file => !file.IsUploaded));
             beginDownloadCommand = new RelayCommand(
                 _ => BeginDownload(),
-                _ => IncomingFiles.All(file => !file.IsDownloading)
-                    && IncomingFiles.Any(file => !file.IsDownloaded));
+                _ => IncomingFiles.Any(file => file.State == IncomingFileModel.State.Received));
         }
 
         public void AddIncomingFile(IncomingFileModel file) {
@@ -271,7 +270,7 @@ namespace HelloCloudWpf {
             long totalBytes = 0;
 
             List<IncomingFileViewModel> filesToDownload =
-                IncomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
+                IncomingFiles.Where(file => file.State == IncomingFileModel.State.Received).ToList();
 
             List<Task<string?>> downloadingTasks = new();
             foreach (IncomingFileViewModel file in filesToDownload) {
