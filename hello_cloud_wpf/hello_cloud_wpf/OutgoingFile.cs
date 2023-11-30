@@ -19,7 +19,7 @@ namespace HelloCloudWpf {
 
         [JsonInclude] public readonly string localPath;
         [JsonInclude] public readonly long fileSize;
-        [JsonInclude] public string? remotePath = null;
+        [JsonInclude] public string remotePath = string.Empty;
 
         public State state = State.Picked;
 
@@ -29,10 +29,10 @@ namespace HelloCloudWpf {
         }
 
         public static byte[] EncodeOutgoingFiles(IEnumerable<OutgoingFileModel> files) {
-            JsonSerializerOptions options = new() {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
-            string jsonString = JsonSerializer.Serialize(files, options);
+            string jsonString = JsonSerializer.Serialize(files);
+
+            Console.WriteLine(jsonString);
+
             return Encoding.UTF8.GetBytes(jsonString);
         }
     }

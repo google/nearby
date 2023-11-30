@@ -19,7 +19,7 @@ namespace HelloCloudWpf {
 
         public MainWindow()
         {
-            //AllocConsole();
+            AllocConsole();
             InitializeComponent();
         }
 
