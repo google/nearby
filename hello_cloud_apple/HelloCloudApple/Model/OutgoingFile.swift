@@ -50,11 +50,7 @@ import Foundation
     case localPath, remotePath, fileSize
   }
 
-  static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> String? {
-    let encoder = JSONEncoder()
-    guard let json = try? encoder.encode(files) else {
-      return nil
-    }
-    return String(data: json, encoding: .utf8)
+  static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> Data? {
+    return try? JSONEncoder().encode(files)
   }
 }

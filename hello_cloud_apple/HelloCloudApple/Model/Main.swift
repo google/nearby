@@ -142,24 +142,17 @@ import UIKit
     connectionManager.disconnect(from: endpointId, completionHandler: completionHandler)
   }
   
-  func sendFiles(to endpointId: EndpointID) {
-    //        let payloadID = PayloadID.unique()
-    //        let token = connectionManager.send(Config.bytePayload.data(using: .utf8)!, to: endpointIDs, id: payloadID)
-    //        let payload = Payload(
-    //            id: payloadID,
-    //            type: .bytes,
-    //            status: .inProgress(Progress()),
-    //            isIncoming: false,
-    //            cancellationToken: token
-    //        )
-    //        for endpointID in endpointIDs {
-    //            guard let index = connections.firstIndex(where: { $0.endpointID == endpointID }) else {
-    //                return
-    //            }
-    //            connections[index].payloads.insert(payload, at: 0)
-    //        }
-    //    }
-    
+  func sendFiles(_ payload: Data, to endpointId: String) {
+    print("Sending files to " + endpointId)
+    let endpoint = endpoints.first(where: {$0.id == endpointId})
+    endpoint?.state = .sending
+    _ = connectionManager.send(
+      payload,
+      to: [endpointId],
+      id: PayloadID.unique()) { [endpoint] result in
+        print("Done sending files.")
+        endpoint?.state = .connected
+      }
   }
 }
 
