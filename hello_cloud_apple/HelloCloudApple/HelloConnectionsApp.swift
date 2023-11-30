@@ -15,9 +15,23 @@
 //
 
 import SwiftUI
+import FirebaseCore
+
+//https://console.firebase.google.com/u/1/project/hello-cloud-5b73c/settings/general/ios:com.google.deling.hello-cloud
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+  func application(_ application: UIApplication,
+                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    FirebaseApp.configure()
+
+    return true
+  }
+}
 
 @main
 struct HelloConnectionsApp: App {
+  // register app delegate for Firebase setup
+  @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
   @StateObject private var model = Main.createDebugModel()
 
   var body: some Scene {
