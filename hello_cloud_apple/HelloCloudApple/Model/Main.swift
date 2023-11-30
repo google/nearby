@@ -150,7 +150,7 @@ import UIKit
       payload,
       to: [endpointId],
       id: PayloadID.unique()) { [endpoint] result in
-        print("Done sending files to " + (endpoint?.id)!)
+        print("Done sending files.")
         endpoint?.state = .connected
       }
   }
