@@ -177,8 +177,6 @@ namespace HelloCloudWpf {
                 throw new Exception("Failed: InitCore");
             }
 
-            Model.LocalEndpointId = GetLocalEndpointId(core);
-
             // Allocate memory these delegates so that they don't get GCed.
             endpointFoundCallback = OnEndpointFound;
             endpointLostCallback = OnEndpointLost;
@@ -242,6 +240,10 @@ namespace HelloCloudWpf {
                 rejectedCallback,
                 disconnectedCallback,
                 bandwidthUpgradedCallback);
+
+            Model!.LocalEndpointId = GetLocalEndpointId(core);
+            PropertyChanged?.Invoke(this, new(nameof(LocalEndpointId)));
+
             Log("StartAdvertising finished. Result: " + result);
             SetBusy(false);
         }
@@ -250,6 +252,11 @@ namespace HelloCloudWpf {
             Log("Stopping advertising...");
             SetBusy(true);
             OperationResult result = NearbyConnections.StopAdvertising(core);
+            
+
+            Model!.LocalEndpointId = String.Empty;
+            PropertyChanged?.Invoke(this, new(nameof(LocalEndpointId)));
+
             Log("StopAdvertising finished. Result: " + result);
             IsAdvertising = false;
             SetBusy(false);
@@ -282,7 +289,11 @@ namespace HelloCloudWpf {
             Log("Stopping discovering...");
             SetBusy(true);
             NearbyConnections.StopDiscovering(core);
-            foreach (EndpointViewModel endpoint in Endpoints) {
+            // Make a copy of Endpoints since we're changing it in the loop.
+            // It would throw an exception if the collection is changed in the loop.
+            // Alternatively, we could do a reverse loop. But we're dealing with
+            // just a few endpoints. So the cost is not very high.
+            foreach (EndpointViewModel endpoint in Endpoints.ToList()) {
                 if (endpoint.State is EndpointModel.State.Discovered) {
                     Endpoints.Remove(endpoint);
                 }
@@ -334,7 +345,7 @@ namespace HelloCloudWpf {
             SetEndpointState(endpointId, EndpointModel.State.Sending);
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
             if (result != OperationResult.kSuccess) {
-                SetEndpointState(endpointId, EndpointModel.State.Discovered);
+                SetEndpointState(endpointId, EndpointModel.State.Connected);
             }
             Log($"Sending files to {endpointId} finished. Result: {result}");
             SetBusy(false);
@@ -460,8 +471,12 @@ namespace HelloCloudWpf {
             Log("  medium: " + medium);
             Log("  service_id: " + serviceId);
 
-            if (GetEndpoint(endpointId) != null) {
+            EndpointViewModel endpoint = GetEndpoint(endpointId);
+            if (endpoint != null) {
                 Log("  endpoint already in the list!");
+                // Mark is as not incoming so that we don't delete it after
+                // disconnecting from it.
+                endpoint.Model.isIncoming = false;
                 return;
             }
 
@@ -649,26 +664,28 @@ namespace HelloCloudWpf {
 
         private static (int, byte[]) EncodePayload(IEnumerable<OutgoingFileModel> files) {
             // Buffer format:
-            // int32: file count
+            // int64: file count
             // Each file:
-            //   int32: file name length including the \x0 at the end, not including this int
+            //   int64: file name length including the \x0 at the end, not including this int
             //   file name string content, encoded in UTF8
-            //   \x0
-            //   int32: url length, including the \x0 at the end, not including this int
+            //   padding to align at a multiple of 8
+            //   int64: url length, including the \x0 at the end, not including this int
             //   url content, encoded in UTF8
-            //   \x0
+            //   padding
             //   int64: file size, in bytes
-            // In other words, file names and URLs are in both Pascal and C styles, to make
-            // decoding a bit easier.
 
             static void WriteStringToStream(MemoryStream stream, string s) {
                 int len = s.Length;
-                byte[] buffer = BitConverter.GetBytes(len + 1);
+                int padding = (int)((len - 1) / 8 + 1) * 8 - len;
+
+                byte[] buffer = BitConverter.GetBytes((Int64)len);
                 stream.Write(buffer, 0, buffer.Length);
 
                 buffer = Encoding.UTF8.GetBytes(s);
                 stream.Write(buffer, 0, buffer.Length);
-                stream.WriteByte(0);
+                for (int i = 0; i < padding; i++) {
+                    stream.WriteByte(0);
+                }
             }
 
             MemoryStream stream = new();
@@ -676,7 +693,7 @@ namespace HelloCloudWpf {
             int fileCount = 0;
 
             // File count placeholder, since we haven't counted yet
-            buffer = BitConverter.GetBytes(0);
+            buffer = BitConverter.GetBytes((Int64)fileCount);
             stream.Write(buffer, 0, buffer.Length);
 
             foreach (OutgoingFileModel file in files) {
@@ -689,17 +706,18 @@ namespace HelloCloudWpf {
 
             // Now write the actual file count
             stream.Position = 0;
-            buffer = BitConverter.GetBytes(fileCount);
+            buffer = BitConverter.GetBytes((Int64)fileCount);
             stream.Write(buffer, 0, buffer.Length);
             return (fileCount, stream.ToArray());
         }
 
         private static IList<IncomingFileModel>? DecodePayload(byte[] payload) {
             static string ReadString(byte[] payload, ref int offset) {
-                int len = BitConverter.ToInt32(payload, offset);
-                offset += sizeof(int);
-                string s = Encoding.UTF8.GetString(payload, offset, len - 1);
-                offset += len;
+                int len = (int)BitConverter.ToInt64(payload, offset);
+                offset += sizeof(Int64);
+                string s = Encoding.UTF8.GetString(payload, offset, len);
+                // Align to multiple of 8
+                offset += (int)((len - 1) / 8 + 1) * 8;
                 return s;
             }
 
@@ -707,8 +725,8 @@ namespace HelloCloudWpf {
 
             try {
                 int offset = 0;
-                int fileCount = BitConverter.ToInt32(payload, 0);
-                offset += sizeof(int);
+                int fileCount = (int)BitConverter.ToInt64(payload, 0);
+                offset += sizeof(Int64);
 
                 for (int i = 0; i < fileCount; i++) {
                     string path = ReadString(payload, ref offset);
