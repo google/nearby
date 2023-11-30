@@ -16,7 +16,7 @@
 
 import Foundation
 
-@Observable class OutgoingFile: Identifiable, Hashable {
+@Observable class OutgoingFile: Identifiable, Hashable, Encodable {
   enum State: Int {
     case picked, loading, loaded, uploading, uploaded
   }
@@ -45,4 +45,16 @@ import Foundation
 
   static func == (lhs: OutgoingFile, rhs: OutgoingFile) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
+
+  enum CodingKeys: String, CodingKey {
+    case localPath, remotePath, fileSize
+  }
+
+  static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> String? {
+    let encoder = JSONEncoder()
+    guard let json = try? encoder.encode(files) else {
+      return nil
+    }
+    return String(data: json, encoding: .utf8)
+  }
 }

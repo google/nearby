@@ -89,9 +89,12 @@ import UIKit
         OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
       ],
       incomingFiles: [
-        IncomingFile(localPath: "IMG_0004.jpg", remotePath: "1234567890ABCDEF", fileSize: 4000000, isDownloading: true, isDownloaded: false),
-        IncomingFile(localPath: "IMG_0005.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: false),
-        IncomingFile(localPath: "IMG_0006.jpg", remotePath: "1234567890ABCDEF", fileSize: 5000000, isDownloading: false, isDownloaded: true)
+        IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF",
+                     fileSize: 4000000, state: .downloading),
+        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
+                     fileSize: 5000000, state: .received),
+        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
+                     fileSize: 5000000, state: .downloaded)
       ],
       transfers: [
         Transfer(
@@ -212,17 +215,14 @@ extension Main: AdvertiserDelegate {
 
 extension Main: ConnectionManagerDelegate {
   // Payload buffer format:
-  // int32: file count
+  // int64: file count
   // Each file:
-  //   int32: file name length including the \x0 at the end, not including this int
-  //   file name string content, encoded in UTF8
-  //   \x0
-  //   int32: url length, including the \x0 at the end, not including this int
-  //   url content, encoded in UTF8
-  //   \x0
-  //   int64: file size, in bytes
-  // In other words, file names and URLs are in both Pascal and C styles, to make
-  // decoding a bit easier.
+  //  Local file path
+  //    int64: length
+  //    char[]: content, encoded in UTF8
+  //    padding. alignment: 8 bytes
+  // Remote file path, same format
+  // int64: file size, in bytes
 
   func decodePayload(payload: Data) -> [IncomingFile] {
     func readString(from payload: Data, at offset: inout Int) -> String? {
@@ -272,7 +272,7 @@ extension Main: ConnectionManagerDelegate {
       }
       offset += MemoryLayout.size(ofValue:fileSize);
       result.append(IncomingFile(
-        localPath: path, remotePath: remotePath, fileSize: fileSize))
+        localPath: path, remotePath: remotePath, fileSize: fileSize, state: .received))
     }
 
     return result
@@ -291,7 +291,11 @@ extension Main: ConnectionManagerDelegate {
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
 
-      let files = decodePayload(payload: data)
+      guard let files = IncomingFile.decodeIncomingFiles(fromJson: data) else {
+        print("Failed to decode incoming files.")
+        return
+      }
+      
       for file in files {
         endpoint.incomingFiles.append(file)
         let transfer = Transfer(direction: .receive, localPath: file.localPath, remotePath: file.remotePath, result: .success)

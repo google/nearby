@@ -44,17 +44,20 @@ struct IncomingFilesView: View {
         }
         .buttonStyle(.bordered)
         .disabled(model.incomingFiles.isEmpty ||
-                  model.incomingFiles.allSatisfy({$0.isDownloaded || $0.isDownloading}))
-        
+                  model.incomingFiles.allSatisfy(
+                    {$0.state == .downloaded || $0.state == .downloaded}))
+
         ForEach(model.incomingFiles) {file in
           HStack {
             Label(file.localPath, systemImage: "doc")
             Spacer()
-            if (file.isDownloaded) {
+            if file.state == .download {
               Image(systemName: "circle.fill").foregroundColor(.green)
-            } else if (file.isDownloading) {
+            }
+            if file.state == .downloading {
               ProgressView()
-            } else {
+            } 
+            if file.state == .received {
               Image(systemName: "circle.fill").foregroundColor(.gray)
             }
           }
@@ -76,11 +79,11 @@ struct IncomingFilesView: View {
       isIncoming: false, state: .discovered,
       incomingFiles: [
         IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", 
-                     fileSize: 4000000, isDownloading: true, isDownloaded: false),
-        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF", 
-                     fileSize: 5000000, isDownloading: false, isDownloaded: false),
-        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF", 
-                     fileSize: 5000000, isDownloading: false, isDownloaded: true)
+                     fileSize: 4000000, state: .downloading),
+        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
+                     fileSize: 5000000, state: .received),
+        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
+                     fileSize: 5000000, state: .downloaded)
       ]
     )
   ).environment(Main.createDebugModel())

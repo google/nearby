@@ -63,15 +63,16 @@ struct OutgoingFilesView: View {
   
   func upload() -> Void {
     for file in model.outgoingFiles {
-      // TODO: async this
       file.upload()
-      
       model.transfers.append(Transfer(direction: .upload, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
     }
   }
   
   func send() -> Void {
-    // TODO: encode and send payload
+    guard let payload = OutgoingFile.encodeOutgoingFiles(model.outgoingFiles) else {
+      print("Failed to encode outgoing files. This should not happen.")
+      return
+    }
     for file in model.outgoingFiles {
       model.transfers.append(Transfer(direction: .send, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
     }
