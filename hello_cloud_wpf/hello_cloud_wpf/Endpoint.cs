@@ -161,22 +161,20 @@ namespace HelloCloudWpf {
                     Id, OutgoingFiles.Select(file => file.Model!)),
                 _ => State == EndpointModel.State.Connected
                     && OutgoingFiles.Any()
-                    && OutgoingFiles.All(file => file.IsUploaded));
+                    /*&& OutgoingFiles.All(file => file.State == OutgoingFileModel.State.Uploaded)*/);
             disconnectCommand = new RelayCommand(
                 _ => MainViewModel.Instance.Disconnect(Id),
                 _ => State == EndpointModel.State.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
-                _ => OutgoingFiles.All(file => !file.IsUploading)
+                _ => OutgoingFiles.All(file => file.State != OutgoingFileModel.State.Uploading)
                     && State == EndpointModel.State.Connected);
             beginUploadCommand = new RelayCommand(
                 _ => BeginUpload(),
-                _ => OutgoingFiles.All(file => !file.IsUploading)
-                    && OutgoingFiles.Any(file => !file.IsUploaded));
+                _ => OutgoingFiles.Any(file => file.State == OutgoingFileModel.State.Picked));
             beginDownloadCommand = new RelayCommand(
                 _ => BeginDownload(),
-                _ => IncomingFiles.All(file => !file.IsDownloading)
-                    && IncomingFiles.Any(file => !file.IsDownloaded));
+                _ => IncomingFiles.Any(file => file.State == IncomingFileModel.State.Received));
         }
 
         public void AddIncomingFile(IncomingFileModel file) {
@@ -271,7 +269,7 @@ namespace HelloCloudWpf {
             long totalBytes = 0;
 
             List<IncomingFileViewModel> filesToDownload =
-                IncomingFiles.Where(file => !file.IsDownloaded && !file.IsDownloading).ToList();
+                IncomingFiles.Where(file => file.State == IncomingFileModel.State.Received).ToList();
 
             List<Task<string?>> downloadingTasks = new();
             foreach (IncomingFileViewModel file in filesToDownload) {
