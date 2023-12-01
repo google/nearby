@@ -30,9 +30,6 @@ namespace HelloCloudWpf {
 
         public static byte[] EncodeOutgoingFiles(IEnumerable<OutgoingFileModel> files) {
             string jsonString = JsonSerializer.Serialize(files);
-
-            Console.WriteLine(jsonString);
-
             return Encoding.UTF8.GetBytes(jsonString);
         }
     }

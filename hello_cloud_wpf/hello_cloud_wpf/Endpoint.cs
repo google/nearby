@@ -161,7 +161,7 @@ namespace HelloCloudWpf {
                     Id, OutgoingFiles.Select(file => file.Model!)),
                 _ => State == EndpointModel.State.Connected
                     && OutgoingFiles.Any()
-                    /*&& OutgoingFiles.All(file => file.State == OutgoingFileModel.State.Uploaded)*/);
+                    && OutgoingFiles.All(file => file.State == OutgoingFileModel.State.Uploaded));
             disconnectCommand = new RelayCommand(
                 _ => MainViewModel.Instance.Disconnect(Id),
                 _ => State == EndpointModel.State.Connected);
