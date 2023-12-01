@@ -63,7 +63,7 @@ namespace HelloCloudWpf {
                 index = LocalPath.LastIndexOf("\\");
             }
             if (index == -1) {
-                localPath = LocalPath;
+                localPath = App.DocumentsPath + LocalPath;
             } else {
                 localPath = App.DocumentsPath + LocalPath[(index + 1)..];
             }
