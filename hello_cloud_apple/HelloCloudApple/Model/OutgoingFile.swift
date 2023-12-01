@@ -40,7 +40,19 @@ import Foundation
   func upload() -> Void {
     // TODO: async this and actually upload
     state = .uploaded
-    remotePath = "1234567890ABCDEF"
+    remotePath = UUID().uuidString
+
+    guard let data else {
+      print("Data is not loaded. This should not happen.")
+      return;
+    }
+
+    if state != .uploaded {
+      print("File is not uploaded. This should not happen")
+      return
+    }
+
+    CloudStorage.shared.upload(data, as: remotePath!)
   }
 
   static func == (lhs: OutgoingFile, rhs: OutgoingFile) -> Bool { lhs.id == rhs.id }
