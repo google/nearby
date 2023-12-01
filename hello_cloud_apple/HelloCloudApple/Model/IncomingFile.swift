@@ -33,11 +33,29 @@ import Foundation
     self.localPath = localPath
     self.remotePath = remotePath
     self.fileSize = fileSize
+    self.state = state
   }
 
   func download () -> Void {
-    // TODO: async this and actually download
-    state = .downloaded
+    if state != .received {
+      print("The file is being downloading or has already been downloaded. Skipping.")
+      return
+    }
+
+    state = .downloading
+    // TODO: try to honor localPath
+    let index = remotePath.lastIndex(of: ".")
+    let ext = index == nil
+      ? ""
+      :String(remotePath[index!...])
+
+    let localPath = UUID().uuidString + ext
+    CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
+      size, error in
+      // TODO: calculate transfer speed and put into the info section
+      print(size)
+      self?.state = error == nil ? .downloaded : .received
+    }
   }
   
   static func == (lhs: IncomingFile, rhs: IncomingFile) -> Bool { lhs.id == rhs.id }

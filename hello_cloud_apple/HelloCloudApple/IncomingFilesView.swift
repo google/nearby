@@ -27,11 +27,11 @@ struct IncomingFilesView: View {
   }
   
   func download() -> Void  {
-    // TODO: async this
     for file in model.incomingFiles {
-      file.download()
-      
-      model.transfers.append(Transfer(direction: .download, localPath: file.localPath, remotePath: file.remotePath, result: .success))
+      if file.state == .received {
+        file.download()
+        model.transfers.append(Transfer(direction: .download, localPath: file.localPath, remotePath: file.remotePath, result: .success))
+      }
     }
   }
   

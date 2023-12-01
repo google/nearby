@@ -45,9 +45,11 @@ import UIKit
     didSet {
       if !isDiscovering {
         discoverer.stopDiscovery()
+        endpoints.removeAll(where: {$0.state == .discovered})
         return
       } else {
         discoverer.startDiscovery()
+        localEndpointId = advertiser.getLocalEndpointId()
       }
     }
   }
@@ -89,11 +91,11 @@ import UIKit
         OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
       ],
       incomingFiles: [
-        IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF",
+        IncomingFile(localPath: "IMG_0001.jpg", remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 4000000, state: .downloading),
-        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
+        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 5000000, state: .received),
-        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
+        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 5000000, state: .downloaded)
       ],
       transfers: [
@@ -207,73 +209,14 @@ extension Main: AdvertiserDelegate {
 }
 
 extension Main: ConnectionManagerDelegate {
-  // Payload buffer format:
-  // int64: file count
-  // Each file:
-  //  Local file path
-  //    int64: length
-  //    char[]: content, encoded in UTF8
-  //    padding. alignment: 8 bytes
-  // Remote file path, same format
-  // int64: file size, in bytes
-
-  func decodePayload(payload: Data) -> [IncomingFile] {
-    func readString(from payload: Data, at offset: inout Int) -> String? {
-      guard let len = try? payload.withUnsafeBytes<Int64>({
-        pointer in pointer.load(fromByteOffset: offset, as: Int64.self)
-      }) else {
-        return nil
-      }
-      offset += MemoryLayout.size(ofValue:len)
-
-      let range = offset..<(offset+Int(len))
-      offset += Int(len)
-      // If offset is not aligned, bump it up
-      offset = Int(ceil(Double((offset - 1) / 8) + 1)) * 8
-
-      let data = payload.subdata(in: range)
-      let string = String(data: data, encoding: .utf8)
-
-      return string
-    }
-
-    var result: [IncomingFile] = []
-    var offset = 0
-
-    guard let fileCount = try? payload.withUnsafeBytes<Int64>({
-      pointer in pointer.load(fromByteOffset:offset, as: UInt64.self)
-    }) else {
-      print("Invalid payload. Failed to parse file count.")
-      return []
-    }
-    offset += MemoryLayout.size(ofValue:fileCount)
-
-    for _ in 1...fileCount {
-      guard let path = readString(from: payload, at: &offset) else {
-        print("Invalid payload. Failed to parse local path.")
-        return []
-      }
-      guard let remotePath = readString(from: payload, at: &offset) else {
-        print("Invalid payload. Failed to parse remote path.")
-        return []
-      }
-      guard let fileSize = try? payload.withUnsafeBytes<Int64>({
-        pointer in pointer.load(fromByteOffset: offset, as: Int64.self)
-      }) else {
-        print("Invalid payload. Failed to parse file length.")
-        return []
-      }
-      offset += MemoryLayout.size(ofValue:fileSize);
-      result.append(IncomingFile(
-        localPath: path, remotePath: remotePath, fileSize: fileSize, state: .received))
-    }
-
-    return result
-  }
-
   func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointId: String, verificationHandler: @escaping (Bool) -> Void) {
     print("OnConnectionVerification token received: " + verificationCode + ". Accepting connection request.")
     verificationHandler(true)
+    guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
+      print("End point not found. It has probably stopped advertising or canceled the connection request.")
+      return
+    }
+    endpoint.state = .connected
   }
 
   func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointId: String) {

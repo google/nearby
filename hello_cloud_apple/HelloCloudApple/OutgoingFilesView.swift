@@ -27,23 +27,26 @@ struct OutgoingFilesView: View {
   
   func updateFileList() -> Void {
     model.outgoingFiles.removeAll()
-    
+
     for photo in photosPicked {
-      let type = photo.supportedContentTypes.first(where: {$0.preferredMIMEType == "image/jpeg"})
+      let type =
+        photo.supportedContentTypes.first(
+          where: {$0.preferredMIMEType == "image/jpeg"}) ??
+        photo.supportedContentTypes.first(
+          where: {$0.preferredMIMEType == "image/png"})
       let ext = type?.preferredFilenameExtension
       if ext == nil {
-        print("Picked photo does not support jpeg format, using raw format")
+        print("Picked photo does not support jpeg or png format, using raw format")
       }
       let path = UUID().uuidString + (ext == nil ? "" : "." + ext!)
       let file = OutgoingFile(localPath: path, fileSize: 0, state: .loading)
       model.outgoingFiles.append(file)
-      
+
       Task { [file, ext] in
         guard let data = try? await photo.loadTransferable(type: Data.self) else {
           return
         }
-
-        if ext != nil {
+        if ext == "jpeg" {
           guard let uiImage = UIImage(data: data) else {
             return
           }
@@ -52,19 +55,33 @@ struct OutgoingFilesView: View {
           }
           file.data  = jpegData
           file.fileSize = UInt64(jpegData.count)
-        } else {
+        }
+        else if ext == "png" {
+          guard let uiImage = UIImage(data: data) else {
+            return
+          }
+          guard let pngData = uiImage.pngData() else {
+            return
+          }
+          file.data  = pngData
+          file.fileSize = UInt64(pngData.count)
+        }
+        else {
           file.data = data
           file.fileSize = UInt64(data.count)
         }
+
         file.state = .loaded
       }
     }
   }
-  
+
   func upload() -> Void {
     for file in model.outgoingFiles {
-      file.upload()
-      model.transfers.append(Transfer(direction: .upload, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
+      if file.state == .loaded {
+        file.upload()
+        model.transfers.append(Transfer(direction: .upload, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
+      }
     }
   }
   
@@ -104,7 +121,7 @@ struct OutgoingFilesView: View {
         }.buttonStyle(.bordered).fixedSize()
         
         List {
-          ForEach(model.outgoingFiles) {file in
+          ForEach(model.outgoingFiles) { file in
             HStack {
               // TODO: replace placholder with thumbnail
               Image(systemName: "photo")

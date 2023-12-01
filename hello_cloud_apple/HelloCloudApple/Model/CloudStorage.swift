@@ -29,17 +29,45 @@ class CloudStorage {
     storageRef = storage.reference()
   }
 
-  func upload(_ data: Data, as remotePath: String, completion: ((_: Error?) -> Void)? = nil) {
+  func upload(_ data: Data, as remotePath: String, completion: ((_: Int, _: Error?) -> Void)? = nil) {
     let fileRef = storageRef.child(remotePath)
-    let uploadTask = fileRef.putData(data, metadata: nil) { (metadata, error) in
+    let _ = fileRef.putData(data, metadata: nil) { metadata, error in
       if error == nil {
-        print("Succeed uploading file " + remotePath)
+        print("Succeeded uploading file " + remotePath)
       } else {
         print("Failed uploading file " + remotePath +
               ". Error: " + (error?.localizedDescription ?? ""))
       }
-      let size = metadata?.size
-      completion?(error)
+      completion?((Int) (metadata?.size ?? 0), error)
+    }
+  }
+
+  func download(_ remotePath: String, as localPath: String, completion: ((_: Int, _: Error?) -> Void)? = nil) {
+    let fileRef = storageRef.child(remotePath)
+
+    guard let downloadsDirectory = try? FileManager.default.url(
+      for: .downloadsDirectory,
+      in: .allDomainsMask,
+      appropriateFor: nil,
+      create: true) else {
+      let error = NSError(domain: "Failed to obtain Downloads folder.", code: 1)
+      completion?(0, error)
+      return
+    }
+
+    let localUrl = downloadsDirectory.appendingPathComponent(localPath)
+    let _ = fileRef.write(toFile: localUrl) { [remotePath, localPath]
+      url, error in
+      var size: Int
+      if error == nil {
+        print("Succeeded downloading file " + remotePath + " to " + localPath)
+        size = (try? url?.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0
+      } else {
+        print("Failed downloading file " + remotePath + " to " + localPath +
+              ". Error: " + (error?.localizedDescription ?? ""))
+        size = 0
+      }
+      completion?(size, error)
     }
   }
 }

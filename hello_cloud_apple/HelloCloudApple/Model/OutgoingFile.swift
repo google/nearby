@@ -39,11 +39,15 @@ import Foundation
 
   func upload() -> Void {
     guard let data else {
-      print("Data is not loaded. This should not happen.")
+      print("Data is not loaded. Skipping uploading.")
       return;
     }
     if state != .loaded {
-      print("File is not loaded. This should not happen")
+      print("File is not loaded. Skipping uploading.")
+      return
+    }
+    if localPath.isEmpty {
+      print("Local path is empty. This shouldn't happen!!!")
       return
     }
     // Since we use UUIDs for localPath on ios/macos, there's no risk of conflict. Let's just
@@ -51,7 +55,8 @@ import Foundation
     remotePath = localPath
     state = .uploading
 
-    CloudStorage.shared.upload(data, as: remotePath!) { [weak self] error in
+    CloudStorage.shared.upload(data, as: remotePath!) { [weak self] 
+      size, error in
       self?.state = error == nil ? .uploaded : .loaded
     }
   }
