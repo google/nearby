@@ -149,7 +149,7 @@
                                         <Image Grid.Column="0" Grid.Row="0"
                                                HorizontalAlignment="Center"
                                                Height="24" Width="24"
-                                               Visibility="{Binding NotUploadedIconVisibility}"
+                                               Visibility="{Binding PickedIconVisibility}"
                                                Source="/Resources/Gray.png"/>
                                     </Grid>
                                 </DataTemplate>
@@ -194,7 +194,7 @@
                                         <Image Grid.Column="0" Grid.Row="0"
                                                HorizontalAlignment="Center"
                                                Height="24" Width="24"
-                                               Visibility="{Binding NotDownloadedIconVisibility}"
+                                               Visibility="{Binding ReceivedIconVisibility}"
                                                Source="/Resources/Gray.png"/>
                                     </Grid>
                                 </DataTemplate>

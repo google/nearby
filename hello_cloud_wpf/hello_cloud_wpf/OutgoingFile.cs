@@ -1,21 +1,39 @@
 ﻿using Google.Apis.Upload;
 using Google.Cloud.Storage.V1;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace HelloCloudWpf {
+
     public class OutgoingFileModel {
-        public readonly string localPath;
-        public readonly long fileSize;
-        public string? remotePath = null;
-        public bool isUploading = false;
+        public enum State {
+            Picked, Uploading, Uploaded
+        }
+
+        [JsonInclude] public readonly string localPath;
+        [JsonInclude] public readonly long fileSize;
+        [JsonInclude] public string remotePath = string.Empty;
+
+        public State state = State.Picked;
 
         public OutgoingFileModel(string localPath, long fileSize) {
             this.localPath = localPath;
             this.fileSize = fileSize;
+        }
+
+        public static byte[] EncodeOutgoingFiles(IEnumerable<OutgoingFileModel> files) {
+            string jsonString = JsonSerializer.Serialize(files);
+
+            Console.WriteLine(jsonString);
+
+            return Encoding.UTF8.GetBytes(jsonString);
         }
     }
 
@@ -28,30 +46,30 @@ namespace HelloCloudWpf {
         public string LocalPath => Model!.localPath;
         public string? RemotePath => Model!.remotePath;
         public long FileSize => Model!.fileSize;
-        public bool IsUploaded => !string.IsNullOrEmpty(RemotePath);
-        public bool IsUploading => Model!.isUploading;
 
         public Visibility UploadedIconVisibility {
-            get => IsUploaded ? Visibility.Visible : Visibility.Hidden;
+            get => Model!.state == OutgoingFileModel.State.Uploaded ? Visibility.Visible : Visibility.Hidden;
         }
         public Visibility UploadingIconVisibility {
-            get => IsUploading ? Visibility.Visible : Visibility.Hidden;
+            get => Model!.state == OutgoingFileModel.State.Uploading ? Visibility.Visible : Visibility.Hidden;
         }
-        public Visibility NotUploadedIconVisibility {
-            get => IsUploaded || IsUploading ? Visibility.Hidden : Visibility.Visible;
+        public Visibility PickedIconVisibility {
+            get => Model!.state == OutgoingFileModel.State.Picked ? Visibility.Visible : Visibility.Hidden;
         }
 
         public OutgoingFileModel? Model { get; set; }
+
+        public OutgoingFileModel.State State => Model!.state;
 
         public OutgoingFileViewModel() { }
 
         public async Task<string?> Upload(StorageClient client) {
             MainViewModel.Instance.Log("Beginning uploading " + LocalPath);
 
-            Model!.isUploading = true;
-            PropertyChanged?.Invoke(this, new (nameof(UploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new (nameof(NotUploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new (nameof(UploadingIconVisibility)));
+            Model!.state = OutgoingFileModel.State.Uploading;
+            PropertyChanged?.Invoke(this, new(nameof(UploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(PickedIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(UploadingIconVisibility)));
             EndpointViewModel.UpdateCanExecute();
 
             FileStream stream = File.Open(LocalPath, FileMode.Open);
@@ -64,18 +82,19 @@ namespace HelloCloudWpf {
 
             if (result != null) {
                 MainViewModel.Instance.Log("Finished uploading " + LocalPath + " to " + RemotePath);
+                Model!.state = OutgoingFileModel.State.Uploaded;
             } else {
                 MainViewModel.Instance.Log("Finished uploading " + LocalPath + ", failed.");
+                Model!.state = OutgoingFileModel.State.Picked;
             }
 
-            Model!.isUploading = false;
-            PropertyChanged?.Invoke(this, new (nameof(UploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new (nameof(NotUploadedIconVisibility)));
-            PropertyChanged?.Invoke(this, new (nameof(UploadingIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(UploadedIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(PickedIconVisibility)));
+            PropertyChanged?.Invoke(this, new(nameof(UploadingIconVisibility)));
 
-            PropertyChanged?.Invoke(this, new (nameof(RemotePath)));
+            PropertyChanged?.Invoke(this, new(nameof(RemotePath)));
             EndpointViewModel.UpdateCanExecute();
-            return result == null? null : fileName;
+            return result == null ? null : fileName;
         }
 
         public void Report(IUploadProgress value) {

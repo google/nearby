@@ -338,9 +338,8 @@ namespace HelloCloudWpf {
         }
 
         public void SendFiles(string endpointId, IEnumerable<OutgoingFileModel> files) {
-            (int fileCount, byte[] payload) = EncodePayload(files);
-
-            Log($"Sending {endpointId} {fileCount} file(s), {payload.Length} bytes in total ...");
+            byte[] payload = OutgoingFileModel.EncodeOutgoingFiles(files);
+            Log($"Sending {endpointId} file(s), {payload.Length} bytes in total ...");
             SetBusy(true);
             SetEndpointState(endpointId, EndpointModel.State.Sending);
             OperationResult result = NearbyConnections.SendPayloadBytes(core, endpointId, payload.Length, payload);
@@ -596,7 +595,7 @@ namespace HelloCloudWpf {
 
             if (endpoint.State != EndpointModel.State.Sending) {
                 endpoint.State = EndpointModel.State.Receiving;
-                IEnumerable<IncomingFileModel>? files = DecodePayload(payloadContent);
+                IEnumerable<IncomingFileModel>? files = IncomingFileModel.DecodeIncomingFiles(payloadContent);
                 if (files == null) {
                     Log("Invalid payload:");
                     Log("  endpoint_id: " + endpointId);
@@ -660,85 +659,6 @@ namespace HelloCloudWpf {
                     endpoint.AddTransfer(transfer);
                 }
             }
-        }
-
-        private static (int, byte[]) EncodePayload(IEnumerable<OutgoingFileModel> files) {
-            // Buffer format:
-            // int64: file count
-            // Each file:
-            //   int64: file name length including the \x0 at the end, not including this int
-            //   file name string content, encoded in UTF8
-            //   padding to align at a multiple of 8
-            //   int64: url length, including the \x0 at the end, not including this int
-            //   url content, encoded in UTF8
-            //   padding
-            //   int64: file size, in bytes
-
-            static void WriteStringToStream(MemoryStream stream, string s) {
-                int len = s.Length;
-                int padding = (int)((len - 1) / 8 + 1) * 8 - len;
-
-                byte[] buffer = BitConverter.GetBytes((Int64)len);
-                stream.Write(buffer, 0, buffer.Length);
-
-                buffer = Encoding.UTF8.GetBytes(s);
-                stream.Write(buffer, 0, buffer.Length);
-                for (int i = 0; i < padding; i++) {
-                    stream.WriteByte(0);
-                }
-            }
-
-            MemoryStream stream = new();
-            byte[] buffer;
-            int fileCount = 0;
-
-            // File count placeholder, since we haven't counted yet
-            buffer = BitConverter.GetBytes((Int64)fileCount);
-            stream.Write(buffer, 0, buffer.Length);
-
-            foreach (OutgoingFileModel file in files) {
-                WriteStringToStream(stream, file.localPath);
-                WriteStringToStream(stream, file.remotePath!);
-                buffer = BitConverter.GetBytes(file.fileSize);
-                stream.Write(buffer);
-                fileCount++;
-            }
-
-            // Now write the actual file count
-            stream.Position = 0;
-            buffer = BitConverter.GetBytes((Int64)fileCount);
-            stream.Write(buffer, 0, buffer.Length);
-            return (fileCount, stream.ToArray());
-        }
-
-        private static IList<IncomingFileModel>? DecodePayload(byte[] payload) {
-            static string ReadString(byte[] payload, ref int offset) {
-                int len = (int)BitConverter.ToInt64(payload, offset);
-                offset += sizeof(Int64);
-                string s = Encoding.UTF8.GetString(payload, offset, len);
-                // Align to multiple of 8
-                offset += (int)((len - 1) / 8 + 1) * 8;
-                return s;
-            }
-
-            List<IncomingFileModel> files = new();
-
-            try {
-                int offset = 0;
-                int fileCount = (int)BitConverter.ToInt64(payload, 0);
-                offset += sizeof(Int64);
-
-                for (int i = 0; i < fileCount; i++) {
-                    string path = ReadString(payload, ref offset);
-                    string remotePath = ReadString(payload, ref offset);
-                    long fileSize = BitConverter.ToInt64(payload, offset);
-                    offset += sizeof(long);
-                    files.Add(new(path, remotePath, fileSize));
-                }
-
-                return files;
-            } catch (Exception) { return null; }
-
         }
         #endregion
     }
