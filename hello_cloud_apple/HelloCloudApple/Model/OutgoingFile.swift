@@ -38,21 +38,22 @@ import Foundation
   }
 
   func upload() -> Void {
-    // TODO: async this and actually upload
-    state = .uploaded
-    remotePath = UUID().uuidString
-
     guard let data else {
       print("Data is not loaded. This should not happen.")
       return;
     }
-
-    if state != .uploaded {
-      print("File is not uploaded. This should not happen")
+    if state != .loaded {
+      print("File is not loaded. This should not happen")
       return
     }
+    // Since we use UUIDs for localPath on ios/macos, there's no risk of conflict. Let's just
+    // use the same path for the remotePath
+    remotePath = localPath
+    state = .uploading
 
-    CloudStorage.shared.upload(data, as: remotePath!)
+    CloudStorage.shared.upload(data, as: remotePath!) { [weak self] error in
+      self?.state = error == nil ? .uploaded : .loaded
+    }
   }
 
   static func == (lhs: OutgoingFile, rhs: OutgoingFile) -> Bool { lhs.id == rhs.id }

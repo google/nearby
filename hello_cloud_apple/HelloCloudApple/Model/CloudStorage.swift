@@ -29,23 +29,17 @@ class CloudStorage {
     storageRef = storage.reference()
   }
 
-  func upload(_ data: Data, as remotePath: String) {
-
+  func upload(_ data: Data, as remotePath: String, completion: ((_: Error?) -> Void)? = nil) {
     let fileRef = storageRef.child(remotePath)
     let uploadTask = fileRef.putData(data, metadata: nil) { (metadata, error) in
-      guard let metadata = metadata else {
-        print("Failed to upload file. " + (error?.localizedDescription ?? ""))
-        return
+      if error == nil {
+        print("Succeed uploading file " + remotePath)
+      } else {
+        print("Failed uploading file " + remotePath +
+              ". Error: " + (error?.localizedDescription ?? ""))
       }
-      print("Succeed uploading file " + remotePath)
-      let size = metadata.size
-      fileRef.downloadURL { (url, error) in
-        guard let downloadURL = url else {
-          print("Failed to retrieve the url.")
-          return
-        }
-        print("Url of the upload file: " + (url?.absoluteString ?? ""))
-      }
+      let size = metadata?.size
+      completion?(error)
     }
   }
 }
