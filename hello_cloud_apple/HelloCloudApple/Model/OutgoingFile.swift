@@ -54,7 +54,14 @@ import Foundation
       print("Local path is empty. This shouldn't happen!!!")
       return
     }
+    
     remotePath = UUID().uuidString
+    if mimeType == "image/jpeg" {
+      remotePath! += ".jpeg"
+    } else if mimeType == "image/png" {
+      remotePath! += ".png"
+    }
+
     state = .uploading
 
     CloudStorage.shared.upload(data, as: remotePath!) { [weak self] 
