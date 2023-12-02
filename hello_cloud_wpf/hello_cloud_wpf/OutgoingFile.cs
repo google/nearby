@@ -17,14 +17,16 @@ namespace HelloCloudWpf {
             Picked, Uploading, Uploaded
         }
 
-        [JsonInclude] public readonly string localPath;
+        [JsonInclude] public readonly string mimeType;
+        [JsonInclude] public readonly string fileName;
         [JsonInclude] public readonly long fileSize;
         [JsonInclude] public string remotePath = string.Empty;
 
         public State state = State.Picked;
 
-        public OutgoingFileModel(string localPath, long fileSize) {
-            this.localPath = localPath;
+        public OutgoingFileModel(string mimeType, string fileName, long fileSize) {
+            this.mimeType = mimeType;
+            this.fileName = fileName;
             this.fileSize = fileSize;
         }
 
@@ -40,7 +42,7 @@ namespace HelloCloudWpf {
         IProgress<IUploadProgress> {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string LocalPath => Model!.localPath;
+        public string FileName => Model!.fileName;
         public string? RemotePath => Model!.remotePath;
         public long FileSize => Model!.fileSize;
 
@@ -58,10 +60,12 @@ namespace HelloCloudWpf {
 
         public OutgoingFileModel.State State => Model!.state;
 
+        public string? LocalFilePath { get; set; }
+
         public OutgoingFileViewModel() { }
 
         public async Task<string?> Upload(StorageClient client) {
-            MainViewModel.Instance.Log("Beginning uploading " + LocalPath);
+            MainViewModel.Instance.Log("Beginning uploading " + LocalFilePath);
 
             Model!.state = OutgoingFileModel.State.Uploading;
             PropertyChanged?.Invoke(this, new(nameof(UploadedIconVisibility)));
@@ -69,19 +73,20 @@ namespace HelloCloudWpf {
             PropertyChanged?.Invoke(this, new(nameof(UploadingIconVisibility)));
             EndpointViewModel.UpdateCanExecute();
 
-            FileStream stream = File.Open(LocalPath, FileMode.Open);
-            string fileName = Guid.NewGuid().ToString();
-            var result = await client.UploadObjectAsync(App.GcsBucketName, fileName, null, stream, progress: this);
+            FileStream stream = File.Open(LocalFilePath!, FileMode.Open);
+            string remotePath = Guid.NewGuid().ToString().ToUpper() + Path.GetExtension(LocalFilePath!);
+
+            var result = await client.UploadObjectAsync(App.GcsBucketName, remotePath, null, stream, progress: this);
             stream.Close();
             if (result != null) {
-                Model!.remotePath = fileName;
+                Model!.remotePath = remotePath;
             }
 
             if (result != null) {
-                MainViewModel.Instance.Log("Finished uploading " + LocalPath + " to " + RemotePath);
+                MainViewModel.Instance.Log("Finished uploading " + LocalFilePath + " to " + RemotePath);
                 Model!.state = OutgoingFileModel.State.Uploaded;
             } else {
-                MainViewModel.Instance.Log("Finished uploading " + LocalPath + ", failed.");
+                MainViewModel.Instance.Log("Finished uploading " + LocalFilePath + ", failed.");
                 Model!.state = OutgoingFileModel.State.Picked;
             }
 
@@ -91,7 +96,7 @@ namespace HelloCloudWpf {
 
             PropertyChanged?.Invoke(this, new(nameof(RemotePath)));
             EndpointViewModel.UpdateCanExecute();
-            return result == null ? null : fileName;
+            return result == null ? null : remotePath;
         }
 
         public void Report(IUploadProgress value) {

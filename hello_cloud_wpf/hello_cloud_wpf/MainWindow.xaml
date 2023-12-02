@@ -155,9 +155,9 @@
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Local Path"
+                        <GridViewColumn Header="File Name"
                                         Width="250"
-                                        DisplayMemberBinding="{Binding LocalPath}"/>
+                                        DisplayMemberBinding="{Binding FileName}"/>
                         <GridViewColumn Header="Remote Path"
                                         Width="250"
                                         DisplayMemberBinding="{Binding RemotePath}"/>
@@ -200,9 +200,9 @@
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Local Path"
+                        <GridViewColumn Header="File Name"
                             Width="250"
-                            DisplayMemberBinding="{Binding LocalPath}"/>
+                            DisplayMemberBinding="{Binding FileName}"/>
                         <GridViewColumn Header="Remote Path"
                             Width="250"
                             DisplayMemberBinding="{Binding RemotePath}"/>

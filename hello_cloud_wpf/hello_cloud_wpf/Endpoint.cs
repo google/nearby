@@ -210,11 +210,23 @@ namespace HelloCloudWpf {
             bool? result = openFileDialog.ShowDialog();
             if (result == true) {
                 OutgoingFiles.Clear();
-                foreach (string fileName in openFileDialog.FileNames) {
-                    FileInfo info = new FileInfo(fileName);
+                foreach (string fullPath in openFileDialog.FileNames) {
+                    // Get a file name without folder name, as a suggested file name for the receiver
+                    string fileName = Path.GetFileName(fullPath);
+
+                    string mimeType = string.Empty;
+                    string extension = Path.GetExtension(fullPath);
+                    if (extension.ToLower() is ".jpg" or "jpeg") {
+                        mimeType = "image/jpeg";
+                    } else if (extension.ToLower() == ".png") {
+                        mimeType = "image/png";
+                    }
+
+                    FileInfo info = new(fullPath);
                     OutgoingFiles.Add(
                         new OutgoingFileViewModel() {
-                            Model = new OutgoingFileModel(fileName, info.Length)
+                            Model = new OutgoingFileModel(mimeType, fileName, info.Length),
+                            LocalFilePath = fullPath
                         });
                 }
             }
@@ -240,7 +252,7 @@ namespace HelloCloudWpf {
 
             foreach (var (task, file) in uploadingTasks.Zip(OutgoingFiles)) {
                 MainViewModel.Instance.Log("Uploading completed.");
-                MainViewModel.Instance.Log("  local path: " + file.LocalPath);
+                MainViewModel.Instance.Log("  local path: " + file.LocalFilePath);
                 MainViewModel.Instance.Log("  remote path: " + task.Result);
             }
 
@@ -250,7 +262,6 @@ namespace HelloCloudWpf {
             foreach (OutgoingFileViewModel file in OutgoingFiles) {
                 TransferModel transfer = new(
                     direction: TransferModel.Direction.Upload,
-                    fileName: file.LocalPath,
                     url: file.RemotePath!,
                     result: TransferModel.Result.Success);
                 AddTransfer(transfer);
@@ -290,7 +301,6 @@ namespace HelloCloudWpf {
             foreach (IncomingFileViewModel file in filesToDownload) {
                 TransferModel transfer = new(
                     direction: TransferModel.Direction.Download,
-                    fileName: file.LocalPath,
                     url: file.RemotePath,
                     result: TransferModel.Result.Success);
                 AddTransfer(transfer);
