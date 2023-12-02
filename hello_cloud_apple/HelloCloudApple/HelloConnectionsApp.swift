@@ -17,8 +17,10 @@
 import SwiftUI
 import FirebaseCore
 
+
 //https://console.firebase.google.com/u/1/project/hello-cloud-5b73c/settings/general/ios:com.google.deling.hello-cloud
 
+#if os(iOS) || os(watchOS) || os(tvOS)
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -39,3 +41,27 @@ struct HelloConnectionsApp: App {
     }
   }
 }
+
+#elseif os(macOS)
+import AppKit
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+  func application(_ notification: Notification) {
+    FirebaseApp.configure()
+  }
+}
+
+@main
+struct HelloConnectionsApp: App {
+  // register app delegate for Firebase setup
+  @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
+  @StateObject private var model = Main.createDebugModel()
+
+  var body: some Scene {
+    WindowGroup {
+      MainView().environment(model)
+    }
+  }
+}
+
+#endif

@@ -17,6 +17,33 @@
 import SwiftUI
 import PhotosUI
 
+#if os(macOS)
+// WIP: this is not working yet
+typealias UIImage = NSImage
+
+extension NSImage {
+  var cgImage: CGImage? {
+    var proposedRect = CGRect(origin: .zero, size: size)
+
+    return cgImage(forProposedRect: &proposedRect,
+                   context: nil,
+                   hints: nil)
+  }
+
+  func jpegData(compressionQuality: CGFloat) -> Data? {
+    let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil)!
+    let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
+    return bitmapRep.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [:])!
+  }
+
+  func pngData() -> Data? {
+    let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil)!
+    let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
+    return bitmapRep.representation(using: NSBitmapImageRep.FileType.png, properties: [:])!
+  }
+}
+#endif
+
 struct OutgoingFilesView: View {
   let model: Endpoint
 

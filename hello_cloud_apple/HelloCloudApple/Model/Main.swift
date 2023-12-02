@@ -16,7 +16,9 @@
 
 import Foundation
 import NearbyConnections
+#if os(iOS) || os(watchOS) || os(tvOS)
 import UIKit
+#endif
 
 @Observable class Main: ObservableObject {
   static let shared = createDebugModel()
