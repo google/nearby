@@ -26,7 +26,7 @@ import Foundation
   // A suggested name for the receiver. It does not serve any other purposes. On iOS, we are only
   // picking images which don't have names. So we'll just use a UUID. On Windows, we use
   // the local file name.
-  let fileName: String = UUID().uuidString
+  let fileName: String
   let mimeType: String
   var state: State
 
@@ -39,6 +39,14 @@ import Foundation
     self.fileSize = fileSize
     self.state = state
     self.remotePath = remotePath
+
+    if mimeType == "image/jpeg" {
+      fileName = UUID().uuidString + ".jpeg"
+    } else if mimeType == "image/png" {
+      fileName = UUID().uuidString + ".png"
+    } else {
+      fileName = UUID().uuidString
+    }
   }
 
   func upload() -> Void {
