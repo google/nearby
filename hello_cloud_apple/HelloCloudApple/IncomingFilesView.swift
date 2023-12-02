@@ -30,13 +30,12 @@ struct IncomingFilesView: View {
     for file in model.incomingFiles {
       if file.state == .received {
         file.download()
-        model.transfers.append(Transfer(direction: .download, localPath: file.localPath, remotePath: file.remotePath, result: .success))
+        model.transfers.append(Transfer(direction: .download, remotePath: file.remotePath, result: .success))
       }
     }
   }
   
   var body: some View {
-    // TODO: make the button float at the button; add a vertical scrollbar
     Form {
       Section {
         Button(action: download) {
@@ -49,7 +48,7 @@ struct IncomingFilesView: View {
 
         ForEach(model.incomingFiles) {file in
           HStack {
-            Label(file.localPath, systemImage: "doc")
+            Label(file.fileName, systemImage: "doc")
             Spacer()
             switch file.state {
             case .downloaded:
@@ -77,11 +76,11 @@ struct IncomingFilesView: View {
       name: "Debug droid",
       isIncoming: false, state: .discovered,
       incomingFiles: [
-        IncomingFile(localPath: "IMG_0001.jpg", remotePath: "1234567890ABCDEF", 
+        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0001.jpg", remotePath: "1234567890ABCDEF",
                      fileSize: 4000000, state: .downloading),
-        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
+        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
                      fileSize: 5000000, state: .received),
-        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
+        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
                      fileSize: 5000000, state: .downloaded)
       ]
     )

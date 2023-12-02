@@ -23,15 +23,19 @@ import Foundation
 
   let id: UUID = UUID()
   
-  let localPath: String
+  // A suggested name for the receiver. It does not serve any other purposes. On iOS, we are only
+  // picking images which don't have names. So we'll just use a UUID. On Windows, we use
+  // the local file name.
+  let fileName: String = UUID().uuidString
+  let mimeType: String
   var state: State
 
   @ObservationIgnored var fileSize: UInt64
   @ObservationIgnored var data: Data?
   @ObservationIgnored var remotePath: String?
 
-  init(localPath: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
-    self.localPath = localPath
+  init(mimeType: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
+    self.mimeType = mimeType
     self.fileSize = fileSize
     self.state = state
     self.remotePath = remotePath
@@ -46,13 +50,11 @@ import Foundation
       print("File is not loaded. Skipping uploading.")
       return
     }
-    if localPath.isEmpty {
+    if fileName.isEmpty {
       print("Local path is empty. This shouldn't happen!!!")
       return
     }
-    // Since we use UUIDs for localPath on ios/macos, there's no risk of conflict. Let's just
-    // use the same path for the remotePath
-    remotePath = localPath
+    remotePath = UUID().uuidString
     state = .uploading
 
     CloudStorage.shared.upload(data, as: remotePath!) { [weak self] 
@@ -65,7 +67,7 @@ import Foundation
   func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case localPath, remotePath, fileSize
+    case mimeType, fileName, remotePath, fileSize
   }
 
   static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> Data? {

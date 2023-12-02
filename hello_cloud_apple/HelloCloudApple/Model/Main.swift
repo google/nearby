@@ -84,42 +84,41 @@ import UIKit
       // medium: Endpoint.Medium.bluetooth,
       isIncoming: false, state: .discovered,
       outgoingFiles: [
-        //        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
-        //        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
-        OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
-        OutgoingFile(localPath: "IMG_0004.jpg", fileSize: 4000000, state: .loaded),
-        OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loading),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploading),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loaded),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .picked)
       ],
       incomingFiles: [
-        IncomingFile(localPath: "IMG_0001.jpg", remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
+        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0001.jpg", 
+                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 4000000, state: .downloading),
-        IncomingFile(localPath: "IMG_0002.jpg", remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
+        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0002.jpg", 
+                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 5000000, state: .received),
-        IncomingFile(localPath: "IMG_0003.jpg", remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
+        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0003.jpg", 
+                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 5000000, state: .downloaded)
       ],
       transfers: [
         Transfer(
           direction: Transfer.Direction.upload,
-          localPath: "IMG_0001.jpg",
           remotePath: "1234567890ABCDEF",
           result: .success
         ),
         Transfer(
           direction: Transfer.Direction.download,
-          localPath: "IMG_0002.jpg",
           remotePath: "1234567890ABCDEF",
           result: .failure
         ),
         Transfer(
           direction: Transfer.Direction.send,
-          localPath: "IMG_0003.jpg",
           remotePath: "1234567890ABCDEF",
           result: .success
         ),
         Transfer(
           direction: Transfer.Direction.receive,
-          localPath: "IMG_0004.jpg",
           remotePath: "1234567890ABCDEF",
           result: .cancaled
         )
@@ -234,7 +233,7 @@ extension Main: ConnectionManagerDelegate {
       
       for file in files {
         endpoint.incomingFiles.append(file)
-        let transfer = Transfer(direction: .receive, localPath: file.localPath, remotePath: file.remotePath, result: .success)
+        let transfer = Transfer(direction: .receive, remotePath: file.remotePath, result: .success)
         endpoint.transfers.append(transfer)
       }
     }

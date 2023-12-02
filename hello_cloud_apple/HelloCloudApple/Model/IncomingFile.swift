@@ -23,14 +23,20 @@ import Foundation
 
   let id: UUID = UUID()
   
-  let localPath: String
+  let mimeType: String
+  // Suggested file name set by the sender. We don't need to honor it.
+  let fileName: String
+  // Actual url of the local file, once it's downloaded
+  var localUrl: URL? = nil
   @ObservationIgnored let remotePath: String
   @ObservationIgnored let fileSize: Int64
 
   var state: State = .received
 
-  init(localPath: String, remotePath: String, fileSize: Int64, state: State) {
-    self.localPath = localPath
+  init(mimeType: String, fileName: String, localUrl: URL? = nil, remotePath: String, fileSize: Int64, state: State = .received) {
+    self.mimeType = mimeType
+    self.fileName = fileName
+    self.localUrl = localUrl
     self.remotePath = remotePath
     self.fileSize = fileSize
     self.state = state
@@ -43,7 +49,6 @@ import Foundation
     }
 
     state = .downloading
-    // TODO: try to honor localPath
     let index = remotePath.lastIndex(of: ".")
     let ext = index == nil
       ? ""
@@ -51,10 +56,11 @@ import Foundation
 
     let localPath = UUID().uuidString + ext
     CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
-      size, error in
+      url, error in
       // TODO: calculate transfer speed and put into the info section
-      print(size)
+      // let size = (try? url?.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0
       self?.state = error == nil ? .downloaded : .received
+      self?.localUrl = url
     }
   }
   
@@ -62,7 +68,7 @@ import Foundation
   func hash(into hasher: inout Hasher){ hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case localPath, remotePath, fileSize
+    case mimeType, fileName, remotePath, fileSize
   }
 
   static func decodeIncomingFiles(fromJson json: Data) -> [IncomingFile]? {

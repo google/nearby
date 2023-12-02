@@ -28,7 +28,6 @@ struct Transfer: Identifiable, Hashable {
   let id: UUID = UUID()
 
   let direction: Direction
-  let localPath: String
   let remotePath: String
   let result: Result
 }

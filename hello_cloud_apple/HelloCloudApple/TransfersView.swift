@@ -27,7 +27,7 @@ struct TransfersView: View {
       Section {
         ForEach(model.transfers) {transfer in
           HStack {
-            Label(transfer.localPath, systemImage: String(describing: transfer.direction))
+            Label(transfer.remotePath, systemImage: String(describing: transfer.direction))
             Spacer()
             let (name, color) = transfer.result.IconNameAndColor;
             Image(systemName: name).foregroundColor(color)
@@ -71,26 +71,22 @@ extension Transfer.Result {
       isIncoming: false, state: .discovered,
       transfers: [
         Transfer(
-          direction: Transfer.Direction.upload, 
-          localPath: "IMG_0001.jpg",
+          direction: Transfer.Direction.upload,
           remotePath: "1234567890ABCDEF",
           result: .success
         ),
         Transfer(
-          direction: Transfer.Direction.download, 
-          localPath: "IMG_0002.jpg",
+          direction: Transfer.Direction.download,
           remotePath: "XYZ",
           result: .failure
         ),
         Transfer(
           direction: Transfer.Direction.send,
-          localPath: "IMG_0003.jpg",
           remotePath: "XYZ",
           result: .success
         ),
         Transfer(
           direction: Transfer.Direction.receive,
-          localPath: "IMG_0004.jpg",
           remotePath: "XYZ",
           result: .cancaled
         )

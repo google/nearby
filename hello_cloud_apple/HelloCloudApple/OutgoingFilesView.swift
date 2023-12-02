@@ -34,19 +34,18 @@ struct OutgoingFilesView: View {
           where: {$0.preferredMIMEType == "image/jpeg"}) ??
         photo.supportedContentTypes.first(
           where: {$0.preferredMIMEType == "image/png"})
-      let ext = type?.preferredFilenameExtension
-      if ext == nil {
-        print("Picked photo does not support jpeg or png format, using raw format")
-      }
-      let path = UUID().uuidString + (ext == nil ? "" : "." + ext!)
-      let file = OutgoingFile(localPath: path, fileSize: 0, state: .loading)
+
+      let file = OutgoingFile(
+        mimeType: type?.preferredMIMEType ?? "",
+        fileSize: 0, // We don't know the file size yet. Will fill it once loaded.
+        state: .loading)
       model.outgoingFiles.append(file)
 
-      Task { [file, ext] in
+      Task { [file] in
         guard let data = try? await photo.loadTransferable(type: Data.self) else {
           return
         }
-        if ext == "jpeg" {
+        if file.mimeType == "image/jpeg" {
           guard let uiImage = UIImage(data: data) else {
             return
           }
@@ -56,7 +55,7 @@ struct OutgoingFilesView: View {
           file.data  = jpegData
           file.fileSize = UInt64(jpegData.count)
         }
-        else if ext == "png" {
+        else if file.mimeType == "image/png" {
           guard let uiImage = UIImage(data: data) else {
             return
           }
@@ -80,7 +79,7 @@ struct OutgoingFilesView: View {
     for file in model.outgoingFiles {
       if file.state == .loaded {
         file.upload()
-        model.transfers.append(Transfer(direction: .upload, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
+        model.transfers.append(Transfer(direction: .upload, remotePath: file.remotePath!, result: .success))
       }
     }
   }
@@ -94,7 +93,7 @@ struct OutgoingFilesView: View {
     Main.shared.sendFiles(payload, to: model.id)
 
     for file in model.outgoingFiles {
-      model.transfers.append(Transfer(direction: .send, localPath: file.localPath, remotePath: file.remotePath!, result: .success))
+      model.transfers.append(Transfer(direction: .send, remotePath: file.remotePath!, result: .success))
     }
   }
   
@@ -125,7 +124,7 @@ struct OutgoingFilesView: View {
             HStack {
               // TODO: replace placholder with thumbnail
               Image(systemName: "photo")
-              Text(file.localPath)
+              Text(file.fileName)
               Spacer()
               switch file.state {
               case .picked:
@@ -158,11 +157,11 @@ struct OutgoingFilesView: View {
       name: "Debug droid",
       isIncoming: false, state: .discovered,
       outgoingFiles: [
-        OutgoingFile(localPath: "IMG_0001.jpg", fileSize: 4000000, state: .loading),
-        OutgoingFile(localPath: "IMG_0002.jpg", fileSize: 5000000, state: .uploading),
-        OutgoingFile(localPath: "IMG_0003.jpg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
-        OutgoingFile(localPath: "IMG_0004.jpg", fileSize: 4000000, state: .loaded),
-        OutgoingFile(localPath: "IMG_0005.jpg", fileSize: 4000000, state: .picked)
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loading),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploading),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loaded),
+        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .picked)
       ]
     )
   ).environment(Main.createDebugModel())
