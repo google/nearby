@@ -137,10 +137,10 @@ struct DiscoveryListener {
   // endpoint_info - The info of the remote endpoint representd by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
   absl::AnyInvocable<void(const std::string& endpoint_id,
-                          const ByteArray& endpoint_info,
+                          const ByteArray& endpoint_info, Medium medium,
                           const std::string& service_id)>
-      endpoint_found_cb =
-          [](const std::string&, const ByteArray&, const std::string&) {};
+      endpoint_found_cb = [](const std::string&, const ByteArray&, Medium,
+                             const std::string&) {};
 
   // Called when a remote endpoint is no longer discoverable; only called for
   // endpoints that previously had been passed to {@link
@@ -168,8 +168,9 @@ struct PayloadListener {
   // endpoint_id - The identifier for the remote endpoint that sent the
   //               payload.
   // payload     - The Payload object received.
-  absl::AnyInvocable<void(absl::string_view endpoint_id, Payload payload) const>
-      payload_cb = [](absl::string_view, Payload) {};
+  absl::AnyInvocable<void(const std::string& endpoint_id, Payload payload)
+                         const>
+      payload_cb = [](const std::string&, Payload) {};
 
   // Called with progress information about an active Payload transfer, either
   // incoming or outgoing.
@@ -178,10 +179,10 @@ struct PayloadListener {
   //               receiving this payload.
   // info -  The PayloadProgressInfo structure describing the status of
   //         the transfer.
-  absl::AnyInvocable<void(absl::string_view endpoint_id,
+  absl::AnyInvocable<void(const std::string& endpoint_id,
                           const PayloadProgressInfo& info)>
       payload_progress_cb =
-          [](absl::string_view, const PayloadProgressInfo&) {};
+          [](const std::string&, const PayloadProgressInfo&) {};
 };
 
 }  // namespace connections

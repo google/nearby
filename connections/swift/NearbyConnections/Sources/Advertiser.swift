@@ -34,8 +34,13 @@ public class Advertiser {
   /// Initializes the discoverer object.
   ///
   /// - Parameter connectionManager: The connection manager for this instance.
-  public init(connectionManager: ConnectionManager) {
+  public init(connectionManager: ConnectionManager, delegate: AdvertiserDelegate) {
     self.connectionManager = connectionManager
+    self.delegate = delegate
+  }
+
+  public func getLocalEndpointId() -> String {
+    GNCCoreAdapter.shared.localEndpointID;
   }
 
   /// Starts advertising the local endpoint.

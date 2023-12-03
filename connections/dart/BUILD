@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
-
 package(default_visibility = ["//location/nearby:__subpackages__"])
 
 licenses(["notice"])
 
-# Build with --config=lexan
-lexan.cc_windows_dll(
+cc_binary(
     name = "nearby_connections_dart",
     srcs = [
         "core_adapter_dart.cc",
-    ],
-    hdrs = [
         "core_adapter_dart.h",
     ],
+    linkshared = 1,
     tags = ["windows-dll"],
     deps = [
         "//connections:core",
@@ -34,7 +30,7 @@ lexan.cc_windows_dll(
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation/windows",
-        "//third_party/dart_lang/v2:dart_api_dl",
+        "@dart_lang//:dart_api_dl",
     ],
 )
 

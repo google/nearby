@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "connections/core.h"
+#include "connections/medium_selector.h"
 
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCAdvertisingOptions+CppConversions.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCConnectionOptions+CppConversions.h"
@@ -46,6 +47,7 @@ using ::nearby::connections::ConnectionResponseInfo;
 using ::nearby::connections::Core;
 using ::nearby::connections::DiscoveryListener;
 using ::nearby::connections::DiscoveryOptions;
+using ::nearby::connections::Medium;
 using ::nearby::connections::Payload;
 using ::nearby::connections::PayloadListener;
 using ::nearby::connections::PayloadProgressInfo;
@@ -165,9 +167,11 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
 
   ConnectionRequestInfo connection_request_info;
   connection_request_info.endpoint_info =
-      ByteArray((const char *)endpointInfo.bytes, endpointInfo.length);
+    ByteArray((const char *)endpointInfo.bytes, endpointInfo.length);
   connection_request_info.listener = std::move(listener);
 
+  // TODO: I tried to convert this into sync, like I did with C#. Somehow I got a deadlock in
+  // BleMedium::OpenServerSocket in ble_medium.mm. Let's investigate it a bit later.
   ResultListener result = [completionHandler](Status status) {
     NSError *err = NSErrorFromCppStatus(status);
     if (completionHandler) {
@@ -201,6 +205,7 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
   DiscoveryListener listener;
   listener.endpoint_found_cb = [delegate](const std::string &endpoint_id,
                                           const ByteArray &endpoint_info,
+                                          Medium medium,
                                           const std::string &service_id) {
     NSString *endpointID = @(endpoint_id.c_str());
     NSData *info = [NSData dataWithBytes:endpoint_info.data() length:endpoint_info.size()];
@@ -286,14 +291,14 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
   std::string endpoint_id = [endpointID cStringUsingEncoding:[NSString defaultCStringEncoding]];
 
   PayloadListener listener;
-  listener.payload_cb = [delegate](absl::string_view endpoint_id, Payload payload) {
-    NSString *endpointID = @(std::string(endpoint_id).c_str());
+  listener.payload_cb = [delegate](const std::string &endpoint_id, Payload payload) {
+    NSString *endpointID = @(endpoint_id.c_str());
     GNCPayload *gncPayload = [GNCPayload fromCpp:std::move(payload)];
     [delegate receivedPayload:gncPayload fromEndpoint:endpointID];
   };
-  listener.payload_progress_cb = [delegate](absl::string_view endpoint_id,
+  listener.payload_progress_cb = [delegate](const std::string &endpoint_id,
                                             const PayloadProgressInfo &info) {
-    NSString *endpointID = @(std::string(endpoint_id).c_str());
+    NSString *endpointID = @(endpoint_id.c_str());
     GNCPayloadStatus status;
     switch (info.status) {
       case PayloadProgressInfo::Status::kSuccess:

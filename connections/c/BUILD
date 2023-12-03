@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
-load("expand_version_template.bzl", "expand_version_template")
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-
 package(default_visibility = [
     "//connections:__subpackages__",
     "//location/nearby:__subpackages__",
@@ -31,33 +27,6 @@ cc_library(
     defines = ["CORE_ADAPTER_DLL"],
     visibility = ["//visibility:private"],
     deps = ["@com_google_absl//absl/strings"],
-)
-
-bzl_library(
-    name = "expand_version_template_bzl",
-    srcs = ["expand_version_template.bzl"],
-    parse_tests = False,
-    visibility = ["//visibility:private"],
-)
-
-# Default version if none is provided.
-vardef("VERSION", "1.0.0.0")
-
-# When built with rapid, a version value will be passed down from the build config via blaze
-# When built manually, invoke blaze with --define=VERSION=1.2.3.4
-# If VERSION is not passed from blaze, the default value defined above will be used.
-expand_version_template(
-    name = "version_expanded",
-    out = "version.rc",
-    template = "version.rc.tpl",
-    version = varref("VERSION"),
-)
-
-lexan.resource_files(
-    name = "resources",
-    rc_files = [
-        ":version_expanded",
-    ],
 )
 
 cc_library(
@@ -97,12 +66,12 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
     ],
+    alwayslink = 1,
 )
 
-# Build with --config=lexan
-lexan.cc_windows_dll(
+cc_binary(
     name = "nearby_connections",
-    tags = ["windows-dll"],
+    linkshared = 1,
     deps = [
         ":c",
         ":types",

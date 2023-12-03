@@ -39,8 +39,9 @@ public class Discoverer {
   /// Initializes the discoverer object.
   ///
   /// - Parameter connectionManager: The connection manager for this instance.
-  public init(connectionManager: ConnectionManager) {
+  public init(connectionManager: ConnectionManager, delegate: DiscovererDelegate) {
     self.connectionManager = connectionManager
+    self.delegate = delegate
   }
 
   /// Starts searching for nearby remote endpoints.
@@ -189,7 +190,7 @@ public protocol DiscovererDelegate: AnyObject {
   ///   - endpointID: The unique ID of the endpoint that was found.
   ///   - context: An arbitrary piece of data received from the nearby endpoint. This can be used to
   ///     provide further information to the user about the nature of the invitation.
-  func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, with context: Data)
+    func discoverer(_ discoverer: Discoverer, didFind endpointID: EndpointID, with context: Data)
 
   /// Called when a nearby endpoint is lost.
   ///

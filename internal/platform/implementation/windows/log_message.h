@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 
-#include "glog/logging.h"
+#include "absl/log/log_streamer.h"
 #include "internal/platform/implementation/log_message.h"
 
 namespace nearby {
@@ -33,7 +33,7 @@ class LogMessage : public api::LogMessage {
   std::ostream& Stream() override;
 
  private:
-  google::LogMessage log_streamer_;
+  absl::LogStreamer log_streamer_;
   static api::LogMessage::Severity min_log_severity_;
 };
 

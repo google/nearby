@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <windows.h>
+#include <winrt/Windows.Foundation.h>
 
 #include <chrono>  // NOLINT(build/c++11)
 #include <cstdint>
@@ -21,7 +22,6 @@
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"

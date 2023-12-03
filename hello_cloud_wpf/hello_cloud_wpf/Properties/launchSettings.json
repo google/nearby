@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "hello_cloud_wpf": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "PATH": "%PATH%;C:\\repo\\cloud_transfer\\bazel-bin\\connections\\csharp"
+      },
+      "nativeDebugging": true
+    }
+  }
+}

@@ -45,9 +45,10 @@ public class ConnectionManager {
   ///     uniquely identifies your service. A good default is to use your app’s package name.
   ///   - strategy: Connection strategy to be used during advertisement or discovery.
   ///   - queue: `DispatchQueue` on which all delegate methods are called. `.main` by default.
-  public init(serviceID: String, strategy: Strategy, queue: DispatchQueue = .main) {
+  public init(serviceID: String, strategy: Strategy, delegate: ConnectionManagerDelegate, queue: DispatchQueue = .main) {
     self.serviceID = serviceID
     self.strategy = strategy
+    self.delegate = delegate
     self.queue = queue
   }
 
