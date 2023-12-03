@@ -151,8 +151,10 @@ struct OutgoingFilesView: View {
           
           Button(action: send) {
             Label("Send", systemImage: "arrow.up.backward.circle.fill").frame(maxWidth: .infinity)
-          } // Can send only when all files are uploaded to the cloud
-          .disabled(model.outgoingFiles.isEmpty || !model.outgoingFiles.allSatisfy({$0.state == .uploaded}))
+          } // Can send only when we're connected and all files are uploaded to the cloud
+          .disabled( model.state != .connected ||
+                     model.outgoingFiles.isEmpty ||
+                     !model.outgoingFiles.allSatisfy({$0.state == .uploaded}))
         }.buttonStyle(.bordered).fixedSize()
         
         List {
