@@ -43,7 +43,7 @@ import Foundation
     self.state = state
   }
 
-  func download () -> Void {
+  func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
     if state != .received {
       print("The file is being downloading or has already been downloaded. Skipping.")
       return
@@ -59,10 +59,9 @@ import Foundation
     CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
       url, error in
       guard let self else { return }
-      // TODO: calculate transfer speed and put into the info section
-      // let size = (try? url?.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0
       self.localUrl = url
       self.state = error == nil ? .downloaded : .received
+      completion?(url, error)
     }
   }
   

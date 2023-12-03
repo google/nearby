@@ -17,6 +17,18 @@
 import Foundation
 
 struct Transfer: Identifiable, Hashable {
+  internal init(direction: Transfer.Direction, remotePath: String, result: Transfer.Result, 
+                size: Int? = nil, duration: TimeInterval? = nil,
+                from: String? = nil, to: String? = nil) {
+    self.direction = direction
+    self.remotePath = remotePath
+    self.result = result
+    self.size = size
+    self.duration = duration
+    self.from = from
+    self.to = to
+  }
+  
   enum Direction {
     case send, receive, upload, download
   }
@@ -30,4 +42,9 @@ struct Transfer: Identifiable, Hashable {
   let direction: Direction
   let remotePath: String
   let result: Result
+
+  let size: Int?
+  let duration: TimeInterval?
+  let from: String?
+  let to: String?
 }

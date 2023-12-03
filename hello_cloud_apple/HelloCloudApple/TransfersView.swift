@@ -27,7 +27,7 @@ struct TransfersView: View {
       Section {
         ForEach(model.transfers) {transfer in
           HStack {
-            Label(transfer.remotePath, systemImage: String(describing: transfer.direction))
+            Label(String(describing: transfer), systemImage: String(describing: transfer.direction))
             Spacer()
             let (name, color) = transfer.result.IconNameAndColor;
             Image(systemName: name).foregroundColor(color)
@@ -38,6 +38,20 @@ struct TransfersView: View {
     .navigationTitle("Transfers")
     .onChange(of: mainModel.endpoints) { _, endpoints in
       if !endpoints.contains(model) { dismiss() }
+    }
+  }
+}
+
+extension Transfer: CustomStringConvertible {
+  var description: String {
+    switch self.direction {
+    case .upload, .download:
+      guard let size, let duration else {
+        return "Size & Speed N/A"
+      }
+      let sizeInMB = Double(size) / 1048576
+      return String(format: "%.1f MB at %.1f MB/s", sizeInMB, sizeInMB / duration)
+    case .receive, .send: return self.from ?? self.to ?? "To & From Unknown"
     }
   }
 }
@@ -68,27 +82,34 @@ extension Transfer.Result {
     model: Endpoint(
       id: "R2D2",
       name: "Debug droid",
-      isIncoming: false, state: .discovered,
+      isIncoming: false, 
+      state: .discovered,
       transfers: [
         Transfer(
           direction: Transfer.Direction.upload,
           remotePath: "1234567890ABCDEF",
-          result: .success
+          result: .success,
+          size: 50000000,
+          duration: 10
         ),
         Transfer(
           direction: Transfer.Direction.download,
           remotePath: "XYZ",
-          result: .failure
+          result: .failure,
+          size: 40000000,
+          duration: 1.5
         ),
         Transfer(
           direction: Transfer.Direction.send,
           remotePath: "XYZ",
-          result: .success
+          result: .success,
+          to: "R2D2"
         ),
         Transfer(
           direction: Transfer.Direction.receive,
           remotePath: "XYZ",
-          result: .cancaled
+          result: .cancaled,
+          from: "R2D2"
         )
       ]
     )

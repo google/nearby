@@ -105,8 +105,17 @@ struct OutgoingFilesView: View {
   func upload() -> Void {
     for file in model.outgoingFiles {
       if file.state == .loaded {
-        file.upload()
-        model.transfers.append(Transfer(direction: .upload, remotePath: file.remotePath!, result: .success))
+        let beginTime = Date()
+        file.upload() { [beginTime] size, error in
+          let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+          model.transfers.append(
+            Transfer(
+              direction: .upload,
+              remotePath: file.remotePath!,
+              result: .success,
+              size: Int(file.fileSize),
+              duration: duration))
+        }
       }
     }
   }
@@ -120,7 +129,7 @@ struct OutgoingFilesView: View {
     Main.shared.sendFiles(payload, to: model.id)
 
     for file in model.outgoingFiles {
-      model.transfers.append(Transfer(direction: .send, remotePath: file.remotePath!, result: .success))
+      model.transfers.append(Transfer(direction: .send, remotePath: file.remotePath!, result: .success, to: model.id))
     }
   }
   

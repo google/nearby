@@ -49,7 +49,7 @@ import Foundation
     }
   }
 
-  func upload() -> Void {
+  func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
     guard let data else {
       print("Data is not loaded. Skipping uploading.")
       return;
@@ -75,6 +75,7 @@ import Foundation
     CloudStorage.shared.upload(data, as: remotePath!) { [weak self] 
       size, error in
       self?.state = error == nil ? .uploaded : .loaded
+      completion?(size, error)
     }
   }
 

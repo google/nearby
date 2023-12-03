@@ -107,22 +107,28 @@ import UIKit
         Transfer(
           direction: Transfer.Direction.upload,
           remotePath: "1234567890ABCDEF",
-          result: .success
+          result: .success,
+          size: 50000000,
+          duration: 10
         ),
         Transfer(
           direction: Transfer.Direction.download,
-          remotePath: "1234567890ABCDEF",
-          result: .failure
+          remotePath: "XYZ",
+          result: .failure,
+          size: 40000000,
+          duration: 1.5
         ),
         Transfer(
           direction: Transfer.Direction.send,
-          remotePath: "1234567890ABCDEF",
-          result: .success
+          remotePath: "XYZ",
+          result: .success,
+          to: "R2D2"
         ),
         Transfer(
           direction: Transfer.Direction.receive,
-          remotePath: "1234567890ABCDEF",
-          result: .cancaled
+          remotePath: "XYZ",
+          result: .cancaled,
+          from: "R2D2"
         )
       ]
     ))
@@ -235,7 +241,7 @@ extension Main: ConnectionManagerDelegate {
       
       for file in files {
         endpoint.incomingFiles.append(file)
-        let transfer = Transfer(direction: .receive, remotePath: file.remotePath, result: .success)
+        let transfer = Transfer(direction: .receive, remotePath: file.remotePath, result: .success, from: endpointId)
         endpoint.transfers.append(transfer)
       }
     }

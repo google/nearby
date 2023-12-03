@@ -43,11 +43,20 @@ struct IncomingFilesView: View {
     self.model = model
   }
   
-  func download() -> Void  {
+  func download() -> Void {
     for file in model.incomingFiles {
+      let beginTime = Date()
       if file.state == .received {
-        file.download()
-        model.transfers.append(Transfer(direction: .download, remotePath: file.remotePath, result: .success))
+        file.download() { [beginTime] url, error in
+          let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+          model.transfers.append(
+            Transfer(
+              direction: .download,
+              remotePath: file.remotePath,
+              result: error == nil ? .success : .failure,
+              size: Int(file.fileSize),
+              duration: duration))
+        }
       }
     }
   }
