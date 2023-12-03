@@ -606,7 +606,6 @@ namespace HelloCloudWpf {
                 foreach (IncomingFileModel file in files) {
                     TransferModel transfer = new(
                         direction: TransferModel.Direction.Receive,
-                        fileName: file.localPath,
                         url: file.remotePath,
                         result: TransferModel.Result.Success);
                     endpoint.AddTransfer(transfer);
@@ -653,7 +652,6 @@ namespace HelloCloudWpf {
                 foreach (OutgoingFileViewModel file in endpoint!.OutgoingFiles) {
                     TransferModel transfer = new(
                         direction: TransferModel.Direction.Send,
-                        fileName: file.LocalPath,
                         url: file.RemotePath!,
                         result: result);
                     endpoint.AddTransfer(transfer);

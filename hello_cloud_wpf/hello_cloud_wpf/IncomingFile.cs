@@ -13,15 +13,17 @@ namespace HelloCloudWpf {
             Received, Downloading, Downloaded
         }
 
+        [JsonInclude] public readonly string mimeType;
         // the path of the file when it was uploaded, not necessarily the path for downloading.
-        [JsonInclude] public readonly string localPath;
+        [JsonInclude] public readonly string fileName;
         [JsonInclude] public readonly string remotePath;
         [JsonInclude] public readonly long fileSize;
 
         public State state = State.Received;
 
-        public IncomingFileModel(string localPath, string remotePath, long fileSize) {
-            this.localPath = localPath;
+        public IncomingFileModel(string mimeType, string fileName, string remotePath, long fileSize) {
+            this.mimeType = mimeType;
+            this.fileName = fileName;
             this.remotePath = remotePath;
             this.fileSize = fileSize;
         }
@@ -34,7 +36,7 @@ namespace HelloCloudWpf {
     public class IncomingFileViewModel : INotifyPropertyChanged, IViewModel<IncomingFileModel> {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string LocalPath => Model!.localPath;
+        public string FileName => Model!.fileName;
         public string RemotePath => Model!.remotePath;
         public long FileSize => Model!.fileSize;
 
@@ -56,32 +58,13 @@ namespace HelloCloudWpf {
             PropertyChanged?.Invoke(this, new(nameof(ReceivedIconVisibility)));
             PropertyChanged?.Invoke(this, new(nameof(DownloadingIconVisibility)));
 
-            // Quick and dirty way to get a local path
-            string localPath;
-            int index = LocalPath.LastIndexOf('/');
-            if (index == -1) {
-                index = LocalPath.LastIndexOf("\\");
-            }
-            if (index == -1) {
-                localPath = LocalPath;
-            } else {
-                localPath = App.DocumentsPath + LocalPath[(index + 1)..];
-            }
+            string localPath = Path.Combine(App.DocumentsPath, FileName);
             if (File.Exists(localPath)) {
-                string basePath;
-                string extension;
-                index = localPath.LastIndexOf('.');
-                if (index != -1) {
-                    basePath = localPath[..index];
-                    extension = "." + localPath[(index + 1)..];
-                } else {
-                    basePath = localPath;
-                    extension = string.Empty;
-                }
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(localPath);
+                string extension = Path.GetExtension(localPath);
 
-                int n = 1;
-                while (true) {
-                    localPath = basePath + n.ToString() + extension;
+                for (int n = 1; true; n++) {
+                    localPath = Path.Combine(App.DocumentsPath, fileNameWithoutExt + "(" + n.ToString() + ")" + extension);
                     if (!File.Exists(localPath)) {
                         break;
                     }

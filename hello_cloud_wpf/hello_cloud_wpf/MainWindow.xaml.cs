@@ -13,13 +13,13 @@ namespace HelloCloudWpf {
     /// </summary>
     public partial class MainWindow : Window
     {
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool AllocConsole();
+        private static partial bool AllocConsole();
 
         public MainWindow()
         {
-            AllocConsole();
+            //AllocConsole();
             InitializeComponent();
         }
 
