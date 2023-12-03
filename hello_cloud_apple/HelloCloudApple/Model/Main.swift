@@ -32,7 +32,7 @@ import UIKit
         advertiser?.stopAdvertising()
         localEndpointId = ""
       } else {
-        guard var name = localEndpointName.data(using: .utf8) else {
+        guard let name = localEndpointName.data(using: .utf8) else {
           print("Device name is invalid. This shouldn't happen!")
           return
         }
@@ -93,13 +93,13 @@ import UIKit
         OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .picked)
       ],
       incomingFiles: [
-        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0001.jpg", 
+        IncomingFile(mimeType:"image/png", fileName: "IMG_0001.png",
                      remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 4000000, state: .downloading),
-        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0002.jpg", 
+        IncomingFile(mimeType:"image/png", fileName: "IMG_0002.png",
                      remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 5000000, state: .received),
-        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0003.jpg", 
+        IncomingFile(mimeType:"image/png", fileName: "IMG_0003.png",
                      remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
                      fileSize: 5000000, state: .downloaded)
       ],

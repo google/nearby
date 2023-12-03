@@ -27,7 +27,8 @@ import Foundation
   // Suggested file name set by the sender. We don't need to honor it.
   let fileName: String
   // Actual url of the local file, once it's downloaded
-  var localUrl: URL? = nil
+  @ObservationIgnored var localUrl: URL?
+
   @ObservationIgnored let remotePath: String
   @ObservationIgnored let fileSize: Int64
 
@@ -57,10 +58,11 @@ import Foundation
     let localPath = UUID().uuidString + ext
     CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
       url, error in
+      guard let self else { return }
       // TODO: calculate transfer speed and put into the info section
       // let size = (try? url?.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0
-      self?.state = error == nil ? .downloaded : .received
-      self?.localUrl = url
+      self.localUrl = url
+      self.state = error == nil ? .downloaded : .received
     }
   }
   

@@ -16,12 +16,29 @@
 
 import SwiftUI
 
+struct ImageView: View {
+  @Binding var url: URL?
+  var body: some View {
+    let imageData = url != nil ? try? Data(contentsOf: url!) : nil
+    let uiImage: UIImage? = imageData != nil ? UIImage(data: imageData!) : nil
+
+    Form {
+      if uiImage != nil{
+        Image(uiImage: uiImage!)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+      }
+    }.onTapGesture { self.url = nil }
+  }
+}
+
 struct IncomingFilesView: View {
   let model: Endpoint
   
   @EnvironmentObject var mainModel: Main
   @Environment(\.dismiss) var dismiss
-  
+  @State var imageUrl: URL? = nil
+
   init(model: Endpoint) {
     self.model = model
   }
@@ -36,30 +53,39 @@ struct IncomingFilesView: View {
   }
   
   var body: some View {
-    Form {
-      Section {
-        Button(action: download) {
-          Label("Download", systemImage: "arrow.down.circle.fill")
-        }
-        .buttonStyle(.bordered)
-        .disabled(model.incomingFiles.isEmpty ||
-                  model.incomingFiles.allSatisfy(
-                    {$0.state == .downloaded || $0.state == .downloaded}))
+    ZStack{
+      Form {
+        Section {
+          Button(action: download) {
+            Label("Download", systemImage: "arrow.down.circle.fill")
+          }
+          .buttonStyle(.bordered)
+          .disabled(model.incomingFiles.isEmpty ||
+                    model.incomingFiles.allSatisfy(
+                      {$0.state == .downloaded || $0.state == .downloaded}))
 
-        ForEach(model.incomingFiles) {file in
-          HStack {
-            Label(file.fileName, systemImage: "doc")
-            Spacer()
-            switch file.state {
-            case .downloaded:
-              Image(systemName: "circle.fill").foregroundColor(.green)
-            case .downloading:
-              ProgressView()
-            case .received:
-              Image(systemName: "circle.fill").foregroundColor(.gray)
+          ForEach(model.incomingFiles) {file in
+            HStack {
+              Button(action: {
+                self.imageUrl = file.localUrl
+              }) {
+                Label(file.fileName, systemImage: "doc")
+              }.buttonStyle(.borderless)
+              Spacer()
+              switch file.state {
+              case .downloaded:
+                Image(systemName: "circle.fill").foregroundColor(.green)
+              case .downloading:
+                ProgressView()
+              case .received:
+                Image(systemName: "circle.fill").foregroundColor(.gray)
+              }
             }
           }
         }
+      }
+      if imageUrl != nil {
+        ImageView(url: $imageUrl)
       }
     }
     .navigationTitle("Incoming files")
