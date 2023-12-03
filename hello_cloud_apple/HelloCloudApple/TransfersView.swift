@@ -78,40 +78,8 @@ extension Transfer.Result {
 }
 
 #Preview {
-  TransfersView(
-    model: Endpoint(
-      id: "R2D2",
-      name: "Debug droid",
-      isIncoming: false, 
-      state: .discovered,
-      transfers: [
-        Transfer(
-          direction: Transfer.Direction.upload,
-          remotePath: "1234567890ABCDEF",
-          result: .success,
-          size: 50000000,
-          duration: 10
-        ),
-        Transfer(
-          direction: Transfer.Direction.download,
-          remotePath: "XYZ",
-          result: .failure,
-          size: 40000000,
-          duration: 1.5
-        ),
-        Transfer(
-          direction: Transfer.Direction.send,
-          remotePath: "XYZ",
-          result: .success,
-          to: "R2D2"
-        ),
-        Transfer(
-          direction: Transfer.Direction.receive,
-          remotePath: "XYZ",
-          result: .cancaled,
-          from: "R2D2"
-        )
-      ]
-    )
-  )
+  let mainModel = Main.createDebugModel()
+  return TransfersView(
+    model: mainModel.endpoints[1]
+  ).environment(mainModel)
 }
