@@ -154,7 +154,10 @@ namespace HelloCloudWpf {
 
         public EndpointViewModel() {
             connectCommand = new RelayCommand(
-                _ => MainViewModel.Instance.RequestConnection(Id),
+                _ => {
+                    State = EndpointModel.State.Pending;
+                    MainViewModel.Instance.RequestConnection(Id);
+                },
                 _ => State == EndpointModel.State.Discovered);
             sendCommand = new RelayCommand(
                 _ => MainViewModel.Instance.SendFiles(
@@ -163,7 +166,10 @@ namespace HelloCloudWpf {
                     && OutgoingFiles.Any()
                     && OutgoingFiles.All(file => file.State == OutgoingFileModel.State.Uploaded));
             disconnectCommand = new RelayCommand(
-                _ => MainViewModel.Instance.Disconnect(Id),
+                _ => {
+                    State = EndpointModel.State.Pending;
+                    MainViewModel.Instance.Disconnect(Id); 
+                },
                 _ => State == EndpointModel.State.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
