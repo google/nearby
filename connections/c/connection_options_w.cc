@@ -19,7 +19,7 @@
 namespace nearby::windows {
 
 void ConnectionOptionsW::GetMediums(const MediumW* mediums,
-                                    size_t mediums_size) const {
+                                    size_t* mediums_size) const {
   // Create a collection of enabled mediums
   auto allowedMediums = allowed.GetMediums(true);
   auto iter = allowedMediums.begin();
@@ -28,7 +28,7 @@ void ConnectionOptionsW::GetMediums(const MediumW* mediums,
   while (iter != allowedMediums.end() && index < MAX_MEDIUMS) {
     *mediums_[index++] = iter[index];
   }
-  mediums_size = allowed.GetMediums(true).size();
+  *mediums_size = allowed.GetMediums(true).size();
   return;
 }
 

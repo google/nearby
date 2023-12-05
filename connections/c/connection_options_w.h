@@ -39,7 +39,7 @@ struct DLL_API ConnectionOptionsW : public OptionsBaseW {
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
 
-  void GetMediums(const MediumW*, size_t) const;
+  void GetMediums(const MediumW*, size_t*) const;
 
  private:
   MediumW* mediums_[MAX_MEDIUMS];
