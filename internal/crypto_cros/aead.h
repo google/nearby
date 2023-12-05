@@ -26,8 +26,7 @@
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
-
-struct evp_aead_st;
+#include <openssl/base.h>
 
 namespace crypto {
 
@@ -87,7 +86,7 @@ class CRYPTO_EXPORT Aead {
             size_t* output_length, size_t max_output_length) const;
 
   absl::optional<absl::Span<const uint8_t>> key_;
-  const evp_aead_st* aead_;
+  const EVP_AEAD* aead_;
 };
 
 }  // namespace crypto

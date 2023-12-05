@@ -32,8 +32,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/nearby_base.h"
 #include "internal/crypto_cros/openssl_util.h"
-#include <openssl/aes.h>
-#include <openssl/evp.h>
+#include <openssl/aead.h>
 
 namespace crypto {
 
