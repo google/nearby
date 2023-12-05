@@ -23,6 +23,7 @@ struct EndpointView: View {
   @Environment(\.dismiss) var dismiss
 
   func connect() -> Void {
+    model.state = .pending
     mainModel.requestConnection(to: model.id) {
       error in
       print("RequestConnection completed: " + (error?.localizedDescription ?? ""))
@@ -30,6 +31,7 @@ struct EndpointView: View {
   }
 
   func disconnect() -> Void {
+    model.state = .pending
     mainModel.disconnect(from: model.id) {
       error in
       print("Disconnect completed: " + (error?.localizedDescription ?? ""))
@@ -96,37 +98,6 @@ struct EndpointView: View {
       if !endpoints.contains(model) { dismiss() }
     }
   }
-//    var body: some View {
-//        let endpoint = model.endpoints.first { $0.endpointID == endpointID }
-//        let connectionRequest = model.requests.first { $0.endpointID == endpointID }
-//        let connection = model.connections.first { $0.endpointID == endpointID }
-//        let name = connectionRequest?.endpointName ?? connection?.endpointName ?? endpoint?.endpointName
-
-//        Form {
-//            if let endpoint {
-//                DiscoveredEndpointView(endpoint: endpoint, onRequestConnection: {
-//                    model.requestConnection(to: endpointID)
-//                }).id(endpoint.id)
-//            }
-//
-//            if let connectionRequest {
-//                ConnectionRequestView(connectionRequest: connectionRequest, onAcceptConnection: {
-//                    connectionRequest.shouldAccept(true)
-//                }, onRejectConnection: {
-//                    connectionRequest.shouldAccept(false)
-//                }).id(connectionRequest.id)
-//            }
-//
-//            if let connection {
-//                ConnectedView(connection: connection, onSendBytes: {
-//                    model.sendBytes(to: [endpointID])
-//                }, onDisconnect: {
-//                    model.disconnect(from: endpointID)
-//                }).id(connection.id)
-//            }
-//        }
-//        .navigationTitle(name ?? "")
-//    }
 }
 
 #Preview {
