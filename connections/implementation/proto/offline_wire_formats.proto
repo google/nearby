@@ -149,6 +149,7 @@ message PayloadTransferFrame {
     UNKNOWN_PACKET_TYPE = 0;
     DATA = 1;
     CONTROL = 2;
+    PAYLOAD_ACK = 3;
   }
 
   message PayloadHeader {
@@ -183,7 +184,8 @@ message PayloadTransferFrame {
       UNKNOWN_EVENT_TYPE = 0;
       PAYLOAD_ERROR = 1;
       PAYLOAD_CANCELED = 2;
-      PAYLOAD_RECEIVED_ACK = 3;
+      // Use PacketType.PAYLOAD_ACK instead
+      PAYLOAD_RECEIVED_ACK = 3 [deprecated = true];
     }
 
     optional EventType event = 1;
