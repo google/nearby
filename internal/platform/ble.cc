@@ -49,13 +49,11 @@ bool BleMedium::StartScanning(
                 auto pair = peripherals_.emplace(
                     &peripheral, absl::make_unique<ScanningInfo>());
                 auto& context = *pair.first->second;
-                if (pair.second) {
-                  context.peripheral = BlePeripheral(&peripheral);
-                  discovered_peripheral_callback_.peripheral_discovered_cb(
-                      context.peripheral, service_id,
-                      context.peripheral.GetAdvertisementBytes(service_id),
-                      fast_advertisement);
-                }
+                context.peripheral = BlePeripheral(&peripheral);
+                discovered_peripheral_callback_.peripheral_discovered_cb(
+                    context.peripheral, service_id,
+                    context.peripheral.GetAdvertisementBytes(service_id),
+                    fast_advertisement);
               },
           .peripheral_lost_cb =
               [this](api::BlePeripheral& peripheral,
