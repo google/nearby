@@ -670,7 +670,7 @@ enum OperationResultDetail {
   IO_ENDPOINT_IO_ERROR_ON_BLE = 3005;
   // Payloads IOError due to endpoint get IOException on L2CAP medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_L2CAP = 3006;
+  IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP = 3006;
   // Payloads IOError due to endpoint get IOException on BT medium (IOException
   // on Channel#write)
   IO_ENDPOINT_IO_ERROR_ON_BT = 3007;
@@ -831,6 +831,8 @@ enum OperationResultDetail {
   CONNECTIVITY_BT_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3555;
   // Failed to create L2CAP outgoing socket (TimeoutException on socket#connect)
   CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE = 3556;
+  // Failed to create connectionFlow
+  CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR = 3557;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
