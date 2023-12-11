@@ -223,7 +223,6 @@ extension Main: ConnectionManagerDelegate {
       print("End point not found. It has probably stopped advertising or canceled the connection request.")
       return
     }
-    endpoint.state = .connected
   }
 
   func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointId: String) {
