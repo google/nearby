@@ -37,9 +37,10 @@ public final class EndpointViewModel extends BaseObservable {
   private final List<IncomingFileViewModel> incomingFiles = new ArrayList<>();
   private final List<OutgoingFileViewModel> outgoingFiles = new ArrayList<>();
   public final List<TransferViewModel> transfers = new ArrayList<>();
+  public Boolean isIncoming;
 
   private State state = State.DISCOVERED;
-  private String authToken;
+
 
   @Bindable
   public String getId() {
