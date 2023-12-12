@@ -20,6 +20,7 @@ public final class IncomingFileViewModel extends BaseObservable {
   // Do not serialize state
   private transient State state;
 
+  public State getState() { return state; }
   public void setState(State value) {
     state = value;
     notifyPropertyChanged(BR.isBusy);

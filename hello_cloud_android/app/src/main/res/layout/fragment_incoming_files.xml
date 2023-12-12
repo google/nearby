@@ -31,6 +31,7 @@
             android:orientation="horizontal">
 
             <Button
+                android:id="@+id/download"
                 android:layout_width="150dp"
                 android:layout_height="match_parent"
                 android:layout_margin="10dp"

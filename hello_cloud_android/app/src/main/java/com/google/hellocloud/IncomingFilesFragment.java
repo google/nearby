@@ -1,12 +1,17 @@
 package com.google.hellocloud;
 
 import android.content.Context;
+import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.BindingAdapter;
+import androidx.databinding.DataBindingUtil;
+
+import com.google.hellocloud.databinding.FragmentIncomingFilesBinding;
 
 import java.util.List;
 
@@ -15,6 +20,30 @@ public class IncomingFilesFragment extends ListOnEndpointFragment {
     super(R.layout.fragment_incoming_files);
   }
 
+  @Override
+  public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+                           Bundle savedInstanceState) {
+    View view = super.onCreateView(inflater, container, savedInstanceState);
+    FragmentIncomingFilesBinding binding = DataBindingUtil.getBinding(view);
+    binding.download.setOnClickListener(v -> {
+      for (IncomingFileViewModel file: endpointViewModel.getIncomingFiles()) {
+        /*
+        if file.state == .received {
+        file.download() { [beginTime] url, error in
+          let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+          model.transfers.append(
+            Transfer(
+              direction: .download,
+              remotePath: file.remotePath,
+              result: error == nil ? .success : .failure,
+              size: Int(file.fileSize),
+              duration: duration))
+        }
+         */
+        if (file.getState() == IncomingFileViewModel.State.RECEIVED)
+      }
+    });
+  }
   @BindingAdapter("entries")
   public static void setEntries(View view, List<IncomingFileViewModel> files) {
     Context context = view.getContext();
