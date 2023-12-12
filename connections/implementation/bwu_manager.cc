@@ -536,15 +536,24 @@ void BwuManager::OnIncomingConnection(
           return;
         }
 
+        NEARBY_LOGS(VERBOSE) << "BwuManager successfully received "
+                                "BWU_NEGOTIATION.CLIENT_INTRODUCTION "
+                                "OfflineFrame on EndpointChannel "
+                             << channel->GetName();
+
         if (!WriteClientIntroductionAckFrame(channel)) {
           // This was never a fully EstablishedConnection, no need to provide a
           // closure reason.
+          NEARBY_LOGS(ERROR) << "BwuManager failed to write"
+                                "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                                "OfflineFrame on EndpointChannel "
+                             << channel->GetName();
           channel->Close();
           return;
         }
 
-        NEARBY_LOGS(VERBOSE) << "BwuManager successfully received "
-                                "BWU_NEGOTIATION.CLIENT_INTRODUCTION "
+        NEARBY_LOGS(VERBOSE) << "BwuManager successfully wrote "
+                                "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
                                 "OfflineFrame on EndpointChannel "
                              << channel->GetName();
 
