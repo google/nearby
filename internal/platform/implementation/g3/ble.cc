@@ -159,14 +159,13 @@ bool BleMedium::StartAdvertising(
 
   acceptance_thread_running_.exchange(true);
   accept_loops_runner_.Execute([&env, this, service_id]() mutable {
-    if (!accept_loops_runner_.InShutdown()) {
-      while (true) {
-        auto client_socket =
-            server_socket_->Accept(&(this->adapter_->GetPeripheral()));
-        if (client_socket == nullptr) break;
-        env.CallBleAcceptedConnectionCallback(*this, *(client_socket.release()),
-                                              service_id);
-      }
+    while (true) {
+      if (accept_loops_runner_.InShutdown()) break;
+      auto client_socket =
+          server_socket_->Accept(&(this->adapter_->GetPeripheral()));
+      if (client_socket == nullptr) break;
+      env.CallBleAcceptedConnectionCallback(*this, *(client_socket.release()),
+                                            service_id);
     }
     acceptance_thread_running_.exchange(false);
   });
