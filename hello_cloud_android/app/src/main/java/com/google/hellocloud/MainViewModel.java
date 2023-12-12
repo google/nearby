@@ -29,6 +29,7 @@ import com.google.android.gms.nearby.connection.Strategy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -105,9 +106,13 @@ public final class MainViewModel extends BaseObservable {
     return endpoints;
   }
 
-  void addEndpoint(EndpointViewModel endpoint) {
+  public void addEndpoint(EndpointViewModel endpoint) {
     endpoints.add(endpoint);
     notifyPropertyChanged(BR.endpoints);
+  }
+
+  public Optional<EndpointViewModel> getEndpoint(String endpointId) {
+    return endpoints.stream().filter(e -> Objects.equals(e.id, endpointId)).findFirst();
   }
 
   void startAdvertising() {
@@ -187,9 +192,20 @@ public final class MainViewModel extends BaseObservable {
     Nearby.getConnectionsClient(shared.context).disconnectFromEndpoint(endpointId);
   }
 
-  public Optional<EndpointViewModel> getEndpoint(String endpointId) {
-    assert endpoints != null;
-    return endpoints.stream().filter(e -> Objects.equals(e.id, endpointId)).findFirst();
+  void sendFiles(String endpointId, List<OutgoingFileViewModel> files) {
+    String json = OutgoingFileViewModel.encodeOutgoingFiles(files);
+    Optional<EndpointViewModel> maybeEndpoint = getEndpoint(endpointId);
+    if (maybeEndpoint.isPresent()) {
+      assert maybeEndpoint.get().getState() == EndpointViewModel.State.CONNECTED;
+      maybeEndpoint.get().setState(EndpointViewModel.State.SENDING);
+
+      Payload payload = Payload.fromBytes(json.getBytes(StandardCharsets.UTF_8));
+      Nearby.getConnectionsClient(shared.context).sendPayload(endpointId, payload)
+              .addOnFailureListener(e -> {
+                logErrorAndToast(shared.context, R.string.error_toast_cannot_send_payload, e);
+                maybeEndpoint.get().setState(EndpointViewModel.State.CONNECTED);
+              });
+    }
   }
 
   public static MainViewModel createDebugModel() {
@@ -337,7 +353,6 @@ public final class MainViewModel extends BaseObservable {
   }
 
   class MyPayloadCallback extends PayloadCallback {
-
     @Override
     public void onPayloadReceived(String endpointId, Payload payload) {
       Log.v(TAG, String.format("onPayloadReceived, endpointId: %s", endpointId));
@@ -350,8 +365,14 @@ public final class MainViewModel extends BaseObservable {
 
       if (endpoint.get().getState() != EndpointViewModel.State.SENDING) {
         endpoint.get().setState(EndpointViewModel.State.RECEIVING);
+        String json = new String(payload.asBytes(), StandardCharsets.UTF_8);
+        IncomingFileViewModel[] files = IncomingFileViewModel.decodeIncomingFiles(json);
+        for (IncomingFileViewModel file : files) {
+          // TODO: add a transfer
+          file.setState(IncomingFileViewModel.State.RECEIVED);
+        }
+        endpoint.get().onFilesReceived(Arrays.asList(files));
       }
-      // TODO: decode payload into incoming files and add them to endpoint.incomingFiles
     }
 
     @Override

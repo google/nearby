@@ -117,6 +117,12 @@ public final class EndpointViewModel extends BaseObservable {
     notifyPropertyChanged(BR.outgoingFiles);
   }
 
+  public void onFilesReceived(List<IncomingFileViewModel> files) {
+    // We intentionally do not clean incoming files, since some may not have been downloaded yet
+    incomingFiles.addAll(files);
+    notifyPropertyChanged(BR.incomingFiles);
+  }
+
   @NonNull
   @Override
   public String toString() {

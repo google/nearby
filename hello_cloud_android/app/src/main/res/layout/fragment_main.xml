@@ -122,27 +122,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:layout_width="180dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="10dp"
-                android:onClick="debugAddEndpoint"
-                android:text="Debug add" />
-
-            <Button
-                android:layout_width="180dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="10dp"
-                android:onClick="debugChangeEndpoint"
-                android:text="Debug change" />
-        </LinearLayout>
-
         <ListView
             android:id="@+id/endpointList"
             android:layout_width="match_parent"

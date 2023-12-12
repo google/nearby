@@ -38,22 +38,25 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
     assert view != null;
     FragmentOutgoingFilesBinding binding = DataBindingUtil.getBinding(view);
     assert binding != null;
-    binding.pick.setOnClickListener(v -> {
-      picker.launch(new PickVisualMediaRequest.Builder()
-              .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
-              .build());
-    });
-    binding.upload.setOnClickListener(v -> {
 
-      for (OutgoingFileViewModel file: endpointViewModel.getOutgoingFiles()) {
+    binding.pick.setOnClickListener(v ->
+            picker.launch(new PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
+                    .build()));
+    binding.upload.setOnClickListener(v -> {
+      for (OutgoingFileViewModel file : endpointViewModel.getOutgoingFiles()) {
         if (file.state == OutgoingFileViewModel.State.PICKED) {
           // TODO: time the upload
           file.upload();
+          file.remotePath = "1234567890";
           // TODO: add a transfer
         }
       }
-
     });
+    binding.send.setOnClickListener(v ->
+            MainViewModel.shared.sendFiles(
+                    endpointViewModel.id, endpointViewModel.getOutgoingFiles()));
+
     return view;
   }
 
@@ -91,6 +94,9 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
 
   private void upload(View view) {
 
+  }
+
+  private void send(View view) {
   }
 
   @BindingAdapter("entries")

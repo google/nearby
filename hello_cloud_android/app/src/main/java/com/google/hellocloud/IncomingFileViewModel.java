@@ -5,6 +5,8 @@ import android.graphics.drawable.Drawable;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 
+import com.google.gson.Gson;
+
 public final class IncomingFileViewModel extends BaseObservable {
   enum State {
     RECEIVED, DOWNLOADING, DOWNLOADED
@@ -15,11 +17,11 @@ public final class IncomingFileViewModel extends BaseObservable {
   public String remotePath;
   public int fileSize;
 
-  public State state;
+  // Do not serialize state
+  private transient State state;
 
   public void setState(State value) {
     state = value;
-
     notifyPropertyChanged(BR.isBusy);
   }
 
@@ -30,6 +32,10 @@ public final class IncomingFileViewModel extends BaseObservable {
 
   @Bindable
   public Drawable getStateIcon() {
+    if (state == null) {
+      return null;
+    }
+
     int resource;
     switch (state) {
       case RECEIVED:
@@ -50,5 +56,10 @@ public final class IncomingFileViewModel extends BaseObservable {
     this.fileSize = fileSize;
     this.state = state;
     this.remotePath = remotePath;
+  }
+
+  static public IncomingFileViewModel[] decodeIncomingFiles(String json) {
+    Gson gson = new Gson();
+    return gson.fromJson(json, IncomingFileViewModel[].class);
   }
 }
