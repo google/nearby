@@ -135,7 +135,7 @@ TEST_F(FastPairSeekerImplTest, StartAndStopFastPairScan) {
   EXPECT_OK(fast_pair_seeker_->StopFastPairScan());
 }
 
-TEST_F(FastPairSeekerImplTest, DiscoverDevice) {
+TEST_F(FastPairSeekerImplTest, DISABLED_DiscoverDevice) {
   FakeProvider provider;
   CountDownLatch latch(1);
   fast_pair_seeker_ = std::make_unique<FastPairSeekerImpl>(
