@@ -26,7 +26,7 @@ public final class EndpointViewModel extends BaseObservable {
         case SENDING:
           return "Sending";
         case RECEIVING:
-          return "Received";
+          return "Receiving";
       }
       return "UNKNOWN";
     }
@@ -37,7 +37,7 @@ public final class EndpointViewModel extends BaseObservable {
   private final List<IncomingFileViewModel> incomingFiles = new ArrayList<>();
   private final List<OutgoingFileViewModel> outgoingFiles = new ArrayList<>();
   public final List<TransferViewModel> transfers = new ArrayList<>();
-  public Boolean isIncoming;
+  public boolean isIncoming;
 
   private State state = State.DISCOVERED;
 
@@ -103,6 +103,12 @@ public final class EndpointViewModel extends BaseObservable {
   public EndpointViewModel(String id, String name) {
     this.id = id;
     this.name = name;
+  }
+
+  public EndpointViewModel(String id, String name, boolean isIncoming) {
+    this.id = id;
+    this.name = name;
+    this.isIncoming = isIncoming;
   }
 
   public void onMediaPicked(List<OutgoingFileViewModel> files) {

@@ -16,6 +16,7 @@ import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.BandwidthInfo;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
+import com.google.android.gms.nearby.connection.ConnectionOptions;
 import com.google.android.gms.nearby.connection.ConnectionResolution;
 import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
 import com.google.android.gms.nearby.connection.DiscoveryOptions;
@@ -115,7 +116,7 @@ public final class MainViewModel extends BaseObservable {
                     .setStrategy(CURRENT_STRATEGY)
                     .setLowPower(false);
 
-    Nearby.getConnectionsClient(MainViewModel.shared.context)
+    Nearby.getConnectionsClient(shared.context)
             .startAdvertising(
                     localEndpointName,
                     CONNECTION_SERVICE_ID,
@@ -126,14 +127,14 @@ public final class MainViewModel extends BaseObservable {
                       isAdvertising = false;
                       notifyPropertyChanged(BR.isAdvertising);
                       logErrorAndToast(
-                              MainViewModel.shared.context,
+                              shared.context,
                               R.string.error_toast_cannot_start_advertising,
                               e.getLocalizedMessage());
                     });
   }
 
   void stopAdvertising() {
-    Nearby.getConnectionsClient(MainViewModel.shared.context).stopAdvertising();
+    Nearby.getConnectionsClient(shared.context).stopAdvertising();
   }
 
   void startDiscovering() {
@@ -142,28 +143,48 @@ public final class MainViewModel extends BaseObservable {
                     .setStrategy(CURRENT_STRATEGY)
                     .setLowPower(false);
 
-    Nearby.getConnectionsClient(MainViewModel.shared.context)
+    Nearby.getConnectionsClient(shared.context)
             .startDiscovery(CONNECTION_SERVICE_ID, discoveryCallback, discoveryOptionsBuilder.build())
             .addOnFailureListener(
                     e -> {
                       isDiscovering = false;
                       notifyPropertyChanged(BR.isDiscovering);
                       logErrorAndToast(
-                              MainViewModel.shared.context,
+                              shared.context,
                               R.string.error_toast_cannot_start_discovery,
                               e.getLocalizedMessage());
                     });
   }
 
   void stopDiscovering() {
-    Nearby.getConnectionsClient(MainViewModel.shared.context).stopDiscovery();
+    Nearby.getConnectionsClient(shared.context).stopDiscovery();
+    endpoints.removeIf(p -> p.getState() != EndpointViewModel.State.DISCOVERED);
   }
 
   void requestConnection(String endpointId) {
-    getEndpoint(endpointId);
+    Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+    if (endpoint.isPresent()) {
+      ConnectionOptions.Builder builder = new ConnectionOptions.Builder();
+
+      byte[] info = StandardCharsets.UTF_8.encode(localEndpointName).array();
+      Nearby.getConnectionsClient(shared.context).requestConnection(
+                      info, endpointId, connectionLifecycleCallback, builder.build())
+              .addOnFailureListener(
+                      e -> {
+                        logErrorAndToast(
+                                context,
+                                R.string.error_toast_cannot_send_connection_request,
+                                e.getLocalizedMessage());
+                        endpoint.get().setState(EndpointViewModel.State.DISCOVERED);
+                      });
+    } else {
+      logErrorAndToast(context, R.string.error_toast_endpoint_lost, endpointId);
+      return;
+    }
   }
 
   void disconnect(String endpointId) {
+    Nearby.getConnectionsClient(shared.context).disconnectFromEndpoint(endpointId);
   }
 
   public Optional<EndpointViewModel> getEndpoint(String endpointId) {
@@ -215,6 +236,7 @@ public final class MainViewModel extends BaseObservable {
       // Otherwise, keep it and change its state to Discovered.
       if (endpoint.isIncoming || !isDiscovering) {
         endpoints.remove(endpoint);
+        // TODO: tell the activity to navigate back to main fragment.
       } else {
         endpoint.setState(EndpointViewModel.State.DISCOVERED);
       }
@@ -230,7 +252,7 @@ public final class MainViewModel extends BaseObservable {
 
       // Add the endpoint to the endpoint list if necessary.
       if (endpoint.isEmpty()) {
-        EndpointViewModel newEndpoint = new EndpointViewModel(endpointId, endpointName);
+        EndpointViewModel newEndpoint = new EndpointViewModel(endpointId, endpointName, true);
         addEndpoint(newEndpoint);
         newEndpoint.setState(EndpointViewModel.State.PENDING);
       } else {
@@ -238,7 +260,7 @@ public final class MainViewModel extends BaseObservable {
       }
 
       // Accept automatically.
-      Nearby.getConnectionsClient(MainViewModel.shared.context)
+      Nearby.getConnectionsClient(shared.context)
               .acceptConnection(endpointId, payloadCallback)
               .addOnFailureListener(e -> logErrorAndToast(context,
                       R.string.error_toast_cannot_accept_connection_request, e.getLocalizedMessage()));
@@ -253,7 +275,7 @@ public final class MainViewModel extends BaseObservable {
       if (result.getStatus().isSuccess()) {
         endpoint.ifPresent(value -> value.setState(EndpointViewModel.State.CONNECTED));
       } else {
-        logErrorAndToast(MainViewModel.shared.context, R.string.error_toast_rejected_by_remote_device,
+        logErrorAndToast(shared.context, R.string.error_toast_rejected_by_remote_device,
                 endpoint.isPresent() ? endpoint.get().name : endpointId);
         endpoint.ifPresent(value -> value.setState(EndpointViewModel.State.DISCOVERED));
         endpoint.ifPresent(this::removeOrChangeState);
@@ -270,20 +292,23 @@ public final class MainViewModel extends BaseObservable {
 
     @Override
     public void onBandwidthChanged(String endpointId, BandwidthInfo info) {
-      String quality;
-      switch (info.getQuality()) {
+      String qualityDescription;
+      int quality = info.getQuality();
+      switch (quality) {
         case Quality.LOW:
-          quality = "LOW";
+          qualityDescription = "LOW";
           break;
         case Quality.MEDIUM:
-          quality = "MEDIUM";
+          qualityDescription = "MEDIUM";
+          break;
         case Quality.HIGH:
-          quality = "HIGH";
+          qualityDescription = "HIGH";
+          break;
         default:
-          quality = "UNKNOWN " + info.getQuality();
+          qualityDescription = "UNKNOWN " + quality;
       }
 
-      Log.v(TAG, String.format("onBandwidthChanged, quality: %s", quality));
+      Log.v(TAG, String.format("onBandwidthChanged, quality: %s", qualityDescription));
     }
   }
 
@@ -323,15 +348,33 @@ public final class MainViewModel extends BaseObservable {
         return;
       }
 
-      if (endpoint.get().getState() != EndpointViewModel.State.RECEIVING) {
-        endpoint.get().setState(EndpointViewModel.State.SENDING);
+      if (endpoint.get().getState() != EndpointViewModel.State.SENDING) {
+        endpoint.get().setState(EndpointViewModel.State.RECEIVING);
       }
       // TODO: decode payload into incoming files and add them to endpoint.incomingFiles
     }
 
     @Override
     public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
-
+      Log.v(TAG, String.format("onPayloadTransferUpdate, endpointId: %s", endpointId));
+      int status = update.getStatus();
+      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      if (status == PayloadTransferUpdate.Status.IN_PROGRESS) {
+        return;
+      } else if (status == PayloadTransferUpdate.Status.SUCCESS) {
+//        result = TransferModel.Result.Success; // add to transfer log
+        if (endpoint.isPresent()) {
+          boolean isSending = endpoint.get().getState() == EndpointViewModel.State.SENDING;
+          endpoint.get().setState(EndpointViewModel.State.CONNECTED);
+          if (isSending) {
+            endpoint.get().getOutgoingFiles().clear();
+          }
+        }
+      } else {
+        // Failed or canceled
+        //        result = TransferModel.Result.Failed or Cancelled; // add to transfer log
+        endpoint.ifPresent(p -> p.setState(EndpointViewModel.State.CONNECTED));
+      }
     }
   }
 }

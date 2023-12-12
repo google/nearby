@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Util {
-  static final String TAG = "HelloConnections";
+  static final String TAG = "HelloCloud";
 
   static String getDefaultDeviceName() {
     // TODO: Limit the length to 17
