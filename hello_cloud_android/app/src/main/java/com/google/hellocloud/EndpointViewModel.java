@@ -123,6 +123,11 @@ public final class EndpointViewModel extends BaseObservable {
     notifyPropertyChanged(BR.incomingFiles);
   }
 
+  public void addTransfer(TransferViewModel transfer) {
+    transfers.add(transfer);
+    notifyPropertyChanged(BR.transfers);
+  }
+
   @NonNull
   @Override
   public String toString() {

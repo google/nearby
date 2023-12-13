@@ -70,19 +70,19 @@ public class TransferViewModel {
     this.to = to;
   }
 
-  public static TransferViewModel Send(String remotePath, Result result, String to) {
+  public static TransferViewModel send(String remotePath, Result result, String to) {
     return new TransferViewModel(Direction.SEND, remotePath, result, 0, Duration.ZERO, null, to);
   }
 
-  public static TransferViewModel Receive(String remotePath, Result result, String from) {
+  public static TransferViewModel receive(String remotePath, Result result, String from) {
     return new TransferViewModel(Direction.RECEIVE, remotePath, result, 0, Duration.ZERO, from, null);
   }
 
-  public static TransferViewModel Download(String remotePath, Result result, int size, Duration duration) {
+  public static TransferViewModel download(String remotePath, Result result, int size, Duration duration) {
     return new TransferViewModel(Direction.DOWNLOAD, remotePath, result, size, duration, null, null);
   }
 
-  public static TransferViewModel Upload(String remotePath, Result result, int size, Duration duration) {
+  public static TransferViewModel upload(String remotePath, Result result, int size, Duration duration) {
     return new TransferViewModel(Direction.UPLOAD, remotePath, result, size, duration, null, null);
   }
 }

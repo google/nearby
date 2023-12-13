@@ -11,4 +11,5 @@
     <string name="error_toast_cannot_reject_connection_request">Cannot reject connection request: <xliff:g id="error_message">%1$s</xliff:g>.</string>
     <string name="error_toast_rejected_by_remote_device">Rejected by remote device: [<xliff:g id="remote_device_name">%1$s</xliff:g>].</string>
     <string name="error_toast_remote_device_disconnected">Remote device [<xliff:g id="remote_device_name">%1$s</xliff:g>] disconnected. \nStop all transferring with this device.</string>
+    <string name="error_toast_cannot_download">Cannot download from GCS: [<xliff:g id="error_message">%1$s</xliff:g>].</string>
 </resources>

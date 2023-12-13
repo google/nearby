@@ -226,20 +226,20 @@ public final class MainViewModel extends BaseObservable {
             "image/jpeg", "IMG_0005.jpeg", "5678", 100000, OutgoingFileViewModel.State.UPLOADED));
 
     endpoint2.getIncomingFiles().add(new IncomingFileViewModel(
-            "image/jpeg", "IMG_1001.jpeg", "1234", 100000, IncomingFileViewModel.State.RECEIVED));
+            "image/jpeg", "IMG_1001.jpeg", "2C84B738-22B9-481A-9D18-8A37FAC0202C.jpeg", 100000, IncomingFileViewModel.State.RECEIVED));
     endpoint2.getIncomingFiles().add(new IncomingFileViewModel(
             "image/jpeg", "IMG_1002.jpeg", "1234", 100000, IncomingFileViewModel.State.DOWNLOADING));
     endpoint2.getIncomingFiles().add(new IncomingFileViewModel(
             "image/jpeg", "IMG_1003.jpeg", "1234", 100000, IncomingFileViewModel.State.DOWNLOADED));
 
-    endpoint2.getTransfers().add(TransferViewModel.Download(
+    endpoint2.getTransfers().add(TransferViewModel.download(
             "1234", TransferViewModel.Result.SUCCESS, 100000, Duration.ofSeconds(10)));
-    endpoint2.getTransfers().add(TransferViewModel.Upload(
+    endpoint2.getTransfers().add(TransferViewModel.upload(
             "1234", TransferViewModel.Result.CANCELED, 2000000, Duration.ofSeconds(15)));
     endpoint2.getTransfers().add(
-            TransferViewModel.Receive("1234", TransferViewModel.Result.SUCCESS, "R2D2"));
+            TransferViewModel.receive("1234", TransferViewModel.Result.SUCCESS, "R2D2"));
     endpoint2.getTransfers().add(
-            TransferViewModel.Send("1234", TransferViewModel.Result.FAILURE, "R2D2"));
+            TransferViewModel.send("1234", TransferViewModel.Result.FAILURE, "R2D2"));
     endpoint2.setState(EndpointViewModel.State.CONNECTED);
     result.addEndpoint(endpoint2);
 
