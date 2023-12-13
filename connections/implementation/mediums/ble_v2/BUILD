@@ -23,6 +23,7 @@ cc_library(
         "ble_utils.cc",
         "bloom_filter.cc",
         "discovered_peripheral_tracker.cc",
+        "instant_on_lost_advertisement.cc",
     ],
     hdrs = [
         "advertisement_read_result.h",
@@ -33,6 +34,7 @@ cc_library(
         "bloom_filter.h",
         "discovered_peripheral_callback.h",
         "discovered_peripheral_tracker.h",
+        "instant_on_lost_advertisement.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
@@ -54,6 +56,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
@@ -72,6 +75,7 @@ cc_test(
         "ble_utils_test.cc",
         "bloom_filter_test.cc",
         "discovered_peripheral_tracker_test.cc",
+        "instant_on_lost_advertisement_test.cc",
     ],
     deps = [
         ":ble_v2",
@@ -83,7 +87,9 @@ cc_test(
         "//proto/mediums:ble_frames_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/hash:hash_testing",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
