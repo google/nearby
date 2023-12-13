@@ -16,9 +16,9 @@ import androidx.annotation.NonNull;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import com.google.hellocloud.databinding.FragmentOutgoingFilesBinding;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class OutgoingFilesFragment extends ListOnEndpointFragment {
   ActivityResultLauncher<PickVisualMediaRequest> picker;
@@ -36,11 +36,12 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
 
     View view = super.onCreateView(inflater, container, savedInstanceState);
     assert view != null;
+
     FragmentOutgoingFilesBinding binding = DataBindingUtil.getBinding(view);
     assert binding != null;
 
-    binding.pick.setOnClickListener(v -> pick());
-    binding.upload.setOnClickListener(v -> upload());
+    binding.pick.setOnClickListener(v -> pickMedia());
+    binding.upload.setOnClickListener(v -> endpointViewModel.uploadFiles());
     binding.send.setOnClickListener(v -> endpointViewModel.sendFiles());
 
     return view;
@@ -81,42 +82,12 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
     endpointViewModel.onMediaPicked(files);
   }
 
-  private void pick() {
+  private void pickMedia() {
     assert picker != null;
     picker.launch(
         new PickVisualMediaRequest.Builder()
             .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
             .build());
-  }
-
-  private void upload() {
-    for (OutgoingFileViewModel file : endpointViewModel.getOutgoingFiles()) {
-      if (file.getState() == OutgoingFileViewModel.State.PICKED) {
-        // TODO: time the upload
-        file.remotePath = UUID.randomUUID().toString();
-        file.upload();
-        // TODO: add a transfer
-      }
-    }
-    /*
-     func upload() -> Void {
-       for file in model.outgoingFiles {
-         if file.state == .loaded {
-           let beginTime = Date()
-           file.upload() { [beginTime] size, error in
-             let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-             model.transfers.append(
-               Transfer(
-                 direction: .upload,
-                 remotePath: file.remotePath!,
-                 result: .success,
-                 size: Int(file.fileSize),
-                 duration: duration))
-           }
-         }
-       }
-     }
-    */
   }
 
   @BindingAdapter("entries")

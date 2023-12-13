@@ -26,14 +26,14 @@ public class CloudStorage {
     return fileRef.getFile(file);
   }
 
-  public Task<Integer> upload(String remotePath, Uri localUri) {
+  public Task<Void> upload(String remotePath, Uri localUri) {
     StorageReference fileRef = storageRef.child(remotePath);
     return fileRef
         .putFile(localUri)
         .continueWith(
             result -> {
               if (result.isSuccessful()) {
-                return 1;
+                return null;
               } else {
                 throw new RuntimeException("No!");
               }

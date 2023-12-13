@@ -1,8 +1,10 @@
 package com.google.hellocloud;
 
+import static com.google.hellocloud.Util.TAG;
 import static com.google.hellocloud.Util.logErrorAndToast;
 
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
@@ -10,6 +12,8 @@ import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -119,6 +123,52 @@ public final class EndpointViewModel extends BaseObservable {
     this.isIncoming = isIncoming;
   }
 
+  void uploadFiles() {
+    for (OutgoingFileViewModel file : outgoingFiles) {
+      if (file.getState() == OutgoingFileViewModel.State.PICKED) {
+        Instant beginTime = Instant.now();
+        file.upload()
+            .addOnSuccessListener(
+                result -> {
+                  Log.v(TAG, String.format("Upload succeeded. Remote path: %s", file.remotePath));
+
+                  Instant endTime = Instant.now();
+                  Duration duration = Duration.between(beginTime, endTime);
+                  TransferViewModel transfer =
+                      TransferViewModel.upload(
+                          file.remotePath,
+                          TransferViewModel.Result.SUCCESS,
+                          file.fileSize,
+                          duration);
+                  addTransfer(transfer);
+                })
+            .addOnFailureListener(
+                error -> {
+                  logErrorAndToast(
+                      MainViewModel.shared.context,
+                      R.string.error_toast_cannot_upload,
+                      error.getMessage());
+
+                  TransferViewModel transfer =
+                      TransferViewModel.upload(
+                          file.remotePath, TransferViewModel.Result.FAILURE, file.fileSize, null);
+                  addTransfer(transfer);
+                });
+
+        //            .addOnFailureListener(
+        //                error -> {
+        //                  logErrorAndToast(MainViewModel.shared.context,
+        // R.string.error_toast_cannot_upload, error.getMessage());
+        //                  TransferViewModel transfer =
+        //                      TransferViewModel.upload(
+        //                          file.remotePath, TransferViewModel.Result.FAILURE,
+        // file.fileSize, null);
+        //                  addTransfer(transfer);
+        //                });
+      }
+    }
+  }
+
   void sendFiles() {
     if (getState() != EndpointViewModel.State.CONNECTED) {
       return;
@@ -170,7 +220,7 @@ public final class EndpointViewModel extends BaseObservable {
     if (status == PayloadTransferUpdate.Status.SUCCESS) {
       for (OutgoingFileViewModel file : outgoingFiles) {
         TransferViewModel transfer =
-                TransferViewModel.send(file.remotePath, TransferViewModel.Result.SUCCESS, id);
+            TransferViewModel.send(file.remotePath, TransferViewModel.Result.SUCCESS, id);
         addTransfer(transfer);
       }
       boolean isSending = getState() == EndpointViewModel.State.SENDING;
@@ -181,7 +231,7 @@ public final class EndpointViewModel extends BaseObservable {
     } else {
       for (OutgoingFileViewModel file : outgoingFiles) {
         TransferViewModel transfer =
-                TransferViewModel.send(file.remotePath, TransferViewModel.Result.FAILURE, id);
+            TransferViewModel.send(file.remotePath, TransferViewModel.Result.FAILURE, id);
         addTransfer(transfer);
       }
       setState(EndpointViewModel.State.CONNECTED);

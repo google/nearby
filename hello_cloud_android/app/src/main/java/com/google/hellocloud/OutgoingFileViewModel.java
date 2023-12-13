@@ -4,8 +4,11 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
+
+import com.google.android.gms.tasks.Task;
 import com.google.gson.Gson;
 import java.util.List;
+import java.util.UUID;
 
 public final class OutgoingFileViewModel extends BaseObservable {
   enum State {
@@ -80,16 +83,19 @@ public final class OutgoingFileViewModel extends BaseObservable {
     return (new Gson()).toJson(files);
   }
 
-  public void upload() {
-    CloudStorage.shared
-        .upload(this.remotePath, this.localUri)
-        .addOnSuccessListener(
-            result -> {
-              System.out.println("Upload completed!" + result);
-            })
-        .addOnFailureListener(
-            error -> {
-              System.out.println("Upload failed!" + error);
-            });
+  public Task<Void> upload() {
+    remotePath = UUID.randomUUID().toString().toUpperCase();
+    String ext = null;
+    if ("image/jpeg".equals(mimeType)) {
+      ext = "jpeg";
+    } else if ("image/png".equals(mimeType)) {
+      ext = "png";
+    }
+
+    if (ext != null) {
+      remotePath += "." + ext;
+    }
+
+    return CloudStorage.shared.upload(remotePath, localUri);
   }
 }
