@@ -316,7 +316,7 @@ namespace HelloCloudWpf {
         }
 
         private static void LogTransferRate(long bytes, int milliseconds) {
-            if (bytes != 0) {
+            if (bytes != 0 && milliseconds != 0) {
                 // Transfer rate in kilobytes per second (KB/s). 1K = 1024, 1s = 1000ms
                 double transferRate = bytes / milliseconds / 1024.0 * 1000.0;
                 MainViewModel.Instance.Log($"Transferred {bytes} in {milliseconds} ms. {(int)transferRate:N0} KB/s");
