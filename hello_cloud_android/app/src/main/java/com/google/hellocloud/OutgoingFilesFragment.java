@@ -9,18 +9,16 @@ import android.provider.OpenableColumns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
-
 import com.google.hellocloud.databinding.FragmentOutgoingFilesBinding;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class OutgoingFilesFragment extends ListOnEndpointFragment {
   ActivityResultLauncher<PickVisualMediaRequest> picker;
@@ -30,8 +28,10 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
   }
 
   @Override
-  public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-    picker = registerForActivityResult(
+  public View onCreateView(
+      @NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    picker =
+        registerForActivityResult(
             new ActivityResultContracts.PickMultipleVisualMedia(), this::onMediaPicked);
 
     View view = super.onCreateView(inflater, container, savedInstanceState);
@@ -39,23 +39,9 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
     FragmentOutgoingFilesBinding binding = DataBindingUtil.getBinding(view);
     assert binding != null;
 
-    binding.pick.setOnClickListener(v ->
-            picker.launch(new PickVisualMediaRequest.Builder()
-                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
-                    .build()));
-    binding.upload.setOnClickListener(v -> {
-      for (OutgoingFileViewModel file : endpointViewModel.getOutgoingFiles()) {
-        if (file.state == OutgoingFileViewModel.State.PICKED) {
-          // TODO: time the upload
-          file.upload();
-          file.remotePath = "1234567890";
-          // TODO: add a transfer
-        }
-      }
-    });
-    binding.send.setOnClickListener(v ->
-            MainViewModel.shared.sendFiles(
-                    endpointViewModel.id, endpointViewModel.getOutgoingFiles()));
+    binding.pick.setOnClickListener(v -> pick());
+    binding.upload.setOnClickListener(v -> upload());
+    binding.send.setOnClickListener(v -> endpointViewModel.sendFiles());
 
     return view;
   }
@@ -68,9 +54,13 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
       String mimeType = resolver.getType(uri);
 
       // Get the local file name and size.
-      Cursor cursor = resolver.query(uri,
-              new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE},
-              null, null, null);
+      Cursor cursor =
+          resolver.query(
+              uri,
+              new String[] {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE},
+              null,
+              null,
+              null);
 
       assert cursor != null;
       int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
@@ -82,21 +72,51 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
       cursor.close();
 
       // Construct an outgoing file to be added to the endpoint's list
-      OutgoingFileViewModel file = new OutgoingFileViewModel(mimeType, name, null, size, OutgoingFileViewModel.State.PICKED);
+      OutgoingFileViewModel file =
+          new OutgoingFileViewModel(mimeType, name, null, size)
+              .setState(OutgoingFileViewModel.State.PICKED)
+              .setLocalUri(uri);
       files.add(file);
     }
     endpointViewModel.onMediaPicked(files);
   }
 
-  private void pick(View view) {
-
+  private void pick() {
+    assert picker != null;
+    picker.launch(
+        new PickVisualMediaRequest.Builder()
+            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
+            .build());
   }
 
-  private void upload(View view) {
-
-  }
-
-  private void send(View view) {
+  private void upload() {
+    for (OutgoingFileViewModel file : endpointViewModel.getOutgoingFiles()) {
+      if (file.getState() == OutgoingFileViewModel.State.PICKED) {
+        // TODO: time the upload
+        file.remotePath = UUID.randomUUID().toString();
+        file.upload();
+        // TODO: add a transfer
+      }
+    }
+    /*
+     func upload() -> Void {
+       for file in model.outgoingFiles {
+         if file.state == .loaded {
+           let beginTime = Date()
+           file.upload() { [beginTime] size, error in
+             let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+             model.transfers.append(
+               Transfer(
+                 direction: .upload,
+                 remotePath: file.remotePath!,
+                 result: .success,
+                 size: Int(file.fileSize),
+                 duration: duration))
+           }
+         }
+       }
+     }
+    */
   }
 
   @BindingAdapter("entries")

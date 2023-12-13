@@ -1,17 +1,19 @@
 package com.google.hellocloud;
 
 import android.graphics.drawable.Drawable;
-
+import android.net.Uri;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
-
 import com.google.gson.Gson;
-
 import java.util.List;
 
 public final class OutgoingFileViewModel extends BaseObservable {
   enum State {
-    PICKED, LOADING, LOADED, UPLOADING, UPLOADED
+    PICKED,
+    LOADING,
+    LOADED,
+    UPLOADING,
+    UPLOADED
   }
 
   public String mimeType;
@@ -20,12 +22,23 @@ public final class OutgoingFileViewModel extends BaseObservable {
   public int fileSize;
 
   // Do not serialize state
-  public transient State state;
+  private transient State state;
+  private transient Uri localUri;
 
-  public void setState(State value) {
+  public State getState() {
+    return state;
+  }
+
+  public OutgoingFileViewModel setState(State value) {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    return this;
+  }
+
+  public OutgoingFileViewModel setLocalUri(Uri uri) {
+    localUri = uri;
+    return this;
   }
 
   @Bindable
@@ -56,19 +69,27 @@ public final class OutgoingFileViewModel extends BaseObservable {
     return MainViewModel.shared.context.getResources().getDrawable(resource, null);
   }
 
-  public OutgoingFileViewModel(String mimeType, String fileName, String remotePath, int fileSize, State state) {
+  public OutgoingFileViewModel(String mimeType, String fileName, String remotePath, int fileSize) {
     this.mimeType = mimeType;
     this.fileName = fileName;
     this.fileSize = fileSize;
-    this.state = state;
     this.remotePath = remotePath;
   }
 
-  static public String encodeOutgoingFiles(List<OutgoingFileViewModel> files) {
+  public static String encodeOutgoingFiles(List<OutgoingFileViewModel> files) {
     return (new Gson()).toJson(files);
   }
 
   public void upload() {
-
+    CloudStorage.shared
+        .upload(this.remotePath, this.localUri)
+        .addOnSuccessListener(
+            result -> {
+              System.out.println("Upload completed!" + result);
+            })
+        .addOnFailureListener(
+            error -> {
+              System.out.println("Upload failed!" + error);
+            });
   }
 }

@@ -1,17 +1,26 @@
 package com.google.hellocloud;
 
-import android.graphics.drawable.Drawable;
+import static com.google.hellocloud.Util.logErrorAndToast;
 
+import android.graphics.drawable.Drawable;
 import androidx.annotation.NonNull;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
-
+import com.google.android.gms.nearby.Nearby;
+import com.google.android.gms.nearby.connection.Payload;
+import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public final class EndpointViewModel extends BaseObservable {
   public enum State {
-    DISCOVERED, PENDING, CONNECTED, SENDING, RECEIVING;
+    DISCOVERED,
+    PENDING,
+    CONNECTED,
+    SENDING,
+    RECEIVING;
 
     @NonNull
     @Override
@@ -40,7 +49,6 @@ public final class EndpointViewModel extends BaseObservable {
   public boolean isIncoming;
 
   private State state = State.DISCOVERED;
-
 
   @Bindable
   public String getId() {
@@ -111,16 +119,73 @@ public final class EndpointViewModel extends BaseObservable {
     this.isIncoming = isIncoming;
   }
 
+  void sendFiles() {
+    if (getState() != EndpointViewModel.State.CONNECTED) {
+      return;
+    }
+    String json = OutgoingFileViewModel.encodeOutgoingFiles(outgoingFiles);
+    setState(EndpointViewModel.State.SENDING);
+
+    Payload payload = Payload.fromBytes(json.getBytes(StandardCharsets.UTF_8));
+    Nearby.getConnectionsClient(MainViewModel.shared.context)
+        .sendPayload(id, payload)
+        .addOnFailureListener(
+            e -> {
+              logErrorAndToast(
+                  MainViewModel.shared.context, R.string.error_toast_cannot_send_payload, e);
+              setState(EndpointViewModel.State.CONNECTED);
+              for (OutgoingFileViewModel file : outgoingFiles) {
+                TransferViewModel transfer =
+                    TransferViewModel.send(file.remotePath, TransferViewModel.Result.FAILURE, id);
+                addTransfer(transfer);
+              }
+            });
+  }
+
   public void onMediaPicked(List<OutgoingFileViewModel> files) {
     outgoingFiles.clear();
     outgoingFiles.addAll(files);
     notifyPropertyChanged(BR.outgoingFiles);
   }
 
-  public void onFilesReceived(List<IncomingFileViewModel> files) {
+  public void onFilesReceived(String json) {
+    setState(State.RECEIVING);
+    IncomingFileViewModel[] files = IncomingFileViewModel.decodeIncomingFiles(json);
+    for (IncomingFileViewModel file : files) {
+      TransferViewModel transfer =
+          TransferViewModel.receive(file.remotePath, TransferViewModel.Result.SUCCESS, id);
+      addTransfer(transfer);
+      file.setState(IncomingFileViewModel.State.RECEIVED);
+    }
     // We intentionally do not clean incoming files, since some may not have been downloaded yet
-    incomingFiles.addAll(files);
+    incomingFiles.addAll(Arrays.asList(files));
     notifyPropertyChanged(BR.incomingFiles);
+  }
+
+  public void onFilesSendUpdate(int status) {
+    if (status == PayloadTransferUpdate.Status.IN_PROGRESS) {
+      return;
+    }
+
+    if (status == PayloadTransferUpdate.Status.SUCCESS) {
+      for (OutgoingFileViewModel file : outgoingFiles) {
+        TransferViewModel transfer =
+                TransferViewModel.send(file.remotePath, TransferViewModel.Result.SUCCESS, id);
+        addTransfer(transfer);
+      }
+      boolean isSending = getState() == EndpointViewModel.State.SENDING;
+      setState(EndpointViewModel.State.CONNECTED);
+      if (isSending) {
+        getOutgoingFiles().clear();
+      }
+    } else {
+      for (OutgoingFileViewModel file : outgoingFiles) {
+        TransferViewModel transfer =
+                TransferViewModel.send(file.remotePath, TransferViewModel.Result.FAILURE, id);
+        addTransfer(transfer);
+      }
+      setState(EndpointViewModel.State.CONNECTED);
+    }
   }
 
   public void addTransfer(TransferViewModel transfer) {

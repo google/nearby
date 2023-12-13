@@ -39,9 +39,10 @@ public final class IncomingFileViewModel extends BaseObservable {
     return state;
   }
 
-  public void setState(State value) {
+  public IncomingFileViewModel setState(State value) {
     state = value;
     notifyPropertyChanged(BR.isBusy);
+    return this;
   }
 
   @Bindable
@@ -70,11 +71,10 @@ public final class IncomingFileViewModel extends BaseObservable {
   }
 
   public IncomingFileViewModel(
-      String mimeType, String fileName, String remotePath, int fileSize, State state) {
+      String mimeType, String fileName, String remotePath, int fileSize) {
     this.mimeType = mimeType;
     this.fileName = fileName;
     this.fileSize = fileSize;
-    this.state = state;
     this.remotePath = remotePath;
   }
 

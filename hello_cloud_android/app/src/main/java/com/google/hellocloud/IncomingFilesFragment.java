@@ -17,7 +17,6 @@ import com.google.hellocloud.databinding.FragmentIncomingFilesBinding;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 
 public class IncomingFilesFragment extends ListOnEndpointFragment {
