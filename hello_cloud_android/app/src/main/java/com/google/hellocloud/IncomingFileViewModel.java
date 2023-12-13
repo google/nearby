@@ -1,24 +1,12 @@
 package com.google.hellocloud;
 
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.provider.MediaStore;
-
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
-
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
-import com.google.firebase.storage.FileDownloadTask;
 import com.google.gson.Gson;
-
-import java.io.File;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 public final class IncomingFileViewModel extends BaseObservable {
   enum State {
@@ -32,8 +20,9 @@ public final class IncomingFileViewModel extends BaseObservable {
   public String remotePath;
   public int fileSize;
 
-  // Do not serialize state
+  // Do not serialize
   private transient State state;
+  private transient Uri localUri;
 
   public State getState() {
     return state;
@@ -41,7 +30,13 @@ public final class IncomingFileViewModel extends BaseObservable {
 
   public IncomingFileViewModel setState(State value) {
     state = value;
+    notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    return this;
+  }
+
+  public IncomingFileViewModel setLocalUri(Uri uri) {
+    this.localUri = uri;
     return this;
   }
 
@@ -70,45 +65,24 @@ public final class IncomingFileViewModel extends BaseObservable {
     return MainViewModel.shared.context.getResources().getDrawable(resource, null);
   }
 
-  public IncomingFileViewModel(
-      String mimeType, String fileName, String remotePath, int fileSize) {
+  public IncomingFileViewModel(String mimeType, String fileName, String remotePath, int fileSize) {
     this.mimeType = mimeType;
     this.fileName = fileName;
     this.fileSize = fileSize;
     this.remotePath = remotePath;
   }
 
-  public void download(
-      OnSuccessListener<FileDownloadTask.TaskSnapshot> successListener,
-      OnFailureListener failureListener) {
+  public Task<Void> download() {
     if (state != State.RECEIVED) {
-      failureListener.onFailure(new Exception("Already downloaded or being downloaded."));
+      return Tasks.forResult(null);
     }
 
     setState(State.DOWNLOADING);
 
-    // Create a local uri
-    ContentResolver resolver = MainViewModel.shared.context.getContentResolver();
-    Uri uriFolder = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-
-    File file = new File(uriFolder.getPath(), fileName);
-
-//    ContentValues content = new ContentValues();
-//    content.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
-//    Uri uri = resolver.insert(uriFolder, content);
-
-    CloudStorage.shared
-        .download(remotePath, file)
-        .addOnSuccessListener(
-            result -> {
-              setState(State.DOWNLOADED);
-            })
-        .addOnFailureListener(
-            exception -> {
-              setState(State.RECEIVED);
-            })
-        .addOnSuccessListener(successListener)
-        .addOnFailureListener(failureListener);
+    return CloudStorage.shared
+        .download(remotePath, localUri)
+        .addOnSuccessListener(result -> setState(State.DOWNLOADED))
+        .addOnFailureListener(error -> setState(State.RECEIVED));
   }
 
   public static IncomingFileViewModel[] decodeIncomingFiles(String json) {

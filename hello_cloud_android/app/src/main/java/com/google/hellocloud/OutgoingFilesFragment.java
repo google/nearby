@@ -5,7 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +16,6 @@ import androidx.annotation.NonNull;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import com.google.hellocloud.databinding.FragmentOutgoingFilesBinding;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,14 +57,14 @@ public class OutgoingFilesFragment extends ListOnEndpointFragment {
       Cursor cursor =
           resolver.query(
               uri,
-              new String[] {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE},
+              new String[] {MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE},
               null,
               null,
               null);
 
       assert cursor != null;
-      int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-      int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+      int nameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
+      int sizeIndex = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE);
       cursor.moveToFirst();
 
       String name = cursor.getString(nameIndex);

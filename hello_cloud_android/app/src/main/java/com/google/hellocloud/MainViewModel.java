@@ -224,9 +224,9 @@ public final class MainViewModel extends BaseObservable {
         .getIncomingFiles()
         .add(
             new IncomingFileViewModel(
-                    "image/jpeg",
-                    "IMG_1001.jpeg",
-                    "2C84B738-22B9-481A-9D18-8A37FAC0202C.jpeg",
+                    "image/png",
+                    "4ABFE3D4-C4EE-435C-86BD-318299E5AE8D.jpeg",
+                    "4ABFE3D4-C4EE-435C-86BD-318299E5AE8D.jpeg",
                     100000)
                 .setState(IncomingFileViewModel.State.RECEIVED));
     endpoint2

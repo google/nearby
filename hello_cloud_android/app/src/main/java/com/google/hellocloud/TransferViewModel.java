@@ -60,6 +60,23 @@ public class TransferViewModel {
     return MainViewModel.shared.context.getResources().getDrawable(resource, null);
   }
 
+  public String getDescription() {
+    switch (direction) {
+      case UPLOAD, DOWNLOAD -> {
+        if (result == Result.SUCCESS) {
+          float sizeInMB = (float) size / 1048576;
+          return String.format("%.1f MB at %.1f MB/s", sizeInMB, sizeInMB / duration.toSeconds());
+        } else {
+          return remotePath;
+        }
+      }
+      case SEND, RECEIVE -> {
+        return to != null ? to : from;
+      }
+    }
+    return null;
+  }
+
   public TransferViewModel(Direction direction, String remotePath, Result result, int size, Duration duration, String from, String to) {
     this.direction = direction;
     this.remotePath = remotePath;

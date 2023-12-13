@@ -4,7 +4,6 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
-
 import com.google.android.gms.tasks.Task;
 import com.google.gson.Gson;
 import java.util.List;
@@ -24,7 +23,7 @@ public final class OutgoingFileViewModel extends BaseObservable {
   public String remotePath;
   public int fileSize;
 
-  // Do not serialize state
+  // Do not serialize
   private transient State state;
   private transient Uri localUri;
 
@@ -84,6 +83,7 @@ public final class OutgoingFileViewModel extends BaseObservable {
   }
 
   public Task<Void> upload() {
+    setState(State.UPLOADING);
     remotePath = UUID.randomUUID().toString().toUpperCase();
     String ext = null;
     if ("image/jpeg".equals(mimeType)) {
@@ -96,6 +96,8 @@ public final class OutgoingFileViewModel extends BaseObservable {
       remotePath += "." + ext;
     }
 
-    return CloudStorage.shared.upload(remotePath, localUri);
+    return CloudStorage.shared
+        .upload(remotePath, localUri)
+        .addOnSuccessListener(result -> setState(State.UPLOADED), error -> setState(State.PICKED));
   }
 }

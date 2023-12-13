@@ -54,6 +54,11 @@ public final class EndpointViewModel extends BaseObservable {
 
   private State state = State.DISCOVERED;
 
+  public EndpointViewModel(String id, String name) {
+    this.id = id;
+    this.name = name;
+  }
+
   @Bindable
   public String getId() {
     return id;
@@ -112,15 +117,22 @@ public final class EndpointViewModel extends BaseObservable {
     return transfers;
   }
 
-  public EndpointViewModel(String id, String name) {
-    this.id = id;
-    this.name = name;
+  public void addTransfer(TransferViewModel transfer) {
+    transfers.add(transfer);
+    notifyPropertyChanged(BR.transfers);
   }
 
   public EndpointViewModel(String id, String name, boolean isIncoming) {
     this.id = id;
     this.name = name;
     this.isIncoming = isIncoming;
+  }
+
+  public void onMediaPicked(List<OutgoingFileViewModel> files) {
+    // The UI triggers a media picker and up completion, calls us.
+    outgoingFiles.clear();
+    outgoingFiles.addAll(files);
+    notifyPropertyChanged(BR.outgoingFiles);
   }
 
   void uploadFiles() {
@@ -154,17 +166,6 @@ public final class EndpointViewModel extends BaseObservable {
                           file.remotePath, TransferViewModel.Result.FAILURE, file.fileSize, null);
                   addTransfer(transfer);
                 });
-
-        //            .addOnFailureListener(
-        //                error -> {
-        //                  logErrorAndToast(MainViewModel.shared.context,
-        // R.string.error_toast_cannot_upload, error.getMessage());
-        //                  TransferViewModel transfer =
-        //                      TransferViewModel.upload(
-        //                          file.remotePath, TransferViewModel.Result.FAILURE,
-        // file.fileSize, null);
-        //                  addTransfer(transfer);
-        //                });
       }
     }
   }
@@ -190,26 +191,6 @@ public final class EndpointViewModel extends BaseObservable {
                 addTransfer(transfer);
               }
             });
-  }
-
-  public void onMediaPicked(List<OutgoingFileViewModel> files) {
-    outgoingFiles.clear();
-    outgoingFiles.addAll(files);
-    notifyPropertyChanged(BR.outgoingFiles);
-  }
-
-  public void onFilesReceived(String json) {
-    setState(State.RECEIVING);
-    IncomingFileViewModel[] files = IncomingFileViewModel.decodeIncomingFiles(json);
-    for (IncomingFileViewModel file : files) {
-      TransferViewModel transfer =
-          TransferViewModel.receive(file.remotePath, TransferViewModel.Result.SUCCESS, id);
-      addTransfer(transfer);
-      file.setState(IncomingFileViewModel.State.RECEIVED);
-    }
-    // We intentionally do not clean incoming files, since some may not have been downloaded yet
-    incomingFiles.addAll(Arrays.asList(files));
-    notifyPropertyChanged(BR.incomingFiles);
   }
 
   public void onFilesSendUpdate(int status) {
@@ -238,9 +219,51 @@ public final class EndpointViewModel extends BaseObservable {
     }
   }
 
-  public void addTransfer(TransferViewModel transfer) {
-    transfers.add(transfer);
-    notifyPropertyChanged(BR.transfers);
+  public void onFilesReceived(String json) {
+    setState(State.RECEIVING);
+    IncomingFileViewModel[] files = IncomingFileViewModel.decodeIncomingFiles(json);
+    for (IncomingFileViewModel file : files) {
+      TransferViewModel transfer =
+          TransferViewModel.receive(file.remotePath, TransferViewModel.Result.SUCCESS, id);
+      addTransfer(transfer);
+      file.setState(IncomingFileViewModel.State.RECEIVED);
+    }
+    // We intentionally do not clean incoming files, since some may not have been downloaded yet
+    incomingFiles.addAll(Arrays.asList(files));
+    notifyPropertyChanged(BR.incomingFiles);
+  }
+
+  public void downloadFiles() {
+    for (IncomingFileViewModel file : incomingFiles) {
+      if (file.getState() == IncomingFileViewModel.State.RECEIVED) {
+        Instant beginTime = Instant.now();
+        file.download()
+            .addOnSuccessListener(
+                result -> {
+                  Instant endTime = Instant.now();
+                  Duration duration = Duration.between(beginTime, endTime);
+                  TransferViewModel transfer =
+                      TransferViewModel.download(
+                          file.remotePath,
+                          TransferViewModel.Result.SUCCESS,
+                          file.fileSize,
+                          duration);
+                  addTransfer(transfer);
+                })
+            .addOnFailureListener(
+                error -> {
+                  logErrorAndToast(
+                      MainViewModel.shared.context,
+                      R.string.error_toast_cannot_download,
+                      error.getMessage());
+
+                  TransferViewModel transfer =
+                      TransferViewModel.download(
+                          file.remotePath, TransferViewModel.Result.FAILURE, file.fileSize, null);
+                  addTransfer(transfer);
+                });
+      }
+    }
   }
 
   @NonNull
