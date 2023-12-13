@@ -187,7 +187,8 @@ public final class EndpointViewModel extends BaseObservable {
               setState(EndpointViewModel.State.CONNECTED);
               for (OutgoingFileViewModel file : outgoingFiles) {
                 TransferViewModel transfer =
-                    TransferViewModel.send(file.remotePath, TransferViewModel.Result.FAILURE, id);
+                    TransferViewModel.send(
+                        file.remotePath, TransferViewModel.Result.FAILURE, this.toString());
                 addTransfer(transfer);
               }
             });
@@ -201,7 +202,8 @@ public final class EndpointViewModel extends BaseObservable {
     if (status == PayloadTransferUpdate.Status.SUCCESS) {
       for (OutgoingFileViewModel file : outgoingFiles) {
         TransferViewModel transfer =
-            TransferViewModel.send(file.remotePath, TransferViewModel.Result.SUCCESS, id);
+            TransferViewModel.send(
+                file.remotePath, TransferViewModel.Result.SUCCESS, this.toString());
         addTransfer(transfer);
       }
       boolean isSending = getState() == EndpointViewModel.State.SENDING;
@@ -212,7 +214,8 @@ public final class EndpointViewModel extends BaseObservable {
     } else {
       for (OutgoingFileViewModel file : outgoingFiles) {
         TransferViewModel transfer =
-            TransferViewModel.send(file.remotePath, TransferViewModel.Result.FAILURE, id);
+            TransferViewModel.send(
+                file.remotePath, TransferViewModel.Result.FAILURE, this.toString());
         addTransfer(transfer);
       }
       setState(EndpointViewModel.State.CONNECTED);
@@ -224,7 +227,8 @@ public final class EndpointViewModel extends BaseObservable {
     IncomingFileViewModel[] files = IncomingFileViewModel.decodeIncomingFiles(json);
     for (IncomingFileViewModel file : files) {
       TransferViewModel transfer =
-          TransferViewModel.receive(file.remotePath, TransferViewModel.Result.SUCCESS, id);
+          TransferViewModel.receive(
+              file.remotePath, TransferViewModel.Result.SUCCESS, this.toString());
       addTransfer(transfer);
       file.setState(IncomingFileViewModel.State.RECEIVED);
     }
