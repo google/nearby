@@ -441,7 +441,7 @@ enum OperationResultCategory {
 
 // This enum is not used to determine success rate, but for devs to understand
 // occurrences of and operation failure details
-enum OperationResultDetail {
+enum OperationResultCode {
   // Section of CATEGORY_UNKNOWN and CATEGORY_SUCCESS, from 0 to 499
   // DETAIL_UNKNOWN should not happen in normal case
   DETAIL_UNKNOWN = 0;
