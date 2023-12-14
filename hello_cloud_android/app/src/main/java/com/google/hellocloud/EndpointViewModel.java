@@ -59,6 +59,12 @@ public final class EndpointViewModel extends BaseObservable {
     this.name = name;
   }
 
+  public EndpointViewModel(String id, String name, boolean isIncoming) {
+    this.id = id;
+    this.name = name;
+    this.isIncoming = isIncoming;
+  }
+
   @Bindable
   public String getId() {
     return id;
@@ -79,6 +85,8 @@ public final class EndpointViewModel extends BaseObservable {
     notifyPropertyChanged(BR.state);
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    notifyPropertyChanged(BR.canPick);
+    notifyPropertyChanged(BR.canUpload);
   }
 
   @Bindable
@@ -90,14 +98,11 @@ public final class EndpointViewModel extends BaseObservable {
   public Drawable getStateIcon() {
     int resource;
     switch (state) {
-      case CONNECTED:
-        resource = R.drawable.connected;
-        break;
-      case DISCOVERED:
-        resource = R.drawable.discovered;
-        break;
-      default:
+      case CONNECTED -> resource = R.drawable.connected;
+      case DISCOVERED -> resource = R.drawable.discovered;
+      default -> {
         return null;
+      }
     }
     return MainViewModel.shared.context.getResources().getDrawable(resource, null);
   }
@@ -117,15 +122,34 @@ public final class EndpointViewModel extends BaseObservable {
     return transfers;
   }
 
+  @Bindable
+  public boolean getCanDownload() {
+    return incomingFiles.stream()
+        .anyMatch(f -> f.getState() == IncomingFileViewModel.State.RECEIVED);
+  }
+
+  @Bindable
+  public boolean getCanPick() {
+    return state == State.CONNECTED
+        && outgoingFiles.stream().noneMatch(OutgoingFileViewModel::getIsBusy);
+  }
+
+  @Bindable
+  public boolean getCanUpload() {
+    return outgoingFiles.stream().anyMatch(f -> f.getState() == OutgoingFileViewModel.State.PICKED);
+  }
+
+  @Bindable
+  public boolean getCanSend() {
+    return state == State.CONNECTED
+        && !outgoingFiles.isEmpty()
+        && outgoingFiles.stream()
+            .allMatch(f -> f.getState() == OutgoingFileViewModel.State.UPLOADED);
+  }
+
   public void addTransfer(TransferViewModel transfer) {
     transfers.add(transfer);
     notifyPropertyChanged(BR.transfers);
-  }
-
-  public EndpointViewModel(String id, String name, boolean isIncoming) {
-    this.id = id;
-    this.name = name;
-    this.isIncoming = isIncoming;
   }
 
   public void onMediaPicked(List<OutgoingFileViewModel> files) {
@@ -133,6 +157,9 @@ public final class EndpointViewModel extends BaseObservable {
     outgoingFiles.clear();
     outgoingFiles.addAll(files);
     notifyPropertyChanged(BR.outgoingFiles);
+    notifyPropertyChanged(BR.canPick);
+    notifyPropertyChanged(BR.canUpload);
+    notifyPropertyChanged(BR.canSend);
   }
 
   void uploadFiles() {
@@ -209,7 +236,11 @@ public final class EndpointViewModel extends BaseObservable {
       boolean isSending = getState() == EndpointViewModel.State.SENDING;
       setState(EndpointViewModel.State.CONNECTED);
       if (isSending) {
-        getOutgoingFiles().clear();
+        outgoingFiles.clear();
+        notifyPropertyChanged(BR.outgoingFiles);
+        notifyPropertyChanged(BR.canPick);
+        notifyPropertyChanged(BR.canUpload);
+        notifyPropertyChanged(BR.canSend);
       }
     } else {
       for (OutgoingFileViewModel file : outgoingFiles) {
@@ -235,6 +266,7 @@ public final class EndpointViewModel extends BaseObservable {
     // We intentionally do not clean incoming files, since some may not have been downloaded yet
     incomingFiles.addAll(Arrays.asList(files));
     notifyPropertyChanged(BR.incomingFiles);
+    notifyPropertyChanged(BR.canDownload);
   }
 
   public void downloadFiles() {

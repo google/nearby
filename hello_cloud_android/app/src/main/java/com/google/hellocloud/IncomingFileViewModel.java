@@ -32,6 +32,7 @@ public final class IncomingFileViewModel extends BaseObservable {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    notifyPropertyChanged(BR.canDownload);
     return this;
   }
 
@@ -53,14 +54,11 @@ public final class IncomingFileViewModel extends BaseObservable {
 
     int resource;
     switch (state) {
-      case RECEIVED:
-        resource = R.drawable.received;
-        break;
-      case DOWNLOADED:
-        resource = R.drawable.downloaded;
-        break;
-      default:
+      case RECEIVED -> resource = R.drawable.received;
+      case DOWNLOADED -> resource = R.drawable.downloaded;
+      default -> {
         return null;
+      }
     }
     return MainViewModel.shared.context.getResources().getDrawable(resource, null);
   }

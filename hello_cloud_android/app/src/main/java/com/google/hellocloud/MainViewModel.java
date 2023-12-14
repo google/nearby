@@ -194,31 +194,31 @@ public final class MainViewModel extends BaseObservable {
     result.addEndpoint(new EndpointViewModel("R2D2", "Debug droid"));
 
     EndpointViewModel endpoint2 = new EndpointViewModel("C3PO", "Fuzzy droid");
-    endpoint2
-        .getOutgoingFiles()
-        .add(
-            new OutgoingFileViewModel("image/jpeg", "IMG_0001.jpeg", "1234", 100000)
-                .setState(OutgoingFileViewModel.State.PICKED));
-    endpoint2
-        .getOutgoingFiles()
-        .add(
-            new OutgoingFileViewModel("image/jpeg", "IMG_0002.jpeg", "5678", 100000)
-                .setState(OutgoingFileViewModel.State.LOADING));
-    endpoint2
-        .getOutgoingFiles()
-        .add(
-            new OutgoingFileViewModel("image/jpeg", "IMG_0003.jpeg", "5678", 100000)
-                .setState(OutgoingFileViewModel.State.LOADED));
-    endpoint2
-        .getOutgoingFiles()
-        .add(
-            new OutgoingFileViewModel("image/jpeg", "IMG_0004.jpeg", "5678", 100000)
-                .setState(OutgoingFileViewModel.State.UPLOADED));
-    endpoint2
-        .getOutgoingFiles()
-        .add(
-            new OutgoingFileViewModel("image/jpeg", "IMG_0005.jpeg", "5678", 100000)
-                .setState(OutgoingFileViewModel.State.UPLOADED));
+//    endpoint2
+//        .getOutgoingFiles()
+//        .add(
+//            new OutgoingFileViewModel("image/jpeg", "IMG_0001.jpeg", "1234", 100000)
+//                .setState(OutgoingFileViewModel.State.PICKED));
+//    endpoint2
+//        .getOutgoingFiles()
+//        .add(
+//            new OutgoingFileViewModel("image/jpeg", "IMG_0002.jpeg", "5678", 100000)
+//                .setState(OutgoingFileViewModel.State.UPLOADING));
+//    endpoint2
+//        .getOutgoingFiles()
+//        .add(
+//            new OutgoingFileViewModel("image/jpeg", "IMG_0003.jpeg", "5678", 100000)
+//                .setState(OutgoingFileViewModel.State.UPLOADED));
+//    endpoint2
+//        .getOutgoingFiles()
+//        .add(
+//            new OutgoingFileViewModel("image/jpeg", "IMG_0004.jpeg", "5678", 100000)
+//                .setState(OutgoingFileViewModel.State.UPLOADED));
+//    endpoint2
+//        .getOutgoingFiles()
+//        .add(
+//            new OutgoingFileViewModel("image/jpeg", "IMG_0005.jpeg", "5678", 100000)
+//                .setState(OutgoingFileViewModel.State.UPLOADED));
 
     endpoint2
         .getIncomingFiles()

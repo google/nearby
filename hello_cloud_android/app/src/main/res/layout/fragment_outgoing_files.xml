@@ -34,6 +34,7 @@
                 android:layout_height="match_parent"
                 android:layout_margin="10dp"
                 android:drawableStart="@drawable/pick"
+                android:enabled="@{endpointViewModel.canPick}"
                 android:text="Pick" />
 
             <Button
@@ -43,6 +44,7 @@
                 android:layout_height="match_parent"
                 android:layout_margin="10dp"
                 android:drawableStart="@drawable/upload"
+                android:enabled="@{endpointViewModel.canUpload}"
                 android:text="Upload" />
 
             <Button
@@ -52,6 +54,7 @@
                 android:layout_height="match_parent"
                 android:layout_margin="10dp"
                 android:drawableStart="@drawable/send"
+                android:enabled="@{endpointViewModel.canSend}"
                 android:text="Send" />
         </LinearLayout>
 

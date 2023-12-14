@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import androidx.annotation.NonNull;
+import androidx.databinding.Bindable;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import com.google.hellocloud.databinding.FragmentIncomingFilesBinding;

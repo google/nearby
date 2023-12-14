@@ -12,8 +12,6 @@ import java.util.UUID;
 public final class OutgoingFileViewModel extends BaseObservable {
   enum State {
     PICKED,
-    LOADING,
-    LOADED,
     UPLOADING,
     UPLOADED
   }
@@ -35,6 +33,9 @@ public final class OutgoingFileViewModel extends BaseObservable {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    notifyPropertyChanged(BR.canPick);
+    notifyPropertyChanged(BR.canUpload);
+    notifyPropertyChanged(BR.canSend);
     return this;
   }
 
@@ -45,7 +46,7 @@ public final class OutgoingFileViewModel extends BaseObservable {
 
   @Bindable
   public boolean getIsBusy() {
-    return state == State.UPLOADING || state == State.LOADING;
+    return state == State.UPLOADING;
   }
 
   @Bindable
@@ -56,17 +57,11 @@ public final class OutgoingFileViewModel extends BaseObservable {
 
     int resource;
     switch (state) {
-      case LOADED:
-        resource = R.drawable.loaded;
-        break;
-      case PICKED:
-        resource = R.drawable.picked;
-        break;
-      case UPLOADED:
-        resource = R.drawable.uploaded;
-        break;
-      default:
+      case PICKED -> resource = R.drawable.picked;
+      case UPLOADED -> resource = R.drawable.uploaded;
+      default -> {
         return null;
+      }
     }
     return MainViewModel.shared.context.getResources().getDrawable(resource, null);
   }
