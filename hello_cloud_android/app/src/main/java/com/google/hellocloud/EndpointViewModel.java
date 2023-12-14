@@ -192,6 +192,13 @@ public final class EndpointViewModel extends BaseObservable {
                       TransferViewModel.upload(
                           file.remotePath, TransferViewModel.Result.FAILURE, file.fileSize, null);
                   addTransfer(transfer);
+                })
+            .continueWith(
+                result -> {
+                  notifyPropertyChanged(BR.canPick);
+                  notifyPropertyChanged(BR.canUpload);
+                  notifyPropertyChanged(BR.canSend);
+                  return null;
                 });
       }
     }
