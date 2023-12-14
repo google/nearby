@@ -71,7 +71,7 @@ struct IncomingFilesView: View {
           .buttonStyle(.bordered)
           .disabled(model.incomingFiles.isEmpty ||
                     model.incomingFiles.allSatisfy(
-                      {$0.state == .downloaded || $0.state == .downloaded}))
+                      {$0.state == .downloaded || $0.state == .downloading}))
 
           ForEach(model.incomingFiles) {file in
             HStack {
