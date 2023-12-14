@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="mainViewModel"
+            type="com.google.hellocloud.MainViewModel" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        tools:context=".MainFragment">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Endpoint ID -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/localEndpointIdLabel"
+                    style="@style/TitleTextStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@+id/localEndpointId"
+                    android:drawableStart="@drawable/id"
+                    android:text="ID" />
+
+                <TextView
+                    android:id="@+id/localEndpointId"
+                    style="@style/TitleTextStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="3"
+                    android:layout_height="45dp"
+                    android:text="@={mainViewModel.localEndpointId}" />
+            </LinearLayout>
+
+            <!-- Endpoint Name -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/localEndpointNameLabel"
+                    style="@style/TitleTextStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@+id/localEndpointName"
+                    android:drawableStart="@drawable/name"
+                    android:text="Name" />
+
+                <EditText
+                    android:id="@+id/localEndpointName"
+                    android:layout_width="0dp"
+                    android:layout_weight="3"
+                    android:layout_height="45dp"
+                    android:autofillHints="The name visible to devices discovering"
+                    android:imeOptions="actionDone"
+                    android:inputType="text"
+                    android:text="@={mainViewModel.localEndpointName}" />
+            </LinearLayout>
+
+            <!-- Advertising -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/TitleTextStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:labelFor="@+id/advertisingSwitch"
+                    android:text="Advertising" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@id/advertisingSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="@={mainViewModel.isAdvertising}" />
+            </LinearLayout>
+
+            <!-- Discovering -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/TitleTextStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:labelFor="@+id/discoveringSwitch"
+                    android:text="Discovering" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@id/discoveringSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="@={mainViewModel.isDiscovering}" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/endpointList"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="vertical"
+            app:entries="@{mainViewModel.endpoints}" />
+
+    </LinearLayout>
+</layout>

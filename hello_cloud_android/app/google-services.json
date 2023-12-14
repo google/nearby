@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "929507197760",
+    "project_id": "hello-cloud-5b73c",
+    "storage_bucket": "hello-cloud-5b73c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:929507197760:android:379672d022b043808f30a5",
+        "android_client_info": {
+          "package_name": "com.google.hellocloud"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6lr2cvbzlc-q6FAXh7FjabqIAexPf5ps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
