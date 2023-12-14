@@ -126,6 +126,7 @@
                 android:layout_margin="10dp"
                 android:layout_weight="1"
                 android:drawableStart="@drawable/connect"
+                android:enabled="@{endpointViewModel.state == com.google.hellocloud.EndpointViewModel.State.DISCOVERED}"
                 android:text="Connect" />
 
             <Button
@@ -135,6 +136,7 @@
                 android:layout_margin="10dp"
                 android:layout_weight="1"
                 android:drawableStart="@drawable/disconnect"
+                android:enabled="@{endpointViewModel.state == com.google.hellocloud.EndpointViewModel.State.CONNECTED}"
                 android:text="Disonnect" />
         </LinearLayout>
 
