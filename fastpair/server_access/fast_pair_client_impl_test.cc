@@ -56,7 +56,6 @@
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/task_runner.h"
-#include "internal/platform/task_runner_impl.h"
 #include "internal/preferences/preferences_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/google3_only/fake_authentication_manager.h"
@@ -153,10 +152,8 @@ class FastPairClientImplTest : public ::testing::Test,
     AccountManager::Account account;
     account.id = kTestAccountId;
     account_manager_ = std::make_unique<FakeAccountManager>(
-        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
-        authentication_manager_.get(), task_runner_.get());
+        preferences_manager_.get(), prefs::kNearbyFastPairUsersName);
     account_manager_->SetAccount(account);
-    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
     device_info_ = std::make_unique<FakeDeviceInfo>();
   }
 
@@ -240,7 +237,6 @@ class FastPairClientImplTest : public ::testing::Test,
   std::unique_ptr<FakeAccountManager> account_manager_;
   std::unique_ptr<FastPairClient> fast_pair_client_;
   std::unique_ptr<DeviceInfo> device_info_;
-  std::unique_ptr<TaskRunner> task_runner_;
   ::testing::NiceMock<MockHttpClient>* http_client_;
   std::unique_ptr<MockHttpClient> mock_http_client_;
   FastPairHttpNotifier notifier_;
