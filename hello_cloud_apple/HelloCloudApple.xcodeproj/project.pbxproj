@@ -17,7 +17,7 @@
 		23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 23F6A71029D772B800558F56 /* NearbyConnections */; };
 		23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointView.swift */; };
 		7755C5752B199539003A9E0B /* CloudStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7755C5742B199539003A9E0B /* CloudStorage.swift */; };
-		7755C5BB2B199C08003A9E0B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7755C5BA2B199C08003A9E0B /* GoogleService-Info.plist */; };
+		777392172B2CE0FC002FE3BA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */; };
 		77DCB0D32B1B1086002A6FB2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */; };
 		77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C742B110CA600838C24 /* IncomingFile.swift */; };
 		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
@@ -39,7 +39,7 @@
 		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ..; sourceTree = "<group>"; };
 		23F6A71229D7ADCE00558F56 /* EndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointView.swift; sourceTree = "<group>"; };
 		7755C5742B199539003A9E0B /* CloudStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorage.swift; sourceTree = "<group>"; };
-		7755C5BA2B199C08003A9E0B /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		77CD19D02B19442100654BA2 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		77E09C742B110CA600838C24 /* IncomingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFile.swift; sourceTree = "<group>"; };
 		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
@@ -83,8 +83,8 @@
 		23252B5429D739E400BB0370 /* HelloCloudApple */ = {
 			isa = PBXGroup;
 			children = (
+				777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */,
 				77CD19D02B19442100654BA2 /* Info.plist */,
-				7755C5BA2B199C08003A9E0B /* GoogleService-Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
 				23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */,
 				23252B5729D739E400BB0370 /* MainView.swift */,
@@ -202,7 +202,7 @@
 			files = (
 				23252B5D29D739E500BB0370 /* Preview Assets.xcassets in Resources */,
 				23252B5A29D739E500BB0370 /* Assets.xcassets in Resources */,
-				7755C5BB2B199C08003A9E0B /* GoogleService-Info.plist in Resources */,
+				777392172B2CE0FC002FE3BA /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,7 +354,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
-				DEVELOPMENT_TEAM = C2D8V6M23S;
+				DEVELOPMENT_TEAM = QFP2RZ8L7U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HelloCloudApple/Info.plist;
@@ -371,7 +371,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.google.deling.hello-cloud";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.deling.hello-cloud";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -389,7 +389,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
-				DEVELOPMENT_TEAM = C2D8V6M23S;
+				DEVELOPMENT_TEAM = QFP2RZ8L7U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HelloCloudApple/Info.plist;
@@ -406,7 +406,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.google.deling.hello-cloud";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.deling.hello-cloud";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
