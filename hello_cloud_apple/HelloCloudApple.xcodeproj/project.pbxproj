@@ -18,6 +18,9 @@
 		23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointView.swift */; };
 		7755C5752B199539003A9E0B /* CloudStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7755C5742B199539003A9E0B /* CloudStorage.swift */; };
 		777392172B2CE0FC002FE3BA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */; };
+		777392192B2CE8E1002FE3BA /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 777392182B2CE8E1002FE3BA /* FirebaseMessaging */; };
+		7773921B2B2CE8E1002FE3BA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 7773921A2B2CE8E1002FE3BA /* FirebaseStorage */; };
+		7773921D2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 7773921C2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community */; };
 		77DCB0D32B1B1086002A6FB2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */; };
 		77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C742B110CA600838C24 /* IncomingFile.swift */; };
 		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
@@ -40,6 +43,7 @@
 		23F6A71229D7ADCE00558F56 /* EndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointView.swift; sourceTree = "<group>"; };
 		7755C5742B199539003A9E0B /* CloudStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorage.swift; sourceTree = "<group>"; };
 		777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		7773921E2B2CED78002FE3BA /* HelloCloudApple.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HelloCloudApple.entitlements; sourceTree = "<group>"; };
 		77CD19D02B19442100654BA2 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		77E09C742B110CA600838C24 /* IncomingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFile.swift; sourceTree = "<group>"; };
 		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
@@ -54,6 +58,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				777392192B2CE8E1002FE3BA /* FirebaseMessaging in Frameworks */,
+				7773921B2B2CE8E1002FE3BA /* FirebaseStorage in Frameworks */,
+				7773921D2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community in Frameworks */,
 				23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */,
 				77DCB0D32B1B1086002A6FB2 /* FirebaseStorage in Frameworks */,
 			);
@@ -83,6 +90,7 @@
 		23252B5429D739E400BB0370 /* HelloCloudApple */ = {
 			isa = PBXGroup;
 			children = (
+				7773921E2B2CED78002FE3BA /* HelloCloudApple.entitlements */,
 				777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */,
 				77CD19D02B19442100654BA2 /* Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
@@ -154,6 +162,9 @@
 			packageProductDependencies = (
 				23F6A71029D772B800558F56 /* NearbyConnections */,
 				77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */,
+				777392182B2CE8E1002FE3BA /* FirebaseMessaging */,
+				7773921A2B2CE8E1002FE3BA /* FirebaseStorage */,
+				7773921C2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community */,
 			);
 			productName = HelloCloudApple;
 			productReference = 23252B5229D739E400BB0370 /* HelloCloudApple.app */;
@@ -351,6 +362,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = HelloCloudApple/HelloCloudApple.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
@@ -386,6 +398,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = HelloCloudApple/HelloCloudApple.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
@@ -454,6 +467,21 @@
 		23F6A71029D772B800558F56 /* NearbyConnections */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NearbyConnections;
+		};
+		777392182B2CE8E1002FE3BA /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		7773921A2B2CE8E1002FE3BA /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		7773921C2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseStorageCombine-Community";
 		};
 		77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */ = {
 			isa = XCSwiftPackageProductDependency;

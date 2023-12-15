@@ -6,5 +6,11 @@
 	<array>
 		<string>_307BEAB11028._tcp</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
