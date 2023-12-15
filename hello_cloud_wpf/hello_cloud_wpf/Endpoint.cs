@@ -154,7 +154,10 @@ namespace HelloCloudWpf {
 
         public EndpointViewModel() {
             connectCommand = new RelayCommand(
-                _ => MainViewModel.Instance.RequestConnection(Id),
+                _ => {
+                    State = EndpointModel.State.Pending;
+                    MainViewModel.Instance.RequestConnection(Id);
+                },
                 _ => State == EndpointModel.State.Discovered);
             sendCommand = new RelayCommand(
                 _ => MainViewModel.Instance.SendFiles(
@@ -163,7 +166,10 @@ namespace HelloCloudWpf {
                     && OutgoingFiles.Any()
                     && OutgoingFiles.All(file => file.State == OutgoingFileModel.State.Uploaded));
             disconnectCommand = new RelayCommand(
-                _ => MainViewModel.Instance.Disconnect(Id),
+                _ => {
+                    State = EndpointModel.State.Pending;
+                    MainViewModel.Instance.Disconnect(Id); 
+                },
                 _ => State == EndpointModel.State.Connected);
             pickFilesCommand = new RelayCommand(
                 _ => PickFiles(),
@@ -310,7 +316,7 @@ namespace HelloCloudWpf {
         }
 
         private static void LogTransferRate(long bytes, int milliseconds) {
-            if (bytes != 0) {
+            if (bytes != 0 && milliseconds != 0) {
                 // Transfer rate in kilobytes per second (KB/s). 1K = 1024, 1s = 1000ms
                 double transferRate = bytes / milliseconds / 1024.0 * 1000.0;
                 MainViewModel.Instance.Log($"Transferred {bytes} in {milliseconds} ms. {(int)transferRate:N0} KB/s");

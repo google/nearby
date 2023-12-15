@@ -29,7 +29,11 @@ namespace HelloCloudWpf {
         }
 
         public static IList<IncomingFileModel>? DecodeIncomingFiles(byte[] payload) {
-            return JsonSerializer.Deserialize<List<IncomingFileModel>>(payload);
+            try {
+                return JsonSerializer.Deserialize<List<IncomingFileModel>>(payload);
+            } catch {
+                return null;
+            }
         }
     }
 
