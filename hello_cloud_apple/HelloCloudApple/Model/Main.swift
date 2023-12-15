@@ -69,6 +69,10 @@ import UIKit
     discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
   }
   
+  func notifyReceiver() -> Void {
+    print("Notify the receiver")
+  }
+
   static func createDebugModel() -> Main {
     let model = Main();
     model.localEndpointName = Config.defaultEndpointName

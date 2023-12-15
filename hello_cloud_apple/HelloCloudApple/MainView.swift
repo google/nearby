@@ -55,6 +55,11 @@ struct MainView: View {
           }.foregroundColor(model.isDiscovering ? .red : .green)
         }
 
+        Section {
+          NavigationLink {DownloadsView()} label: {Text("Downloads")}
+          NavigationLink {UploadsView()} label: {Text("Uploads")}
+        }
+
         List {
           Section {
             ForEach(model.endpoints) { endpoint in
