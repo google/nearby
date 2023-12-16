@@ -42,8 +42,6 @@
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/task_runner_impl.h"
-#include "internal/test/google3_only/fake_authentication_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -180,10 +178,8 @@ class PairerBrokerImplTest : public testing::Test {
   PairerBrokerImplTest() {
     FastPairDataEncryptorImpl::Factory::SetFactoryForTesting(
         &fake_data_encryptor_factory_);
-    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
     preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
         kFastPairPreferencesFilePath);
-    authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
   }
 
   void SetUp() override {
@@ -191,8 +187,7 @@ class PairerBrokerImplTest : public testing::Test {
     // Setups seeker device.
     mediums_ = std::make_unique<Mediums>();
     account_manager_ = std::make_unique<FakeAccountManager>(
-        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
-        authentication_manager_.get(), task_runner_.get());
+        preferences_manager_.get(), prefs::kNearbyFastPairUsersName);
 
     // Setups provider device.
     adapter_provider_ = std::make_unique<BluetoothAdapter>();
@@ -417,8 +412,6 @@ class PairerBrokerImplTest : public testing::Test {
   MediumEnvironment& env_{MediumEnvironment::Instance()};
   Mutex mutex_;
   std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
-  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
-  std::unique_ptr<TaskRunner> task_runner_;
   std::unique_ptr<BluetoothClassicMedium> bt_provider_;
   std::unique_ptr<BluetoothAdapter> adapter_provider_;
   std::unique_ptr<GattServer> gatt_server_;
