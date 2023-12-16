@@ -71,6 +71,7 @@ import UIKit
   
   func notifyReceiver() -> Void {
     print("Notify the receiver")
+    CloudNotification.shared.helloWorld();
   }
 
   static func createDebugModel() -> Main {
