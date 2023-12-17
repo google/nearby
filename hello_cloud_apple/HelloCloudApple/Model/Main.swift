@@ -86,7 +86,8 @@ import UIKit
       isIncoming: false,
       state: .discovered
     ))
-//    
+    model.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
+//
 //    model.endpoints.append(Endpoint(
 //      id: "C3P0",
 //      name: "Fussy droid",

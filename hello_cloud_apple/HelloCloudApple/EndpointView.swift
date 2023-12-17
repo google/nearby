@@ -22,6 +22,7 @@ struct EndpointView: View {
 
   @EnvironmentObject var mainModel: Main
   @Environment(\.dismiss) var dismiss
+  @State private var showConfirmation: Bool = false
   @State private var photosPicked: [PhotosPickerItem] = []
   @State private var loadingPhotos = false
 
@@ -38,12 +39,6 @@ struct EndpointView: View {
     mainModel.disconnect(from: model.id) {
       error in
       print("Disconnect completed: " + (error?.localizedDescription ?? ""))
-    }
-  }
-
-  func onMediaPicked() -> Void {
-    Task {
-      await savePhotosAsync()
     }
   }
 
@@ -90,7 +85,7 @@ struct EndpointView: View {
       where: {$0.preferredMIMEType == "image/png"})
 
     let file = OutgoingFile(
-      mimeType: type?.preferredMIMEType ?? "",
+      mimeType: type?.preferredMIMEType ?? "application/octet-stream",
       fileSize: 0) // We don't know the file size yet. Will fill it once loaded.
 
     guard let data = try? await photo.loadTransferable(type: Data.self) else {
@@ -185,7 +180,7 @@ struct EndpointView: View {
           }
           .frame(maxWidth: .infinity)
           .disabled(loadingPhotos)
-          .onChange(of: photosPicked, onMediaPicked)
+          .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
         }
         .buttonStyle(.plain).fixedSize()
 
@@ -200,6 +195,14 @@ struct EndpointView: View {
             Label("Transfer Log", systemImage: "list.bullet.clipboard.fill")
           }
         }
+      }
+      .alert("Do you want to send the claim token to the remote endpoint? You will need to go to the uploads page and upload this packet. Once it's uploaded, the other device will get a notification and will be able to download.", isPresented: $showConfirmation) {
+        Button("Yes") {
+          Task {
+            await savePhotosAsync()
+          }
+        }
+        Button("No", role: .cancel) { }
       }
       .navigationTitle(model.name)
     }

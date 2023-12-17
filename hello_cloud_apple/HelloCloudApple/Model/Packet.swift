@@ -16,11 +16,13 @@
 
 import Foundation
 
-@Observable class Packet<T: File>: Encodable, Decodable {
+@Observable class Packet<T: File>: Identifiable, Encodable, Decodable {
   enum State: Int {
     case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
+  let id = UUID().uuidString
+  
   var notificationToken: String? = nil
   var files: [T] = []
   
@@ -43,9 +45,11 @@ import Foundation
     case notificationToken, files
   }
 
-  static func createDebugModel() {
+  static func createOutgoingDebugModel() -> Packet<OutgoingFile>{
     let result = Packet<OutgoingFile>()
     result.notificationToken = "abcd"
-    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", remotePath: "ABCD"))
+    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
+    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
+    return result
   }
 }

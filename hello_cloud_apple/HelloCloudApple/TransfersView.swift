@@ -80,6 +80,6 @@ extension Transfer.Result {
 #Preview {
   let mainModel = Main.createDebugModel()
   return TransfersView(
-    model: mainModel.endpoints[1]
+    model: mainModel.endpoints[0]
   ).environment(mainModel)
 }

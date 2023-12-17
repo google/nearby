@@ -11,11 +11,27 @@ struct UploadsView: View {
   @EnvironmentObject var model: Main
 
   var body: some View {
-    Button(action: { model.notifyReceiver() }) {
-      Text("Upload")}
+    Form {
+      Button(action: { model.notifyReceiver() }) {
+        Text("Upload")}
+      List {
+        Section {
+          ForEach(model.outgoingPackets) { packet in
+            HStack{
+              Text("Packet")
+              if packet.notificationToken != nil {
+                Text(" w/ token")
+              }
+            }
+          }
+        } header: {
+          Text("Uploads")
+        }
+      }
+    }
   }
 }
 
 #Preview {
-    UploadsView()
+  UploadsView().environment(Main.createDebugModel())
 }
