@@ -102,9 +102,6 @@ struct EndpointView: View {
 
 #Preview {
   EndpointView(
-    model: Endpoint(
-      id: "R2D2",
-      name: "Nice droid"
-    )
-  ).environment(Main.createDebugModel())
+    model: Main.shared.endpoints[0]
+  ).environment(Main.shared)
 }

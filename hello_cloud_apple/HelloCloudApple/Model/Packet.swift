@@ -16,11 +16,11 @@
 
 import Foundation
 
-class Packet: Encodable, Decodable {
+class Packet<T: File>: Encodable, Decodable {
   let notificationToken: String?
-  let files: [File]
+  let files: [T]
 
-  init(notificationToken: String?, files: [File]) {
+  init(notificationToken: String?, files: [T]) {
     self.notificationToken = notificationToken
     self.files = files
   }
@@ -28,13 +28,13 @@ class Packet: Encodable, Decodable {
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     notificationToken = try container.decode(String?.self, forKey: .notificationToken)
-    files = try container.decode([IncomingFile].self, forKey: .files)
+    files = try container.decode([T].self, forKey: .files)
   }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self) 
     try container.encode(notificationToken, forKey: .notificationToken)
-    try container.encode(files as? [OutgoingFile], forKey: .files)
+    try container.encode(files, forKey: .files)
   }
 
   enum CodingKeys: String, CodingKey {

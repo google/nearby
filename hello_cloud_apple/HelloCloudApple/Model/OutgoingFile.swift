@@ -16,38 +16,32 @@
 
 import Foundation
 
-@Observable class OutgoingFile: Identifiable, Hashable, Encodable, Decodable {
+@Observable class OutgoingFile: File, Hashable, Encodable, Decodable {
   enum State: Int {
     case picked, loading, loaded, uploading, uploaded
   }
 
   let id: UUID = UUID()
-  
-  // A suggested name for the receiver. It does not serve any other purposes. On iOS, we are only
-  // picking images which don't have names. So we'll just use a UUID. On Windows, we use
-  // the local file name.
-  let fileName: String
+
   let mimeType: String
+  @ObservationIgnored var fileSize: Int64
+  @ObservationIgnored var remotePath: String?
+
+  @ObservationIgnored var localUrl: URL?
   var state: State = .picked
 
-  @ObservationIgnored var fileSize: UInt64
-  @ObservationIgnored var remotePath: String?
-  @ObservationIgnored var localUrl: URL?
-
-  init(mimeType: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
+  init(mimeType: String, fileSize: Int64 = 0, remotePath: String? = nil) {
     self.mimeType = mimeType
     self.fileSize = fileSize
-    self.state = state
     self.remotePath = remotePath
-
-    if mimeType == "image/jpeg" {
-      fileName = UUID().uuidString + ".jpeg"
-    } else if mimeType == "image/png" {
-      fileName = UUID().uuidString + ".png"
-    } else {
-      fileName = UUID().uuidString
-    }
   }
+
+  static func createDebugModel(
+    mimeType: String, fileSize: Int64 = 0, remotePath: String? = nil, state: State = .picked) -> OutgoingFile {
+      let result = OutgoingFile(mimeType: mimeType, fileSize: fileSize, remotePath: remotePath)
+      result.state = state
+      return result
+    }
 
   func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
     guard let localUrl else {
@@ -58,11 +52,7 @@ import Foundation
       print("Media not saved. Skipping uploading.")
       return
     }
-    if fileName.isEmpty {
-      print("Local path is empty. This shouldn't happen!!!")
-      return
-    }
-    
+
     remotePath = UUID().uuidString
     if mimeType == "image/jpeg" {
       remotePath! += ".jpeg"
@@ -83,7 +73,7 @@ import Foundation
   func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case mimeType, fileName, remotePath, fileSize
+    case mimeType, remotePath, fileSize
   }
 
   static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> Data? {

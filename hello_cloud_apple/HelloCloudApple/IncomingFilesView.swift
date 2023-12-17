@@ -78,7 +78,7 @@ struct IncomingFilesView: View {
               Button(action: {
                 self.imageUrl = file.localUrl
               }) {
-                Label(file.fileName, systemImage: "doc")
+                Label(file.remotePath!, systemImage: "doc")
               }.buttonStyle(.borderless)
               Spacer()
               switch file.state {

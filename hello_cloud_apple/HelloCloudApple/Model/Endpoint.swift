@@ -43,19 +43,19 @@ import SwiftUI
 
   // var medium: Medium
   var state: State
-  var outgoingFiles: [OutgoingFile] = []
+  var outgoingPackets: [Packet<OutgoingFile>] = []
   var incomingFiles: [IncomingFile] = []
   var transfers: [Transfer] = []
 
   static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(id) }
 
-  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered, outgoingFiles: [OutgoingFile] = [], incomingFiles: [IncomingFile] = [], transfers: [Transfer] = []) {
+  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered, outgoingPackets: [Packet<OutgoingFile>] = [], incomingFiles: [IncomingFile] = [], transfers: [Transfer] = []) {
     self.id = id
     self.name = name
     self.isIncoming = isIncoming
     self.state = state
-    self.outgoingFiles = outgoingFiles
+    self.outgoingPackets = outgoingPackets
     self.incomingFiles = incomingFiles
     self.transfers = transfers
   }

@@ -22,25 +22,18 @@ import Foundation
   }
 
   let id: UUID = UUID()
-  
+
   let mimeType: String
-  // Suggested file name set by the sender. We don't need to honor it.
-  let fileName: String
-  // Actual url of the local file, once it's downloaded
-  @ObservationIgnored var localUrl: URL?
-
-  @ObservationIgnored var remotePath: String?
   @ObservationIgnored let fileSize: Int64
+  @ObservationIgnored var remotePath: String?
 
+  @ObservationIgnored var localUrl: URL?
   var state: State = .received
 
   init(mimeType: String, fileName: String, localUrl: URL? = nil, remotePath: String, fileSize: Int64, state: State = .received) {
     self.mimeType = mimeType
-    self.fileName = fileName
-    self.localUrl = localUrl
     self.remotePath = remotePath
     self.fileSize = fileSize
-    self.state = state
   }
 
   func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
@@ -74,7 +67,7 @@ import Foundation
   func hash(into hasher: inout Hasher){ hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case mimeType, fileName, remotePath, fileSize
+    case mimeType, remotePath, fileSize
   }
 
   static func decodeIncomingFiles(fromJson json: Data) -> [IncomingFile]? {
