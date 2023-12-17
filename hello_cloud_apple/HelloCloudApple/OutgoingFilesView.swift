@@ -25,8 +25,17 @@ struct OutgoingFilesView: View {
 
   @State private var photosPicked: [PhotosPickerItem] = []
   
-  func updateFileList() -> Void {
+  func onMediaPicked() -> Void {
     model.outgoingFiles.removeAll()
+
+    guard let directoryUrl = try? FileManager.default.url(
+      for: .documentDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true) else {
+      let error = NSError(domain: "Failed to obtain directory for downloading.", code: 1)
+      return
+    }
 
     for photo in photosPicked {
       let type =
@@ -45,6 +54,7 @@ struct OutgoingFilesView: View {
         guard let data = try? await photo.loadTransferable(type: Data.self) else {
           return
         }
+        var typedData: Data
         if file.mimeType == "image/jpeg" {
           guard let uiImage = UIImage(data: data) else {
             return
@@ -52,7 +62,7 @@ struct OutgoingFilesView: View {
           guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
             return
           }
-          file.data  = jpegData
+          typedData  = jpegData
           file.fileSize = UInt64(jpegData.count)
         }
         else if file.mimeType == "image/png" {
@@ -62,14 +72,22 @@ struct OutgoingFilesView: View {
           guard let pngData = uiImage.pngData() else {
             return
           }
-          file.data  = pngData
+          typedData  = pngData
           file.fileSize = UInt64(pngData.count)
         }
         else {
-          file.data = data
+          typedData = data
           file.fileSize = UInt64(data.count)
         }
 
+
+        let uri = directoryUrl.appendingPathComponent(UUID().uuidString)
+        do {
+          try typedData.write(to:uri)
+        } catch {
+          return;
+        }
+        file.localUri = uri
         file.state = .loaded
       }
     }
@@ -88,6 +106,7 @@ struct OutgoingFilesView: View {
               result: .success,
               size: Int(file.fileSize),
               duration: duration))
+            try? FileManager.default.removeItem(at: file.localUri!)
         }
       }
     }
@@ -111,11 +130,11 @@ struct OutgoingFilesView: View {
     Form {
       Section {
         HStack{
-          PhotosPicker(selection: $photosPicked, matching: .images) {
+          PhotosPicker(selection: $photosPicked, matching: .images, photoLibrary: .shared()) {
             Label("Pick", systemImage: "doc.fill.badge.plus").frame(maxWidth: .infinity)
           } // Can pick files only when no files are loading or uploading
           .disabled(!model.outgoingFiles.allSatisfy({$0.state != .loading && $0.state != .uploading}))
-          .onChange(of: photosPicked, updateFileList)
+          .onChange(of: photosPicked, onMediaPicked)
           
           Button(action: upload) {
             Label("Upload", systemImage: "arrow.up.circle.fill").frame(maxWidth: .infinity)

@@ -31,8 +31,8 @@ import Foundation
   var state: State
 
   @ObservationIgnored var fileSize: UInt64
-  @ObservationIgnored var data: Data?
   @ObservationIgnored var remotePath: String?
+  @ObservationIgnored var localUri: URL?
 
   init(mimeType: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
     self.mimeType = mimeType
@@ -50,12 +50,12 @@ import Foundation
   }
 
   func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
-    guard let data else {
-      print("Data is not loaded. Skipping uploading.")
+    guard let localUri else {
+      print("Media not saved. Skipping uploading.")
       return;
     }
     if state != .loaded {
-      print("File is not loaded. Skipping uploading.")
+      print("Media not saved. Skipping uploading.")
       return
     }
     if fileName.isEmpty {
@@ -72,7 +72,7 @@ import Foundation
 
     state = .uploading
 
-    CloudStorage.shared.upload(data, as: remotePath!) { [weak self] 
+    CloudStorage.shared.upload(from: localUri, to: remotePath!) { [weak self]
       size, error in
       self?.state = error == nil ? .uploaded : .loaded
       completion?(size, error)

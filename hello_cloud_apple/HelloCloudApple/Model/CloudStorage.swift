@@ -29,9 +29,9 @@ class CloudStorage {
     storageRef = storage.reference()
   }
 
-  func upload(_ data: Data, as remotePath: String, completion: ((_: Int, _: Error?) -> Void)? = nil) {
+  func upload(from localUri: URL, to remotePath: String, completion: ((_: Int, _: Error?) -> Void)? = nil) {
     let fileRef = storageRef.child(remotePath)
-    let _ = fileRef.putData(data, metadata: nil) { metadata, error in
+    let _ = fileRef.putFile(from: localUri) { metadata, error in
       if error == nil {
         print("Succeeded uploading file " + remotePath)
       } else {
