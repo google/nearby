@@ -18,10 +18,15 @@ import SwiftUI
 
 extension OutgoingFile: CustomStringConvertible {
   var description: String {
-    return String(format: "Type: \(mimeType), size: %.1f KB", (Double(fileSize)/1024.0))
+    String(format: "Type: \(mimeType), size: %.1f KB", (Double(fileSize)/1024.0))
   }
 }
 
+extension Packet: CustomStringConvertible {
+  var description: String {
+    "Packet" + (recipient == nil ? "" : " for \(recipient!)")
+  }
+}
 struct UploadsView: View {
   @EnvironmentObject var model: Main
   @State var expanded: [Bool] = []
@@ -38,7 +43,11 @@ struct UploadsView: View {
                 Text(String(describing: file.description))
               }
             } label: {
-              Text("Packet")
+              Button(action: { packet.upload() }) {
+                Image(systemName: "icloud.and.arrow.up.fill")
+              }.buttonStyle(.borderless)
+              ProgressView().opacity(packet.state == .uploading ? 1 : 0)
+              Text(String(describing: packet))
             }
           }
         }

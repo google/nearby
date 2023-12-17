@@ -82,7 +82,7 @@ import UIKit
 
     model.endpoints.append(Endpoint(
       id: "R2D2",
-      name: "Nice droid",
+      name: "Artoo",
       isIncoming: false,
       state: .discovered
     ))

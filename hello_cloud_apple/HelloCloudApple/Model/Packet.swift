@@ -26,6 +26,7 @@ import Foundation
   var notificationToken: String? = nil
   var files: [T] = []
   
+  var recipient: String? = nil
   var state: State = .unknown
   var expanded: Bool = true
 
@@ -50,8 +51,41 @@ import Foundation
   static func createOutgoingDebugModel() -> Packet<OutgoingFile>{
     let result = Packet<OutgoingFile>()
     result.notificationToken = "abcd"
+    result.recipient = "Hans Solo"
     result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
     result.files.append(OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
     return result
+  }
+}
+
+extension Packet<OutgoingFile> {
+  func upload() -> Void {
+    self.state = .uploading
+    // Upload each outging file
+    for file in files {
+      if file.state == .loaded {
+        let beginTime = Date()
+        file.upload() {[beginTime, weak self] size, error in
+          guard let self else {
+            return
+          }
+
+          if error == nil {
+            let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+            print("Uploaded. Size(b): \(file.fileSize). Time(s): \(duration).")
+            try? FileManager.default.removeItem(at: file.localUrl!)
+
+            if self.files.allSatisfy({ $0.state == .uploaded }) {
+              self.state = .uploaded
+            }
+          } else {
+            print("Failed to upload packet")
+            self.state = .loaded
+          }
+        }
+      }
+    }
+    // Update packet status in Firebase
+    // The update will automatically trigger a push notification
   }
 }

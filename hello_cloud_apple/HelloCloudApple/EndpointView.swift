@@ -48,6 +48,7 @@ struct EndpointView: View {
     let packet = Packet<OutgoingFile>()
     packet.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
     packet.state = .loading
+    packet.recipient = model.name
 
     guard let directoryUrl = try? FileManager.default.url(
       for: .documentDirectory,
