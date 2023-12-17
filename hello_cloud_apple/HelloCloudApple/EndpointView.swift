@@ -15,12 +15,15 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct EndpointView: View {
   let model: Endpoint
 
   @EnvironmentObject var mainModel: Main
   @Environment(\.dismiss) var dismiss
+  @State private var photosPicked: [PhotosPickerItem] = []
+  @State private var loadingPhotos = false
 
   func connect() -> Void {
     model.state = .pending
@@ -36,6 +39,99 @@ struct EndpointView: View {
       error in
       print("Disconnect completed: " + (error?.localizedDescription ?? ""))
     }
+  }
+
+  func onMediaPicked() -> Void {
+    Task {
+      await savePhotosAsync()
+    }
+  }
+
+  func savePhotosAsync() async -> Void {
+    loadingPhotos = true
+
+    let packet = Packet<OutgoingFile>()
+    packet.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
+    packet.state = .loading
+
+    guard let directoryUrl = try? FileManager.default.url(
+      for: .documentDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true) else {
+      print("Failed to obtain directory for saving photos.")
+      return
+    }
+
+    await withTaskGroup(of: OutgoingFile?.self) { group in
+      for photo in photosPicked {
+        group.addTask{
+          return await savePhotoAsync(photo: photo, directoryUrl: directoryUrl)
+        }
+      }
+
+      for await (file) in group {
+        guard let file else {
+          continue;
+        }
+        packet.files.append(file)
+      }
+    }
+    packet.state = .loaded
+    loadingPhotos = false
+    mainModel.outgoingPackets.append(packet)
+  }
+
+  func savePhotoAsync(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
+    let type =
+    photo.supportedContentTypes.first(
+      where: {$0.preferredMIMEType == "image/jpeg"}) ??
+    photo.supportedContentTypes.first(
+      where: {$0.preferredMIMEType == "image/png"})
+
+    let file = OutgoingFile(
+      mimeType: type?.preferredMIMEType ?? "",
+      fileSize: 0) // We don't know the file size yet. Will fill it once loaded.
+
+    guard let data = try? await photo.loadTransferable(type: Data.self) else {
+      return nil
+    }
+    var typedData: Data
+    if file.mimeType == "image/jpeg" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
+        return nil
+      }
+      typedData  = jpegData
+      file.fileSize = Int64(jpegData.count)
+    }
+    else if file.mimeType == "image/png" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let pngData = uiImage.pngData() else {
+        return nil
+      }
+      typedData  = pngData
+      file.fileSize = Int64(pngData.count)
+    }
+    else {
+      typedData = data
+      file.fileSize = Int64(data.count)
+    }
+
+    let url = directoryUrl.appendingPathComponent(UUID().uuidString)
+    do {
+      try typedData.write(to:url)
+    } catch {
+      print("Failed to save photo to file")
+      return nil;
+    }
+    file.localUrl = url
+    file.state = .loaded
+    return file
   }
 
   var body: some View {
@@ -79,7 +175,20 @@ struct EndpointView: View {
               .foregroundColor(model.state == .connected ? .red : .gray)
           }.disabled(model.state != .connected)
 
-        }.buttonStyle(.plain).fixedSize()
+          PhotosPicker(selection: $photosPicked, matching: .images) {
+            HStack {
+              Label("Pick Photos", systemImage: "photo.badge.plus.fill").frame(maxWidth: .infinity)
+              if loadingPhotos {
+                ProgressView().padding(5)
+              }
+            }
+          }
+          .frame(maxWidth: .infinity)
+          .disabled(loadingPhotos)
+          .onChange(of: photosPicked, onMediaPicked)
+        }
+        .buttonStyle(.plain).fixedSize()
+
         Section {
           NavigationLink { OutgoingFilesView(model: model) } label: {
             Label("Outgoing Files", systemImage: "arrow.up.doc.fill")

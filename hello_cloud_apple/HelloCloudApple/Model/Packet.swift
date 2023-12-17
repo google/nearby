@@ -16,15 +16,17 @@
 
 import Foundation
 
-class Packet<T: File>: Encodable, Decodable {
-  let notificationToken: String?
-  let files: [T]
-
-  init(notificationToken: String?, files: [T]) {
-    self.notificationToken = notificationToken
-    self.files = files
+@Observable class Packet<T: File>: Encodable, Decodable {
+  enum State: Int {
+    case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
+  var notificationToken: String? = nil
+  var files: [T] = []
+  
+  var state: State = .unknown
+  init() {}
+  
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     notificationToken = try container.decode(String?.self, forKey: .notificationToken)
@@ -39,5 +41,11 @@ class Packet<T: File>: Encodable, Decodable {
 
   enum CodingKeys: String, CodingKey {
     case notificationToken, files
+  }
+
+  static func createDebugModel() {
+    let result = Packet<OutgoingFile>()
+    result.notificationToken = "abcd"
+    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", remotePath: "ABCD"))
   }
 }

@@ -57,7 +57,7 @@ import UIKit
   }
 
   private(set) var endpoints: [Endpoint] = []
-  private(set) var outgoingPackets: [Packet<OutgoingFile>] = []
+  var outgoingPackets: [Packet<OutgoingFile>] = []
 //  private(set) var incomingPackets: [Packet<IncomingFile>] = []
 
   private var connectionManager: ConnectionManager!
@@ -78,14 +78,14 @@ import UIKit
 
   static func createDebugModel() -> Main {
     let model = Main();
-//    model.localEndpointName = Config.defaultEndpointName
-//
-//    model.endpoints.append(Endpoint(
-//      id: "R2D2",
-//      name: "Nice droid",
-//      // medium: Endpoint.Medium.bluetooth,
-//      isIncoming: false, state: .discovered
-//    ))
+    model.localEndpointName = Config.defaultEndpointName
+
+    model.endpoints.append(Endpoint(
+      id: "R2D2",
+      name: "Nice droid",
+      isIncoming: false,
+      state: .discovered
+    ))
 //    
 //    model.endpoints.append(Endpoint(
 //      id: "C3P0",
