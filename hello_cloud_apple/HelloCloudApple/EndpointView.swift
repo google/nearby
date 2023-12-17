@@ -27,7 +27,7 @@ struct EndpointView: View {
   @State private var loadingPhotos = false
 
   func connect() -> Void {
-    model.state = .pending
+    model.state = .connecting
     mainModel.requestConnection(to: model.id) {
       error in
       print("RequestConnection completed: " + (error?.localizedDescription ?? ""))
@@ -35,7 +35,7 @@ struct EndpointView: View {
   }
 
   func disconnect() -> Void {
-    model.state = .pending
+    model.state = .disconnecting
     mainModel.disconnect(from: model.id) {
       error in
       print("Disconnect completed: " + (error?.localizedDescription ?? ""))
@@ -146,12 +146,12 @@ struct EndpointView: View {
               Text("State:").gridColumnAlignment(.leading)
               HStack {
                 switch model.state {
-                case .pending, .sending, .receiving:
-                  ProgressView()
                 case .connected:
                   Image(systemName: "circle.fill").foregroundColor(.green)
                 case .discovered:
                   Image(systemName: "circle.fill").foregroundColor(.gray)
+                default:
+                  Image(systemName: "circle.dotted").foregroundColor(.gray)
                 }
                 Text(String(describing: model.state)).gridColumnAlignment(.leading)
               }
@@ -159,30 +159,47 @@ struct EndpointView: View {
           }
         }
 
-        Section {
+        HStack {
           Button(action: connect) {
-            Label("Connect", systemImage: "phone.connection.fill")
-              .foregroundColor(model.state == .discovered ? .green : .gray)
-          }.disabled(model.state != .discovered)
+            HStack {
+              Label("Connect", systemImage: "phone.connection.fill")
+                .foregroundColor(model.state == .discovered ? .green : .gray)
+            }
+          }
+          .disabled(model.state != .discovered)
+          .buttonStyle(.plain).fixedSize()
+          Spacer()
+          if model.state == .connecting {
+            ProgressView()
+          }
+        }.frame(maxWidth: .infinity)
 
+        HStack {
           Button(action: disconnect) {
             Label("Disconnect", systemImage: "phone.down.fill")
               .foregroundColor(model.state == .connected ? .red : .gray)
-          }.disabled(model.state != .connected)
+          }
+          .disabled(model.state != .connected)
+          .buttonStyle(.plain).fixedSize()
 
-          PhotosPicker(selection: $photosPicked, matching: .images) {
-            HStack {
-              Label("Pick Photos", systemImage: "photo.badge.plus.fill").frame(maxWidth: .infinity)
-              if loadingPhotos {
-                ProgressView().padding(5)
-              }
+          Spacer()
+          if model.state == .disconnecting {
+            ProgressView()
+          }
+        }.frame(maxWidth: .infinity)
+
+        PhotosPicker(selection: $photosPicked, matching: .images) {
+          HStack {
+            Label("Pick Photos", systemImage: "photo.badge.plus.fill")
+            Spacer()
+            if loadingPhotos {
+              ProgressView()
             }
           }
-          .frame(maxWidth: .infinity)
-          .disabled(loadingPhotos)
-          .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
         }
-        .buttonStyle(.plain).fixedSize()
+        .frame(maxWidth: .infinity)
+        .disabled(loadingPhotos)
+        .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
 
         Section {
           NavigationLink { OutgoingFilesView(model: model) } label: {

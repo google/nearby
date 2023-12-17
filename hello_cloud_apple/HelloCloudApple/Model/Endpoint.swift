@@ -20,12 +20,13 @@ import SwiftUI
 
 @Observable class Endpoint: Identifiable, Hashable {
   enum State: Int, CustomStringConvertible {
-    case discovered, pending, connected, sending, receiving
+    case discovered, connecting, connected, disconnecting, sending, receiving
 
       var description: String {
         return switch self {
         case .discovered: "Discovered"
-        case .pending: "Pending"
+        case .connecting: "Connecting"
+        case .disconnecting: "Disconnecting"
         case .connected: "Connected"
         case .sending: "Sending"
         case .receiving: "Receiving"

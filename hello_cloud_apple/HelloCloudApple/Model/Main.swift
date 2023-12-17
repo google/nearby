@@ -217,7 +217,7 @@ extension Main: AdvertiserDelegate {
         id: endpointId,
         name: endpointName,
         isIncoming: true,
-        state: .pending
+        state: .connecting
       ))
     }
 
@@ -305,7 +305,7 @@ extension Main: ConnectionManagerDelegate {
     }
     switch (state) {
     case .connecting:
-      endpoint.state = .pending
+      endpoint.state = .connecting
       break
     case .connected:
       endpoint.state = .connected
