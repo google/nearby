@@ -16,7 +16,7 @@
 
 import Foundation
 
-@Observable class OutgoingFile: Identifiable, Hashable, Encodable {
+@Observable class OutgoingFile: Identifiable, Hashable, Encodable, Decodable {
   enum State: Int {
     case picked, loading, loaded, uploading, uploaded
   }
@@ -28,11 +28,11 @@ import Foundation
   // the local file name.
   let fileName: String
   let mimeType: String
-  var state: State
+  var state: State = .picked
 
   @ObservationIgnored var fileSize: UInt64
   @ObservationIgnored var remotePath: String?
-  @ObservationIgnored var localUri: URL?
+  @ObservationIgnored var localUrl: URL?
 
   init(mimeType: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
     self.mimeType = mimeType
@@ -50,7 +50,7 @@ import Foundation
   }
 
   func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
-    guard let localUri else {
+    guard let localUrl else {
       print("Media not saved. Skipping uploading.")
       return;
     }
@@ -72,7 +72,7 @@ import Foundation
 
     state = .uploading
 
-    CloudStorage.shared.upload(from: localUri, to: remotePath!) { [weak self]
+    CloudStorage.shared.upload(from: localUrl, to: remotePath!) { [weak self]
       size, error in
       self?.state = error == nil ? .uploaded : .loaded
       completion?(size, error)

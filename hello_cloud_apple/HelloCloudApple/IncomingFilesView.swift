@@ -52,7 +52,7 @@ struct IncomingFilesView: View {
           model.transfers.append(
             Transfer(
               direction: .download,
-              remotePath: file.remotePath,
+              remotePath: file.remotePath!,
               result: error == nil ? .success : .failure,
               size: Int(file.fileSize),
               duration: duration))

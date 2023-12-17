@@ -16,7 +16,7 @@
 
 import Foundation
 
-@Observable class IncomingFile: Identifiable, Hashable, Decodable {
+@Observable class IncomingFile: File, Identifiable, Hashable, Encodable, Decodable {
   enum State: Int {
     case received, downloading, downloaded
   }
@@ -29,7 +29,7 @@ import Foundation
   // Actual url of the local file, once it's downloaded
   @ObservationIgnored var localUrl: URL?
 
-  @ObservationIgnored let remotePath: String
+  @ObservationIgnored var remotePath: String?
   @ObservationIgnored let fileSize: Int64
 
   var state: State = .received
@@ -46,6 +46,11 @@ import Foundation
   func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
     if state != .received {
       print("The file is being downloading or has already been downloaded. Skipping.")
+      return
+    }
+
+    guard let remotePath else {
+      print("Remote path not set. Skipping.")
       return
     }
 

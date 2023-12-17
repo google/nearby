@@ -245,7 +245,7 @@ extension Main: ConnectionManagerDelegate {
       
       for file in files {
         endpoint.incomingFiles.append(file)
-        let transfer = Transfer(direction: .receive, remotePath: file.remotePath, result: .success, from: endpointId)
+        let transfer = Transfer(direction: .receive, remotePath: file.remotePath!, result: .success, from: endpointId)
         endpoint.transfers.append(transfer)
       }
     }

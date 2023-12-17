@@ -81,13 +81,13 @@ struct OutgoingFilesView: View {
         }
 
 
-        let uri = directoryUrl.appendingPathComponent(UUID().uuidString)
+        let url = directoryUrl.appendingPathComponent(UUID().uuidString)
         do {
-          try typedData.write(to:uri)
+          try typedData.write(to:url)
         } catch {
           return;
         }
-        file.localUri = uri
+        file.localUrl = url
         file.state = .loaded
       }
     }
@@ -106,7 +106,7 @@ struct OutgoingFilesView: View {
               result: .success,
               size: Int(file.fileSize),
               duration: duration))
-            try? FileManager.default.removeItem(at: file.localUri!)
+            try? FileManager.default.removeItem(at: file.localUrl!)
         }
       }
     }
