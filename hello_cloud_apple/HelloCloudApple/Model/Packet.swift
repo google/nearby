@@ -27,8 +27,10 @@ import Foundation
   var files: [T] = []
   
   var state: State = .unknown
+  var expanded: Bool = true
+
   init() {}
-  
+
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     notificationToken = try container.decode(String?.self, forKey: .notificationToken)

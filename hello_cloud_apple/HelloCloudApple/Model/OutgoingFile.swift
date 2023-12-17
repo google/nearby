@@ -37,7 +37,7 @@ import Foundation
   }
 
   static func createDebugModel(
-    mimeType: String, fileSize: Int64 = 0, remotePath: String? = nil, state: State = .picked) -> OutgoingFile {
+    mimeType: String, fileSize: Int64, remotePath: String? = nil, state: State = .picked) -> OutgoingFile {
       let result = OutgoingFile(mimeType: mimeType, fileSize: fileSize, remotePath: remotePath)
       result.state = state
       return result
