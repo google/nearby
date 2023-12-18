@@ -18,7 +18,7 @@ import SwiftUI
 
 extension OutgoingFile: CustomStringConvertible {
   var description: String {
-    String(format: "Type: \(mimeType), size: %.1f KB", (Double(fileSize)/1024.0))
+    String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
   }
 }
 
@@ -33,28 +33,42 @@ struct UploadsView: View {
 
   var body: some View {
     Form {
-      Button(action: { model.notifyReceiver() }) {
-        Text("Uploads")}
       Section{
         List {
           ForEach(Array(model.outgoingPackets.enumerated()), id: \.1.id) { i, packet in
             DisclosureGroup (isExpanded: $model.outgoingPackets[i].expanded) {
               ForEach(packet.files) { file in
-                Text(String(describing: file.description))
+                HStack {
+                  Image(systemName: "photo")
+                  Text(String(describing: file.description))
+                  Spacer()
+                  switch file.state {
+                  case .picked:
+                    Image(systemName: "circle.dotted").foregroundColor(.gray)
+                  case .loading:
+                    ProgressView()
+                  case .loaded:
+                    Image(systemName: "circle.fill").foregroundColor(.gray)
+                  case .uploading:
+                    ProgressView()
+                  case .uploaded:
+                    Image(systemName: "circle.fill").foregroundColor(.green)
+                  }
+                }
               }
             } label: {
               Button(action: { packet.upload() }) {
                 Image(systemName: "icloud.and.arrow.up.fill")
               }.buttonStyle(.borderless)
-              ProgressView().opacity(packet.state == .uploading ? 1 : 0)
               Text(String(describing: packet))
+              Spacer()
+              ProgressView().opacity(packet.state == .uploading ? 1 : 0)
             }
           }
         }
-      } header: {
-        Text("Uploads")
       }
     }
+    .navigationTitle("Outgoing packets")
   }
 }
 
