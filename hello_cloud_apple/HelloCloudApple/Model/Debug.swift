@@ -46,7 +46,9 @@ extension Packet<OutgoingFile> {
     result.files.append(OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
     return result
   }
-  
+}
+
+extension Packet<IncomingFile> {
   static func createIncomingDebugModel() -> Packet<IncomingFile>{
     let result = Packet<IncomingFile>()
     result.notificationToken = "abcd"
@@ -69,6 +71,8 @@ extension Main {
       state: .discovered
     ))
     result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
+    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
+    result.endpoints[0].incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
     return result;
   }
 }

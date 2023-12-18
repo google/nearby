@@ -16,18 +16,7 @@
 
 import SwiftUI
 
-extension OutgoingFile: CustomStringConvertible {
-  var description: String {
-    String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
-  }
-}
-
-extension Packet: CustomStringConvertible {
-  var description: String {
-    "Packet" + (receiver == nil ? "" : " for \(receiver!)")
-  }
-}
-struct UploadsView: View {
+struct OutgoingPacketsView: View {
   @EnvironmentObject var model: Main
   @State var expanded: [Bool] = []
 
@@ -73,5 +62,5 @@ struct UploadsView: View {
 }
 
 #Preview {
-  UploadsView().environment(Main.createDebugModel())
+  OutgoingPacketsView().environment(Main.createDebugModel())
 }

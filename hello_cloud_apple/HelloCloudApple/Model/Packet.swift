@@ -16,7 +16,7 @@
 
 import Foundation
 
-@Observable class Packet<T: File>: Identifiable, Encodable, Decodable {
+@Observable class Packet<T: File>: Identifiable, CustomStringConvertible, Encodable, Decodable {
   enum State: Int {
     case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
@@ -34,6 +34,16 @@ import Foundation
   var state: State = .unknown
   var expanded: Bool = true
 
+  var description: String {
+    if T.self == OutgoingFile.self {
+      "Packet" + (receiver == nil ? "" : " for \(receiver!)")
+    } else if T.self == IncomingFile.self {
+      "Packet" + (sender == nil ? "" : " from \(sender!)")
+    } else {
+      "Packet"
+    }
+  }
+
   init() {}
 
   required init(from decoder: Decoder) throws {
@@ -50,6 +60,37 @@ import Foundation
 
   enum CodingKeys: String, CodingKey {
     case packetId, files
+  }
+}
+
+extension Packet<IncomingFile> {
+  func download() -> Void {
+    // TODO: check firebase if the packet is ready for downloading
+    // if so, obtain remotePath for incoming files
+    self.state = .downloading
+    for file in files {
+      let beginTime = Date()
+      if file.state == .received {
+        file.download() { [beginTime, weak self] url, error in
+          guard let self else {
+            return
+          }
+
+          guard let url else {
+            print("Failed to download packet")
+            self.state = .received
+            return
+          }
+
+          let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+          print("Downloaded. Size(b): \(file.fileSize). Time(s): \(duration).")
+
+          if self.files.allSatisfy({ $0.state == .downloaded }) {
+            self.state = .downloaded
+          }
+        }
+      }
+    }
   }
 }
 

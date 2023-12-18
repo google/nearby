@@ -16,22 +16,6 @@
 
 import SwiftUI
 
-struct ImageView: View {
-  @Binding var url: URL?
-  var body: some View {
-    let imageData = url != nil ? try? Data(contentsOf: url!) : nil
-    let uiImage: UIImage? = imageData != nil ? UIImage(data: imageData!) : nil
-
-    Form {
-      if uiImage != nil{
-        Image(uiImage: uiImage!)
-          .resizable()
-          .aspectRatio(contentMode: .fill)
-      }
-    }.onTapGesture { self.url = nil }
-  }
-}
-
 struct IncomingFilesView: View {
   let model: Endpoint
   

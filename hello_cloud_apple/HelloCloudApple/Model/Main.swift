@@ -58,7 +58,7 @@ import UIKit
 
   var endpoints: [Endpoint] = []
   var outgoingPackets: [Packet<OutgoingFile>] = []
-//  private(set) var incomingPackets: [Packet<IncomingFile>] = []
+  var incomingPackets: [Packet<IncomingFile>] = []
 
   private var connectionManager: ConnectionManager!
   private var advertiser: Advertiser!
@@ -158,11 +158,11 @@ extension Main: AdvertiserDelegate {
 extension Main: ConnectionManagerDelegate {
   func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointId: String, verificationHandler: @escaping (Bool) -> Void) {
     print("OnConnectionVerification token received: " + verificationCode + ". Accepting connection request.")
-    verificationHandler(true)
-    guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
+    if nil == endpoints.first(where: {$0.id == endpointId}) {
       print("End point not found. It has probably stopped advertising or canceled the connection request.")
       return
     }
+    verificationHandler(true)
   }
 
   func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointId: String) {
@@ -173,16 +173,17 @@ extension Main: ConnectionManagerDelegate {
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
 
-//      guard let files = IncomingFile.decodeIncomingFiles(fromJson: data) else {
-//        print("Failed to decode incoming files.")
-//        return
-//      }
-//      
-//      for file in files {
-//        endpoint.incomingFiles.append(file)
-//        let transfer = Transfer(direction: .receive, remotePath: file.remotePath!, result: .success, from: endpointId)
-//        endpoint.transfers.append(transfer)
-//      }
+      guard let data = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: data) else {
+        print ("Unable to decode incoming payload")
+        return
+      }
+
+      switch data.data {
+      case .notificationToken(let notificationToken):
+        endpoint.onNotificationTakenReceived(token: notificationToken)
+      case .packet(let packet):
+        endpoint.onPacketReceived(packet: packet)
+      }
     }
   }
 

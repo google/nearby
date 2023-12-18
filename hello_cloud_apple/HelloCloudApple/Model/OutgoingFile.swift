@@ -16,7 +16,7 @@
 
 import Foundation
 
-@Observable class OutgoingFile: File, Hashable, Encodable, Decodable {
+@Observable class OutgoingFile: File, CustomStringConvertible, Hashable, Encodable, Decodable {
   enum State: Int {
     case picked, loading, loaded, uploading, uploaded
   }
@@ -28,6 +28,10 @@ import Foundation
   @ObservationIgnored var remotePath: String? = nil
   @ObservationIgnored var localUrl: URL? = nil
   var state: State = .picked
+
+  var description: String {
+    String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
+  }
 
   init(mimeType: String) {
     self.mimeType = mimeType

@@ -56,8 +56,8 @@ struct MainView: View {
         }
 
         Section {
-          NavigationLink {DownloadsView()} label: {Text("Downloads")}
-          NavigationLink {UploadsView()} label: {Text("Uploads")}
+          NavigationLink {IncomingPacketsView()} label: {Text("Downloads")}
+          NavigationLink {OutgoingPacketsView()} label: {Text("Uploads")}
         }
 
         List {

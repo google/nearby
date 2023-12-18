@@ -16,7 +16,7 @@
 
 import Foundation
 
-@Observable class IncomingFile: File, Identifiable, Hashable, Encodable, Decodable {
+@Observable class IncomingFile: File, Identifiable, Hashable, CustomStringConvertible, Encodable, Decodable {
   enum State: Int {
     case received, downloading, downloaded
   }
@@ -29,6 +29,10 @@ import Foundation
   @ObservationIgnored var localUrl: URL? = nil
   var state: State = .received
 
+  var description: String {
+    String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
+  }
+  
   init(mimeType: String) {
     self.mimeType = mimeType
   }
@@ -36,21 +40,19 @@ import Foundation
   func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
     if state != .received {
       print("The file is being downloading or has already been downloaded. Skipping.")
+      completion?(nil, NSError(domain:"Downloading", code:1))
       return
     }
 
     guard let remotePath else {
       print("Remote path not set. Skipping.")
+      completion?(nil, NSError(domain:"Downloading", code:1))
       return
     }
 
     state = .downloading
-    let index = remotePath.lastIndex(of: ".")
-    let ext = index == nil
-      ? ""
-      :String(remotePath[index!...])
-
-    let localPath = UUID().uuidString + ext
+    
+    let localPath = UUID().uuidString
     CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
       url, error in
       guard let self else { return }
@@ -65,11 +67,5 @@ import Foundation
 
   enum CodingKeys: String, CodingKey {
     case mimeType, remotePath, fileSize
-  }
-
-  static func decodeIncomingFiles(fromJson json: Data) -> [IncomingFile]? {
-    let decoder = JSONDecoder()
-    let result = try? decoder.decode([IncomingFile]?.self, from: json) ?? nil
-    return result
   }
 }

@@ -41,6 +41,7 @@ import SwiftUI
   var outgoingPackets: [Packet<OutgoingFile>] = []
   var incomingPackets: [Packet<IncomingFile>] = []
   var transfers: [Transfer] = []
+  var notificationToken: String?
 
   static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(id) }
@@ -52,5 +53,13 @@ import SwiftUI
     self.state = state
   }
 
-  
+  func onNotificationTakenReceived(token: String) -> Void {
+    notificationToken = token
+  }
+
+  func onPacketReceived(packet: Packet<IncomingFile>) -> Void {
+    packet.sender = self.name
+    incomingPackets.append(packet)
+    Main.shared.incomingPackets.append(packet)
+  }
 }

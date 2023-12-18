@@ -25,6 +25,7 @@ struct EndpointView: View {
   @State private var showConfirmation: Bool = false
   @State private var photosPicked: [PhotosPickerItem] = []
   @State private var loadingPhotos = false
+  @State var imageUrl: URL? = nil
 
   func connect() -> Void {
     model.state = .connecting
@@ -147,6 +148,8 @@ struct EndpointView: View {
     return nil
   }
 
+  @State var expanded: [Bool] = []
+
   var body: some View {
     NavigationStack {
       Form {
@@ -219,12 +222,38 @@ struct EndpointView: View {
         .disabled(loadingPhotos)
         .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
 
-        Section {
-          NavigationLink{ IncomingFilesView(model: model) } label: {
-            Label("Incoming Files", systemImage: "arrow.down.doc.fill")
-          }
-          NavigationLink{ TransfersView(model: model) } label: {
-            Label("Transfer Log", systemImage: "list.bullet.clipboard.fill")
+        NavigationLink{ TransfersView(model: model) } label: {
+          Label("Transfer Log", systemImage: "list.bullet.clipboard.fill")
+        }
+
+        Section(header: Text("Incoming packets")) {
+          List {
+            ForEach(Array(model.incomingPackets.enumerated()), id: \.1.id) { i, packet in
+              DisclosureGroup () {
+                ForEach(packet.files) { file in
+                  HStack {
+                    Image(systemName: "photo")
+                    Text(String(describing: file.description))
+                    Spacer()
+                    switch file.state {
+                    case .received:
+                      Image(systemName: "circle.dotted").foregroundColor(.gray)
+                    case .downloading:
+                      ProgressView()
+                    case .downloaded:
+                      Image(systemName: "circle.fill").foregroundColor(.green)
+                    }
+                  }
+                }
+              } label: {
+                Button(action: { packet.download() }) {
+                  Image(systemName: "icloud.and.arrow.down.fill")
+                }.buttonStyle(.borderless)
+                Text(String(describing: packet))
+                Spacer()
+                ProgressView().opacity(packet.state == .downloading ? 1 : 0)
+              }
+            }
           }
         }
       }
