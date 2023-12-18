@@ -26,7 +26,6 @@
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/fast_pair_events.h"
 #include "fastpair/fast_pair_seeker.h"
 #include "fastpair/message_stream/fake_gatt_callbacks.h"
@@ -41,8 +40,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/task_runner_impl.h"
-#include "internal/test/google3_only/fake_authentication_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -85,12 +82,7 @@ class FastPairRepositoryObserver : public FastPairRepository::Observer {
 
 class FastPairSeekerImplTest : public testing::Test {
  protected:
-  FastPairSeekerImplTest() {
-    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
-    preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
-        kFastPairPreferencesFilePath);
-    authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
-  }
+  FastPairSeekerImplTest() = default;
 
   void SetUp() override {
     NEARBY_LOG_SET_SEVERITY(VERBOSE);
@@ -98,9 +90,7 @@ class FastPairSeekerImplTest : public testing::Test {
         kModelId, absl::HexStringToBytes(kBobPublicKey));
     repository_->SetResultOfIsDeviceSavedToAccount(
         absl::NotFoundError("not found"));
-    account_manager_ = std::make_unique<FakeAccountManager>(
-        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
-        authentication_manager_.get(), task_runner_.get());
+    account_manager_ = std::make_unique<FakeAccountManager>();
     AccountManager::Account account;
     account.id = kTestAccountId;
     account_manager_->SetAccount(account);
@@ -116,9 +106,6 @@ class FastPairSeekerImplTest : public testing::Test {
 
   MediumEnvironmentStarter env_;
   SingleThreadExecutor executor_;
-  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
-  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
-  std::unique_ptr<TaskRunner> task_runner_;
   std::unique_ptr<FakeAccountManager> account_manager_;
   FastPairDeviceRepository devices_{&executor_};
   std::unique_ptr<FakeFastPairRepository> repository_;

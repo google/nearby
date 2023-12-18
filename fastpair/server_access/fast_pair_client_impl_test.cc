@@ -36,7 +36,6 @@
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/common/fast_pair_switches.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/proto/data.proto.h"
@@ -45,7 +44,6 @@
 #include "fastpair/proto/proto_builder.h"
 #include "fastpair/server_access/fast_pair_client.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "internal/account/account_manager.h"
 #include "internal/account/fake_account_manager.h"
 #include "internal/auth/auth_status_util.h"
 #include "internal/auth/authentication_manager.h"
@@ -55,9 +53,6 @@
 #include "internal/network/http_status_code.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/task_runner.h"
-#include "internal/platform/task_runner_impl.h"
-#include "internal/preferences/preferences_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/google3_only/fake_authentication_manager.h"
 
@@ -147,16 +142,11 @@ class FastPairClientImplTest : public ::testing::Test,
                                public FastPairHttpNotifier::Observer {
  protected:
   FastPairClientImplTest() {
-    preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
-        kFastPairPreferencesFilePath);
     authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
     AccountManager::Account account;
     account.id = kTestAccountId;
-    account_manager_ = std::make_unique<FakeAccountManager>(
-        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
-        authentication_manager_.get(), task_runner_.get());
+    account_manager_ = std::make_unique<FakeAccountManager>();
     account_manager_->SetAccount(account);
-    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
     device_info_ = std::make_unique<FakeDeviceInfo>();
   }
 
@@ -235,12 +225,10 @@ class FastPairClientImplTest : public ::testing::Test,
   std::optional<proto::UserDeleteDeviceRequest> delete_device_request_;
   std::optional<proto::UserDeleteDeviceResponse> delete_device_response_;
 
-  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
   std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
   std::unique_ptr<FakeAccountManager> account_manager_;
   std::unique_ptr<FastPairClient> fast_pair_client_;
   std::unique_ptr<DeviceInfo> device_info_;
-  std::unique_ptr<TaskRunner> task_runner_;
   ::testing::NiceMock<MockHttpClient>* http_client_;
   std::unique_ptr<MockHttpClient> mock_http_client_;
   FastPairHttpNotifier notifier_;
