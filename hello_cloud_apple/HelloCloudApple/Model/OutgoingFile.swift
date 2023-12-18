@@ -24,24 +24,14 @@ import Foundation
   let id: UUID = UUID()
 
   let mimeType: String
-  @ObservationIgnored var fileSize: Int64
-  @ObservationIgnored var remotePath: String?
-
-  @ObservationIgnored var localUrl: URL?
+  @ObservationIgnored var fileSize: Int64 = 0
+  @ObservationIgnored var remotePath: String? = nil
+  @ObservationIgnored var localUrl: URL? = nil
   var state: State = .picked
 
-  init(mimeType: String, fileSize: Int64 = 0, remotePath: String? = nil) {
+  init(mimeType: String) {
     self.mimeType = mimeType
-    self.fileSize = fileSize
-    self.remotePath = remotePath
   }
-
-  static func createDebugModel(
-    mimeType: String, fileSize: Int64, remotePath: String? = nil, state: State = .picked) -> OutgoingFile {
-      let result = OutgoingFile(mimeType: mimeType, fileSize: fileSize, remotePath: remotePath)
-      result.state = state
-      return result
-    }
 
   func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
     guard let localUrl else {

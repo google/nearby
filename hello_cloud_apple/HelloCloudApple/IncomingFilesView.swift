@@ -111,12 +111,12 @@ struct IncomingFilesView: View {
       name: "Debug droid",
       isIncoming: false, state: .discovered,
       incomingFiles: [
-        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0001.jpg", remotePath: "1234567890ABCDEF",
-                     fileSize: 4000000, state: .downloading),
-        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
-                     fileSize: 5000000, state: .received),
-        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
-                     fileSize: 5000000, state: .downloaded)
+//        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0001.jpg", remotePath: "1234567890ABCDEF",
+//                     fileSize: 4000000, state: .downloading),
+//        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0002.jpg", remotePath: "1234567890ABCDEF",
+//                     fileSize: 5000000, state: .received),
+//        IncomingFile(mimeType:"image/jpeg", fileName: "IMG_0003.jpg", remotePath: "1234567890ABCDEF",
+//                     fileSize: 5000000, state: .downloaded)
       ]
     )
   ).environment(Main.createDebugModel())

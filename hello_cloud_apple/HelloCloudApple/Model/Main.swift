@@ -56,7 +56,7 @@ import UIKit
     }
   }
 
-  private(set) var endpoints: [Endpoint] = []
+  var endpoints: [Endpoint] = []
   var outgoingPackets: [Packet<OutgoingFile>] = []
 //  private(set) var incomingPackets: [Packet<IncomingFile>] = []
 
@@ -74,76 +74,6 @@ import UIKit
   func notifyReceiver() -> Void {
     print("Notify the receiver")
     CloudNotification.shared.helloWorld();
-  }
-
-  static func createDebugModel() -> Main {
-    let model = Main();
-    model.localEndpointName = Config.defaultEndpointName
-
-    model.endpoints.append(Endpoint(
-      id: "R2D2",
-      name: "Artoo",
-      isIncoming: false,
-      state: .discovered
-    ))
-    model.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
-//
-//    model.endpoints.append(Endpoint(
-//      id: "C3P0",
-//      name: "Fussy droid",
-//      // medium: Endpoint.Medium.bluetooth,
-//      isIncoming: false, state: .discovered,
-//      outgoingPackets: [
-//        Packet(notificationToken: "abcd", files: [
-//          OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loading),
-//          OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploading),
-//          OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
-//          OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loaded),
-//          OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .picked)
-//        ])
-//      ],
-//      incomingFiles: [
-//        IncomingFile(mimeType:"image/png", fileName: "IMG_0001.png",
-//                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
-//                     fileSize: 4000000, state: .downloading),
-//        IncomingFile(mimeType:"image/png", fileName: "IMG_0002.png",
-//                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
-//                     fileSize: 5000000, state: .received),
-//        IncomingFile(mimeType:"image/png", fileName: "IMG_0003.png",
-//                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
-//                     fileSize: 5000000, state: .downloaded)
-//      ],
-//      transfers: [
-//        Transfer(
-//          direction: Transfer.Direction.upload,
-//          remotePath: "1234567890ABCDEF",
-//          result: .success,
-//          size: 50000000,
-//          duration: 10
-//        ),
-//        Transfer(
-//          direction: Transfer.Direction.download,
-//          remotePath: "XYZ",
-//          result: .failure,
-//          size: 40000000,
-//          duration: 1.5
-//        ),
-//        Transfer(
-//          direction: Transfer.Direction.send,
-//          remotePath: "XYZ",
-//          result: .success,
-//          to: "R2D2"
-//        ),
-//        Transfer(
-//          direction: Transfer.Direction.receive,
-//          remotePath: "XYZ",
-//          result: .cancaled,
-//          from: "R2D2"
-//        )
-//      ]
-//    ))
-    
-    return model;
   }
   
   public func endpoint(id: String) -> Endpoint? {

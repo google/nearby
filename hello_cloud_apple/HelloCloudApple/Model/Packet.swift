@@ -29,7 +29,8 @@ import Foundation
   var packetId: String = ""
   var files: [T] = []
   
-  var recipient: String? = nil
+  var receiver: String? = nil
+  var sender: String? = nil
   var state: State = .unknown
   var expanded: Bool = true
 
@@ -49,15 +50,6 @@ import Foundation
 
   enum CodingKeys: String, CodingKey {
     case packetId, files
-  }
-
-  static func createOutgoingDebugModel() -> Packet<OutgoingFile>{
-    let result = Packet<OutgoingFile>()
-    result.notificationToken = "abcd"
-    result.recipient = "Hans Solo"
-    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
-    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
-    return result
   }
 }
 

@@ -24,7 +24,7 @@ extension OutgoingFile: CustomStringConvertible {
 
 extension Packet: CustomStringConvertible {
   var description: String {
-    "Packet" + (recipient == nil ? "" : " for \(recipient!)")
+    "Packet" + (receiver == nil ? "" : " for \(receiver!)")
   }
 }
 struct UploadsView: View {

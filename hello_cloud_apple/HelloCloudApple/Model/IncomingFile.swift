@@ -24,16 +24,13 @@ import Foundation
   let id: UUID = UUID()
 
   let mimeType: String
-  @ObservationIgnored let fileSize: Int64
-  @ObservationIgnored var remotePath: String?
-
-  @ObservationIgnored var localUrl: URL?
+  @ObservationIgnored var fileSize: Int64 = 0
+  @ObservationIgnored var remotePath: String? = nil
+  @ObservationIgnored var localUrl: URL? = nil
   var state: State = .received
 
-  init(mimeType: String, fileName: String, localUrl: URL? = nil, remotePath: String, fileSize: Int64, state: State = .received) {
+  init(mimeType: String) {
     self.mimeType = mimeType
-    self.remotePath = remotePath
-    self.fileSize = fileSize
   }
 
   func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {

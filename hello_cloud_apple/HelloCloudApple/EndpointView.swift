@@ -49,7 +49,7 @@ struct EndpointView: View {
     packet.packetId = UUID().uuidString.uppercased()
     packet.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
     packet.state = .loading
-    packet.recipient = model.name
+    packet.receiver = model.name
 
     guard let directoryUrl = try? FileManager.default.url(
       for: .documentDirectory,
@@ -95,9 +95,7 @@ struct EndpointView: View {
     photo.supportedContentTypes.first(
       where: {$0.preferredMIMEType == "image/png"})
 
-    let file = OutgoingFile(
-      mimeType: type?.preferredMIMEType ?? "application/octet-stream",
-      fileSize: 0) // We don't know the file size yet. Will fill it once loaded.
+    let file = OutgoingFile( mimeType: type?.preferredMIMEType ?? "application/octet-stream")
 
     guard let data = try? await photo.loadTransferable(type: Data.self) else {
       return nil
@@ -222,9 +220,6 @@ struct EndpointView: View {
         .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
 
         Section {
-          NavigationLink { OutgoingFilesView(model: model) } label: {
-            Label("Outgoing Files", systemImage: "arrow.up.doc.fill")
-          }
           NavigationLink{ IncomingFilesView(model: model) } label: {
             Label("Incoming Files", systemImage: "arrow.down.doc.fill")
           }
