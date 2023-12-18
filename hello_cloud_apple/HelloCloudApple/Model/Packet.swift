@@ -21,9 +21,12 @@ import Foundation
     case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
+  // This is the Identifiable.id used by SwiftUI, not the packet id we communicate with other
+  // devices.
   let id = UUID().uuidString
-  
+
   var notificationToken: String? = nil
+  var packetId: String = ""
   var files: [T] = []
   
   var recipient: String? = nil
@@ -34,18 +37,18 @@ import Foundation
 
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    notificationToken = try container.decode(String?.self, forKey: .notificationToken)
+    packetId = try container.decode(String.self, forKey: .packetId)
     files = try container.decode([T].self, forKey: .files)
   }
 
   func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self) 
-    try container.encode(notificationToken, forKey: .notificationToken)
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(packetId, forKey: .packetId)
     try container.encode(files, forKey: .files)
   }
 
   enum CodingKeys: String, CodingKey {
-    case notificationToken, files
+    case packetId, files
   }
 
   static func createOutgoingDebugModel() -> Packet<OutgoingFile>{

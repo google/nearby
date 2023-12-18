@@ -42,10 +42,11 @@ struct EndpointView: View {
     }
   }
 
-  func savePhotosAsync() async -> Void {
+  func savePhotosAsync(_ completionHandler: ((Packet<OutgoingFile>?) -> Void)?) async -> Void {
     loadingPhotos = true
 
     let packet = Packet<OutgoingFile>()
+    packet.packetId = UUID().uuidString.uppercased()
     packet.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
     packet.state = .loading
     packet.recipient = model.name
@@ -73,9 +74,18 @@ struct EndpointView: View {
         packet.files.append(file)
       }
     }
-    packet.state = .loaded
+
     loadingPhotos = false
-    mainModel.outgoingPackets.append(packet)
+    // Very rudimentary error handling. Succeeds only if all files are saved. No partial success.
+    if (packet.files.count == photosPicked.count)
+    {
+      packet.state = .loaded
+      mainModel.outgoingPackets.append(packet)
+      completionHandler?(packet)
+    } else {
+      packet.state = .picked
+      completionHandler?(nil)
+    }
   }
 
   func savePhotoAsync(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
@@ -128,6 +138,15 @@ struct EndpointView: View {
     file.localUrl = url
     file.state = .loaded
     return file
+  }
+
+  func sendPacket(_ packet: Packet<OutgoingFile>) -> Error? {
+    let payload = try? JSONEncoder().encode(packet)
+    guard let payload else {
+      return NSError(domain: "Encoding", code: 1)
+    }
+    Main.shared.sendData(payload, to: model.id)
+    return nil
   }
 
   var body: some View {
@@ -217,7 +236,17 @@ struct EndpointView: View {
       .alert("Do you want to send the claim token to the remote endpoint? You will need to go to the uploads page and upload this packet. Once it's uploaded, the other device will get a notification and will be able to download.", isPresented: $showConfirmation) {
         Button("Yes") {
           Task {
-            await savePhotosAsync()
+            await savePhotosAsync { result in
+              guard let result else {
+                return
+              }
+              let json = try? JSONEncoder().encode(result)
+              guard let json else {
+                return
+              }
+              print("Encoded packet:")
+              print(String(data: json, encoding: .utf8) ?? "Invalid")
+            }
           }
         }
         Button("No", role: .cancel) { }

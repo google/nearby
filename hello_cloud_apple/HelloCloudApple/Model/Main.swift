@@ -161,15 +161,15 @@ import UIKit
     connectionManager.disconnect(from: endpointId, completionHandler: completionHandler)
   }
   
-  func sendFiles(_ payload: Data, to endpointId: String) {
-    print("Sending files to " + endpointId)
+  func sendData(_ payload: Data, to endpointId: String) {
+    print("Sending packet to " + endpointId)
     let endpoint = endpoints.first(where: {$0.id == endpointId})
     endpoint?.state = .sending
     _ = connectionManager.send(
       payload,
       to: [endpointId],
       id: PayloadID.unique()) { [endpoint] result in
-        print("Done sending files.")
+        print("Done sending packet")
         endpoint?.state = .connected
       }
   }
