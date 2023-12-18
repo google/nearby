@@ -19,8 +19,15 @@ import FirebaseCore
 import FirebaseMessaging
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+  static private(set) var shared: AppDelegate! = nil
+  var notificationToken: String? = nil
+
   func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil)
+  -> Bool {
+    // Set up singleton
+    AppDelegate.shared = self
+
     // Initialize Firebase
     FirebaseApp.configure()
 
@@ -29,18 +36,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     // Register for remote notifications
     UNUserNotificationCenter.current().delegate = self
-
     let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
     UNUserNotificationCenter.current().requestAuthorization(
       options: authOptions,
       completionHandler: { _, _ in }
     )
-
     application.registerForRemoteNotifications()
+
     return true
   }
 
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+    AppDelegate.shared.notificationToken = fcmToken
     print("Firebase registration token: \(String(describing: fcmToken))")
 
     let dataDict: [String: String] = ["token": fcmToken ?? ""]
@@ -49,45 +56,27 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       object: nil,
       userInfo: dataDict
     )
-    // TODO: If necessary send token to application server.
-    // Note: This callback is fired at each app startup and whenever a new token is generated.
   }
 
   // Receive displayed notifications for iOS 10 devices.
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification) async
-      -> UNNotificationPresentationOptions {
-      let userInfo = notification.request.content.userInfo
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification) async
+  -> UNNotificationPresentationOptions {
+    let userInfo = notification.request.content.userInfo
+    print(userInfo)
 
-      // With swizzling disabled you must let Messaging know about the message, for Analytics
-      // Messaging.messaging().appDidReceiveMessage(userInfo)
+    return [[.banner, .sound]]
+  }
 
-      // ...
-
-      // Print full message.
-      print(userInfo)
-
-      // Change this to your preferred presentation option
-      return [[.alert, .sound]]
-    }
-
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                didReceive response: UNNotificationResponse) async {
-      let userInfo = response.notification.request.content.userInfo
-
-      // ...
-
-      // With swizzling disabled you must let Messaging know about the message, for Analytics
-      // Messaging.messaging().appDidReceiveMessage(userInfo)
-
-      // Print full message.
-      print(userInfo)
-    }
-
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse) async {
+    let userInfo = response.notification.request.content.userInfo
+    print(userInfo)
+  }
 }
 
 @main
-struct HelloConnectionsApp: App {
+struct HelloCloudApp: App {
   // register app delegate for Firebase setup
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 

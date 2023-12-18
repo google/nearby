@@ -92,14 +92,14 @@ import UIKit
   }
   
   func sendData(_ payload: Data, to endpointId: String) {
-    print("Sending packet to " + endpointId)
+    print("Sending data to " + endpointId)
     let endpoint = endpoints.first(where: {$0.id == endpointId})
     endpoint?.state = .sending
     _ = connectionManager.send(
       payload,
       to: [endpointId],
       id: PayloadID.unique()) { [endpoint] result in
-        print("Done sending packet")
+        print("Done sending data")
         endpoint?.state = .connected
       }
   }
@@ -240,6 +240,12 @@ extension Main: ConnectionManagerDelegate {
       break
     case .connected:
       endpoint.state = .connected
+      if let token = AppDelegate.shared.notificationToken {
+        let data = DataWrapper<OutgoingFile>(notificationToken: token)
+        if let json = try? JSONEncoder().encode(data) {
+          sendData(json, to: endpointId)
+        }
+      }
     case .disconnected:
       removeOrChangeState(endpoint)
     case .rejected:

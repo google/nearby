@@ -96,12 +96,17 @@ extension Packet<IncomingFile> {
 
 extension Packet<OutgoingFile> {
   func upload() -> Void {
+    if self.state != .loaded {
+      print ("Packet should be in loaded before being uploaded")
+      return
+    }
+
     self.state = .uploading
     // Upload each outging file
     for file in files {
       if file.state == .loaded {
         let beginTime = Date()
-        file.upload() {[beginTime, weak self] size, error in
+        file.upload() { [beginTime, weak self] size, error in
           guard let self else {
             return
           }
@@ -113,6 +118,9 @@ extension Packet<OutgoingFile> {
 
             if self.files.allSatisfy({ $0.state == .uploaded }) {
               self.state = .uploaded
+
+              // Update packet status in Firebase
+              // The update will automatically trigger a push notification
             }
           } else {
             print("Failed to upload packet")
@@ -121,7 +129,5 @@ extension Packet<OutgoingFile> {
         }
       }
     }
-    // Update packet status in Firebase
-    // The update will automatically trigger a push notification
   }
 }

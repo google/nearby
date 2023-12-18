@@ -24,7 +24,7 @@ struct EndpointView: View {
   @Environment(\.dismiss) var dismiss
   @State private var showConfirmation: Bool = false
   @State private var photosPicked: [PhotosPickerItem] = []
-  @State private var loadingPhotos = false
+  @State private var loadPhotos = false
   @State var imageUrl: URL? = nil
 
   func connect() -> Void {
@@ -43,12 +43,12 @@ struct EndpointView: View {
     }
   }
 
-  func savePhotosAsync(_ completionHandler: ((Packet<OutgoingFile>?) -> Void)?) async -> Void {
-    loadingPhotos = true
+  func loadPhotosAsync(_ completionHandler: ((Packet<OutgoingFile>?) -> Void)?) async -> Void {
+    loadPhotos = true
 
     let packet = Packet<OutgoingFile>()
     packet.packetId = UUID().uuidString.uppercased()
-    packet.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
+    packet.notificationToken = model.notificationToken
     packet.state = .loading
     packet.receiver = model.name
 
@@ -64,7 +64,7 @@ struct EndpointView: View {
     await withTaskGroup(of: OutgoingFile?.self) { group in
       for photo in photosPicked {
         group.addTask{
-          return await savePhotoAsync(photo: photo, directoryUrl: directoryUrl)
+          return await loadPhotoAsync(photo: photo, directoryUrl: directoryUrl)
         }
       }
 
@@ -76,7 +76,7 @@ struct EndpointView: View {
       }
     }
 
-    loadingPhotos = false
+    loadPhotos = false
     // Very rudimentary error handling. Succeeds only if all files are saved. No partial success.
     if (packet.files.count == photosPicked.count)
     {
@@ -89,7 +89,7 @@ struct EndpointView: View {
     }
   }
 
-  func savePhotoAsync(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
+  func loadPhotoAsync(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
     let type =
     photo.supportedContentTypes.first(
       where: {$0.preferredMIMEType == "image/jpeg"}) ??
@@ -213,13 +213,13 @@ struct EndpointView: View {
           HStack {
             Label("Pick Photos", systemImage: "photo.badge.plus.fill")
             Spacer()
-            if loadingPhotos {
+            if loadPhotos {
               ProgressView()
             }
           }
         }
         .frame(maxWidth: .infinity)
-        .disabled(loadingPhotos)
+        .disabled(loadPhotos)
         .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
 
         NavigationLink{ TransfersView(model: model) } label: {
@@ -260,7 +260,7 @@ struct EndpointView: View {
       .alert("Do you want to send the claim token to the remote endpoint? You will need to go to the uploads page and upload this packet. Once it's uploaded, the other device will get a notification and will be able to download.", isPresented: $showConfirmation) {
         Button("Yes") {
           Task {
-            await savePhotosAsync { result in
+            await loadPhotosAsync { result in
               guard let result else {
                 return
               }

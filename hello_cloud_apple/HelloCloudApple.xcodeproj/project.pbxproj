@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		23252B5629D739E400BB0370 /* HelloConnectionsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */; };
+		23252B5629D739E400BB0370 /* HelloCloudApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5529D739E400BB0370 /* HelloCloudApp.swift */; };
 		23252B5829D739E400BB0370 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5729D739E400BB0370 /* MainView.swift */; };
 		23252B5A29D739E500BB0370 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23252B5929D739E500BB0370 /* Assets.xcassets */; };
 		23252B5D29D739E500BB0370 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23252B5C29D739E500BB0370 /* Preview Assets.xcassets */; };
@@ -43,7 +43,7 @@
 
 /* Begin PBXFileReference section */
 		23252B5229D739E400BB0370 /* HelloCloudApple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HelloCloudApple.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloConnectionsApp.swift; sourceTree = "<group>"; };
+		23252B5529D739E400BB0370 /* HelloCloudApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloCloudApp.swift; sourceTree = "<group>"; };
 		23252B5729D739E400BB0370 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		23252B5929D739E500BB0370 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		23252B5C29D739E500BB0370 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -116,7 +116,7 @@
 				777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */,
 				77CD19D02B19442100654BA2 /* Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
-				23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */,
+				23252B5529D739E400BB0370 /* HelloCloudApp.swift */,
 				23252B5729D739E400BB0370 /* MainView.swift */,
 				23F6A71229D7ADCE00558F56 /* EndpointView.swift */,
 				77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */,
@@ -266,7 +266,7 @@
 				777392202B2D02C2002FE3BA /* IncomingPacketsView.swift in Sources */,
 				77E09C7B2B119B1600838C24 /* TransfersView.swift in Sources */,
 				777FE98C2B301027000DD6D0 /* Debug.swift in Sources */,
-				23252B5629D739E400BB0370 /* HelloConnectionsApp.swift in Sources */,
+				23252B5629D739E400BB0370 /* HelloCloudApp.swift in Sources */,
 				23D1FD2629D8A9FF00620802 /* Endpoint.swift in Sources */,
 				77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */,
 				777CC1492B2E8D9A00E2E8FA /* File.swift in Sources */,
