@@ -173,16 +173,16 @@ extension Main: ConnectionManagerDelegate {
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
 
-      guard let files = IncomingFile.decodeIncomingFiles(fromJson: data) else {
-        print("Failed to decode incoming files.")
-        return
-      }
-      
-      for file in files {
-        endpoint.incomingFiles.append(file)
-        let transfer = Transfer(direction: .receive, remotePath: file.remotePath!, result: .success, from: endpointId)
-        endpoint.transfers.append(transfer)
-      }
+//      guard let files = IncomingFile.decodeIncomingFiles(fromJson: data) else {
+//        print("Failed to decode incoming files.")
+//        return
+//      }
+//      
+//      for file in files {
+//        endpoint.incomingFiles.append(file)
+//        let transfer = Transfer(direction: .receive, remotePath: file.remotePath!, result: .success, from: endpointId)
+//        endpoint.transfers.append(transfer)
+//      }
     }
   }
 

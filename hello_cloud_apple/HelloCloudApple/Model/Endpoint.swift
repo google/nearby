@@ -34,30 +34,23 @@ import SwiftUI
       }
   }
 
-//  enum Medium: Int {
-//    case unknown, mDns, bluetooth, wifiHotspot, ble, wifiLan, wifiAware, nfc, wifiDirect, webRtc, bleL2Cap, usb
-//  }
-
   let id: String
   let name: String
   @ObservationIgnored var isIncoming: Bool
-
-  // var medium: Medium
   var state: State
   var outgoingPackets: [Packet<OutgoingFile>] = []
-  var incomingFiles: [IncomingFile] = []
+  var incomingPackets: [Packet<IncomingFile>] = []
   var transfers: [Transfer] = []
 
   static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(id) }
 
-  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered, outgoingPackets: [Packet<OutgoingFile>] = [], incomingFiles: [IncomingFile] = [], transfers: [Transfer] = []) {
+  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered) {
     self.id = id
     self.name = name
     self.isIncoming = isIncoming
     self.state = state
-    self.outgoingPackets = outgoingPackets
-    self.incomingFiles = incomingFiles
-    self.transfers = transfers
   }
+
+  
 }

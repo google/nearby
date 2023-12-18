@@ -235,12 +235,18 @@ struct EndpointView: View {
               guard let result else {
                 return
               }
-              let json = try? JSONEncoder().encode(result)
+              let data = DataWrapper(packet: result)
+              let json = try? JSONEncoder().encode(data)
               guard let json else {
                 return
               }
+
               print("Encoded packet:")
               print(String(data: json, encoding: .utf8) ?? "Invalid")
+
+//              let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
+
+              Main.shared.sendData(json, to: model.id)
             }
           }
         }
