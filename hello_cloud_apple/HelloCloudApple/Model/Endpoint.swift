@@ -37,6 +37,7 @@ import SwiftUI
   let id: String
   let name: String
   @ObservationIgnored var isIncoming: Bool
+  var loadingPhotos: Bool = false
   var state: State
   var outgoingPackets: [Packet<OutgoingFile>] = []
   var incomingPackets: [Packet<IncomingFile>] = []

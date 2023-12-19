@@ -20,7 +20,6 @@ import PhotosUI
 struct MainView: View {
   @EnvironmentObject var model: Main
   @State private var photosPicked: [PhotosPickerItem] = []
-  @State private var loadingPhotos = false
   @State private var showConfirmation: Bool = false
 
   func connect(to endpoint: Endpoint) -> Void {
@@ -42,6 +41,136 @@ struct MainView: View {
       }
     }
   }
+
+  func loadRecordAndSend(for endpoint: Endpoint) async -> Error? {
+    // Load photos and save them to local files
+    guard let packet = await loadPhotos(for: endpoint) else {
+      return NSError(domain: "Loading", code: 1)
+    }
+
+    // Record the packet in the database
+    if let error = await withCheckedContinuation({ continuation in
+      CloudDatabase.shared.recordNewPacket(packet: packet) { succeeded in
+        continuation.resume(returning: succeeded)
+      }
+    }) {
+      return error
+    }
+
+    // Encode the packet into json
+    let data = DataWrapper(packet: packet)
+    let json = try? JSONEncoder().encode(data)
+    guard let json else {
+      return NSError(domain: "Encoding", code: 1)
+    }
+
+    // print("Encoded packet: " + String(data: json, encoding: .utf8) ?? "Invalid")
+    // let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
+
+    // Send the json data to the endpoint
+    if let error = await model.sendData(json, to: endpoint.id) {
+      return error
+    }
+
+    return nil
+  }
+
+  func loadPhotos(for endpoint: Endpoint) async -> Packet<OutgoingFile>? {
+    endpoint.loadingPhotos = true
+
+    let packet = Packet<OutgoingFile>()
+    packet.packetId = UUID().uuidString.uppercased()
+    packet.notificationToken = endpoint.notificationToken
+    packet.state = .loading
+    packet.receiver = endpoint.name
+
+    guard let directoryUrl = try? FileManager.default.url(
+      for: .documentDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true) else {
+      print("Failed to obtain directory for saving photos.")
+      return nil
+    }
+
+    await withTaskGroup(of: OutgoingFile?.self) { group in
+      for photo in photosPicked {
+        group.addTask {
+          return await loadPhoto(photo: photo, directoryUrl: directoryUrl)
+        }
+      }
+
+      for await (file) in group {
+        guard let file else {
+          continue;
+        }
+        packet.files.append(file)
+      }
+    }
+
+    endpoint.loadingPhotos = false
+    // Very rudimentary error handling. Succeeds only if all files are saved. No partial success.
+    if (packet.files.count == photosPicked.count)
+    {
+      packet.state = .loaded
+      model.outgoingPackets.append(packet)
+      return packet
+    } else {
+      packet.state = .picked
+      return nil
+    }
+  }
+
+  func loadPhoto(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
+    let type =
+    photo.supportedContentTypes.first(
+      where: {$0.preferredMIMEType == "image/jpeg"}) ??
+    photo.supportedContentTypes.first(
+      where: {$0.preferredMIMEType == "image/png"})
+
+    let file = OutgoingFile(mimeType: type?.preferredMIMEType ?? "application/octet-stream")
+
+    guard let data = try? await photo.loadTransferable(type: Data.self) else {
+      return nil
+    }
+    var typedData: Data
+    if file.mimeType == "image/jpeg" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
+        return nil
+      }
+      typedData  = jpegData
+      file.fileSize = Int64(jpegData.count)
+    }
+    else if file.mimeType == "image/png" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let pngData = uiImage.pngData() else {
+        return nil
+      }
+      typedData  = pngData
+      file.fileSize = Int64(pngData.count)
+    }
+    else {
+      typedData = data
+      file.fileSize = Int64(data.count)
+    }
+
+    let url = directoryUrl.appendingPathComponent(UUID().uuidString)
+    do {
+      try typedData.write(to:url)
+    } catch {
+      print("Failed to save photo to file")
+      return nil;
+    }
+    file.localUrl = url
+    file.state = .loaded
+    return file
+  }
+
 
   var body: some View {
     NavigationStack {
@@ -114,7 +243,6 @@ struct MainView: View {
                   .disabled(endpoint.state != .discovered)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-//                  .border(Color.blue)
 
                   Button(action: { disconnect(from: endpoint) }) {
                     ZStack {
@@ -127,18 +255,24 @@ struct MainView: View {
                   .disabled(endpoint.state != .connected)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-//                  .border(Color.blue)
 
                   PhotosPicker(selection: $photosPicked, matching: .images) {
                     ZStack {
-                      Image(systemName: "photo.badge.plus.fill").opacity(loadingPhotos ? 0 : 1)
-                      ProgressView().opacity(loadingPhotos ? 1 : 0)
+                      Image(systemName: "photo.badge.plus.fill")
+                        .opacity(endpoint.loadingPhotos ? 0 : 1)
+                      ProgressView()
+                        .opacity(endpoint.loadingPhotos ? 1 : 0)
                     }
                   }
-                  .disabled(loadingPhotos)
+                  .disabled(endpoint.loadingPhotos)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-//                  .border(Color.blue)
+                  .alert("Do you want to send the claim token to the remote endpoint? You will need to go to the uploads page and upload this packet. Once it's uploaded, the other device will get a notification and will be able to download.", isPresented: $showConfirmation) {
+                    Button("Yes") {
+                      Task { await loadRecordAndSend(for: endpoint) }
+                    }
+                    Button("No", role: .cancel) { }
+                  }
                   .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
                 }
               }
