@@ -27,7 +27,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/variant.h"
-#include "internal/platform/count_down_latch.h"
 #ifdef NEARBY_CHROMIUM
 #include "crypto/aead.h"
 #include "crypto/ec_private_key.h"
@@ -323,25 +322,19 @@ std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
 void CredentialManagerImpl::GetLocalCredentials(
     const CredentialSelector& credential_selector,
     GetLocalCredentialsResultCallback callback) {
-  CountDownLatch get_local_credentials_latch(1);
   absl::StatusOr<std::vector<LocalCredential>> get_local_credentials_result;
   credential_storage_ptr_->GetLocalCredentials(
       credential_selector,
       GetLocalCredentialsResultCallback{
           .credentials_fetched_cb =
-              [get_local_credentials_latch, &get_local_credentials_result](
+              [&get_local_credentials_result](
                   absl::StatusOr<std::vector<LocalCredential>>
                       credentials) mutable {
                 get_local_credentials_result = std::move(credentials);
-                get_local_credentials_latch.CountDown();
+                return;
               },
       });
-  if (!WaitForLatch("GetLocalCredentials", &get_local_credentials_latch)) {
-    NEARBY_LOGS(INFO) << "Failed in awaiting GetLocalCredentials";
-    callback.credentials_fetched_cb(
-        absl::DeadlineExceededError("Failed in awaiting GetLocalCredentials"));
-    return;
-  }
+
   if (!get_local_credentials_result.ok()) {
     callback.credentials_fetched_cb(get_local_credentials_result.status());
     return;
@@ -365,25 +358,19 @@ void CredentialManagerImpl::GetPublicCredentials(
     return;
   }
 
-  CountDownLatch get_shared_credentials_latch(1);
   absl::StatusOr<std::vector<SharedCredential>> get_shared_credentials_result;
   credential_storage_ptr_->GetPublicCredentials(
       credential_selector, public_credential_type,
       GetPublicCredentialsResultCallback{
           .credentials_fetched_cb =
-              [get_shared_credentials_latch, &get_shared_credentials_result](
+              [&get_shared_credentials_result](
                   absl::StatusOr<std::vector<SharedCredential>>
                       credentials) mutable {
                 get_shared_credentials_result = std::move(credentials);
-                get_shared_credentials_latch.CountDown();
+                return;
               },
       });
-  if (!WaitForLatch("GetSharedCredentials", &get_shared_credentials_latch)) {
-    NEARBY_LOGS(INFO) << "Failed in awaiting GetSharedCredentials";
-    callback.credentials_fetched_cb(
-        absl::DeadlineExceededError("Failed in awaiting GetsharedCredentials"));
-    return;
-  }
+
   if (!get_shared_credentials_result.ok()) {
     callback.credentials_fetched_cb(get_shared_credentials_result.status());
     return;
@@ -652,7 +639,6 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
 
   // Already got the merged valid credential list for either local or shared.
   // Now get the other credentials list from storage.
-  CountDownLatch get_corresponding_credentials_latch(1);
   if (invoked_for_local) {
     absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
         get_shared_result;
@@ -660,21 +646,15 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
         credential_selector, PublicCredentialType::kLocalPublicCredential,
         GetPublicCredentialsResultCallback{
             .credentials_fetched_cb =
-                [get_corresponding_credentials_latch, &get_shared_result](
+                [&get_shared_result](
                     absl::StatusOr<
                         std::vector<nearby::internal::SharedCredential>>
                         result) mutable {
                   get_shared_result = std::move(result);
-                  get_corresponding_credentials_latch.CountDown();
+                  return;
                 },
         });
-    if (!WaitForLatch(
-            "CheckCredentialsAndRefillIfNeeded-GetCorrespondingShared",
-            &get_corresponding_credentials_latch)) {
-      callback_for_local_credentials.value().credentials_fetched_cb(
-          absl::DeadlineExceededError("Failed in GetLocalCredentials"));
-      return;
-    }
+
     if (!get_shared_result.ok()) {
       callback_for_local_credentials.value().credentials_fetched_cb(
           get_shared_result.status());
@@ -692,21 +672,14 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
         credential_selector,
         GetLocalCredentialsResultCallback{
             .credentials_fetched_cb =
-                [get_corresponding_credentials_latch, &get_local_result](
+                [&get_local_result](
                     absl::StatusOr<
                         std::vector<nearby::internal::LocalCredential>>
                         result) mutable {
                   get_local_result = std::move(result);
-                  get_corresponding_credentials_latch.CountDown();
+                  return;
                 },
         });
-    if (!WaitForLatch("CheckCredentialsAndRefillIfNeeded-GetCorrespondingLocal",
-                      &get_corresponding_credentials_latch)) {
-      callback_for_shared_credentials.value().credentials_fetched_cb(
-          absl::DeadlineExceededError(
-              "Failed in awaiting corresponding GetSharedCredentials"));
-      return;
-    }
     if (!get_local_result.ok()) {
       callback_for_local_credentials.value().credentials_fetched_cb(
           get_local_result.status());
@@ -719,7 +692,7 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
     }
   }
 
-  // Now merge newly generated credentails to already existing valid ones.
+  // Now merge newly generated credentials to already existing valid ones.
   valid_local_credentials.insert(valid_local_credentials.end(),
                                  newly_generated_local_credentials.begin(),
                                  newly_generated_local_credentials.end());
@@ -727,7 +700,6 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
                                   newly_generated_shared_credentials.begin(),
                                   newly_generated_shared_credentials.end());
   // Save merged local and shared credential lists to storage
-  CountDownLatch save_credentials_latch(1);
   absl::Status save_credentials_status;
   credential_storage_ptr_->SaveCredentials(
       credential_selector.manager_app_id, credential_selector.account_name,
@@ -735,17 +707,13 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
       PublicCredentialType::kLocalPublicCredential,
       SaveCredentialsResultCallback{
           .credentials_saved_cb =
-              [save_credentials_latch,
+              [this,
                &save_credentials_status](absl::Status status) mutable {
                 save_credentials_status = status;
-                save_credentials_latch.CountDown();
+                return;
               },
       });
-  if (!WaitForLatch("CheckCredentialsAndRefillIfNeeded-SaveCredentials",
-                    &save_credentials_latch)) {
-    save_credentials_status =
-        absl::DeadlineExceededError("Failed in awaiting SaveCredentials");
-  }
+
   if (!save_credentials_status.ok()) {
     NEARBY_LOGS(ERROR) << "Save credentials failed with: "
                        << save_credentials_status;
@@ -767,15 +735,5 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
   }
 }
 
-bool CredentialManagerImpl::WaitForLatch(absl::string_view method_name,
-                                         CountDownLatch* latch) {
-  Exception await_exception = latch->Await();
-  if (!await_exception.Ok()) {
-    NEARBY_LOGS(ERROR) << "Blocked in " << method_name
-                       << " with exeception code: " << await_exception.value;
-    return false;
-  }
-  return true;
-}
 }  // namespace presence
 }  // namespace nearby
