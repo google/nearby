@@ -55,7 +55,7 @@ objc_library(
         "//third_party/apple_frameworks:QuartzCore",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ] + select({
-        "@platforms//os:platform_ios": [
+        "@platforms//os:ios": [
             "//third_party/apple_frameworks:UIKit",
         ],
         "//conditions:default": [],

@@ -68,7 +68,7 @@ objc_library(
         "@com_google_absl//absl/types:span",
         "@nlohmann_json//:json",
     ] + select({
-        "@platforms//os:platform_ios": [
+        "@platforms//os:ios": [
             "//third_party/apple_frameworks:UIKit",
         ],
         "//conditions:default": [],
