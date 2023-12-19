@@ -21,9 +21,12 @@ import Foundation
     case picked, loading, loaded, uploading, uploaded
   }
 
+  // This is the Identifiable.id used by SwiftUI, not the file ID used for identifying the file
+  // across devices and the cloud
   let id: UUID = UUID()
-
   let mimeType: String
+
+  @ObservationIgnored var fileId: String = ""
   @ObservationIgnored var fileSize: Int64 = 0
   @ObservationIgnored var remotePath: String? = nil
   @ObservationIgnored var localUrl: URL? = nil
@@ -35,6 +38,7 @@ import Foundation
 
   init(mimeType: String) {
     self.mimeType = mimeType
+    self.fileId = UUID().uuidString.uppercased()
   }
 
   func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
@@ -67,7 +71,7 @@ import Foundation
   func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case mimeType, remotePath, fileSize
+    case fileId, mimeType, fileSize
   }
 
   static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> Data? {

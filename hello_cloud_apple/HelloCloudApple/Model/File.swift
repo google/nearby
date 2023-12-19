@@ -19,5 +19,5 @@ import Foundation
 protocol File: Identifiable, Encodable, Decodable {
   var mimeType: String { get }
   var fileSize: Int64 { get }
-  var remotePath: String? { get set }
+  var fileId: String { get set }
 }
