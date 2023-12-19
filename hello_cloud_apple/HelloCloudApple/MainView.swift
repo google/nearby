@@ -186,26 +186,29 @@ struct MainView: View {
               TextField("Local Endpoint Name", text: $model.localEndpointName)
             }
           }
-        } header: {
-          Text("Local endpoint")
-        }
 
-        Section {
-          Button(action: {model.isAdvertising.toggle()}) {
-            model.isAdvertising
-            ? Label("Stop advertising", systemImage: "stop.circle")
-            : Label("Start advertising", systemImage: "play.circle")
-          }.foregroundColor(model.isAdvertising ? .red : .green)
-          Button(action: {model.isDiscovering.toggle()}) {
-            model.isDiscovering
-            ? Label("Stop discovering", systemImage: "stop.circle")
-            : Label("Start discovering", systemImage: "play.circle")
-          }.foregroundColor(model.isDiscovering ? .red : .green)
-        }
+          HStack {
+            Button(action: {model.isAdvertising.toggle()}) {
+              Label("Advertise",
+                    systemImage: model.isAdvertising ? "stop.circle" : "play.circle")
+            }
+            .foregroundColor(model.isAdvertising ? .red : .green)
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
 
-        Section {
+            Button(action: {model.isDiscovering.toggle()}) {
+              Label("Discover",
+                    systemImage: model.isDiscovering ? "stop.circle" : "play.circle")
+            }
+            .foregroundColor(model.isDiscovering ? .red : .green)
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+          }
+
           NavigationLink {IncomingPacketsView()} label: {Text("Incoming packets")}
           NavigationLink {OutgoingPacketsView()} label: {Text("Outgoing packets")}
+        } header: {
+          Text("Local endpoint")
         }
 
         List {
