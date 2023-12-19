@@ -40,7 +40,7 @@ extension IncomingFile {
 extension Packet<OutgoingFile> {
   static func createOutgoingDebugModel() -> Packet<OutgoingFile>{
     let result = Packet<OutgoingFile>()
-    result.notificationToken = "abcd"
+    result.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
     result.receiver = "Hans Solo"
     result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
     result.files.append(OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
@@ -51,7 +51,6 @@ extension Packet<OutgoingFile> {
 extension Packet<IncomingFile> {
   static func createIncomingDebugModel() -> Packet<IncomingFile>{
     let result = Packet<IncomingFile>()
-    result.notificationToken = "abcd"
     result.sender = "Princess Leia"
     result.files.append(IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
     result.files.append(IncomingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
