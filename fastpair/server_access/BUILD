@@ -93,7 +93,6 @@ cc_test(
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/proto:proto_builder",
         "//internal/account",
-        "//internal/account:test_support",
         "//internal/auth:credential",
         "//internal/auth:types",
         "//internal/network:types",

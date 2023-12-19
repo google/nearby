@@ -44,11 +44,10 @@ cc_test(
         "//fastpair/repository",
         "//fastpair/repository:device_repository",
         "//fastpair/repository:test_support",
-        "//internal/account:test_support",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/test/google3_only:test",
+        "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",

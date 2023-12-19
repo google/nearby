@@ -36,11 +36,11 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
-#include "internal/account/fake_account_manager.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/test/fake_account_manager.h"
 
 namespace nearby {
 namespace fastpair {

@@ -25,11 +25,12 @@
 #include "fastpair/internal/fast_pair_seeker_impl.h"
 #include "fastpair/message_stream/fake_provider.h"
 #include "fastpair/plugins/fake_fast_pair_plugin.h"
-#include "internal/account/fake_account_manager.h"
+#include "internal/account/account_manager_impl.h"
 #include "internal/network/http_client.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_http_client.h"
 #include "internal/test/google3_only/fake_authentication_manager.h"
@@ -48,8 +49,9 @@ using ::testing::status::StatusIs;
 class FastPairServiceTest : public ::testing::Test {
  protected:
   FastPairServiceTest() {
-    AccountManagerImpl::Factory::SetFactoryForTesting(
-        &account_manager_factory_);
+    AccountManagerImpl::Factory::SetFactoryForTesting([]() {
+      return std::make_unique<nearby::FakeAccountManager>();
+    });
     http_client_ = std::make_unique<network::FakeHttpClient>();
     device_info_ = std::make_unique<FakeDeviceInfo>();
     authentication_manager_ =
@@ -61,7 +63,10 @@ class FastPairServiceTest : public ::testing::Test {
     GetAuthManager()->EnableSyncMode();
   }
 
-  void TearDown() override { MediumEnvironment::Instance().Stop(); }
+  void TearDown() override {
+    AccountManagerImpl::Factory::SetFactoryForTesting(nullptr);
+    MediumEnvironment::Instance().Stop();
+  }
 
   nearby::FakeAuthenticationManager* GetAuthManager() {
     return reinterpret_cast<nearby::FakeAuthenticationManager*>(
@@ -84,7 +89,6 @@ class FastPairServiceTest : public ::testing::Test {
     GetHttpClient()->SetResponseForSyncRequest(response);
   }
 
-  FakeAccountManager::Factory account_manager_factory_;
   std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
   std::unique_ptr<network::HttpClient> http_client_;
   std::unique_ptr<DeviceInfo> device_info_;

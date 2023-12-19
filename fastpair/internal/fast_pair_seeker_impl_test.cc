@@ -35,11 +35,11 @@
 #include "fastpair/repository/fake_fast_pair_repository.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/repository/fast_pair_repository.h"
-#include "internal/account/fake_account_manager.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/test/fake_account_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -55,8 +55,6 @@ constexpr absl::string_view kBobPublicKey =
     "F7D496A62ECA416351540AA343BC690A6109F551500666B83B1251FB84FA2860795EBD63D3"
     "B8836F44A9A3E28BB34017E015F5979305D849FDF8DE10123B61D2";
 constexpr absl::string_view kPasskey = "123456";
-constexpr absl::string_view kFastPairPreferencesFilePath =
-    "Google/Nearby/FastPair";
 constexpr absl::string_view kTestAccountId = "test_account_id";
 
 using ::testing::status::StatusIs;

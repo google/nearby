@@ -17,6 +17,7 @@ licenses(["notice"])
 cc_library(
     name = "test",
     srcs = [
+        "fake_account_manager.cc",
         "fake_clock.cc",
         "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
@@ -24,6 +25,7 @@ cc_library(
         "fake_webrtc.cc",
     ],
     hdrs = [
+        "fake_account_manager.h",
         "fake_clock.h",
         "fake_data_set.h",
         "fake_device_info.h",
@@ -39,6 +41,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//internal/base",
         "//internal/base:bluetooth_address",
         "//internal/data:data_manager",
         "//internal/network:types",

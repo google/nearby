@@ -15,6 +15,7 @@ cc_library(
         "//internal/account:__subpackages__",
         "//internal/interop:__pkg__",
         "//internal/platform:__pkg__",
+        "//internal/test:__pkg__",
         "//location/nearby/cpp/experiments:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//third_party/nearby/sharing:__subpackages__",

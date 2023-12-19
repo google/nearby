@@ -46,13 +46,13 @@
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
-#include "internal/account/fake_account_manager.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/test/fake_account_manager.h"
 
 namespace nearby {
 namespace fastpair {

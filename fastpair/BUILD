@@ -132,7 +132,7 @@ cc_test(
         "//fastpair/internal",
         "//fastpair/message_stream:fake_provider",
         "//fastpair/plugins:fake_fast_pair_plugin",
-        "//internal/account:test_support",
+        "//internal/account",
         "//internal/network:types",
         "//internal/platform:test_util",
         "//internal/platform:types",

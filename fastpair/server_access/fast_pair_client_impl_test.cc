@@ -44,7 +44,6 @@
 #include "fastpair/proto/proto_builder.h"
 #include "fastpair/server_access/fast_pair_client.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "internal/account/fake_account_manager.h"
 #include "internal/auth/auth_status_util.h"
 #include "internal/auth/authentication_manager.h"
 #include "internal/network/http_client.h"
@@ -53,6 +52,7 @@
 #include "internal/network/http_status_code.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
+#include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/google3_only/fake_authentication_manager.h"
 
