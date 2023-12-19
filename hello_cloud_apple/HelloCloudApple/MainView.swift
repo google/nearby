@@ -23,8 +23,24 @@ struct MainView: View {
   @State private var loadingPhotos = false
   @State private var showConfirmation: Bool = false
 
-  func toggleIsAdvertising() -> Void {
-    model.isAdvertising.toggle();
+  func connect(to endpoint: Endpoint) -> Void {
+    endpoint.state = .connecting
+    model.requestConnection(to: endpoint.id) { [weak endpoint] error in
+      if error != nil {
+        endpoint?.state = .discovered
+        print("E: Failed to connect: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
+  func disconnect(from endpoint: Endpoint) -> Void {
+    endpoint.state = .disconnecting
+    model.disconnect(from: endpoint.id) { [weak endpoint] error in
+      endpoint?.state = .discovered
+      if error != nil {
+        print("I: Failed to disconnected: " + (error?.localizedDescription ?? ""))
+      }
+    }
   }
 
   var body: some View {
@@ -87,7 +103,7 @@ struct MainView: View {
                 Spacer()
 
                 HStack {
-                  Button(action: { endpoint.connect() }) {
+                  Button(action: { connect(to: endpoint) }) {
                     ZStack {
                       Image(systemName: "phone.connection.fill")
                         .foregroundColor(endpoint.state == .discovered ? .green : .gray)
@@ -100,7 +116,7 @@ struct MainView: View {
                   .frame(maxHeight: .infinity)
 //                  .border(Color.blue)
 
-                  Button(action: { endpoint.disconnect() }) {
+                  Button(action: { disconnect(from: endpoint) }) {
                     ZStack {
                       Image(systemName: "phone.down.fill")
                         .foregroundColor(endpoint.state == .connected ? .red : .gray)
