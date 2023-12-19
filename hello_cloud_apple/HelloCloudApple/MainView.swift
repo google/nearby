@@ -13,12 +13,15 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
-import SwiftUI
 import NearbyConnections
+import SwiftUI
+import PhotosUI
 
 struct MainView: View {
   @EnvironmentObject var model: Main
+  @State private var photosPicked: [PhotosPickerItem] = []
+  @State private var loadingPhotos = false
+  @State private var showConfirmation: Bool = false
 
   func toggleIsAdvertising() -> Void {
     model.isAdvertising.toggle();
@@ -56,17 +59,71 @@ struct MainView: View {
         }
 
         Section {
-          NavigationLink {IncomingPacketsView()} label: {Text("Downloads")}
-          NavigationLink {OutgoingPacketsView()} label: {Text("Uploads")}
+          NavigationLink {IncomingPacketsView()} label: {Text("Incoming packets")}
+          NavigationLink {OutgoingPacketsView()} label: {Text("Outgoing packets")}
         }
 
         List {
           Section {
             ForEach(model.endpoints) { endpoint in
-              HStack{
-                NavigationLink {EndpointView(model: endpoint)} label: {
-                  Text(endpoint.id).font(.custom("Menlo", fixedSize: 15))
-                  Text("(" + endpoint.name + ")")
+              HStack {
+                HStack {
+                  switch endpoint.state {
+                  case .connected:
+                    Image(systemName: "circle.fill").foregroundColor(.green)
+                  case .discovered:
+                    Image(systemName: "circle.fill").foregroundColor(.gray)
+                  default:
+                    Image(systemName: "circle.fill").foregroundColor(.gray)
+                  }
+                  VStack {
+                    Text(endpoint.id).font(.custom("Menlo", fixedSize: 10))
+                      .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(endpoint.name)
+                      .frame(maxWidth: .infinity, alignment: .leading)
+                  }
+                }
+
+                Spacer()
+
+                HStack {
+                  Button(action: { endpoint.connect() }) {
+                    ZStack {
+                      Image(systemName: "phone.connection.fill")
+                        .foregroundColor(endpoint.state == .discovered ? .green : .gray)
+                        .opacity(endpoint.state == .connecting ? 0 : 1)
+                      ProgressView().opacity(endpoint.state == .connecting ? 1 : 0)
+                    }
+                  }
+                  .disabled(endpoint.state != .discovered)
+                  .buttonStyle(.bordered).fixedSize()
+                  .frame(maxHeight: .infinity)
+//                  .border(Color.blue)
+
+                  Button(action: { endpoint.disconnect() }) {
+                    ZStack {
+                      Image(systemName: "phone.down.fill")
+                        .foregroundColor(endpoint.state == .connected ? .red : .gray)
+                        .opacity(endpoint.state == .disconnecting ? 0 : 1)
+                      ProgressView().opacity(endpoint.state == .disconnecting ? 1 : 0)
+                    }
+                  }
+                  .disabled(endpoint.state != .connected)
+                  .buttonStyle(.bordered).fixedSize()
+                  .frame(maxHeight: .infinity)
+//                  .border(Color.blue)
+
+                  PhotosPicker(selection: $photosPicked, matching: .images) {
+                    ZStack {
+                      Image(systemName: "photo.badge.plus.fill").opacity(loadingPhotos ? 0 : 1)
+                      ProgressView().opacity(loadingPhotos ? 1 : 0)
+                    }
+                  }
+                  .disabled(loadingPhotos)
+                  .buttonStyle(.bordered).fixedSize()
+                  .frame(maxHeight: .infinity)
+//                  .border(Color.blue)
+                  .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
                 }
               }
             }

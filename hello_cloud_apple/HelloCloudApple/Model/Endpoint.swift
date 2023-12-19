@@ -53,6 +53,26 @@ import SwiftUI
     self.state = state
   }
 
+  func connect() -> Void {
+    state = .connecting
+    Main.shared.requestConnection(to: id) { [weak self] error in
+      if error != nil {
+        self?.state = .discovered
+        print("E: failed to connect: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
+  func disconnect() -> Void {
+    state = .disconnecting
+    Main.shared.disconnect(from: id) { [weak self] error in
+      if error != nil {
+        self?.state = .discovered
+        print("E: failed to disconnect: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
   func onNotificationTakenReceived(token: String) -> Void {
     notificationToken = token
   }

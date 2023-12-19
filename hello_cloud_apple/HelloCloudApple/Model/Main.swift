@@ -244,12 +244,12 @@ extension Main: ConnectionManagerDelegate {
       break
     case .connected:
       endpoint.state = .connected
-      if let token = AppDelegate.shared.notificationToken {
-        let data = DataWrapper<OutgoingFile>(notificationToken: token)
-        if let json = try? JSONEncoder().encode(data) {
-          Task { await sendData(json, to: endpointId) }
-        }
-      }
+//      if let token = AppDelegate.shared.notificationToken {
+//        let data = DataWrapper<OutgoingFile>(notificationToken: token)
+//        if let json = try? JSONEncoder().encode(data) {
+//          Task { await sendData(json, to: endpointId) }
+//        }
+//      }
     case .disconnected:
       removeOrChangeState(endpoint)
     case .rejected:
