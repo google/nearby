@@ -21,8 +21,8 @@ import Foundation
     case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
-  // This is the Identifiable.id used by SwiftUI, not the packet id we communicate with other
-  // devices.
+  // This is the Identifiable.id used by SwiftUI, not the file ID used for identifying the packet
+  // across devices and the cloud
   let id = UUID().uuidString
 
   var notificationToken: String? = nil
@@ -59,7 +59,7 @@ import Foundation
   }
 
   enum CodingKeys: String, CodingKey {
-    case packetId, files
+    case packetId, files, notificationToken
   }
 }
 

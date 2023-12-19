@@ -96,7 +96,7 @@ struct EndpointView: View {
     photo.supportedContentTypes.first(
       where: {$0.preferredMIMEType == "image/png"})
 
-    let file = OutgoingFile( mimeType: type?.preferredMIMEType ?? "application/octet-stream")
+    let file = OutgoingFile(mimeType: type?.preferredMIMEType ?? "application/octet-stream")
 
     guard let data = try? await photo.loadTransferable(type: Data.self) else {
       return nil
@@ -276,6 +276,7 @@ struct EndpointView: View {
 //              let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
 
               Main.shared.sendData(json, to: model.id)
+              CloudDatabase.shared.createNewPacket(packet: result)
             }
           }
         }
