@@ -76,14 +76,14 @@ extension Packet<IncomingFile> {
             return
           }
 
-          guard let url else {
-            print("Failed to download packet")
+          guard url != nil else {
+            print("E: Failed to download packet")
             self.state = .received
             return
           }
 
           let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-          print("Downloaded. Size(b): \(file.fileSize). Time(s): \(duration).")
+          print("I: Downloaded. Size(b): \(file.fileSize). Time(s): \(duration).")
 
           if self.files.allSatisfy({ $0.state == .downloaded }) {
             self.state = .downloaded
@@ -97,7 +97,7 @@ extension Packet<IncomingFile> {
 extension Packet<OutgoingFile> {
   func upload() -> Void {
     if self.state != .loaded {
-      print ("Packet should be in loaded before being uploaded")
+      print ("E: Packet is not loaded before being uploaded")
       return
     }
 
@@ -113,17 +113,25 @@ extension Packet<OutgoingFile> {
 
           if error == nil {
             let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-            print("Uploaded. Size(b): \(file.fileSize). Time(s): \(duration).")
+            print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
             try? FileManager.default.removeItem(at: file.localUrl!)
 
             if self.files.allSatisfy({ $0.state == .uploaded }) {
-              self.state = .uploaded
-
               // Update packet status in Firebase
               // The update will automatically trigger a push notification
+              CloudDatabase.shared.markPacketAsUploaded(packetId: packetId) {
+                error in
+                if let error {
+                  print("E: Failed to update packet status in Firebase database.")
+                  self.state = .loaded
+                  return
+                }
+              }
+              print("I: Uploaded packet \(packetId)")
+              self.state = .uploaded
             }
           } else {
-            print("Failed to upload packet")
+            print("E: Failed to upload packet. " + String(describing: error))
             self.state = .loaded
           }
         }

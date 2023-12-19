@@ -33,12 +33,12 @@ import UIKit
         localEndpointId = ""
       } else {
         guard let name = localEndpointName.data(using: .utf8) else {
-          print("Device name is invalid. This shouldn't happen!")
+          print("E: Device name is invalid. This shouldn't happen.")
           return
         }
         advertiser.startAdvertising(using: name)
         localEndpointId = advertiser.getLocalEndpointId()
-        print("Starting advertising local endpoint id: " + localEndpointId)
+        print("I: Starting advertising local endpoint id: " + localEndpointId)
       }
     }
   }
@@ -91,25 +91,29 @@ import UIKit
     connectionManager.disconnect(from: endpointId, completionHandler: completionHandler)
   }
   
-  func sendData(_ payload: Data, to endpointId: String) {
-    print("Sending data to " + endpointId)
+  func sendData(_ payload: Data, to endpointId: String) async -> Error? {
+    print("I: Sending data to \(endpointId).")
     let endpoint = endpoints.first(where: {$0.id == endpointId})
     endpoint?.state = .sending
-    _ = connectionManager.send(
-      payload,
-      to: [endpointId],
-      id: PayloadID.unique()) { [endpoint] result in
-        print("Done sending data")
-        endpoint?.state = .connected
-      }
+
+    return await withCheckedContinuation { contiuation in
+      _ = connectionManager.send(
+        payload,
+        to: [endpointId],
+        id: PayloadID.unique()) { [endpoint] error in
+          print("I: Data sent to \(endpointId).")
+          endpoint?.state = .connected
+          contiuation.resume(returning: error)
+        }
+    }
   }
 }
 
 extension Main: DiscovererDelegate {
   func discoverer(_ discoverer: Discoverer, didFind endpointId: String, /*medium: Endpoint.Medium,*/ with context: Data) {
-    print("OnEndpointFound: " + endpointId)
+    print("I: Endpoint found: \(endpointId).")
     guard let endpointName = String(data: context, encoding: .utf8) else {
-      print("Failed to parse endpointInfo.")
+      print("E: Failed to parse endpointInfo.")
       return
     }
 
@@ -128,17 +132,17 @@ extension Main: DiscovererDelegate {
   }
 
   func discoverer(_ discoverer: Discoverer, didLose endpointId: String) {
-    print("OnEndpointLost: " + endpointId)
+    print("I: Endpoint lost: \(endpointId)")
     endpoints.removeAll(where: {$0.id == endpointId})
   }
 }
 
 extension Main: AdvertiserDelegate {
   func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointId: String, with endpoindInfo: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
-    print("OnConnectionInitiated from " + endpointId);
+    print("I: Connection initiated from \(endpointId).")
 
     guard let endpointName = String(data: endpoindInfo, encoding: .utf8) else {
-      print("Failed to parse endpointInfo.")
+      print("E: Failed to parse endpointInfo.")
       return
     }
 
@@ -157,9 +161,9 @@ extension Main: AdvertiserDelegate {
 
 extension Main: ConnectionManagerDelegate {
   func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointId: String, verificationHandler: @escaping (Bool) -> Void) {
-    print("OnConnectionVerification token received: " + verificationCode + ". Accepting connection request.")
+    print("I: Connection verification token received: \(verificationCode). Accepting connection request.")
     if nil == endpoints.first(where: {$0.id == endpointId}) {
-      print("End point not found. It has probably stopped advertising or canceled the connection request.")
+      print("E: Endpoint \(endpointId) not found. It has probably stopped advertising or canceled the connection request.")
       return
     }
     verificationHandler(true)
@@ -167,14 +171,14 @@ extension Main: ConnectionManagerDelegate {
 
   func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointId: String) {
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("Endpoint not found. " + endpointId)
+      print("E: Endpoint \(endpointId) not found.")
       return
     }
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
 
       guard let data = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: data) else {
-        print ("Unable to decode incoming payload")
+        print ("E: Unable to decode incoming payload.")
         return
       }
 
@@ -199,13 +203,13 @@ extension Main: ConnectionManagerDelegate {
     print("OnPayloadProgress: " + endpointId)
 
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("Endpoint not found. " + endpointId)
+      print("E: Endpoint \(endpointId) not found.")
       return
     }
 
     switch update {
     case .progress(let progress):
-      print(String(format: "Transfer progress: %d/%d transferred.",
+      print(String(format: "E: Transfer progress: %d/%d transferred.",
                    progress.completedUnitCount,
                    progress.totalUnitCount))
       return
@@ -229,9 +233,9 @@ extension Main: ConnectionManagerDelegate {
       }
     }
 
-    print("OnEndpointStateChange: " + endpointId)
+    print("I: Endpoint state change: " + endpointId)
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("Endpoint not found.")
+      print("I: Endpoint \(endpointId) not found.")
       return
     }
     switch (state) {
@@ -243,7 +247,7 @@ extension Main: ConnectionManagerDelegate {
       if let token = AppDelegate.shared.notificationToken {
         let data = DataWrapper<OutgoingFile>(notificationToken: token)
         if let json = try? JSONEncoder().encode(data) {
-          sendData(json, to: endpointId)
+          Task { await sendData(json, to: endpointId) }
         }
       }
     case .disconnected:

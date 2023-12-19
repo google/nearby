@@ -58,12 +58,21 @@ class CloudDatabase {
     databaseRef = database.reference()
   }
 
-  func createNewPacket(packet: Packet<OutgoingFile>) -> Bool {
+  func recordNewPacket(packet: Packet<OutgoingFile>, _ completionHandler: @escaping ((Error?) -> Void)) {
     if let packetData = try? DictionaryEncoder().encode(packet) {
-      databaseRef.root.child("packets").child(packet.packetId).updateChildValues(packetData)
-      return true
+      databaseRef.root.child("packets").child(packet.packetId).updateChildValues(packetData) {
+        error, _ in
+        completionHandler(error)
+      }
     } else {
-      return false
+      completionHandler(NSError(domain: "Database", code: 1))
+    }
+  }
+
+  func markPacketAsUploaded(packetId: String, _ completionHandler: @escaping ((Error?) -> Void)) {
+    databaseRef.root.child("packets").child(packetId).child("status").setValue("uploaded") {
+      error, _ in
+      completionHandler(error)
     }
   }
 }

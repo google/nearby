@@ -43,7 +43,40 @@ struct EndpointView: View {
     }
   }
 
-  func loadPhotosAsync(_ completionHandler: ((Packet<OutgoingFile>?) -> Void)?) async -> Void {
+  func loadRecordAndSend() async -> Error? {
+    // Load photos and save them to local files
+    guard let packet = await loadPhotos() else {
+      return NSError(domain: "Loading", code: 1)
+    }
+
+    // Record the packet in the database
+    if let error = await withCheckedContinuation({ continuation in
+      CloudDatabase.shared.recordNewPacket(packet: packet) { succeeded in
+        continuation.resume(returning: succeeded)
+      }
+    }) {
+      return error
+    }
+
+    // Encode the packet into json
+    let data = DataWrapper(packet: packet)
+    let json = try? JSONEncoder().encode(data)
+    guard let json else {
+      return NSError(domain: "Encoding", code: 1)
+    }
+
+    // print("Encoded packet: " + String(data: json, encoding: .utf8) ?? "Invalid")
+    // let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
+
+    // Send the json data to the endpoint
+    if let error = await Main.shared.sendData(json, to: model.id) {
+      return error
+    }
+
+    return nil
+  }
+
+  func loadPhotos() async -> Packet<OutgoingFile>? {
     loadPhotos = true
 
     let packet = Packet<OutgoingFile>()
@@ -58,13 +91,13 @@ struct EndpointView: View {
       appropriateFor: nil,
       create: true) else {
       print("Failed to obtain directory for saving photos.")
-      return
+      return nil
     }
 
     await withTaskGroup(of: OutgoingFile?.self) { group in
       for photo in photosPicked {
-        group.addTask{
-          return await loadPhotoAsync(photo: photo, directoryUrl: directoryUrl)
+        group.addTask {
+          return await loadPhoto(photo: photo, directoryUrl: directoryUrl)
         }
       }
 
@@ -82,14 +115,14 @@ struct EndpointView: View {
     {
       packet.state = .loaded
       mainModel.outgoingPackets.append(packet)
-      completionHandler?(packet)
+      return packet
     } else {
       packet.state = .picked
-      completionHandler?(nil)
+      return nil
     }
   }
 
-  func loadPhotoAsync(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
+  func loadPhoto(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
     let type =
     photo.supportedContentTypes.first(
       where: {$0.preferredMIMEType == "image/jpeg"}) ??
@@ -137,15 +170,6 @@ struct EndpointView: View {
     file.localUrl = url
     file.state = .loaded
     return file
-  }
-
-  func sendPacket(_ packet: Packet<OutgoingFile>) -> Error? {
-    let payload = try? JSONEncoder().encode(packet)
-    guard let payload else {
-      return NSError(domain: "Encoding", code: 1)
-    }
-    Main.shared.sendData(payload, to: model.id)
-    return nil
   }
 
   @State var expanded: [Bool] = []
@@ -259,26 +283,7 @@ struct EndpointView: View {
       }
       .alert("Do you want to send the claim token to the remote endpoint? You will need to go to the uploads page and upload this packet. Once it's uploaded, the other device will get a notification and will be able to download.", isPresented: $showConfirmation) {
         Button("Yes") {
-          Task {
-            await loadPhotosAsync { result in
-              guard let result else {
-                return
-              }
-              let data = DataWrapper(packet: result)
-              let json = try? JSONEncoder().encode(data)
-              guard let json else {
-                return
-              }
-
-              print("Encoded packet:")
-              print(String(data: json, encoding: .utf8) ?? "Invalid")
-
-//              let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
-
-              Main.shared.sendData(json, to: model.id)
-              CloudDatabase.shared.createNewPacket(packet: result)
-            }
-          }
+          Task { await loadRecordAndSend() }
         }
         Button("No", role: .cancel) { }
       }

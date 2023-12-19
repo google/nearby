@@ -26,17 +26,19 @@ class CloudStorage {
 
   init() {
     storage = Storage.storage()
+    storage.useEmulator(withHost: "127.0.0.1", port: 9199)
     storageRef = storage.reference()
   }
 
-  func upload(from localUri: URL, to remotePath: String, completion: ((_: Int, _: Error?) -> Void)? = nil) {
+  func upload(from localUri: URL, to remotePath: String, 
+              completion: ((_: Int, _: Error?) -> Void)? = nil) {
     let fileRef = storageRef.child(remotePath)
     let _ = fileRef.putFile(from: localUri) { metadata, error in
       if error == nil {
-        print("Succeeded uploading file " + remotePath)
+        print("I: Uploaded file " + remotePath)
       } else {
-        print("Failed uploading file " + remotePath +
-              ". Error: " + (error?.localizedDescription ?? ""))
+        print("E: Failed uploading file \(remotePath). Error: " 
+              + (error?.localizedDescription ?? ""))
       }
       completion?((Int) (metadata?.size ?? 0), error)
     }
@@ -51,19 +53,19 @@ class CloudStorage {
       in: .userDomainMask,
       appropriateFor: nil,
       create: true) else {
-      let error = NSError(domain: "Failed to obtain directory for downloading.", code: 1)
+      let error = NSError(domain: "E: Failed to obtain directory for downloading.", code: 1)
       completion?(nil, error)
       return
     }
 
     let fileUrl = directoryUrl.appendingPathComponent(fileName)
-    let _ = fileRef.write(toFile: fileUrl) { [remotePath, fileName]
+    let _ = fileRef.write(toFile: fileUrl) { [remotePath]
       url, error in
       if error == nil {
-        print("Succeeded downloading file \(remotePath) to \(fileName)")
+        print("I: Downloaded file \(remotePath).")
       } else {
-        print("Failed downloading file \(remotePath) to \(fileName)" +
-              ". Error: " + (error?.localizedDescription ?? ""))
+        print("E: Failed to download file \(remotePath). Error: "
+              + (error?.localizedDescription ?? ""))
       }
       completion?(url, error)
     }

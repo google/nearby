@@ -141,10 +141,10 @@
 				23F6A71229D7ADCE00558F56 /* EndpointView.swift */,
 				77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */,
 				77E09C7A2B119B1600838C24 /* TransfersView.swift */,
-				23252B5929D739E500BB0370 /* Assets.xcassets */,
-				23252B5B29D739E500BB0370 /* Preview Content */,
 				7773921F2B2D02C2002FE3BA /* IncomingPacketsView.swift */,
 				777392212B2D033B002FE3BA /* OutgoingPacketsView.swift */,
+				23252B5929D739E500BB0370 /* Assets.xcassets */,
+				23252B5B29D739E500BB0370 /* Preview Content */,
 			);
 			path = HelloCloudApple;
 			sourceTree = "<group>";
