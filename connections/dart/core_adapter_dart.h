@@ -132,6 +132,7 @@ struct ConnectionListenerDart {
 
 struct ConnectionRequestInfoDart {
   // LINT.IfChange
+  int endpoint_info_size;
   char *endpoint_info;
   ConnectionListenerDart connection_listener;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/connection_request_info.dart)

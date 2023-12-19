@@ -14,6 +14,7 @@
 
 #include "connections/dart/core_adapter_dart.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -424,7 +425,8 @@ void StartAdvertisingDart(
 
   ConnectionRequestInfoW info{
       connection_request_info_dart.endpoint_info,
-      strlen(connection_request_info_dart.endpoint_info), listener};
+      static_cast<size_t>(connection_request_info_dart.endpoint_info_size),
+      listener};
 
   ResultCallbackW callback;
   SetResultCallback(callback, result_cb);

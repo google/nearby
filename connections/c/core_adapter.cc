@@ -44,7 +44,7 @@ void StartAdvertising(Core *pCore, const char *service_id,
   }
   connections::ConnectionRequestInfo crInfo;
 
-  crInfo.endpoint_info = ByteArray(info.endpoint_info);
+  crInfo.endpoint_info = ByteArray(info.endpoint_info, info.endpoint_info_size);
   crInfo.listener = std::move(*(info.listener.GetImpl()));
 
   connections::AdvertisingOptions advertising_options;
