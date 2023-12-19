@@ -93,6 +93,7 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
+  client->SetBluetoothMacAddress(endpoint_id, mac_address);
   return channel;
 }
 

@@ -40,6 +40,7 @@ cc_library(
         "timer.h",
     ],
     visibility = [
+        "//connections/implementation:__subpackages__",
         "//connections/implementation/analytics:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal/account:__pkg__",

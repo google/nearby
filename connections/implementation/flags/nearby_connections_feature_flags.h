@@ -49,6 +49,10 @@ constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
 
+// Enable/Disable auto_reconnect feature.
+constexpr auto kEnableAutoReconnect =
+    flags::Flag<bool>(kConfigPackage, "45427690", false);
+
 // When true, allows to enable payload-received-ack protocol.
 constexpr auto kEnablePayloadReceivedAck =
     flags::Flag<bool>(kConfigPackage, "45425840", false);

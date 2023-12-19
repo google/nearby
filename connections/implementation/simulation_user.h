@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_SIMULATION_USER_H_
 #define CORE_INTERNAL_SIMULATION_USER_H_
 
+#include <stdbool.h>
 #include <cstdint>
 #include <string>
 
@@ -45,13 +46,16 @@ namespace connections {
 
 class SetSafeToDisconnect {
  public:
-  explicit SetSafeToDisconnect(bool safe_to_disconnect,
+  explicit SetSafeToDisconnect(bool safe_to_disconnect, bool auto_reconnect,
                                bool payload_received_ack,
                                std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableSafeToDisconnect,
         safe_to_disconnect);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableAutoReconnect,
+        auto_reconnect);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnablePayloadReceivedAck,
@@ -74,9 +78,10 @@ class SimulationUser {
     void Clear() { endpoint_id.clear(); }
   };
 
-  explicit SimulationUser(
-      const std::string& device_name,
-      BooleanMediumSelector allowed = BooleanMediumSelector())
+  SimulationUser(const std::string& device_name,
+                 BooleanMediumSelector allowed = BooleanMediumSelector(),
+                 SetSafeToDisconnect set_safe_to_disconnect =
+                     SetSafeToDisconnect(true, false, true, 2))
       : info_{ByteArray{device_name}},
         advertising_options_{
             {
@@ -97,7 +102,8 @@ class SimulationUser {
                 Strategy::kP2pCluster,
                 allowed,
             },
-        } {}
+        },
+        set_safe_to_disconnect_(set_safe_to_disconnect) {}
   virtual ~SimulationUser() { Stop(); }
   void Stop() {
     pm_.DisconnectFromEndpointManager();
@@ -168,6 +174,9 @@ class SimulationUser {
       absl::AnyInvocable<bool(const PayloadProgressInfo&)> pred,
       absl::Duration timeout);
 
+  ClientProxy& GetClient() { return client_; }
+  EndpointChannelManager& GetEndpointChannelManager() { return ecm_; }
+
  protected:
   // ConnectionListener callbacks
   void OnConnectionInitiated(const std::string& endpoint_id,
@@ -206,7 +215,7 @@ class SimulationUser {
   AdvertisingOptions advertising_options_;
   ConnectionOptions connection_options_;
   DiscoveryOptions discovery_options_;
-  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 2};
+  SetSafeToDisconnect set_safe_to_disconnect_;
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

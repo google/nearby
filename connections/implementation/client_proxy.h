@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -74,6 +75,10 @@ class ClientProxy final {
   }
 
   std::string GetConnectionToken(const std::string& endpoint_id);
+  std::optional<std::string> GetBluetoothMacAddress(
+      const std::string& endpoint_id);
+  void SetBluetoothMacAddress(const std::string& endpoint_id,
+                              const std::string& bluetooth_mac_address);
   const NearbyDevice* GetLocalDevice();
   NearbyDeviceProvider* GetLocalDeviceProvider() {
     if (external_device_provider_ != nullptr) {
@@ -188,6 +193,10 @@ class ClientProxy final {
   std::int32_t GetNumOutgoingConnections() const;
   // Returns the number of endpoints that are connected and incoming.
   std::int32_t GetNumIncomingConnections() const;
+  // Returns true if endpoint is incoming connection.
+  bool IsIncomingConnection(const std::string& endpoint_id) const;
+  // Returns true if endpoint is outgoing connection.
+  bool IsOutgoingConnection(const std::string& endpoint_id) const;
   // If true, then we're in the process of approving (or rejecting) a
   // connection. No payloads should be sent until isConnectedToEndpoint()
   // returns true.
@@ -270,6 +279,11 @@ class ClientProxy final {
   const bool& IsSupportSafeToDisconnect() const {
     return supports_safe_to_disconnect_;
   }
+
+  bool IsSupportAutoReconnect() const {
+    return support_auto_reconnect_;
+  }
+
   const std::int32_t& GetLocalSafeToDisconnectVersion() const {
     return local_safe_to_disconnect_version_;
   }
@@ -279,6 +293,7 @@ class ClientProxy final {
       absl::string_view endpoint_id,
       const std::int32_t& safe_to_disconnect_version);
   bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
+  bool IsAutoReconnectEnabled(absl::string_view endpoint_id);
   bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
 
  private:
@@ -415,6 +430,9 @@ class ClientProxy final {
   // Maps endpoint_id to endpoint connection state.
   absl::flat_hash_map<std::string, ConnectionPair> connections_;
 
+  // Maps endpoint_id to Bluetooth Mac Addresses.
+  absl::flat_hash_map<std::string, std::string> bluetooth_mac_addresses_;
+
   // A cache of endpoint ids that we've already notified the discoverer of. We
   // check this cache before calling onEndpointFound() so that we don't notify
   // the client multiple times for the same endpoint. This would otherwise
@@ -443,6 +461,7 @@ class ClientProxy final {
   // For Nearby Connections' own device provider.
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
   bool supports_safe_to_disconnect_;
+  bool support_auto_reconnect_;
   std::int32_t local_safe_to_disconnect_version_;
 };
 
