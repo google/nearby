@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "internal/account/account_manager.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
 
 namespace nearby {

@@ -27,7 +27,6 @@
 #include "absl/synchronization/notification.h"
 #include "fastpair/common/fast_pair_switches.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "internal/account/account_manager.h"
 #include "internal/auth/auth_status_util.h"
 #include "internal/auth/authentication_manager.h"
 #include "internal/network/http_client.h"
@@ -35,6 +34,7 @@
 #include "internal/network/http_response.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
 

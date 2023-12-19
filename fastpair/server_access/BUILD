@@ -32,7 +32,6 @@ cc_library(
         "//fastpair/common",
         "//fastpair/proto:fastpair_cc_proto",
         "//fastpair/proto:proto_to_json",
-        "//internal/account",
         "//internal/auth:credential",
         "//internal/auth:types",
         "//internal/base",

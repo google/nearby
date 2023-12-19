@@ -24,8 +24,8 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
 #include "fastpair/pairing/pairer_broker.h"
-#include "internal/account/account_manager.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/timer_impl.h"
 
