@@ -47,7 +47,7 @@ cc_library(
         "-Wno-vla-extension",
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
-    visibility = ["//third_party/nearby/sharing/internal/impl/windows:__pkg__"],
+    visibility = ["//sharing/internal/impl/windows:__pkg__"],
     deps = [
         ":comm",
         "//base",
@@ -206,7 +206,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
         "//presence:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":comm",
