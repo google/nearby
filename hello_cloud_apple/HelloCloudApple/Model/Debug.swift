@@ -52,6 +52,7 @@ extension Packet<IncomingFile> {
   static func createIncomingDebugModel() -> Packet<IncomingFile>{
     let result = Packet<IncomingFile>()
     result.sender = "Princess Leia"
+    result.state = .uploaded
     result.files.append(IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
     result.files.append(IncomingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
     return result

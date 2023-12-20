@@ -31,6 +31,7 @@ struct IncomingPacketsView: View {
                   }
 
                   Spacer()
+                  // TODO: turn into a ZStack to keep size fixed
                   switch file.state {
                   case .received:
                     Image(systemName: "circle.dotted").foregroundColor(.gray)
@@ -47,7 +48,28 @@ struct IncomingPacketsView: View {
               }.buttonStyle(.borderless)
               Text(String(describing: packet))
               Spacer()
-              ProgressView().opacity(packet.state == .downloading ? 1 : 0)
+              // TODO: overlay the download button with the indicator
+              // Logic is a little convoluted. Available states:
+              // .received: grey dotted circle
+              // .uploaded: download button
+              // .downloading: spinner
+              // .downloaded: green filled circle
+              ZStack{
+                Group {
+                  switch packet.state {
+                  case .received:
+                    Image(systemName: "circle.dotted").foregroundColor(.gray)
+                  case .uploaded:
+                    Image(systemName: "circle.fill").foregroundColor(.gray)
+                  case .downloaded:
+                    Image(systemName: "circle.fill").foregroundColor(.green)
+                  default:
+                    Image(systemName: "circle.dotted").foregroundColor(.gray)
+                  }
+                }
+                .opacity(packet.state == .downloading ? 0 : 1)
+                ProgressView().opacity(packet.state == .downloading ? 1 : 0)
+              }
             }
           }
         }
