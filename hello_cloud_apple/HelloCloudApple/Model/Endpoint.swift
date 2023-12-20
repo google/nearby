@@ -55,6 +55,26 @@ import PhotosUI
     self.state = state
   }
 
+  func connect() -> Void {
+    state = .connecting
+    Main.shared.requestConnection(to: id) { [weak self] error in
+      if error != nil {
+        self?.state = .discovered
+        print("E: Failed to connect: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
+  func disconnect() -> Void {
+    state = .disconnecting
+    Main.shared.disconnect(from: id) { [weak self] error in
+      self?.state = .discovered
+      if error != nil {
+        print("I: Failed to disconnected: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
   func onNotificationTakenReceived(token: String) -> Void {
     notificationToken = token
   }

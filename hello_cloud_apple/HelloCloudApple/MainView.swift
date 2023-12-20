@@ -22,27 +22,6 @@ struct MainView: View {
   @State private var photosPicked: [PhotosPickerItem] = []
   @State private var showConfirmation: Bool = false
 
-  func connect(to endpoint: Endpoint) -> Void {
-    // For some reason this code doesn't work if we move it to Endpoint, where it should be
-    endpoint.state = .connecting
-    model.requestConnection(to: endpoint.id) { [weak endpoint] error in
-      if error != nil {
-        endpoint?.state = .discovered
-        print("E: Failed to connect: " + (error?.localizedDescription ?? ""))
-      }
-    }
-  }
-
-  func disconnect(from endpoint: Endpoint) -> Void {
-    endpoint.state = .disconnecting
-    model.disconnect(from: endpoint.id) { [weak endpoint] error in
-      endpoint?.state = .discovered
-      if error != nil {
-        print("I: Failed to disconnected: " + (error?.localizedDescription ?? ""))
-      }
-    }
-  }
-
   var body: some View {
     NavigationStack {
       Form {
@@ -106,7 +85,7 @@ struct MainView: View {
                 Spacer()
 
                 HStack {
-                  Button(action: { connect(to: endpoint) }) {
+                  Button(action: { endpoint.connect() }) {
                     ZStack {
                       Image(systemName: "phone.connection.fill")
                         .foregroundColor(endpoint.state == .discovered ? .green : .gray)
@@ -118,7 +97,7 @@ struct MainView: View {
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
 
-                  Button(action: { disconnect(from: endpoint) }) {
+                  Button(action: { endpoint.disconnect() }) {
                     ZStack {
                       Image(systemName: "phone.down.fill")
                         .foregroundColor(endpoint.state == .connected ? .red : .gray)
