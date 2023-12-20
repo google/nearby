@@ -15,7 +15,6 @@
 		23D1FD2629D8A9FF00620802 /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2529D8A9FF00620802 /* Endpoint.swift */; };
 		23F6A70829D7621F00558F56 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* Main.swift */; };
 		23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 23F6A71029D772B800558F56 /* NearbyConnections */; };
-		23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointView.swift */; };
 		7755C5752B199539003A9E0B /* CloudStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7755C5742B199539003A9E0B /* CloudStorage.swift */; };
 		777392172B2CE0FC002FE3BA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */; };
 		777392192B2CE8E1002FE3BA /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 777392182B2CE8E1002FE3BA /* FirebaseMessaging */; };
@@ -48,7 +47,6 @@
 		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
 		77E09C792B110CC500838C24 /* Transfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C782B110CC500838C24 /* Transfer.swift */; };
 		77E09C7B2B119B1600838C24 /* TransfersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7A2B119B1600838C24 /* TransfersView.swift */; };
-		77E09C7F2B11D45F00838C24 /* IncomingFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,7 +59,6 @@
 		23D1FD2529D8A9FF00620802 /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		23F6A70729D7621F00558F56 /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
 		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ..; sourceTree = "<group>"; };
-		23F6A71229D7ADCE00558F56 /* EndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointView.swift; sourceTree = "<group>"; };
 		7755C5742B199539003A9E0B /* CloudStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorage.swift; sourceTree = "<group>"; };
 		777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		7773921E2B2CED78002FE3BA /* HelloCloudApple.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HelloCloudApple.entitlements; sourceTree = "<group>"; };
@@ -79,7 +76,6 @@
 		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
 		77E09C782B110CC500838C24 /* Transfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer.swift; sourceTree = "<group>"; };
 		77E09C7A2B119B1600838C24 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
-		77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFilesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,8 +134,6 @@
 				23F6A71429D7B0AB00558F56 /* Model */,
 				23252B5529D739E400BB0370 /* HelloCloudApp.swift */,
 				23252B5729D739E400BB0370 /* MainView.swift */,
-				23F6A71229D7ADCE00558F56 /* EndpointView.swift */,
-				77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */,
 				77E09C7A2B119B1600838C24 /* TransfersView.swift */,
 				7773921F2B2D02C2002FE3BA /* IncomingPacketsView.swift */,
 				777392212B2D033B002FE3BA /* OutgoingPacketsView.swift */,
@@ -289,7 +283,6 @@
 			files = (
 				777FE9922B30CE2E000DD6D0 /* ImageView.swift in Sources */,
 				77D47DE22B2D20FB000D729D /* CloudNotification.swift in Sources */,
-				77E09C7F2B11D45F00838C24 /* IncomingFilesView.swift in Sources */,
 				777FE9942B311551000DD6D0 /* CloudDatabase.swift in Sources */,
 				23252B5829D739E400BB0370 /* MainView.swift in Sources */,
 				23F6A70829D7621F00558F56 /* Main.swift in Sources */,
@@ -307,7 +300,6 @@
 				777392222B2D033B002FE3BA /* OutgoingPacketsView.swift in Sources */,
 				777CC14B2B2E8F9000E2E8FA /* Packet.swift in Sources */,
 				7755C5752B199539003A9E0B /* CloudStorage.swift in Sources */,
-				23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

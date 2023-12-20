@@ -119,16 +119,16 @@ extension Packet<OutgoingFile> {
             if self.files.allSatisfy({ $0.state == .uploaded }) {
               // Update packet status in Firebase
               // The update will automatically trigger a push notification
-              CloudDatabase.shared.markPacketAsUploaded(packetId: packetId) {
-                error in
-                if let error {
+              Task {
+                let ref = await CloudDatabase.shared.markPacketAsUploaded(packetId: self.packetId)
+                if ref != nil {
+                  print("I: Uploaded packet \(self.packetId)")
+                  self.state = .uploaded
+                } else {
                   print("E: Failed to update packet status in Firebase database.")
                   self.state = .loaded
-                  return
                 }
               }
-              print("I: Uploaded packet \(packetId)")
-              self.state = .uploaded
             }
           } else {
             print("E: Failed to upload packet. " + String(describing: error))

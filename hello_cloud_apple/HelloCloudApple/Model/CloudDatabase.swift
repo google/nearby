@@ -58,21 +58,33 @@ class CloudDatabase {
     databaseRef = database.reference()
   }
 
-  func recordNewPacket(packet: Packet<OutgoingFile>, _ completionHandler: @escaping ((Error?) -> Void)) {
-    if let packetData = try? DictionaryEncoder().encode(packet) {
-      databaseRef.root.child("packets").child(packet.packetId).updateChildValues(packetData) {
-        error, _ in
-        completionHandler(error)
-      }
-    } else {
-      completionHandler(NSError(domain: "Database", code: 1))
+  func recordNewPacket(packet: Packet<OutgoingFile>) async -> DatabaseReference? {
+    guard let packetData = try? DictionaryEncoder().encode(packet) else {
+      return nil
     }
+    return try? await databaseRef.root.child("packets")
+      .child(packet.packetId).updateChildValues(packetData)
   }
 
-  func markPacketAsUploaded(packetId: String, _ completionHandler: @escaping ((Error?) -> Void)) {
-    databaseRef.root.child("packets").child(packetId).child("status").setValue("uploaded") {
-      error, _ in
-      completionHandler(error)
+  func markPacketAsUploaded(packetId: String) async -> DatabaseReference? {
+    return try? await databaseRef.root.child("packets").child(packetId).child("status").setValue("uploaded")
+  }
+
+  func observePacketStatus(packetId: String, _ notification: @escaping (DataSnapshot) -> Void) {
+    databaseRef.root.child("packets").child(packetId).child("status")
+      .observe(.value, with: notification)
+  }
+
+  func getPacketState(packetId: String) async -> Packet<IncomingFile>.State? {
+    guard let snapshot = try? await databaseRef.root.child("packets").child(packetId).child("status").getData() else {
+      print("E: Failed to read packet state from Firebase")
+      return nil
     }
+
+    guard let value = snapshot.value as? String else {
+      return nil
+    }
+
+    return value == "uploaded" ? .uploaded : nil
   }
 }

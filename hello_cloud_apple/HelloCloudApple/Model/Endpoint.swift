@@ -60,7 +60,20 @@ import SwiftUI
 
   func onPacketReceived(packet: Packet<IncomingFile>) -> Void {
     packet.sender = self.name
+    packet.state = .received
+
     incomingPackets.append(packet)
     Main.shared.incomingPackets.append(packet)
+
+    CloudDatabase.shared.observePacketStatus(packetId: packet.packetId) { snapshot in
+      print(snapshot.key)
+      guard let value = snapshot.value as? String else {
+        return
+      }
+
+      if value == "uploaded" {
+        packet.state = .uploaded
+      }
+    }
   }
 }

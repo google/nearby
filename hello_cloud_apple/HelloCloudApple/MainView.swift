@@ -49,13 +49,29 @@ struct MainView: View {
     }
 
     // Record the packet in the database
-    if let error = await withCheckedContinuation({ continuation in
-      CloudDatabase.shared.recordNewPacket(packet: packet) { succeeded in
-        continuation.resume(returning: succeeded)
-      }
-    }) {
-      return error
+    guard let ref = await CloudDatabase.shared.recordNewPacket(packet: packet) else {
+      return NSError(domain: "Database", code: 1)
     }
+
+    // Observe changes to the packet
+    ref.child("status").observe(.value) { snapshot in
+      print(snapshot.key)
+      guard let value = snapshot.value as? String else {
+        return
+      }
+
+      if value == "uploaded" {
+        print (String(describing: snapshot))
+      }
+    }
+//    ref.observe(.childAdded) { snapshot in
+//      if snapshot.key == "status" {
+//        let value = snapshot.value(forKey: "status")
+//        if value != nil {
+//          print(String(describing: value!))
+//        }
+//      }
+//    }
 
     // Encode the packet into json
     let data = DataWrapper(packet: packet)
