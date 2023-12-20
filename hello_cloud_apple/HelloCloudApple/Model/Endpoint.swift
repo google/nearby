@@ -17,6 +17,7 @@
 import Foundation
 import NearbyConnections
 import SwiftUI
+import PhotosUI
 
 @Observable class Endpoint: Identifiable, Hashable {
   enum State: Int, CustomStringConvertible {
@@ -65,7 +66,7 @@ import SwiftUI
     incomingPackets.append(packet)
     Main.shared.incomingPackets.append(packet)
 
-    CloudDatabase.shared.observePacketStatus(packetId: packet.packetId) { snapshot in
+    CloudDatabase.shared.observePacketState(packetId: packet.packetId) { snapshot in
       print(snapshot.key)
       guard let value = snapshot.value as? String else {
         return
@@ -75,5 +76,135 @@ import SwiftUI
         packet.state = .uploaded
       }
     }
+  }
+
+  /**
+   Load files, create packet in memory, push it to the database, and send the packet
+   to the remote endpoint.
+   */
+  func loadAndSend(_ photosPicked: [PhotosPickerItem]) async -> Error? {
+    // Load photos and save them to local files
+    guard let packet = await loadPhotos(photosPicked) else {
+      return NSError(domain: "Loading", code: 1)
+    }
+
+    // Push the packet to the database
+    guard let ref = await CloudDatabase.shared.push(packet: packet) else {
+      return NSError(domain: "Database", code: 1)
+    }
+
+    // Encode the packet into json
+    let data = DataWrapper(packet: packet)
+    let json = try? JSONEncoder().encode(data)
+    guard let json else {
+      return NSError(domain: "Encoding", code: 1)
+    }
+
+    // print("Encoded packet: " + String(data: json, encoding: .utf8) ?? "Invalid")
+    // let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
+
+    // Send the json data to the remote endpoint
+    if let error = await Main.shared.sendData(json, to: id) {
+      return error
+    }
+
+    return nil
+  }
+
+  func loadPhotos(_ photosPicked: [PhotosPickerItem]) async -> Packet<OutgoingFile>? {
+    loadingPhotos = true
+
+    let packet = Packet<OutgoingFile>()
+    packet.packetId = UUID().uuidString.uppercased()
+    packet.notificationToken = notificationToken
+    packet.state = .loading
+    packet.receiver = name
+
+    guard let directoryUrl = try? FileManager.default.url(
+      for: .documentDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true) else {
+      print("Failed to obtain directory for saving photos.")
+      return nil
+    }
+
+    await withTaskGroup(of: OutgoingFile?.self) { [self] group in
+      for photo in photosPicked {
+        group.addTask {
+          return await self.loadPhoto(photo: photo, directoryUrl: directoryUrl)
+        }
+      }
+
+      for await (file) in group {
+        guard let file else {
+          continue;
+        }
+        packet.files.append(file)
+      }
+    }
+
+    loadingPhotos = false
+    // Very rudimentary error handling. Succeeds only if all files are saved. No partial success.
+    if (packet.files.count == photosPicked.count)
+    {
+      packet.state = .loaded
+      Main.shared.outgoingPackets.append(packet)
+
+      return packet
+    } else {
+      packet.state = .picked
+      return nil
+    }
+  }
+
+  func loadPhoto(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
+    let type =
+    photo.supportedContentTypes.first(
+      where: {$0.preferredMIMEType == "image/jpeg"}) ??
+    photo.supportedContentTypes.first(
+      where: {$0.preferredMIMEType == "image/png"})
+
+    let file = OutgoingFile(mimeType: type?.preferredMIMEType ?? "application/octet-stream")
+
+    guard let data = try? await photo.loadTransferable(type: Data.self) else {
+      return nil
+    }
+    var typedData: Data
+    if file.mimeType == "image/jpeg" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
+        return nil
+      }
+      typedData  = jpegData
+      file.fileSize = Int64(jpegData.count)
+    }
+    else if file.mimeType == "image/png" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let pngData = uiImage.pngData() else {
+        return nil
+      }
+      typedData  = pngData
+      file.fileSize = Int64(pngData.count)
+    }
+    else {
+      typedData = data
+      file.fileSize = Int64(data.count)
+    }
+
+    let url = directoryUrl.appendingPathComponent(UUID().uuidString)
+    do {
+      try typedData.write(to:url)
+    } catch {
+      print("Failed to save photo to file")
+      return nil;
+    }
+    file.localUrl = url
+    file.state = .loaded
+    return file
   }
 }

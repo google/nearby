@@ -26,7 +26,7 @@ struct OutgoingPacketsView: View {
         List {
           ForEach(Array(model.outgoingPackets.enumerated()), id: \.1.id) { i, packet in
             DisclosureGroup (isExpanded: $model.outgoingPackets[i].expanded) {
-              ForEach(packet.files) { file in
+              ForEach(Array(packet.files)) { file in
                 HStack {
                   Image(systemName: "photo")
                   Text(String(describing: file.description))

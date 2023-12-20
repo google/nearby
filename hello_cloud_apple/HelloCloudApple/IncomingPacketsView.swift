@@ -11,73 +11,87 @@ struct IncomingPacketsView: View {
   @EnvironmentObject var model: Main
   @State var imageUrl: URL? = nil
 
-  var body: some View {
-    Form {
-      Section{
-        List {
-          ForEach(Array(model.incomingPackets.enumerated()), id: \.1.id) { i, packet in
-            DisclosureGroup (isExpanded: $model.incomingPackets[i].expanded) {
-              ForEach(packet.files) { file in
-                HStack {
-                  if file.state == .downloaded {
-                    Button(action: {
-                      self.imageUrl = file.localUrl
-                    }) {
-                      Label(String(describing: file.description), systemImage: "photo")
-                    }.buttonStyle(.borderless)
-                  } else {
-                    Image(systemName: "photo")
-                    Text(String(describing: file.description))
-                  }
+  func refresh () async {
+    for packet in model.incomingPackets {
+      if packet.state == .uploaded {
+        continue
+      }
+      await CloudDatabase.shared.pull(packet: packet)
+    }
+  }
 
-                  Spacer()
-                  // TODO: turn into a ZStack to keep size fixed
-                  switch file.state {
-                  case .received:
-                    Image(systemName: "circle.dotted").foregroundColor(.gray)
-                  case .downloading:
-                    ProgressView()
-                  case .downloaded:
-                    Image(systemName: "circle.fill").foregroundColor(.green)
+  var body: some View {
+    ZStack {
+      Form {
+        Section{
+          List {
+            ForEach(Array(model.incomingPackets.enumerated()), id: \.1.id) { i, packet in
+              DisclosureGroup (isExpanded: $model.incomingPackets[i].expanded) {
+                ForEach(packet.files) { file in
+                  HStack {
+                    if file.state == .downloaded {
+                      Button(action: {
+                        self.imageUrl = file.localUrl
+                      }) {
+                        Label(String(describing: file.description), systemImage: "photo")
+                      }.buttonStyle(.borderless)
+                    } else {
+                      Label(String(describing: file.description), systemImage: "photo")
+                    }
+
+                    Spacer()
+                    ZStack {
+                      // .received: grey dotted circle
+                      // .downloaded: green filled circle
+                      // .downloading: spinner
+                      Image(systemName: "circle.dotted").foregroundColor(.gray)
+                        .opacity(file.state == .received ? 1 : 0)
+                      Image(systemName: "circle.fill").foregroundColor(.green)
+                        .opacity(file.state == .downloaded ? 1 : 0)
+                      ProgressView()
+                        .opacity(file.state == .downloading ? 1 :0)
+                    }
                   }
                 }
-              }
-            } label: {
-              Button(action: { packet.download() }) {
-                Image(systemName: "icloud.and.arrow.down.fill")
-              }.buttonStyle(.borderless)
-              Text(String(describing: packet))
-              Spacer()
-              // TODO: overlay the download button with the indicator
-              // Logic is a little convoluted. Available states:
-              // .received: grey dotted circle
-              // .uploaded: download button
-              // .downloading: spinner
-              // .downloaded: green filled circle
-              ZStack{
-                Group {
-                  switch packet.state {
-                  case .received:
-                    Image(systemName: "circle.dotted").foregroundColor(.gray)
-                  case .uploaded:
-                    Image(systemName: "circle.fill").foregroundColor(.gray)
-                  case .downloaded:
-                    Image(systemName: "circle.fill").foregroundColor(.green)
-                  default:
-                    Image(systemName: "circle.dotted").foregroundColor(.gray)
+              } label: {
+                Text(String(describing: packet))
+                Spacer()
+                // .received: grey dotted circle
+                // .uploaded: download button
+                // .downloading: spinner
+                // .downloaded: green filled circle
+                ZStack{
+                  Button(action: { packet.download() }) {
+                    Image(systemName: "icloud.and.arrow.down.fill")
                   }
+                  .buttonStyle(.borderless)
+                  .opacity(packet.state == .uploaded ? 1 :0)
+
+                  Image(systemName: "circle.dotted").foregroundColor(.gray)
+                    .opacity(packet.state == .received ? 1 :0)
+
+                  ProgressView()
+                    .opacity(packet.state == .downloading ? 1 : 0)
+
+                  Image(systemName: "circle.fill").foregroundColor(.green)
+                    .opacity(packet.state == .downloaded ? 1 :0)
                 }
-                .opacity(packet.state == .downloading ? 0 : 1)
-                ProgressView().opacity(packet.state == .downloading ? 1 : 0)
               }
             }
           }
         }
       }
+      if imageUrl != nil {
+        ImageView(url: $imageUrl)
+      }
+    }
+    .refreshable {
+      await refresh()
     }
     .navigationTitle("Incoming packets")
-  }}
+  }
+}
 
 #Preview {
-  IncomingPacketsView().environment(Main.shared)
+  IncomingPacketsView().environment(Main.createDebugModel())
 }

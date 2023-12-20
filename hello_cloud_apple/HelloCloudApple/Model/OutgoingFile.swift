@@ -71,10 +71,6 @@ import Foundation
   func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case fileId, mimeType, fileSize
-  }
-
-  static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> Data? {
-    return try? JSONEncoder().encode(files)
+    case fileId, mimeType, fileSize, remotePath
   }
 }

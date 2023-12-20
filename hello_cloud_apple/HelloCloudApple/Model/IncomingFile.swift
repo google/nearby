@@ -69,6 +69,6 @@ import Foundation
   func hash(into hasher: inout Hasher){ hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case fileId, mimeType, fileSize
+    case fileId, mimeType, fileSize, remotePath
   }
 }

@@ -41,9 +41,13 @@ extension Packet<OutgoingFile> {
   static func createOutgoingDebugModel() -> Packet<OutgoingFile>{
     let result = Packet<OutgoingFile>()
     result.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
-    result.receiver = "Hans Solo"
-    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
-    result.files.append(OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
+    result.receiver = "Luke Skywalker"
+
+    let file1 = OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4)
+    let file2 = OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8)
+
+    result.files.append(file1)
+    result.files.append(file2)
     return result
   }
 }
@@ -51,10 +55,17 @@ extension Packet<OutgoingFile> {
 extension Packet<IncomingFile> {
   static func createIncomingDebugModel() -> Packet<IncomingFile>{
     let result = Packet<IncomingFile>()
+    result.packetId = "7C55BEA7-5DD8-4591-AAA5-17C02448BE36"
     result.sender = "Princess Leia"
-    result.state = .uploaded
-    result.files.append(IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4))
-    result.files.append(IncomingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8))
+    result.state = .received
+    
+    let file1 = IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4)
+    file1.fileId = "084849E6-5519-4460-A66F-68E1DCB20093"
+    let file2 = IncomingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8)
+    file2.fileId = "092EB77A-69C6-4ED3-98CA-1C00D5EB8E6A"
+
+    result.files.append(file1)
+    result.files.append(file2)
     return result
   }
 }

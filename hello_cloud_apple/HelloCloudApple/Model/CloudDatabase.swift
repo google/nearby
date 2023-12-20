@@ -55,36 +55,49 @@ class CloudDatabase {
 
   init() {
     database = Database.database(url:"http://127.0.0.1:9000?ns=hello-cloud-5b73c")
+//    database = Database.database()
     databaseRef = database.reference()
   }
 
-  func recordNewPacket(packet: Packet<OutgoingFile>) async -> DatabaseReference? {
+  /** 
+   Push the packet to the database, overwriting existing one if it exists.
+   */
+  func push(packet: Packet<OutgoingFile>) async -> DatabaseReference? {
     guard let packetData = try? DictionaryEncoder().encode(packet) else {
+      print("E: Failed to encode packet into a dictionary")
       return nil
     }
-    return try? await databaseRef.root.child("packets")
-      .child(packet.packetId).updateChildValues(packetData)
+    return try? await databaseRef.child("packets/\(packet.packetId)").updateChildValues(packetData)
   }
 
-  func markPacketAsUploaded(packetId: String) async -> DatabaseReference? {
-    return try? await databaseRef.root.child("packets").child(packetId).child("status").setValue("uploaded")
-  }
-
-  func observePacketStatus(packetId: String, _ notification: @escaping (DataSnapshot) -> Void) {
-    databaseRef.root.child("packets").child(packetId).child("status")
+  func observePacketState(packetId: String, _ notification: @escaping (DataSnapshot) -> Void) {
+    databaseRef.root.child("packets").child(packetId).child("state")
       .observe(.value, with: notification)
   }
 
-  func getPacketState(packetId: String) async -> Packet<IncomingFile>.State? {
-    guard let snapshot = try? await databaseRef.root.child("packets").child(packetId).child("status").getData() else {
+  /**
+   Retrieve the latest state of the packet from the database; Update the files' remote path if the
+   packet's state is .uploaded. Do not update other fields.
+   */
+  func pull(packet: Packet<IncomingFile>) async {
+    guard let snapshot = try? await databaseRef.child("packets/\(packet.packetId)").getData() else {
       print("E: Failed to read packet state from Firebase")
-      return nil
+      return
+    }
+    guard let state = snapshot.childSnapshot(forPath: "state").value as? String else {
+      return
     }
 
-    guard let value = snapshot.value as? String else {
-      return nil
+    if state == "uploaded" {
+      for file in packet.files {
+        guard let remotePath = snapshot.childSnapshot(
+          forPath: "files/\(file.fileId)/remotePath").value as? String else {
+          print("E: Failed to read remote path")
+          return
+        }
+        file.remotePath = remotePath
+      }
+      packet.state = .uploaded
     }
-
-    return value == "uploaded" ? .uploaded : nil
   }
 }

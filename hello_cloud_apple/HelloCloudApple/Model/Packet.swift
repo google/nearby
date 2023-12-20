@@ -28,7 +28,7 @@ import Foundation
   var notificationToken: String? = nil
   var packetId: String = ""
   var files: [T] = []
-  
+
   var receiver: String? = nil
   var sender: String? = nil
   var state: State = .unknown
@@ -49,13 +49,19 @@ import Foundation
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     packetId = try container.decode(String.self, forKey: .packetId)
-    files = try container.decode([T].self, forKey: .files)
+    files = try Array(container.decode([String:T].self, forKey: .files).values)
   }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(packetId, forKey: .packetId)
-    try container.encode(files, forKey: .files)
+
+    let filesDict = files.reduce(into: [String:T]()) {
+      (dict, file)  in
+      dict[file.fileId] = file
+    }
+
+    try container.encode(filesDict, forKey: .files)
   }
 
   enum CodingKeys: String, CodingKey {
@@ -105,34 +111,36 @@ extension Packet<OutgoingFile> {
     // Upload each outging file
     for file in files {
       if file.state == .loaded {
+        // Time the upload
         let beginTime = Date()
         file.upload() { [beginTime, weak self] size, error in
           guard let self else {
             return
           }
+          guard error == nil else {
+            print("E: Failed to push packet to the database. " + String(describing: error))
+            self.state = .loaded
+            return
+          }
 
-          if error == nil {
-            let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-            print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
-            try? FileManager.default.removeItem(at: file.localUrl!)
+          let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+          print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
+          try? FileManager.default.removeItem(at: file.localUrl!)
 
-            if self.files.allSatisfy({ $0.state == .uploaded }) {
-              // Update packet status in Firebase
-              // The update will automatically trigger a push notification
-              Task {
-                let ref = await CloudDatabase.shared.markPacketAsUploaded(packetId: self.packetId)
-                if ref != nil {
-                  print("I: Uploaded packet \(self.packetId)")
-                  self.state = .uploaded
-                } else {
-                  print("E: Failed to update packet status in Firebase database.")
-                  self.state = .loaded
-                }
+          if self.files.allSatisfy({ $0.state == .uploaded }) {
+            // Update packet state in Firebase
+            // The update will automatically trigger a push notification
+            Task {
+              self.state = .uploaded
+              let ref = await CloudDatabase.shared.push(packet: self)
+              if ref != nil {
+                print("I: Uploaded packet \(self.packetId).")
+              } else {
+                print("E: Failed to update packet state in Firebase database.")
+                // Set the state back to .loaded for retrying later
+                self.state = .loaded
               }
             }
-          } else {
-            print("E: Failed to upload packet. " + String(describing: error))
-            self.state = .loaded
           }
         }
       }

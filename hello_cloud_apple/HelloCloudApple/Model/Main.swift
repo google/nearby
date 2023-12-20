@@ -21,7 +21,7 @@ import UIKit
 #endif
 
 @Observable class Main: ObservableObject {
-  static let shared = createDebugModel()
+  static var shared: Main! = nil
 
   private(set) var localEndpointId: String = ""
   var localEndpointName: String = ""
@@ -69,6 +69,8 @@ import UIKit
       serviceID: Config.serviceId, strategy: Config.defaultStategy, delegate: self)
     advertiser = Advertiser(connectionManager: connectionManager, delegate: self)
     discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
+
+    Main.shared = self
   }
   
   func notifyReceiver() -> Void {
