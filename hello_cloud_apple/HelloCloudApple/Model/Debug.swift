@@ -42,9 +42,12 @@ extension Packet<OutgoingFile> {
     let result = Packet<OutgoingFile>()
     result.notificationToken = "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL"
     result.receiver = "Luke Skywalker"
+    result.state = .loaded
 
     let file1 = OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4)
-    let file2 = OutgoingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8)
+    file1.state = .loaded
+    let file2 = OutgoingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*8)
+    file2.state = .loaded
 
     result.files.append(file1)
     result.files.append(file2)
@@ -77,16 +80,15 @@ extension Packet<IncomingFile> {
 extension Main {
   static func createDebugModel() -> Main {
     let result = Main();
-    result.localEndpointName = Config.defaultEndpointName
 
-    result.endpoints.append(Endpoint(
-      id: "R2D2",
-      name: "Artoo",
-      isIncoming: false,
-      state: .discovered
-    ))
+//    result.endpoints.append(Endpoint(
+//      id: "R2D2",
+//      name: "Artoo",
+//      isIncoming: false,
+//      state: .discovered
+//    ))
 //    result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
-    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
+//    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
     return result;
   }
 }

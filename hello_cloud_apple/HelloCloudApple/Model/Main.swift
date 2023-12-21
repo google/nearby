@@ -66,10 +66,11 @@ import UIKit
   
   init() {
     connectionManager = ConnectionManager(
-      serviceID: Config.serviceId, strategy: Config.defaultStategy, delegate: self)
+      serviceID: Config.serviceId, strategy: Strategy.cluster, delegate: self)
     advertiser = Advertiser(connectionManager: connectionManager, delegate: self)
     discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
 
+    localEndpointName = Config.defaultEndpointName
     Main.shared = self
   }
   

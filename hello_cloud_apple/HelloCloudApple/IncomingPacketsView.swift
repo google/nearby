@@ -41,20 +41,9 @@ struct IncomingPacketsView: View {
               DisclosureGroup (isExpanded: $packet.expanded) {
                 ForEach(packet.files) { file in
                   HStack {
-                    if file.state == .downloaded {
-                      Button(action: {
-                        self.imageUrl = file.localUrl
-                      }) {
-                        Label(String(describing: file.description), systemImage: "photo")
-                      }.buttonStyle(.borderless)
-                    } else {
-                      Label(String(describing: file.description), systemImage: "photo")
-                    }
-                    
-                    Spacer()
                     ZStack {
                       // .received: grey dotted circle
-                      // .uploaded: grey solid circle
+                      // .uploaded: grey filled circle
                       // .downloaded: green filled circle
                       // .downloading: spinner
                       Image(systemName: "circle.dotted").foregroundColor(.gray)
@@ -65,12 +54,20 @@ struct IncomingPacketsView: View {
                         .opacity(file.state == .downloaded ? 1 : 0)
                       ProgressView()
                         .opacity(file.state == .downloading ? 1 :0)
+                    }.padding(2)
+
+                    if file.state == .downloaded {
+                      Button(action: {
+                        self.imageUrl = file.localUrl
+                      }) {
+                        Label(String(describing: file.description), systemImage: "photo")
+                      }.buttonStyle(.borderless)
+                    } else {
+                      Label(String(describing: file.description), systemImage: "photo")
                     }
                   }
                 }
               } label: {
-                Text(String(describing: packet))
-                Spacer()
                 // .received: grey dotted circle
                 // .uploaded: download button
                 // .downloading: spinner
@@ -83,16 +80,18 @@ struct IncomingPacketsView: View {
                   }
                   .buttonStyle(.borderless)
                   .opacity(packet.state == .uploaded ? 1 :0)
-                  
+
                   Image(systemName: "circle.dotted").foregroundColor(.gray)
                     .opacity(packet.state == .received ? 1 :0)
-                  
+
                   ProgressView()
                     .opacity(packet.state == .downloading ? 1 : 0)
-                  
+
                   Image(systemName: "circle.fill").foregroundColor(.green)
                     .opacity(packet.state == .downloaded ? 1 :0)
-                }
+                }.padding(2)
+
+                Label(String(describing: packet), systemImage: "photo.on.rectangle.angled")
               }
             }
           }
