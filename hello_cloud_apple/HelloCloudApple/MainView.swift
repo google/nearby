@@ -19,7 +19,6 @@ import PhotosUI
 
 struct MainView: View {
   @EnvironmentObject var model: Main
-  @State private var photosPicked: [PhotosPickerItem] = []
   @State private var showConfirmation: Bool = false
 
   var body: some View {
@@ -34,9 +33,10 @@ struct MainView: View {
             GridRow {
               Label("Name:", systemImage: "a.square.fill").gridColumnAlignment(.leading)
               TextField("Local Endpoint Name", text: $model.localEndpointName)
+                .disabled(model.isAdvertising)
             }
           }
-
+          
           HStack {
             Button(action: {model.isAdvertising.toggle()}) {
               Label("Advertise",
@@ -45,7 +45,7 @@ struct MainView: View {
             .foregroundColor(model.isAdvertising ? .red : .green)
             .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
-
+            
             Button(action: {model.isDiscovering.toggle()}) {
               Label("Discover",
                     systemImage: model.isDiscovering ? "stop.circle" : "play.circle")
@@ -54,16 +54,21 @@ struct MainView: View {
             .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
           }
-
-          NavigationLink {IncomingPacketsView()} label: {Text("Incoming packets")}
-          NavigationLink {OutgoingPacketsView()} label: {Text("Outgoing packets")}
+          
+          NavigationLink {IncomingPacketsView()} label: {
+            Label("Inbox", systemImage: "tray")
+          }
+          
+          NavigationLink {OutgoingPacketsView()} label: {
+            Label("Outbox", systemImage: "paperplane")
+          }
         } header: {
           Text("Local endpoint")
         }
 
         List {
           Section {
-            ForEach(model.endpoints) { endpoint in
+            ForEach($model.endpoints) { $endpoint in
               HStack {
                 HStack {
                   switch endpoint.state {
@@ -81,9 +86,7 @@ struct MainView: View {
                       .frame(maxWidth: .infinity, alignment: .leading)
                   }
                 }
-
                 Spacer()
-
                 HStack {
                   Button(action: { endpoint.connect() }) {
                     ZStack {
@@ -96,7 +99,6 @@ struct MainView: View {
                   .disabled(endpoint.state != .discovered)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-
                   Button(action: { endpoint.disconnect() }) {
                     ZStack {
                       Image(systemName: "phone.down.fill")
@@ -108,8 +110,7 @@ struct MainView: View {
                   .disabled(endpoint.state != .connected)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-
-                  PhotosPicker(selection: $photosPicked, matching: .images) {
+                  PhotosPicker(selection: $endpoint.photosPicked, matching: .images) {
                     ZStack {
                       Image(systemName: "photo.badge.plus.fill")
                         .opacity(endpoint.loadingPhotos ? 0 : 1)
@@ -120,13 +121,15 @@ struct MainView: View {
                   .disabled(endpoint.loadingPhotos)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-                  .alert("Do you want to send the claim token to the remote endpoint? You will need to go to the uploads page and upload this packet. Once it's uploaded, the other device will get a notification and will be able to download.", isPresented: $showConfirmation) {
+                  .alert("Do you want to send the claim token to the remote endpoint?",
+                         isPresented: $endpoint.showingConfirmation) {
                     Button("Yes") {
-                      Task { await endpoint.loadAndSend(photosPicked) }
+                      Task {
+                        await endpoint.loadAndSend()
+                      }
                     }
                     Button("No", role: .cancel) { }
                   }
-                  .onChange(of: photosPicked, { DispatchQueue.main.async { showConfirmation = true }})
                 }
               }
             }

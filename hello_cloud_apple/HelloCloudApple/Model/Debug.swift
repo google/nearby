@@ -81,9 +81,8 @@ extension Main {
       isIncoming: false,
       state: .discovered
     ))
-    result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
-    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
-    result.endpoints[0].incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
+//    result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
+//    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
     return result;
   }
 }

@@ -18,7 +18,7 @@ import Foundation
 
 @Observable class IncomingFile: File, Identifiable, Hashable, CustomStringConvertible, Encodable, Decodable {
   enum State: Int {
-    case received, downloading, downloaded
+    case received, uploaded, downloading, downloaded
   }
 
   // This is the Identifiable.id used by SwiftUI, not the file ID used for identifying the file
@@ -41,7 +41,7 @@ import Foundation
   }
 
   func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
-    if state != .received {
+    if state != .uploaded {
       print("The file is being downloading or has already been downloaded. Skipping.")
       completion?(nil, NSError(domain:"Downloading", code:1))
       return

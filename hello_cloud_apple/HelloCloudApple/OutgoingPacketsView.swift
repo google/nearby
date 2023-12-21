@@ -24,8 +24,8 @@ struct OutgoingPacketsView: View {
     Form {
       Section{
         List {
-          ForEach(Array(model.outgoingPackets.enumerated()), id: \.1.id) { i, packet in
-            DisclosureGroup (isExpanded: $model.outgoingPackets[i].expanded) {
+          ForEach($model.outgoingPackets) { $packet in
+            DisclosureGroup (isExpanded: $packet.expanded) {
               ForEach(Array(packet.files)) { file in
                 HStack {
                   Image(systemName: "photo")

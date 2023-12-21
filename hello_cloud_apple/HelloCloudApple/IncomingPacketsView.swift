@@ -1,8 +1,17 @@
 //
-//  Downloads.swift
-//  HelloCloudApple
+//  Copyright 2023 Google LLC
 //
-//  Created by Deling Ren on 12/15/23.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 //
 
 import SwiftUI
@@ -16,7 +25,10 @@ struct IncomingPacketsView: View {
       if packet.state == .uploaded {
         continue
       }
-      await CloudDatabase.shared.pull(packet: packet)
+      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.packetId) else {
+        continue
+      }
+      packet.update(from: newPacket)
     }
   }
 
@@ -25,8 +37,8 @@ struct IncomingPacketsView: View {
       Form {
         Section{
           List {
-            ForEach(Array(model.incomingPackets.enumerated()), id: \.1.id) { i, packet in
-              DisclosureGroup (isExpanded: $model.incomingPackets[i].expanded) {
+            ForEach($model.incomingPackets) { $packet in
+              DisclosureGroup (isExpanded: $packet.expanded) {
                 ForEach(packet.files) { file in
                   HStack {
                     if file.state == .downloaded {
@@ -42,10 +54,13 @@ struct IncomingPacketsView: View {
                     Spacer()
                     ZStack {
                       // .received: grey dotted circle
+                      // .uploaded: grey solid circle
                       // .downloaded: green filled circle
                       // .downloading: spinner
                       Image(systemName: "circle.dotted").foregroundColor(.gray)
                         .opacity(file.state == .received ? 1 : 0)
+                      Image(systemName: "circle.fill").foregroundColor(.gray)
+                        .opacity(file.state == .uploaded ? 1 : 0)
                       Image(systemName: "circle.fill").foregroundColor(.green)
                         .opacity(file.state == .downloaded ? 1 : 0)
                       ProgressView()

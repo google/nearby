@@ -103,7 +103,11 @@ import UIKit
         payload,
         to: [endpointId],
         id: PayloadID.unique()) { [endpoint] error in
-          print("I: Data sent to \(endpointId).")
+          if error == nil {
+            print("I: Data sent to \(endpointId).")
+          } else {
+            print("E: Failed to send data to \(endpointId).")
+          }
           endpoint?.state = .connected
           contiuation.resume(returning: error)
         }

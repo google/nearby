@@ -70,27 +70,40 @@ import Foundation
 }
 
 extension Packet<IncomingFile> {
+  /**
+   Called when the packet is ready for downloading. newPacket is obtained from Firebase via
+   either observing or pulling.
+   */
+  func update(from newPacket: Packet<IncomingFile>) {
+    // Presumably, the new packet should contain the same information as our copy except
+    // Packet.files.remotePath. But it's easier to just replace Packet.files altogether.
+    files.removeAll()
+    for file in newPacket.files {
+      file.state = .uploaded
+      files.append(file)
+    }
+    state = .uploaded
+  }
+  
   func download() -> Void {
-    // TODO: check firebase if the packet is ready for downloading
-    // if so, obtain remotePath for incoming files
     self.state = .downloading
     for file in files {
       let beginTime = Date()
-      if file.state == .received {
+      if file.state == .uploaded {
         file.download() { [beginTime, weak self] url, error in
           guard let self else {
             return
           }
-
+          
           guard url != nil else {
             print("E: Failed to download packet")
             self.state = .received
             return
           }
-
+          
           let duration: TimeInterval = Date().timeIntervalSince(beginTime)
           print("I: Downloaded. Size(b): \(file.fileSize). Time(s): \(duration).")
-
+          
           if self.files.allSatisfy({ $0.state == .downloaded }) {
             self.state = .downloaded
           }
@@ -118,7 +131,7 @@ extension Packet<OutgoingFile> {
             return
           }
           guard error == nil else {
-            print("E: Failed to push packet to the database. " + String(describing: error))
+            print("E: Failed to upload file to the cloud." + String(describing: error))
             self.state = .loaded
             return
           }
@@ -136,7 +149,7 @@ extension Packet<OutgoingFile> {
               if ref != nil {
                 print("I: Uploaded packet \(self.packetId).")
               } else {
-                print("E: Failed to update packet state in Firebase database.")
+                print("E: Failed to push packetto the database.")
                 // Set the state back to .loaded for retrying later
                 self.state = .loaded
               }

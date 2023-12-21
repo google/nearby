@@ -39,11 +39,17 @@ import PhotosUI
   let name: String
   @ObservationIgnored var isIncoming: Bool
   var loadingPhotos: Bool = false
+  var showingConfirmation: Bool = false
+  var photosPicked: [PhotosPickerItem] = [] {
+    didSet {
+      DispatchQueue.main.async {
+        self.showingConfirmation = true
+      }
+    }
+  }
   var state: State
-  var outgoingPackets: [Packet<OutgoingFile>] = []
-  var incomingPackets: [Packet<IncomingFile>] = []
   var transfers: [Transfer] = []
-  var notificationToken: String?
+  @ObservationIgnored var notificationToken: String?
 
   static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(id) }
@@ -83,18 +89,13 @@ import PhotosUI
     packet.sender = self.name
     packet.state = .received
 
-    incomingPackets.append(packet)
     Main.shared.incomingPackets.append(packet)
 
-    CloudDatabase.shared.observePacketState(packetId: packet.packetId) { snapshot in
-      print(snapshot.key)
-      guard let value = snapshot.value as? String else {
+    CloudDatabase.shared.observePacket(id: packet.packetId) { [weak packet] newPacket in
+      guard let packet else {
         return
       }
-
-      if value == "uploaded" {
-        packet.state = .uploaded
-      }
+      packet.update(from: newPacket)
     }
   }
 
@@ -102,15 +103,10 @@ import PhotosUI
    Load files, create packet in memory, push it to the database, and send the packet
    to the remote endpoint.
    */
-  func loadAndSend(_ photosPicked: [PhotosPickerItem]) async -> Error? {
+  func loadAndSend() async -> Error? {
     // Load photos and save them to local files
-    guard let packet = await loadPhotos(photosPicked) else {
+    guard let packet = await loadPhotos() else {
       return NSError(domain: "Loading", code: 1)
-    }
-
-    // Push the packet to the database
-    guard let ref = await CloudDatabase.shared.push(packet: packet) else {
-      return NSError(domain: "Database", code: 1)
     }
 
     // Encode the packet into json
@@ -120,18 +116,18 @@ import PhotosUI
       return NSError(domain: "Encoding", code: 1)
     }
 
-    // print("Encoded packet: " + String(data: json, encoding: .utf8) ?? "Invalid")
-    // let roundTrip = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: json)
-
     // Send the json data to the remote endpoint
     if let error = await Main.shared.sendData(json, to: id) {
       return error
     }
 
+    // Add the packet to outbox
+    Main.shared.outgoingPackets.append(packet)
+
     return nil
   }
 
-  func loadPhotos(_ photosPicked: [PhotosPickerItem]) async -> Packet<OutgoingFile>? {
+  func loadPhotos() async -> Packet<OutgoingFile>? {
     loadingPhotos = true
 
     let packet = Packet<OutgoingFile>()
@@ -169,7 +165,6 @@ import PhotosUI
     if (packet.files.count == photosPicked.count)
     {
       packet.state = .loaded
-      Main.shared.outgoingPackets.append(packet)
 
       return packet
     } else {

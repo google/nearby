@@ -18,6 +18,7 @@ import Foundation
 import FirebaseCore
 import FirebaseDatabase
 
+// https://stackoverflow.com/questions/45209743/how-can-i-use-swift-s-codable-to-encode-into-a-dictionary
 class DictionaryEncoder {
     private let encoder = JSONEncoder()
 
@@ -47,6 +48,35 @@ class DictionaryEncoder {
     }
 }
 
+class DictionaryDecoder {
+    private let decoder = JSONDecoder()
+
+    var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy {
+        set { decoder.dateDecodingStrategy = newValue }
+        get { return decoder.dateDecodingStrategy }
+    }
+
+    var dataDecodingStrategy: JSONDecoder.DataDecodingStrategy {
+        set { decoder.dataDecodingStrategy = newValue }
+        get { return decoder.dataDecodingStrategy }
+    }
+
+    var nonConformingFloatDecodingStrategy: JSONDecoder.NonConformingFloatDecodingStrategy {
+        set { decoder.nonConformingFloatDecodingStrategy = newValue }
+        get { return decoder.nonConformingFloatDecodingStrategy }
+    }
+
+    var keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy {
+        set { decoder.keyDecodingStrategy = newValue }
+        get { return decoder.keyDecodingStrategy }
+    }
+
+    func decode<T>(_ type: T.Type, from dictionary: [String: Any]) throws -> T where T : Decodable {
+        let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+        return try decoder.decode(type, from: data)
+    }
+}
+
 class CloudDatabase {
   static let shared = CloudDatabase()
 
@@ -54,7 +84,7 @@ class CloudDatabase {
   let databaseRef: DatabaseReference
 
   init() {
-    database = Database.database(url:"http://127.0.0.1:9000?ns=hello-cloud-5b73c")
+    database = Database.database(url:"http://192.168.1.214:9000?ns=hello-cloud-5b73c")
 //    database = Database.database()
     databaseRef = database.reference()
   }
@@ -63,41 +93,42 @@ class CloudDatabase {
    Push the packet to the database, overwriting existing one if it exists.
    */
   func push(packet: Packet<OutgoingFile>) async -> DatabaseReference? {
-    guard let packetData = try? DictionaryEncoder().encode(packet) else {
+    guard var packetData = try? DictionaryEncoder().encode(packet) else {
       print("E: Failed to encode packet into a dictionary")
       return nil
     }
     return try? await databaseRef.child("packets/\(packet.packetId)").updateChildValues(packetData)
   }
 
-  func observePacketState(packetId: String, _ notification: @escaping (DataSnapshot) -> Void) {
-    databaseRef.root.child("packets").child(packetId).child("state")
-      .observe(.value, with: notification)
+  static func readPacket(from snapshot: DataSnapshot) -> Packet<IncomingFile>? {
+    guard let value = snapshot.value as? [String: Any] else {
+      print("E: failed to read from the snapshot.")
+      return nil
+    }
+    guard let packet = try? DictionaryDecoder().decode(Packet<IncomingFile>.self, from: value) else {
+      print("E: failed to decode the snapshot data.")
+      return nil
+    }
+    return packet;
   }
 
-  /**
-   Retrieve the latest state of the packet from the database; Update the files' remote path if the
-   packet's state is .uploaded. Do not update other fields.
-   */
-  func pull(packet: Packet<IncomingFile>) async {
-    guard let snapshot = try? await databaseRef.child("packets/\(packet.packetId)").getData() else {
-      print("E: Failed to read packet state from Firebase")
-      return
-    }
-    guard let state = snapshot.childSnapshot(forPath: "state").value as? String else {
-      return
-    }
-
-    if state == "uploaded" {
-      for file in packet.files {
-        guard let remotePath = snapshot.childSnapshot(
-          forPath: "files/\(file.fileId)/remotePath").value as? String else {
-          print("E: Failed to read remote path")
-          return
-        }
-        file.remotePath = remotePath
+  func observePacket(id: String, _ notification: @escaping (Packet<IncomingFile>) -> Void) {
+    databaseRef.child("packets/\(id)").observe(.value) { snapshot in
+      guard let packet = CloudDatabase.readPacket(from: snapshot) else {
+        return
       }
-      packet.state = .uploaded
+      notification(packet)
     }
+  }
+
+  func pull(packetId: String) async -> Packet<IncomingFile>? {
+    guard let snapshot = try? await databaseRef.child("packets/\(packetId)").getData() else {
+      print("E: Failed to read snapshot from database")
+      return nil
+    }
+    guard let packet = CloudDatabase.readPacket(from: snapshot) else {
+      return nil
+    }
+    return packet
   }
 }
