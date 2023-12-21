@@ -48,7 +48,6 @@ import PhotosUI
     }
   }
   var state: State
-  var transfers: [Transfer] = []
   @ObservationIgnored var notificationToken: String?
 
   static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }

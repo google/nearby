@@ -84,8 +84,10 @@ class CloudDatabase {
   let databaseRef: DatabaseReference
 
   init() {
-    database = Database.database(url:"http://192.168.1.214:9000?ns=hello-cloud-5b73c")
-//    database = Database.database()
+    database = Database.database()
+    if Config.localCloud {
+      database.useEmulator(withHost: "192.168.1.214", port: 9000)
+    }
     databaseRef = database.reference()
   }
 

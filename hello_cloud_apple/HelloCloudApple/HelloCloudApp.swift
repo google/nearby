@@ -80,7 +80,7 @@ struct HelloCloudApp: App {
   // register app delegate for Firebase setup
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
-  @StateObject private var model = Main.createDebugModel()
+  @StateObject private var model = Main.create()
 
   var body: some Scene {
     WindowGroup {

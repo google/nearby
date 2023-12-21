@@ -142,10 +142,6 @@ struct MainView: View {
   }
 }
 
-struct MainView_Previews: PreviewProvider {
-  static let model = Main.createDebugModel()
-
-  static var previews: some View {
-    MainView().environment(model)
-  }
+#Preview {
+  MainView().environment(Main.createDebugModel())
 }

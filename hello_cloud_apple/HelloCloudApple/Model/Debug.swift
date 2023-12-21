@@ -78,6 +78,10 @@ extension Packet<IncomingFile> {
 }
 
 extension Main {
+  static func create() -> Main {
+    return Config.debugEndpoint ? createDebugModel() : Main()
+  }
+
   static func createDebugModel() -> Main {
     let result = Main();
 

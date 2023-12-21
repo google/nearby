@@ -21,6 +21,8 @@ import NearbyConnections
 class Config {
   static let serviceId = "com.google.location.nearby.apps.helloconnections"
   static let defaultEndpointName = UIDevice.modelName
+  static let debugEndpoint = false;
+  static let localCloud = false;
 }
 
 public extension UIDevice {

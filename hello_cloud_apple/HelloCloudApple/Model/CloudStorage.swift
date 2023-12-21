@@ -26,12 +26,14 @@ class CloudStorage {
 
   init() {
     storage = Storage.storage()
-    storage.useEmulator(withHost: "192.168.1.214", port: 9199)
+    if Config.localCloud {
+      storage.useEmulator(withHost: "192.168.1.214", port: 9199)
+    }
     storageRef = storage.reference()
 
-    // Set a short timeout for debuggind. The default is 600s
-    storage.maxUploadRetryTime = 5;
-    storage.maxDownloadRetryTime = 5;
+    // Set a short timeout for debugging. The default is 600s
+    storage.maxUploadRetryTime = 3;
+    storage.maxDownloadRetryTime = 3;
   }
 
   func upload(from localUri: URL, to remotePath: String) async -> Int64? {
