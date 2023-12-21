@@ -138,11 +138,13 @@ extension Packet<OutgoingFile> {
       // Make a task of uploading for each file
       for file in files {
         group.addTask {
-          let result = await file.upload()
-          let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-          print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
-          try? FileManager.default.removeItem(at: file.localUrl!)
-          return result
+          let size = await file.upload()
+          if size != nil {
+            let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+            print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
+            try? FileManager.default.removeItem(at: file.localUrl!)
+          }
+          return size
         }
       }
 
