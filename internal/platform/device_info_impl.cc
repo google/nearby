@@ -21,14 +21,14 @@
 
 namespace nearby {
 
-std::u16string DeviceInfoImpl::GetOsDeviceName() const {
-  std::optional<std::u16string> device_name =
+std::string DeviceInfoImpl::GetOsDeviceName() const {
+  std::optional<std::string> device_name =
       device_info_impl_->GetOsDeviceName();
   if (device_name.has_value()) {
     return *device_name;
   }
 
-  return u"unknown";
+  return "unknown";
 }
 
 api::DeviceInfo::DeviceType DeviceInfoImpl::GetDeviceType() const {
@@ -39,15 +39,15 @@ api::DeviceInfo::OsType DeviceInfoImpl::GetOsType() const {
   return device_info_impl_->GetOsType();
 }
 
-std::optional<std::u16string> DeviceInfoImpl::GetFullName() const {
+std::optional<std::string> DeviceInfoImpl::GetFullName() const {
   return device_info_impl_->GetFullName();
 }
 
-std::optional<std::u16string> DeviceInfoImpl::GetGivenName() const {
+std::optional<std::string> DeviceInfoImpl::GetGivenName() const {
   return device_info_impl_->GetGivenName();
 }
 
-std::optional<std::u16string> DeviceInfoImpl::GetLastName() const {
+std::optional<std::string> DeviceInfoImpl::GetLastName() const {
   return device_info_impl_->GetLastName();
 }
 

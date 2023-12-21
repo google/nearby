@@ -31,12 +31,12 @@ class DeviceInfo : public api::DeviceInfo {
  public:
   ~DeviceInfo() override = default;
 
-  std::optional<std::u16string> GetOsDeviceName() const override;
+  std::optional<std::string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
-  std::optional<std::u16string> GetFullName() const override;
-  std::optional<std::u16string> GetGivenName() const override;
-  std::optional<std::u16string> GetLastName() const override;
+  std::optional<std::string> GetFullName() const override;
+  std::optional<std::string> GetGivenName() const override;
+  std::optional<std::string> GetLastName() const override;
   std::optional<std::string> GetProfileUserName() const override;
 
   std::optional<std::filesystem::path> GetDownloadPath() const override;

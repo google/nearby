@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_DEVICE_INFO_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_DEVICE_INFO_H_
 
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <limits>
@@ -24,7 +25,6 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "internal/base/bluetooth_address.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 
@@ -32,7 +32,7 @@ namespace nearby {
 
 class FakeDeviceInfo : public DeviceInfo {
  public:
-  std::u16string GetOsDeviceName() const override { return device_name_; }
+  std::string GetOsDeviceName() const override { return device_name_; }
 
   api::DeviceInfo::DeviceType GetDeviceType() const override {
     return device_type_;
@@ -40,13 +40,13 @@ class FakeDeviceInfo : public DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override { return os_type_; }
 
-  std::optional<std::u16string> GetFullName() const override {
+  std::optional<std::string> GetFullName() const override {
     return full_name_;
   }
-  std::optional<std::u16string> GetGivenName() const override {
+  std::optional<std::string> GetGivenName() const override {
     return given_name_;
   }
-  std::optional<std::u16string> GetLastName() const override {
+  std::optional<std::string> GetLastName() const override {
     return last_name_;
   }
   std::optional<std::string> GetProfileUserName() const override {
@@ -93,7 +93,7 @@ class FakeDeviceInfo : public DeviceInfo {
   int GetScreenLockedListenerCount() { return screen_locked_listeners_.size(); }
 
   // Mock methods.
-  void SetOsDeviceName(std::u16string_view device_name) {
+  void SetOsDeviceName(std::string_view device_name) {
     device_name_ = device_name;
   }
 
@@ -103,7 +103,7 @@ class FakeDeviceInfo : public DeviceInfo {
 
   void SetOsType(api::DeviceInfo::OsType os_type) { os_type_ = os_type; }
 
-  void SetFullName(std::optional<std::u16string> full_name) {
+  void SetFullName(std::optional<std::string> full_name) {
     if (full_name.has_value() && !full_name->empty()) {
       full_name_ = full_name;
     } else {
@@ -111,7 +111,7 @@ class FakeDeviceInfo : public DeviceInfo {
     }
   }
 
-  void SetGivenName(std::optional<std::u16string> given_name) {
+  void SetGivenName(std::optional<std::string> given_name) {
     if (given_name.has_value() && !given_name->empty()) {
       given_name_ = given_name;
     } else {
@@ -119,7 +119,7 @@ class FakeDeviceInfo : public DeviceInfo {
     }
   }
 
-  void SetLastName(std::optional<std::u16string> last_name) {
+  void SetLastName(std::optional<std::string> last_name) {
     if (last_name.has_value() && !last_name->empty()) {
       last_name_ = last_name;
     } else {
@@ -160,13 +160,13 @@ class FakeDeviceInfo : public DeviceInfo {
   }
 
  private:
-  std::u16string device_name_ = u"nearby";
+  std::string device_name_ = "nearby";
   api::DeviceInfo::DeviceType device_type_ =
       api::DeviceInfo::DeviceType::kLaptop;
   api::DeviceInfo::OsType os_type_ = api::DeviceInfo::OsType::kWindows;
-  std::optional<std::u16string> full_name_ = u"Nearby";
-  std::optional<std::u16string> given_name_ = u"Nearby";
-  std::optional<std::u16string> last_name_ = u"Nearby";
+  std::optional<std::string> full_name_ = "Nearby";
+  std::optional<std::string> given_name_ = "Nearby";
+  std::optional<std::string> last_name_ = "Nearby";
   std::optional<std::string> profile_user_name_ = "nearby";
   std::filesystem::path download_path_ = std::filesystem::temp_directory_path();
   std::filesystem::path app_data_path_ = std::filesystem::temp_directory_path();

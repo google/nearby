@@ -18,19 +18,15 @@
 #include <windows.h>
 #include <wtsapi32.h>
 
-#include <array>
 #include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
-#include <utility>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/base/bluetooth_address.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/windows/session_manager.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Foundation.h"
@@ -56,7 +52,7 @@ constexpr char logs_relative_path[] = "Google\\Nearby\\Sharing\\Logs";
 constexpr char crash_dumps_relative_path[] =
     "Google\\Nearby\\Sharing\\CrashDumps";
 
-std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
+std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   DWORD size = 0;
 
   // Get length of the computer name.
@@ -70,8 +66,8 @@ std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
 
   WCHAR device_name[size];
   if (GetComputerNameExW(ComputerNameDnsHostname, device_name, &size)) {
-    std::wstring wide_name(device_name);
-    return std::u16string(wide_name.begin(), wide_name.end());
+    winrt::hstring device_name_str(device_name);
+    return winrt::to_string(device_name_str);
   }
 
   NEARBY_LOGS(ERROR) << ": Failed to get device name, error:" << GetLastError();
@@ -87,7 +83,7 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
-std::optional<std::u16string> DeviceInfo::GetFullName() const {
+std::optional<std::string> DeviceInfo::GetFullName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all
   // of them because the users who are switched out are not using the apps of
@@ -119,19 +115,18 @@ std::optional<std::u16string> DeviceInfo::GetFullName() const {
     return std::nullopt;
   }
   winrt::hstring full_name = full_name_obj.as<winrt::hstring>();
-  std::wstring wstr(full_name);
-  std::u16string u16str(wstr.begin(), wstr.end());
+  std::string full_name_str = winrt::to_string(full_name);
 
-  if (u16str.empty()) {
+  if (full_name_str.empty()) {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Error unboxing string value for full name of user.";
     return std::nullopt;
   }
 
-  return u16str;
+  return full_name_str;
 }
 
-std::optional<std::u16string> DeviceInfo::GetGivenName() const {
+std::optional<std::string> DeviceInfo::GetGivenName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all
   // of them because the users who are switched out are not using the apps of
@@ -163,19 +158,18 @@ std::optional<std::u16string> DeviceInfo::GetGivenName() const {
     return std::nullopt;
   }
   winrt::hstring given_name = given_name_obj.as<winrt::hstring>();
-  std::wstring wstr(given_name);
-  std::u16string u16str(wstr.begin(), wstr.end());
+  std::string given_name_str = winrt::to_string(given_name);
 
-  if (u16str.empty()) {
+  if (given_name_str.empty()) {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Error unboxing string value for first name of user.";
     return std::nullopt;
   }
 
-  return u16str;
+  return given_name_str;
 }
 
-std::optional<std::u16string> DeviceInfo::GetLastName() const {
+std::optional<std::string> DeviceInfo::GetLastName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all
   // of them because the users who are switched out are not using the apps of
@@ -207,16 +201,15 @@ std::optional<std::u16string> DeviceInfo::GetLastName() const {
     return std::nullopt;
   }
   winrt::hstring last_name = last_name_obj.as<winrt::hstring>();
-  std::wstring wstr(last_name);
-  std::u16string u16str(wstr.begin(), wstr.end());
+  std::string last_name_str = winrt::to_string(last_name);
 
-  if (u16str.empty()) {
+  if (last_name_str.empty()) {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Error unboxing string value for last name of user.";
     return std::nullopt;
   }
 
-  return u16str;
+  return last_name_str;
 }
 
 std::optional<std::string> DeviceInfo::GetProfileUserName() const {

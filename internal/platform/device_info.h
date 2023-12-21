@@ -22,7 +22,6 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/platform.h"
 
 namespace nearby {
 
@@ -30,12 +29,13 @@ class DeviceInfo {
  public:
   virtual ~DeviceInfo() = default;
 
-  virtual std::u16string GetOsDeviceName() const = 0;
+  // All strings are UTF-8 encoded.
+  virtual std::string GetOsDeviceName() const = 0;
   virtual api::DeviceInfo::DeviceType GetDeviceType() const = 0;
   virtual api::DeviceInfo::OsType GetOsType() const = 0;
-  virtual std::optional<std::u16string> GetFullName() const = 0;
-  virtual std::optional<std::u16string> GetGivenName() const = 0;
-  virtual std::optional<std::u16string> GetLastName() const = 0;
+  virtual std::optional<std::string> GetFullName() const = 0;
+  virtual std::optional<std::string> GetGivenName() const = 0;
+  virtual std::optional<std::string> GetLastName() const = 0;
   virtual std::optional<std::string> GetProfileUserName() const = 0;
 
   virtual std::filesystem::path GetDownloadPath() const = 0;
@@ -55,18 +55,18 @@ class DeviceInfo {
   virtual bool PreventSleep() = 0;
   virtual bool AllowSleep() = 0;
 
-  // Returns localized device name depends on device type.
-  std::u16string GetDeviceTypeName() const {
+  // Returns UTF-8 encoded localized device name depending on device type.
+  std::string GetDeviceTypeName() const {
     // TODO(b/230132370): return localized device name.
     switch (GetDeviceType()) {
       case api::DeviceInfo::DeviceType::kPhone:
-        return u"Phone";
+        return "Phone";
       case api::DeviceInfo::DeviceType::kTablet:
-        return u"Tablet";
+        return "Tablet";
       case api::DeviceInfo::DeviceType::kLaptop:
-        return u"PC";
+        return "PC";
       default:
-        return u"Unknown";
+        return "Unknown";
     }
   }
 };

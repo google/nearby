@@ -33,15 +33,15 @@
 namespace nearby {
 namespace apple {
 
-std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
+std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
 #if TARGET_OS_IPHONE
   NSString *name = UIDevice.currentDevice.name;
-  const char16_t *cName = (const char16_t *)[name cStringUsingEncoding:NSUTF16StringEncoding];
-  return std::u16string(cName);
+  const char *cName = (const char *)[name cStringUsingEncoding:NSUTF8StringEncoding];
+  return std::string(cName);
 #elif TARGET_OS_OSX
   NSString *name = NSHost.currentHost.localizedName;
-  const char16_t *cName = (const char16_t *)[name cStringUsingEncoding:NSUTF16StringEncoding];
-  return std::u16string(cName);
+  const char *cName = (const char *)[name cStringUsingEncoding:NSUTF8StringEncoding];
+  return std::string(cName);
 #else
   return std::nullopt;
 #endif
@@ -78,9 +78,9 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
 #endif
 }
 
-std::optional<std::u16string> DeviceInfo::GetFullName() const { return std::nullopt; }
-std::optional<std::u16string> DeviceInfo::GetGivenName() const { return std::nullopt; }
-std::optional<std::u16string> DeviceInfo::GetLastName() const { return std::nullopt; }
+std::optional<std::string> DeviceInfo::GetFullName() const { return std::nullopt; }
+std::optional<std::string> DeviceInfo::GetGivenName() const { return std::nullopt; }
+std::optional<std::string> DeviceInfo::GetLastName() const { return std::nullopt; }
 std::optional<std::string> DeviceInfo::GetProfileUserName() const { return std::nullopt; }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {

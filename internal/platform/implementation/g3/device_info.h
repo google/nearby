@@ -30,8 +30,8 @@ namespace g3 {
 
 class DeviceInfo : public api::DeviceInfo {
  public:
-  std::optional<std::u16string> GetOsDeviceName() const override {
-    return u"Windows";
+  std::optional<std::string> GetOsDeviceName() const override {
+    return "Windows";
   }
 
   api::DeviceInfo::DeviceType GetDeviceType() const override {
@@ -42,14 +42,14 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
-  std::optional<std::u16string> GetFullName() const override {
-    return u"nearby";
+  std::optional<std::string> GetFullName() const override {
+    return "nearby";
   }
-  std::optional<std::u16string> GetGivenName() const override {
-    return u"nearby";
+  std::optional<std::string> GetGivenName() const override {
+    return "nearby";
   }
-  std::optional<std::u16string> GetLastName() const override {
-    return u"nearby";
+  std::optional<std::string> GetLastName() const override {
+    return "nearby";
   }
   std::optional<std::string> GetProfileUserName() const override {
     return "nearby";
