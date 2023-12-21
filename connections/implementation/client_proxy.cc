@@ -400,6 +400,7 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
 void ClientProxy::OnRequestConnection(
     const Strategy& strategy, const std::string& endpoint_id,
     const ConnectionOptions& connection_options) {
+  NEARBY_LOGS(INFO) << "ClientProxy [RequestConnection]: id=" << endpoint_id;
   analytics_recorder_->OnRequestConnection(strategy, endpoint_id);
 }
 
@@ -451,6 +452,7 @@ void ClientProxy::OnConnectionInitiated(
 }
 
 void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
+  NEARBY_LOGS(INFO) << "ClientProxy [ConnectionAccepted]: id=" << endpoint_id;
   MutexLock lock(&mutex_);
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
@@ -470,6 +472,7 @@ void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
 
 void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
                                        const Status& status) {
+  NEARBY_LOGS(INFO) << "ClientProxy [ConnectionRejected]: id=" << endpoint_id;
   MutexLock lock(&mutex_);
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
@@ -489,6 +492,7 @@ void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
 
 void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
                                      Medium new_medium) {
+  NEARBY_LOGS(INFO) << "ClientProxy [BandwidthChanged]: id=" << endpoint_id;
   MutexLock lock(&mutex_);
 
   const ConnectionPair* item = LookupConnection(endpoint_id);
@@ -501,6 +505,7 @@ void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
 }
 
 void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
+  NEARBY_LOGS(INFO) << "ClientProxy [OnDisconnected]: id=" << endpoint_id;
   MutexLock lock(&mutex_);
 
   const ConnectionPair* item = LookupConnection(endpoint_id);
