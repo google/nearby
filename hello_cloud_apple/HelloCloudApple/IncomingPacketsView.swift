@@ -19,7 +19,7 @@ import SwiftUI
 struct IncomingPacketsView: View {
   @EnvironmentObject var model: Main
   @State var imageUrl: URL? = nil
-
+  
   func refresh () async {
     for packet in model.incomingPackets {
       if packet.state == .uploaded {
@@ -31,7 +31,7 @@ struct IncomingPacketsView: View {
       packet.update(from: newPacket)
     }
   }
-
+  
   var body: some View {
     ZStack {
       Form {
@@ -50,7 +50,7 @@ struct IncomingPacketsView: View {
                     } else {
                       Label(String(describing: file.description), systemImage: "photo")
                     }
-
+                    
                     Spacer()
                     ZStack {
                       // .received: grey dotted circle
@@ -76,18 +76,20 @@ struct IncomingPacketsView: View {
                 // .downloading: spinner
                 // .downloaded: green filled circle
                 ZStack{
-                  Button(action: { packet.download() }) {
+                  Button(action: {
+                    Task { await packet.download() }
+                  }) {
                     Image(systemName: "icloud.and.arrow.down.fill")
                   }
                   .buttonStyle(.borderless)
                   .opacity(packet.state == .uploaded ? 1 :0)
-
+                  
                   Image(systemName: "circle.dotted").foregroundColor(.gray)
                     .opacity(packet.state == .received ? 1 :0)
-
+                  
                   ProgressView()
                     .opacity(packet.state == .downloading ? 1 : 0)
-
+                  
                   Image(systemName: "circle.fill").foregroundColor(.green)
                     .opacity(packet.state == .downloaded ? 1 :0)
                 }

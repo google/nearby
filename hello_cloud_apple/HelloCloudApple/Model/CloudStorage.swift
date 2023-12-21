@@ -28,24 +28,30 @@ class CloudStorage {
     storage = Storage.storage()
     storage.useEmulator(withHost: "192.168.1.214", port: 9199)
     storageRef = storage.reference()
+
+    // Set a short timeout for debuggind. The default is 600s
+    storage.maxUploadRetryTime = 5;
+    storage.maxDownloadRetryTime = 5;
   }
 
-  func upload(from localUri: URL, to remotePath: String, 
-              completion: ((_: Int, _: Error?) -> Void)? = nil) {
+  func upload(from localUri: URL, to remotePath: String) async -> Int64? {
     let fileRef = storageRef.child(remotePath)
-    let _ = fileRef.putFile(from: localUri) { metadata, error in
-      if error == nil {
+    return await withCheckedContinuation { continuation in
+      _ = fileRef.putFile(from: localUri) { metadata, error in
+        guard let metadata else {
+          print("E: Failed to upload file to \(remotePath). Error: "
+                + (error?.localizedDescription ?? ""))
+          continuation.resume(returning: nil)
+          return
+        }
+
         print("I: Uploaded file " + remotePath)
-      } else {
-        print("E: Failed uploading file \(remotePath). Error: " 
-              + (error?.localizedDescription ?? ""))
+        continuation.resume(returning: metadata.size as Int64?)
       }
-      completion?((Int) (metadata?.size ?? 0), error)
     }
   }
 
-  func download(_ remotePath: String, as fileName: String,
-                completion: ((_: URL?, _: Error?) -> Void)? = nil) {
+  func download(_ remotePath: String, as fileName: String) async -> URL? {
     let fileRef = storageRef.child(remotePath)
 
     guard let directoryUrl = try? FileManager.default.url(
@@ -53,21 +59,23 @@ class CloudStorage {
       in: .userDomainMask,
       appropriateFor: nil,
       create: true) else {
-      let error = NSError(domain: "E: Failed to obtain directory for downloading.", code: 1)
-      completion?(nil, error)
-      return
+      print ("E: Failed to obtain directory for downloading.")
+      return nil
     }
 
     let fileUrl = directoryUrl.appendingPathComponent(fileName)
-    let _ = fileRef.write(toFile: fileUrl) { [remotePath]
-      url, error in
-      if error == nil {
+    return await withCheckedContinuation { continuation in
+      _ = fileRef.write(toFile: fileUrl) { url, error in
+        guard let url else {
+          print("E: Failed to download file \(remotePath). Error: "
+                + (error?.localizedDescription ?? ""))
+          continuation.resume(returning: nil)
+          return
+        }
+
         print("I: Downloaded file \(remotePath).")
-      } else {
-        print("E: Failed to download file \(remotePath). Error: "
-              + (error?.localizedDescription ?? ""))
+        continuation.resume(returning: url as URL?)
       }
-      completion?(url, error)
     }
   }
 }

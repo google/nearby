@@ -40,29 +40,22 @@ import Foundation
     self.mimeType = mimeType
   }
 
-  func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
+  func download() async -> URL? {
     if state != .uploaded {
       print("The file is being downloading or has already been downloaded. Skipping.")
-      completion?(nil, NSError(domain:"Downloading", code:1))
-      return
+      return nil
     }
 
     guard let remotePath else {
       print("Remote path not set. Skipping.")
-      completion?(nil, NSError(domain:"Downloading", code:1))
-      return
+      return nil
     }
 
     state = .downloading
-
-    let localPath = UUID().uuidString
-    CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
-      url, error in
-      guard let self else { return }
-      self.localUrl = url
-      self.state = error == nil ? .downloaded : .received
-      completion?(url, error)
-    }
+    let url = await CloudStorage.shared.download(remotePath, as: UUID().uuidString)
+    self.localUrl = url
+    state = url != nil ? .downloaded : .uploaded
+    return url;
   }
   
   static func == (lhs: IncomingFile, rhs: IncomingFile) -> Bool { lhs.id == rhs.id }

@@ -93,7 +93,7 @@ class CloudDatabase {
    Push the packet to the database, overwriting existing one if it exists.
    */
   func push(packet: Packet<OutgoingFile>) async -> DatabaseReference? {
-    guard var packetData = try? DictionaryEncoder().encode(packet) else {
+    guard let packetData = try? DictionaryEncoder().encode(packet) else {
       print("E: Failed to encode packet into a dictionary")
       return nil
     }

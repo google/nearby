@@ -46,7 +46,9 @@ struct OutgoingPacketsView: View {
                 }
               }
             } label: {
-              Button(action: { packet.upload() }) {
+              Button(action: {
+                Task { await packet.upload() }
+              }) {
                 Image(systemName: "icloud.and.arrow.up.fill")
               }.buttonStyle(.borderless)
               Text(String(describing: packet))

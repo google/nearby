@@ -98,7 +98,7 @@ import UIKit
     let endpoint = endpoints.first(where: {$0.id == endpointId})
     endpoint?.state = .sending
 
-    return await withCheckedContinuation { contiuation in
+    return await withCheckedContinuation { continuation in
       _ = connectionManager.send(
         payload,
         to: [endpointId],
@@ -109,7 +109,7 @@ import UIKit
             print("E: Failed to send data to \(endpointId).")
           }
           endpoint?.state = .connected
-          contiuation.resume(returning: error)
+          continuation.resume(returning: error)
         }
     }
   }

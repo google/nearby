@@ -41,14 +41,16 @@ import Foundation
     self.fileId = UUID().uuidString.uppercased()
   }
 
-  func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
+  /** Upload to the cloud and returns bytes uploaded if successful or nil otherwise */
+  func upload() async -> Int64? {
     guard let localUrl else {
-      print("Media not saved. Skipping uploading.")
-      return;
+      print("File not saved. Skipping uploading.")
+      return nil;
     }
+    
     if state != .loaded {
-      print("Media not saved. Skipping uploading.")
-      return
+      print("File not saved. Skipping uploading.")
+      return nil
     }
 
     remotePath = UUID().uuidString
@@ -59,12 +61,9 @@ import Foundation
     }
 
     state = .uploading
-
-    CloudStorage.shared.upload(from: localUrl, to: remotePath!) { [weak self]
-      size, error in
-      self?.state = error == nil ? .uploaded : .loaded
-      completion?(size, error)
-    }
+    let size = await CloudStorage.shared.upload(from: localUrl, to: remotePath!)
+    state = size != nil ? .uploaded : .loaded
+    return size
   }
 
   static func == (lhs: OutgoingFile, rhs: OutgoingFile) -> Bool { lhs.id == rhs.id }

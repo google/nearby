@@ -55,14 +55,18 @@ extension Packet<OutgoingFile> {
 extension Packet<IncomingFile> {
   static func createIncomingDebugModel() -> Packet<IncomingFile>{
     let result = Packet<IncomingFile>()
-    result.packetId = "7C55BEA7-5DD8-4591-AAA5-17C02448BE36"
+    result.packetId = "117442B8-CD26-4E13-B233-3678C339BDBD"
     result.sender = "Princess Leia"
-    result.state = .received
-    
+    result.state = .uploaded
+
     let file1 = IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4)
-    file1.fileId = "084849E6-5519-4460-A66F-68E1DCB20093"
-    let file2 = IncomingFile.createDebugModel(mimeType: "image/png", fileSize: 1024*1024*8)
-    file2.fileId = "092EB77A-69C6-4ED3-98CA-1C00D5EB8E6A"
+    file1.fileId = "5B003033-BEBE-45F4-8AE6-1A0632972A01"
+    file1.state = .uploaded
+    file1.remotePath = "6A84871F-4FFD-47F6-A81D-3B50414BAFFF.jpeg"
+    let file2 = IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*8)
+    file2.fileId = "B58D2DBA-B3DC-44EA-A596-750DC3C5E9B4"
+    file2.state = .uploaded
+    file2.remotePath = "8467D611-35F0-47F1-A232-0F45F65946B1.jpeg"
 
     result.files.append(file1)
     result.files.append(file2)
@@ -82,7 +86,7 @@ extension Main {
       state: .discovered
     ))
 //    result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
-//    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
+    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
     return result;
   }
 }

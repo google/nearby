@@ -85,77 +85,89 @@ extension Packet<IncomingFile> {
     state = .uploaded
   }
   
-  func download() -> Void {
+  func download() async {
+    if self.state != .uploaded {
+      print("E: Packet is not uploaded before being downloaded.")
+      return
+    }
+
     self.state = .downloading
-    for file in files {
+    await withTaskGroup(of: URL?.self) { group in
+      // Time the download
       let beginTime = Date()
-      if file.state == .uploaded {
-        file.download() { [beginTime, weak self] url, error in
-          guard let self else {
-            return
-          }
-          
-          guard url != nil else {
-            print("E: Failed to download packet")
-            self.state = .received
-            return
-          }
-          
+
+      // Make a task of downloading for each file
+      for file in files {
+        group.addTask {
+          let result = await file.download()
           let duration: TimeInterval = Date().timeIntervalSince(beginTime)
           print("I: Downloaded. Size(b): \(file.fileSize). Time(s): \(duration).")
-          
-          if self.files.allSatisfy({ $0.state == .downloaded }) {
-            self.state = .downloaded
-          }
+          return result
         }
+      }
+
+      // Wait for all files to finish downloading
+      var allSucceeded = true
+      for await (url) in group {
+        allSucceeded = allSucceeded && (url != nil)
+      }
+
+      if allSucceeded {
+        print("I: All files in the packet downloaded.")
+        state = .downloaded
+      } else {
+        print("E: Some files in the packet failed to download.")
+        state = .uploaded
       }
     }
   }
 }
 
 extension Packet<OutgoingFile> {
-  func upload() -> Void {
+  func upload() async {
     if self.state != .loaded {
-      print ("E: Packet is not loaded before being uploaded")
+      print("E: Packet is not loaded before being uploaded.")
       return
     }
 
     self.state = .uploading
-    // Upload each outging file
-    for file in files {
-      if file.state == .loaded {
-        // Time the upload
-        let beginTime = Date()
-        file.upload() { [beginTime, weak self] size, error in
-          guard let self else {
-            return
-          }
-          guard error == nil else {
-            print("E: Failed to upload file to the cloud." + String(describing: error))
-            self.state = .loaded
-            return
-          }
+    await withTaskGroup(of: Int64?.self) { group in
+      // Time the upload
+      let beginTime = Date()
 
+      // Make a task of uploading for each file
+      for file in files {
+        group.addTask {
+          let result = await file.upload()
           let duration: TimeInterval = Date().timeIntervalSince(beginTime)
           print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
           try? FileManager.default.removeItem(at: file.localUrl!)
-
-          if self.files.allSatisfy({ $0.state == .uploaded }) {
-            // Update packet state in Firebase
-            // The update will automatically trigger a push notification
-            Task {
-              self.state = .uploaded
-              let ref = await CloudDatabase.shared.push(packet: self)
-              if ref != nil {
-                print("I: Uploaded packet \(self.packetId).")
-              } else {
-                print("E: Failed to push packetto the database.")
-                // Set the state back to .loaded for retrying later
-                self.state = .loaded
-              }
-            }
-          }
+          return result
         }
+      }
+
+      // Wait for all files to finish uploading
+      var allSucceeded = true
+      for await (size) in group {
+        allSucceeded = allSucceeded && (size != nil)
+      }
+
+      if allSucceeded {
+        print("I: All files in the packet uploaded.")
+        // Update packet state in Firebase
+        // The update will automatically trigger a push notification
+        let ref = await CloudDatabase.shared.push(packet: self)
+        if ref != nil {
+          print("I: Pushed packet \(self.packetId).")
+          state = .uploaded
+        } else {
+          print("E: Failed to push packet to the database.")
+          // Set the state back to .loaded for retrying later
+          state = .loaded
+        }
+      } else {
+        print("E: Some files in the packet failed to upload.")
+        state = .loaded
       }
     }
   }
