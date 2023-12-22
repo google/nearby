@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/v2/database";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
@@ -54,3 +55,28 @@ export const onPacketCreated = onValueCreated(
           { structuredData: true });
       });
   });
+
+export const sendTestNotification = onRequest((request, response) => {
+  const token = ""
+  const packetId = ""
+  const message: Message = {
+    token: token,
+    notification: {
+      title: "You've got files!",
+      body: "Your files are ready for downloading",
+    },
+    data: {
+      packetId: packetId,
+    }
+  };
+
+  admin.messaging().send(message)
+    .then((result) => {
+      logger.info("Test notification sent " + result, { structuredData: true });
+      response.json({ data: { success: "true" } });
+    })
+    .catch((error) => {
+      logger.info("Test notification failed to send " + error, { structuredData: true });
+      response.status(500).json({ error: error });
+    });
+});

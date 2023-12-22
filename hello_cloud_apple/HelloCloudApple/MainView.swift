@@ -19,7 +19,8 @@ import PhotosUI
 
 struct MainView: View {
   @EnvironmentObject var model: Main
-  @State private var showConfirmation: Bool = false
+  @State private var showingInbox = false
+  @State private var showingOutbox = false
 
   var body: some View {
     NavigationStack {
@@ -41,26 +42,38 @@ struct MainView: View {
             Button(action: {model.isAdvertising.toggle()}) {
               Label("Advertise",
                     systemImage: model.isAdvertising ? "stop.circle" : "play.circle")
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .foregroundColor(model.isAdvertising ? .red : .green)
             .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity)
             
             Button(action: {model.isDiscovering.toggle()}) {
               Label("Discover",
                     systemImage: model.isDiscovering ? "stop.circle" : "play.circle")
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .foregroundColor(model.isDiscovering ? .red : .green)
             .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity)
           }
           
-          NavigationLink {IncomingPacketsView()} label: {
-            Label("Inbox", systemImage: "tray")
-          }
-          
-          NavigationLink {OutgoingPacketsView()} label: {
-            Label("Outbox", systemImage: "paperplane")
+          HStack{
+            Button(action: {showingInbox = true}) {
+              Label("Inbox", systemImage: "tray")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $showingInbox) {
+              IncomingPacketsView()
+            }
+
+            Button(action: {showingOutbox = true}) {
+              Label("Outbox", systemImage: "paperplane")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $showingOutbox) {
+              OutgoingPacketsView()
+            }
           }
         } header: {
           Text("Local endpoint")

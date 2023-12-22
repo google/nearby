@@ -21,54 +21,57 @@ struct OutgoingPacketsView: View {
   @State var expanded: [Bool] = []
 
   var body: some View {
-    Form {
-      Section{
-        List {
-          ForEach($model.outgoingPackets) { $packet in
-            DisclosureGroup (isExpanded: $packet.expanded) {
-              ForEach(Array(packet.files)) { file in
-                HStack {
-                  ZStack {
-                    // .picked: grey dotted circle
-                    // .loaded: grey filled circle
-                    // .uploaded: green filled circle
-                    // .uploading, .loading: spinner
-                    Image(systemName: "circle.dotted").foregroundColor(.gray)
-                      .opacity(file.state == .picked ? 1 : 0)
-                    Image(systemName: "circle.fill").foregroundColor(.gray)
-                      .opacity(file.state == .loaded ? 1 : 0)
-                    Image(systemName: "circle.fill").foregroundColor(.green)
-                      .opacity(file.state == .uploaded ? 1 : 0)
-                    ProgressView()
-                      .opacity(file.state == .loading || file.state == .uploading ? 1 : 0)
-                  }.padding(2)
-                  Label(String(describing: file.description), systemImage: "photo")
+    VStack {
+      Label("Outgoing", systemImage: "paperplane").font(.title).padding([.top], 10)
+
+      Form {
+        Section{
+          List {
+            ForEach($model.outgoingPackets) { $packet in
+              DisclosureGroup (isExpanded: $packet.expanded) {
+                ForEach(Array(packet.files)) { file in
+                  HStack {
+                    ZStack {
+                      // .picked: grey dotted circle
+                      // .loaded: grey filled circle
+                      // .uploaded: green filled circle
+                      // .uploading, .loading: spinner
+                      Image(systemName: "circle.dotted").foregroundColor(.gray)
+                        .opacity(file.state == .picked ? 1 : 0)
+                      Image(systemName: "circle.fill").foregroundColor(.gray)
+                        .opacity(file.state == .loaded ? 1 : 0)
+                      Image(systemName: "circle.fill").foregroundColor(.green)
+                        .opacity(file.state == .uploaded ? 1 : 0)
+                      ProgressView()
+                        .opacity(file.state == .loading || file.state == .uploading ? 1 : 0)
+                    }.padding(2)
+                    Label(String(describing: file.description), systemImage: "photo")
+                  }
                 }
+              } label: {
+                ZStack {
+                  Button(action: {
+                    Task { await packet.upload() }
+                  }) {
+                    Image(systemName: "icloud.and.arrow.up.fill")
+                  }
+                  .buttonStyle(.borderless)
+                  .opacity(packet.state == .loaded ? 1 : 0)
+
+                  ProgressView()
+                    .opacity(packet.state == .uploading ? 1 : 0)
+
+                  Image(systemName: "circle.fill").foregroundColor(.green)
+                    .opacity(packet.state == .uploaded ? 1 :0)
+                }.padding(2)
+
+                Label(String(describing: packet), systemImage: "photo.on.rectangle.angled")
               }
-            } label: {
-              ZStack {
-                Button(action: {
-                  Task { await packet.upload() }
-                }) {
-                  Image(systemName: "icloud.and.arrow.up.fill")
-                }
-                .buttonStyle(.borderless)
-                .opacity(packet.state == .loaded ? 1 : 0)
-
-                ProgressView()
-                  .opacity(packet.state == .uploading ? 1 : 0)
-
-                Image(systemName: "circle.fill").foregroundColor(.green)
-                  .opacity(packet.state == .uploaded ? 1 :0)
-              }.padding(2)
-
-              Label(String(describing: packet), systemImage: "photo.on.rectangle.angled")
             }
           }
         }
       }
     }
-    .navigationTitle("Outgoing packets")
   }
 }
 
