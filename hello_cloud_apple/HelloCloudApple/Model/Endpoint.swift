@@ -42,8 +42,10 @@ import PhotosUI
   var showingConfirmation: Bool = false
   var photosPicked: [PhotosPickerItem] = [] {
     didSet {
-      DispatchQueue.main.async {
-        self.showingConfirmation = true
+      if photosPicked.count > 0 {
+        DispatchQueue.main.async {
+          self.showingConfirmation = true
+        }
       }
     }
   }
@@ -135,6 +137,9 @@ import PhotosUI
 
     // Add the packet to outbox
     Main.shared.outgoingPackets.append(packet)
+
+    // Clear the photo selection for the next pick
+    photosPicked = []
     return nil
   }
 
