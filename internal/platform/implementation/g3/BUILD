@@ -38,7 +38,7 @@ cc_library(
     visibility = [
         "//internal/test:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":preferences_repository",
@@ -155,7 +155,7 @@ cc_library(
         "//internal/weave:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//presence:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":comm",

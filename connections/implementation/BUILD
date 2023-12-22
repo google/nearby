@@ -109,7 +109,7 @@ cc_library(
         "//connections:__pkg__",
         "//connections/implementation/fuzzers:__pkg__",
         "//location/nearby/cpp/sharing/implementation:__pkg__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         "//connections:core_types",

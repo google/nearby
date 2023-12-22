@@ -53,7 +53,7 @@ cc_library(
         "//location/nearby/cpp/common:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         "//internal/crypto_cros",
@@ -126,7 +126,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":comm",
