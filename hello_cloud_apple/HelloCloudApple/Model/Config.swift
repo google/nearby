@@ -23,6 +23,8 @@ class Config {
   static let defaultEndpointName = UIDevice.modelName
   static let debugEndpoint = false;
   static let localCloud = false;
+//  static let localCloudHost = "192.168.1.214"
+  static let localCloudHost = "127.0.0.1"
 }
 
 public extension UIDevice {

@@ -48,13 +48,21 @@ import Foundation
 
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
+    
     packetId = try container.decode(String.self, forKey: .packetId)
+    notificationToken = try? container.decode(String.self, forKey: .notificationToken)
+    sender = try? container.decode(String.self, forKey: .sender)
+    receiver = try? container.decode(String.self, forKey: .receiver)
     files = try Array(container.decode([String:T].self, forKey: .files).values)
   }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
+
     try container.encode(packetId, forKey: .packetId)
+    try container.encode(notificationToken, forKey: .notificationToken)
+    try container.encode(sender, forKey: .sender)
+    try container.encode(receiver, forKey: .receiver)
 
     let filesDict = files.reduce(into: [String:T]()) {
       (dict, file)  in
@@ -65,7 +73,7 @@ import Foundation
   }
 
   enum CodingKeys: String, CodingKey {
-    case packetId, files, notificationToken
+    case packetId, files, notificationToken, sender, receiver
   }
 }
 

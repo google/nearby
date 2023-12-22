@@ -85,14 +85,14 @@ extension Main {
   static func createDebugModel() -> Main {
     let result = Main();
 
-//    result.endpoints.append(Endpoint(
-//      id: "R2D2",
-//      name: "Artoo",
-//      isIncoming: false,
-//      state: .discovered
-//    ))
-//    result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
-//    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
+    result.endpoints.append(Endpoint(
+      id: "R2D2",
+      name: "Artoo",
+      isIncoming: false,
+      state: .discovered
+    ))
+    result.outgoingPackets.append(Packet<OutgoingFile>.createOutgoingDebugModel())
+    result.incomingPackets.append(Packet<IncomingFile>.createIncomingDebugModel())
     return result;
   }
 }

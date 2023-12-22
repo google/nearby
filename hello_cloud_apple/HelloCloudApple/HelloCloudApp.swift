@@ -36,14 +36,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     // Register for remote notifications
     UNUserNotificationCenter.current().delegate = self
-    let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+    let authOptions: UNAuthorizationOptions = [.badge, .alert, .sound]
     UNUserNotificationCenter.current().requestAuthorization(
       options: authOptions,
-      completionHandler: { _, _ in }
+      completionHandler: { authorized, error in
+        print("I: Request authorization result: \(String(describing: authorized)), \(String(describing: error))")
+      }
     )
     application.registerForRemoteNotifications()
 
     return true
+  }
+
+  func application(_ application: UIApplication,
+                   didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    Messaging.messaging().apnsToken = deviceToken
   }
 
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
@@ -56,6 +63,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       object: nil,
       userInfo: dataDict
     )
+
+    Messaging.messaging().token { token, error in
+      if let error = error {
+        print("Error fetching FCM registration token: \(error)")
+      } else if let token = token {
+        print("FCM registration token: \(token)")
+      }
+    }
   }
 
   // Receive displayed notifications for iOS 10 devices.
@@ -63,7 +78,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                               willPresent notification: UNNotification) async
   -> UNNotificationPresentationOptions {
     let userInfo = notification.request.content.userInfo
-    print(userInfo)
+    let id = userInfo["packetId"] as? String
+    if id != nil {
+      Main.shared.onPacketUploaded(id: id!)
+    }
 
     return [[.banner, .sound]]
   }

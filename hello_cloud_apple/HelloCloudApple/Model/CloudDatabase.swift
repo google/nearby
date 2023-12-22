@@ -86,7 +86,7 @@ class CloudDatabase {
   init() {
     database = Database.database()
     if Config.localCloud {
-      database.useEmulator(withHost: "192.168.1.214", port: 9000)
+      database.useEmulator(withHost: Config.localCloudHost, port: 9000)
     }
     databaseRef = database.reference()
   }

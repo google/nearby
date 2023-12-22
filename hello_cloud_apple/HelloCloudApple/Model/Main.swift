@@ -73,12 +73,7 @@ import UIKit
     localEndpointName = Config.defaultEndpointName
     Main.shared = self
   }
-  
-  func notifyReceiver() -> Void {
-    print("Notify the receiver")
-    CloudNotification.shared.helloWorld();
-  }
-  
+
   public func endpoint(id: String) -> Endpoint? {
     return endpoints.first(where: {$0.id == id})
   }
@@ -112,6 +107,22 @@ import UIKit
           endpoint?.state = .connected
           continuation.resume(returning: error)
         }
+    }
+  }
+
+  func onPacketUploaded(id: String) {
+    print("I: Packet \(id) is uploaded and ready for downloading.")
+    guard let packet = incomingPackets.first(where: { $0.packetId == id }) else {
+      print("W: Packet \(id) not in our inbox, skipping.")
+      return
+    }
+
+    Task {
+      print("I: Pulling file remote paths from the database.")
+      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.packetId) else {
+        return
+      }
+      packet.update(from: newPacket)
     }
   }
 }

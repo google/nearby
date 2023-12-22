@@ -27,7 +27,7 @@ class CloudStorage {
   init() {
     storage = Storage.storage()
     if Config.localCloud {
-      storage.useEmulator(withHost: "192.168.1.214", port: 9199)
+      storage.useEmulator(withHost: Config.localCloudHost, port: 9199)
     }
     storageRef = storage.reference()
 

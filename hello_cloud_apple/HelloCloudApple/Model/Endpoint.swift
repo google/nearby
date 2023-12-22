@@ -81,6 +81,7 @@ import PhotosUI
   }
 
   func onNotificationTakenReceived(token: String) -> Void {
+    print("I: notification token received: \(token)")
     notificationToken = token
   }
 
@@ -120,9 +121,14 @@ import PhotosUI
       return error
     }
 
+    if packet.notificationToken != nil {
+      print("I: Sending packet token to endpoint with notification token \(packet.notificationToken!).")
+    } else {
+      print("W: Sending packet token without notification token.")
+    }
+
     // Add the packet to outbox
     Main.shared.outgoingPackets.append(packet)
-
     return nil
   }
 
@@ -134,6 +140,7 @@ import PhotosUI
     packet.notificationToken = notificationToken
     packet.state = .loading
     packet.receiver = name
+    packet.sender = Main.shared.localEndpointName
 
     guard let directoryUrl = try? FileManager.default.url(
       for: .documentDirectory,

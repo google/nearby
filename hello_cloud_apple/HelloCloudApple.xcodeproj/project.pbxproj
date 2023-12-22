@@ -41,7 +41,6 @@
 		77D47DDC2B2D20A9000D729D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DDB2B2D20A9000D729D /* FirebaseMessaging */; };
 		77D47DDE2B2D20A9000D729D /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DDD2B2D20A9000D729D /* FirebaseStorage */; };
 		77D47DE02B2D20A9000D729D /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DDF2B2D20A9000D729D /* FirebaseStorageCombine-Community */; };
-		77D47DE22B2D20FB000D729D /* CloudNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D47DE12B2D20FB000D729D /* CloudNotification.swift */; };
 		77DCB0D32B1B1086002A6FB2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */; };
 		77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C742B110CA600838C24 /* IncomingFile.swift */; };
 		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
@@ -69,7 +68,6 @@
 		777FE9912B30CE2E000DD6D0 /* ImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		777FE9932B311551000DD6D0 /* CloudDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudDatabase.swift; sourceTree = "<group>"; };
 		77CD19D02B19442100654BA2 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		77D47DE12B2D20FB000D729D /* CloudNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudNotification.swift; sourceTree = "<group>"; };
 		77E09C742B110CA600838C24 /* IncomingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFile.swift; sourceTree = "<group>"; };
 		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -170,7 +168,6 @@
 				77E09C742B110CA600838C24 /* IncomingFile.swift */,
 				77E09C762B110CB300838C24 /* OutgoingFile.swift */,
 				7755C5742B199539003A9E0B /* CloudStorage.swift */,
-				77D47DE12B2D20FB000D729D /* CloudNotification.swift */,
 				777FE9932B311551000DD6D0 /* CloudDatabase.swift */,
 				777CC1482B2E8D9A00E2E8FA /* File.swift */,
 				777CC14A2B2E8F9000E2E8FA /* Packet.swift */,
@@ -276,7 +273,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				777FE9922B30CE2E000DD6D0 /* ImageView.swift in Sources */,
-				77D47DE22B2D20FB000D729D /* CloudNotification.swift in Sources */,
 				777FE9942B311551000DD6D0 /* CloudDatabase.swift in Sources */,
 				23252B5829D739E400BB0370 /* MainView.swift in Sources */,
 				23F6A70829D7621F00558F56 /* Main.swift in Sources */,
