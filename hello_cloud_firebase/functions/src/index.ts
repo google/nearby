@@ -57,8 +57,8 @@ export const onPacketCreated = onValueCreated(
   });
 
 export const sendTestNotification = onRequest((request, response) => {
-  const token = ""
-  const packetId = ""
+  const token: string = "fjtJ2Gw1XkWsox-A3ry1eh:APA91bE-QoNj131OpbkQPG-LFeKlJ9_de3rzkPyICZnDgcQUCI5K061JpZUYFEbz5zQWK4rPKR3DssX-894a7qI7Vk9S46Eru1o6TCsEAEc432emNtbysWWVUIuONF87ru8p4EojuLfe";
+  const packetId: string = "117442B8-CD26-4E13-B233-3678C339BDBD";
   const message: Message = {
     token: token,
     notification: {

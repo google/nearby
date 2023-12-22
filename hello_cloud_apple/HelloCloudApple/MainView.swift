@@ -18,12 +18,17 @@ import SwiftUI
 import PhotosUI
 
 struct MainView: View {
-  @EnvironmentObject var model: Main
-  @State private var showingInbox = false
-  @State private var showingOutbox = false
+  @State var model: Main
+
+  public func showInbox() {
+//    DispatchQueue.main.async {
+      model.showingInbox = true
+//    }
+  }
 
   var body: some View {
-    NavigationStack {
+    VStack {
+      Label("Hello Cloud", systemImage: "icloud").font(.title).padding([.top], 10)
       Form {
         Section{
           Grid (horizontalSpacing: 20, verticalSpacing: 10) {
@@ -37,7 +42,7 @@ struct MainView: View {
                 .disabled(model.isAdvertising)
             }
           }
-          
+
           HStack {
             Button(action: {model.isAdvertising.toggle()}) {
               Label("Advertise",
@@ -46,7 +51,7 @@ struct MainView: View {
             }
             .foregroundColor(model.isAdvertising ? .red : .green)
             .buttonStyle(.bordered)
-            
+
             Button(action: {model.isDiscovering.toggle()}) {
               Label("Discover",
                     systemImage: model.isDiscovering ? "stop.circle" : "play.circle")
@@ -55,23 +60,23 @@ struct MainView: View {
             .foregroundColor(model.isDiscovering ? .red : .green)
             .buttonStyle(.bordered)
           }
-          
+
           HStack{
-            Button(action: {showingInbox = true}) {
+            Button(action: {model.showingInbox = true}) {
               Label("Inbox", systemImage: "tray")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .buttonStyle(.bordered)
-            .sheet(isPresented: $showingInbox) {
+            .sheet(isPresented: $model.showingInbox) {
               IncomingPacketsView()
             }
 
-            Button(action: {showingOutbox = true}) {
+            Button(action: {model.showingOutbox = true}) {
               Label("Outbox", systemImage: "paperplane")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .buttonStyle(.bordered)
-            .sheet(isPresented: $showingOutbox) {
+            .sheet(isPresented: $model.showingOutbox) {
               OutgoingPacketsView()
             }
           }
@@ -150,11 +155,11 @@ struct MainView: View {
             Text("Remote endpoints")
           }
         }
-      }.navigationTitle("Hello Cloud")
+      }
     }
   }
 }
 
 #Preview {
-  MainView().environment(Main.createDebugModel())
+  MainView(model: Main.createDebugModel())
 }

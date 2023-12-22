@@ -39,9 +39,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     let authOptions: UNAuthorizationOptions = [.badge, .alert, .sound]
     UNUserNotificationCenter.current().requestAuthorization(
       options: authOptions,
-      completionHandler: { authorized, error in
-        print("I: Request authorization result: \(String(describing: authorized)), \(String(describing: error))")
-      }
+      completionHandler: { _, _ in }
     )
     application.registerForRemoteNotifications()
 
@@ -63,17 +61,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       object: nil,
       userInfo: dataDict
     )
-
-    Messaging.messaging().token { token, error in
-      if let error = error {
-        print("Error fetching FCM registration token: \(error)")
-      } else if let token = token {
-        print("FCM registration token: \(token)")
-      }
-    }
   }
 
-  // Receive displayed notifications for iOS 10 devices.
+  // Executed when the notification is received
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               willPresent notification: UNNotification) async
   -> UNNotificationPresentationOptions {
@@ -86,10 +76,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     return [[.banner, .sound]]
   }
 
+  // Executed when the user clicks on the notification.
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               didReceive response: UNNotificationResponse) async {
     let userInfo = response.notification.request.content.userInfo
     print(userInfo)
+    Main.shared.showInbox()
   }
 }
 
@@ -98,11 +90,17 @@ struct HelloCloudApp: App {
   // register app delegate for Firebase setup
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
-  @StateObject private var model = Main.create()
+  private let mainModel: Main
+  private let mainView: MainView
+
+  init() {
+    mainModel = Main.create();
+    mainView = MainView(model: mainModel)
+  }
 
   var body: some Scene {
     WindowGroup {
-      MainView().environment(model)
+      mainView.environment(mainModel)
     }
   }
 }

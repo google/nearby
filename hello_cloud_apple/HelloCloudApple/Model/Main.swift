@@ -26,6 +26,9 @@ import UIKit
   private(set) var localEndpointId: String = ""
   var localEndpointName: String = ""
   
+  var showingInbox = false
+  var showingOutbox = false
+
   var isAdvertising = false {
     didSet {
       if !isAdvertising {
@@ -72,6 +75,10 @@ import UIKit
 
     localEndpointName = Config.defaultEndpointName
     Main.shared = self
+  }
+
+  public func showInbox() {
+    DispatchQueue.main.async {self.showingInbox = true}
   }
 
   public func endpoint(id: String) -> Endpoint? {
