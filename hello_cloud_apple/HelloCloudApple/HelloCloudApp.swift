@@ -81,7 +81,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                               didReceive response: UNNotificationResponse) async {
     let userInfo = response.notification.request.content.userInfo
     print(userInfo)
-    Main.shared.showInbox()
+    let id = userInfo["packetId"] as? String
+    if id != nil {
+      Main.shared.showInboxAndHilight(packet: id!)
+    }
   }
 }
 

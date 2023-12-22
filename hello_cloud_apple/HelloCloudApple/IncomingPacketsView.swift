@@ -96,6 +96,9 @@ struct IncomingPacketsView: View {
 
                   Label(String(describing: packet), systemImage: "photo.on.rectangle.angled")
                 }
+                .listRowBackground(
+                  (packet.highlighted ? Color.orange.opacity(0.5) : Color.clear)
+                    .animation(.easeInOut))
               }
             }
           }

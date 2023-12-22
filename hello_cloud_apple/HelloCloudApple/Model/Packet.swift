@@ -33,6 +33,7 @@ import Foundation
   var sender: String? = nil
   var state: State = .unknown
   var expanded: Bool = true
+  var highlighted: Bool = false
 
   var description: String {
     if T.self == OutgoingFile.self {

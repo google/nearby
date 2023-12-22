@@ -96,6 +96,12 @@ import PhotosUI
         return
       }
       packet.update(from: newPacket)
+      DispatchQueue.main.async {
+        packet.highlighted = true
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        packet.highlighted = false
+      }
     }
   }
 

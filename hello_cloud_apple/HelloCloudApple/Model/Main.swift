@@ -16,9 +16,7 @@
 
 import Foundation
 import NearbyConnections
-#if os(iOS) || os(watchOS) || os(tvOS)
 import UIKit
-#endif
 
 @Observable class Main: ObservableObject {
   static var shared: Main! = nil
@@ -77,8 +75,17 @@ import UIKit
     Main.shared = self
   }
 
-  public func showInbox() {
-    DispatchQueue.main.async {self.showingInbox = true}
+  public func showInboxAndHilight(packet id: String) {
+    let highlight = incomingPackets.first(where: {$0.packetId == id})
+    DispatchQueue.main.async {
+      self.showingInbox = true
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+      highlight?.highlighted = true
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+      highlight?.highlighted = false
+    }
   }
 
   public func endpoint(id: String) -> Endpoint? {
