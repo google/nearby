@@ -42,7 +42,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base",
-        "//internal/base:bluetooth_address",
         "//internal/data:data_manager",
         "//internal/network:types",
         "//internal/platform:comm",
