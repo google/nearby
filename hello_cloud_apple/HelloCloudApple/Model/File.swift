@@ -16,8 +16,7 @@
 
 import Foundation
 
-protocol File: Identifiable, Encodable, Decodable {
+protocol File: Identifiable<UUID>, Encodable, Decodable {
   var mimeType: String { get }
   var fileSize: Int64 { get }
-  var fileId: String { get set }
 }

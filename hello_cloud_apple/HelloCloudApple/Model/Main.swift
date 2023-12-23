@@ -75,8 +75,8 @@ import UIKit
     Main.shared = self
   }
 
-  public func showInboxAndHilight(packet id: String) {
-    let highlight = incomingPackets.first(where: {$0.packetId == id})
+  public func showInboxAndHilight(packet id: UUID) {
+    let highlight = incomingPackets.first(where: {$0.id == id})
     DispatchQueue.main.async {
       self.showingInbox = true
     }
@@ -124,16 +124,16 @@ import UIKit
     }
   }
 
-  func onPacketUploaded(id: String) {
+  func onPacketUploaded(id: UUID) {
     print("I: Packet \(id) is uploaded and ready for downloading.")
-    guard let packet = incomingPackets.first(where: { $0.packetId == id }) else {
+    guard let packet = incomingPackets.first(where: { $0.id == id }) else {
       print("W: Packet \(id) not in our inbox, skipping.")
       return
     }
 
     Task {
       print("I: Pulling file remote paths from the database.")
-      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.packetId) else {
+      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.id) else {
         return
       }
       packet.update(from: newPacket)

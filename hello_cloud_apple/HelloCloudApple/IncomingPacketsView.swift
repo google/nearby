@@ -25,7 +25,7 @@ struct IncomingPacketsView: View {
       if packet.state == .uploaded {
         continue
       }
-      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.packetId) else {
+      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.id) else {
         continue
       }
       packet.update(from: newPacket)

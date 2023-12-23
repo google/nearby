@@ -22,12 +22,12 @@ admin.initializeApp();
 
 export const onPacketCreated = onValueCreated(
   {
-    ref: "/packets/{packetId}",
+    ref: "/packets/{id}",
     instance: "hello-cloud-5b73c-default-rtdb",
   },
   (event) => {
     const packet = event.data.val();
-    logger.info("Packet created: " + packet.packetId);
+    logger.info("Packet created: " + packet.id);
     if (packet.notificationToken == null) {
       logger.info("Packet has no notification token.");
       return;
@@ -42,7 +42,7 @@ export const onPacketCreated = onValueCreated(
         body: "Your files from " + packet.sender + " are ready for downloading",
       },
       data: {
-        packetId: packet.packetId,
+        packetId: packet.id,
       },
     };
 
@@ -58,7 +58,7 @@ export const onPacketCreated = onValueCreated(
 
 export const sendTestNotification = onRequest((request, response) => {
   const token: string = "fjtJ2Gw1XkWsox-A3ry1eh:APA91bE-QoNj131OpbkQPG-LFeKlJ9_de3rzkPyICZnDgcQUCI5K061JpZUYFEbz5zQWK4rPKR3DssX-894a7qI7Vk9S46Eru1o6TCsEAEc432emNtbysWWVUIuONF87ru8p4EojuLfe";
-  const packetId: string = "117442B8-CD26-4E13-B233-3678C339BDBD";
+  const id: string = "117442B8-CD26-4E13-B233-3678C339BDBD";
   const message: Message = {
     token: token,
     notification: {
@@ -66,7 +66,7 @@ export const sendTestNotification = onRequest((request, response) => {
       body: "Your files are ready for downloading",
     },
     data: {
-      packetId: packetId,
+      packetId: id,
     }
   };
 

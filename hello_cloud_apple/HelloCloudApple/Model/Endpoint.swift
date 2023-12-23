@@ -93,7 +93,7 @@ import PhotosUI
 
     Main.shared.incomingPackets.append(packet)
 
-    CloudDatabase.shared.observePacket(id: packet.packetId) { [weak packet] newPacket in
+    CloudDatabase.shared.observePacket(id: packet.id) { [weak packet] newPacket in
       guard let packet else {
         return
       }
@@ -146,8 +146,7 @@ import PhotosUI
   func loadPhotos() async -> Packet<OutgoingFile>? {
     loadingPhotos = true
 
-    let packet = Packet<OutgoingFile>()
-    packet.packetId = UUID().uuidString.uppercased()
+    let packet = Packet<OutgoingFile>(id: UUID())
     packet.notificationToken = notificationToken
     packet.state = .loading
     packet.receiver = name
@@ -197,7 +196,7 @@ import PhotosUI
     photo.supportedContentTypes.first(
       where: {$0.preferredMIMEType == "image/png"})
 
-    let file = OutgoingFile(mimeType: type?.preferredMIMEType ?? "application/octet-stream")
+    let file = OutgoingFile(id: UUID(), mimeType: type?.preferredMIMEType ?? "application/octet-stream")
 
     guard let data = try? await photo.loadTransferable(type: Data.self) else {
       return nil

@@ -21,14 +21,10 @@ import Foundation
     case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
-  // This is the Identifiable.id used by SwiftUI, not the file ID used for identifying the packet
-  // across devices and the cloud
-  let id = UUID().uuidString
+  let id: UUID
 
   var notificationToken: String? = nil
-  var packetId: String = ""
   var files: [T] = []
-
   var receiver: String? = nil
   var sender: String? = nil
   var state: State = .unknown
@@ -45,12 +41,18 @@ import Foundation
     }
   }
 
-  init() {}
+  init() {
+    self.id = UUID()
+  }
+
+  init(id: UUID) {
+    self.id = id
+  }
 
   required init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
-    packetId = try container.decode(String.self, forKey: .packetId)
+    id = try UUID(uuidString: container.decode(String.self, forKey: .id))!
     notificationToken = try? container.decode(String.self, forKey: .notificationToken)
     sender = try? container.decode(String.self, forKey: .sender)
     receiver = try? container.decode(String.self, forKey: .receiver)
@@ -60,21 +62,21 @@ import Foundation
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
 
-    try container.encode(packetId, forKey: .packetId)
+    try container.encode(id, forKey: .id)
     try container.encode(notificationToken, forKey: .notificationToken)
     try container.encode(sender, forKey: .sender)
     try container.encode(receiver, forKey: .receiver)
 
     let filesDict = files.reduce(into: [String:T]()) {
       (dict, file)  in
-      dict[file.fileId] = file
+      dict[file.id.uuidString.uppercased()] = file
     }
 
     try container.encode(filesDict, forKey: .files)
   }
 
   enum CodingKeys: String, CodingKey {
-    case packetId, files, notificationToken, sender, receiver
+    case id, files, notificationToken, sender, receiver
   }
 }
 
@@ -169,7 +171,7 @@ extension Packet<OutgoingFile> {
         // The update will automatically trigger a push notification
         let ref = await CloudDatabase.shared.push(packet: self)
         if ref != nil {
-          print("I: Pushed packet \(self.packetId).")
+          print("I: Pushed packet \(self.id).")
           state = .uploaded
         } else {
           print("E: Failed to push packet to the database.")

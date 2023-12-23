@@ -99,7 +99,7 @@ class CloudDatabase {
       print("E: Failed to encode packet into a dictionary")
       return nil
     }
-    return try? await databaseRef.child("packets/\(packet.packetId)").updateChildValues(packetData)
+    return try? await databaseRef.child("packets/\(packet.id)").updateChildValues(packetData)
   }
 
   static func readPacket(from snapshot: DataSnapshot) -> Packet<IncomingFile>? {
@@ -114,7 +114,7 @@ class CloudDatabase {
     return packet;
   }
 
-  func observePacket(id: String, _ notification: @escaping (Packet<IncomingFile>) -> Void) {
+  func observePacket(id: UUID, _ notification: @escaping (Packet<IncomingFile>) -> Void) {
     databaseRef.child("packets/\(id)").observe(.value) { snapshot in
       guard let packet = CloudDatabase.readPacket(from: snapshot) else {
         return
@@ -123,7 +123,7 @@ class CloudDatabase {
     }
   }
 
-  func pull(packetId: String) async -> Packet<IncomingFile>? {
+  func pull(packetId: UUID) async -> Packet<IncomingFile>? {
     guard let snapshot = try? await databaseRef.child("packets/\(packetId)").getData() else {
       print("E: Failed to read snapshot from database")
       return nil

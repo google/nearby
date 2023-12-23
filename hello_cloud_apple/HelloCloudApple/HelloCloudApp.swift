@@ -68,7 +68,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                               willPresent notification: UNNotification) async
   -> UNNotificationPresentationOptions {
     let userInfo = notification.request.content.userInfo
-    let id = userInfo["packetId"] as? String
+    let id = UUID(uuidString: userInfo["packetId"] as? String ?? "")
     if id != nil {
       Main.shared.onPacketUploaded(id: id!)
     }
@@ -81,7 +81,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                               didReceive response: UNNotificationResponse) async {
     let userInfo = response.notification.request.content.userInfo
     print(userInfo)
-    let id = userInfo["packetId"] as? String
+    let id = UUID(uuidString: userInfo["packetId"] as? String ?? "")
     if id != nil {
       Main.shared.showInboxAndHilight(packet: id!)
     }

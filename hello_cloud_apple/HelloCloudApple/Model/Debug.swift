@@ -19,7 +19,7 @@ import Foundation
 extension OutgoingFile {
   static func createDebugModel(
     mimeType: String, fileSize: Int64, state: State = .picked) -> OutgoingFile {
-      let result = OutgoingFile(mimeType: mimeType)
+      let result = OutgoingFile(id: UUID(), mimeType: mimeType)
       result.fileSize = fileSize
       result.state = state
       return result
@@ -29,7 +29,7 @@ extension OutgoingFile {
 extension IncomingFile {
   static func createDebugModel(
     mimeType: String, fileSize: Int64, state: State = .received) -> IncomingFile {
-      let result = IncomingFile(mimeType: mimeType)
+      let result = IncomingFile(id: UUID(), mimeType: mimeType)
       result.fileSize = fileSize
       result.state = state
       return result
@@ -57,17 +57,14 @@ extension Packet<OutgoingFile> {
 
 extension Packet<IncomingFile> {
   static func createIncomingDebugModel() -> Packet<IncomingFile>{
-    let result = Packet<IncomingFile>()
-    result.packetId = "117442B8-CD26-4E13-B233-3678C339BDBD"
+    let result = Packet<IncomingFile>(id: UUID(uuidString: "117442B8-CD26-4E13-B233-3678C339BDBD")!)
     result.sender = "Princess Leia"
     result.state = .uploaded
 
     let file1 = IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*4)
-    file1.fileId = "5B003033-BEBE-45F4-8AE6-1A0632972A01"
     file1.state = .uploaded
     file1.remotePath = "6A84871F-4FFD-47F6-A81D-3B50414BAFFF.jpeg"
     let file2 = IncomingFile.createDebugModel(mimeType: "image/jpeg", fileSize: 1024*1024*8)
-    file2.fileId = "B58D2DBA-B3DC-44EA-A596-750DC3C5E9B4"
     file2.state = .uploaded
     file2.remotePath = "8467D611-35F0-47F1-A232-0F45F65946B1.jpeg"
 
