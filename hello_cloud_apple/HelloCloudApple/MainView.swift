@@ -20,12 +20,6 @@ import PhotosUI
 struct MainView: View {
   @State var model: Main
 
-  public func showInbox() {
-//    DispatchQueue.main.async {
-      model.showingInbox = true
-//    }
-  }
-
   var body: some View {
     VStack {
       Label("Hello Cloud", systemImage: "icloud").font(.title).padding([.top], 10)
@@ -61,7 +55,7 @@ struct MainView: View {
             .buttonStyle(.bordered)
           }
 
-          HStack{
+          HStack {
             Button(action: {model.showingInbox = true}) {
               Label("Inbox", systemImage: "tray")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -79,6 +73,29 @@ struct MainView: View {
             .sheet(isPresented: $model.showingOutbox) {
               OutgoingPacketsView()
             }
+          }
+
+          HStack {
+            PhotosPicker(selection: $model.photosPicked, matching: .images) {
+              ZStack{
+                Label("Send", systemImage: "qrcode")
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+                  .opacity(model.loadingPhotos ? 0 : 1)
+                ProgressView()
+                  .opacity(model.loadingPhotos ? 1 :0)
+              }
+            }
+            .disabled(model.loadingPhotos)
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $model.showingQrCode) {
+              QrCodeView()
+            }
+
+            Button(action: {}) {
+              Label("Receive", systemImage: "qrcode.viewfinder")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.bordered)
           }
         } header: {
           Text("Local endpoint")

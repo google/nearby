@@ -17,6 +17,8 @@
 import Foundation
 import NearbyConnections
 import UIKit
+import SwiftUI
+import PhotosUI
 
 @Observable class Main: ObservableObject {
   static var shared: Main! = nil
@@ -24,8 +26,17 @@ import UIKit
   private(set) var localEndpointId: String = ""
   var localEndpointName: String = ""
   
+  var qrCodeData: Data? = nil
+
   var showingInbox = false
   var showingOutbox = false
+  var loadingPhotos = false
+  var showingQrCode = false {
+    didSet {
+      // Once the QR code page is dismissed, clear the photo selection for the next pick.
+      photosPicked = []
+    }
+  }
 
   var isAdvertising = false {
     didSet {
@@ -61,6 +72,14 @@ import UIKit
   var outgoingPackets: [Packet<OutgoingFile>] = []
   var incomingPackets: [Packet<IncomingFile>] = []
 
+  var photosPicked: [PhotosPickerItem] = [] {
+    didSet {
+      if photosPicked.count > 0 {
+        Task {await self.loadAndGenerateQr()}
+      }
+    }
+  }
+
   private var connectionManager: ConnectionManager!
   private var advertiser: Advertiser!
   private var discoverer: Discoverer!
@@ -88,10 +107,37 @@ import UIKit
     }
   }
 
+  public func loadAndGenerateQr() async -> Error? {
+    loadingPhotos = true
+    defer {loadingPhotos = false}
+
+    // We have no way to get the receiver's name and notification token.
+    guard let packet = await Utils.loadPhotos(
+      photos: photosPicked, receiver: nil, notificationToken: nil) else {
+      return NSError(domain: "Loading", code: 1)
+    }
+
+    // Encode the packet
+    // TODO: make it more compact by using a more dense encoder than json
+    // or at least remove unused fields
+    qrCodeData = try? JSONEncoder().encode(packet)
+    if qrCodeData == nil {
+      print("E: Failed to encode packet into QR code")
+      return nil
+    }
+
+    // Display the QR code
+    showingQrCode = true
+    // Add the packet to outbox
+    Main.shared.outgoingPackets.append(packet)
+    return nil
+  }
+
   public func endpoint(id: String) -> Endpoint? {
     return endpoints.first(where: {$0.id == id})
   }
   
+  // TODO: move the following 3 functions to Endpoint.swift
   func requestConnection(to endpointId: String, _ completionHandler: ((Error?) -> Void)?) {
     discoverer?.requestConnection(
       to: endpointId,
