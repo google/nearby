@@ -190,7 +190,10 @@ public final class Main extends BaseObservable {
   public static Main createDebugModel() {
     Main result = new Main();
 
-    result.addEndpoint(new Endpoint("R2D2", "Debug droid"));
+    Endpoint endpoint = new Endpoint("R2D2", "Debug droid");
+    endpoint.setState(Endpoint.State.CONNECTED);
+
+    result.addEndpoint(endpoint);
 
     Endpoint endpoint2 = new Endpoint("C3PO", "Fuzzy droid");
 //    endpoint2

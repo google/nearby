@@ -75,7 +75,6 @@ public final class Endpoint extends BaseObservable {
     notifyPropertyChanged(BR.state);
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
-    notifyPropertyChanged(BR.canPick);
   }
 
   @Bindable
@@ -101,12 +100,7 @@ public final class Endpoint extends BaseObservable {
 //    return incomingFiles;
 //  }
 //
-  @Bindable
-  public boolean getCanPick() {
-    return state == State.CONNECTED;
-//    return state == State.CONNECTED
-//        && outgoingFiles.stream().noneMatch(OutgoingFile::getIsBusy);
-  }
+
 
 
 //  public void onMediaPicked(List<OutgoingFile> files) {

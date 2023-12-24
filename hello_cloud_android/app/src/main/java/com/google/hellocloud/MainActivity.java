@@ -74,10 +74,10 @@ public class MainActivity extends AppCompatActivity {
 
   public void showOutgoingPackets(View view) {
     NavHostFragment navHostFragment =
-            (NavHostFragment)
-                    ((FragmentActivity) this)
-                            .getSupportFragmentManager()
-                            .findFragmentById(R.id.fragmentContainerView);
+        (NavHostFragment)
+            ((FragmentActivity) this)
+                .getSupportFragmentManager()
+                .findFragmentById(R.id.fragmentContainerView);
     NavController navController = navHostFragment.getNavController();
     Bundle bundle = new Bundle();
     navController.navigate(R.id.action_mainFragment_to_outgoingPacketsFragment, bundle);

@@ -1,29 +1,35 @@
 package com.google.hellocloud;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
-
 import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
-
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Fragment for the home screen
- */
+/** Fragment for the home screen */
 public class MainFragment extends Fragment {
   static class EndpointAdapter extends ArrayAdapter<Endpoint> {
     private final Context context;
+
     public EndpointAdapter(Context context, List<Endpoint> endpoints) {
       super(context, R.layout.item_endpoint, endpoints);
       this.context = context;
@@ -34,8 +40,7 @@ public class MainFragment extends Fragment {
       ItemEndpointBinding binding;
       View view;
 
-      if (convertView == null)
-      {
+      if (convertView == null) {
         LayoutInflater inflater = LayoutInflater.from(context);
         binding = DataBindingUtil.inflate(inflater, R.layout.item_endpoint, parent, false);
         view = binding.getRoot();
@@ -46,31 +51,123 @@ public class MainFragment extends Fragment {
       final Endpoint endpoint = getItem(position);
       binding.setModel(endpoint);
 
-      binding.connect.setOnClickListener(v -> {
-        endpoint.setState(Endpoint.State.CONNECTING);
-        Main.shared.requestConnection(endpoint.id);
-      });
+      binding.connect.setOnClickListener(
+          v -> {
+            endpoint.setState(Endpoint.State.CONNECTING);
+            Main.shared.requestConnection(endpoint.id);
+          });
 
-      binding.disconnect.setOnClickListener(v -> {
-        endpoint.setState(Endpoint.State.DISCONNECTING);
-        Main.shared.disconnect(endpoint.id);
-      });
+      binding.disconnect.setOnClickListener(
+          v -> {
+            endpoint.setState(Endpoint.State.DISCONNECTING);
+            Main.shared.disconnect(endpoint.id);
+          });
+
+      binding.pick.setOnClickListener(
+          v -> {
+            MainFragment mainFragment = getMainFragment();
+            mainFragment.pickMedia(endpoint);
+          });
 
       return view;
     }
+
+    // TODO: this is super ugly, lol. But I have no time to think this through right now.
+    private MainFragment getMainFragment() {
+      Context context = getContext();
+      while (context instanceof ContextWrapper) {
+        if (context instanceof MainActivity mainActivity) {
+          Fragment navHostFragment =
+              mainActivity.getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
+          Fragment mainFragment =
+              navHostFragment == null
+                  ? null
+                  : navHostFragment.getChildFragmentManager().getFragments().get(0);
+          return (MainFragment) mainFragment;
+        }
+        context = ((ContextWrapper) context).getBaseContext();
+      }
+      return null;
+    }
   }
 
-  private Main model = Main.shared;
+  private final Main model = Main.shared;
+  private Endpoint endpointForPicker = null;
+
+  ActivityResultLauncher<PickVisualMediaRequest> picker;
 
   @Override
-  public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                           Bundle savedInstanceState) {
-    // TODO: fill id and name here
-    FragmentMainBinding binding = DataBindingUtil.inflate(inflater, R.layout.fragment_main, container, false);
+  public View onCreateView(
+      @NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    picker =
+        registerForActivityResult(
+            new ActivityResultContracts.PickMultipleVisualMedia(), this::onMediaPicked);
+
+    FragmentMainBinding binding =
+        DataBindingUtil.inflate(inflater, R.layout.fragment_main, container, false);
     Main.shared.context = getActivity().getApplicationContext();
     binding.setModel(model);
     getActivity().setTitle(R.string.app_name);
     return binding.getRoot();
+  }
+
+  public void pickMedia(Endpoint endpoint) {
+    assert picker != null;
+    endpointForPicker = endpoint;
+    picker.launch(
+        new PickVisualMediaRequest.Builder()
+            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
+            .build());
+  }
+
+  private void onMediaPicked(List<Uri> uris) {
+    if (endpointForPicker == null) {
+      System.out.println("E: onMediaPicked() called without setting endpointForPicker");
+      return;
+    }
+
+    Context context = getView().getContext();
+    ContentResolver resolver = context.getContentResolver();
+    ArrayList<OutgoingFile> files = new ArrayList<>();
+    for (Uri uri : uris) {
+      String mimeType = resolver.getType(uri);
+
+      // Get the local file name and size.
+      Cursor cursor =
+          resolver.query(
+              uri,
+              new String[] {MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE},
+              null,
+              null,
+              null);
+
+      assert cursor != null;
+      int nameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
+      int sizeIndex = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE);
+      cursor.moveToFirst();
+
+      String name = cursor.getString(nameIndex);
+      int size = cursor.getInt(sizeIndex);
+      cursor.close();
+
+      // Construct an outgoing file to be added to the endpoint's list
+      OutgoingFile file =
+          new OutgoingFile(mimeType, name, null, size)
+              .setState(OutgoingFile.State.PICKED)
+              .setLocalUri(uri);
+      files.add(file);
+    }
+
+    new AlertDialog.Builder(context)
+        .setMessage("Do you want to send the claim token to the remote endpoint?")
+        .setPositiveButton(
+            "Yes",
+            (dialog, button) -> {
+              System.out.println(button);
+              // TODO: Construct a packet and send
+            })
+        .setNegativeButton("No", null)
+        .show();
   }
 
   @BindingAdapter("entries")

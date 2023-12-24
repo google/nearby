@@ -78,13 +78,14 @@
                     android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.DISCONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
                     android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/disconnect : @drawable/disconnect_disabled}" />
             </FrameLayout>
-            <!-- TODO: enabled -->
             <ImageButton
+                android:id="@+id/pick"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_weight="1"
-                android:src="@drawable/photo" />
+                android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
+                android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/photo : @drawable/photo_disabled}" />
         </LinearLayout>
     </LinearLayout>
 </layout>
