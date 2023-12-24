@@ -19,6 +19,7 @@ import PhotosUI
 
 struct MainView: View {
   @State var model: Main
+  @State var showingQrAck: (Bool, String?) = (false, nil)
 
   var body: some View {
     VStack {
@@ -89,13 +90,35 @@ struct MainView: View {
             .buttonStyle(.bordered)
             .sheet(isPresented: $model.showingQrCode) {
               QrCodeView()
+                .aspectRatio(1.0, contentMode: .fit)
             }
 
-            Button(action: {}) {
+            Button(action: {model.showingQrScanner = true}) {
               Label("Receive", systemImage: "qrcode.viewfinder")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .buttonStyle(.bordered)
+            .sheet(isPresented: $model.showingQrScanner) {
+              CodeScannerView(codeTypes: [.qr]) { result in
+                model.showingQrScanner = false
+                switch result {
+                case .success(let result):
+                  print("I: QR code scanned: \(result.string)")
+                  if let packet = model.onQrCodeReceived(string: result.string) {
+                    showingQrAck = (true, "You have received a packet from \(packet.sender!)")
+                  }
+                case .failure(let error):
+                  print("E: Failed to scan QR code: \(error.localizedDescription)")
+                }
+              }
+            }
+            .alert(showingQrAck.1 ?? "", isPresented: $showingQrAck.0) {
+              Button("OK") {
+                Task {
+                  showingQrAck = (false, nil)
+                }
+              }
+            }
           }
         } header: {
           Text("Local endpoint")

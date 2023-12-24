@@ -37,6 +37,7 @@ import PhotosUI
       photosPicked = []
     }
   }
+  var showingQrScanner = false
 
   var isAdvertising = false {
     didSet {
@@ -131,6 +132,21 @@ import PhotosUI
     // Add the packet to outbox
     Main.shared.outgoingPackets.append(packet)
     return nil
+  }
+
+  public func onQrCodeReceived(string: String) -> Packet<IncomingFile>? {
+    guard let packet = try? JSONDecoder().decode(
+      Packet<IncomingFile>.self, from: string.data(using: .utf8)!) else {
+      print("E: failed to decode packet from QR code")
+      return nil
+    }
+    if packet.sender == nil {
+      return nil
+    }
+    packet.state = .received
+    incomingPackets.append(packet)
+    Utils.observePacket(packet)
+    return packet
   }
 
   public func endpoint(id: String) -> Endpoint? {

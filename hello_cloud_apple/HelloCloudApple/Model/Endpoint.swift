@@ -90,21 +90,8 @@ import PhotosUI
   func onPacketReceived(packet: Packet<IncomingFile>) -> Void {
     packet.sender = self.name
     packet.state = .received
-
     Main.shared.incomingPackets.append(packet)
-
-    CloudDatabase.shared.observePacket(id: packet.id) { [weak packet] newPacket in
-      guard let packet else {
-        return
-      }
-      packet.update(from: newPacket)
-      DispatchQueue.main.async {
-        packet.highlighted = true
-      }
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-        packet.highlighted = false
-      }
-    }
+    Utils.observePacket(packet)
   }
 
   /**
