@@ -176,7 +176,7 @@ struct MainView: View {
                         .opacity(endpoint.loadingPhotos ? 1 : 0)
                     }
                   }
-                  .disabled(endpoint.loadingPhotos)
+                  .disabled(endpoint.loadingPhotos || endpoint.state != .connected)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
                   .alert("Do you want to send the claim token to the remote endpoint?",
