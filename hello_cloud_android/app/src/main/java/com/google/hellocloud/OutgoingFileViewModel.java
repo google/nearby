@@ -34,8 +34,8 @@ public final class OutgoingFileViewModel extends BaseObservable {
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
     notifyPropertyChanged(BR.canPick);
-    notifyPropertyChanged(BR.canUpload);
-    notifyPropertyChanged(BR.canSend);
+//    notifyPropertyChanged(BR.canUpload);
+//    notifyPropertyChanged(BR.canSend);
     return this;
   }
 

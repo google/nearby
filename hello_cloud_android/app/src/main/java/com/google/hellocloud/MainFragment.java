@@ -50,15 +50,16 @@ public class MainFragment extends Fragment {
       final EndpointViewModel viewModel = getItem(position);
       binding.setEndpointViewModel(viewModel);
 
-      view.setOnClickListener(v -> {
-        NavHostFragment navHostFragment =
-                (NavHostFragment) ((FragmentActivity) this.context).getSupportFragmentManager().
-                        findFragmentById(R.id.fragmentContainerView);
-        NavController navController = navHostFragment.getNavController();
-        Bundle bundle = new Bundle();
-        bundle.putString("id", viewModel.id);
-        navController.navigate(R.id.action_homeFragment_to_endpointFragment, bundle);
-      });
+      //      view.setOnClickListener(v -> {
+      //        NavHostFragment navHostFragment =
+      //                (NavHostFragment) ((FragmentActivity)
+      // this.context).getSupportFragmentManager().
+      //                        findFragmentById(R.id.fragmentContainerView);
+      //        NavController navController = navHostFragment.getNavController();
+      //        Bundle bundle = new Bundle();
+      //        bundle.putString("id", viewModel.id);
+      //        navController.navigate(R.id.action_homeFragment_to_endpointFragment, bundle);
+      //      });
       return view;
     }
   }

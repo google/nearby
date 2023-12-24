@@ -2,46 +2,4 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
-
-    <fragment
-        android:id="@+id/homeFragment"
-        android:name="com.google.hellocloud.MainFragment"
-        android:label="fragment_home"
-        tools:layout="@layout/fragment_main" >
-        <action
-            android:id="@+id/action_homeFragment_to_endpointFragment"
-            app:destination="@id/endpointFragment" />
-    </fragment>
-    <fragment
-        android:id="@+id/endpointFragment"
-        android:name="com.google.hellocloud.EndpointFragment"
-        android:label="fragment_endpoint"
-        tools:layout="@layout/fragment_endpoint" >
-        <action
-            android:id="@+id/action_endpointFragment_to_outgoingFilesFragment"
-            app:destination="@id/outgoingFilesFragment" />
-        <action
-            android:id="@+id/action_endpointFragment_to_incomingFilesFragment"
-            app:destination="@id/incomingFilesFragment" />
-        <action
-            android:id="@+id/action_endpointFragment_to_transfersFragment"
-            app:destination="@id/transfersFragment" />
-    </fragment>
-    <fragment
-        android:id="@+id/outgoingFilesFragment"
-        android:name="com.google.hellocloud.OutgoingFilesFragment"
-        android:label="fragment_outgoing_files"
-        tools:layout="@layout/fragment_outgoing_files" />
-    <fragment
-        android:id="@+id/incomingFilesFragment"
-        android:name="com.google.hellocloud.IncomingFilesFragment"
-        android:label="fragment_incoming_files"
-        tools:layout="@layout/fragment_incoming_files" />
-    <fragment
-        android:id="@+id/transfersFragment"
-        android:name="com.google.hellocloud.TransfersFragment"
-        android:label="fragment_transfers"
-        tools:layout="@layout/fragment_transfers" />
-</navigation>
+    android:id="@+id/nav_graph" />

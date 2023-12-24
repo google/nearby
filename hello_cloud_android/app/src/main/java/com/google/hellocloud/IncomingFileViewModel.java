@@ -32,7 +32,7 @@ public final class IncomingFileViewModel extends BaseObservable {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
-    notifyPropertyChanged(BR.canDownload);
+//    notifyPropertyChanged(BR.canDownload);
     return this;
   }
 
