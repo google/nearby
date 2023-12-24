@@ -8,7 +8,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.gson.Gson;
 
-public final class IncomingFileViewModel extends BaseObservable {
+public final class IncomingFile extends BaseObservable {
   enum State {
     RECEIVED,
     DOWNLOADING,
@@ -28,7 +28,7 @@ public final class IncomingFileViewModel extends BaseObservable {
     return state;
   }
 
-  public IncomingFileViewModel setState(State value) {
+  public IncomingFile setState(State value) {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
@@ -36,7 +36,7 @@ public final class IncomingFileViewModel extends BaseObservable {
     return this;
   }
 
-  public IncomingFileViewModel setLocalUri(Uri uri) {
+  public IncomingFile setLocalUri(Uri uri) {
     this.localUri = uri;
     return this;
   }
@@ -60,10 +60,10 @@ public final class IncomingFileViewModel extends BaseObservable {
         return null;
       }
     }
-    return MainViewModel.shared.context.getResources().getDrawable(resource, null);
+    return Main.shared.context.getResources().getDrawable(resource, null);
   }
 
-  public IncomingFileViewModel(String mimeType, String fileName, String remotePath, int fileSize) {
+  public IncomingFile(String mimeType, String fileName, String remotePath, int fileSize) {
     this.mimeType = mimeType;
     this.fileName = fileName;
     this.fileSize = fileSize;
@@ -83,8 +83,8 @@ public final class IncomingFileViewModel extends BaseObservable {
         .addOnFailureListener(error -> setState(State.RECEIVED));
   }
 
-  public static IncomingFileViewModel[] decodeIncomingFiles(String json) {
+  public static IncomingFile[] decodeIncomingFiles(String json) {
     Gson gson = new Gson();
-    return gson.fromJson(json, IncomingFileViewModel[].class);
+    return gson.fromJson(json, IncomingFile[].class);
   }
 }

@@ -27,7 +27,7 @@ public class CloudStorage {
         .continueWith(
             result -> {
               if (result.isSuccessful()) {
-                ContentResolver resolver = MainViewModel.shared.context.getContentResolver();
+                ContentResolver resolver = Main.shared.context.getContentResolver();
                 OutputStream stream = resolver.openOutputStream(localUri);
                 assert stream != null;
                 stream.write(result.getResult());

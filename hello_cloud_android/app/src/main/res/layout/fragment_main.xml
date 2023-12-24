@@ -6,8 +6,8 @@
     <data>
 
         <variable
-            name="mainViewModel"
-            type="com.google.hellocloud.MainViewModel" />
+            name="model"
+            type="com.google.hellocloud.Main" />
     </data>
 
     <LinearLayout
@@ -45,7 +45,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="3"
                     android:layout_height="45dp"
-                    android:text="@={mainViewModel.localEndpointId}" />
+                    android:text="@={model.localEndpointId}" />
             </LinearLayout>
 
             <!-- Endpoint Name -->
@@ -73,7 +73,7 @@
                     android:autofillHints="The name visible to devices discovering"
                     android:imeOptions="actionDone"
                     android:inputType="text"
-                    android:text="@={mainViewModel.localEndpointName}" />
+                    android:text="@={model.localEndpointName}" />
             </LinearLayout>
 
             <!-- Advertising -->
@@ -96,7 +96,7 @@
                     android:id="@id/advertisingSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="@={mainViewModel.isAdvertising}" />
+                    android:checked="@={model.isAdvertising}" />
             </LinearLayout>
 
             <!-- Discovering -->
@@ -118,7 +118,7 @@
                     android:id="@id/discoveringSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="@={mainViewModel.isDiscovering}" />
+                    android:checked="@={model.isDiscovering}" />
             </LinearLayout>
         </LinearLayout>
 
@@ -128,7 +128,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:scrollbars="vertical"
-            app:entries="@{mainViewModel.endpoints}" />
+            app:entries="@{model.endpoints}" />
 
     </LinearLayout>
 </layout>

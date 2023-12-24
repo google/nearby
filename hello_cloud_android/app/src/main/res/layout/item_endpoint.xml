@@ -4,8 +4,8 @@
     <data>
 
         <variable
-            name="endpointViewModel"
-            type="com.google.hellocloud.EndpointViewModel" />
+            name="model"
+            type="com.google.hellocloud.Endpoint" />
     </data>
 
     <LinearLayout
@@ -22,13 +22,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:visibility="@{endpointViewModel.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+                android:visibility="@{model.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
 
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:src="@{endpointViewModel.stateIcon}" />
+                android:src="@{model.stateIcon}" />
         </FrameLayout>
 
         <TextView
@@ -41,7 +41,7 @@
             android:gravity="start"
             android:maxLines="1"
             android:paddingHorizontal="10dp"
-            android:text="@{endpointViewModel.toString}" />
+            android:text="@{model.toString}" />
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
@@ -51,14 +51,14 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:enabled="@{endpointViewModel.state == com.google.hellocloud.EndpointViewModel.State.DISCOVERED}"
+                android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED}"
                 android:src="@drawable/connect" />
             <ImageButton
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:enabled="@{endpointViewModel.state == com.google.hellocloud.EndpointViewModel.State.CONNECTED}"
+                android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
                 android:src="@drawable/disconnect" />
             <!-- TODO: enabled -->
             <ImageButton

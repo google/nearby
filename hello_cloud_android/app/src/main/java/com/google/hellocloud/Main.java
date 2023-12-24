@@ -25,14 +25,13 @@ import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class MainViewModel extends BaseObservable {
-  public static MainViewModel shared = createDebugModel();
+public final class Main extends BaseObservable {
+  public static Main shared = createDebugModel();
 
   public Context context;
 
@@ -42,7 +41,7 @@ public final class MainViewModel extends BaseObservable {
 
   private String localEndpointId = "N/A on Android";
   private String localEndpointName = getDefaultDeviceName();
-  private final ArrayList<EndpointViewModel> endpoints = new ArrayList<>();
+  private final ArrayList<Endpoint> endpoints = new ArrayList<>();
 
   private boolean isDiscovering;
   private boolean isAdvertising;
@@ -101,16 +100,16 @@ public final class MainViewModel extends BaseObservable {
   }
 
   @Bindable
-  public List<EndpointViewModel> getEndpoints() {
+  public List<Endpoint> getEndpoints() {
     return endpoints;
   }
 
-  public void addEndpoint(EndpointViewModel endpoint) {
+  public void addEndpoint(Endpoint endpoint) {
     endpoints.add(endpoint);
     notifyPropertyChanged(BR.endpoints);
   }
 
-  public Optional<EndpointViewModel> getEndpoint(String endpointId) {
+  public Optional<Endpoint> getEndpoint(String endpointId) {
     return endpoints.stream().filter(e -> Objects.equals(e.id, endpointId)).findFirst();
   }
 
@@ -158,11 +157,11 @@ public final class MainViewModel extends BaseObservable {
 
   void stopDiscovering() {
     Nearby.getConnectionsClient(shared.context).stopDiscovery();
-    endpoints.removeIf(p -> p.getState() != EndpointViewModel.State.DISCOVERED);
+    endpoints.removeIf(p -> p.getState() != Endpoint.State.DISCOVERED);
   }
 
   void requestConnection(String endpointId) {
-    Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+    Optional<Endpoint> endpoint = getEndpoint(endpointId);
     endpoint.ifPresentOrElse(
         p -> {
           byte[] info = StandardCharsets.UTF_8.encode(localEndpointName).array();
@@ -178,7 +177,7 @@ public final class MainViewModel extends BaseObservable {
                         context,
                         R.string.error_toast_cannot_send_connection_request,
                         e.getLocalizedMessage());
-                    p.setState(EndpointViewModel.State.DISCOVERED);
+                    p.setState(Endpoint.State.DISCOVERED);
                   });
         },
         () -> logErrorAndToast(context, R.string.error_toast_endpoint_lost, endpointId));
@@ -188,57 +187,57 @@ public final class MainViewModel extends BaseObservable {
     Nearby.getConnectionsClient(shared.context).disconnectFromEndpoint(endpointId);
   }
 
-  public static MainViewModel createDebugModel() {
-    MainViewModel result = new MainViewModel();
+  public static Main createDebugModel() {
+    Main result = new Main();
 
-    result.addEndpoint(new EndpointViewModel("R2D2", "Debug droid"));
+    result.addEndpoint(new Endpoint("R2D2", "Debug droid"));
 
-    EndpointViewModel endpoint2 = new EndpointViewModel("C3PO", "Fuzzy droid");
+    Endpoint endpoint2 = new Endpoint("C3PO", "Fuzzy droid");
 //    endpoint2
 //        .getOutgoingFiles()
 //        .add(
-//            new OutgoingFileViewModel("image/jpeg", "IMG_0001.jpeg", "1234", 100000)
-//                .setState(OutgoingFileViewModel.State.PICKED));
+//            new OutgoingFile("image/jpeg", "IMG_0001.jpeg", "1234", 100000)
+//                .setState(OutgoingFile.State.PICKED));
 //    endpoint2
 //        .getOutgoingFiles()
 //        .add(
-//            new OutgoingFileViewModel("image/jpeg", "IMG_0002.jpeg", "5678", 100000)
-//                .setState(OutgoingFileViewModel.State.UPLOADING));
+//            new OutgoingFile("image/jpeg", "IMG_0002.jpeg", "5678", 100000)
+//                .setState(OutgoingFile.State.UPLOADING));
 //    endpoint2
 //        .getOutgoingFiles()
 //        .add(
-//            new OutgoingFileViewModel("image/jpeg", "IMG_0003.jpeg", "5678", 100000)
-//                .setState(OutgoingFileViewModel.State.UPLOADED));
+//            new OutgoingFile("image/jpeg", "IMG_0003.jpeg", "5678", 100000)
+//                .setState(OutgoingFile.State.UPLOADED));
 //    endpoint2
 //        .getOutgoingFiles()
 //        .add(
-//            new OutgoingFileViewModel("image/jpeg", "IMG_0004.jpeg", "5678", 100000)
-//                .setState(OutgoingFileViewModel.State.UPLOADED));
+//            new OutgoingFile("image/jpeg", "IMG_0004.jpeg", "5678", 100000)
+//                .setState(OutgoingFile.State.UPLOADED));
 //    endpoint2
 //        .getOutgoingFiles()
 //        .add(
-//            new OutgoingFileViewModel("image/jpeg", "IMG_0005.jpeg", "5678", 100000)
-//                .setState(OutgoingFileViewModel.State.UPLOADED));
+//            new OutgoingFile("image/jpeg", "IMG_0005.jpeg", "5678", 100000)
+//                .setState(OutgoingFile.State.UPLOADED));
 
 //    endpoint2
 //        .getIncomingFiles()
 //        .add(
-//            new IncomingFileViewModel(
+//            new IncomingFile(
 //                    "image/png",
 //                    "4ABFE3D4-C4EE-435C-86BD-318299E5AE8D.jpeg",
 //                    "4ABFE3D4-C4EE-435C-86BD-318299E5AE8D.jpeg",
 //                    100000)
-//                .setState(IncomingFileViewModel.State.RECEIVED));
+//                .setState(IncomingFile.State.RECEIVED));
 //    endpoint2
 //        .getIncomingFiles()
 //        .add(
-//            new IncomingFileViewModel("image/jpeg", "IMG_1002.jpeg", "1234", 100000)
-//                .setState(IncomingFileViewModel.State.DOWNLOADING));
+//            new IncomingFile("image/jpeg", "IMG_1002.jpeg", "1234", 100000)
+//                .setState(IncomingFile.State.DOWNLOADING));
 //    endpoint2
 //        .getIncomingFiles()
 //        .add(
-//            new IncomingFileViewModel("image/jpeg", "IMG_1003.jpeg", "1234", 100000)
-//                .setState(IncomingFileViewModel.State.DOWNLOADED));
+//            new IncomingFile("image/jpeg", "IMG_1003.jpeg", "1234", 100000)
+//                .setState(IncomingFile.State.DOWNLOADED));
 //
 //    endpoint2
 //        .getTransfers()
@@ -256,17 +255,17 @@ public final class MainViewModel extends BaseObservable {
 //    endpoint2
 //        .getTransfers()
 //        .add(TransferViewModel.send("1234", TransferViewModel.Result.FAILURE, "R2D2"));
-//    endpoint2.setState(EndpointViewModel.State.CONNECTED);
+//    endpoint2.setState(Endpoint.State.CONNECTED);
 //    result.addEndpoint(endpoint2);
 
     return result;
   }
 
   class MyConnectionLifecycleCallback extends ConnectionLifecycleCallback {
-    private void removeOrChangeState(EndpointViewModel endpoint) {
+    private void removeOrChangeState(Endpoint endpoint) {
       // If the endpoint wasn't discovered by us in the first place, remove it.
       // Otherwise, keep it but change its state to Discovered.
-      endpoint.setState(EndpointViewModel.State.DISCOVERED);
+      endpoint.setState(Endpoint.State.DISCOVERED);
       if (endpoint.isIncoming || !isDiscovering) {
         endpoints.remove(endpoint);
         // TODO: tell the activity to navigate back to main fragment.
@@ -282,15 +281,15 @@ public final class MainViewModel extends BaseObservable {
               "onConnectionInitiated, endpointId: %s, endpointName: %s.",
               endpointId, endpointName));
 
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
 
       // Add the endpoint to the endpoint list if necessary.
       endpoint.ifPresentOrElse(
-          p -> p.setState(EndpointViewModel.State.PENDING),
+          p -> p.setState(Endpoint.State.PENDING),
           () -> {
-            EndpointViewModel newEndpoint = new EndpointViewModel(endpointId, endpointName, true);
+            Endpoint newEndpoint = new Endpoint(endpointId, endpointName, true);
             addEndpoint(newEndpoint);
-            newEndpoint.setState(EndpointViewModel.State.PENDING);
+            newEndpoint.setState(Endpoint.State.PENDING);
           });
 
       // Accept automatically.
@@ -311,9 +310,9 @@ public final class MainViewModel extends BaseObservable {
           String.format(
               "onConnectionResult, endpointId: %s, result: %s", endpointId, result.getStatus()));
 
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
       if (result.getStatus().isSuccess()) {
-        endpoint.ifPresent(value -> value.setState(EndpointViewModel.State.CONNECTED));
+        endpoint.ifPresent(value -> value.setState(Endpoint.State.CONNECTED));
       } else {
         logErrorAndToast(
             shared.context,
@@ -326,7 +325,7 @@ public final class MainViewModel extends BaseObservable {
     @Override
     public void onDisconnected(@NonNull String endpointId) {
       Log.v(TAG, String.format("onDisconnected, endpointId: %s.", endpointId));
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
       endpoint.ifPresent(this::removeOrChangeState);
     }
 
@@ -357,11 +356,11 @@ public final class MainViewModel extends BaseObservable {
       Log.v(TAG, String.format("onEndpointFound, endpointId: %s", endpointId));
 
       String endpointName = new String(info.getEndpointInfo(), StandardCharsets.UTF_8);
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
       if (endpoint.isPresent()) {
         endpoint.get().isIncoming = false;
       } else {
-        EndpointViewModel newEndpoint = new EndpointViewModel(endpointId, endpointName);
+        Endpoint newEndpoint = new Endpoint(endpointId, endpointName);
         addEndpoint(newEndpoint);
       }
     }
@@ -370,7 +369,7 @@ public final class MainViewModel extends BaseObservable {
     public void onEndpointLost(@NonNull String endpointId) {
       Log.v(TAG, String.format("onEndpointLost, endpointId: %s", endpointId));
 
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
       endpoint.ifPresent(endpoints::remove);
     }
   }
@@ -380,10 +379,10 @@ public final class MainViewModel extends BaseObservable {
     public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
       Log.v(TAG, String.format("onPayloadReceived, endpointId: %s", endpointId));
 
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
       endpoint.ifPresent(
           p -> {
-            if (p.getState() != EndpointViewModel.State.SENDING) {
+            if (p.getState() != Endpoint.State.SENDING) {
               p.onFilesReceived(new String(payload.asBytes(), StandardCharsets.UTF_8));
             }
           });
@@ -394,7 +393,7 @@ public final class MainViewModel extends BaseObservable {
         @NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
       Log.v(TAG, String.format("onPayloadTransferUpdate, endpointId: %s", endpointId));
 
-      Optional<EndpointViewModel> endpoint = getEndpoint(endpointId);
+      Optional<Endpoint> endpoint = getEndpoint(endpointId);
       endpoint.ifPresent(p -> p.onFilesSendUpdate(update.getStatus()));
     }
   }

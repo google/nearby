@@ -1,24 +1,12 @@
 package com.google.hellocloud;
 
-import static com.google.hellocloud.Util.TAG;
-import static com.google.hellocloud.Util.logErrorAndToast;
-
 import android.graphics.drawable.Drawable;
-import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
-import com.google.android.gms.nearby.Nearby;
-import com.google.android.gms.nearby.connection.Payload;
-import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
-public final class EndpointViewModel extends BaseObservable {
+public final class Endpoint extends BaseObservable {
   public enum State {
     DISCOVERED,
     PENDING,
@@ -47,18 +35,18 @@ public final class EndpointViewModel extends BaseObservable {
 
   public final String name;
   public final String id;
-//  private final List<IncomingFileViewModel> incomingFiles = new ArrayList<>();
-//  private final List<OutgoingFileViewModel> outgoingFiles = new ArrayList<>();
+//  private final List<IncomingFile> incomingFiles = new ArrayList<>();
+//  private final List<OutgoingFile> outgoingFiles = new ArrayList<>();
   public boolean isIncoming;
 
   private State state = State.DISCOVERED;
 
-  public EndpointViewModel(String id, String name) {
+  public Endpoint(String id, String name) {
     this.id = id;
     this.name = name;
   }
 
-  public EndpointViewModel(String id, String name, boolean isIncoming) {
+  public Endpoint(String id, String name, boolean isIncoming) {
     this.id = id;
     this.name = name;
     this.isIncoming = isIncoming;
@@ -102,16 +90,16 @@ public final class EndpointViewModel extends BaseObservable {
         return null;
       }
     }
-    return MainViewModel.shared.context.getResources().getDrawable(resource, null);
+    return Main.shared.context.getResources().getDrawable(resource, null);
   }
 
 //  @Bindable
-//  public List<OutgoingFileViewModel> getOutgoingFiles() {
+//  public List<OutgoingFile> getOutgoingFiles() {
 //    return outgoingFiles;
 //  }
 //
 //  @Bindable
-//  public List<IncomingFileViewModel> getIncomingFiles() {
+//  public List<IncomingFile> getIncomingFiles() {
 //    return incomingFiles;
 //  }
 //
@@ -119,11 +107,11 @@ public final class EndpointViewModel extends BaseObservable {
   public boolean getCanPick() {
     return state == State.CONNECTED;
 //    return state == State.CONNECTED
-//        && outgoingFiles.stream().noneMatch(OutgoingFileViewModel::getIsBusy);
+//        && outgoingFiles.stream().noneMatch(OutgoingFile::getIsBusy);
   }
 
 
-//  public void onMediaPicked(List<OutgoingFileViewModel> files) {
+//  public void onMediaPicked(List<OutgoingFile> files) {
 //    // The UI triggers a media picker and up completion, calls us.
 //    outgoingFiles.clear();
 //    outgoingFiles.addAll(files);
@@ -134,8 +122,8 @@ public final class EndpointViewModel extends BaseObservable {
 //  }
 
 //  void uploadFiles() {
-//    for (OutgoingFileViewModel file : outgoingFiles) {
-//      if (file.getState() == OutgoingFileViewModel.State.PICKED) {
+//    for (OutgoingFile file : outgoingFiles) {
+//      if (file.getState() == OutgoingFile.State.PICKED) {
 //        Instant beginTime = Instant.now();
 //        file.upload()
 //            .addOnSuccessListener(
@@ -155,7 +143,7 @@ public final class EndpointViewModel extends BaseObservable {
 //            .addOnFailureListener(
 //                error -> {
 //                  logErrorAndToast(
-//                      MainViewModel.shared.context,
+//                      Main.shared.context,
 //                      R.string.error_toast_cannot_upload,
 //                      error.getMessage());
 //
@@ -176,21 +164,21 @@ public final class EndpointViewModel extends BaseObservable {
 //  }
 
 //  void sendFiles() {
-//    if (getState() != EndpointViewModel.State.CONNECTED) {
+//    if (getState() != Endpoint.State.CONNECTED) {
 //      return;
 //    }
-//    String json = OutgoingFileViewModel.encodeOutgoingFiles(outgoingFiles);
-//    setState(EndpointViewModel.State.SENDING);
+//    String json = OutgoingFile.encodeOutgoingFiles(outgoingFiles);
+//    setState(Endpoint.State.SENDING);
 //
 //    Payload payload = Payload.fromBytes(json.getBytes(StandardCharsets.UTF_8));
-//    Nearby.getConnectionsClient(MainViewModel.shared.context)
+//    Nearby.getConnectionsClient(Main.shared.context)
 //        .sendPayload(id, payload)
 //        .addOnFailureListener(
 //            e -> {
 //              logErrorAndToast(
-//                  MainViewModel.shared.context, R.string.error_toast_cannot_send_payload, e);
-//              setState(EndpointViewModel.State.CONNECTED);
-//              for (OutgoingFileViewModel file : outgoingFiles) {
+//                  Main.shared.context, R.string.error_toast_cannot_send_payload, e);
+//              setState(Endpoint.State.CONNECTED);
+//              for (OutgoingFile file : outgoingFiles) {
 //                TransferViewModel transfer =
 //                    TransferViewModel.send(
 //                        file.remotePath, TransferViewModel.Result.FAILURE, this.toString());
@@ -205,14 +193,14 @@ public final class EndpointViewModel extends BaseObservable {
 //    }
 //
 //    if (status == PayloadTransferUpdate.Status.SUCCESS) {
-//      for (OutgoingFileViewModel file : outgoingFiles) {
+//      for (OutgoingFile file : outgoingFiles) {
 //        TransferViewModel transfer =
 //            TransferViewModel.send(
 //                file.remotePath, TransferViewModel.Result.SUCCESS, this.toString());
 //        addTransfer(transfer);
 //      }
-//      boolean isSending = getState() == EndpointViewModel.State.SENDING;
-//      setState(EndpointViewModel.State.CONNECTED);
+//      boolean isSending = getState() == Endpoint.State.SENDING;
+//      setState(Endpoint.State.CONNECTED);
 //      if (isSending) {
 //        outgoingFiles.clear();
 //        notifyPropertyChanged(BR.outgoingFiles);
@@ -221,25 +209,25 @@ public final class EndpointViewModel extends BaseObservable {
 //        notifyPropertyChanged(BR.canSend);
 //      }
 //    } else {
-//      for (OutgoingFileViewModel file : outgoingFiles) {
+//      for (OutgoingFile file : outgoingFiles) {
 //        TransferViewModel transfer =
 //            TransferViewModel.send(
 //                file.remotePath, TransferViewModel.Result.FAILURE, this.toString());
 //        addTransfer(transfer);
 //      }
-//      setState(EndpointViewModel.State.CONNECTED);
+//      setState(Endpoint.State.CONNECTED);
 //    }
   }
 
   public void onFilesReceived(String json) {
 //    setState(State.RECEIVING);
-//    IncomingFileViewModel[] files = IncomingFileViewModel.decodeIncomingFiles(json);
-//    for (IncomingFileViewModel file : files) {
+//    IncomingFile[] files = IncomingFile.decodeIncomingFiles(json);
+//    for (IncomingFile file : files) {
 //      TransferViewModel transfer =
 //          TransferViewModel.receive(
 //              file.remotePath, TransferViewModel.Result.SUCCESS, this.toString());
 //      addTransfer(transfer);
-//      file.setState(IncomingFileViewModel.State.RECEIVED);
+//      file.setState(IncomingFile.State.RECEIVED);
 //    }
 //    // We intentionally do not clean incoming files, since some may not have been downloaded yet
 //    incomingFiles.addAll(Arrays.asList(files));
@@ -248,8 +236,8 @@ public final class EndpointViewModel extends BaseObservable {
 //  }
 //
 //  public void downloadFiles() {
-//    for (IncomingFileViewModel file : incomingFiles) {
-//      if (file.getState() == IncomingFileViewModel.State.RECEIVED) {
+//    for (IncomingFile file : incomingFiles) {
+//      if (file.getState() == IncomingFile.State.RECEIVED) {
 //        Instant beginTime = Instant.now();
 //        file.download()
 //            .addOnSuccessListener(
@@ -267,7 +255,7 @@ public final class EndpointViewModel extends BaseObservable {
 //            .addOnFailureListener(
 //                error -> {
 //                  logErrorAndToast(
-//                      MainViewModel.shared.context,
+//                      Main.shared.context,
 //                      R.string.error_toast_cannot_download,
 //                      error.getMessage());
 //

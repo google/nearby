@@ -4,8 +4,8 @@
     <data>
 
         <variable
-            name="outgoingFileViewModel"
-            type="com.google.hellocloud.OutgoingFileViewModel" />
+            name="model"
+            type="com.google.hellocloud.OutgoingFile" />
     </data>
 
     <LinearLayout
@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="10dp"
             android:layout_weight="1"
-            android:text="@{outgoingFileViewModel.fileName}" />
+            android:text="@{model.fileName}" />
 
         <FrameLayout
             android:layout_width="wrap_content"
@@ -35,13 +35,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:visibility="@{outgoingFileViewModel.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+                android:visibility="@{model.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
 
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:src="@{outgoingFileViewModel.stateIcon}" />
+                android:src="@{model.stateIcon}" />
         </FrameLayout>
     </LinearLayout>
 </layout>

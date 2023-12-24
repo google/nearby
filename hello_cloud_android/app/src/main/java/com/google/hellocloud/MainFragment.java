@@ -12,9 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
@@ -25,10 +22,10 @@ import java.util.List;
  * Fragment for the home screen
  */
 public class MainFragment extends Fragment {
-  static class EndpointAdapter extends ArrayAdapter<EndpointViewModel> {
+  static class EndpointAdapter extends ArrayAdapter<Endpoint> {
     private final Context context;
 
-    public EndpointAdapter(Context context, List<EndpointViewModel> endpoints) {
+    public EndpointAdapter(Context context, List<Endpoint> endpoints) {
       super(context, R.layout.item_endpoint, endpoints);
       this.context = context;
     }
@@ -47,8 +44,8 @@ public class MainFragment extends Fragment {
         binding = DataBindingUtil.getBinding(convertView);
         view = convertView;
       }
-      final EndpointViewModel viewModel = getItem(position);
-      binding.setEndpointViewModel(viewModel);
+      final Endpoint viewModel = getItem(position);
+      binding.setModel(viewModel);
 
       //      view.setOnClickListener(v -> {
       //        NavHostFragment navHostFragment =
@@ -64,21 +61,23 @@ public class MainFragment extends Fragment {
     }
   }
 
+  private Main model = Main.shared;
+
   @Override
   public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
     // TODO: fill id and name here
     FragmentMainBinding binding = DataBindingUtil.inflate(inflater, R.layout.fragment_main, container, false);
-    MainViewModel.shared.context = getActivity().getApplicationContext();
-    binding.setMainViewModel(MainViewModel.shared);
+    Main.shared.context = getActivity().getApplicationContext();
+    binding.setModel(model);
     getActivity().setTitle(R.string.app_name);
     return binding.getRoot();
   }
 
   @BindingAdapter("entries")
-  public static void setEntries(View view, List<EndpointViewModel> endpoints) {
+  public static void setEntries(View view, List<Endpoint> endpoints) {
     Context context = view.getContext();
-    ArrayAdapter<EndpointViewModel> endpointAdapter = new EndpointAdapter(context, endpoints);
+    ArrayAdapter<Endpoint> endpointAdapter = new EndpointAdapter(context, endpoints);
     ((ListView) view).setAdapter(endpointAdapter);
   }
 }

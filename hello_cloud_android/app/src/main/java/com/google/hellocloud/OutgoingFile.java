@@ -9,7 +9,7 @@ import com.google.gson.Gson;
 import java.util.List;
 import java.util.UUID;
 
-public final class OutgoingFileViewModel extends BaseObservable {
+public final class OutgoingFile extends BaseObservable {
   enum State {
     PICKED,
     UPLOADING,
@@ -29,7 +29,7 @@ public final class OutgoingFileViewModel extends BaseObservable {
     return state;
   }
 
-  public OutgoingFileViewModel setState(State value) {
+  public OutgoingFile setState(State value) {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
@@ -39,7 +39,7 @@ public final class OutgoingFileViewModel extends BaseObservable {
     return this;
   }
 
-  public OutgoingFileViewModel setLocalUri(Uri uri) {
+  public OutgoingFile setLocalUri(Uri uri) {
     localUri = uri;
     return this;
   }
@@ -63,17 +63,17 @@ public final class OutgoingFileViewModel extends BaseObservable {
         return null;
       }
     }
-    return MainViewModel.shared.context.getResources().getDrawable(resource, null);
+    return Main.shared.context.getResources().getDrawable(resource, null);
   }
 
-  public OutgoingFileViewModel(String mimeType, String fileName, String remotePath, int fileSize) {
+  public OutgoingFile(String mimeType, String fileName, String remotePath, int fileSize) {
     this.mimeType = mimeType;
     this.fileName = fileName;
     this.fileSize = fileSize;
     this.remotePath = remotePath;
   }
 
-  public static String encodeOutgoingFiles(List<OutgoingFileViewModel> files) {
+  public static String encodeOutgoingFiles(List<OutgoingFile> files) {
     return (new Gson()).toJson(files);
   }
 

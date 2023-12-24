@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class ListOnEndpointFragment extends Fragment {
-  protected EndpointViewModel endpointViewModel;
+  protected Endpoint model;
   protected final int resourceFragment;
 
   public ListOnEndpointFragment(int resourceFragment) {
@@ -65,10 +65,10 @@ public class ListOnEndpointFragment extends Fragment {
 
     assert getArguments() != null;
     String id = getArguments().getString("id");
-    Optional<EndpointViewModel> maybeEndpoint = MainViewModel.shared.getEndpoint(id);
+    Optional<Endpoint> maybeEndpoint = Main.shared.getEndpoint(id);
     if (maybeEndpoint.isPresent()) {
-      endpointViewModel = maybeEndpoint.get();
-      binding.setVariable(BR.endpointViewModel, endpointViewModel);
+      model = maybeEndpoint.get();
+      binding.setVariable(BR.model, model);
       assert getActivity() != null;
       getActivity().setTitle(maybeEndpoint.get().toString());
       return binding.getRoot();

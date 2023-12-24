@@ -51,11 +51,11 @@ public class MainActivity extends AppCompatActivity {
   }
 
   public void debugAddEndpoint(View view) {
-    MainViewModel.shared.addEndpoint(new EndpointViewModel("FOO", "BAR"));
+    Main.shared.addEndpoint(new Endpoint("FOO", "BAR"));
   }
 
   public void debugChangeEndpoint(View view) {
-    MainViewModel.shared.setLocalEndpointId("foo");
-    MainViewModel.shared.setLocalEndpointName("Blah");
+    Main.shared.setLocalEndpointId("foo");
+    Main.shared.setLocalEndpointName("Blah");
   }
 }
