@@ -153,7 +153,6 @@ import PhotosUI
     return endpoints.first(where: {$0.id == id})
   }
   
-  // TODO: move the following 3 functions to Endpoint.swift
   func requestConnection(to endpointId: String, _ completionHandler: ((Error?) -> Void)?) {
     discoverer?.requestConnection(
       to: endpointId,
