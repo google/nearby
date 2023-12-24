@@ -47,16 +47,16 @@ public class MainFragment extends Fragment {
       final Endpoint viewModel = getItem(position);
       binding.setModel(viewModel);
 
-      //      view.setOnClickListener(v -> {
-      //        NavHostFragment navHostFragment =
-      //                (NavHostFragment) ((FragmentActivity)
-      // this.context).getSupportFragmentManager().
-      //                        findFragmentById(R.id.fragmentContainerView);
-      //        NavController navController = navHostFragment.getNavController();
-      //        Bundle bundle = new Bundle();
-      //        bundle.putString("id", viewModel.id);
-      //        navController.navigate(R.id.action_homeFragment_to_endpointFragment, bundle);
-      //      });
+      binding.connect.setOnClickListener(v -> {
+        viewModel.setState(Endpoint.State.CONNECTING);
+        Main.shared.requestConnection(viewModel.id);
+      });
+
+      binding.disconnect.setOnClickListener(v -> {
+        viewModel.setState(Endpoint.State.DISCONNECTING);
+        Main.shared.disconnect(viewModel.id);
+      });
+
       return view;
     }
   }

@@ -14,58 +14,76 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <FrameLayout
+        <ImageView
             android:layout_width="wrap_content"
-            android:layout_height="match_parent">
-
-            <ProgressBar
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_gravity="center"
-                android:visibility="@{model.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
-
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_gravity="center"
-                android:src="@{model.stateIcon}" />
-        </FrameLayout>
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:src="@{model.stateIcon}" />
 
         <TextView
             android:id="@+id/endpointId"
             style="@style/SubheaderTextStyle"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
             android:layout_gravity="center"
+            android:layout_weight="1"
             android:gravity="start"
             android:maxLines="1"
             android:paddingHorizontal="10dp"
             android:text="@{model.toString}" />
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:orientation="horizontal">
-            <ImageButton
+
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED}"
-                android:src="@drawable/connect" />
-            <ImageButton
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTING ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+                <ImageButton
+                    android:id="@+id/connect"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED}"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
+                    android:src="@drawable/connect" />
+            </FrameLayout>
+
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
-                android:src="@drawable/disconnect" />
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.DISCONNECTING ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+                <ImageButton
+                    android:id="@+id/disconnect"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.DISCONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
+                    android:src="@drawable/disconnect" />
+            </FrameLayout>
             <!-- TODO: enabled -->
             <ImageButton
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:layout_weight="1"
                 android:src="@drawable/photo" />
         </LinearLayout>
     </LinearLayout>

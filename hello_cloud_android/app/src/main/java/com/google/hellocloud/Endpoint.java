@@ -9,8 +9,9 @@ import androidx.databinding.Bindable;
 public final class Endpoint extends BaseObservable {
   public enum State {
     DISCOVERED,
-    PENDING,
+    CONNECTING,
     CONNECTED,
+    DISCONNECTING,
     SENDING,
     RECEIVING;
 
@@ -20,8 +21,10 @@ public final class Endpoint extends BaseObservable {
       switch (this) {
         case DISCOVERED:
           return "Discovered";
-        case PENDING:
-          return "Pending";
+        case DISCONNECTING:
+          return "Disconnecting";
+        case CONNECTING:
+          return "Connecting";
         case CONNECTED:
           return "Connected";
         case SENDING:
@@ -73,11 +76,6 @@ public final class Endpoint extends BaseObservable {
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
     notifyPropertyChanged(BR.canPick);
-  }
-
-  @Bindable
-  public boolean getIsBusy() {
-    return state == State.RECEIVING || state == State.SENDING || state == State.PENDING;
   }
 
   @Bindable

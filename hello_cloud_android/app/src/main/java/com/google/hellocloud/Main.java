@@ -285,11 +285,11 @@ public final class Main extends BaseObservable {
 
       // Add the endpoint to the endpoint list if necessary.
       endpoint.ifPresentOrElse(
-          p -> p.setState(Endpoint.State.PENDING),
+          p -> p.setState(Endpoint.State.CONNECTING),
           () -> {
             Endpoint newEndpoint = new Endpoint(endpointId, endpointName, true);
             addEndpoint(newEndpoint);
-            newEndpoint.setState(Endpoint.State.PENDING);
+            newEndpoint.setState(Endpoint.State.CONNECTING);
           });
 
       // Accept automatically.
