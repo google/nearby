@@ -7,5 +7,22 @@
     <fragment
         android:id="@+id/mainFragment"
         android:name="com.google.hellocloud.MainFragment"
-        android:label="MainFragment" />
+        android:label="MainFragment" >
+        <action
+            android:id="@+id/action_mainFragment_to_incomingPacketsFragment"
+            app:destination="@id/incomingPacketsFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_outgoingPacketsFragment"
+            app:destination="@id/outgoingPacketsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/incomingPacketsFragment"
+        android:name="com.google.hellocloud.IncomingPacketsFragment"
+        android:label="fragment_incoming_packets"
+        tools:layout="@layout/fragment_incoming_packets" />
+    <fragment
+        android:id="@+id/outgoingPacketsFragment"
+        android:name="com.google.hellocloud.OutgoingPacketsFragment"
+        android:label="fragment_outgoing_packets"
+        tools:layout="@layout/fragment_outgoing_packets" />
 </navigation>

@@ -24,7 +24,6 @@ import java.util.List;
 public class MainFragment extends Fragment {
   static class EndpointAdapter extends ArrayAdapter<Endpoint> {
     private final Context context;
-
     public EndpointAdapter(Context context, List<Endpoint> endpoints) {
       super(context, R.layout.item_endpoint, endpoints);
       this.context = context;
@@ -44,17 +43,17 @@ public class MainFragment extends Fragment {
         binding = DataBindingUtil.getBinding(convertView);
         view = convertView;
       }
-      final Endpoint viewModel = getItem(position);
-      binding.setModel(viewModel);
+      final Endpoint endpoint = getItem(position);
+      binding.setModel(endpoint);
 
       binding.connect.setOnClickListener(v -> {
-        viewModel.setState(Endpoint.State.CONNECTING);
-        Main.shared.requestConnection(viewModel.id);
+        endpoint.setState(Endpoint.State.CONNECTING);
+        Main.shared.requestConnection(endpoint.id);
       });
 
       binding.disconnect.setOnClickListener(v -> {
-        viewModel.setState(Endpoint.State.DISCONNECTING);
-        Main.shared.disconnect(viewModel.id);
+        endpoint.setState(Endpoint.State.DISCONNECTING);
+        Main.shared.disconnect(endpoint.id);
       });
 
       return view;

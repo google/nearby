@@ -55,7 +55,7 @@
                     android:layout_gravity="center"
                     android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED}"
                     android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
-                    android:src="@drawable/connect" />
+                    android:src="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED ? @drawable/connect : @drawable/connect_disabled}" />
             </FrameLayout>
 
             <FrameLayout
@@ -76,7 +76,7 @@
                     android:layout_gravity="center"
                     android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
                     android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.DISCONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
-                    android:src="@drawable/disconnect" />
+                    android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/disconnect : @drawable/disconnect_disabled}" />
             </FrameLayout>
             <!-- TODO: enabled -->
             <ImageButton
