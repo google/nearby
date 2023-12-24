@@ -80,7 +80,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               didReceive response: UNNotificationResponse) async {
     let userInfo = response.notification.request.content.userInfo
-    print(userInfo)
     let id = UUID(uuidString: userInfo["packetId"] as? String ?? "")
     if id != nil {
       Main.shared.showInboxAndHilight(packet: id!)

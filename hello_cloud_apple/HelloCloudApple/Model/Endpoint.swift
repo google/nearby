@@ -91,7 +91,7 @@ import PhotosUI
     packet.sender = self.name
     packet.state = .received
     Main.shared.incomingPackets.append(packet)
-    Utils.observePacket(packet)
+    Main.shared.observePacket(packet, fromQr: false)
   }
 
   /**

@@ -108,6 +108,37 @@ import PhotosUI
     }
   }
 
+  func observePacket(_ packet: Packet<IncomingFile>, fromQr: Bool) {
+    CloudDatabase.shared.observePacket(id: packet.id) { [weak packet, weak self, fromQr] newPacket in
+      guard let packet, let self else {
+        return
+      }
+      packet.update(from: newPacket)
+
+      DispatchQueue.main.async {
+        packet.highlighted = true
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        packet.highlighted = false
+      }
+
+      if fromQr {
+        self.showLocalNotification(for: packet)
+      }
+    }
+  }
+
+  func showLocalNotification(for packet: Packet<IncomingFile>) {
+    let content = UNMutableNotificationContent()
+    content.title = "You've got files!"
+    content.subtitle = "Your files from \(packet.sender!) are ready for downloading"
+    content.sound = UNNotificationSound.default
+    content.userInfo["packetId"] = packet.id.uuidString
+
+    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+    UNUserNotificationCenter.current().add(request)
+  }
+
   public func loadAndGenerateQr() async -> Error? {
     loadingPhotos = true
     defer {loadingPhotos = false}
@@ -145,14 +176,14 @@ import PhotosUI
     }
     packet.state = .received
     incomingPackets.append(packet)
-    Utils.observePacket(packet)
+    observePacket(packet, fromQr: true)
     return packet
   }
 
   public func endpoint(id: String) -> Endpoint? {
     return endpoints.first(where: {$0.id == id})
   }
-  
+
   func requestConnection(to endpointId: String, _ completionHandler: ((Error?) -> Void)?) {
     discoverer?.requestConnection(
       to: endpointId,
