@@ -9,17 +9,14 @@ import com.google.gson.Gson;
 import java.util.List;
 import java.util.UUID;
 
-public final class OutgoingFile extends BaseObservable {
+public final class OutgoingFile extends File {
   enum State {
-    PICKED,
+    LOADED,
     UPLOADING,
     UPLOADED
   }
 
-  public String mimeType;
-  public String fileName;
   public String remotePath;
-  public int fileSize;
 
   // Do not serialize
   private transient State state;
@@ -54,7 +51,7 @@ public final class OutgoingFile extends BaseObservable {
 
     int resource;
     switch (state) {
-      case PICKED -> resource = R.drawable.picked;
+      case LOADED -> resource = R.drawable.picked;
       case UPLOADED -> resource = R.drawable.uploaded;
       default -> {
         return null;
@@ -63,11 +60,14 @@ public final class OutgoingFile extends BaseObservable {
     return Main.shared.context.getResources().getDrawable(resource, null);
   }
 
-  public OutgoingFile(String mimeType, String fileName, String remotePath, int fileSize) {
+  public OutgoingFile(String mimeType) {
     this.mimeType = mimeType;
-    this.fileName = fileName;
-    this.fileSize = fileSize;
-    this.remotePath = remotePath;
+    this.id = UUID.randomUUID();
+  }
+
+  public OutgoingFile setFileSize(long fileSize) {
+    this.fileSize =  fileSize;
+    return this;
   }
 
   public static String encodeOutgoingFiles(List<OutgoingFile> files) {
@@ -90,6 +90,6 @@ public final class OutgoingFile extends BaseObservable {
 
     return CloudStorage.shared
         .upload(remotePath, localUri)
-        .addOnSuccessListener(result -> setState(State.UPLOADED), error -> setState(State.PICKED));
+        .addOnSuccessListener(result -> setState(State.UPLOADED), error -> setState(State.LOADED));
   }
 }

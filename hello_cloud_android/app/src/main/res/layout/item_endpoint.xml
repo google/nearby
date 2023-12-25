@@ -27,7 +27,7 @@
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"
-            android:gravity="start"
+            android:gravity="center_vertical"
             android:maxLines="1"
             android:paddingHorizontal="10dp"
             android:text="@{model.toString}" />

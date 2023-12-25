@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class Main extends BaseObservable {
-  public static Main shared = createDebugModel();
+  public static Main shared = Util.createDebugMain();
 
   public Context context;
 
@@ -45,6 +45,8 @@ public final class Main extends BaseObservable {
 
   private boolean isDiscovering;
   private boolean isAdvertising;
+
+  public ArrayList<Packet<OutgoingFile>> outgoingPackets = new ArrayList<>();
 
   private final ConnectionLifecycleCallback connectionLifecycleCallback =
       new MyConnectionLifecycleCallback();
@@ -187,82 +189,7 @@ public final class Main extends BaseObservable {
     Nearby.getConnectionsClient(shared.context).disconnectFromEndpoint(endpointId);
   }
 
-  public static Main createDebugModel() {
-    Main result = new Main();
 
-    Endpoint endpoint = new Endpoint("R2D2", "Debug droid");
-    endpoint.setState(Endpoint.State.CONNECTED);
-
-    result.addEndpoint(endpoint);
-
-    Endpoint endpoint2 = new Endpoint("C3PO", "Fuzzy droid");
-//    endpoint2
-//        .getOutgoingFiles()
-//        .add(
-//            new OutgoingFile("image/jpeg", "IMG_0001.jpeg", "1234", 100000)
-//                .setState(OutgoingFile.State.PICKED));
-//    endpoint2
-//        .getOutgoingFiles()
-//        .add(
-//            new OutgoingFile("image/jpeg", "IMG_0002.jpeg", "5678", 100000)
-//                .setState(OutgoingFile.State.UPLOADING));
-//    endpoint2
-//        .getOutgoingFiles()
-//        .add(
-//            new OutgoingFile("image/jpeg", "IMG_0003.jpeg", "5678", 100000)
-//                .setState(OutgoingFile.State.UPLOADED));
-//    endpoint2
-//        .getOutgoingFiles()
-//        .add(
-//            new OutgoingFile("image/jpeg", "IMG_0004.jpeg", "5678", 100000)
-//                .setState(OutgoingFile.State.UPLOADED));
-//    endpoint2
-//        .getOutgoingFiles()
-//        .add(
-//            new OutgoingFile("image/jpeg", "IMG_0005.jpeg", "5678", 100000)
-//                .setState(OutgoingFile.State.UPLOADED));
-
-//    endpoint2
-//        .getIncomingFiles()
-//        .add(
-//            new IncomingFile(
-//                    "image/png",
-//                    "4ABFE3D4-C4EE-435C-86BD-318299E5AE8D.jpeg",
-//                    "4ABFE3D4-C4EE-435C-86BD-318299E5AE8D.jpeg",
-//                    100000)
-//                .setState(IncomingFile.State.RECEIVED));
-//    endpoint2
-//        .getIncomingFiles()
-//        .add(
-//            new IncomingFile("image/jpeg", "IMG_1002.jpeg", "1234", 100000)
-//                .setState(IncomingFile.State.DOWNLOADING));
-//    endpoint2
-//        .getIncomingFiles()
-//        .add(
-//            new IncomingFile("image/jpeg", "IMG_1003.jpeg", "1234", 100000)
-//                .setState(IncomingFile.State.DOWNLOADED));
-//
-//    endpoint2
-//        .getTransfers()
-//        .add(
-//            TransferViewModel.download(
-//                "1234", TransferViewModel.Result.SUCCESS, 100000, Duration.ofSeconds(10)));
-//    endpoint2
-//        .getTransfers()
-//        .add(
-//            TransferViewModel.upload(
-//                "1234", TransferViewModel.Result.CANCELED, 2000000, Duration.ofSeconds(15)));
-//    endpoint2
-//        .getTransfers()
-//        .add(TransferViewModel.receive("1234", TransferViewModel.Result.SUCCESS, "R2D2"));
-//    endpoint2
-//        .getTransfers()
-//        .add(TransferViewModel.send("1234", TransferViewModel.Result.FAILURE, "R2D2"));
-//    endpoint2.setState(Endpoint.State.CONNECTED);
-//    result.addEndpoint(endpoint2);
-
-    return result;
-  }
 
   class MyConnectionLifecycleCallback extends ConnectionLifecycleCallback {
     private void removeOrChangeState(Endpoint endpoint) {
@@ -397,7 +324,7 @@ public final class Main extends BaseObservable {
       Log.v(TAG, String.format("onPayloadTransferUpdate, endpointId: %s", endpointId));
 
       Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      endpoint.ifPresent(p -> p.onFilesSendUpdate(update.getStatus()));
+      endpoint.ifPresent(p -> p.onPacketTransferUpdate(update.getStatus()));
     }
   }
 }

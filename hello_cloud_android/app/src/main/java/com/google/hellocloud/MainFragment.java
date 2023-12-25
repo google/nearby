@@ -127,44 +127,12 @@ public class MainFragment extends Fragment {
     }
 
     Context context = getView().getContext();
-    ContentResolver resolver = context.getContentResolver();
-    ArrayList<OutgoingFile> files = new ArrayList<>();
-    for (Uri uri : uris) {
-      String mimeType = resolver.getType(uri);
-
-      // Get the local file name and size.
-      Cursor cursor =
-          resolver.query(
-              uri,
-              new String[] {MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE},
-              null,
-              null,
-              null);
-
-      assert cursor != null;
-      int nameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
-      int sizeIndex = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE);
-      cursor.moveToFirst();
-
-      String name = cursor.getString(nameIndex);
-      int size = cursor.getInt(sizeIndex);
-      cursor.close();
-
-      // Construct an outgoing file to be added to the endpoint's list
-      OutgoingFile file =
-          new OutgoingFile(mimeType, name, null, size)
-              .setState(OutgoingFile.State.PICKED)
-              .setLocalUri(uri);
-      files.add(file);
-    }
-
     new AlertDialog.Builder(context)
         .setMessage("Do you want to send the claim token to the remote endpoint?")
         .setPositiveButton(
             "Yes",
             (dialog, button) -> {
-              System.out.println(button);
-              // TODO: Construct a packet and send
+              endpointForPicker.sendPacket(context, uris);
             })
         .setNegativeButton("No", null)
         .show();

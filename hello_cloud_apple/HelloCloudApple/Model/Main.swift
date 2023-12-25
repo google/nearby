@@ -301,6 +301,9 @@ extension Main: ConnectionManagerDelegate {
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
 
+      let string = String(data: data, encoding: .utf8)
+      print(string!)
+
       guard let data = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: data) else {
         print ("E: Unable to decode incoming payload.")
         return

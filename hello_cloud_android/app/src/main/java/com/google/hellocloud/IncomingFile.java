@@ -8,17 +8,14 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.gson.Gson;
 
-public final class IncomingFile extends BaseObservable {
+public final class IncomingFile extends File {
   enum State {
     RECEIVED,
     DOWNLOADING,
     DOWNLOADED
   }
 
-  public String mimeType;
-  public String fileName;
   public String remotePath;
-  public int fileSize;
 
   // Do not serialize
   private transient State state;
@@ -63,11 +60,8 @@ public final class IncomingFile extends BaseObservable {
     return Main.shared.context.getResources().getDrawable(resource, null);
   }
 
-  public IncomingFile(String mimeType, String fileName, String remotePath, int fileSize) {
+  public IncomingFile(String mimeType) {
     this.mimeType = mimeType;
-    this.fileName = fileName;
-    this.fileSize = fileSize;
-    this.remotePath = remotePath;
   }
 
   public Task<Void> download() {
