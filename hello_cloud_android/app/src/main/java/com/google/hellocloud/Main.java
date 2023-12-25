@@ -159,7 +159,8 @@ public final class Main extends BaseObservable {
 
   void stopDiscovering() {
     Nearby.getConnectionsClient(shared.context).stopDiscovery();
-    endpoints.removeIf(p -> p.getState() != Endpoint.State.DISCOVERED);
+    endpoints.removeIf(p -> p.getState() == Endpoint.State.DISCOVERED);
+    notifyPropertyChanged(BR.endpoints);
   }
 
   void requestConnection(String endpointId) {
@@ -198,7 +199,7 @@ public final class Main extends BaseObservable {
       endpoint.setState(Endpoint.State.DISCOVERED);
       if (endpoint.isIncoming || !isDiscovering) {
         endpoints.remove(endpoint);
-        // TODO: tell the activity to navigate back to main fragment.
+        notifyPropertyChanged(BR.endpoints);
       }
     }
 
