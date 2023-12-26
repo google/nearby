@@ -182,9 +182,8 @@ public final class Endpoint extends BaseObservable {
               .setFileSize(size)
               .setLocalUri(uri);
       packet.files.add(file);
-
-      Main.shared.addOutgoingPacket(packet);
     }
+    Main.shared.addOutgoingPacket(packet);
 
     // Serialize the packet. Note that we want the files to be serialized as a dictionary, with the
     // id being the key, for easy indexing in Firebase database
