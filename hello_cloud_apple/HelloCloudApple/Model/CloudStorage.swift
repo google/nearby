@@ -32,8 +32,8 @@ class CloudStorage {
     storageRef = storage.reference()
 
     // Set a short timeout for debugging. The default is 600s
-    storage.maxUploadRetryTime = 3;
-    storage.maxDownloadRetryTime = 3;
+    storage.maxUploadRetryTime = 3
+    storage.maxDownloadRetryTime = 3
   }
 
   func upload(from localUri: URL, to remotePath: String) async -> Int64? {
