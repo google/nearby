@@ -124,6 +124,10 @@ public class MainFragment extends Fragment {
   }
 
   private void onMediaPicked(List<Uri> uris) {
+    if (uris.size() == 0) {
+      return;
+    }
+
     if (endpointForPicker == null) {
       Log.e(TAG, "onMediaPicked() called without setting endpointForPicker");
       return;
