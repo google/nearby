@@ -58,9 +58,9 @@ public class Util {
   }
 
   public static Packet<IncomingFile> createIncomingDebugModel() {
-    Packet<IncomingFile> result = new Packet<>();
-    result.sender = "Princess Leia";
-    result.state = Packet.State.UPLOADED;
+    Packet<IncomingFile> packet = new Packet<>();
+    packet.sender = "Princess Leia";
+    packet.state = Packet.State.UPLOADED;
 
     var file1 =
         new IncomingFile("image/jpeg")
@@ -70,17 +70,17 @@ public class Util {
         new IncomingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 128)
             .setState(IncomingFile.State.DOWNLOADING);
-    result.files.add(file1);
-    result.files.add(file2);
-    return result;
+    packet.files.add(file1);
+    packet.files.add(file2);
+    return packet;
   }
 
   public static Packet<OutgoingFile> createOutgoingDebugModel() {
-    Packet<OutgoingFile> result = new Packet<>();
-    result.notificationToken =
+    Packet<OutgoingFile> packet = new Packet<>();
+    packet.notificationToken =
         "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL";
-    result.receiver = "Luke Skywalker";
-    result.state = Packet.State.UPLOADING;
+    packet.receiver = "Luke Skywalker";
+    packet.state = Packet.State.LOADED;
 
     var file1 =
         new OutgoingFile("image/jpeg")
@@ -91,23 +91,23 @@ public class Util {
             .setFileSize(1024 * 1024 * 4)
             .setState(OutgoingFile.State.LOADED);
 
-    result.files.add(file1);
-    result.files.add(file2);
-    return result;
+    packet.files.add(file1);
+    packet.files.add(file2);
+    return packet;
   }
 
   public static Main createDebugMain() {
-    Main result = new Main();
+    Main main = new Main();
 
     if (!Config.debugEndpoint) {
-      return result;
+      return main;
     }
 
     Endpoint endpoint = new Endpoint("R2D2", "Debug droid", false);
     endpoint.setState(Endpoint.State.CONNECTED);
-    result.addEndpoint(endpoint);
-    result.addIncomingPacket(createIncomingDebugModel());
-    result.addOutgoingPacket(createOutgoingDebugModel());
-    return result;
+    main.addEndpoint(endpoint);
+    main.addIncomingPacket(createIncomingDebugModel());
+    main.addOutgoingPacket(createOutgoingDebugModel());
+    return main;
   }
 }

@@ -137,7 +137,6 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/incoming_packets"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginHorizontal="10dp"
@@ -146,7 +145,6 @@
                 android:text="Inbox" />
 
             <Button
-                android:id="@+id/outgoing_packets"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginHorizontal="10dp"
@@ -156,7 +154,6 @@
         </LinearLayout>
 
         <ListView
-            android:id="@+id/endpointList"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"

@@ -104,4 +104,12 @@ public class Packet<T extends File> extends BaseObservable {
   public boolean getCanDownload() {
     return state == State.UPLOADED;
   }
+
+  public void upload() {
+    System.out.println("Uploading...");
+  }
+
+  public void download() {
+    System.out.print("Downloading...");
+  }
 }

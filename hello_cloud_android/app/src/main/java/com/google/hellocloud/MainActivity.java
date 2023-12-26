@@ -1,17 +1,22 @@
 package com.google.hellocloud;
 
+import static com.google.hellocloud.Util.TAG;
 import static com.google.hellocloud.Util.requestPermissionsIfNeeded;
 
 import android.Manifest;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import com.google.hellocloud.databinding.ItemIncomingPacketBinding;
+import com.google.hellocloud.databinding.ItemOutgoingPacketBinding;
 
 public class MainActivity extends AppCompatActivity {
   private static final String[] REQUIRED_PERMISSIONS_FOR_APP =
@@ -83,12 +88,35 @@ public class MainActivity extends AppCompatActivity {
     navController.navigate(R.id.action_mainFragment_to_outgoingPacketsFragment, bundle);
   }
 
-  public void debugAddEndpoint(View view) {
-    Main.shared.addEndpoint(new Endpoint("FOO", "BAR"));
+  private static View getParentView(View view) {
+    return (View) view.getParent();
   }
 
-  public void debugChangeEndpoint(View view) {
-    Main.shared.setLocalEndpointId("foo");
-    Main.shared.setLocalEndpointName("Blah");
+  public void uploadPacket(View view) {
+    ItemOutgoingPacketBinding binding;
+    View packetView = getParentView(view);
+    while (packetView != null) {
+      binding = DataBindingUtil.getBinding(packetView);
+      if (binding != null) {
+        binding.getModel().upload();
+        break;
+      }
+      packetView = getParentView(packetView);
+    }
+    Log.e(TAG, "Upload button clicked. But packet view was not found.");
+  }
+
+  public void downloadPacket(View view) {
+    ItemIncomingPacketBinding binding;
+    View packetView = getParentView(view);
+    while (packetView != null) {
+      binding = DataBindingUtil.getBinding(packetView);
+      if (binding != null) {
+        binding.getModel().download();
+        break;
+      }
+      packetView = getParentView(packetView);
+    }
+    Log.e(TAG, "Download button clicked. But packet view was not found.");
   }
 }

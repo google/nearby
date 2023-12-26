@@ -51,10 +51,12 @@
                     android:layout_gravity="center"
                     android:src="@{model.outgoingStateIcon}" />
 
-                <ImageView
+                <ImageButton
+                    android:onClick="uploadPacket"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:src="@drawable/upload"
+                    android:background="@null"
                     android:visibility="@{model.canUpload ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
             </FrameLayout>
         </LinearLayout>
