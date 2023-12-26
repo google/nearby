@@ -66,7 +66,7 @@ public class Util {
         new IncomingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 8)
             .setState(IncomingFile.State.UPLOADED);
-    file1.remotePath = "DFC07862-2716-491E-A901-763BB0B7D370.jpeg";
+    file1.remotePath = "12A7368E-9BC6-4C49-B485-FC1E6B9F63EC.png";
 //    var file2 =
 //        new IncomingFile("image/jpeg")
 //            .setFileSize(1024 * 1024 * 128)

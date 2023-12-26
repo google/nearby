@@ -41,6 +41,7 @@ class DataWrapper<T extends File> {
     GsonBuilder gson = new GsonBuilder();
     gson.registerTypeAdapter(DataWrapper.class, new GsonAdapter());
     gson.registerTypeAdapter(ArrayList.class, new GsonAdapter.OutgoingFilesSerializer());
+    gson.registerTypeAdapter(ArrayList.class, new GsonAdapter.IncomingFilesDeserializer());
     gson.registerTypeAdapter(UUID.class, new GsonAdapter.UuidSerializer());
     return gson.create();
   }

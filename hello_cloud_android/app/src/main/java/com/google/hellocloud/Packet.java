@@ -117,6 +117,60 @@ public class Packet<T extends File> extends BaseObservable {
     return state == State.UPLOADED;
   }
 
+  public void update(Packet<T> newPacket) {
+    files.clear();
+    for (T file : newPacket.files) {
+      if (file instanceof IncomingFile) {
+        ((IncomingFile) file).setState(IncomingFile.State.UPLOADED);
+        files.add(file);
+      }
+    }
+    setState(State.UPLOADED);
+  }
+
+  public void download(Context context) {
+    if (state != State.UPLOADED) {
+      Log.e(TAG, "Packet is not uploaded before being downloaded.");
+      return;
+    }
+    setState(State.DOWNLOADING);
+
+    for (T file : files) {
+      IncomingFile incomingFile = (IncomingFile) file;
+      assert incomingFile != null;
+
+      ContentResolver resolver = context.getContentResolver();
+      String fileName = UUID.randomUUID().toString().toUpperCase();
+      Uri imagesUri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+      ContentValues values = new ContentValues();
+      values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+      values.put(MediaStore.MediaColumns.MIME_TYPE, file.mimeType);
+      Uri uri = resolver.insert(imagesUri, values);
+      incomingFile.setLocalUri(uri);
+
+      Instant beginTime = Instant.now();
+      incomingFile
+          .download()
+          .addOnSuccessListener(
+              result -> {
+                setState(State.DOWNLOADED);
+                Instant endTime = Instant.now();
+                Duration duration = Duration.between(beginTime, endTime);
+                Log.i(
+                    TAG,
+                    String.format(
+                        "Downloaded. Size(b): %s. Time(s): %d.",
+                        incomingFile.fileSize, duration.getSeconds()));
+              })
+          .addOnFailureListener(
+              error -> {
+                setState(State.UPLOADED);
+                logErrorAndToast(
+                    Main.shared.context, R.string.error_toast_cannot_download, error.getMessage());
+              });
+    }
+  }
+
   public void upload() {
     if (state != State.LOADED) {
       Log.e(TAG, "Packet is not loaded before being uploaded.");
@@ -171,48 +225,5 @@ public class Packet<T extends File> extends BaseObservable {
                         }
                       });
             });
-  }
-
-  public void download(Context context) {
-    if (state != State.UPLOADED) {
-      Log.e(TAG, "Packet is not uploaded before being downloaded.");
-      return;
-    }
-    setState(State.DOWNLOADING);
-
-    for (T file : files) {
-      IncomingFile incomingFile = (IncomingFile) file;
-      assert incomingFile != null;
-
-      ContentResolver resolver = context.getContentResolver();
-      String fileName = UUID.randomUUID().toString().toUpperCase();
-      Uri imagesUri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-      ContentValues values = new ContentValues();
-      values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-      values.put(MediaStore.MediaColumns.MIME_TYPE, file.mimeType);
-      Uri uri = resolver.insert(imagesUri, values);
-      incomingFile.setLocalUri(uri);
-
-      Instant beginTime = Instant.now();
-      incomingFile
-          .download()
-          .addOnSuccessListener(
-              result -> {
-                setState(State.DOWNLOADED);
-                Instant endTime = Instant.now();
-                Duration duration = Duration.between(beginTime, endTime);
-                Log.i(
-                    TAG,
-                    String.format(
-                        "Downloaded. Size(b): %s. Time(s): %d.",
-                        incomingFile.fileSize, duration.getSeconds()));
-              })
-          .addOnFailureListener(
-              error -> {
-                setState(State.UPLOADED);
-                logErrorAndToast(
-                    Main.shared.context, R.string.error_toast_cannot_download, error.getMessage());
-              });
-    }
   }
 }

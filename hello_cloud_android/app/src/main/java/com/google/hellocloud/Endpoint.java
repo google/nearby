@@ -179,6 +179,14 @@ public final class Endpoint extends BaseObservable {
     packet.state = Packet.State.RECEIVED;
     Main.shared.addIncomingPacket(packet);
 
+    CloudDatabase.shared.observePacket(packet.id, newPacket -> {
+      packet.update(newPacket);
+      return null;
+      // Schedule:
+      // now: packet.highlighted = true;
+      // now + 1.5s: packet.highlighted = false;
+
+    });
     // TODO: observe packet
   }
 
