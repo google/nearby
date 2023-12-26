@@ -115,10 +115,12 @@ class CloudDatabase {
   }
 
   func observePacket(id: UUID, _ notification: @escaping (Packet<IncomingFile>) -> Void) {
+    print("monitoring \(id)")
     databaseRef.child("packets/\(id)").observe(.value) { snapshot in
       guard let packet = CloudDatabase.readPacket(from: snapshot) else {
         return
       }
+      print("updated: \(id)")
       notification(packet)
     }
   }

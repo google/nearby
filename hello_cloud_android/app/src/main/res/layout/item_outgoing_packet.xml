@@ -13,19 +13,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingStart="?android:attr/expandableListPreferredItemPaddingLeft">
 
         <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="?android:attr/expandableListPreferredItemPaddingLeft"
             android:paddingTop="5dp"
             android:paddingBottom="5dp">
 
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/photo" />
+                android:src="@drawable/photos" />
 
             <TextView
                 android:layout_width="0dp"

@@ -85,7 +85,7 @@
                 android:layout_gravity="center"
                 android:layout_weight="1"
                 android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
-                android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/photo : @drawable/photo_disabled}" />
+                android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/add_photo : @drawable/add_photo_disabled}" />
         </LinearLayout>
     </LinearLayout>
 </layout>
