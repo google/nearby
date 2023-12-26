@@ -16,7 +16,6 @@ import androidx.databinding.Bindable;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
-import com.google.gson.GsonBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -102,51 +101,6 @@ public final class Endpoint extends BaseObservable {
     }
     return Main.shared.context.getResources().getDrawable(resource, null);
   }
-
-  //  void uploadFiles() {
-  //    for (OutgoingFile file : outgoingFiles) {
-  //      if (file.getState() == OutgoingFile.State.PICKED) {
-  //        Instant beginTime = Instant.now();
-  //        file.upload()
-  //            .addOnSuccessListener(
-  //                result -> {
-  //                  Log.v(TAG, String.format("Upload succeeded. Remote path: %s",
-  // file.remotePath));
-  //
-  //                  Instant endTime = Instant.now();
-  //                  Duration duration = Duration.between(beginTime, endTime);
-  //                  TransferViewModel transfer =
-  //                      TransferViewModel.upload(
-  //                          file.remotePath,
-  //                          TransferViewModel.Result.SUCCESS,
-  //                          file.fileSize,
-  //                          duration);
-  //                  addTransfer(transfer);
-  //                })
-  //            .addOnFailureListener(
-  //                error -> {
-  //                  logErrorAndToast(
-  //                      Main.shared.context,
-  //                      R.string.error_toast_cannot_upload,
-  //                      error.getMessage());
-  //
-  //                  TransferViewModel transfer =
-  //                      TransferViewModel.upload(
-  //                          file.remotePath, TransferViewModel.Result.FAILURE, file.fileSize,
-  // null);
-  //                  addTransfer(transfer);
-  //                })
-  //            .continueWith(
-  //                result -> {
-  //                  notifyPropertyChanged(BR.canPick);
-  //                  notifyPropertyChanged(BR.canUpload);
-  //                  notifyPropertyChanged(BR.canSend);
-  //                  return null;
-  //                });
-  //      }
-  //    }
-  //  }
-
   void sendPacket(Context context, List<Uri> uris) {
     if (getState() != Endpoint.State.CONNECTED) {
       return;
@@ -183,25 +137,26 @@ public final class Endpoint extends BaseObservable {
               .setLocalUri(uri);
       packet.files.add(file);
     }
-    Main.shared.addOutgoingPacket(packet);
 
     // Serialize the packet. Note that we want the files to be serialized as a dictionary, with the
     // id being the key, for easy indexing in Firebase database
-    var wrapper = new DataWrapper<>(packet);
-    GsonBuilder gson = new GsonBuilder();
-    gson.registerTypeAdapter(DataWrapper.class, new DataWrapper.Serializer());
-    String json = gson.create().toJson(wrapper);
+    DataWrapper<OutgoingFile> wrapper = new DataWrapper<>(packet);
+    String json = DataWrapper.getGson().toJson(wrapper);
 
     Payload payload = Payload.fromBytes(json.getBytes(StandardCharsets.UTF_8));
     Nearby.getConnectionsClient(Main.shared.context)
         .sendPayload(id, payload)
-        .addOnFailureListener(
-            e -> {
-              logErrorAndToast(Main.shared.context, R.string.error_toast_cannot_send_payload, e);
-              setState(Endpoint.State.CONNECTED);
+        .addOnCompleteListener(
+            task -> {
+              if (!task.isSuccessful()) {
+                logErrorAndToast(
+                    Main.shared.context,
+                    R.string.error_toast_cannot_send_payload,
+                    task.getException());
+              }
+              setState(State.CONNECTED);
             });
-
-    setState(State.CONNECTED);
+    Main.shared.addOutgoingPacket(packet);
   }
 
   public void onPacketTransferUpdate(int status) {

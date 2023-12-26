@@ -157,8 +157,19 @@ public class Packet<T extends File> extends BaseObservable {
 
     Tasks.whenAllSuccess(tasks)
         .addOnCompleteListener(
-            task -> {
-              CloudDatabase.shared.push((Packet<OutgoingFile>) this);
+            uploadTask -> {
+              CloudDatabase.shared
+                  .push((Packet<OutgoingFile>) this)
+                  .addOnCompleteListener(
+                      pushTask -> {
+                        if (pushTask.isSuccessful()) {
+                          Log.i(TAG, "Pushed packet " + id);
+                          state = State.UPLOADED;
+                        } else {
+                          Log.e(TAG, "Failed to push packet " + id);
+                          state = State.LOADED;
+                        }
+                      });
             });
   }
 

@@ -24,7 +24,6 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
-import com.google.gson.GsonBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -330,9 +329,7 @@ public final class Main extends BaseObservable {
           Log.v(TAG, String.format("onPayloadReceived, endpointId: %s", endpointId));
 
           String json = new String(payload.asBytes(), StandardCharsets.UTF_8);
-          GsonBuilder gson = new GsonBuilder();
-          gson.registerTypeAdapter(DataWrapper.class, new DataWrapper.Deserializer());
-          DataWrapper<IncomingFile> data = gson.create().fromJson(json, DataWrapper.class);
+          DataWrapper<IncomingFile> data = DataWrapper.getGson().fromJson(json, DataWrapper.class);
 
           Optional<Endpoint> endpoint = getEndpoint(endpointId);
           endpoint.ifPresent(
