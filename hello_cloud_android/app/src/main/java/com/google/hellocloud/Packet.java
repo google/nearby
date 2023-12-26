@@ -12,6 +12,8 @@ import android.provider.MediaStore;
 import android.util.Log;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -121,31 +123,43 @@ public class Packet<T extends File> extends BaseObservable {
       return;
     }
     setState(State.UPLOADING);
+
+    ArrayList<Task<Long>> tasks = new ArrayList<>();
     for (T file : files) {
       OutgoingFile outgoingFile = (OutgoingFile) file;
       assert (outgoingFile != null);
 
       Instant beginTime = Instant.now();
-      outgoingFile
-          .upload()
-          .addOnSuccessListener(
-              result -> {
-                setState(State.UPLOADED);
-                Instant endTime = Instant.now();
-                Duration duration = Duration.between(beginTime, endTime);
-                Log.i(
-                    TAG,
-                    String.format(
-                        "Uploaded. Size(b): %s. Time(s): %d.",
-                        outgoingFile.fileSize, duration.getSeconds()));
-              })
-          .addOnFailureListener(
-              error -> {
-                setState(State.LOADED);
-                logErrorAndToast(
-                    Main.shared.context, R.string.error_toast_cannot_upload, error.getMessage());
-              });
+      Task<Long> task =
+          outgoingFile
+              .upload()
+              .addOnSuccessListener(
+                  result -> {
+                    setState(State.UPLOADED);
+                    Instant endTime = Instant.now();
+                    Duration duration = Duration.between(beginTime, endTime);
+                    Log.i(
+                        TAG,
+                        String.format(
+                            "Uploaded. Size(b): %s. Time(s): %d.",
+                            outgoingFile.fileSize, duration.getSeconds()));
+                  })
+              .addOnFailureListener(
+                  error -> {
+                    setState(State.LOADED);
+                    logErrorAndToast(
+                        Main.shared.context,
+                        R.string.error_toast_cannot_upload,
+                        error.getMessage());
+                  });
+      tasks.add(task);
     }
+
+    Tasks.whenAllSuccess(tasks)
+        .addOnCompleteListener(
+            task -> {
+              CloudDatabase.shared.push((Packet<OutgoingFile>) this);
+            });
   }
 
   public void download(Context context) {
