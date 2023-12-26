@@ -1,5 +1,6 @@
 package com.google.hellocloud;
 
+import static com.google.hellocloud.Util.TAG;
 import static com.google.hellocloud.Util.logErrorAndToast;
 
 import android.content.ContentResolver;
@@ -8,6 +9,7 @@ import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
@@ -15,8 +17,6 @@ import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -53,8 +53,8 @@ public final class Endpoint extends BaseObservable {
   public final String name;
   public final String id;
   public boolean isIncoming;
-
   private State state = State.DISCOVERED;
+  private String notificationToken;
 
   public Endpoint(String id, String name) {
     this.id = id;
@@ -154,8 +154,7 @@ public final class Endpoint extends BaseObservable {
     setState(Endpoint.State.SENDING);
 
     Packet<OutgoingFile> packet = new Packet<>();
-    // TODO: get notification token
-    packet.notificationToken = "";
+    packet.notificationToken = notificationToken;
     packet.state = Packet.State.LOADED;
     packet.receiver = name;
     packet.sender = Main.shared.getLocalEndpointName();
@@ -187,14 +186,10 @@ public final class Endpoint extends BaseObservable {
 
     // Serialize the packet. Note that we want the files to be serialized as a dictionary, with the
     // id being the key, for easy indexing in Firebase database
+    var wrapper = new DataWrapper<>(packet);
     GsonBuilder gson = new GsonBuilder();
-    JsonObject result = new JsonObject();
-    gson.registerTypeAdapter(packet.files.getClass(), new Packet.OutgoingFilesSerializer());
-    result.add("type", new JsonPrimitive("packet"));
-    result.add("data", gson.create().toJsonTree(packet));
-    String json = result.toString();
-
-    System.out.println(json);
+    gson.registerTypeAdapter(DataWrapper.class, new DataWrapper.Serializer());
+    String json = gson.create().toJson(wrapper);
 
     Payload payload = Payload.fromBytes(json.getBytes(StandardCharsets.UTF_8));
     Nearby.getConnectionsClient(Main.shared.context)
@@ -217,22 +212,20 @@ public final class Endpoint extends BaseObservable {
     }
   }
 
-  public void onFilesReceived(String json) {
-    //    setState(State.RECEIVING);
-    //    IncomingFile[] files = IncomingFile.decodeIncomingFiles(json);
-    //    for (IncomingFile file : files) {
-    //      TransferViewModel transfer =
-    //          TransferViewModel.receive(
-    //              file.remotePath, TransferViewModel.Result.SUCCESS, this.toString());
-    //      addTransfer(transfer);
-    //      file.setState(IncomingFile.State.RECEIVED);
-    //    }
-    //    // We intentionally do not clean incoming files, since some may not have been downloaded
-    // yet
-    //    incomingFiles.addAll(Arrays.asList(files));
-    //    notifyPropertyChanged(BR.incomingFiles);
-    //    notifyPropertyChanged(BR.canDownload);
-    //  }
+  public void onNotificationTokenReceived(String token) {
+    Log.i(TAG, "Notification token received: " + token);
+    this.notificationToken = token;
+  }
+
+  public void onPacketReceived(Packet<IncomingFile> packet) {
+    Log.i(TAG, "Packet received: " + packet.id);
+    packet.sender = name;
+    packet.state = Packet.State.RECEIVED;
+    Main.shared.incomingPackets.add(packet);
+    // TODO: update view
+    // TODO: observe packet
+  }
+
     //
     //  public void downloadFiles() {
     //    for (IncomingFile file : incomingFiles) {
@@ -266,7 +259,6 @@ public final class Endpoint extends BaseObservable {
     //                });
     //      }
     //    }
-  }
 
   @NonNull
   @Override

@@ -24,6 +24,8 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.gson.GsonBuilder;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,11 +49,7 @@ public final class Main extends BaseObservable {
   private boolean isAdvertising;
 
   public ArrayList<Packet<OutgoingFile>> outgoingPackets = new ArrayList<>();
-
-  private final ConnectionLifecycleCallback connectionLifecycleCallback =
-      new MyConnectionLifecycleCallback();
-  private final EndpointDiscoveryCallback discoveryCallback = new MyDiscoveryCallback();
-  private final PayloadCallback payloadCallback = new MyPayloadCallback();
+  public ArrayList<Packet<IncomingFile>> incomingPackets = new ArrayList<>();
 
   @Bindable
   public String getLocalEndpointId() {
@@ -190,142 +188,153 @@ public final class Main extends BaseObservable {
     Nearby.getConnectionsClient(shared.context).disconnectFromEndpoint(endpointId);
   }
 
+  private final ConnectionLifecycleCallback connectionLifecycleCallback =
+      new ConnectionLifecycleCallback() {
+        private void removeOrChangeState(Endpoint endpoint) {
+          // If the endpoint wasn't discovered by us in the first place, remove it.
+          // Otherwise, keep it but change its state to Discovered.
+          endpoint.setState(Endpoint.State.DISCOVERED);
+          if (endpoint.isIncoming || !isDiscovering) {
+            endpoints.remove(endpoint);
+            notifyPropertyChanged(BR.endpoints);
+          }
+        }
 
+        @Override
+        public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo info) {
+          String endpointName = new String(info.getEndpointInfo(), StandardCharsets.UTF_8);
+          Log.v(
+              TAG,
+              String.format(
+                  "onConnectionInitiated, endpointId: %s, endpointName: %s.",
+                  endpointId, endpointName));
 
-  class MyConnectionLifecycleCallback extends ConnectionLifecycleCallback {
-    private void removeOrChangeState(Endpoint endpoint) {
-      // If the endpoint wasn't discovered by us in the first place, remove it.
-      // Otherwise, keep it but change its state to Discovered.
-      endpoint.setState(Endpoint.State.DISCOVERED);
-      if (endpoint.isIncoming || !isDiscovering) {
-        endpoints.remove(endpoint);
-        notifyPropertyChanged(BR.endpoints);
-      }
-    }
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
 
-    @Override
-    public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo info) {
-      String endpointName = new String(info.getEndpointInfo(), StandardCharsets.UTF_8);
-      Log.v(
-          TAG,
-          String.format(
-              "onConnectionInitiated, endpointId: %s, endpointName: %s.",
-              endpointId, endpointName));
+          // Add the endpoint to the endpoint list if necessary.
+          endpoint.ifPresentOrElse(
+              p -> p.setState(Endpoint.State.CONNECTING),
+              () -> {
+                Endpoint newEndpoint = new Endpoint(endpointId, endpointName, true);
+                addEndpoint(newEndpoint);
+                newEndpoint.setState(Endpoint.State.CONNECTING);
+              });
 
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          // Accept automatically.
+          Nearby.getConnectionsClient(shared.context)
+              .acceptConnection(endpointId, payloadCallback)
+              .addOnFailureListener(
+                  e ->
+                      logErrorAndToast(
+                          context,
+                          R.string.error_toast_cannot_accept_connection_request,
+                          e.getLocalizedMessage()));
+        }
 
-      // Add the endpoint to the endpoint list if necessary.
-      endpoint.ifPresentOrElse(
-          p -> p.setState(Endpoint.State.CONNECTING),
-          () -> {
-            Endpoint newEndpoint = new Endpoint(endpointId, endpointName, true);
+        @Override
+        public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
+          Log.v(
+              TAG,
+              String.format(
+                  "onConnectionResult, endpointId: %s, result: %s",
+                  endpointId, result.getStatus()));
+
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          if (result.getStatus().isSuccess()) {
+            endpoint.ifPresent(value -> value.setState(Endpoint.State.CONNECTED));
+          } else {
+            logErrorAndToast(
+                shared.context,
+                R.string.error_toast_rejected_by_remote_device,
+                endpoint.isPresent() ? endpoint.get().name : endpointId);
+            endpoint.ifPresent(this::removeOrChangeState);
+          }
+        }
+
+        @Override
+        public void onDisconnected(@NonNull String endpointId) {
+          Log.v(TAG, String.format("onDisconnected, endpointId: %s.", endpointId));
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          endpoint.ifPresent(this::removeOrChangeState);
+        }
+
+        @Override
+        public void onBandwidthChanged(@NonNull String endpointId, BandwidthInfo info) {
+          Log.v(
+              TAG,
+              String.format(
+                  "onBandwidthChanged, endpointId:%s, quality:%d", endpointId, info.getQuality()));
+
+          String qualityDescription;
+          int quality = info.getQuality();
+          qualityDescription =
+              switch (quality) {
+                case Quality.LOW -> "LOW";
+                case Quality.MEDIUM -> "MEDIUM";
+                case Quality.HIGH -> "HIGH";
+                default -> "UNKNOWN " + quality;
+              };
+
+          Log.v(TAG, String.format("onBandwidthChanged, quality: %s", qualityDescription));
+        }
+      };
+
+  private final EndpointDiscoveryCallback discoveryCallback =
+      new EndpointDiscoveryCallback() {
+        @Override
+        public void onEndpointFound(@NonNull String endpointId, DiscoveredEndpointInfo info) {
+          Log.v(TAG, String.format("onEndpointFound, endpointId: %s", endpointId));
+
+          String endpointName = new String(info.getEndpointInfo(), StandardCharsets.UTF_8);
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          if (endpoint.isPresent()) {
+            endpoint.get().isIncoming = false;
+          } else {
+            Endpoint newEndpoint = new Endpoint(endpointId, endpointName);
             addEndpoint(newEndpoint);
-            newEndpoint.setState(Endpoint.State.CONNECTING);
-          });
+          }
+        }
 
-      // Accept automatically.
-      Nearby.getConnectionsClient(shared.context)
-          .acceptConnection(endpointId, payloadCallback)
-          .addOnFailureListener(
-              e ->
-                  logErrorAndToast(
-                      context,
-                      R.string.error_toast_cannot_accept_connection_request,
-                      e.getLocalizedMessage()));
-    }
+        @Override
+        public void onEndpointLost(@NonNull String endpointId) {
+          Log.v(TAG, String.format("onEndpointLost, endpointId: %s", endpointId));
 
-    @Override
-    public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
-      Log.v(
-          TAG,
-          String.format(
-              "onConnectionResult, endpointId: %s, result: %s", endpointId, result.getStatus()));
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          endpoint.ifPresent(endpoints::remove);
+        }
+      };
 
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      if (result.getStatus().isSuccess()) {
-        endpoint.ifPresent(value -> value.setState(Endpoint.State.CONNECTED));
-      } else {
-        logErrorAndToast(
-            shared.context,
-            R.string.error_toast_rejected_by_remote_device,
-            endpoint.isPresent() ? endpoint.get().name : endpointId);
-        endpoint.ifPresent(this::removeOrChangeState);
-      }
-    }
+  private final PayloadCallback payloadCallback =
+      new PayloadCallback() {
+        @Override
+        public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
+          Log.v(TAG, String.format("onPayloadReceived, endpointId: %s", endpointId));
 
-    @Override
-    public void onDisconnected(@NonNull String endpointId) {
-      Log.v(TAG, String.format("onDisconnected, endpointId: %s.", endpointId));
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      endpoint.ifPresent(this::removeOrChangeState);
-    }
+          String json = new String(payload.asBytes(), StandardCharsets.UTF_8);
+          GsonBuilder gson = new GsonBuilder();
+          gson.registerTypeAdapter(DataWrapper.class, new DataWrapper.Deserializer());
+          DataWrapper<IncomingFile> data = gson.create().fromJson(json, DataWrapper.class);
 
-    @Override
-    public void onBandwidthChanged(@NonNull String endpointId, BandwidthInfo info) {
-      Log.v(
-          TAG,
-          String.format(
-              "onBandwidthChanged, endpointId:%s, quality:%d", endpointId, info.getQuality()));
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          endpoint.ifPresent(
+              p -> {
+                if (p.getState() != Endpoint.State.SENDING) {
+                  if (data.kind == DataWrapper.Kind.PACKET) {
+                    p.onPacketReceived(data.packet);
+                  } else if (data.kind == DataWrapper.Kind.NOTIFICATION_TOKEN){
+                    p.onNotificationTokenReceived(data.notificationToken);
+                  }
+                }
+              });
+        }
 
-      String qualityDescription;
-      int quality = info.getQuality();
-      qualityDescription =
-          switch (quality) {
-            case Quality.LOW -> "LOW";
-            case Quality.MEDIUM -> "MEDIUM";
-            case Quality.HIGH -> "HIGH";
-            default -> "UNKNOWN " + quality;
-          };
+        @Override
+        public void onPayloadTransferUpdate(
+            @NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
+          Log.v(TAG, String.format("onPayloadTransferUpdate, endpointId: %s", endpointId));
 
-      Log.v(TAG, String.format("onBandwidthChanged, quality: %s", qualityDescription));
-    }
-  }
-
-  class MyDiscoveryCallback extends EndpointDiscoveryCallback {
-    @Override
-    public void onEndpointFound(@NonNull String endpointId, DiscoveredEndpointInfo info) {
-      Log.v(TAG, String.format("onEndpointFound, endpointId: %s", endpointId));
-
-      String endpointName = new String(info.getEndpointInfo(), StandardCharsets.UTF_8);
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      if (endpoint.isPresent()) {
-        endpoint.get().isIncoming = false;
-      } else {
-        Endpoint newEndpoint = new Endpoint(endpointId, endpointName);
-        addEndpoint(newEndpoint);
-      }
-    }
-
-    @Override
-    public void onEndpointLost(@NonNull String endpointId) {
-      Log.v(TAG, String.format("onEndpointLost, endpointId: %s", endpointId));
-
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      endpoint.ifPresent(endpoints::remove);
-    }
-  }
-
-  class MyPayloadCallback extends PayloadCallback {
-    @Override
-    public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
-      Log.v(TAG, String.format("onPayloadReceived, endpointId: %s", endpointId));
-
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      endpoint.ifPresent(
-          p -> {
-            if (p.getState() != Endpoint.State.SENDING) {
-              p.onFilesReceived(new String(payload.asBytes(), StandardCharsets.UTF_8));
-            }
-          });
-    }
-
-    @Override
-    public void onPayloadTransferUpdate(
-        @NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
-      Log.v(TAG, String.format("onPayloadTransferUpdate, endpointId: %s", endpointId));
-
-      Optional<Endpoint> endpoint = getEndpoint(endpointId);
-      endpoint.ifPresent(p -> p.onPacketTransferUpdate(update.getStatus()));
-    }
-  }
+          Optional<Endpoint> endpoint = getEndpoint(endpointId);
+          endpoint.ifPresent(p -> p.onPacketTransferUpdate(update.getStatus()));
+        }
+      };
 }

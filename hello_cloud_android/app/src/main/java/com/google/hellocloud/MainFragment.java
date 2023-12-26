@@ -1,5 +1,7 @@
 package com.google.hellocloud;
 
+import static com.google.hellocloud.Util.TAG;
+
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -7,6 +9,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -122,7 +125,7 @@ public class MainFragment extends Fragment {
 
   private void onMediaPicked(List<Uri> uris) {
     if (endpointForPicker == null) {
-      System.out.println("E: onMediaPicked() called without setting endpointForPicker");
+      Log.e(TAG, "onMediaPicked() called without setting endpointForPicker");
       return;
     }
 

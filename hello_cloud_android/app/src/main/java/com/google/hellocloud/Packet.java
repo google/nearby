@@ -1,6 +1,7 @@
 package com.google.hellocloud;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -20,19 +21,6 @@ public class Packet<T extends File> {
     RECEIVED,
     DOWNLOADING,
     DOWNLOADED
-  }
-
-  public static class OutgoingFilesSerializer implements JsonSerializer<ArrayList<OutgoingFile>> {
-    @Override
-    public JsonElement serialize(
-            ArrayList<OutgoingFile> files, Type type, JsonSerializationContext context) {
-      JsonObject result = new JsonObject();
-      for (OutgoingFile file : files) {
-        result.add(file.id.toString(), context.serialize(file));
-      }
-
-      return result;
-    }
   }
 
   public UUID id;
