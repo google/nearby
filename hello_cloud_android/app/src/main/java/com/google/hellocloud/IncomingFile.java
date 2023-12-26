@@ -2,7 +2,6 @@ package com.google.hellocloud;
 
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
@@ -29,7 +28,12 @@ public final class IncomingFile extends File {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
-//    notifyPropertyChanged(BR.canDownload);
+    //    notifyPropertyChanged(BR.canDownload);
+    return this;
+  }
+
+  public IncomingFile setFileSize(long fileSize) {
+    this.fileSize = fileSize;
     return this;
   }
 

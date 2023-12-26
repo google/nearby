@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+
+        <variable
+            name="model"
+            type="com.google.hellocloud.Packet" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="?android:attr/expandableListPreferredItemPaddingLeft"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text="@{model.incomingDescription}" />
+
+    </LinearLayout>
+</layout>

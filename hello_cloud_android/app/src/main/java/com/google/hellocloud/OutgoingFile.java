@@ -2,11 +2,9 @@ package com.google.hellocloud;
 
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import androidx.databinding.BaseObservable;
+import androidx.annotation.NonNull;
 import androidx.databinding.Bindable;
 import com.google.android.gms.tasks.Task;
-import com.google.gson.Gson;
-import java.util.List;
 import java.util.UUID;
 
 public final class OutgoingFile extends File {
@@ -30,6 +28,11 @@ public final class OutgoingFile extends File {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    return this;
+  }
+
+  public OutgoingFile setFileSize(long fileSize) {
+    this.fileSize = fileSize;
     return this;
   }
 
@@ -63,15 +66,6 @@ public final class OutgoingFile extends File {
   public OutgoingFile(String mimeType) {
     this.mimeType = mimeType;
     this.id = UUID.randomUUID();
-  }
-
-  public OutgoingFile setFileSize(long fileSize) {
-    this.fileSize =  fileSize;
-    return this;
-  }
-
-  public static String encodeOutgoingFiles(List<OutgoingFile> files) {
-    return (new Gson()).toJson(files);
   }
 
   public Task<Void> upload() {

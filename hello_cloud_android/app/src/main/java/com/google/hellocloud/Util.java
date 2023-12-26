@@ -57,6 +57,24 @@ public class Util {
     }
   }
 
+  public static Packet<IncomingFile> createIncomingDebugModel() {
+    Packet<IncomingFile> result = new Packet<>();
+    result.sender = "Princess Leia";
+    result.state = Packet.State.UPLOADED;
+
+    var file1 =
+        new IncomingFile("image/jpeg")
+            .setFileSize(1024 * 1024 * 8)
+            .setState(IncomingFile.State.RECEIVED);
+    var file2 =
+        new IncomingFile("image/jpeg")
+            .setFileSize(1024 * 1024 * 128)
+            .setState(IncomingFile.State.DOWNLOADING);
+    result.files.add(file1);
+    result.files.add(file2);
+    return result;
+  }
+
   public static Packet<OutgoingFile> createOutgoingDebugModel() {
     Packet<OutgoingFile> result = new Packet<>();
     result.notificationToken =
@@ -88,6 +106,7 @@ public class Util {
     Endpoint endpoint = new Endpoint("R2D2", "Debug droid", false);
     endpoint.setState(Endpoint.State.CONNECTED);
     result.addEndpoint(endpoint);
+    result.incomingPackets.add(createIncomingDebugModel());
     result.outgoingPackets.add(createOutgoingDebugModel());
     return result;
   }
