@@ -94,10 +94,7 @@ import PhotosUI
     Main.shared.observePacket(packet, fromQr: false)
   }
 
-  /**
-   Load files, create packet in memory, push it to the database, and send the packet
-   to the remote endpoint.
-   */
+  /** Load files, create packet in memory, and send the packet to the remote endpoint. */
   func loadAndSend() async -> Error? {
     // Load photos and save them to local files
     loadingPhotos = true
