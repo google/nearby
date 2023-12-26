@@ -75,21 +75,16 @@ public final class IncomingFile extends File {
     this.mimeType = mimeType;
   }
 
-  public Task<Void> download() {
-    if (state != State.RECEIVED) {
+  public Task<Long> download() {
+    if (state != State.UPLOADED) {
       return Tasks.forResult(null);
     }
 
     setState(State.DOWNLOADING);
-
+    assert (localUri != null);
     return CloudStorage.shared
         .download(remotePath, localUri)
         .addOnSuccessListener(result -> setState(State.DOWNLOADED))
         .addOnFailureListener(error -> setState(State.RECEIVED));
-  }
-
-  public static IncomingFile[] decodeIncomingFiles(String json) {
-    Gson gson = new Gson();
-    return gson.fromJson(json, IncomingFile[].class);
   }
 }

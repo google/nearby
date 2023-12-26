@@ -65,13 +65,14 @@ public class Util {
     var file1 =
         new IncomingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 8)
-            .setState(IncomingFile.State.RECEIVED);
-    var file2 =
-        new IncomingFile("image/jpeg")
-            .setFileSize(1024 * 1024 * 128)
-            .setState(IncomingFile.State.DOWNLOADING);
+            .setState(IncomingFile.State.UPLOADED);
+    file1.remotePath = "DFC07862-2716-491E-A901-763BB0B7D370.jpeg";
+//    var file2 =
+//        new IncomingFile("image/jpeg")
+//            .setFileSize(1024 * 1024 * 128)
+//            .setState(IncomingFile.State.DOWNLOADING);
     packet.files.add(file1);
-    packet.files.add(file2);
+//    packet.files.add(file2);
     return packet;
   }
 

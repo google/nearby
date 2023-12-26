@@ -2,9 +2,10 @@ package com.google.hellocloud;
 
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import androidx.annotation.NonNull;
 import androidx.databinding.Bindable;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+
 import java.util.UUID;
 
 public final class OutgoingFile extends File {
@@ -56,9 +57,9 @@ public final class OutgoingFile extends File {
 
     int resource;
     switch (state) {
-      // LOADED: grey filled circle
-      // UPLOADED: green filled circle
-      // UPLOADING: spinner
+        // LOADED: grey filled circle
+        // UPLOADED: green filled circle
+        // UPLOADING: spinner
       case LOADED -> resource = R.drawable.loaded;
       case UPLOADED -> resource = R.drawable.uploaded_outgoing;
       default -> {
@@ -73,22 +74,23 @@ public final class OutgoingFile extends File {
     this.id = UUID.randomUUID();
   }
 
-  public Task<Void> upload() {
-    setState(State.UPLOADING);
+  public Task<Long> upload() {
+    if (state != State.LOADED) {
+      return Tasks.forResult(null);
+    }
+
     remotePath = UUID.randomUUID().toString().toUpperCase();
-    String ext = null;
     if ("image/jpeg".equals(mimeType)) {
-      ext = "jpeg";
+      remotePath += ".jpeg";
     } else if ("image/png".equals(mimeType)) {
-      ext = "png";
+      remotePath += ".png";
     }
 
-    if (ext != null) {
-      remotePath += "." + ext;
-    }
-
+    setState(State.UPLOADING);
+    assert (localUri != null);
     return CloudStorage.shared
         .upload(remotePath, localUri)
-        .addOnSuccessListener(result -> setState(State.UPLOADED), error -> setState(State.LOADED));
+        .addOnSuccessListener(result -> setState(State.UPLOADED))
+        .addOnFailureListener(error -> setState(State.LOADED));
   }
 }

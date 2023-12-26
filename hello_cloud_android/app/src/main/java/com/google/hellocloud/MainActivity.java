@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
     while (packetView != null) {
       binding = DataBindingUtil.getBinding(packetView);
       if (binding != null) {
-        binding.getModel().download();
+        binding.getModel().download(view.getContext());
         break;
       }
       packetView = getParentView(packetView);

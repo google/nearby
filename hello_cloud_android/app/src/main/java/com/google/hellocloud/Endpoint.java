@@ -227,40 +227,6 @@ public final class Endpoint extends BaseObservable {
     // TODO: observe packet
   }
 
-    //
-    //  public void downloadFiles() {
-    //    for (IncomingFile file : incomingFiles) {
-    //      if (file.getState() == IncomingFile.State.RECEIVED) {
-    //        Instant beginTime = Instant.now();
-    //        file.download()
-    //            .addOnSuccessListener(
-    //                result -> {
-    //                  Instant endTime = Instant.now();
-    //                  Duration duration = Duration.between(beginTime, endTime);
-    //                  TransferViewModel transfer =
-    //                      TransferViewModel.download(
-    //                          file.remotePath,
-    //                          TransferViewModel.Result.SUCCESS,
-    //                          file.fileSize,
-    //                          duration);
-    //                  addTransfer(transfer);
-    //                })
-    //            .addOnFailureListener(
-    //                error -> {
-    //                  logErrorAndToast(
-    //                      Main.shared.context,
-    //                      R.string.error_toast_cannot_download,
-    //                      error.getMessage());
-    //
-    //                  TransferViewModel transfer =
-    //                      TransferViewModel.download(
-    //                          file.remotePath, TransferViewModel.Result.FAILURE, file.fileSize,
-    // null);
-    //                  addTransfer(transfer);
-    //                });
-    //      }
-    //    }
-
   @NonNull
   @Override
   public String toString() {
