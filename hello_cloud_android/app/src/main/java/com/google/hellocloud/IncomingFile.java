@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 public final class IncomingFile extends File {
   enum State {
     RECEIVED,
+    UPLOADED,
     DOWNLOADING,
     DOWNLOADED
   }
@@ -53,9 +54,15 @@ public final class IncomingFile extends File {
       return null;
     }
 
+    // RECEIVED: grey dotted circle
+    // UPLOADED: grey filled circle
+    // DOWNLOADED: green filled circle
+    // DOWNLOADING: spinner
+
     int resource;
     switch (state) {
       case RECEIVED -> resource = R.drawable.received;
+      case UPLOADED -> resource = R.drawable.uploaded_incoming;
       case DOWNLOADED -> resource = R.drawable.downloaded;
       default -> {
         return null;

@@ -80,12 +80,12 @@ public class Util {
     result.notificationToken =
         "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL";
     result.receiver = "Luke Skywalker";
-    result.state = Packet.State.LOADED;
+    result.state = Packet.State.UPLOADING;
 
     var file1 =
         new OutgoingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 4)
-            .setState(OutgoingFile.State.LOADED);
+            .setState(OutgoingFile.State.UPLOADED);
     var file2 =
         new OutgoingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 4)
@@ -106,8 +106,8 @@ public class Util {
     Endpoint endpoint = new Endpoint("R2D2", "Debug droid", false);
     endpoint.setState(Endpoint.State.CONNECTED);
     result.addEndpoint(endpoint);
-    result.incomingPackets.add(createIncomingDebugModel());
-    result.outgoingPackets.add(createOutgoingDebugModel());
+    result.addIncomingPacket(createIncomingDebugModel());
+    result.addOutgoingPacket(createOutgoingDebugModel());
     return result;
   }
 }

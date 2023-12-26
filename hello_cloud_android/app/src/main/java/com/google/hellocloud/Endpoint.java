@@ -182,6 +182,8 @@ public final class Endpoint extends BaseObservable {
               .setFileSize(size)
               .setLocalUri(uri);
       packet.files.add(file);
+
+      Main.shared.addOutgoingPacket(packet);
     }
 
     // Serialize the packet. Note that we want the files to be serialized as a dictionary, with the
@@ -221,8 +223,8 @@ public final class Endpoint extends BaseObservable {
     Log.i(TAG, "Packet received: " + packet.id);
     packet.sender = name;
     packet.state = Packet.State.RECEIVED;
-    Main.shared.incomingPackets.add(packet);
-    // TODO: update view
+    Main.shared.addIncomingPacket(packet);
+
     // TODO: observe packet
   }
 

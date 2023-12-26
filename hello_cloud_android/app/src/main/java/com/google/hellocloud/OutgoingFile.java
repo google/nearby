@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public final class OutgoingFile extends File {
   enum State {
+    // On Android, we don't have PICKED and LOADING. I need to research on how to get rid of them
+    // on iOS.
     LOADED,
     UPLOADING,
     UPLOADED
@@ -54,8 +56,11 @@ public final class OutgoingFile extends File {
 
     int resource;
     switch (state) {
-      case LOADED -> resource = R.drawable.picked;
-      case UPLOADED -> resource = R.drawable.uploaded;
+      // LOADED: grey filled circle
+      // UPLOADED: green filled circle
+      // UPLOADING: spinner
+      case LOADED -> resource = R.drawable.loaded;
+      case UPLOADED -> resource = R.drawable.uploaded_outgoing;
       default -> {
         return null;
       }

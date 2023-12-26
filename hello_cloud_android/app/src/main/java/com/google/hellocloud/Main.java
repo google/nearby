@@ -25,7 +25,6 @@ import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 import com.google.gson.GsonBuilder;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +47,8 @@ public final class Main extends BaseObservable {
   private boolean isDiscovering;
   private boolean isAdvertising;
 
-  public ArrayList<Packet<OutgoingFile>> outgoingPackets = new ArrayList<>();
-  public ArrayList<Packet<IncomingFile>> incomingPackets = new ArrayList<>();
+  private ArrayList<Packet<OutgoingFile>> outgoingPackets = new ArrayList<>();
+  private ArrayList<Packet<IncomingFile>> incomingPackets = new ArrayList<>();
 
   @Bindable
   public String getLocalEndpointId() {
@@ -104,9 +103,29 @@ public final class Main extends BaseObservable {
     return endpoints;
   }
 
+  @Bindable
+  public List<Packet<OutgoingFile>> getOutgoingPackets() {
+    return outgoingPackets;
+  }
+
+  @Bindable
+  public List<Packet<IncomingFile>> getIncomingPackets() {
+    return incomingPackets;
+  }
+
   public void addEndpoint(Endpoint endpoint) {
     endpoints.add(endpoint);
     notifyPropertyChanged(BR.endpoints);
+  }
+
+  public void addOutgoingPacket(Packet<OutgoingFile> packet) {
+    outgoingPackets.add(packet);
+    notifyPropertyChanged(BR.outgoingPackets);
+  }
+
+  public void addIncomingPacket(Packet<IncomingFile> packet) {
+    incomingPackets.add(packet);
+    notifyPropertyChanged(BR.incomingPackets);
   }
 
   public Optional<Endpoint> getEndpoint(String endpointId) {
@@ -321,7 +340,7 @@ public final class Main extends BaseObservable {
                 if (p.getState() != Endpoint.State.SENDING) {
                   if (data.kind == DataWrapper.Kind.PACKET) {
                     p.onPacketReceived(data.packet);
-                  } else if (data.kind == DataWrapper.Kind.NOTIFICATION_TOKEN){
+                  } else if (data.kind == DataWrapper.Kind.NOTIFICATION_TOKEN) {
                     p.onNotificationTokenReceived(data.notificationToken);
                   }
                 }
