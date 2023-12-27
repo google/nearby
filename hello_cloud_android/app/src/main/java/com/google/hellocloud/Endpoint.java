@@ -111,7 +111,7 @@ public final class Endpoint extends BaseObservable {
 
     Packet<OutgoingFile> packet = new Packet<>();
     packet.notificationToken = notificationToken;
-    packet.state = Packet.State.LOADED;
+    packet.setState(Packet.State.LOADED);
     packet.receiver = name;
     packet.sender = Main.shared.getLocalEndpointName();
 
@@ -188,9 +188,10 @@ public final class Endpoint extends BaseObservable {
   public void onPacketReceived(Packet<IncomingFile> packet) {
     Log.i(TAG, "Packet received: " + packet.id);
     packet.sender = name;
-    packet.state = Packet.State.RECEIVED;
+    packet.setState(Packet.State.RECEIVED);
     Main.shared.addIncomingPacket(packet);
 
+    // TODO: move to main
     flashPacket(packet);
 
     CloudDatabase.shared.observePacket(packet.id, newPacket -> {
@@ -198,7 +199,6 @@ public final class Endpoint extends BaseObservable {
       flashPacket(packet);
       return null;
     });
-    // TODO: observe packet
   }
 
   @NonNull

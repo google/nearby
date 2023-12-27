@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ExpandableListView;
+import androidx.annotation.Nullable;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
@@ -23,6 +24,17 @@ public class IncomingPacketsFragment extends Fragment {
     FragmentIncomingPacketsBinding binding =
         DataBindingUtil.inflate(inflater, R.layout.fragment_incoming_packets, container, false);
     binding.setModel(Main.shared);
+    binding.refresher.setOnRefreshListener(
+        () -> {
+          binding.refresher.setRefreshing(false);
+          for (var packet : Main.shared.getIncomingPackets()) {
+            if (packet.getState() == Packet.State.UPLOADED) {
+              continue;
+            }
+            CloudDatabase.shared.pull(packet.id).addOnSuccessListener(packet::update);
+          }
+        });
+
     return binding.getRoot();
   }
 

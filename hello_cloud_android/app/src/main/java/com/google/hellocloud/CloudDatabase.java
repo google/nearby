@@ -4,6 +4,7 @@ import static com.google.hellocloud.Util.TAG;
 
 import android.util.Log;
 import androidx.annotation.NonNull;
+import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -152,5 +153,21 @@ public class CloudDatabase {
               @Override
               public void onCancelled(@NonNull DatabaseError error) {}
             });
+  }
+
+  Task<Packet<IncomingFile>> pull(UUID packetId) {
+    return databaseRef
+        .child("packets/" + packetId.toString().toUpperCase())
+        .get()
+        .continueWith(
+            (Continuation<DataSnapshot, Packet<IncomingFile>>)
+                task -> {
+                  if (!task.isSuccessful()) {
+                    Log.e(TAG, "Failed to read snapshot from database");
+                    return null;
+                  }
+                  DataSnapshot snapshot = task.getResult();
+                  return readPacket(snapshot);
+                });
   }
 }

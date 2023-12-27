@@ -60,19 +60,19 @@ public class Util {
   public static Packet<IncomingFile> createIncomingDebugModel() {
     Packet<IncomingFile> packet = new Packet<>();
     packet.sender = "Princess Leia";
-    packet.state = Packet.State.UPLOADED;
+    packet.setState(Packet.State.RECEIVED);
 
     var file1 =
         new IncomingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 8)
             .setState(IncomingFile.State.UPLOADED);
     file1.remotePath = "12A7368E-9BC6-4C49-B485-FC1E6B9F63EC.png";
-//    var file2 =
-//        new IncomingFile("image/jpeg")
-//            .setFileSize(1024 * 1024 * 128)
-//            .setState(IncomingFile.State.DOWNLOADING);
+    //    var file2 =
+    //        new IncomingFile("image/jpeg")
+    //            .setFileSize(1024 * 1024 * 128)
+    //            .setState(IncomingFile.State.DOWNLOADING);
     packet.files.add(file1);
-//    packet.files.add(file2);
+    //    packet.files.add(file2);
     return packet;
   }
 
@@ -81,7 +81,7 @@ public class Util {
     packet.notificationToken =
         "dUcjcnLNZ0hxuqWScq2UDh:APA91bGG8GTykBZgAkGA_xkBVnefjUb-PvR4mDNjwjv1Sv7EYGZc89zyfoy6Syz63cQ3OkQUH3D5Drf0674CZOumgBsgX8sR4JGQANWeFNjC_RScHWDyA8ZhYdzHdp7t6uQjqEhF_TEL";
     packet.receiver = "Luke Skywalker";
-    packet.state = Packet.State.LOADED;
+    packet.setState(Packet.State.LOADED);
 
     var file1 =
         new OutgoingFile("image/jpeg")

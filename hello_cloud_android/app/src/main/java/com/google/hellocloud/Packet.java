@@ -35,7 +35,7 @@ public class Packet<T extends File> extends BaseObservable {
   public ArrayList<T> files = new ArrayList<>();
   public String receiver;
   public String sender;
-  public transient State state;
+  private transient State state;
   public transient boolean highlighted = false;
 
   public Packet() {
@@ -46,8 +46,14 @@ public class Packet<T extends File> extends BaseObservable {
     this.id = uuid;
   }
 
+  @Bindable
+  public State getState() {
+    return state;
+  }
+
   public Packet<T> setState(State state) {
     this.state = state;
+    notifyPropertyChanged(BR.state);
     notifyPropertyChanged(BR.isBusy);
     notifyPropertyChanged(BR.outgoingStateIcon);
     notifyPropertyChanged(BR.incomingStateIcon);
@@ -128,6 +134,10 @@ public class Packet<T extends File> extends BaseObservable {
   }
 
   public void update(Packet<T> newPacket) {
+    if (newPacket == null) {
+      return;
+    }
+
     files.clear();
     for (T file : newPacket.files) {
       if (file instanceof IncomingFile) {

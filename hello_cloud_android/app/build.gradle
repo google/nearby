@@ -8,11 +8,11 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.google.hellocloud"
+        applicationId 'com.google.hellocloud'
         minSdk 33
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName '1.0'
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -36,13 +36,15 @@ dependencies {
     implementation 'androidx.databinding:databinding-runtime:8.2.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.activity:activity:1.8.2'
-    implementation "androidx.navigation:navigation-fragment:2.7.6"
+    implementation 'androidx.navigation:navigation-fragment:2.7.6'
     implementation 'androidx.navigation:navigation-ui:2.7.6'
     implementation 'com.google.android.gms:play-services-nearby:19.0.0'
     implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01'
+    
     implementation 'com.google.code.gson:gson:2.10.1'
 
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-storage")
-    implementation("com.google.firebase:firebase-database")
+    implementation(platform('com.google.firebase:firebase-bom:32.7.0'))
+    implementation('com.google.firebase:firebase-storage')
+    implementation('com.google.firebase:firebase-database')
 }
