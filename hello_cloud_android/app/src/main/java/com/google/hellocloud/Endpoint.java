@@ -18,6 +18,8 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public final class Endpoint extends BaseObservable {
   public enum State {
@@ -173,19 +175,28 @@ public final class Endpoint extends BaseObservable {
     this.notificationToken = token;
   }
 
+  private void flashPacket(Packet<IncomingFile> packet) {
+    packet.setHighlighted(true);
+    new Timer().schedule(new TimerTask() {
+      @Override
+      public void run() {
+        packet.setHighlighted(false);
+      }
+    }, 1500);
+  }
+
   public void onPacketReceived(Packet<IncomingFile> packet) {
     Log.i(TAG, "Packet received: " + packet.id);
     packet.sender = name;
     packet.state = Packet.State.RECEIVED;
     Main.shared.addIncomingPacket(packet);
 
+    flashPacket(packet);
+
     CloudDatabase.shared.observePacket(packet.id, newPacket -> {
       packet.update(newPacket);
+      flashPacket(packet);
       return null;
-      // Schedule:
-      // now: packet.highlighted = true;
-      // now + 1.5s: packet.highlighted = false;
-
     });
     // TODO: observe packet
   }

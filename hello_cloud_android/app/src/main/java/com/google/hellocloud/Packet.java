@@ -35,8 +35,8 @@ public class Packet<T extends File> extends BaseObservable {
   public ArrayList<T> files = new ArrayList<>();
   public String receiver;
   public String sender;
-
   public transient State state;
+  public transient boolean highlighted = false;
 
   public Packet() {
     id = UUID.randomUUID();
@@ -54,6 +54,16 @@ public class Packet<T extends File> extends BaseObservable {
     notifyPropertyChanged(BR.canUpload);
     notifyPropertyChanged(BR.canDownload);
     return this;
+  }
+
+  @Bindable
+  public boolean getHighlighted() {
+    return highlighted;
+  }
+
+  public void setHighlighted(boolean value) {
+    this.highlighted = value;
+    notifyPropertyChanged(BR.highlighted);
   }
 
   public String getOutgoingDescription() {
