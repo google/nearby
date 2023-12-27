@@ -95,17 +95,22 @@ import PhotosUI
     Main.shared = self
   }
 
+  func flashPacket(packet: Packet<IncomingFile>?, after delay: Double = 0.0) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+      packet?.highlighted = true
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay + 1.5) {
+      packet?.highlighted = false
+    }
+  }
+
+
   public func showInboxAndHilight(packet id: UUID) {
-    let highlight = incomingPackets.first(where: {$0.id == id})
+    let packet = incomingPackets.first(where: {$0.id == id})
     DispatchQueue.main.async {
       self.showingInbox = true
     }
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-      highlight?.highlighted = true
-    }
-    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-      highlight?.highlighted = false
-    }
+    flashPacket(packet: packet, after: 1.0)
   }
 
   func observePacket(_ packet: Packet<IncomingFile>, fromQr: Bool) {
@@ -114,13 +119,7 @@ import PhotosUI
         return
       }
       packet.update(from: newPacket)
-
-      DispatchQueue.main.async {
-        packet.highlighted = true
-      }
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-        packet.highlighted = false
-      }
+      flashPacket(packet: packet)
 
       if fromQr {
         self.showLocalNotification(for: packet)
