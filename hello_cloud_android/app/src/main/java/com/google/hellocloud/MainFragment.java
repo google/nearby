@@ -1,15 +1,11 @@
 package com.google.hellocloud;
 
-import static com.google.hellocloud.Util.TAG;
+import static com.google.hellocloud.Utils.TAG;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +21,6 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
-import java.util.ArrayList;
 import java.util.List;
 
 /** Fragment for the home screen */
@@ -111,6 +106,8 @@ public class MainFragment extends Fragment {
     Main.shared.context = getActivity().getApplicationContext();
     binding.setModel(model);
     getActivity().setTitle(R.string.app_name);
+
+    binding.sendQr.setOnClickListener(v -> pickMedia(null));
     return binding.getRoot();
   }
 
@@ -129,20 +126,22 @@ public class MainFragment extends Fragment {
     }
 
     if (endpointForPicker == null) {
-      Log.e(TAG, "onMediaPicked() called without setting endpointForPicker");
+      // Media was launched from the main fragment's send_qr button.
+      new SendQrDialogFragment(loadAndGenerateQr(uris)).show(getChildFragmentManager(), TAG);
       return;
     }
 
     Context context = getView().getContext();
     new AlertDialog.Builder(context)
         .setMessage("Do you want to send the claim token to the remote endpoint?")
-        .setPositiveButton(
-            "Yes",
-            (dialog, button) -> {
-              endpointForPicker.sendPacket(context, uris);
-            })
+        .setPositiveButton("Yes", (dialog, button) -> endpointForPicker.loadAndsend(context, uris))
         .setNegativeButton("No", null)
         .show();
+  }
+
+  private String loadAndGenerateQr(List<Uri> uris) {
+    Packet<OutgoingFile> packet = Utils.loadPhotos(getView().getContext(), uris, null, null);
+    return DataWrapper.getGson().toJson(packet);
   }
 
   @BindingAdapter("entries")

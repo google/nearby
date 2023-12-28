@@ -1,7 +1,7 @@
 package com.google.hellocloud;
 
-import static com.google.hellocloud.Util.TAG;
-import static com.google.hellocloud.Util.requestPermissionsIfNeeded;
+import static com.google.hellocloud.Utils.TAG;
+import static com.google.hellocloud.Utils.requestPermissionsIfNeeded;
 
 import android.Manifest;
 import android.os.Bundle;

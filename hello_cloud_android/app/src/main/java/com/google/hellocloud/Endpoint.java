@@ -1,7 +1,7 @@
 package com.google.hellocloud;
 
-import static com.google.hellocloud.Util.TAG;
-import static com.google.hellocloud.Util.logErrorAndToast;
+import static com.google.hellocloud.Utils.TAG;
+import static com.google.hellocloud.Utils.logErrorAndToast;
 
 import android.content.ContentResolver;
 import android.content.Context;
@@ -103,43 +103,13 @@ public final class Endpoint extends BaseObservable {
     }
     return Main.shared.context.getResources().getDrawable(resource, null);
   }
-  void sendPacket(Context context, List<Uri> uris) {
+  void loadAndsend(Context context, List<Uri> uris) {
     if (getState() != Endpoint.State.CONNECTED) {
       return;
     }
     setState(Endpoint.State.SENDING);
 
-    Packet<OutgoingFile> packet = new Packet<>();
-    packet.notificationToken = notificationToken;
-    packet.setState(Packet.State.LOADED);
-    packet.receiver = name;
-    packet.sender = Main.shared.getLocalEndpointName();
-
-    ContentResolver resolver = context.getContentResolver();
-
-    for (Uri uri : uris) {
-      String mimeType = resolver.getType(uri);
-
-      // Get the file size.
-      Cursor cursor =
-          resolver.query(uri, new String[] {MediaStore.MediaColumns.SIZE}, null, null, null);
-
-      assert cursor != null;
-      int sizeIndex = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE);
-      cursor.moveToFirst();
-
-      int size = cursor.getInt(sizeIndex);
-      cursor.close();
-
-      // Construct a file to be added to the packet
-      OutgoingFile file =
-          new OutgoingFile(mimeType)
-              .setState(OutgoingFile.State.LOADED)
-              .setFileSize(size)
-              .setLocalUri(uri);
-      packet.files.add(file);
-    }
-
+    Packet<OutgoingFile> packet = Utils.loadPhotos(context, uris, name, notificationToken);
     // Serialize the packet. Note that we want the files to be serialized as a dictionary, with the
     // id being the key, for easy indexing in Firebase database
     DataWrapper<OutgoingFile> wrapper = new DataWrapper<>(packet);

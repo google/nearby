@@ -1,9 +1,9 @@
 package com.google.hellocloud;
 
 import static com.google.android.gms.nearby.connection.BandwidthInfo.Quality;
-import static com.google.hellocloud.Util.TAG;
-import static com.google.hellocloud.Util.getDefaultDeviceName;
-import static com.google.hellocloud.Util.logErrorAndToast;
+import static com.google.hellocloud.Utils.TAG;
+import static com.google.hellocloud.Utils.getDefaultDeviceName;
+import static com.google.hellocloud.Utils.logErrorAndToast;
 
 import android.content.Context;
 import android.util.Log;
@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class Main extends BaseObservable {
-  public static Main shared = Util.createDebugMain();
+  public static Main shared = Utils.createDebugMain();
 
   public Context context;
 

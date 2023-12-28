@@ -3,8 +3,12 @@ package com.google.hellocloud;
 import static androidx.core.content.PermissionChecker.PERMISSION_DENIED;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
@@ -12,7 +16,7 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Util {
+public class Utils {
   static final String TAG = "HelloCloud";
 
   static String getDefaultDeviceName() {
@@ -110,5 +114,40 @@ public class Util {
     main.addIncomingPacket(createIncomingDebugModel());
     main.addOutgoingPacket(createOutgoingDebugModel());
     return main;
+  }
+
+  public static Packet<OutgoingFile> loadPhotos(
+      Context context, List<Uri> uris, String receiver, String notificationToken) {
+    Packet<OutgoingFile> packet = new Packet<>();
+    packet.notificationToken = notificationToken;
+    packet.setState(Packet.State.LOADED);
+    packet.receiver = receiver;
+    packet.sender = Main.shared.getLocalEndpointName();
+
+    ContentResolver resolver = context.getContentResolver();
+
+    for (Uri uri : uris) {
+      String mimeType = resolver.getType(uri);
+
+      // Get the file size.
+      Cursor cursor =
+          resolver.query(uri, new String[] {MediaStore.MediaColumns.SIZE}, null, null, null);
+
+      assert cursor != null;
+      int sizeIndex = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE);
+      cursor.moveToFirst();
+
+      int size = cursor.getInt(sizeIndex);
+      cursor.close();
+
+      // Construct a file to be added to the packet
+      OutgoingFile file =
+          new OutgoingFile(mimeType)
+              .setState(OutgoingFile.State.LOADED)
+              .setFileSize(size)
+              .setLocalUri(uri);
+      packet.files.add(file);
+    }
+    return packet;
   }
 }

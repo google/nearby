@@ -1,6 +1,6 @@
 package com.google.hellocloud;
 
-import static com.google.hellocloud.Util.TAG;
+import static com.google.hellocloud.Utils.TAG;
 
 import android.util.Log;
 import androidx.annotation.NonNull;

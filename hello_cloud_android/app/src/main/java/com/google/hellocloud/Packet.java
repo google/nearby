@@ -1,7 +1,7 @@
 package com.google.hellocloud;
 
-import static com.google.hellocloud.Util.TAG;
-import static com.google.hellocloud.Util.logErrorAndToast;
+import static com.google.hellocloud.Utils.TAG;
+import static com.google.hellocloud.Utils.logErrorAndToast;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
