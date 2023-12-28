@@ -21,6 +21,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
+import com.google.zxing.integration.android.IntentIntegrator;
 import java.util.List;
 
 /** Fragment for the home screen */
@@ -108,6 +109,7 @@ public class MainFragment extends Fragment {
     getActivity().setTitle(R.string.app_name);
 
     binding.sendQr.setOnClickListener(v -> pickMedia(null));
+    binding.receiveQr.setOnClickListener(v -> scanQrCode());
     return binding.getRoot();
   }
 
@@ -142,6 +144,28 @@ public class MainFragment extends Fragment {
   private String loadAndGenerateQr(List<Uri> uris) {
     Packet<OutgoingFile> packet = Utils.loadPhotos(getView().getContext(), uris, null, null);
     return DataWrapper.getGson().toJson(packet);
+  }
+
+  private void scanQrCode() {
+    new IntentIntegrator(getActivity())
+        .setPrompt("Ask the sender to tap on \"Send QR\" button")
+        .setOrientationLocked(false)
+        .initiateScan();
+  }
+
+  public void onQrCodeReceived(String qrString) {
+    System.out.println(qrString);
+    Packet<IncomingFile> packet = DataWrapper.getGson().fromJson(qrString, Packet.class);
+    // The QR code wouldn't include state information. So let's append it.
+    packet.setState(Packet.State.RECEIVED);
+    for (IncomingFile file : packet.files) {
+      file.setState(IncomingFile.State.RECEIVED);
+    }
+    new AlertDialog.Builder(getView().getContext())
+        .setMessage("You have received a packet from " + packet.sender)
+        .setNeutralButton("OK", null)
+        .show();
+    model.addIncomingPacket(packet);
   }
 
   @BindingAdapter("entries")
