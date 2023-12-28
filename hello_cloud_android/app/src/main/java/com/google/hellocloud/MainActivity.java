@@ -4,19 +4,24 @@ import static com.google.hellocloud.Utils.TAG;
 import static com.google.hellocloud.Utils.requestPermissionsIfNeeded;
 
 import android.Manifest;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import com.google.hellocloud.databinding.ItemIncomingPacketBinding;
 import com.google.hellocloud.databinding.ItemOutgoingPacketBinding;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 public class MainActivity extends AppCompatActivity {
   private static final String[] REQUIRED_PERMISSIONS_FOR_APP =
@@ -54,6 +59,29 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     hideBackButton();
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    Fragment navHostFragment =
+        getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
+    MainFragment mainFragment =
+        navHostFragment == null
+            ? null
+            : (MainFragment) navHostFragment.getChildFragmentManager().getFragments().get(0);
+    if (mainFragment == null) {
+      return;
+    }
+
+    IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+    if (intentResult != null) {
+      String content = intentResult.getContents();
+      if (content != null) {
+        mainFragment.onQrCodeReceived(content);
+        return;
+      }
+      super.onActivityResult(requestCode, resultCode, data);
+    }
   }
 
   @Override
