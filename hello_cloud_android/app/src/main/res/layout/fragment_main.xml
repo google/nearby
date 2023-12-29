@@ -142,6 +142,7 @@
                 android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
                 android:onClick="showIncomingPackets"
+                app:icon="@drawable/inbox"
                 android:text="Inbox" />
 
             <Button
@@ -150,6 +151,7 @@
                 android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
                 android:onClick="showOutgoingPackets"
+                app:icon="@drawable/outbox"
                 android:text="Outbox" />
         </LinearLayout>
 
@@ -164,7 +166,7 @@
                 android:layout_height="match_parent"
                 android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
-                android:onClick="showIncomingPackets"
+                app:icon="@drawable/send_qr"
                 android:text="Send QR" />
 
             <Button
@@ -173,7 +175,7 @@
                 android:layout_height="match_parent"
                 android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
-                android:onClick="showOutgoingPackets"
+                app:icon="@drawable/receive_qr"
                 android:text="Receive QR" />
         </LinearLayout>
 
