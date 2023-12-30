@@ -145,28 +145,16 @@ public final class Endpoint extends BaseObservable {
     this.notificationToken = token;
   }
 
-  private void flashPacket(Packet<IncomingFile> packet) {
-    packet.setHighlighted(true);
-    new Timer().schedule(new TimerTask() {
-      @Override
-      public void run() {
-        packet.setHighlighted(false);
-      }
-    }, 1500);
-  }
-
   public void onPacketReceived(Packet<IncomingFile> packet) {
     Log.i(TAG, "Packet received: " + packet.id);
     packet.sender = name;
     packet.setState(Packet.State.RECEIVED);
     Main.shared.addIncomingPacket(packet);
-
-    // TODO: move to main
-    flashPacket(packet);
+    Main.shared.flashPacket(packet);
 
     CloudDatabase.shared.observePacket(packet.id, newPacket -> {
       packet.update(newPacket);
-      flashPacket(packet);
+      Main.shared.flashPacket(packet);
       return null;
     });
   }

@@ -23,6 +23,8 @@ import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
 import com.google.zxing.integration.android.IntentIntegrator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /** Fragment for the home screen */
 public class MainFragment extends Fragment {
@@ -143,6 +145,7 @@ public class MainFragment extends Fragment {
 
   private String loadAndGenerateQr(List<Uri> uris) {
     Packet<OutgoingFile> packet = Utils.loadPhotos(getView().getContext(), uris, null, null);
+    Main.shared.addOutgoingPacket(packet);
     return DataWrapper.getGson().toJson(packet);
   }
 
@@ -154,7 +157,6 @@ public class MainFragment extends Fragment {
   }
 
   public void onQrCodeReceived(String qrString) {
-    System.out.println(qrString);
     Packet<IncomingFile> packet = DataWrapper.getGson().fromJson(qrString, Packet.class);
     // The QR code wouldn't include state information. So let's append it.
     packet.setState(Packet.State.RECEIVED);
@@ -166,6 +168,13 @@ public class MainFragment extends Fragment {
         .setNeutralButton("OK", null)
         .show();
     model.addIncomingPacket(packet);
+    Main.shared.flashPacket(packet);
+
+    CloudDatabase.shared.observePacket(packet.id, newPacket -> {
+      packet.update(newPacket);
+      Main.shared.flashPacket(packet);
+      return null;
+    });
   }
 
   @BindingAdapter("entries")

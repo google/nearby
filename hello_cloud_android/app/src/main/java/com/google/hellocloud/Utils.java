@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Utils {
   static final String TAG = "HelloCloud";
@@ -63,6 +64,7 @@ public class Utils {
 
   public static Packet<IncomingFile> createIncomingDebugModel() {
     Packet<IncomingFile> packet = new Packet<>();
+    packet.id = UUID.fromString("117442B8-CD26-4E13-B233-3678C339BDBD");
     packet.sender = "Princess Leia";
     packet.setState(Packet.State.RECEIVED);
 

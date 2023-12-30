@@ -24,16 +24,20 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.android.gms.tasks.OnSuccessListener;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public final class Main extends BaseObservable {
   public static Main shared = Utils.createDebugMain();
 
   public Context context;
+  public String notificationToken;
 
   private static final Strategy CURRENT_STRATEGY = Strategy.P2P_CLUSTER;
   private static final String CONNECTION_SERVICE_ID =
@@ -129,6 +133,16 @@ public final class Main extends BaseObservable {
 
   public Optional<Endpoint> getEndpoint(String endpointId) {
     return endpoints.stream().filter(e -> Objects.equals(e.id, endpointId)).findFirst();
+  }
+
+  public void flashPacket(Packet<IncomingFile> packet) {
+    packet.setHighlighted(true);
+    new Timer().schedule(new TimerTask() {
+      @Override
+      public void run() {
+        packet.setHighlighted(false);
+      }
+    }, 1500);
   }
 
   void startAdvertising() {
@@ -241,6 +255,19 @@ public final class Main extends BaseObservable {
           // Accept automatically.
           Nearby.getConnectionsClient(shared.context)
               .acceptConnection(endpointId, payloadCallback)
+              .addOnSuccessListener(
+                  unused -> {
+                    if (notificationToken != null) {
+                      DataWrapper<OutgoingFile> wrapper = new DataWrapper<>(notificationToken);
+                      String json = DataWrapper.getGson().toJson(wrapper);
+
+                      Payload payload = Payload.fromBytes(json.getBytes(StandardCharsets.UTF_8));
+                      Nearby.getConnectionsClient(Main.shared.context)
+                          .sendPayload(endpointId, payload);
+                    } else {
+                      Log.w(TAG, "Notification token not set.");
+                    }
+                  })
               .addOnFailureListener(
                   e ->
                       logErrorAndToast(

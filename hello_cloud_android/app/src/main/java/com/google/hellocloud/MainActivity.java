@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.hellocloud.databinding.ItemIncomingPacketBinding;
 import com.google.hellocloud.databinding.ItemOutgoingPacketBinding;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -33,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
         Manifest.permission.ACCESS_WIFI_STATE,
         Manifest.permission.CHANGE_WIFI_STATE,
         Manifest.permission.NEARBY_WIFI_DEVICES,
+        Manifest.permission.POST_NOTIFICATIONS,
       };
 
   private static final int REQUIRE_PERMISSIONS_FOR_APP_REQUEST_CODE = 0;
@@ -59,6 +61,17 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     hideBackButton();
+
+    FirebaseMessaging.getInstance()
+        .getToken()
+        .addOnCompleteListener(
+            task -> {
+              if (!task.isSuccessful()) {
+                Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                return;
+              }
+              Main.shared.notificationToken = task.getResult();
+            });
   }
 
   @Override
