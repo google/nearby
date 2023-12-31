@@ -2,8 +2,11 @@ package com.google.hellocloud;
 
 import static com.google.hellocloud.Utils.TAG;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -16,6 +19,7 @@ import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.NotificationCompat;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
@@ -152,6 +156,32 @@ public class MainFragment extends Fragment {
         .initiateScan();
   }
 
+  private void showLocalNotification(Packet packet) {
+    String title = "You've got files!";
+    String body = "Your files from " + packet.sender + " are ready for downloading";
+
+    Context context = getContext();
+    Intent intent = new Intent(context, MainActivity.class);
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    intent.putExtra("packetId", packet.id);
+
+    PendingIntent pendingIntent =
+        PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_MUTABLE);
+    NotificationCompat.Builder builder =
+        new NotificationCompat.Builder(context, "DEFAULT_CHANNEL")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setColor(getResources().getColor(R.color.packet_highlight))
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_MAX);
+
+    NotificationManager notificationManager =
+        (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+    notificationManager.notify(0, builder.build());
+  }
+
   public void onQrCodeReceived(String qrString) {
     Packet<IncomingFile> packet = DataWrapper.getGson().fromJson(qrString, Packet.class);
     // The QR code wouldn't include state information. So let's append it.
@@ -166,11 +196,14 @@ public class MainFragment extends Fragment {
     model.addIncomingPacket(packet);
     Main.shared.flashPacket(packet);
 
-    CloudDatabase.shared.observePacket(packet.id, newPacket -> {
-      packet.update(newPacket);
-      Main.shared.flashPacket(packet);
-      return null;
-    });
+    CloudDatabase.shared.observePacket(
+        packet.id,
+        newPacket -> {
+          packet.update(newPacket);
+          Main.shared.flashPacket(packet);
+          showLocalNotification(packet);
+          return null;
+        });
   }
 
   @BindingAdapter("entries")

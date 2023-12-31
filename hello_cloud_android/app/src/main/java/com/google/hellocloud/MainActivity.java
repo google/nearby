@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
             this.getSupportFragmentManager().findFragmentById(R.id.fragmentContainerView);
     NavController navController = navHostFragment.getNavController();
     Bundle bundle = new Bundle();
-    navController.navigate(R.id.action_mainFragment_to_incomingPacketsFragment, bundle);
+    navController.navigate(R.id.incomingPacketsFragment, bundle);
   }
 
   public void showOutgoingPackets(View view) {
@@ -209,18 +209,4 @@ public class MainActivity extends AppCompatActivity {
     }
     Log.e(TAG, "Download button clicked. But packet view was not found.");
   }
-
-  //  public void onPacketUploaded(UUID id) {
-  //    NotificationCompat.Builder builder =
-  //        new NotificationCompat.Builder(this, "DEFAULT_CHANNEL")
-  //            .setSmallIcon(R.drawable.ic_launcher_foreground)
-  //            .setContentTitle("You've got files!")
-  //            .setContentText("Your files from are ready for downloading")
-  //            .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-  //
-  //    NotificationManager mNotificationManager =
-  //        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-  //    mNotificationManager.notify(0, builder.build());
-  //    Main.shared.onPacketUploaded(id);
-  //  }
 }
