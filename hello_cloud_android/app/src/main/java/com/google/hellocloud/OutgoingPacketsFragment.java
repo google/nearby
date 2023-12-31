@@ -27,11 +27,11 @@ public class OutgoingPacketsFragment extends Fragment {
   }
 
   @BindingAdapter("entries")
-  public static void setEntries(View view, List<Packet<OutgoingFile>> files) {
+  public static void setEntries(View view, List<Packet<OutgoingFile>> packets) {
     Context context = view.getContext();
     PacketListAdapter<OutgoingFile> adapter =
         new PacketListAdapter<>(
-            context, files, R.layout.item_outgoing_packet, R.layout.item_outgoing_file);
+            context, packets, R.layout.item_outgoing_packet, R.layout.item_outgoing_file);
     ExpandableListView listView = (ExpandableListView) view;
     listView.setAdapter(adapter);
     for (int i = 0; i < adapter.getGroupCount(); i++) {

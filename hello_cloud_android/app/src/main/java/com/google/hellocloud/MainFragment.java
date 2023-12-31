@@ -23,17 +23,13 @@ import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
 import com.google.zxing.integration.android.IntentIntegrator;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /** Fragment for the home screen */
 public class MainFragment extends Fragment {
   static class EndpointAdapter extends ArrayAdapter<Endpoint> {
-    private final Context context;
 
     public EndpointAdapter(Context context, List<Endpoint> endpoints) {
       super(context, R.layout.item_endpoint, endpoints);
-      this.context = context;
     }
 
     @Override
@@ -42,7 +38,7 @@ public class MainFragment extends Fragment {
       View view;
 
       if (convertView == null) {
-        LayoutInflater inflater = LayoutInflater.from(context);
+        LayoutInflater inflater = LayoutInflater.from(getContext());
         binding = DataBindingUtil.inflate(inflater, R.layout.item_endpoint, parent, false);
         view = binding.getRoot();
       } else {

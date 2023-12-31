@@ -138,11 +138,13 @@ public class Packet<T extends File> extends BaseObservable {
       return;
     }
 
-    files.clear();
-    for (T file : newPacket.files) {
-      if (file instanceof IncomingFile) {
-        ((IncomingFile) file).setState(IncomingFile.State.UPLOADED);
-        files.add(file);
+    for (T newFile : newPacket.files) {
+      if (newFile instanceof IncomingFile) {
+        var maybeOldFile = files.stream().filter(f -> f.id.equals(newFile.id)).findFirst();
+        maybeOldFile.ifPresent(oldFile -> {
+          ((IncomingFile)oldFile).remotePath = ((IncomingFile) newFile).remotePath;
+          ((IncomingFile)oldFile).setState(IncomingFile.State.UPLOADED);
+        });
       }
     }
     setState(State.UPLOADED);

@@ -29,7 +29,6 @@ public final class IncomingFile extends File {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
-    //    notifyPropertyChanged(BR.canDownload);
     return this;
   }
 

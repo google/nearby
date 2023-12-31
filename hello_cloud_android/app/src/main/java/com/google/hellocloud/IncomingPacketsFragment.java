@@ -39,11 +39,11 @@ public class IncomingPacketsFragment extends Fragment {
   }
 
   @BindingAdapter("entries")
-  public static void setEntries(View view, List<Packet<IncomingFile>> files) {
+  public static void setEntries(View view, List<Packet<IncomingFile>> packets) {
     Context context = view.getContext();
     PacketListAdapter<IncomingFile> adapter =
         new PacketListAdapter<>(
-            context, files, R.layout.item_incoming_packet, R.layout.item_incoming_file);
+            context, packets, R.layout.item_incoming_packet, R.layout.item_incoming_file);
     ExpandableListView listView = (ExpandableListView) view;
     listView.setAdapter(adapter);
     for (int i = 0; i < adapter.getGroupCount(); i++) {
