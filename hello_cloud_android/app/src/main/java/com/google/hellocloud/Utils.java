@@ -21,12 +21,13 @@ public class Utils {
   static final String TAG = "HelloCloud";
 
   static String getDefaultDeviceName() {
+    return "Leia";
     // Limit the length to 16 characters. I *think* the limit is 17.
-    String name = Build.MODEL;
-    if (name.length() >= 16) {
-      name = name.substring(0, 15);
-    }
-    return name;
+//    String name = Build.MODEL;
+//    if (name.length() >= 16) {
+//      name = name.substring(0, 15);
+//    }
+//    return name;
   }
 
   static void logErrorAndToast(Context context, int stringId, Object... objects) {

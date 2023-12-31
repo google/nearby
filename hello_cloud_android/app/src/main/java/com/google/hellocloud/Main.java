@@ -24,7 +24,6 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
-import com.google.android.gms.tasks.OnSuccessListener;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 public final class Main extends BaseObservable {
   public static Main shared = Utils.createDebugMain();
@@ -135,14 +135,54 @@ public final class Main extends BaseObservable {
     return endpoints.stream().filter(e -> Objects.equals(e.id, endpointId)).findFirst();
   }
 
+  public void flashPacket(UUID packetId) {
+    flashPacket(packetId, 0);
+  }
+
+  public void flashPacket(UUID packetId, long delay) {
+    Optional<Packet<IncomingFile>> maybePacket =
+        incomingPackets.stream().filter(packet -> packet.id.equals(packetId)).findFirst();
+    maybePacket.ifPresent(packet -> flashPacket(packet, delay));
+  }
+
   public void flashPacket(Packet<IncomingFile> packet) {
-    packet.setHighlighted(true);
-    new Timer().schedule(new TimerTask() {
-      @Override
-      public void run() {
-        packet.setHighlighted(false);
-      }
-    }, 1500);
+    flashPacket(packet, 0);
+  }
+
+  public void flashPacket(Packet<IncomingFile> packet, long delay) {
+    if (delay == 0) {
+      packet.setHighlighted(true);
+    } else {
+      new Timer()
+          .schedule(
+              new TimerTask() {
+                @Override
+                public void run() {
+                  packet.setHighlighted(true);
+                }
+              },
+              delay);
+    }
+
+    new Timer()
+        .schedule(
+            new TimerTask() {
+              @Override
+              public void run() {
+                packet.setHighlighted(false);
+              }
+            },
+            delay + 1500);
+  }
+
+  public void onPacketUploaded(UUID packetId) {
+    Optional<Packet<IncomingFile>> maybePacket =
+        incomingPackets.stream().filter(packet -> packet.id.equals(packetId)).findFirst();
+    maybePacket.ifPresent(
+        packet -> {
+          CloudDatabase.shared.pull(packet.id).addOnSuccessListener(packet::update);
+          flashPacket(packet, 500);
+        });
   }
 
   void startAdvertising() {
