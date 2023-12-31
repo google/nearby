@@ -27,6 +27,7 @@ import com.google.hellocloud.databinding.FragmentMainBinding;
 import com.google.hellocloud.databinding.ItemEndpointBinding;
 import com.google.zxing.integration.android.IntentIntegrator;
 import java.util.List;
+import java.util.Random;
 
 /** Fragment for the home screen */
 public class MainFragment extends Fragment {
@@ -179,7 +180,7 @@ public class MainFragment extends Fragment {
 
     NotificationManager notificationManager =
         (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-    notificationManager.notify(0, builder.build());
+    notificationManager.notify(new Random().nextInt(), builder.build());
   }
 
   public void onQrCodeReceived(String qrString) {

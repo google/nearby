@@ -7,12 +7,12 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import java.util.Random;
 
 public class MessagingService extends FirebaseMessagingService {
   @Override
@@ -40,19 +40,21 @@ public class MessagingService extends FirebaseMessagingService {
       intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
       intent.putExtra("packetId", packetId);
 
-      PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE );
+      PendingIntent pendingIntent =
+          PendingIntent.getActivity(
+              this, 0, intent, PendingIntent.FLAG_MUTABLE | FLAG_UPDATE_CURRENT);
       NotificationCompat.Builder builder =
-              new NotificationCompat.Builder(this, "DEFAULT_CHANNEL")
-                      .setSmallIcon(R.drawable.ic_launcher_foreground)
-                      .setContentTitle(title)
-                      .setContentText(body)
-                      .setColor(getResources().getColor(R.color.packet_highlight))
-                      .setContentIntent(pendingIntent)
-                      .setPriority(NotificationCompat.PRIORITY_MAX);
+          new NotificationCompat.Builder(this, "DEFAULT_CHANNEL")
+              .setSmallIcon(R.drawable.ic_launcher_foreground)
+              .setContentTitle(title)
+              .setContentText(body)
+              .setColor(getResources().getColor(R.color.packet_highlight))
+              .setContentIntent(pendingIntent)
+              .setPriority(NotificationCompat.PRIORITY_MAX);
 
       NotificationManager notificationManager =
-              (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-      notificationManager.notify(0, builder.build());
+          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+      notificationManager.notify(new Random().nextInt(), builder.build());
     }
   }
 }

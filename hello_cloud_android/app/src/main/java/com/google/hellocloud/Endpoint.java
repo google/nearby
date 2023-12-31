@@ -3,12 +3,9 @@ package com.google.hellocloud;
 import static com.google.hellocloud.Utils.TAG;
 import static com.google.hellocloud.Utils.logErrorAndToast;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.databinding.BaseObservable;
@@ -18,8 +15,6 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public final class Endpoint extends BaseObservable {
   public enum State {
@@ -103,6 +98,7 @@ public final class Endpoint extends BaseObservable {
     }
     return Main.shared.context.getResources().getDrawable(resource, null);
   }
+
   void loadAndsend(Context context, List<Uri> uris) {
     if (getState() != Endpoint.State.CONNECTED) {
       return;
@@ -152,11 +148,13 @@ public final class Endpoint extends BaseObservable {
     Main.shared.addIncomingPacket(packet);
     Main.shared.flashPacket(packet);
 
-    CloudDatabase.shared.observePacket(packet.id, newPacket -> {
-      packet.update(newPacket);
-      Main.shared.flashPacket(packet);
-      return null;
-    });
+    CloudDatabase.shared.observePacket(
+        packet.id,
+        newPacket -> {
+          packet.update(newPacket);
+          Main.shared.flashPacket(packet);
+          return null;
+        });
   }
 
   @NonNull
