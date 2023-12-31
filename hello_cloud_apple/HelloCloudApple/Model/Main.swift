@@ -110,7 +110,7 @@ import PhotosUI
     DispatchQueue.main.async {
       self.showingInbox = true
     }
-    flashPacket(packet: packet, after: 1.0)
+    flashPacket(packet: packet, after: 0.5)
   }
 
   func observePacket(_ packet: Packet<IncomingFile>, fromQr: Bool) {
