@@ -1,14 +1,17 @@
 package com.google.hellocloud;
 
+import static com.google.hellocloud.Utils.TAG;
+
 import android.content.Context;
+import android.text.SpannableString;
+import android.text.style.UnderlineSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
-
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
-
+import com.google.hellocloud.databinding.ItemIncomingFileBinding;
 import java.util.List;
 
 class PacketListAdapter<T extends File> extends BaseExpandableListAdapter {
@@ -16,10 +19,10 @@ class PacketListAdapter<T extends File> extends BaseExpandableListAdapter {
   private final List<Packet<T>> packets;
 
   private final int packetLayoutId;
-  private  final int fileLayoutId;
+  private final int fileLayoutId;
 
   public PacketListAdapter(
-          Context context, List<Packet<T>> packets, int packetLayoutId, int fileLayoutId) {
+      Context context, List<Packet<T>> packets, int packetLayoutId, int fileLayoutId) {
     this.context = context;
     this.packets = packets;
     this.packetLayoutId = packetLayoutId;
@@ -60,7 +63,7 @@ class PacketListAdapter<T extends File> extends BaseExpandableListAdapter {
 
   @Override
   public View getGroupView(
-          int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
+      int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
     View view;
     ViewDataBinding binding;
     if (convertView == null) {
@@ -78,11 +81,11 @@ class PacketListAdapter<T extends File> extends BaseExpandableListAdapter {
 
   @Override
   public View getChildView(
-          int groupPosition,
-          final int childPosition,
-          boolean isLastChild,
-          View convertView,
-          ViewGroup parent) {
+      int groupPosition,
+      final int childPosition,
+      boolean isLastChild,
+      View convertView,
+      ViewGroup parent) {
     View view;
     ViewDataBinding binding;
     if (convertView == null) {
@@ -95,6 +98,20 @@ class PacketListAdapter<T extends File> extends BaseExpandableListAdapter {
     }
     final T file = (T) getChild(groupPosition, childPosition);
     binding.setVariable(BR.model, file);
+
+    if (file instanceof IncomingFile) {
+      ItemIncomingFileBinding incomingFileBinding = (ItemIncomingFileBinding) binding;
+      SpannableString content = new SpannableString(file.toString());
+      content.setSpan(new UnderlineSpan(), 0, content.length(), 0);
+      incomingFileBinding.link.setText(content);
+//
+//      view.setOnClickListener(
+//          v -> {
+//            v.
+//            System.out.println(((IncomingFile) file).getLocalUri());
+//            new ImageViewDialogFragment(((IncomingFile) file).getLocalUri()).show(getChildFragmentManager(), TAG);
+//          });
+    }
     return view;
   }
 

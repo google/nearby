@@ -5,7 +5,6 @@ import android.net.Uri;
 import androidx.databinding.Bindable;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
-import com.google.gson.Gson;
 
 public final class IncomingFile extends File {
   enum State {
@@ -29,6 +28,7 @@ public final class IncomingFile extends File {
     state = value;
     notifyPropertyChanged(BR.stateIcon);
     notifyPropertyChanged(BR.isBusy);
+    notifyPropertyChanged(BR.isDownloaded);
     return this;
   }
 
@@ -37,9 +37,18 @@ public final class IncomingFile extends File {
     return this;
   }
 
+  public Uri getLocalUri () {
+    return this.localUri;
+
+  }
   public IncomingFile setLocalUri(Uri uri) {
     this.localUri = uri;
     return this;
+  }
+
+  @Bindable
+  public boolean getIsDownloaded() {
+    return state == State.DOWNLOADED;
   }
 
   @Bindable

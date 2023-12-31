@@ -141,10 +141,11 @@ public class Packet<T extends File> extends BaseObservable {
     for (T newFile : newPacket.files) {
       if (newFile instanceof IncomingFile) {
         var maybeOldFile = files.stream().filter(f -> f.id.equals(newFile.id)).findFirst();
-        maybeOldFile.ifPresent(oldFile -> {
-          ((IncomingFile)oldFile).remotePath = ((IncomingFile) newFile).remotePath;
-          ((IncomingFile)oldFile).setState(IncomingFile.State.UPLOADED);
-        });
+        maybeOldFile.ifPresent(
+            oldFile -> {
+              ((IncomingFile) oldFile).remotePath = ((IncomingFile) newFile).remotePath;
+              ((IncomingFile) oldFile).setState(IncomingFile.State.UPLOADED);
+            });
       }
     }
     setState(State.UPLOADED);
@@ -234,18 +235,20 @@ public class Packet<T extends File> extends BaseObservable {
     Tasks.whenAllSuccess(tasks)
         .addOnCompleteListener(
             uploadTask -> {
-              CloudDatabase.shared
-                  .push((Packet<OutgoingFile>) this)
-                  .addOnCompleteListener(
-                      pushTask -> {
-                        if (pushTask.isSuccessful()) {
-                          Log.i(TAG, "Pushed packet " + id);
-                          state = State.UPLOADED;
-                        } else {
-                          Log.e(TAG, "Failed to push packet " + id);
-                          state = State.LOADED;
-                        }
-                      });
+              if (uploadTask.isSuccessful()) {
+                CloudDatabase.shared
+                    .push((Packet<OutgoingFile>) this)
+                    .addOnCompleteListener(
+                        pushTask -> {
+                          if (pushTask.isSuccessful()) {
+                            Log.i(TAG, "Pushed packet " + id);
+                            state = State.UPLOADED;
+                          } else {
+                            Log.e(TAG, "Failed to push packet " + id);
+                            state = State.LOADED;
+                          }
+                        });
+              }
             });
   }
 }

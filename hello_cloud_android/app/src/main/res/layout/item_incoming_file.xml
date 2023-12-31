@@ -13,20 +13,33 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="?android:attr/expandableListPreferredChildPaddingLeft"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:paddingStart="?android:attr/expandableListPreferredChildPaddingLeft">
 
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/photo" />
 
-        <TextView
+        <FrameLayout
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="10dp"
-            android:text="@{model.toString()}" />
+            android:layout_weight="1">
+
+            <TextView
+                android:id="@+id/link"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="showIncomingFile"
+                android:visibility="@{model.isDownloaded ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{model.toString()}"
+                android:visibility="@{model.isDownloaded ? android.view.View.INVISIBLE : android.view.View.VISIBLE}" />
+        </FrameLayout>
 
         <FrameLayout
             android:layout_width="wrap_content"

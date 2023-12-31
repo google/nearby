@@ -23,25 +23,25 @@ public class SendQrDialogFragment extends DialogFragment {
     this.qrString = qrString;
   }
 
-  @Override
-  public void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    if (getArguments() != null) {
-      qrString = getArguments().getString("qr_string");
-    }
-  }
+//  @Override
+//  public void onCreate(Bundle savedInstanceState) {
+//    super.onCreate(savedInstanceState);
+//    if (getArguments() != null) {
+//      qrString = getArguments().getString("qr_string");
+//    }
+//  }
 
   @Override
   public View onCreateView(
       LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
     var binding = DialogFragmentSendQrBinding.inflate(inflater, container, false);
 
-    MultiFormatWriter mWriter = new MultiFormatWriter();
+    MultiFormatWriter writer = new MultiFormatWriter();
     try {
-      BitMatrix mMatrix = mWriter.encode(qrString, BarcodeFormat.QR_CODE, 800, 800);
-      BarcodeEncoder mEncoder = new BarcodeEncoder();
-      Bitmap mBitmap = mEncoder.createBitmap(mMatrix); // creating bitmap of code
-      binding.qrCode.setImageBitmap(mBitmap); // Setting generated QR code to imageView
+      BitMatrix matrix = writer.encode(qrString, BarcodeFormat.QR_CODE, 800, 800);
+      BarcodeEncoder encoder = new BarcodeEncoder();
+      Bitmap bitmap = encoder.createBitmap(matrix); // creating bitmap of code
+      binding.qrCode.setImageBitmap(bitmap); // Setting generated QR code to imageView
     } catch (WriterException e) {
       Log.e(TAG, "Failed to encode QR code");
     }

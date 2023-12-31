@@ -7,7 +7,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
@@ -21,13 +20,13 @@ public class Utils {
   static final String TAG = "HelloCloud";
 
   static String getDefaultDeviceName() {
-    return "Leia";
+    return "Artoo";
     // Limit the length to 16 characters. I *think* the limit is 17.
-//    String name = Build.MODEL;
-//    if (name.length() >= 16) {
-//      name = name.substring(0, 15);
-//    }
-//    return name;
+    //    String name = Build.MODEL;
+    //    if (name.length() >= 16) {
+    //      name = name.substring(0, 15);
+    //    }
+    //    return name;
   }
 
   static void logErrorAndToast(Context context, int stringId, Object... objects) {
@@ -72,7 +71,8 @@ public class Utils {
     var file1 =
         new IncomingFile("image/jpeg")
             .setFileSize(1024 * 1024 * 8)
-            .setState(IncomingFile.State.UPLOADED);
+            .setState(IncomingFile.State.DOWNLOADED)
+            .setLocalUri(Uri.parse("content://media/external_primary/images/media/1000000491"));
     file1.remotePath = "12A7368E-9BC6-4C49-B485-FC1E6B9F63EC.png";
     //    var file2 =
     //        new IncomingFile("image/jpeg")

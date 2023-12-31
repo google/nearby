@@ -7,6 +7,7 @@ import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -20,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.hellocloud.databinding.ItemIncomingFileBinding;
 import com.google.hellocloud.databinding.ItemIncomingPacketBinding;
 import com.google.hellocloud.databinding.ItemOutgoingPacketBinding;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -180,6 +182,24 @@ public class MainActivity extends AppCompatActivity {
 
   private static View getParentView(View view) {
     return (View) view.getParent();
+  }
+
+  public void showIncomingFile(View view) {
+    ItemIncomingFileBinding binding;
+
+    View fileView = getParentView(view);
+    while (fileView != null) {
+      binding = DataBindingUtil.getBinding(fileView);
+      if (binding != null) {
+        Uri imageUri = binding.getModel().getLocalUri();
+
+        new ImageViewDialogFragment(imageUri).show(getSupportFragmentManager(), TAG);
+
+        break;
+      }
+      fileView = getParentView(fileView);
+    }
+    Log.e(TAG, "Incoming file clicked. But file view was not found.");
   }
 
   public void uploadPacket(View view) {
