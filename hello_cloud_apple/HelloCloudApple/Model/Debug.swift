@@ -18,7 +18,7 @@ import Foundation
 
 extension OutgoingFile {
   static func createDebugModel(
-    mimeType: String, fileSize: Int64, state: State = .picked) -> OutgoingFile {
+    mimeType: String, fileSize: Int64, state: State = .loaded) -> OutgoingFile {
       let result = OutgoingFile(id: UUID(), mimeType: mimeType)
       result.fileSize = fileSize
       result.state = state

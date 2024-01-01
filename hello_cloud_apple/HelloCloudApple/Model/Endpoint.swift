@@ -38,7 +38,6 @@ import PhotosUI
   let id: String
   let name: String
   @ObservationIgnored var isIncoming: Bool
-  var loadingPhotos: Bool = false
   var showingConfirmation: Bool = false
   var photosPicked: [PhotosPickerItem] = [] {
     didSet {
@@ -97,11 +96,7 @@ import PhotosUI
 
   /** Load files, create packet in memory, and send the packet to the remote endpoint. */
   func loadAndSend() async -> Error? {
-    // Load photos and save them to local files
-    loadingPhotos = true
-    defer {loadingPhotos = false}
-    
-    guard let packet = await Utils.loadPhotos(
+    guard let packet = Utils.loadPhotos(
       photos: photosPicked, receiver: name, notificationToken: notificationToken) else {
       return NSError(domain: "Loading", code: 1)
     }

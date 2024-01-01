@@ -32,18 +32,15 @@ struct OutgoingPacketsView: View {
                 ForEach(Array(packet.files)) { file in
                   HStack {
                     ZStack {
-                      // .picked: grey dotted circle
                       // .loaded: grey filled circle
                       // .uploaded: green filled circle
-                      // .uploading, .loading: spinner
-                      Image(systemName: "circle.dotted").foregroundColor(.gray)
-                        .opacity(file.state == .picked ? 1 : 0)
+                      // .uploading: spinner
                       Image(systemName: "circle.fill").foregroundColor(.gray)
                         .opacity(file.state == .loaded ? 1 : 0)
                       Image(systemName: "circle.fill").foregroundColor(.green)
                         .opacity(file.state == .uploaded ? 1 : 0)
                       ProgressView()
-                        .opacity(file.state == .loading || file.state == .uploading ? 1 : 0)
+                        .opacity(file.state == .uploading ? 1 : 0)
                     }.padding(2)
                     Label(String(describing: file.description), systemImage: "photo")
                   }

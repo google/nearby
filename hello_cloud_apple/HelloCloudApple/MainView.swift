@@ -78,13 +78,8 @@ struct MainView: View {
 
           HStack {
             PhotosPicker(selection: $model.photosPicked, matching: .images) {
-              ZStack{
-                Label("Send", systemImage: "qrcode")
-                  .frame(maxWidth: .infinity, maxHeight: .infinity)
-                  .opacity(model.loadingPhotos ? 0 : 1)
-                ProgressView()
-                  .opacity(model.loadingPhotos ? 1 :0)
-              }
+              Label("Send", systemImage: "qrcode")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .disabled(model.loadingPhotos)
             .buttonStyle(.bordered)
@@ -169,14 +164,9 @@ struct MainView: View {
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
                   PhotosPicker(selection: $endpoint.photosPicked, matching: .images) {
-                    ZStack {
-                      Image(systemName: "photo.badge.plus.fill")
-                        .opacity(endpoint.loadingPhotos ? 0 : 1)
-                      ProgressView()
-                        .opacity(endpoint.loadingPhotos ? 1 : 0)
-                    }
+                    Image(systemName: "photo.badge.plus.fill")
                   }
-                  .disabled(endpoint.loadingPhotos || endpoint.state != .connected)
+                  .disabled(endpoint.state != .connected)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
                   .alert("Do you want to send the claim token to the remote endpoint?",

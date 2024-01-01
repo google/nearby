@@ -23,95 +23,25 @@ class Utils {
   static func loadPhotos(
     photos photosPicked: [PhotosPickerItem],
     receiver: String?,
-    notificationToken: String?) async -> Packet<OutgoingFile>? {
-    let packet = Packet<OutgoingFile>(id: UUID())
-    packet.notificationToken = notificationToken
-    packet.state = .loading
-    packet.receiver = receiver
-    packet.sender = Main.shared.localEndpointName
+    notificationToken: String?) -> Packet<OutgoingFile>? {
+      let packet = Packet<OutgoingFile>(id: UUID())
+      packet.notificationToken = notificationToken
+      packet.state = .loaded
+      packet.receiver = receiver
+      packet.sender = Main.shared.localEndpointName
 
-    guard let directoryUrl = try? FileManager.default.url(
-      for: .documentDirectory,
-      in: .userDomainMask,
-      appropriateFor: nil,
-      create: true) else {
-      print("Failed to obtain directory for saving photos.")
-      return nil
-    }
-
-    await withTaskGroup(of: OutgoingFile?.self) { group in
       for photo in photosPicked {
-        group.addTask {
-          return await Utils.loadPhoto(photo: photo, directoryUrl: directoryUrl)
-        }
-      }
+        let type =
+        photo.supportedContentTypes.first(
+          where: {$0.preferredMIMEType == "image/jpeg"}) ??
+        photo.supportedContentTypes.first(
+          where: {$0.preferredMIMEType == "image/png"})
 
-      for await (file) in group {
-        guard let file else {
-          continue;
-        }
+        let file = OutgoingFile(id: UUID(), mimeType: type?.preferredMIMEType ?? "application/octet-stream")
+        file.photoItem = photo
+        file.state = .loaded
         packet.files.append(file)
       }
-    }
-
-    // Very rudimentary error handling. Succeeds only if all files are saved. No partial success.
-    if (packet.files.count == photosPicked.count)
-    {
-      packet.state = .loaded
       return packet
-    } else {
-      packet.state = .picked
-      return nil
     }
-  }
-
-  static func loadPhoto(photo: PhotosPickerItem, directoryUrl: URL) async -> OutgoingFile? {
-    let type =
-    photo.supportedContentTypes.first(
-      where: {$0.preferredMIMEType == "image/jpeg"}) ??
-    photo.supportedContentTypes.first(
-      where: {$0.preferredMIMEType == "image/png"})
-
-    let file = OutgoingFile(id: UUID(), mimeType: type?.preferredMIMEType ?? "application/octet-stream")
-
-    guard let data = try? await photo.loadTransferable(type: Data.self) else {
-      return nil
-    }
-    var typedData: Data
-    if file.mimeType == "image/jpeg" {
-      guard let uiImage = UIImage(data: data) else {
-        return nil
-      }
-      guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
-        return nil
-      }
-      typedData  = jpegData
-      file.fileSize = Int64(jpegData.count)
-    }
-    else if file.mimeType == "image/png" {
-      guard let uiImage = UIImage(data: data) else {
-        return nil
-      }
-      guard let pngData = uiImage.pngData() else {
-        return nil
-      }
-      typedData  = pngData
-      file.fileSize = Int64(pngData.count)
-    }
-    else {
-      typedData = data
-      file.fileSize = Int64(data.count)
-    }
-
-    let url = directoryUrl.appendingPathComponent(UUID().uuidString)
-    do {
-      try typedData.write(to:url)
-    } catch {
-      print("Failed to save photo to file")
-      return nil;
-    }
-    file.localUrl = url
-    file.state = .loaded
-    return file
-  }
 }
