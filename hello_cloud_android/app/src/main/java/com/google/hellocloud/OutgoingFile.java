@@ -10,6 +10,8 @@ import java.util.UUID;
 
 public final class OutgoingFile extends File {
   enum State {
+    // On Android, we don't have PICKED and LOADING. I need to research on how to get rid of them
+    // on iOS.
     LOADED,
     UPLOADING,
     UPLOADED

@@ -18,7 +18,7 @@ import Foundation
 
 @Observable class Packet<T: File>: Identifiable, CustomStringConvertible, Encodable, Decodable {
   enum State: Int {
-    case unknown, loaded, uploading, uploaded, received, downloading, downloaded
+    case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
   let id: UUID
@@ -153,6 +153,7 @@ extension Packet<OutgoingFile> {
           if size != nil {
             let duration: TimeInterval = Date().timeIntervalSince(beginTime)
             print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
+            try? FileManager.default.removeItem(at: file.localUrl!)
           }
           return size
         }
