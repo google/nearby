@@ -329,7 +329,7 @@ void CredentialManagerImpl::GetLocalCredentials(
       credential_selector,
       GetLocalCredentialsResultCallback{
           .credentials_fetched_cb =
-              [get_local_credentials_latch, &get_local_credentials_result](
+              [&get_local_credentials_latch, &get_local_credentials_result](
                   absl::StatusOr<std::vector<LocalCredential>>
                       credentials) mutable {
                 get_local_credentials_result = std::move(credentials);
@@ -371,7 +371,7 @@ void CredentialManagerImpl::GetPublicCredentials(
       credential_selector, public_credential_type,
       GetPublicCredentialsResultCallback{
           .credentials_fetched_cb =
-              [get_shared_credentials_latch, &get_shared_credentials_result](
+              [&get_shared_credentials_latch, &get_shared_credentials_result](
                   absl::StatusOr<std::vector<SharedCredential>>
                       credentials) mutable {
                 get_shared_credentials_result = std::move(credentials);
@@ -660,7 +660,7 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
         credential_selector, PublicCredentialType::kLocalPublicCredential,
         GetPublicCredentialsResultCallback{
             .credentials_fetched_cb =
-                [get_corresponding_credentials_latch, &get_shared_result](
+                [&get_corresponding_credentials_latch, &get_shared_result](
                     absl::StatusOr<
                         std::vector<nearby::internal::SharedCredential>>
                         result) mutable {
@@ -719,7 +719,7 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
     }
   }
 
-  // Now merge newly generated credentails to already existing valid ones.
+  // Now merge newly generated credentials to already existing valid ones.
   valid_local_credentials.insert(valid_local_credentials.end(),
                                  newly_generated_local_credentials.begin(),
                                  newly_generated_local_credentials.end());
@@ -735,7 +735,7 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
       PublicCredentialType::kLocalPublicCredential,
       SaveCredentialsResultCallback{
           .credentials_saved_cb =
-              [save_credentials_latch,
+              [&save_credentials_latch,
                &save_credentials_status](absl::Status status) mutable {
                 save_credentials_status = status;
                 save_credentials_latch.CountDown();
