@@ -720,15 +720,17 @@ bool DisconnectionReason_IsValid(int value) {
     case 5:
     case 6:
     case 7:
+    case 8:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DisconnectionReason_strings[8] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DisconnectionReason_strings[9] = {};
 
 static const char DisconnectionReason_names[] =
+  "AUTHENTICATION_FAILURE"
   "IO_ERROR"
   "LOCAL_DISCONNECTION"
   "PREV_CHANNEL_DISCONNECTION_IN_RECONNECT"
@@ -739,25 +741,27 @@ static const char DisconnectionReason_names[] =
   "UPGRADED";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DisconnectionReason_entries[] = {
-  { {DisconnectionReason_names + 0, 8}, 3 },
-  { {DisconnectionReason_names + 8, 19}, 1 },
-  { {DisconnectionReason_names + 27, 39}, 7 },
-  { {DisconnectionReason_names + 66, 20}, 2 },
-  { {DisconnectionReason_names + 86, 8}, 5 },
-  { {DisconnectionReason_names + 94, 10}, 6 },
-  { {DisconnectionReason_names + 104, 28}, 0 },
-  { {DisconnectionReason_names + 132, 8}, 4 },
+  { {DisconnectionReason_names + 0, 22}, 8 },
+  { {DisconnectionReason_names + 22, 8}, 3 },
+  { {DisconnectionReason_names + 30, 19}, 1 },
+  { {DisconnectionReason_names + 49, 39}, 7 },
+  { {DisconnectionReason_names + 88, 20}, 2 },
+  { {DisconnectionReason_names + 108, 8}, 5 },
+  { {DisconnectionReason_names + 116, 10}, 6 },
+  { {DisconnectionReason_names + 126, 28}, 0 },
+  { {DisconnectionReason_names + 154, 8}, 4 },
 };
 
 static const int DisconnectionReason_entries_by_number[] = {
-  6, // 0 -> UNKNOWN_DISCONNECTION_REASON
-  1, // 1 -> LOCAL_DISCONNECTION
-  3, // 2 -> REMOTE_DISCONNECTION
-  0, // 3 -> IO_ERROR
-  7, // 4 -> UPGRADED
-  4, // 5 -> SHUTDOWN
-  5, // 6 -> UNFINISHED
-  2, // 7 -> PREV_CHANNEL_DISCONNECTION_IN_RECONNECT
+  7, // 0 -> UNKNOWN_DISCONNECTION_REASON
+  2, // 1 -> LOCAL_DISCONNECTION
+  4, // 2 -> REMOTE_DISCONNECTION
+  1, // 3 -> IO_ERROR
+  8, // 4 -> UPGRADED
+  5, // 5 -> SHUTDOWN
+  6, // 6 -> UNFINISHED
+  3, // 7 -> PREV_CHANNEL_DISCONNECTION_IN_RECONNECT
+  0, // 8 -> AUTHENTICATION_FAILURE
 };
 
 const std::string& DisconnectionReason_Name(
@@ -766,12 +770,12 @@ const std::string& DisconnectionReason_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           DisconnectionReason_entries,
           DisconnectionReason_entries_by_number,
-          8, DisconnectionReason_strings);
+          9, DisconnectionReason_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       DisconnectionReason_entries,
       DisconnectionReason_entries_by_number,
-      8, value);
+      9, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      DisconnectionReason_strings[idx].get();
 }
@@ -779,7 +783,7 @@ bool DisconnectionReason_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DisconnectionReason* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      DisconnectionReason_entries, 8, name, &int_value);
+      DisconnectionReason_entries, 9, name, &int_value);
   if (success) {
     *value = static_cast<DisconnectionReason>(int_value);
   }
@@ -1505,7 +1509,7 @@ bool OperationResultCategory_Parse(
   }
   return success;
 }
-bool OperationResultDetail_IsValid(int value) {
+bool OperationResultCode_IsValid(int value) {
   switch (value) {
     case 0:
     case 1:
@@ -1678,6 +1682,8 @@ bool OperationResultDetail_IsValid(int value) {
     case 3553:
     case 3554:
     case 3555:
+    case 3556:
+    case 3557:
     case 4500:
     case 4501:
     case 4502:
@@ -1751,9 +1757,9 @@ bool OperationResultDetail_IsValid(int value) {
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> OperationResultDetail_strings[238] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> OperationResultCode_strings[240] = {};
 
-static const char OperationResultDetail_names[] =
+static const char OperationResultCode_names[] =
   "CLIENT_CANCELLATION_BT_SERVER_SOCKET_CREATION"
   "CLIENT_CANCELLATION_CANCEL_BLE_OUTGOING_CONNECTION"
   "CLIENT_CANCELLATION_CANCEL_BT_OUTGOING_CONNECTION"
@@ -1809,6 +1815,7 @@ static const char OperationResultDetail_names[] =
   "CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR"
   "CONNECTIVITY_L2CAP_CLIENT_OBTAIN_FAIURE"
   "CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE"
+  "CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE"
   "CONNECTIVITY_L2CAP_DATA_CONNECTION_FAILURE"
   "CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_FAILURE"
   "CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE"
@@ -1823,6 +1830,7 @@ static const char OperationResultDetail_names[] =
   "CONNECTIVITY_WEB_RTC_CONNECT_TO_TACHYON_FAILURE"
   "CONNECTIVITY_WEB_RTC_INVALID_CREDENTIAL"
   "CONNECTIVITY_WEB_RTC_SERVER_SOCKET_CREATION_FAILURE"
+  "CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR"
   "CONNECTIVITY_WIFI_AWARE_ATTACH_FAILURE"
   "CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE"
   "CONNECTIVITY_WIFI_AWARE_DISCOVERED_PEER_NULL"
@@ -1859,8 +1867,8 @@ static const char OperationResultDetail_names[] =
   "DEVICE_STATE_RADIO_DISABLING_FAILURE"
   "DEVICE_STATE_RADIO_ENABLING_FAILURE"
   "IO_ENDPOINT_IO_ERROR_ON_BLE"
+  "IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP"
   "IO_ENDPOINT_IO_ERROR_ON_BT"
-  "IO_ENDPOINT_IO_ERROR_ON_L2CAP"
   "IO_ENDPOINT_IO_ERROR_ON_LAN"
   "IO_ENDPOINT_IO_ERROR_ON_NFC"
   "IO_ENDPOINT_IO_ERROR_ON_USB"
@@ -1993,250 +2001,252 @@ static const char OperationResultDetail_names[] =
   "NEARBY_WIFI_HOTSPOT_SOFT_AP_OPERATION_REGISTERED_FAILED"
   "NEARBY_WIFI_LAN_IP_ADDRESS_ERROR";
 
-static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry OperationResultDetail_entries[] = {
-  { {OperationResultDetail_names + 0, 45}, 519 },
-  { {OperationResultDetail_names + 45, 50}, 504 },
-  { {OperationResultDetail_names + 95, 49}, 505 },
-  { {OperationResultDetail_names + 144, 46}, 515 },
-  { {OperationResultDetail_names + 190, 52}, 506 },
-  { {OperationResultDetail_names + 242, 50}, 507 },
-  { {OperationResultDetail_names + 292, 50}, 508 },
-  { {OperationResultDetail_names + 342, 46}, 514 },
-  { {OperationResultDetail_names + 388, 50}, 509 },
-  { {OperationResultDetail_names + 438, 54}, 513 },
-  { {OperationResultDetail_names + 492, 57}, 510 },
-  { {OperationResultDetail_names + 549, 58}, 511 },
-  { {OperationResultDetail_names + 607, 59}, 512 },
-  { {OperationResultDetail_names + 666, 40}, 501 },
-  { {OperationResultDetail_names + 706, 36}, 522 },
-  { {OperationResultDetail_names + 742, 41}, 502 },
-  { {OperationResultDetail_names + 783, 37}, 523 },
-  { {OperationResultDetail_names + 820, 44}, 500 },
-  { {OperationResultDetail_names + 864, 46}, 503 },
-  { {OperationResultDetail_names + 910, 50}, 520 },
-  { {OperationResultDetail_names + 960, 53}, 516 },
-  { {OperationResultDetail_names + 1013, 54}, 517 },
-  { {OperationResultDetail_names + 1067, 55}, 518 },
-  { {OperationResultDetail_names + 1122, 51}, 521 },
-  { {OperationResultDetail_names + 1173, 49}, 2002 },
-  { {OperationResultDetail_names + 1222, 48}, 2004 },
-  { {OperationResultDetail_names + 1270, 51}, 2003 },
-  { {OperationResultDetail_names + 1321, 49}, 2005 },
-  { {OperationResultDetail_names + 1370, 49}, 2006 },
-  { {OperationResultDetail_names + 1419, 49}, 2011 },
-  { {OperationResultDetail_names + 1468, 53}, 2007 },
-  { {OperationResultDetail_names + 1521, 56}, 2008 },
-  { {OperationResultDetail_names + 1577, 57}, 2010 },
-  { {OperationResultDetail_names + 1634, 58}, 2009 },
-  { {OperationResultDetail_names + 1692, 46}, 2012 },
-  { {OperationResultDetail_names + 1738, 47}, 2015 },
-  { {OperationResultDetail_names + 1785, 47}, 2013 },
-  { {OperationResultDetail_names + 1832, 48}, 2014 },
-  { {OperationResultDetail_names + 1880, 43}, 2016 },
-  { {OperationResultDetail_names + 1923, 63}, 2000 },
-  { {OperationResultDetail_names + 1986, 59}, 2001 },
-  { {OperationResultDetail_names + 2045, 47}, 3502 },
-  { {OperationResultDetail_names + 2092, 47}, 3513 },
-  { {OperationResultDetail_names + 2139, 47}, 3539 },
-  { {OperationResultDetail_names + 2186, 44}, 3501 },
-  { {OperationResultDetail_names + 2230, 41}, 3518 },
-  { {OperationResultDetail_names + 2271, 46}, 3504 },
-  { {OperationResultDetail_names + 2317, 46}, 3541 },
-  { {OperationResultDetail_names + 2363, 65}, 3555 },
-  { {OperationResultDetail_names + 2428, 37}, 3538 },
-  { {OperationResultDetail_names + 2465, 39}, 3553 },
-  { {OperationResultDetail_names + 2504, 59}, 3551 },
-  { {OperationResultDetail_names + 2563, 45}, 3550 },
-  { {OperationResultDetail_names + 2608, 39}, 3525 },
-  { {OperationResultDetail_names + 2647, 49}, 3503 },
-  { {OperationResultDetail_names + 2696, 42}, 3526 },
-  { {OperationResultDetail_names + 2738, 49}, 3540 },
-  { {OperationResultDetail_names + 2787, 68}, 3554 },
-  { {OperationResultDetail_names + 2855, 47}, 3505 },
-  { {OperationResultDetail_names + 2902, 47}, 3531 },
-  { {OperationResultDetail_names + 2949, 47}, 3542 },
-  { {OperationResultDetail_names + 2996, 28}, 3529 },
-  { {OperationResultDetail_names + 3024, 47}, 3506 },
-  { {OperationResultDetail_names + 3071, 47}, 3547 },
-  { {OperationResultDetail_names + 3118, 47}, 3511 },
-  { {OperationResultDetail_names + 3165, 51}, 3507 },
-  { {OperationResultDetail_names + 3216, 47}, 3512 },
-  { {OperationResultDetail_names + 3263, 39}, 3523 },
-  { {OperationResultDetail_names + 3302, 51}, 3543 },
-  { {OperationResultDetail_names + 3353, 38}, 3500 },
-  { {OperationResultDetail_names + 3391, 54}, 3508 },
-  { {OperationResultDetail_names + 3445, 44}, 3552 },
-  { {OperationResultDetail_names + 3489, 53}, 3515 },
-  { {OperationResultDetail_names + 3542, 51}, 3514 },
-  { {OperationResultDetail_names + 3593, 42}, 3522 },
-  { {OperationResultDetail_names + 3635, 62}, 3527 },
-  { {OperationResultDetail_names + 3697, 65}, 3528 },
-  { {OperationResultDetail_names + 3762, 54}, 3544 },
-  { {OperationResultDetail_names + 3816, 46}, 3549 },
-  { {OperationResultDetail_names + 3862, 55}, 3510 },
-  { {OperationResultDetail_names + 3917, 55}, 3532 },
-  { {OperationResultDetail_names + 3972, 54}, 3516 },
-  { {OperationResultDetail_names + 4026, 43}, 3520 },
-  { {OperationResultDetail_names + 4069, 55}, 3535 },
-  { {OperationResultDetail_names + 4124, 51}, 3537 },
-  { {OperationResultDetail_names + 4175, 55}, 3546 },
-  { {OperationResultDetail_names + 4230, 56}, 3509 },
-  { {OperationResultDetail_names + 4286, 56}, 3533 },
-  { {OperationResultDetail_names + 4342, 55}, 3517 },
-  { {OperationResultDetail_names + 4397, 44}, 3521 },
-  { {OperationResultDetail_names + 4441, 47}, 3530 },
-  { {OperationResultDetail_names + 4488, 56}, 3534 },
-  { {OperationResultDetail_names + 4544, 52}, 3536 },
-  { {OperationResultDetail_names + 4596, 56}, 3545 },
-  { {OperationResultDetail_names + 4652, 50}, 3548 },
-  { {OperationResultDetail_names + 4702, 40}, 3519 },
-  { {OperationResultDetail_names + 4742, 38}, 3524 },
-  { {OperationResultDetail_names + 4780, 14}, 1 },
-  { {OperationResultDetail_names + 4794, 14}, 0 },
-  { {OperationResultDetail_names + 4808, 46}, 1000 },
-  { {OperationResultDetail_names + 4854, 39}, 1001 },
-  { {OperationResultDetail_names + 4893, 30}, 1002 },
-  { {OperationResultDetail_names + 4923, 36}, 1003 },
-  { {OperationResultDetail_names + 4959, 35}, 1004 },
-  { {OperationResultDetail_names + 4994, 27}, 3005 },
-  { {OperationResultDetail_names + 5021, 26}, 3007 },
-  { {OperationResultDetail_names + 5047, 29}, 3006 },
-  { {OperationResultDetail_names + 5076, 27}, 3009 },
-  { {OperationResultDetail_names + 5103, 27}, 3013 },
-  { {OperationResultDetail_names + 5130, 27}, 3014 },
-  { {OperationResultDetail_names + 5157, 31}, 3008 },
-  { {OperationResultDetail_names + 5188, 34}, 3012 },
-  { {OperationResultDetail_names + 5222, 35}, 3010 },
-  { {OperationResultDetail_names + 5257, 36}, 3011 },
-  { {OperationResultDetail_names + 5293, 21}, 3000 },
-  { {OperationResultDetail_names + 5314, 21}, 3001 },
-  { {OperationResultDetail_names + 5335, 21}, 3002 },
-  { {OperationResultDetail_names + 5356, 24}, 3003 },
-  { {OperationResultDetail_names + 5380, 29}, 3004 },
-  { {OperationResultDetail_names + 5409, 51}, 1534 },
-  { {OperationResultDetail_names + 5460, 60}, 1535 },
-  { {OperationResultDetail_names + 5520, 47}, 1515 },
-  { {OperationResultDetail_names + 5567, 36}, 1505 },
-  { {OperationResultDetail_names + 5603, 42}, 1507 },
-  { {OperationResultDetail_names + 5645, 46}, 1516 },
-  { {OperationResultDetail_names + 5691, 45}, 1501 },
-  { {OperationResultDetail_names + 5736, 38}, 1506 },
-  { {OperationResultDetail_names + 5774, 47}, 1517 },
-  { {OperationResultDetail_names + 5821, 36}, 1513 },
-  { {OperationResultDetail_names + 5857, 54}, 1532 },
-  { {OperationResultDetail_names + 5911, 49}, 1503 },
-  { {OperationResultDetail_names + 5960, 52}, 1504 },
-  { {OperationResultDetail_names + 6012, 47}, 1518 },
-  { {OperationResultDetail_names + 6059, 36}, 1512 },
-  { {OperationResultDetail_names + 6095, 60}, 1536 },
-  { {OperationResultDetail_names + 6155, 43}, 1533 },
-  { {OperationResultDetail_names + 6198, 38}, 1502 },
-  { {OperationResultDetail_names + 6236, 41}, 1537 },
-  { {OperationResultDetail_names + 6277, 55}, 1526 },
-  { {OperationResultDetail_names + 6332, 54}, 1530 },
-  { {OperationResultDetail_names + 6386, 57}, 1527 },
-  { {OperationResultDetail_names + 6443, 55}, 1529 },
-  { {OperationResultDetail_names + 6498, 55}, 1531 },
-  { {OperationResultDetail_names + 6553, 59}, 1528 },
-  { {OperationResultDetail_names + 6612, 47}, 1519 },
-  { {OperationResultDetail_names + 6659, 36}, 1514 },
-  { {OperationResultDetail_names + 6695, 51}, 1520 },
-  { {OperationResultDetail_names + 6746, 40}, 1508 },
-  { {OperationResultDetail_names + 6786, 38}, 1538 },
-  { {OperationResultDetail_names + 6824, 54}, 1521 },
-  { {OperationResultDetail_names + 6878, 43}, 1509 },
-  { {OperationResultDetail_names + 6921, 52}, 1500 },
-  { {OperationResultDetail_names + 6973, 55}, 1523 },
-  { {OperationResultDetail_names + 7028, 44}, 1511 },
-  { {OperationResultDetail_names + 7072, 57}, 1525 },
-  { {OperationResultDetail_names + 7129, 56}, 1522 },
-  { {OperationResultDetail_names + 7185, 45}, 1510 },
-  { {OperationResultDetail_names + 7230, 58}, 1524 },
-  { {OperationResultDetail_names + 7288, 38}, 2503 },
-  { {OperationResultDetail_names + 7326, 41}, 2500 },
-  { {OperationResultDetail_names + 7367, 59}, 2510 },
-  { {OperationResultDetail_names + 7426, 37}, 2505 },
-  { {OperationResultDetail_names + 7463, 40}, 2504 },
-  { {OperationResultDetail_names + 7503, 33}, 2501 },
-  { {OperationResultDetail_names + 7536, 52}, 2511 },
-  { {OperationResultDetail_names + 7588, 55}, 2512 },
-  { {OperationResultDetail_names + 7643, 45}, 2506 },
-  { {OperationResultDetail_names + 7688, 46}, 2507 },
-  { {OperationResultDetail_names + 7734, 56}, 2502 },
-  { {OperationResultDetail_names + 7790, 47}, 2509 },
-  { {OperationResultDetail_names + 7837, 43}, 2508 },
-  { {OperationResultDetail_names + 7880, 45}, 4500 },
-  { {OperationResultDetail_names + 7925, 44}, 4504 },
-  { {OperationResultDetail_names + 7969, 49}, 4515 },
-  { {OperationResultDetail_names + 8018, 29}, 4518 },
-  { {OperationResultDetail_names + 8047, 38}, 4536 },
-  { {OperationResultDetail_names + 8085, 48}, 4501 },
-  { {OperationResultDetail_names + 8133, 43}, 4506 },
-  { {OperationResultDetail_names + 8176, 35}, 4530 },
-  { {OperationResultDetail_names + 8211, 23}, 4520 },
-  { {OperationResultDetail_names + 8234, 37}, 4538 },
-  { {OperationResultDetail_names + 8271, 41}, 4563 },
-  { {OperationResultDetail_names + 8312, 32}, 4503 },
-  { {OperationResultDetail_names + 8344, 35}, 4514 },
-  { {OperationResultDetail_names + 8379, 45}, 4552 },
-  { {OperationResultDetail_names + 8424, 40}, 4532 },
-  { {OperationResultDetail_names + 8464, 40}, 4535 },
-  { {OperationResultDetail_names + 8504, 48}, 4547 },
-  { {OperationResultDetail_names + 8552, 60}, 4556 },
-  { {OperationResultDetail_names + 8612, 56}, 4558 },
-  { {OperationResultDetail_names + 8668, 60}, 4557 },
-  { {OperationResultDetail_names + 8728, 56}, 4553 },
-  { {OperationResultDetail_names + 8784, 52}, 4555 },
-  { {OperationResultDetail_names + 8836, 56}, 4554 },
-  { {OperationResultDetail_names + 8892, 43}, 4559 },
-  { {OperationResultDetail_names + 8935, 43}, 4560 },
-  { {OperationResultDetail_names + 8978, 37}, 4561 },
-  { {OperationResultDetail_names + 9015, 41}, 4562 },
-  { {OperationResultDetail_names + 9056, 46}, 4505 },
-  { {OperationResultDetail_names + 9102, 26}, 4519 },
-  { {OperationResultDetail_names + 9128, 40}, 4537 },
-  { {OperationResultDetail_names + 9168, 29}, 4566 },
-  { {OperationResultDetail_names + 9197, 44}, 4507 },
-  { {OperationResultDetail_names + 9241, 36}, 4531 },
-  { {OperationResultDetail_names + 9277, 24}, 4525 },
-  { {OperationResultDetail_names + 9301, 38}, 4539 },
-  { {OperationResultDetail_names + 9339, 42}, 4564 },
-  { {OperationResultDetail_names + 9381, 44}, 4508 },
-  { {OperationResultDetail_names + 9425, 24}, 4522 },
-  { {OperationResultDetail_names + 9449, 44}, 4513 },
-  { {OperationResultDetail_names + 9493, 24}, 4521 },
-  { {OperationResultDetail_names + 9517, 35}, 4502 },
-  { {OperationResultDetail_names + 9552, 48}, 4512 },
-  { {OperationResultDetail_names + 9600, 28}, 4524 },
-  { {OperationResultDetail_names + 9628, 42}, 4540 },
-  { {OperationResultDetail_names + 9670, 51}, 4509 },
-  { {OperationResultDetail_names + 9721, 31}, 4523 },
-  { {OperationResultDetail_names + 9752, 45}, 4541 },
-  { {OperationResultDetail_names + 9797, 52}, 4511 },
-  { {OperationResultDetail_names + 9849, 39}, 4516 },
-  { {OperationResultDetail_names + 9888, 41}, 4533 },
-  { {OperationResultDetail_names + 9929, 32}, 4527 },
-  { {OperationResultDetail_names + 9961, 32}, 4529 },
-  { {OperationResultDetail_names + 9993, 28}, 4528 },
-  { {OperationResultDetail_names + 10021, 46}, 4546 },
-  { {OperationResultDetail_names + 10067, 48}, 4549 },
-  { {OperationResultDetail_names + 10115, 48}, 4551 },
-  { {OperationResultDetail_names + 10163, 54}, 4545 },
-  { {OperationResultDetail_names + 10217, 54}, 4542 },
-  { {OperationResultDetail_names + 10271, 53}, 4510 },
-  { {OperationResultDetail_names + 10324, 40}, 4517 },
-  { {OperationResultDetail_names + 10364, 52}, 4544 },
-  { {OperationResultDetail_names + 10416, 44}, 4534 },
-  { {OperationResultDetail_names + 10460, 33}, 4526 },
-  { {OperationResultDetail_names + 10493, 49}, 4548 },
-  { {OperationResultDetail_names + 10542, 49}, 4550 },
-  { {OperationResultDetail_names + 10591, 55}, 4543 },
-  { {OperationResultDetail_names + 10646, 32}, 4565 },
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry OperationResultCode_entries[] = {
+  { {OperationResultCode_names + 0, 45}, 519 },
+  { {OperationResultCode_names + 45, 50}, 504 },
+  { {OperationResultCode_names + 95, 49}, 505 },
+  { {OperationResultCode_names + 144, 46}, 515 },
+  { {OperationResultCode_names + 190, 52}, 506 },
+  { {OperationResultCode_names + 242, 50}, 507 },
+  { {OperationResultCode_names + 292, 50}, 508 },
+  { {OperationResultCode_names + 342, 46}, 514 },
+  { {OperationResultCode_names + 388, 50}, 509 },
+  { {OperationResultCode_names + 438, 54}, 513 },
+  { {OperationResultCode_names + 492, 57}, 510 },
+  { {OperationResultCode_names + 549, 58}, 511 },
+  { {OperationResultCode_names + 607, 59}, 512 },
+  { {OperationResultCode_names + 666, 40}, 501 },
+  { {OperationResultCode_names + 706, 36}, 522 },
+  { {OperationResultCode_names + 742, 41}, 502 },
+  { {OperationResultCode_names + 783, 37}, 523 },
+  { {OperationResultCode_names + 820, 44}, 500 },
+  { {OperationResultCode_names + 864, 46}, 503 },
+  { {OperationResultCode_names + 910, 50}, 520 },
+  { {OperationResultCode_names + 960, 53}, 516 },
+  { {OperationResultCode_names + 1013, 54}, 517 },
+  { {OperationResultCode_names + 1067, 55}, 518 },
+  { {OperationResultCode_names + 1122, 51}, 521 },
+  { {OperationResultCode_names + 1173, 49}, 2002 },
+  { {OperationResultCode_names + 1222, 48}, 2004 },
+  { {OperationResultCode_names + 1270, 51}, 2003 },
+  { {OperationResultCode_names + 1321, 49}, 2005 },
+  { {OperationResultCode_names + 1370, 49}, 2006 },
+  { {OperationResultCode_names + 1419, 49}, 2011 },
+  { {OperationResultCode_names + 1468, 53}, 2007 },
+  { {OperationResultCode_names + 1521, 56}, 2008 },
+  { {OperationResultCode_names + 1577, 57}, 2010 },
+  { {OperationResultCode_names + 1634, 58}, 2009 },
+  { {OperationResultCode_names + 1692, 46}, 2012 },
+  { {OperationResultCode_names + 1738, 47}, 2015 },
+  { {OperationResultCode_names + 1785, 47}, 2013 },
+  { {OperationResultCode_names + 1832, 48}, 2014 },
+  { {OperationResultCode_names + 1880, 43}, 2016 },
+  { {OperationResultCode_names + 1923, 63}, 2000 },
+  { {OperationResultCode_names + 1986, 59}, 2001 },
+  { {OperationResultCode_names + 2045, 47}, 3502 },
+  { {OperationResultCode_names + 2092, 47}, 3513 },
+  { {OperationResultCode_names + 2139, 47}, 3539 },
+  { {OperationResultCode_names + 2186, 44}, 3501 },
+  { {OperationResultCode_names + 2230, 41}, 3518 },
+  { {OperationResultCode_names + 2271, 46}, 3504 },
+  { {OperationResultCode_names + 2317, 46}, 3541 },
+  { {OperationResultCode_names + 2363, 65}, 3555 },
+  { {OperationResultCode_names + 2428, 37}, 3538 },
+  { {OperationResultCode_names + 2465, 39}, 3553 },
+  { {OperationResultCode_names + 2504, 59}, 3551 },
+  { {OperationResultCode_names + 2563, 45}, 3550 },
+  { {OperationResultCode_names + 2608, 39}, 3525 },
+  { {OperationResultCode_names + 2647, 49}, 3503 },
+  { {OperationResultCode_names + 2696, 57}, 3556 },
+  { {OperationResultCode_names + 2753, 42}, 3526 },
+  { {OperationResultCode_names + 2795, 49}, 3540 },
+  { {OperationResultCode_names + 2844, 68}, 3554 },
+  { {OperationResultCode_names + 2912, 47}, 3505 },
+  { {OperationResultCode_names + 2959, 47}, 3531 },
+  { {OperationResultCode_names + 3006, 47}, 3542 },
+  { {OperationResultCode_names + 3053, 28}, 3529 },
+  { {OperationResultCode_names + 3081, 47}, 3506 },
+  { {OperationResultCode_names + 3128, 47}, 3547 },
+  { {OperationResultCode_names + 3175, 47}, 3511 },
+  { {OperationResultCode_names + 3222, 51}, 3507 },
+  { {OperationResultCode_names + 3273, 47}, 3512 },
+  { {OperationResultCode_names + 3320, 39}, 3523 },
+  { {OperationResultCode_names + 3359, 51}, 3543 },
+  { {OperationResultCode_names + 3410, 43}, 3557 },
+  { {OperationResultCode_names + 3453, 38}, 3500 },
+  { {OperationResultCode_names + 3491, 54}, 3508 },
+  { {OperationResultCode_names + 3545, 44}, 3552 },
+  { {OperationResultCode_names + 3589, 53}, 3515 },
+  { {OperationResultCode_names + 3642, 51}, 3514 },
+  { {OperationResultCode_names + 3693, 42}, 3522 },
+  { {OperationResultCode_names + 3735, 62}, 3527 },
+  { {OperationResultCode_names + 3797, 65}, 3528 },
+  { {OperationResultCode_names + 3862, 54}, 3544 },
+  { {OperationResultCode_names + 3916, 46}, 3549 },
+  { {OperationResultCode_names + 3962, 55}, 3510 },
+  { {OperationResultCode_names + 4017, 55}, 3532 },
+  { {OperationResultCode_names + 4072, 54}, 3516 },
+  { {OperationResultCode_names + 4126, 43}, 3520 },
+  { {OperationResultCode_names + 4169, 55}, 3535 },
+  { {OperationResultCode_names + 4224, 51}, 3537 },
+  { {OperationResultCode_names + 4275, 55}, 3546 },
+  { {OperationResultCode_names + 4330, 56}, 3509 },
+  { {OperationResultCode_names + 4386, 56}, 3533 },
+  { {OperationResultCode_names + 4442, 55}, 3517 },
+  { {OperationResultCode_names + 4497, 44}, 3521 },
+  { {OperationResultCode_names + 4541, 47}, 3530 },
+  { {OperationResultCode_names + 4588, 56}, 3534 },
+  { {OperationResultCode_names + 4644, 52}, 3536 },
+  { {OperationResultCode_names + 4696, 56}, 3545 },
+  { {OperationResultCode_names + 4752, 50}, 3548 },
+  { {OperationResultCode_names + 4802, 40}, 3519 },
+  { {OperationResultCode_names + 4842, 38}, 3524 },
+  { {OperationResultCode_names + 4880, 14}, 1 },
+  { {OperationResultCode_names + 4894, 14}, 0 },
+  { {OperationResultCode_names + 4908, 46}, 1000 },
+  { {OperationResultCode_names + 4954, 39}, 1001 },
+  { {OperationResultCode_names + 4993, 30}, 1002 },
+  { {OperationResultCode_names + 5023, 36}, 1003 },
+  { {OperationResultCode_names + 5059, 35}, 1004 },
+  { {OperationResultCode_names + 5094, 27}, 3005 },
+  { {OperationResultCode_names + 5121, 33}, 3006 },
+  { {OperationResultCode_names + 5154, 26}, 3007 },
+  { {OperationResultCode_names + 5180, 27}, 3009 },
+  { {OperationResultCode_names + 5207, 27}, 3013 },
+  { {OperationResultCode_names + 5234, 27}, 3014 },
+  { {OperationResultCode_names + 5261, 31}, 3008 },
+  { {OperationResultCode_names + 5292, 34}, 3012 },
+  { {OperationResultCode_names + 5326, 35}, 3010 },
+  { {OperationResultCode_names + 5361, 36}, 3011 },
+  { {OperationResultCode_names + 5397, 21}, 3000 },
+  { {OperationResultCode_names + 5418, 21}, 3001 },
+  { {OperationResultCode_names + 5439, 21}, 3002 },
+  { {OperationResultCode_names + 5460, 24}, 3003 },
+  { {OperationResultCode_names + 5484, 29}, 3004 },
+  { {OperationResultCode_names + 5513, 51}, 1534 },
+  { {OperationResultCode_names + 5564, 60}, 1535 },
+  { {OperationResultCode_names + 5624, 47}, 1515 },
+  { {OperationResultCode_names + 5671, 36}, 1505 },
+  { {OperationResultCode_names + 5707, 42}, 1507 },
+  { {OperationResultCode_names + 5749, 46}, 1516 },
+  { {OperationResultCode_names + 5795, 45}, 1501 },
+  { {OperationResultCode_names + 5840, 38}, 1506 },
+  { {OperationResultCode_names + 5878, 47}, 1517 },
+  { {OperationResultCode_names + 5925, 36}, 1513 },
+  { {OperationResultCode_names + 5961, 54}, 1532 },
+  { {OperationResultCode_names + 6015, 49}, 1503 },
+  { {OperationResultCode_names + 6064, 52}, 1504 },
+  { {OperationResultCode_names + 6116, 47}, 1518 },
+  { {OperationResultCode_names + 6163, 36}, 1512 },
+  { {OperationResultCode_names + 6199, 60}, 1536 },
+  { {OperationResultCode_names + 6259, 43}, 1533 },
+  { {OperationResultCode_names + 6302, 38}, 1502 },
+  { {OperationResultCode_names + 6340, 41}, 1537 },
+  { {OperationResultCode_names + 6381, 55}, 1526 },
+  { {OperationResultCode_names + 6436, 54}, 1530 },
+  { {OperationResultCode_names + 6490, 57}, 1527 },
+  { {OperationResultCode_names + 6547, 55}, 1529 },
+  { {OperationResultCode_names + 6602, 55}, 1531 },
+  { {OperationResultCode_names + 6657, 59}, 1528 },
+  { {OperationResultCode_names + 6716, 47}, 1519 },
+  { {OperationResultCode_names + 6763, 36}, 1514 },
+  { {OperationResultCode_names + 6799, 51}, 1520 },
+  { {OperationResultCode_names + 6850, 40}, 1508 },
+  { {OperationResultCode_names + 6890, 38}, 1538 },
+  { {OperationResultCode_names + 6928, 54}, 1521 },
+  { {OperationResultCode_names + 6982, 43}, 1509 },
+  { {OperationResultCode_names + 7025, 52}, 1500 },
+  { {OperationResultCode_names + 7077, 55}, 1523 },
+  { {OperationResultCode_names + 7132, 44}, 1511 },
+  { {OperationResultCode_names + 7176, 57}, 1525 },
+  { {OperationResultCode_names + 7233, 56}, 1522 },
+  { {OperationResultCode_names + 7289, 45}, 1510 },
+  { {OperationResultCode_names + 7334, 58}, 1524 },
+  { {OperationResultCode_names + 7392, 38}, 2503 },
+  { {OperationResultCode_names + 7430, 41}, 2500 },
+  { {OperationResultCode_names + 7471, 59}, 2510 },
+  { {OperationResultCode_names + 7530, 37}, 2505 },
+  { {OperationResultCode_names + 7567, 40}, 2504 },
+  { {OperationResultCode_names + 7607, 33}, 2501 },
+  { {OperationResultCode_names + 7640, 52}, 2511 },
+  { {OperationResultCode_names + 7692, 55}, 2512 },
+  { {OperationResultCode_names + 7747, 45}, 2506 },
+  { {OperationResultCode_names + 7792, 46}, 2507 },
+  { {OperationResultCode_names + 7838, 56}, 2502 },
+  { {OperationResultCode_names + 7894, 47}, 2509 },
+  { {OperationResultCode_names + 7941, 43}, 2508 },
+  { {OperationResultCode_names + 7984, 45}, 4500 },
+  { {OperationResultCode_names + 8029, 44}, 4504 },
+  { {OperationResultCode_names + 8073, 49}, 4515 },
+  { {OperationResultCode_names + 8122, 29}, 4518 },
+  { {OperationResultCode_names + 8151, 38}, 4536 },
+  { {OperationResultCode_names + 8189, 48}, 4501 },
+  { {OperationResultCode_names + 8237, 43}, 4506 },
+  { {OperationResultCode_names + 8280, 35}, 4530 },
+  { {OperationResultCode_names + 8315, 23}, 4520 },
+  { {OperationResultCode_names + 8338, 37}, 4538 },
+  { {OperationResultCode_names + 8375, 41}, 4563 },
+  { {OperationResultCode_names + 8416, 32}, 4503 },
+  { {OperationResultCode_names + 8448, 35}, 4514 },
+  { {OperationResultCode_names + 8483, 45}, 4552 },
+  { {OperationResultCode_names + 8528, 40}, 4532 },
+  { {OperationResultCode_names + 8568, 40}, 4535 },
+  { {OperationResultCode_names + 8608, 48}, 4547 },
+  { {OperationResultCode_names + 8656, 60}, 4556 },
+  { {OperationResultCode_names + 8716, 56}, 4558 },
+  { {OperationResultCode_names + 8772, 60}, 4557 },
+  { {OperationResultCode_names + 8832, 56}, 4553 },
+  { {OperationResultCode_names + 8888, 52}, 4555 },
+  { {OperationResultCode_names + 8940, 56}, 4554 },
+  { {OperationResultCode_names + 8996, 43}, 4559 },
+  { {OperationResultCode_names + 9039, 43}, 4560 },
+  { {OperationResultCode_names + 9082, 37}, 4561 },
+  { {OperationResultCode_names + 9119, 41}, 4562 },
+  { {OperationResultCode_names + 9160, 46}, 4505 },
+  { {OperationResultCode_names + 9206, 26}, 4519 },
+  { {OperationResultCode_names + 9232, 40}, 4537 },
+  { {OperationResultCode_names + 9272, 29}, 4566 },
+  { {OperationResultCode_names + 9301, 44}, 4507 },
+  { {OperationResultCode_names + 9345, 36}, 4531 },
+  { {OperationResultCode_names + 9381, 24}, 4525 },
+  { {OperationResultCode_names + 9405, 38}, 4539 },
+  { {OperationResultCode_names + 9443, 42}, 4564 },
+  { {OperationResultCode_names + 9485, 44}, 4508 },
+  { {OperationResultCode_names + 9529, 24}, 4522 },
+  { {OperationResultCode_names + 9553, 44}, 4513 },
+  { {OperationResultCode_names + 9597, 24}, 4521 },
+  { {OperationResultCode_names + 9621, 35}, 4502 },
+  { {OperationResultCode_names + 9656, 48}, 4512 },
+  { {OperationResultCode_names + 9704, 28}, 4524 },
+  { {OperationResultCode_names + 9732, 42}, 4540 },
+  { {OperationResultCode_names + 9774, 51}, 4509 },
+  { {OperationResultCode_names + 9825, 31}, 4523 },
+  { {OperationResultCode_names + 9856, 45}, 4541 },
+  { {OperationResultCode_names + 9901, 52}, 4511 },
+  { {OperationResultCode_names + 9953, 39}, 4516 },
+  { {OperationResultCode_names + 9992, 41}, 4533 },
+  { {OperationResultCode_names + 10033, 32}, 4527 },
+  { {OperationResultCode_names + 10065, 32}, 4529 },
+  { {OperationResultCode_names + 10097, 28}, 4528 },
+  { {OperationResultCode_names + 10125, 46}, 4546 },
+  { {OperationResultCode_names + 10171, 48}, 4549 },
+  { {OperationResultCode_names + 10219, 48}, 4551 },
+  { {OperationResultCode_names + 10267, 54}, 4545 },
+  { {OperationResultCode_names + 10321, 54}, 4542 },
+  { {OperationResultCode_names + 10375, 53}, 4510 },
+  { {OperationResultCode_names + 10428, 40}, 4517 },
+  { {OperationResultCode_names + 10468, 52}, 4544 },
+  { {OperationResultCode_names + 10520, 44}, 4534 },
+  { {OperationResultCode_names + 10564, 33}, 4526 },
+  { {OperationResultCode_names + 10597, 49}, 4548 },
+  { {OperationResultCode_names + 10646, 49}, 4550 },
+  { {OperationResultCode_names + 10695, 55}, 4543 },
+  { {OperationResultCode_names + 10750, 32}, 4565 },
 };
 
-static const int OperationResultDetail_entries_by_number[] = {
-  98, // 0 -> DETAIL_UNKNOWN
-  97, // 1 -> DETAIL_SUCCESS
+static const int OperationResultCode_entries_by_number[] = {
+  100, // 0 -> DETAIL_UNKNOWN
+  99, // 1 -> DETAIL_SUCCESS
   17, // 500 -> CLIENT_CANCELLATION_REMOTE_IN_CANCELED_STATE
   13, // 501 -> CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD
   15, // 502 -> CLIENT_CANCELLATION_REMOTE_CANCEL_PAYLOAD
@@ -2261,50 +2271,50 @@ static const int OperationResultDetail_entries_by_number[] = {
   23, // 521 -> CLIENT_CANCELLATION_WIFI_LAN_SERVER_SOCKET_CREATION
   14, // 522 -> CLIENT_CANCELLATION_LOCAL_DISCONNECT
   16, // 523 -> CLIENT_CANCELLATION_REMOTE_DISCONNECT
-  99, // 1000 -> DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
-  100, // 1001 -> DEVICE_STATE_ERROR_USER_HOTSPOT_ENABLED
-  101, // 1002 -> DEVICE_STATE_LOCATION_DISABLED
-  102, // 1003 -> DEVICE_STATE_RADIO_DISABLING_FAILURE
-  103, // 1004 -> DEVICE_STATE_RADIO_ENABLING_FAILURE
-  151, // 1500 -> MEDIUM_UNAVAILABLE_WIFI_AWARE_RESOURCE_NOT_AVAILABLE
-  125, // 1501 -> MEDIUM_UNAVAILABLE_DIRECT_HOTSPOT_NOT_SUPPORT
-  136, // 1502 -> MEDIUM_UNAVAILABLE_SOFT_AP_NOT_SUPPORT
-  130, // 1503 -> MEDIUM_UNAVAILABLE_LOCAL_ONLY_HOTSPOT_NOT_SUPPORT
-  131, // 1504 -> MEDIUM_UNAVAILABLE_LOCAL_ONLY_HOTSPOT_NOT_SUPPORT_5G
-  122, // 1505 -> MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE
-  126, // 1506 -> MEDIUM_UNAVAILABLE_L2CAP_NOT_AVAILABLE
-  123, // 1507 -> MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE
-  147, // 1508 -> MEDIUM_UNAVAILABLE_WEB_RTC_NOT_AVAILABLE
-  150, // 1509 -> MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE
-  156, // 1510 -> MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NOT_AVAILABLE
-  153, // 1511 -> MEDIUM_UNAVAILABLE_WIFI_DIRECT_NOT_AVAILABLE
-  133, // 1512 -> MEDIUM_UNAVAILABLE_NFC_NOT_AVAILABLE
-  128, // 1513 -> MEDIUM_UNAVAILABLE_LAN_NOT_AVAILABLE
-  145, // 1514 -> MEDIUM_UNAVAILABLE_USB_NOT_AVAILABLE
-  121, // 1515 -> MEDIUM_UNAVAILABLE_BLE_NC_LOGICAL_NOT_AVAILABLE
-  124, // 1516 -> MEDIUM_UNAVAILABLE_BT_NC_LOGICAL_NOT_AVAILABLE
-  127, // 1517 -> MEDIUM_UNAVAILABLE_LAN_NC_LOGICAL_NOT_AVAILABLE
-  132, // 1518 -> MEDIUM_UNAVAILABLE_NFC_NC_LOGICAL_NOT_AVAILABLE
-  144, // 1519 -> MEDIUM_UNAVAILABLE_USB_NC_LOGICAL_NOT_AVAILABLE
-  146, // 1520 -> MEDIUM_UNAVAILABLE_WEB_RTC_NC_LOGICAL_NOT_AVAILABLE
-  149, // 1521 -> MEDIUM_UNAVAILABLE_WIFI_AWARE_NC_LOGICAL_NOT_AVAILABLE
-  155, // 1522 -> MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NC_LOGICAL_NOT_AVAILABLE
-  152, // 1523 -> MEDIUM_UNAVAILABLE_WIFI_DIRECT_NC_LOGICAL_NOT_AVAILABLE
-  157, // 1524 -> MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_P2P_RESOURCE_NOT_AVAILABLE
-  154, // 1525 -> MEDIUM_UNAVAILABLE_WIFI_DIRECT_P2P_RESOURCE_NOT_AVAILABLE
-  138, // 1526 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_BLE_LOW_QUALITY_MEDIUMS
-  140, // 1527 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_L2CAP_LOW_QUALITY_MEDIUMS
-  143, // 1528 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_WEB_RTC_LOW_QUALITY_MEDIUMS
-  141, // 1529 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_LAN_LOW_QUALITY_MEDIUMS
-  139, // 1530 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_BT_LOW_QUALITY_MEDIUMS
-  142, // 1531 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_USB_LOW_QUALITY_MEDIUMS
-  129, // 1532 -> MEDIUM_UNAVAILABLE_LOCAL_ONLY_HOTSPOT_DISRUPTIVE_FALSE
-  135, // 1533 -> MEDIUM_UNAVAILABLE_SOFT_AP_DISRUPTIVE_FALSE
-  119, // 1534 -> MEDIUM_UNAVAILABLE_ALREADY_HAVE_A_WIFI_DIRECT_GROUP
-  120, // 1535 -> MEDIUM_UNAVAILABLE_ALREADY_HOSTING_HOTSPOT_FOR_OTHER_CLIENTS
-  134, // 1536 -> MEDIUM_UNAVAILABLE_REJECT_L2CAP_ON_GATT_MULTIPLEX_CONNECTION
-  137, // 1537 -> MEDIUM_UNAVAILABLE_UPGRADE_ON_SAME_MEDIUM
-  148, // 1538 -> MEDIUM_UNAVAILABLE_WEB_RTC_NO_INTERNET
+  101, // 1000 -> DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+  102, // 1001 -> DEVICE_STATE_ERROR_USER_HOTSPOT_ENABLED
+  103, // 1002 -> DEVICE_STATE_LOCATION_DISABLED
+  104, // 1003 -> DEVICE_STATE_RADIO_DISABLING_FAILURE
+  105, // 1004 -> DEVICE_STATE_RADIO_ENABLING_FAILURE
+  153, // 1500 -> MEDIUM_UNAVAILABLE_WIFI_AWARE_RESOURCE_NOT_AVAILABLE
+  127, // 1501 -> MEDIUM_UNAVAILABLE_DIRECT_HOTSPOT_NOT_SUPPORT
+  138, // 1502 -> MEDIUM_UNAVAILABLE_SOFT_AP_NOT_SUPPORT
+  132, // 1503 -> MEDIUM_UNAVAILABLE_LOCAL_ONLY_HOTSPOT_NOT_SUPPORT
+  133, // 1504 -> MEDIUM_UNAVAILABLE_LOCAL_ONLY_HOTSPOT_NOT_SUPPORT_5G
+  124, // 1505 -> MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE
+  128, // 1506 -> MEDIUM_UNAVAILABLE_L2CAP_NOT_AVAILABLE
+  125, // 1507 -> MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE
+  149, // 1508 -> MEDIUM_UNAVAILABLE_WEB_RTC_NOT_AVAILABLE
+  152, // 1509 -> MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE
+  158, // 1510 -> MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NOT_AVAILABLE
+  155, // 1511 -> MEDIUM_UNAVAILABLE_WIFI_DIRECT_NOT_AVAILABLE
+  135, // 1512 -> MEDIUM_UNAVAILABLE_NFC_NOT_AVAILABLE
+  130, // 1513 -> MEDIUM_UNAVAILABLE_LAN_NOT_AVAILABLE
+  147, // 1514 -> MEDIUM_UNAVAILABLE_USB_NOT_AVAILABLE
+  123, // 1515 -> MEDIUM_UNAVAILABLE_BLE_NC_LOGICAL_NOT_AVAILABLE
+  126, // 1516 -> MEDIUM_UNAVAILABLE_BT_NC_LOGICAL_NOT_AVAILABLE
+  129, // 1517 -> MEDIUM_UNAVAILABLE_LAN_NC_LOGICAL_NOT_AVAILABLE
+  134, // 1518 -> MEDIUM_UNAVAILABLE_NFC_NC_LOGICAL_NOT_AVAILABLE
+  146, // 1519 -> MEDIUM_UNAVAILABLE_USB_NC_LOGICAL_NOT_AVAILABLE
+  148, // 1520 -> MEDIUM_UNAVAILABLE_WEB_RTC_NC_LOGICAL_NOT_AVAILABLE
+  151, // 1521 -> MEDIUM_UNAVAILABLE_WIFI_AWARE_NC_LOGICAL_NOT_AVAILABLE
+  157, // 1522 -> MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NC_LOGICAL_NOT_AVAILABLE
+  154, // 1523 -> MEDIUM_UNAVAILABLE_WIFI_DIRECT_NC_LOGICAL_NOT_AVAILABLE
+  159, // 1524 -> MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_P2P_RESOURCE_NOT_AVAILABLE
+  156, // 1525 -> MEDIUM_UNAVAILABLE_WIFI_DIRECT_P2P_RESOURCE_NOT_AVAILABLE
+  140, // 1526 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_BLE_LOW_QUALITY_MEDIUMS
+  142, // 1527 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_L2CAP_LOW_QUALITY_MEDIUMS
+  145, // 1528 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_WEB_RTC_LOW_QUALITY_MEDIUMS
+  143, // 1529 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_LAN_LOW_QUALITY_MEDIUMS
+  141, // 1530 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_BT_LOW_QUALITY_MEDIUMS
+  144, // 1531 -> MEDIUM_UNAVAILABLE_UPGRADE_SKIP_USB_LOW_QUALITY_MEDIUMS
+  131, // 1532 -> MEDIUM_UNAVAILABLE_LOCAL_ONLY_HOTSPOT_DISRUPTIVE_FALSE
+  137, // 1533 -> MEDIUM_UNAVAILABLE_SOFT_AP_DISRUPTIVE_FALSE
+  121, // 1534 -> MEDIUM_UNAVAILABLE_ALREADY_HAVE_A_WIFI_DIRECT_GROUP
+  122, // 1535 -> MEDIUM_UNAVAILABLE_ALREADY_HOSTING_HOTSPOT_FOR_OTHER_CLIENTS
+  136, // 1536 -> MEDIUM_UNAVAILABLE_REJECT_L2CAP_ON_GATT_MULTIPLEX_CONNECTION
+  139, // 1537 -> MEDIUM_UNAVAILABLE_UPGRADE_ON_SAME_MEDIUM
+  150, // 1538 -> MEDIUM_UNAVAILABLE_WEB_RTC_NO_INTERNET
   39, // 2000 -> CLIENT_WIFI_DIRECT_ALREADY_HOSTING_DIRECT_GROUP_FOR_THIS_CLIENT
   40, // 2001 -> CLIENT_WIFI_HOTSPOT_ALREADY_HOSTING_HOTSPOT_FOR_THIS_CLIENT
   24, // 2002 -> CLIENT_DUPLICATE_ACCEPTING_BLE_CONNECTION_REQUEST
@@ -2322,181 +2332,183 @@ static const int OperationResultDetail_entries_by_number[] = {
   37, // 2014 -> CLIENT_DUPLICATE_WIFI_HOTSPOT_CONNECTION_REQUEST
   35, // 2015 -> CLIENT_DUPLICATE_WIFI_AWARE_SUBSCRIBING_REQUEST
   38, // 2016 -> CLIENT_UNSUPPORTED_USB_TO_BE_UPGRADE_MEDIUM
-  159, // 2500 -> MISCELLEANEOUS_BLUETOOTH_MAC_ADDRESS_NULL
-  163, // 2501 -> MISCELLEANEOUS_MOVE_TO_NEW_MEDIUM
-  168, // 2502 -> MISCELLEANEOUS_WIFI_HOTSPOT_SOFT_AP_BLOCKED_BY_PROVISION
-  158, // 2503 -> MISCELLEANEOUS_BLE_SYSTEM_SERVICE_NULL
-  162, // 2504 -> MISCELLEANEOUS_L2CAP_SYSTEM_SERVICE_NULL
-  161, // 2505 -> MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL
-  166, // 2506 -> MISCELLEANEOUS_WIFI_AWARE_SYSTEM_SERVICE_NULL
-  167, // 2507 -> MISCELLEANEOUS_WIFI_DIRECT_SYSTEM_SERVICE_NULL
-  170, // 2508 -> MISCELLEANEOUS_WIFI_LAN_SYSTEM_SERVICE_NULL
-  169, // 2509 -> MISCELLEANEOUS_WIFI_HOTSPOT_SYSTEM_SERVICE_NULL
-  160, // 2510 -> MISCELLEANEOUS_BT_NOT_ACCEPTING_CONNECTION_FOR_WORK_PROFILE
-  164, // 2511 -> MISCELLEANEOUS_WEB_RTC_GET_DROIDGUARD_RESULT_FAILURE
-  165, // 2512 -> MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL
-  114, // 3000 -> IO_FILE_OPENING_ERROR
-  115, // 3001 -> IO_FILE_READING_ERROR
-  116, // 3002 -> IO_FILE_WRITING_ERROR
-  117, // 3003 -> IO_FOLDER_CREATION_ERROR
-  118, // 3004 -> IO_STREAM_CREATE_PIPE_FAILURE
-  104, // 3005 -> IO_ENDPOINT_IO_ERROR_ON_BLE
-  106, // 3006 -> IO_ENDPOINT_IO_ERROR_ON_L2CAP
-  105, // 3007 -> IO_ENDPOINT_IO_ERROR_ON_BT
-  110, // 3008 -> IO_ENDPOINT_IO_ERROR_ON_WEB_RTC
-  107, // 3009 -> IO_ENDPOINT_IO_ERROR_ON_LAN
-  112, // 3010 -> IO_ENDPOINT_IO_ERROR_ON_WIFI_DIRECT
-  113, // 3011 -> IO_ENDPOINT_IO_ERROR_ON_WIFI_HOTSPOT
-  111, // 3012 -> IO_ENDPOINT_IO_ERROR_ON_WIFI_AWARE
-  108, // 3013 -> IO_ENDPOINT_IO_ERROR_ON_NFC
-  109, // 3014 -> IO_ENDPOINT_IO_ERROR_ON_USB
-  69, // 3500 -> CONNECTIVITY_WIFI_AWARE_ATTACH_FAILURE
+  161, // 2500 -> MISCELLEANEOUS_BLUETOOTH_MAC_ADDRESS_NULL
+  165, // 2501 -> MISCELLEANEOUS_MOVE_TO_NEW_MEDIUM
+  170, // 2502 -> MISCELLEANEOUS_WIFI_HOTSPOT_SOFT_AP_BLOCKED_BY_PROVISION
+  160, // 2503 -> MISCELLEANEOUS_BLE_SYSTEM_SERVICE_NULL
+  164, // 2504 -> MISCELLEANEOUS_L2CAP_SYSTEM_SERVICE_NULL
+  163, // 2505 -> MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL
+  168, // 2506 -> MISCELLEANEOUS_WIFI_AWARE_SYSTEM_SERVICE_NULL
+  169, // 2507 -> MISCELLEANEOUS_WIFI_DIRECT_SYSTEM_SERVICE_NULL
+  172, // 2508 -> MISCELLEANEOUS_WIFI_LAN_SYSTEM_SERVICE_NULL
+  171, // 2509 -> MISCELLEANEOUS_WIFI_HOTSPOT_SYSTEM_SERVICE_NULL
+  162, // 2510 -> MISCELLEANEOUS_BT_NOT_ACCEPTING_CONNECTION_FOR_WORK_PROFILE
+  166, // 2511 -> MISCELLEANEOUS_WEB_RTC_GET_DROIDGUARD_RESULT_FAILURE
+  167, // 2512 -> MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL
+  116, // 3000 -> IO_FILE_OPENING_ERROR
+  117, // 3001 -> IO_FILE_READING_ERROR
+  118, // 3002 -> IO_FILE_WRITING_ERROR
+  119, // 3003 -> IO_FOLDER_CREATION_ERROR
+  120, // 3004 -> IO_STREAM_CREATE_PIPE_FAILURE
+  106, // 3005 -> IO_ENDPOINT_IO_ERROR_ON_BLE
+  107, // 3006 -> IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP
+  108, // 3007 -> IO_ENDPOINT_IO_ERROR_ON_BT
+  112, // 3008 -> IO_ENDPOINT_IO_ERROR_ON_WEB_RTC
+  109, // 3009 -> IO_ENDPOINT_IO_ERROR_ON_LAN
+  114, // 3010 -> IO_ENDPOINT_IO_ERROR_ON_WIFI_DIRECT
+  115, // 3011 -> IO_ENDPOINT_IO_ERROR_ON_WIFI_HOTSPOT
+  113, // 3012 -> IO_ENDPOINT_IO_ERROR_ON_WIFI_AWARE
+  110, // 3013 -> IO_ENDPOINT_IO_ERROR_ON_NFC
+  111, // 3014 -> IO_ENDPOINT_IO_ERROR_ON_USB
+  71, // 3500 -> CONNECTIVITY_WIFI_AWARE_ATTACH_FAILURE
   44, // 3501 -> CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE
   41, // 3502 -> CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE
   54, // 3503 -> CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE
   46, // 3504 -> CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE
-  58, // 3505 -> CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE
-  62, // 3506 -> CONNECTIVITY_NFC_CLIENT_SOCKET_CREATION_FAILURE
-  65, // 3507 -> CONNECTIVITY_WEB_RTC_CLIENT_SOCKET_CREATION_FAILURE
-  70, // 3508 -> CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE
-  86, // 3509 -> CONNECTIVITY_WIFI_HOTSPOT_CLIENT_SOCKET_CREATION_FAILURE
-  79, // 3510 -> CONNECTIVITY_WIFI_DIRECT_CLIENT_SOCKET_CREATION_FAILURE
-  64, // 3511 -> CONNECTIVITY_USB_CLIENT_SOCKET_CREATION_FAILURE
-  66, // 3512 -> CONNECTIVITY_WEB_RTC_CONNECT_TO_TACHYON_FAILURE
+  59, // 3505 -> CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE
+  63, // 3506 -> CONNECTIVITY_NFC_CLIENT_SOCKET_CREATION_FAILURE
+  66, // 3507 -> CONNECTIVITY_WEB_RTC_CLIENT_SOCKET_CREATION_FAILURE
+  72, // 3508 -> CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE
+  88, // 3509 -> CONNECTIVITY_WIFI_HOTSPOT_CLIENT_SOCKET_CREATION_FAILURE
+  81, // 3510 -> CONNECTIVITY_WIFI_DIRECT_CLIENT_SOCKET_CREATION_FAILURE
+  65, // 3511 -> CONNECTIVITY_USB_CLIENT_SOCKET_CREATION_FAILURE
+  67, // 3512 -> CONNECTIVITY_WEB_RTC_CONNECT_TO_TACHYON_FAILURE
   42, // 3513 -> CONNECTIVITY_BLE_CREATE_GATT_CONNECTION_FAILURE
-  73, // 3514 -> CONNECTIVITY_WIFI_AWARE_GET_REMOTE_IP_FRAME_FAILURE
-  72, // 3515 -> CONNECTIVITY_WIFI_AWARE_GET_REMOTE_IP_ADDRESS_FAILURE
-  81, // 3516 -> CONNECTIVITY_WIFI_DIRECT_INCONSISTENT_HOSTED_WIFI_BAND
-  88, // 3517 -> CONNECTIVITY_WIFI_HOTSPOT_INCONSISTENT_HOSTED_WIFI_BAND
+  75, // 3514 -> CONNECTIVITY_WIFI_AWARE_GET_REMOTE_IP_FRAME_FAILURE
+  74, // 3515 -> CONNECTIVITY_WIFI_AWARE_GET_REMOTE_IP_ADDRESS_FAILURE
+  83, // 3516 -> CONNECTIVITY_WIFI_DIRECT_INCONSISTENT_HOSTED_WIFI_BAND
+  90, // 3517 -> CONNECTIVITY_WIFI_HOTSPOT_INCONSISTENT_HOSTED_WIFI_BAND
   45, // 3518 -> CONNECTIVITY_BLUETOOTH_INVALID_CREDENTIAL
-  95, // 3519 -> CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
-  82, // 3520 -> CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL
-  89, // 3521 -> CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL
-  74, // 3522 -> CONNECTIVITY_WIFI_AWARE_INVALID_CREDENTIAL
-  67, // 3523 -> CONNECTIVITY_WEB_RTC_INVALID_CREDENTIAL
-  96, // 3524 -> CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR
+  97, // 3519 -> CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
+  84, // 3520 -> CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL
+  91, // 3521 -> CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL
+  76, // 3522 -> CONNECTIVITY_WIFI_AWARE_INVALID_CREDENTIAL
+  68, // 3523 -> CONNECTIVITY_WEB_RTC_INVALID_CREDENTIAL
+  98, // 3524 -> CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR
   53, // 3525 -> CONNECTIVITY_L2CAP_CLIENT_OBTAIN_FAIURE
-  55, // 3526 -> CONNECTIVITY_L2CAP_DATA_CONNECTION_FAILURE
-  75, // 3527 -> CONNECTIVITY_WIFI_AWARE_L2MESSAGE_NETWORK_AVAILABLE_FRAME_NULL
-  76, // 3528 -> CONNECTIVITY_WIFI_AWARE_L2MESSAGE_SEND_HOST_NETWORK_FRAME_FAILURE
-  61, // 3529 -> CONNECTIVITY_LAN_UNREACHABLE
-  90, // 3530 -> CONNECTIVITY_WIFI_HOTSPOT_LOHS_CREATION_FAILURE
-  59, // 3531 -> CONNECTIVITY_LAN_GET_NETWORK_INTERFACES_FAILURE
-  80, // 3532 -> CONNECTIVITY_WIFI_DIRECT_GET_NETWORK_INTERFACES_FAILURE
-  87, // 3533 -> CONNECTIVITY_WIFI_HOTSPOT_GET_NETWORK_INTERFACES_FAILURE
-  91, // 3534 -> CONNECTIVITY_WIFI_HOTSPOT_P2P_CHANNEL_INITIALIZE_FAILURE
-  83, // 3535 -> CONNECTIVITY_WIFI_DIRECT_P2P_CHANNEL_INITIALIZE_FAILURE
-  92, // 3536 -> CONNECTIVITY_WIFI_HOTSPOT_P2P_GROUP_CREATION_FAILURE
-  84, // 3537 -> CONNECTIVITY_WIFI_DIRECT_P2P_GROUP_CREATION_FAILURE
+  56, // 3526 -> CONNECTIVITY_L2CAP_DATA_CONNECTION_FAILURE
+  77, // 3527 -> CONNECTIVITY_WIFI_AWARE_L2MESSAGE_NETWORK_AVAILABLE_FRAME_NULL
+  78, // 3528 -> CONNECTIVITY_WIFI_AWARE_L2MESSAGE_SEND_HOST_NETWORK_FRAME_FAILURE
+  62, // 3529 -> CONNECTIVITY_LAN_UNREACHABLE
+  92, // 3530 -> CONNECTIVITY_WIFI_HOTSPOT_LOHS_CREATION_FAILURE
+  60, // 3531 -> CONNECTIVITY_LAN_GET_NETWORK_INTERFACES_FAILURE
+  82, // 3532 -> CONNECTIVITY_WIFI_DIRECT_GET_NETWORK_INTERFACES_FAILURE
+  89, // 3533 -> CONNECTIVITY_WIFI_HOTSPOT_GET_NETWORK_INTERFACES_FAILURE
+  93, // 3534 -> CONNECTIVITY_WIFI_HOTSPOT_P2P_CHANNEL_INITIALIZE_FAILURE
+  85, // 3535 -> CONNECTIVITY_WIFI_DIRECT_P2P_CHANNEL_INITIALIZE_FAILURE
+  94, // 3536 -> CONNECTIVITY_WIFI_HOTSPOT_P2P_GROUP_CREATION_FAILURE
+  86, // 3537 -> CONNECTIVITY_WIFI_DIRECT_P2P_GROUP_CREATION_FAILURE
   49, // 3538 -> CONNECTIVITY_GATT_SERVER_OPEN_FAILURE
   43, // 3539 -> CONNECTIVITY_BLE_SERVER_SOCKET_CREATION_FAILURE
-  56, // 3540 -> CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_FAILURE
+  57, // 3540 -> CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_FAILURE
   47, // 3541 -> CONNECTIVITY_BT_SERVER_SOCKET_CREATION_FAILURE
-  60, // 3542 -> CONNECTIVITY_LAN_SERVER_SOCKET_CREATION_FAILURE
-  68, // 3543 -> CONNECTIVITY_WEB_RTC_SERVER_SOCKET_CREATION_FAILURE
-  77, // 3544 -> CONNECTIVITY_WIFI_AWARE_SERVER_SOCKET_CREATION_FAILURE
-  93, // 3545 -> CONNECTIVITY_WIFI_HOTSPOT_SERVER_SOCKET_CREATION_FAILURE
-  85, // 3546 -> CONNECTIVITY_WIFI_DIRECT_SERVER_SOCKET_CREATION_FAILURE
-  63, // 3547 -> CONNECTIVITY_NFC_SERVER_SOCKET_CREATION_FAILURE
-  94, // 3548 -> CONNECTIVITY_WIFI_HOTSPOT_SOFT_AP_CREATION_FAILURE
-  78, // 3549 -> CONNECTIVITY_WIFI_AWARE_UPDATE_PUBLISH_FAILURE
+  61, // 3542 -> CONNECTIVITY_LAN_SERVER_SOCKET_CREATION_FAILURE
+  69, // 3543 -> CONNECTIVITY_WEB_RTC_SERVER_SOCKET_CREATION_FAILURE
+  79, // 3544 -> CONNECTIVITY_WIFI_AWARE_SERVER_SOCKET_CREATION_FAILURE
+  95, // 3545 -> CONNECTIVITY_WIFI_HOTSPOT_SERVER_SOCKET_CREATION_FAILURE
+  87, // 3546 -> CONNECTIVITY_WIFI_DIRECT_SERVER_SOCKET_CREATION_FAILURE
+  64, // 3547 -> CONNECTIVITY_NFC_SERVER_SOCKET_CREATION_FAILURE
+  96, // 3548 -> CONNECTIVITY_WIFI_HOTSPOT_SOFT_AP_CREATION_FAILURE
+  80, // 3549 -> CONNECTIVITY_WIFI_AWARE_UPDATE_PUBLISH_FAILURE
   52, // 3550 -> CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR
   51, // 3551 -> CONNECTIVITY_GENERIC_WRITE_CLIENT_INTRODUCTION_ACK_IO_ERROR
-  71, // 3552 -> CONNECTIVITY_WIFI_AWARE_DISCOVERED_PEER_NULL
+  73, // 3552 -> CONNECTIVITY_WIFI_AWARE_DISCOVERED_PEER_NULL
   50, // 3553 -> CONNECTIVITY_GENERIC_PAYLOAD_SENT_ERROR
-  57, // 3554 -> CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE
+  58, // 3554 -> CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE
   48, // 3555 -> CONNECTIVITY_BT_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE
-  171, // 4500 -> NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR
-  176, // 4501 -> NEARBY_BLUETOOTH_MAC_ADDRESS_INVALID_FOR_CONNECT
-  211, // 4502 -> NEARBY_WEB_RTC_CONNECTION_FLOW_NULL
-  182, // 4503 -> NEARBY_GENERIC_CONNECTION_CLOSED
-  172, // 4504 -> NEARBY_BLE_ENDPOINT_CHANNEL_CREATION_FAILURE
-  198, // 4505 -> NEARBY_L2CAP_ENDPOINT_CHANNEL_CREATION_FAILURE
-  177, // 4506 -> NEARBY_BT_ENDPOINT_CHANNEL_CREATION_FAILURE
-  202, // 4507 -> NEARBY_LAN_ENDPOINT_CHANNEL_CREATION_FAILURE
-  207, // 4508 -> NEARBY_NFC_ENDPOINT_CHANNEL_CREATION_FAILURE
-  215, // 4509 -> NEARBY_WIFI_AWARE_ENDPOINT_CHANNEL_CREATION_FAILURE
-  229, // 4510 -> NEARBY_WIFI_HOTSPOT_ENDPOINT_CHANNEL_CREATION_FAILURE
-  218, // 4511 -> NEARBY_WIFI_DIRECT_ENDPOINT_CHANNEL_CREATION_FAILURE
-  212, // 4512 -> NEARBY_WEB_RTC_ENDPOINT_CHANNEL_CREATION_FAILURE
-  209, // 4513 -> NEARBY_USB_ENDPOINT_CHANNEL_CREATION_FAILURE
-  183, // 4514 -> NEARBY_GENERIC_ENDPOINT_UNENCRYPTED
-  173, // 4515 -> NEARBY_BLE_GATT_ADVERTISEMENT_NULL_FOR_CONNECTION
-  219, // 4516 -> NEARBY_WIFI_DIRECT_HOST_ON_SRD_CHANNELS
-  230, // 4517 -> NEARBY_WIFI_HOTSPOT_HOST_ON_SRD_CHANNELS
-  174, // 4518 -> NEARBY_BLE_GATT_NULL_CALLBACK
-  199, // 4519 -> NEARBY_L2CAP_NULL_CALLBACK
-  179, // 4520 -> NEARBY_BT_NULL_CALLBACK
-  210, // 4521 -> NEARBY_USB_NULL_CALLBACK
-  208, // 4522 -> NEARBY_NFC_NULL_CALLBACK
-  216, // 4523 -> NEARBY_WIFI_AWARE_NULL_CALLBACK
-  213, // 4524 -> NEARBY_WEB_RTC_NULL_CALLBACK
-  204, // 4525 -> NEARBY_LAN_NULL_CALLBACK
-  233, // 4526 -> NEARBY_WIFI_HOTSPOT_NULL_CALLBACK
-  221, // 4527 -> NEARBY_WIFI_DIRECT_NULL_CALLBACK
-  223, // 4528 -> NEARBY_WIFI_DIRECT_NULL_SSID
-  222, // 4529 -> NEARBY_WIFI_DIRECT_NULL_PASSWORD
-  178, // 4530 -> NEARBY_BT_MULTIPLEX_SOCKET_DISABLED
-  203, // 4531 -> NEARBY_LAN_MULTIPLEX_SOCKET_DISABLED
-  185, // 4532 -> NEARBY_GENERIC_NEW_ENDPOINT_CHANNEL_NULL
-  220, // 4533 -> NEARBY_WIFI_DIRECT_NO_GROUP_FOR_LISTENING
-  232, // 4534 -> NEARBY_WIFI_HOTSPOT_NO_HOTSPOT_FOR_LISTENING
-  186, // 4535 -> NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL
-  175, // 4536 -> NEARBY_BLE_OPERATION_REGISTERED_FAILED
-  200, // 4537 -> NEARBY_L2CAP_OPERATION_REGISTERED_FAILED
-  180, // 4538 -> NEARBY_BT_OPERATION_REGISTERED_FAILED
-  205, // 4539 -> NEARBY_LAN_OPERATION_REGISTERED_FAILED
-  214, // 4540 -> NEARBY_WEB_RTC_OPERATION_REGISTERED_FAILED
-  217, // 4541 -> NEARBY_WIFI_AWARE_OPERATION_REGISTERED_FAILED
-  228, // 4542 -> NEARBY_WIFI_HOTSPOT_DIRECT_OPERATION_REGISTERED_FAILED
-  236, // 4543 -> NEARBY_WIFI_HOTSPOT_SOFT_AP_OPERATION_REGISTERED_FAILED
-  231, // 4544 -> NEARBY_WIFI_HOTSPOT_LOHS_OPERATION_REGISTERED_FAILED
-  227, // 4545 -> NEARBY_WIFI_HOTSPOT_CLIENT_OPERATION_REGISTERED_FAILED
-  224, // 4546 -> NEARBY_WIFI_DIRECT_OPERATION_REGISTERED_FAILED
-  187, // 4547 -> NEARBY_GENERIC_OUTGOING_PAYLOAD_CREATION_FAILURE
-  234, // 4548 -> NEARBY_WIFI_HOTSPOT_P2P_NON_DBS_WANT_2G_BUT_AP_5G
-  225, // 4549 -> NEARBY_WIFI_DIRECT_P2P_NON_DBS_WANT_2G_BUT_AP_5G
-  235, // 4550 -> NEARBY_WIFI_HOTSPOT_P2P_NON_DBS_WANT_5G_BUT_AP_2G
-  226, // 4551 -> NEARBY_WIFI_DIRECT_P2P_NON_DBS_WANT_5G_BUT_AP_2G
-  184, // 4552 -> NEARBY_GENERIC_INCOMING_PAYLOAD_NOT_DATA_TYPE
-  191, // 4553 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_EVENT_TYPE_ERROR
-  193, // 4554 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_FRAME_TYPE_ERROR
-  192, // 4555 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_FORMAT_ERROR
-  188, // 4556 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_EVENT_TYPE_ERROR
-  190, // 4557 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FRAME_TYPE_ERROR
-  189, // 4558 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FORMAT_ERROR
-  194, // 4559 -> NEARBY_GENERIC_REMOTE_ENDPOINT_STATUS_ERROR
-  195, // 4560 -> NEARBY_GENERIC_REMOTE_REPORT_PAYLOADS_ERROR
-  196, // 4561 -> NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE
-  197, // 4562 -> NEARBY_GENERIC_SEND_PAYLOAD_EXECUTOR_NULL
-  181, // 4563 -> NEARBY_BT_VIRTUAL_SOCKET_CREATION_FAILURE
-  206, // 4564 -> NEARBY_LAN_VIRTUAL_SOCKET_CREATION_FAILURE
-  237, // 4565 -> NEARBY_WIFI_LAN_IP_ADDRESS_ERROR
-  201, // 4566 -> NEARBY_L2CAP_PSM_NOT_POSITIVE
+  55, // 3556 -> CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE
+  70, // 3557 -> CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR
+  173, // 4500 -> NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR
+  178, // 4501 -> NEARBY_BLUETOOTH_MAC_ADDRESS_INVALID_FOR_CONNECT
+  213, // 4502 -> NEARBY_WEB_RTC_CONNECTION_FLOW_NULL
+  184, // 4503 -> NEARBY_GENERIC_CONNECTION_CLOSED
+  174, // 4504 -> NEARBY_BLE_ENDPOINT_CHANNEL_CREATION_FAILURE
+  200, // 4505 -> NEARBY_L2CAP_ENDPOINT_CHANNEL_CREATION_FAILURE
+  179, // 4506 -> NEARBY_BT_ENDPOINT_CHANNEL_CREATION_FAILURE
+  204, // 4507 -> NEARBY_LAN_ENDPOINT_CHANNEL_CREATION_FAILURE
+  209, // 4508 -> NEARBY_NFC_ENDPOINT_CHANNEL_CREATION_FAILURE
+  217, // 4509 -> NEARBY_WIFI_AWARE_ENDPOINT_CHANNEL_CREATION_FAILURE
+  231, // 4510 -> NEARBY_WIFI_HOTSPOT_ENDPOINT_CHANNEL_CREATION_FAILURE
+  220, // 4511 -> NEARBY_WIFI_DIRECT_ENDPOINT_CHANNEL_CREATION_FAILURE
+  214, // 4512 -> NEARBY_WEB_RTC_ENDPOINT_CHANNEL_CREATION_FAILURE
+  211, // 4513 -> NEARBY_USB_ENDPOINT_CHANNEL_CREATION_FAILURE
+  185, // 4514 -> NEARBY_GENERIC_ENDPOINT_UNENCRYPTED
+  175, // 4515 -> NEARBY_BLE_GATT_ADVERTISEMENT_NULL_FOR_CONNECTION
+  221, // 4516 -> NEARBY_WIFI_DIRECT_HOST_ON_SRD_CHANNELS
+  232, // 4517 -> NEARBY_WIFI_HOTSPOT_HOST_ON_SRD_CHANNELS
+  176, // 4518 -> NEARBY_BLE_GATT_NULL_CALLBACK
+  201, // 4519 -> NEARBY_L2CAP_NULL_CALLBACK
+  181, // 4520 -> NEARBY_BT_NULL_CALLBACK
+  212, // 4521 -> NEARBY_USB_NULL_CALLBACK
+  210, // 4522 -> NEARBY_NFC_NULL_CALLBACK
+  218, // 4523 -> NEARBY_WIFI_AWARE_NULL_CALLBACK
+  215, // 4524 -> NEARBY_WEB_RTC_NULL_CALLBACK
+  206, // 4525 -> NEARBY_LAN_NULL_CALLBACK
+  235, // 4526 -> NEARBY_WIFI_HOTSPOT_NULL_CALLBACK
+  223, // 4527 -> NEARBY_WIFI_DIRECT_NULL_CALLBACK
+  225, // 4528 -> NEARBY_WIFI_DIRECT_NULL_SSID
+  224, // 4529 -> NEARBY_WIFI_DIRECT_NULL_PASSWORD
+  180, // 4530 -> NEARBY_BT_MULTIPLEX_SOCKET_DISABLED
+  205, // 4531 -> NEARBY_LAN_MULTIPLEX_SOCKET_DISABLED
+  187, // 4532 -> NEARBY_GENERIC_NEW_ENDPOINT_CHANNEL_NULL
+  222, // 4533 -> NEARBY_WIFI_DIRECT_NO_GROUP_FOR_LISTENING
+  234, // 4534 -> NEARBY_WIFI_HOTSPOT_NO_HOTSPOT_FOR_LISTENING
+  188, // 4535 -> NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL
+  177, // 4536 -> NEARBY_BLE_OPERATION_REGISTERED_FAILED
+  202, // 4537 -> NEARBY_L2CAP_OPERATION_REGISTERED_FAILED
+  182, // 4538 -> NEARBY_BT_OPERATION_REGISTERED_FAILED
+  207, // 4539 -> NEARBY_LAN_OPERATION_REGISTERED_FAILED
+  216, // 4540 -> NEARBY_WEB_RTC_OPERATION_REGISTERED_FAILED
+  219, // 4541 -> NEARBY_WIFI_AWARE_OPERATION_REGISTERED_FAILED
+  230, // 4542 -> NEARBY_WIFI_HOTSPOT_DIRECT_OPERATION_REGISTERED_FAILED
+  238, // 4543 -> NEARBY_WIFI_HOTSPOT_SOFT_AP_OPERATION_REGISTERED_FAILED
+  233, // 4544 -> NEARBY_WIFI_HOTSPOT_LOHS_OPERATION_REGISTERED_FAILED
+  229, // 4545 -> NEARBY_WIFI_HOTSPOT_CLIENT_OPERATION_REGISTERED_FAILED
+  226, // 4546 -> NEARBY_WIFI_DIRECT_OPERATION_REGISTERED_FAILED
+  189, // 4547 -> NEARBY_GENERIC_OUTGOING_PAYLOAD_CREATION_FAILURE
+  236, // 4548 -> NEARBY_WIFI_HOTSPOT_P2P_NON_DBS_WANT_2G_BUT_AP_5G
+  227, // 4549 -> NEARBY_WIFI_DIRECT_P2P_NON_DBS_WANT_2G_BUT_AP_5G
+  237, // 4550 -> NEARBY_WIFI_HOTSPOT_P2P_NON_DBS_WANT_5G_BUT_AP_2G
+  228, // 4551 -> NEARBY_WIFI_DIRECT_P2P_NON_DBS_WANT_5G_BUT_AP_2G
+  186, // 4552 -> NEARBY_GENERIC_INCOMING_PAYLOAD_NOT_DATA_TYPE
+  193, // 4553 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_EVENT_TYPE_ERROR
+  195, // 4554 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_FRAME_TYPE_ERROR
+  194, // 4555 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_FORMAT_ERROR
+  190, // 4556 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_EVENT_TYPE_ERROR
+  192, // 4557 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FRAME_TYPE_ERROR
+  191, // 4558 -> NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FORMAT_ERROR
+  196, // 4559 -> NEARBY_GENERIC_REMOTE_ENDPOINT_STATUS_ERROR
+  197, // 4560 -> NEARBY_GENERIC_REMOTE_REPORT_PAYLOADS_ERROR
+  198, // 4561 -> NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE
+  199, // 4562 -> NEARBY_GENERIC_SEND_PAYLOAD_EXECUTOR_NULL
+  183, // 4563 -> NEARBY_BT_VIRTUAL_SOCKET_CREATION_FAILURE
+  208, // 4564 -> NEARBY_LAN_VIRTUAL_SOCKET_CREATION_FAILURE
+  239, // 4565 -> NEARBY_WIFI_LAN_IP_ADDRESS_ERROR
+  203, // 4566 -> NEARBY_L2CAP_PSM_NOT_POSITIVE
 };
 
-const std::string& OperationResultDetail_Name(
-    OperationResultDetail value) {
+const std::string& OperationResultCode_Name(
+    OperationResultCode value) {
   static const bool dummy =
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
-          OperationResultDetail_entries,
-          OperationResultDetail_entries_by_number,
-          238, OperationResultDetail_strings);
+          OperationResultCode_entries,
+          OperationResultCode_entries_by_number,
+          240, OperationResultCode_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
-      OperationResultDetail_entries,
-      OperationResultDetail_entries_by_number,
-      238, value);
+      OperationResultCode_entries,
+      OperationResultCode_entries_by_number,
+      240, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
-                     OperationResultDetail_strings[idx].get();
+                     OperationResultCode_strings[idx].get();
 }
-bool OperationResultDetail_Parse(
-    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OperationResultDetail* value) {
+bool OperationResultCode_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OperationResultCode* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      OperationResultDetail_entries, 238, name, &int_value);
+      OperationResultCode_entries, 240, name, &int_value);
   if (success) {
-    *value = static_cast<OperationResultDetail>(int_value);
+    *value = static_cast<OperationResultCode>(int_value);
   }
   return success;
 }

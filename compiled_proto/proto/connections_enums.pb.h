@@ -299,11 +299,12 @@ enum DisconnectionReason : int {
   UPGRADED = 4,
   SHUTDOWN = 5,
   UNFINISHED = 6,
-  PREV_CHANNEL_DISCONNECTION_IN_RECONNECT = 7
+  PREV_CHANNEL_DISCONNECTION_IN_RECONNECT = 7,
+  AUTHENTICATION_FAILURE = 8
 };
 bool DisconnectionReason_IsValid(int value);
 constexpr DisconnectionReason DisconnectionReason_MIN = UNKNOWN_DISCONNECTION_REASON;
-constexpr DisconnectionReason DisconnectionReason_MAX = PREV_CHANNEL_DISCONNECTION_IN_RECONNECT;
+constexpr DisconnectionReason DisconnectionReason_MAX = AUTHENTICATION_FAILURE;
 constexpr int DisconnectionReason_ARRAYSIZE = DisconnectionReason_MAX + 1;
 
 const std::string& DisconnectionReason_Name(DisconnectionReason value);
@@ -546,7 +547,7 @@ inline const std::string& OperationResultCategory_Name(T enum_t_value) {
 }
 bool OperationResultCategory_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OperationResultCategory* value);
-enum OperationResultDetail : int {
+enum OperationResultCode : int {
   DETAIL_UNKNOWN = 0,
   DETAIL_SUCCESS = 1,
   CLIENT_CANCELLATION_REMOTE_IN_CANCELED_STATE = 500,
@@ -653,7 +654,7 @@ enum OperationResultDetail : int {
   IO_FOLDER_CREATION_ERROR = 3003,
   IO_STREAM_CREATE_PIPE_FAILURE = 3004,
   IO_ENDPOINT_IO_ERROR_ON_BLE = 3005,
-  IO_ENDPOINT_IO_ERROR_ON_L2CAP = 3006,
+  IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP = 3006,
   IO_ENDPOINT_IO_ERROR_ON_BT = 3007,
   IO_ENDPOINT_IO_ERROR_ON_WEB_RTC = 3008,
   IO_ENDPOINT_IO_ERROR_ON_LAN = 3009,
@@ -718,6 +719,8 @@ enum OperationResultDetail : int {
   CONNECTIVITY_GENERIC_PAYLOAD_SENT_ERROR = 3553,
   CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3554,
   CONNECTIVITY_BT_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3555,
+  CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE = 3556,
+  CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR = 3557,
   NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR = 4500,
   NEARBY_BLUETOOTH_MAC_ADDRESS_INVALID_FOR_CONNECT = 4501,
   NEARBY_WEB_RTC_CONNECTION_FLOW_NULL = 4502,
@@ -786,21 +789,21 @@ enum OperationResultDetail : int {
   NEARBY_WIFI_LAN_IP_ADDRESS_ERROR = 4565,
   NEARBY_L2CAP_PSM_NOT_POSITIVE = 4566
 };
-bool OperationResultDetail_IsValid(int value);
-constexpr OperationResultDetail OperationResultDetail_MIN = DETAIL_UNKNOWN;
-constexpr OperationResultDetail OperationResultDetail_MAX = NEARBY_L2CAP_PSM_NOT_POSITIVE;
-constexpr int OperationResultDetail_ARRAYSIZE = OperationResultDetail_MAX + 1;
+bool OperationResultCode_IsValid(int value);
+constexpr OperationResultCode OperationResultCode_MIN = DETAIL_UNKNOWN;
+constexpr OperationResultCode OperationResultCode_MAX = NEARBY_L2CAP_PSM_NOT_POSITIVE;
+constexpr int OperationResultCode_ARRAYSIZE = OperationResultCode_MAX + 1;
 
-const std::string& OperationResultDetail_Name(OperationResultDetail value);
+const std::string& OperationResultCode_Name(OperationResultCode value);
 template<typename T>
-inline const std::string& OperationResultDetail_Name(T enum_t_value) {
-  static_assert(::std::is_same<T, OperationResultDetail>::value ||
+inline const std::string& OperationResultCode_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, OperationResultCode>::value ||
     ::std::is_integral<T>::value,
-    "Incorrect type passed to function OperationResultDetail_Name.");
-  return OperationResultDetail_Name(static_cast<OperationResultDetail>(enum_t_value));
+    "Incorrect type passed to function OperationResultCode_Name.");
+  return OperationResultCode_Name(static_cast<OperationResultCode>(enum_t_value));
 }
-bool OperationResultDetail_Parse(
-    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OperationResultDetail* value);
+bool OperationResultCode_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OperationResultCode* value);
 // ===================================================================
 
 
@@ -845,7 +848,7 @@ template <> struct is_proto_enum< ::location::nearby::proto::connections::Bandwi
 template <> struct is_proto_enum< ::location::nearby::proto::connections::LogSource> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::PowerLevel> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::OperationResultCategory> : ::std::true_type {};
-template <> struct is_proto_enum< ::location::nearby::proto::connections::OperationResultDetail> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::connections::OperationResultCode> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 
