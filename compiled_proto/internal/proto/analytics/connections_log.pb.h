@@ -272,7 +272,9 @@ class ConnectionsLog_ClientSession final :
 
   enum : int {
     kStrategySessionFieldNumber = 2,
+    kConnectionTokenFieldNumber = 4,
     kDurationMillisFieldNumber = 1,
+    kClientFlowIdFieldNumber = 3,
   };
   // repeated .location.nearby.analytics.proto.ConnectionsLog.StrategySession strategy_session = 2;
   int strategy_session_size() const;
@@ -292,6 +294,24 @@ class ConnectionsLog_ClientSession final :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_StrategySession >&
       strategy_session() const;
 
+  // optional string connection_token = 4;
+  bool has_connection_token() const;
+  private:
+  bool _internal_has_connection_token() const;
+  public:
+  void clear_connection_token();
+  const std::string& connection_token() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_connection_token(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_connection_token();
+  PROTOBUF_NODISCARD std::string* release_connection_token();
+  void set_allocated_connection_token(std::string* connection_token);
+  private:
+  const std::string& _internal_connection_token() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_connection_token(const std::string& value);
+  std::string* _internal_mutable_connection_token();
+  public:
+
   // optional int64 duration_millis = 1;
   bool has_duration_millis() const;
   private:
@@ -305,6 +325,19 @@ class ConnectionsLog_ClientSession final :
   void _internal_set_duration_millis(int64_t value);
   public:
 
+  // optional int64 client_flow_id = 3;
+  bool has_client_flow_id() const;
+  private:
+  bool _internal_has_client_flow_id() const;
+  public:
+  void clear_client_flow_id();
+  int64_t client_flow_id() const;
+  void set_client_flow_id(int64_t value);
+  private:
+  int64_t _internal_client_flow_id() const;
+  void _internal_set_client_flow_id(int64_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.ClientSession)
  private:
   class _Internal;
@@ -315,7 +348,9 @@ class ConnectionsLog_ClientSession final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_StrategySession > strategy_session_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connection_token_;
   int64_t duration_millis_;
+  int64_t client_flow_id_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2597,6 +2632,7 @@ class ConnectionsLog_Payload final :
     kNumChunksFieldNumber = 5,
     kNumBytesTransferredFieldNumber = 4,
     kStatusFieldNumber = 6,
+    kNumSuccessfulAutoResumeFieldNumber = 7,
   };
   // optional int64 duration_millis = 1;
   bool has_duration_millis() const;
@@ -2676,6 +2712,19 @@ class ConnectionsLog_Payload final :
   void _internal_set_status(::location::nearby::proto::connections::PayloadStatus value);
   public:
 
+  // optional int32 num_successful_auto_resume = 7;
+  bool has_num_successful_auto_resume() const;
+  private:
+  bool _internal_has_num_successful_auto_resume() const;
+  public:
+  void clear_num_successful_auto_resume();
+  int32_t num_successful_auto_resume() const;
+  void set_num_successful_auto_resume(int32_t value);
+  private:
+  int32_t _internal_num_successful_auto_resume() const;
+  void _internal_set_num_successful_auto_resume(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.Payload)
  private:
   class _Internal;
@@ -2691,6 +2740,7 @@ class ConnectionsLog_Payload final :
   int32_t num_chunks_;
   int64_t num_bytes_transferred_;
   int status_;
+  int32_t num_successful_auto_resume_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -3559,6 +3609,7 @@ class ConnectionsLog_AdvertisingMetadata final :
     kSupportsExtendedBleAdvertisementsFieldNumber = 1,
     kSupportsNfcTechnologyFieldNumber = 3,
     kMultipleAdvertisementSupportedFieldNumber = 4,
+    kSupportsDualBandFieldNumber = 6,
     kPowerLevelFieldNumber = 5,
   };
   // optional int32 connected_ap_frequency = 2;
@@ -3613,6 +3664,19 @@ class ConnectionsLog_AdvertisingMetadata final :
   void _internal_set_multiple_advertisement_supported(bool value);
   public:
 
+  // optional bool supports_dual_band = 6;
+  bool has_supports_dual_band() const;
+  private:
+  bool _internal_has_supports_dual_band() const;
+  public:
+  void clear_supports_dual_band();
+  bool supports_dual_band() const;
+  void set_supports_dual_band(bool value);
+  private:
+  bool _internal_supports_dual_band() const;
+  void _internal_set_supports_dual_band(bool value);
+  public:
+
   // optional .location.nearby.proto.connections.PowerLevel power_level = 5;
   bool has_power_level() const;
   private:
@@ -3639,6 +3703,7 @@ class ConnectionsLog_AdvertisingMetadata final :
   bool supports_extended_ble_advertisements_;
   bool supports_nfc_technology_;
   bool multiple_advertisement_supported_;
+  bool supports_dual_band_;
   int power_level_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
@@ -4458,7 +4523,7 @@ class ConnectionsLog final :
 
 // optional int64 duration_millis = 1;
 inline bool ConnectionsLog_ClientSession::_internal_has_duration_millis() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ClientSession::has_duration_millis() const {
@@ -4466,7 +4531,7 @@ inline bool ConnectionsLog_ClientSession::has_duration_millis() const {
 }
 inline void ConnectionsLog_ClientSession::clear_duration_millis() {
   duration_millis_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline int64_t ConnectionsLog_ClientSession::_internal_duration_millis() const {
   return duration_millis_;
@@ -4476,7 +4541,7 @@ inline int64_t ConnectionsLog_ClientSession::duration_millis() const {
   return _internal_duration_millis();
 }
 inline void ConnectionsLog_ClientSession::_internal_set_duration_millis(int64_t value) {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   duration_millis_ = value;
 }
 inline void ConnectionsLog_ClientSession::set_duration_millis(int64_t value) {
@@ -4522,6 +4587,103 @@ inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::anal
 ConnectionsLog_ClientSession::strategy_session() const {
   // @@protoc_insertion_point(field_list:location.nearby.analytics.proto.ConnectionsLog.ClientSession.strategy_session)
   return strategy_session_;
+}
+
+// optional int64 client_flow_id = 3;
+inline bool ConnectionsLog_ClientSession::_internal_has_client_flow_id() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_ClientSession::has_client_flow_id() const {
+  return _internal_has_client_flow_id();
+}
+inline void ConnectionsLog_ClientSession::clear_client_flow_id() {
+  client_flow_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline int64_t ConnectionsLog_ClientSession::_internal_client_flow_id() const {
+  return client_flow_id_;
+}
+inline int64_t ConnectionsLog_ClientSession::client_flow_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ClientSession.client_flow_id)
+  return _internal_client_flow_id();
+}
+inline void ConnectionsLog_ClientSession::_internal_set_client_flow_id(int64_t value) {
+  _has_bits_[0] |= 0x00000004u;
+  client_flow_id_ = value;
+}
+inline void ConnectionsLog_ClientSession::set_client_flow_id(int64_t value) {
+  _internal_set_client_flow_id(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.ClientSession.client_flow_id)
+}
+
+// optional string connection_token = 4;
+inline bool ConnectionsLog_ClientSession::_internal_has_connection_token() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_ClientSession::has_connection_token() const {
+  return _internal_has_connection_token();
+}
+inline void ConnectionsLog_ClientSession::clear_connection_token() {
+  connection_token_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& ConnectionsLog_ClientSession::connection_token() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+  return _internal_connection_token();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ConnectionsLog_ClientSession::set_connection_token(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ connection_token_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+}
+inline std::string* ConnectionsLog_ClientSession::mutable_connection_token() {
+  std::string* _s = _internal_mutable_connection_token();
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+  return _s;
+}
+inline const std::string& ConnectionsLog_ClientSession::_internal_connection_token() const {
+  return connection_token_.Get();
+}
+inline void ConnectionsLog_ClientSession::_internal_set_connection_token(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  connection_token_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* ConnectionsLog_ClientSession::_internal_mutable_connection_token() {
+  _has_bits_[0] |= 0x00000001u;
+  return connection_token_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* ConnectionsLog_ClientSession::release_connection_token() {
+  // @@protoc_insertion_point(field_release:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+  if (!_internal_has_connection_token()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = connection_token_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connection_token_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connection_token_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ConnectionsLog_ClientSession::set_allocated_connection_token(std::string* connection_token) {
+  if (connection_token != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  connection_token_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), connection_token,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connection_token_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connection_token_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
 }
 
 // -------------------------------------------------------------------
@@ -6902,6 +7064,34 @@ inline void ConnectionsLog_Payload::set_status(::location::nearby::proto::connec
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.Payload.status)
 }
 
+// optional int32 num_successful_auto_resume = 7;
+inline bool ConnectionsLog_Payload::_internal_has_num_successful_auto_resume() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_Payload::has_num_successful_auto_resume() const {
+  return _internal_has_num_successful_auto_resume();
+}
+inline void ConnectionsLog_Payload::clear_num_successful_auto_resume() {
+  num_successful_auto_resume_ = 0;
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline int32_t ConnectionsLog_Payload::_internal_num_successful_auto_resume() const {
+  return num_successful_auto_resume_;
+}
+inline int32_t ConnectionsLog_Payload::num_successful_auto_resume() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.Payload.num_successful_auto_resume)
+  return _internal_num_successful_auto_resume();
+}
+inline void ConnectionsLog_Payload::_internal_set_num_successful_auto_resume(int32_t value) {
+  _has_bits_[0] |= 0x00000040u;
+  num_successful_auto_resume_ = value;
+}
+inline void ConnectionsLog_Payload::set_num_successful_auto_resume(int32_t value) {
+  _internal_set_num_successful_auto_resume(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.Payload.num_successful_auto_resume)
+}
+
 // -------------------------------------------------------------------
 
 // ConnectionsLog_BandwidthUpgradeAttempt
@@ -8135,7 +8325,7 @@ inline void ConnectionsLog_AdvertisingMetadata::set_multiple_advertisement_suppo
 
 // optional .location.nearby.proto.connections.PowerLevel power_level = 5;
 inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_power_level() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ConnectionsLog_AdvertisingMetadata::has_power_level() const {
@@ -8143,7 +8333,7 @@ inline bool ConnectionsLog_AdvertisingMetadata::has_power_level() const {
 }
 inline void ConnectionsLog_AdvertisingMetadata::clear_power_level() {
   power_level_ = -1;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline ::location::nearby::proto::connections::PowerLevel ConnectionsLog_AdvertisingMetadata::_internal_power_level() const {
   return static_cast< ::location::nearby::proto::connections::PowerLevel >(power_level_);
@@ -8154,12 +8344,40 @@ inline ::location::nearby::proto::connections::PowerLevel ConnectionsLog_Adverti
 }
 inline void ConnectionsLog_AdvertisingMetadata::_internal_set_power_level(::location::nearby::proto::connections::PowerLevel value) {
   assert(::location::nearby::proto::connections::PowerLevel_IsValid(value));
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   power_level_ = value;
 }
 inline void ConnectionsLog_AdvertisingMetadata::set_power_level(::location::nearby::proto::connections::PowerLevel value) {
   _internal_set_power_level(value);
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.power_level)
+}
+
+// optional bool supports_dual_band = 6;
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_supports_dual_band() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::has_supports_dual_band() const {
+  return _internal_has_supports_dual_band();
+}
+inline void ConnectionsLog_AdvertisingMetadata::clear_supports_dual_band() {
+  supports_dual_band_ = false;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_supports_dual_band() const {
+  return supports_dual_band_;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::supports_dual_band() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_dual_band)
+  return _internal_supports_dual_band();
+}
+inline void ConnectionsLog_AdvertisingMetadata::_internal_set_supports_dual_band(bool value) {
+  _has_bits_[0] |= 0x00000010u;
+  supports_dual_band_ = value;
+}
+inline void ConnectionsLog_AdvertisingMetadata::set_supports_dual_band(bool value) {
+  _internal_set_supports_dual_band(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_dual_band)
 }
 
 // -------------------------------------------------------------------
