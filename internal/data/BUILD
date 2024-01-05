@@ -9,10 +9,8 @@ package(default_visibility = [
 cc_library(
     name = "data_manager",
     hdrs = [
-        "data_manager.h",
         "data_set.h",
         "leveldb_data_set.h",
-        "memory_data_set.h",
     ],
     deps = [
         "//internal/platform:types",
@@ -43,7 +41,6 @@ cc_test(
     timeout = "short",
     srcs = [
         "leveldb_data_set_test.cc",
-        "memory_data_set_test.cc",
     ],
     shard_count = 8,
     deps = [

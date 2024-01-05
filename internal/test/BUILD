@@ -27,7 +27,6 @@ cc_library(
     hdrs = [
         "fake_account_manager.h",
         "fake_clock.h",
-        "fake_data_set.h",
         "fake_device_info.h",
         "fake_http_client.h",
         "fake_http_client_factory.h",
@@ -42,7 +41,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base",
-        "//internal/data:data_manager",
         "//internal/network:types",
         "//internal/platform:comm",
         "//internal/platform:types",
@@ -65,7 +63,6 @@ cc_test(
     timeout = "short",
     srcs = [
         "fake_clock_test.cc",
-        "fake_data_set_test.cc",
         "fake_device_info_test.cc",
         "fake_http_client_test.cc",
         "fake_task_runner_test.cc",
@@ -77,7 +74,6 @@ cc_test(
     shard_count = 8,
     deps = [
         ":test",
-        "//internal/data:data_manager",
         "//internal/network:types",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
