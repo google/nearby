@@ -46,7 +46,10 @@ message DeviceIdentityMetaData {
 
 // The metadata of a device.
 // Contains confidential data not to be broadcasted directly in OTA.
+// Metadata is deprecated, use DeviceIdentityMetadata instead.
 message Metadata {
+  option deprecated = true;
+
   // The type of the device.
   DeviceType device_type = 1;
 
