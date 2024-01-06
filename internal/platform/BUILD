@@ -46,6 +46,7 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal/auth:__subpackages__",

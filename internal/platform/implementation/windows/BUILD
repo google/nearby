@@ -202,6 +202,7 @@ cc_library(
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
+        "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",

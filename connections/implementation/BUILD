@@ -106,6 +106,7 @@ cc_library(
         "-DNO_WEBRTC",
     ],
     visibility = [
+        "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__pkg__",
         "//connections/implementation/fuzzers:__pkg__",
         "//location/nearby/cpp/sharing/implementation:__pkg__",
