@@ -31,14 +31,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-      with:
-        submodules: recursive
+    # Disbale layering_check to work around ABSL build failure.
+    # see https://github.com/bazelbuild/bazel/issues/15359
     - name: Build Connections
-      run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections:core --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --features=-layering_check //connections:core --spawn_strategy=standalone
     - name: Build Presence
-      run: CC=clang CXX=clang++ bazel build --check_visibility=false //presence --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --features=-layering_check //presence --spawn_strategy=standalone
     - name: Build Sharing
-      run: CC=clang CXX=clang++ bazel build --check_visibility=false //sharing/proto:all --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --features=-layering_check //sharing/proto:all //sharing/internal/public:nearby_context //sharing/common:all //sharing/scheduling:scheduling --spawn_strategy=standalone
 
   build-rust-linux:
     name: Build Rust on Linux
