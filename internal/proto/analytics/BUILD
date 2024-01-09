@@ -67,8 +67,8 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
+        "//third_party/protobuf",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:protobuf",
     ],
 )

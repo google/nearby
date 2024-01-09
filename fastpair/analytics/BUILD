@@ -29,7 +29,7 @@ cc_library(
         "//internal/analytics:event_logger",
         "//internal/proto/analytics:fast_pair_log_cc_proto",
         "//proto:fast_pair_enums_cc_proto",
-        "//third_party/protobuf:protobuf_lite",
+        "@com_google_protobuf//:protobuf_lite",
     ],
 )
 
@@ -41,8 +41,8 @@ cc_test(
         "//internal/analytics:event_logger",
         "//internal/proto/analytics:fast_pair_log_cc_proto",
         "//proto:fast_pair_enums_cc_proto",
-        "//third_party/protobuf:protobuf_lite",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
+        "@com_google_protobuf//:protobuf_lite",
     ],
 )

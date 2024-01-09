@@ -34,7 +34,7 @@
 #include "internal/platform/exception.h"
 #include "internal/proto/analytics/connections_log.proto.h"
 #include "proto/connections_enums.proto.h"
-#include "third_party/protobuf/message_lite.h"
+#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace analytics {

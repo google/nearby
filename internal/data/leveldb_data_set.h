@@ -30,7 +30,7 @@
 #include "third_party/leveldb/include/status.h"
 #include "internal/data/data_set.h"
 #include "internal/platform/logging.h"
-#include "third_party/protobuf/message_lite.h"
+#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace data {

@@ -16,11 +16,11 @@
 
 #include <memory>
 
-#include "google/protobuf/text_format.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
+#include "google/protobuf/text_format.h"
 
 namespace nearby {
 namespace connections {

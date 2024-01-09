@@ -26,5 +26,5 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
     ],
-    deps = ["@com_google_protobuf//:protobuf"],
+    deps = ["@com_google_protobuf//:protobuf_lite"],
 )
