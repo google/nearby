@@ -5,9 +5,12 @@ This app is a demonstration of how to bind to and use the Nearby Share slice.
 ## Build instructions
 From the root of the repository:
 ```
+// Run this before importing into Android Studio!
 $ cd sharing/android/example
+$ gradle wrapper
 $ ./gradlew build
 ```
+For the gradle wrapper, we recommend Gradle 8.0+.
 
 ## Key callouts
 MainViewModel - contains the business logic for processing and binding to the slice, as well as the lifecycle of the slice.
