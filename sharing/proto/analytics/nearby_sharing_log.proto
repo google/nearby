@@ -1,0 +1,827 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package nearby.sharing.analytics.proto;
+
+import "google/protobuf/duration.proto";
+
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
+import "third_party/nearby/proto/sharing_enums.proto";
+
+// "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
+
+option optimize_for = LITE_RUNTIME;
+option java_package = "nearby.sharing.analytics.proto";
+option java_outer_classname = "SharingLogProto";
+option objc_class_prefix = "GNCP";
+
+// Top-level log proto for all NearbySharing logging.
+// Each log contains a key (event_type), value (a verb-noun event) pair.
+// Next Tag: 76
+// LINT.IfChange
+message SharingLog {
+  /* collection_basis = {
+    use_cases: UC_SERVICE_OR_API_MEASURING_USER_ENGAGEMENT
+  } */
+
+  reserved 71;  // Deprecated TransferUIEvent.
+
+  optional location.nearby.proto.sharing.EventType event_type = 1;
+
+  optional UnknownEvent unknown_event = 2;
+
+  optional AcceptAgreements accept_agreements = 3;
+
+  optional EnableNearbySharing enable_nearby_sharing = 4;
+
+  optional SetVisibility set_visibility = 5;
+
+  optional DescribeAttachments describe_attachments = 6;
+
+  optional ScanForShareTargetsStart scan_for_share_targets_start = 7;
+
+  optional ScanForShareTargetsEnd scan_for_share_targets_end = 8;
+
+  optional AdvertiseDevicePresenceStart advertise_device_presence_start = 9;
+
+  optional AdvertiseDevicePresenceEnd advertise_device_presence_end = 10;
+
+  optional SendFastInitialization send_initialization = 11;
+
+  optional ReceiveFastInitialization receive_initialization = 12;
+
+  optional DiscoverShareTarget discover_share_target = 13;
+
+  optional SendIntroduction send_introduction = 14;
+
+  optional ReceiveIntroduction receive_introduction = 15;
+
+  optional RespondToIntroduction respond_introduction = 16;
+
+  optional SendAttachmentsStart send_attachments_start = 17;
+
+  optional SendAttachmentsEnd send_attachments_end = 18;
+
+  optional ReceiveAttachmentsStart receive_attachments_start = 19;
+
+  optional ReceiveAttachmentsEnd receive_attachments_end = 20;
+
+  optional CancelSendingAttachments cancel_sending_attachments = 21;
+
+  optional CancelReceivingAttachments cancel_receiving_attachments = 22;
+
+  optional OpenReceivedAttachments open_received_attachments = 23;
+
+  optional LaunchActivity launch_activity = 24;
+
+  optional AddContact add_contact = 25;
+
+  optional RemoveContact remove_contact = 26;
+
+  optional location.nearby.proto.sharing.LogSource log_source = 27;
+
+  optional FastShareServerResponse fast_share_server_response = 28;
+
+  optional SendStart send_start = 29;
+
+  optional AcceptFastInitialization accept_fast_initialization = 30;
+
+  optional SetDataUsage set_data_usage = 31;
+
+  // The version of Nearby Sharing. E.g. "v1.0.2".
+  optional string version = 32 /* type = ST_SOFTWARE_ID */;
+
+  optional location.nearby.proto.sharing.EventCategory event_category = 33;
+
+  optional DismissFastInitialization dismiss_fast_initialization = 34;
+
+  optional CancelConnection cancel_connection = 35;
+
+  optional DismissPrivacyNotification dismiss_privacy_notification = 36;
+
+  // Tap privacy notification to update visibility setting.
+  // http://shortn/_LMJHzPFZM0
+  optional TapPrivacyNotification tap_privacy_notification = 37;
+
+  optional TapHelp tap_help = 38;
+
+  optional TapFeedback tap_feedback = 39;
+
+  optional AddQuickSettingsTile add_quick_settings_tile = 40;
+
+  optional RemoveQuickSettingsTile remove_quick_settings_tile = 41;
+
+  optional LaunchPhoneConsent launch_phone_consent = 42;
+
+  optional TapQuickSettingsTile tap_quick_settings_tile = 43;
+
+  optional InstallAPKStatus install_apk_status = 44;
+
+  optional VerifyAPKStatus verify_apk_status = 45;
+
+  optional LaunchConsent launch_consent = 46;
+
+  optional ProcessReceivedAttachmentsEnd process_received_attachments_end = 47;
+
+  optional ToggleShowNotification toggle_show_notification = 48;
+
+  optional SetDeviceName set_device_name = 49;
+
+  // This is a temporary logging field for FilesGo migration phase based on
+  // device geolocation. Example values are "Phase 1", "Phase 2", etc.
+  // Reference: http://shortn/_BkSTmDjzWc
+  optional string files_migration_phase = 50;
+
+  optional DeclineAgreements decline_agreements = 51;
+
+  optional RequestSettingPermissions request_setting_permissions = 52;
+
+  optional DeviceSettings device_settings = 53;
+
+  optional EstablishConnection establish_connection = 54;
+
+  optional AutoDismissFastInitialization auto_dismiss_fast_initialization = 55;
+
+  optional EventMetadata event_metadata = 56;
+
+  // Used only for Nearby Share Windows app now, e.g. "1.0.408". Deprecated and
+  // move it to the AppInfo below.
+  optional string app_version = 57
+      /* type = ST_SOFTWARE_ID */[deprecated = true];
+
+  // Used only for Nearby Share Windows app now
+  optional AppCrash app_crash = 58;
+
+  // Used only for Nearby Share android app now
+  optional TapQuickSettingsFileShare tap_quick_settings_file_share = 59;
+
+  // Used only for Nearby Share Windows app now.
+  // TODO(b/260732897): To deprecate, and will be replaced by
+  // NearbyClientLog.AppInfo.
+  optional AppInfo app_info = 60;
+
+  // Used only for Nearby Share android app now
+  optional DisplayPrivacyNotification display_privacy_notification = 61;
+
+  // Used only for Nearby Share android app now
+  optional DisplayPhoneConsent display_phone_consent = 62;
+
+  // Used only for Nearby Share Windows app now.
+  optional PreferencesUsage preferences_usage = 63;
+
+  // Used only for Nearby Share android app now.
+  optional DefaultOptIn default_opt_in = 64;
+
+  optional SetupWizard setup_wizard = 65;
+
+  // Used only for Nearby Share android app now.
+  optional TapQrCode tap_qr_code = 66;
+
+  optional QrCodeLinkShown qr_code_link_shown = 67;
+
+  optional ParsingFailedEndpointId parsing_failed_endpoint_id = 68;
+
+  optional FastInitDiscoverDevice fast_init_discover_device = 69;
+
+  optional SendDesktopNotification send_desktop_notification = 70;
+
+  optional SendDesktopTransferEvent send_desktop_transfer_event = 72;
+
+  optional SetAccount set_account = 73;
+
+  optional DecryptCertificateFailure decrypt_certificate_failure = 74;
+
+  // Used only for Nearby Share android app now.
+  optional ShowAllowPermissionAutoAccess show_allow_permission_auto_access = 75;
+
+  // Used only for Nearby Share Windows app now.
+  message AppInfo {
+    // e.g. "1.0.408"
+    optional string app_version = 1 /* type = ST_SOFTWARE_ID */;
+    // e.g. en. In Windows app, it's from the registry value.
+    optional string app_language = 2
+        /* type = ST_DEMOGRAPHIC_INFO */;
+    optional string update_track =
+        3;  // e.g. "developer". In Windows app, it's from the registry value.
+  }
+
+  message DeviceSettings {
+    // Device visibility setting at Nearby Share settings page, e.g. Contacts.
+    optional location.nearby.proto.sharing.Visibility visibility = 1;
+    // Device data usage preference at Nearby Share settings page, e.g.Wi-Fi
+    // only, Data, etc.
+    optional location.nearby.proto.sharing.DataUsage data_usage = 2;
+    // Device name length
+    optional int32 device_name_size = 3;
+    // Whether device allows show notification when devices are sharing nearby.
+    optional bool is_show_notification_enabled = 4;
+    // True if the BlueTooth setting is enabled
+    optional bool is_bt_enabled = 5;
+    // True if the location setting is enabled
+    optional bool is_location_enabled = 6;
+    // True if the wifi setting is enabled
+    optional bool is_wifi_enabled = 7;
+  }
+
+  // Used only for Nearby Share Windows app now. Here is the screenshot about
+  // where preferences are set:
+  // https://screenshot.googleplex.com/6HFrEfKCPxuSiYz.
+  message PreferencesUsage {
+    optional location.nearby.proto.sharing.PreferencesAction action = 1;
+    optional location.nearby.proto.sharing.PreferencesActionStatus
+        action_status = 2;
+    optional location.nearby.proto.sharing.PreferencesAction prev_sub_action =
+        3;
+    optional location.nearby.proto.sharing.PreferencesAction next_sub_action =
+        4;
+  }
+
+  // EventType: UNKNOWN_EVENT_TYPE
+  message UnknownEvent {}
+
+  // EventType: ESTABLISH_CONNECTION
+  message EstablishConnection {
+    // The result status of the attempt to establish a connection.
+    optional location.nearby.proto.sharing.EstablishConnectionStatus status = 1;
+
+    optional int64 session_id = 2 /* type = ST_SESSION_ID */;
+    // For group share, 1-based number for transfer position.
+    optional int32 transfer_position = 3;
+    // For group share.
+    optional int32 concurrent_connections = 4;
+    // For calculating latency.
+    optional int64 duration_millis = 5;
+    optional ShareTargetInfo share_target_info = 6;
+    optional string referrer_name = 7;
+    optional bool qr_code_flow = 8;
+    // True if the connection established from receiver
+    optional bool is_incoming_connection = 9;
+  }
+
+  // EventType: ACCEPT_AGREEMENTS
+  message AcceptAgreements {}
+
+  // EventType: DECLINE_AGREEMENTS
+  message DeclineAgreements {}
+
+  // EventType: ENABLE_NEARBY_SHARING
+  message EnableNearbySharing {
+    optional location.nearby.proto.sharing.NearbySharingStatus status = 1;
+    optional bool has_opted_in = 2;
+  }
+
+  // EventType: SET_ACCOUNT
+  // Activity Name: SETUP_ACTIVITY or SETTINGS_ACTIVITY
+  message SetAccount {
+    optional location.nearby.proto.sharing.ActivityName activity_name = 1;
+  }
+
+  // EventType: SET_VISIBILITY
+  message SetVisibility {
+    // The new visibility that the device is set to.
+    optional location.nearby.proto.sharing.Visibility visibility = 1;
+
+    // The current visibility of the device.
+    optional location.nearby.proto.sharing.Visibility source_visibility = 2;
+
+    // The duration in millis of this visibility setting.
+    optional int64 duration_millis = 3;
+
+    optional location.nearby.proto.sharing.ActivityName source_activity_name = 4
+        /* type = ST_NOT_REQUIRED */;
+  }
+
+  // EventType: SET_DATA_USAGE
+  message SetDataUsage {
+    // The current data usage preference of the device.
+    optional location.nearby.proto.sharing.DataUsage original_preference = 1;
+
+    // The new data usage preference that the device is set to.
+    optional location.nearby.proto.sharing.DataUsage preference = 2;
+  }
+
+  // EventType: SCAN_FOR_SHARE_TARGETS_START
+  message ScanForShareTargetsStart {
+    // A randomly generated number to be used to join the start and end of a
+    // session (mostly used to compute the duration of the session, e.g. how
+    // long does it take for attachments to be shared/sent via the Nearby
+    // Connections api). A same number is used twice for the start and
+    // end of a session. It is not designed to be associated to user or device,
+    // and can only be used to join the start and end of a particular session.
+    // Each session itself does not contain user or device information, and is
+    // not designed to be joined with other sessions/events of the same user to
+    // reconstruct particular user's activity pattern.
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.SessionStatus status = 2;
+    optional location.nearby.proto.sharing.ScanType scan_type = 3;
+    optional int64 flow_id = 4 /* type = ST_SESSION_ID */;
+    optional string referrer_name = 5;
+  }
+
+  // EventType: SCAN_FOR_SHARE_TARGETS_END
+  message ScanForShareTargetsEnd {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+  }
+
+  // EventType: ADVERTISE_DEVICE_PRESENCE_START
+  message AdvertiseDevicePresenceStart {
+    // No longer needed for advertisement.
+    optional int64 session_id = 1
+        /* type = ST_SESSION_ID */[deprecated = true];
+    optional location.nearby.proto.sharing.Visibility visibility = 2;
+    optional location.nearby.proto.sharing.SessionStatus status = 3;
+    optional location.nearby.proto.sharing.DataUsage data_usage = 4;
+    // No longer needed for advertisement, replace this with
+    // SET_NAME_DEVICE.
+    optional int32 device_name_size = 5 [deprecated = true];
+    optional string referrer_name = 6;
+    optional location.nearby.proto.sharing.AdvertisingMode advertising_mode = 7;
+    optional bool qr_code_flow = 8;
+  }
+
+  // EventType: ADVERTISE_DEVICE_PRESENCE_END
+  message AdvertiseDevicePresenceEnd {
+    // No longer needed for advertisement.
+    optional int64 session_id = 1
+        /* type = ST_SESSION_ID */[deprecated = true];
+  }
+
+  // EventType: SEND_FAST_INITIALIZATION
+  message SendFastInitialization {}
+
+  // EventType: RECEIVE_FAST_INITIALIZATION
+  message ReceiveFastInitialization {
+    // The time elapse from the beginning of screen unlock to the time
+    // when the FastInitialization is received.
+    optional int64 time_elapse_since_screen_unlock_millis = 1;
+    // True if the notification is enabled
+    optional bool notifications_enabled = 2;
+    // True if the notification is being filtered when being shown
+    optional bool notifications_filtered = 3;
+  }
+
+  // EventType: DISMISS_FAST_INITIALIZATION
+  message DismissFastInitialization {}
+
+  // EventType: AUTO_DISMISS_FAST_INITIALIZATION
+  message AutoDismissFastInitialization {}
+
+  // TODO(b/302987763): We need to deprecate flow_id and session_id in each
+  // event once these two fields in metadata are released to prod and
+  // pipelines are updated to read them.
+  message EventMetadata {
+    optional location.nearby.proto.sharing.SharingUseCase use_case = 1;
+    // The opt-in status before the user enters the first opt-in screen in each
+    // time file share or it is always “true” if the user has opted in before.
+    optional bool initial_opt_in = 2;
+    // The opt-in status after the user leaves the first opt-in screen in each
+    // time file share or it is always “true” if the user has opted in before.
+    optional bool opt_in = 3;
+    // The Nearby Share enable status before the user enters the first
+    // opt-in screen in each time file share.
+    optional bool initial_enable_status = 4;
+    // The same id means it is in the same sharing file flow of sender side.
+    // Ex: when sender share file to 2 receivers, the flow_id in sender side is
+    // the same for all the discovery/connection/transfer events.
+    optional int64 flow_id = 5 /* type = ST_SESSION_ID */;
+    // A randomly generated number to be used to join the start and end of a
+    // session (mostly used to compute the duration of the session, e.g. how
+    // long does it take for attachments to be shared/sent via the Nearby
+    // Connections api). A same number is used twice for the start and
+    // end of a session. It is not designed to be associated to user or device,
+    // and can only be used to join the start and end of a particular session.
+    // Each session itself does not contain user or device information, and is
+    // not designed to be joined with other sessions/events of the same user to
+    // reconstruct particular user's activity pattern.
+    optional int64 session_id = 6 /* type = ST_SESSION_ID */;
+  }
+
+  // TODO(fdi): may consider adding a field about decipherability later.
+  // EventType: DISCOVER_SHARE_TARGET
+  message DiscoverShareTarget {
+    optional ShareTargetInfo share_target_info = 1;
+    // The time elapse from the beginning of an scanning session to the time
+    // when the share target is discovered.
+    optional google.protobuf.Duration duration_since_scanning = 2;
+    optional int64 session_id = 3 /* type = ST_SESSION_ID */;
+    optional int64 flow_id = 4 /* type = ST_SESSION_ID */;
+    optional string referrer_name = 5;
+    // The time elapse from the share sheet activity starts (foreground
+    // send surface) to the time when the share target is discovered.
+    // Only uses foreground send surfaces, since this is when users
+    // directly engage with NS to send.
+    optional int64 latency_since_activity_start_millis = 6 [default = -1];
+    optional location.nearby.proto.sharing.ScanType scan_type = 7;
+  }
+
+  // EventType: PARSING_FAILED_ENDPOINT_ID
+  message ParsingFailedEndpointId {
+    optional string endpoint_id = 1 /* type = ST_SESSION_ID */;
+    // The time elapse from the beginning of an scanning session to the time
+    // when the share target is discovered.
+    optional google.protobuf.Duration duration_since_scanning = 2;
+    optional int64 session_id = 3 /* type = ST_SESSION_ID */;
+    optional int64 flow_id = 4 /* type = ST_SESSION_ID */;
+    optional string referrer_name = 5
+        /* type = ST_REFERER_URL */;
+    // The time elapse from the share sheet activity starts to the time
+    // when the share target is discovered.
+    optional int64 latency_since_activity_start_millis = 6 [default = -1];
+    optional location.nearby.proto.sharing.ScanType scan_type = 7;
+    // The time elapse from the beginning of sync to download the certificates
+    // to the time when the scanning fails in parsing.
+    optional google.protobuf.Duration duration_since_last_sync = 8;
+    optional location.nearby.proto.sharing.ParsingFailedType
+        parsing_failed_type = 9;
+    optional location.nearby.proto.sharing.DiscoveryMode discovery_mode = 10;
+  }
+
+  // EventType: DESCRIBE_ATTACHMENTS
+  message DescribeAttachments {
+    optional AttachmentsInfo attachments_info = 1;
+  }
+
+  // TODO(fdi): may want to add duration_from_scanning_millis later.
+  // EventType: SEND_INTRODUCTION
+  message SendIntroduction {
+    optional ShareTargetInfo share_target_info = 1;
+    optional int64 session_id = 2 /* type = ST_SESSION_ID */;
+    // 1-based number for transfer position.
+    optional int32 transfer_position = 3;
+    optional int32 concurrent_connections = 4;
+  }
+
+  // EventType: RECEIVE_INTRODUCTION
+  message ReceiveIntroduction {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional ShareTargetInfo share_target_info = 2;
+    optional string referrer_name = 3;
+  }
+
+  // TODO(fdi): may add AttachmentInfo, or ShareTargetInfo later.
+  // EventType: RESPOND_TO_INTRODUCTION
+  message RespondToIntroduction {
+    optional location.nearby.proto.sharing.ResponseToIntroduction action = 1;
+    optional int64 session_id = 2 /* type = ST_SESSION_ID */;
+    optional bool qr_code_flow = 3;
+  }
+
+  // EventType: SEND_ATTACHMENTS_START
+  message SendAttachmentsStart {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional AttachmentsInfo attachments_info = 2;
+    // 1-based number for transfer position.
+    optional int32 transfer_position = 3;
+    optional int32 concurrent_connections = 4;
+    optional bool qr_code_flow = 5;
+  }
+
+  // EventType: SEND_ATTACHMENTS_END
+  message SendAttachmentsEnd {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional int64 sent_bytes = 2;
+    optional location.nearby.proto.sharing.AttachmentTransmissionStatus status =
+        3;
+    // 1-based number for transfer position.
+    optional int32 transfer_position = 4;
+    optional int32 concurrent_connections = 5;
+    optional AttachmentsInfo attachments_info = 6;
+    // the duration from transfer start to transfer is finished.
+    optional int64 duration_millis = 7;
+    optional ShareTargetInfo share_target_info = 8;
+    optional string referrer_name = 9;
+    // connection status from nearby connections layer
+    optional location.nearby.proto.sharing.ConnectionLayerStatus
+        connection_layer_status = 10;
+  }
+
+  // EventType: RECEIVE_ATTACHMENTS_START
+  message ReceiveAttachmentsStart {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional AttachmentsInfo attachments_info = 2;
+    optional ShareTargetInfo share_target_info = 3;
+  }
+
+  // EventType: RECEIVE_ATTACHMENTS_END
+  message ReceiveAttachmentsEnd {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional int64 received_bytes = 2;
+    optional location.nearby.proto.sharing.AttachmentTransmissionStatus status =
+        3;
+    optional string referrer_name = 4;
+    optional ShareTargetInfo share_target_info = 5;
+  }
+
+  // EventType: CANCEL_CONNECTION
+  message CancelConnection {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    // 1-based number for transfer position. 1 if log is from receiver side.
+    optional int32 transfer_position = 2;
+    optional int32 concurrent_connections = 3;
+  }
+
+  // EventType: CANCEL_SENDING_ATTACHMENTS
+  message CancelSendingAttachments {}
+
+  // EventType: CANCEL_RECEIVING_ATTACHMENTS
+  message CancelReceivingAttachments {}
+
+  // EventType: PROCESS_RECEIVED_ATTACHMENTS_END
+  message ProcessReceivedAttachmentsEnd {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.ProcessReceivedAttachmentsStatus
+        status = 2;
+  }
+
+  // EventType: OPEN_RECEIVED_ATTACHMENTS
+  message OpenReceivedAttachments {
+    optional AttachmentsInfo attachments_info = 3;
+    optional int64 session_id = 4 /* type = ST_SESSION_ID */;
+  }
+
+  // EventType: LAUNCH_SETUP_ACTIVITY
+  message LaunchSetupActivity {}
+
+  // EventType: ADD_CONTACT
+  message AddContact {
+    optional bool was_phone_added = 1;
+    optional bool was_email_added = 2;
+  }
+
+  // EventType: REMOVE_CONTACT
+  message RemoveContact {
+    optional bool was_phone_removed = 1;
+    optional bool was_email_removed = 2;
+  }
+
+  // EventType: FAST_SHARE_SERVER_RESPONSE
+  message FastShareServerResponse {
+    optional location.nearby.proto.sharing.ServerResponseState status = 1;
+    optional location.nearby.proto.sharing.ServerActionName name = 2;
+    optional int64 latency_millis = 3;
+    optional location.nearby.proto.sharing.SyncPurpose purpose = 4;
+    optional location.nearby.proto.sharing.ClientRole requester = 5;
+    optional location.nearby.proto.sharing.DeviceType device_type = 6;
+  }
+
+  // EventType: SEND_START
+  message SendStart {
+    optional int64 session_id = 1 /* type = ST_SESSION_ID */;
+    // 1-based number for transfer position.
+    optional int32 transfer_position = 2;
+    optional int32 concurrent_connections = 3;
+    optional ShareTargetInfo share_target_info = 4;
+  }
+
+  // EventType: ACCEPT_FAST_INITIALIZATION
+  message AcceptFastInitialization {}
+
+  // EventType: LAUNCH_ACTIVITY
+  message LaunchActivity {
+    optional location.nearby.proto.sharing.ActivityName activity_name = 1;
+    // Elapsed time in milliseconds between startActivity and stopActivity.
+    optional int64 duration_millis = 2;
+    // The name of the package that launched the activity
+    optional string referrer_name = 3;
+    // Is previous transfer in progress.
+    optional bool previous_transfer_in_progress = 4;
+    // Whether user has opted in before. For SETUP_ACTIVITY (Opt-In half sheet)
+    // and SETTINGS_ACTIVITY (Settings page). b/202415050, b/203248230
+    optional bool has_opted_in = 5;
+    // Indicate which UI interaction triggers the opt-in half sheet. Currently
+    // this only applies to SETUP_ACTIVITY
+    optional location.nearby.proto.sharing.ActivityName source_activity_name =
+        6;
+    // Is the activity simply pausing or completely finishing.
+    optional bool is_finishing = 7;
+  }
+
+  // EventType: DISMISS_PRIVACY_NOTIFICATION
+  message DismissPrivacyNotification {}
+
+  // EventType: TAP_PRIVACY_NOTIFICATION
+  message TapPrivacyNotification {}
+
+  // EventType: TAP_HELP
+  message TapHelp {}
+
+  // EventType: TAP_FEEDBACK
+  message TapFeedback {}
+
+  // EventType: ADD_QUICK_SETTINGS_TILE
+  message AddQuickSettingsTile {}
+
+  // EventType: REMOVE_QUICK_SETTINGS_TILE
+  message RemoveQuickSettingsTile {}
+
+  // EventType: LAUNCH_PHONE_CONSENT
+  message LaunchPhoneConsent {}
+
+  // EventType: DISPLAY_PHONE_CONSENT
+  message DisplayPhoneConsent {}
+
+  // EventType: TAP_QUICK_SETTINGS_TILE
+  message TapQuickSettingsTile {}
+
+  // EventType: TAP_QUICK_SETTINGS_FILE_SHARE
+  message TapQuickSettingsFileShare {}
+
+  // EventType: DISPLAY_PRIVACY_NOTIFICATION
+  message DisplayPrivacyNotification {}
+
+  // EventType: DEFAULT_OPT_IN
+  message DefaultOptIn {}
+
+  // EventType: SET_DEVICE_NAME
+  message SetDeviceName {
+    optional int32 device_name_size = 1;
+  }
+
+  // EventType: REQUEST_SETTING_PERMISSIONS
+  message RequestSettingPermissions {
+    optional location.nearby.proto.sharing.PermissionRequestType
+        permission_type = 1;
+    optional location.nearby.proto.sharing.PermissionRequestResult
+        permission_request_result = 2;
+  }
+
+  // EventType: LAUNCH_CONSENT
+  message LaunchConsent {
+    optional location.nearby.proto.sharing.ConsentType consent_type = 1;
+    optional location.nearby.proto.sharing.ConsentAcceptanceStatus status = 2;
+  }
+
+  // EventType: INSTALL_APK_STATUS
+  message InstallAPKStatus {
+    repeated location.nearby.proto.sharing.InstallAPKStatus status = 1
+        [packed = true];
+    repeated location.nearby.proto.sharing.ApkSource source = 2 [packed = true];
+  }
+
+  // EventType: VERIFY_APK_STATUS
+  message VerifyAPKStatus {
+    repeated location.nearby.proto.sharing.VerifyAPKStatus status = 1
+        [packed = true];
+    repeated location.nearby.proto.sharing.ApkSource source = 2 [packed = true];
+  }
+
+  // EventType: TOGGLE_SHOW_NOTIFICATION
+  message ToggleShowNotification {
+    optional location.nearby.proto.sharing.ShowNotificationStatus
+        previous_status = 1;
+    optional location.nearby.proto.sharing.ShowNotificationStatus
+        current_status = 2;
+  }
+
+  // EventType: DECRYPT_CERTIFICATE_FAILURE
+  message DecryptCertificateFailure {
+    optional location.nearby.proto.sharing.DecryptCertificateFailureStatus
+        status = 1;
+  }
+
+  // EventType: SHOW_ALLOW_PERMISSION_AUTO_ACCESS
+  message ShowAllowPermissionAutoAccess {
+    // Auto permission UI activity name
+    // Shows the auto permission UI if the device lacks Wifi or Bluetooth
+    // permission and the user has not allowed Nearby Share to automatically
+    // enable these permissions. Once the user allows access, the UI will
+    // not be shown again.
+    // Currently, only the SHARE_SHEET_ACTIVITY and RECEIVE_SURFACE_ACTIVITY
+    // show the UI.
+    optional location.nearby.proto.sharing.ActivityName activity_name = 1;
+    // True if user allowed NS to auto enable Wifi/BT permissions during file
+    // transfer and NS will recover the permissions after transffer is complete.
+    optional bool allowed_auto_access = 2;
+    // True if the device lacks Wifi permission.
+    optional bool is_wifi_missing = 3;
+    // True if the device lacks Bluetooth permission.
+    optional bool is_bt_missing = 4;
+  }
+
+  // EventType: TAP_QR_CODE
+  message TapQrCode {}
+
+  // QR_CODE_LINK_SHOWN
+  message QrCodeLinkShown {}
+
+  // EventType: FAST_INIT_DISCOVER_DEVICE
+  message FastInitDiscoverDevice {
+    reserved 1;
+    // The advertisement type is NOTIFY or SILENT.
+    optional location.nearby.proto.sharing.FastInitType fast_init_type = 2;
+    // The distance of the found nearby fast init advertisement.
+    optional location.nearby.proto.sharing.FastInitState fast_init_state = 3;
+  }
+
+  // The metadata of a share target.
+  message ShareTargetInfo {
+    optional location.nearby.proto.sharing.DeviceType device_type = 1;
+    optional location.nearby.proto.sharing.OSType os_type = 2;
+    optional location.nearby.proto.sharing.DeviceRelationship
+        device_relationship = 3;
+  }
+
+  // The metadata of attachments to be shared.
+  message AttachmentsInfo {
+    repeated TextAttachment text_attachment = 1;
+    repeated FileAttachment file_attachment = 2;
+    // The App required by sender to open the attachments.
+    optional string required_app = 3;
+    repeated WifiCredentialsAttachment wifi_credentials_attachment = 4;
+    repeated AppAttachment app_attachment = 5;
+    repeated StreamAttachment stream_attachment = 6;
+  }
+
+  message TextAttachment {
+    optional Type type = 1;
+    optional int64 size_bytes = 2;
+    // attachments are batched together by some source
+    optional int64 batch_id = 3 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.AttachmentSourceType source_type = 4;
+
+    enum Type {
+      UNKNOWN_TEXT_TYPE = 0;
+      URL = 1;
+      ADDRESS = 2;
+      PHONE_NUMBER = 3;
+    }
+  }
+
+  message FileAttachment {
+    optional Type type = 1;
+    optional int64 size_bytes = 2;
+    reserved 3;  // optional string mime_type = 3
+    optional int64 offset_bytes = 4;
+    // attachments are batched together by some source
+    optional int64 batch_id = 5 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.AttachmentSourceType source_type = 6;
+
+    enum Type {
+      UNKNOWN_FILE_TYPE = 0;
+      IMAGE = 1;
+      VIDEO = 2;
+      ANDROID_APP = 3;
+      AUDIO = 4;
+      DOCUMENT = 5;
+    }
+  }
+
+  message WifiCredentialsAttachment {
+    optional int32 security_type = 1;
+    // attachments are batched together by some source
+    optional int64 batch_id = 2 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.AttachmentSourceType source_type = 3;
+  }
+
+  message AppAttachment {
+    optional string package_name = 1 /* type = ST_SOFTWARE_ID */;
+    // App size in bytes.
+    optional int64 size = 2;
+    // attachments are batched together by some source
+    optional int64 batch_id = 3 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.AttachmentSourceType source_type = 4;
+  }
+
+  message StreamAttachment {
+    optional string package_name = 1 /* type = ST_SOFTWARE_ID */;
+    // attachments are batched together by some source
+    optional int64 batch_id = 2 /* type = ST_SESSION_ID */;
+    optional location.nearby.proto.sharing.AttachmentSourceType source_type = 3;
+  }
+
+  // EventType: APP_CRASH
+  // Used only for Nearby Share Windows App now
+  message AppCrash {
+    optional location.nearby.proto.sharing.AppCrashReason crash_reason = 1;
+  }
+
+  // EventType: SETUP_WIZARD
+  // The results of a setup wizard flow
+  message SetupWizard {
+    // The new visibility of the device.
+    optional location.nearby.proto.sharing.Visibility visibility = 1;
+  }
+
+  message SendDesktopNotification {
+    reserved 2;
+    optional location.nearby.proto.sharing.DesktopNotification event = 1;
+  }
+
+  message SendDesktopTransferEvent {
+    optional location.nearby.proto.sharing.DesktopTransferEventType event = 1;
+  }
+}
+// LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
