@@ -42,6 +42,13 @@ IOFile::IOFile(const absl::string_view file_path, size_t size)
   file_.open(wide_path, std::ios::binary | std::ios::in | std::ios::ate);
 
   total_size_ = file_.tellg();
+  if (total_size_ == -1) {
+    // Unsure why it consistently returns -1 when the file size exceeds 2GB. If
+    // obtaining the file size through tellg fails, use the size provided
+    // in the parameters.
+     total_size_ = size;
+  }
+
   file_.seekg(0);
 }
 
