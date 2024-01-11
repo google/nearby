@@ -27,7 +27,7 @@ We support multiple platforms including Linux, iOS & Windows.
 
 > **NOTE:** Linux has no mediums implemented.
 
-Currently we support building from source using [bazel] (https://bazel.build). Other BUILD system such as cmake may be added later.
+Currently we support building from source using [bazel](https://bazel.build). Other BUILD system such as cmake may be added later.
 
 ### Prerequisites:
 
