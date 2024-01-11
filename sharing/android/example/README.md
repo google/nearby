@@ -1,5 +1,7 @@
 # Nearby Share sample app
 
+asdasdas
+
 This app is a demonstration of how to bind to and use the Nearby Share slice.
 
 ## Build instructions
