@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: protoc debug
+      run: which protoc; protoc --version
     # Disbale layering_check to work around ABSL build failure.
     # see https://github.com/bazelbuild/bazel/issues/15359
     - name: Build Connections
