@@ -12,19 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
-#include "internal/platform/implementation/wifi_hotspot.h"
-#include "internal/platform/implementation/windows/wifi_intel.h"
-
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "gtest/gtest.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
+#include "internal/platform/implementation/windows/wifi_hotspot.h"
 
 namespace nearby {
 namespace windows {
@@ -38,15 +35,14 @@ TEST(WifiHotspotMedium, DISABLED_StartWifiHotspot) {
   if (run_test) {
     HotspotCredentials hotspot_credentials;
     WifiHotspotMedium hotspot_medium;
-    WifiIntel& intel_wifi_{WifiIntel::GetInstance()};
+
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableIntelPieSdk,
+        true);
 
     EXPECT_TRUE(hotspot_medium.IsInterfaceValid());
     EXPECT_TRUE(hotspot_medium.StartWifiHotspot(&hotspot_credentials));
-    absl::SleepFor(absl::Seconds(1));
-    // hotspot_medium.ListenForService(0);
-    intel_wifi_.Start();
-    NEARBY_LOGS(INFO) << "GO channel: " << (int)intel_wifi_.GetGOChannel();
-    intel_wifi_.Stop();
 
     while (true) {
       NEARBY_LOGS(INFO) << "Enter \"s\" to stop test:";
@@ -112,8 +108,19 @@ TEST(WifiHotspotMedium, DISABLED_ConnectWifiHotspot) {
     NEARBY_LOGS(INFO) << "Enter password: ";
     std::string password;
     std::cin >> password;
+    NEARBY_LOGS(INFO) << "Enter frequency(input 0 if unknown): ";
+    int frequency;
+    std::cin >> frequency;
+
     hotspot_credentials.SetSSID(ssid);
     hotspot_credentials.SetPassword(password);
+    hotspot_credentials.SetFrequency(frequency);
+
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableIntelPieSdk,
+        true);
+
     EXPECT_TRUE(hotspot_medium.ConnectWifiHotspot(&hotspot_credentials));
     absl::SleepFor(absl::Seconds(1));
     while (true) {

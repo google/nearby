@@ -45,7 +45,7 @@ class WifiIntel {
   bool IsValid() const { return intel_wifi_valid_; }
   bool Start();
   void Stop();
-  int8_t GetGOChannel();
+  int GetGOChannel();
   bool SetScanFilter(int channel);
   bool ResetScanFilter();
 

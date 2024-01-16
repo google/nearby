@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "internal/platform/implementation/windows/wifi_hotspot.h"
+
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -20,7 +22,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 
 // Nearby connections headers
@@ -260,7 +261,7 @@ bool WifiHotspotMedium::StartWifiHotspot(
                   kEnableIntelPieSdk)) {
         WifiIntel& intel_wifi{WifiIntel::GetInstance()};
         if (intel_wifi.Start()) {
-          int GO_channel = static_cast<int>(intel_wifi.GetGOChannel());
+          int GO_channel = intel_wifi.GetGOChannel();
           NEARBY_LOGS(INFO)
               << "Intel PIE enabled, Hotspot is running on channel: "
               << GO_channel;
@@ -441,12 +442,17 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     // SoftAP is an abbreviation for "software enabled access point".
     WiFiAvailableNetwork nearby_softap{nullptr};
 
-    auto channel = WifiUtils::ConvertFrequencyMhzToChannel(
-        hotspot_credentials_->GetFrequency());
-    WifiIntel& intel_wifi{WifiIntel::GetInstance()};
-    bool intel_wifi_started = intel_wifi.Start();
-    if (intel_wifi_started) {
-      intel_wifi.SetScanFilter(channel);
+    bool intel_wifi_started = false;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableIntelPieSdk)) {
+      auto channel = WifiUtils::ConvertFrequencyMhzToChannel(
+          hotspot_credentials_->GetFrequency());
+      WifiIntel& intel_wifi{WifiIntel::GetInstance()};
+      intel_wifi_started = intel_wifi.Start();
+      if (intel_wifi_started) {
+        intel_wifi.SetScanFilter(channel);
+      }
     }
 
     NEARBY_LOGS(INFO) << "Scanning for Nearby Hotspot SSID: "
@@ -485,6 +491,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
                       << i+1 << " times trying.";
 
     if (intel_wifi_started) {
+      WifiIntel& intel_wifi{WifiIntel::GetInstance()};
       intel_wifi.ResetScanFilter();
       intel_wifi.Stop();
     }

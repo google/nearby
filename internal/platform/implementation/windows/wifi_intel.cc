@@ -179,11 +179,12 @@ void WifiIntel::Stop() {
 #endif
 }
 
-int8_t WifiIntel::GetGOChannel() {
+int WifiIntel::GetGOChannel() {
 #ifndef NO_INTEL_PIE
   WIFIPANQUERYPREFERREDCHANNELSETTING WifiPanQueryPreferredChannelSettingFunc =
       nullptr;
-  int8_t channel = -1;
+  int channel = -1;
+
   DWORD dwError = ERROR_SUCCESS;  // NOLINT
   MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;  // NOLINT
   INTEL_WIFI_HEADER intelWifiHeader;
@@ -208,6 +209,7 @@ int8_t WifiIntel::GetGOChannel() {
 
   intelWifiHeader.dwSize =
       sizeof(MurocDefs::INTEL_GO_OPERATION_CHANNEL_SETTING);
+  memset(&intelGOChan, 0, sizeof(intelGOChan));
   murocApiRetVal = WifiPanQueryPreferredChannelSettingFunc(
       wifi_adapter_handle_, &intelWifiHeader, (void*)&intelGOChan);
 
