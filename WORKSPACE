@@ -36,6 +36,12 @@ http_archive(
 )
 
 http_archive(
+    name = "rules_cc",
+    strip_prefix = "rules_cc-0.0.9",
+    urls = ["https://github.com/bazelbuild/rules_cc/archive/refs/tags/0.0.9.tar.gz"],
+)
+
+http_archive(
     name = "com_google_absl",
     strip_prefix = "abseil-cpp-4038192a57cb75f7ee671f81a3378ff4c74c4f8e",
     urls = ["https://github.com/abseil/abseil-cpp/archive/4038192a57cb75f7ee671f81a3378ff4c74c4f8e.zip"],
@@ -50,21 +56,28 @@ http_archive(
 
 http_archive(
     name = "com_google_protobuf",
-    strip_prefix = "protobuf-3.17.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
+    strip_prefix = "protobuf-3.19.6",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz"],
 )
 
 http_archive(
     name = "com_google_protobuf_cc",
-    strip_prefix = "protobuf-3.17.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
+    strip_prefix = "protobuf-3.19.6",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz"],
 )
 
 http_archive(
     name = "com_google_protobuf_java",
-    strip_prefix = "protobuf-3.17.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
+    strip_prefix = "protobuf-3.19.6",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz"],
 )
+
+# Load common dependencies.
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+protobuf_deps()
+load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies", "rules_cc_toolchains")
+rules_cc_dependencies()
+rules_cc_toolchains()
 
 http_archive(
     name = "com_google_glog",
@@ -111,10 +124,6 @@ cc_library(
         "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
     ],
 )
-
-load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
-# Load common dependencies.
-protobuf_deps()
 
 http_archive(
     name = "com_google_googletest",

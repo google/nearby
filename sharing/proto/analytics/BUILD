@@ -23,16 +23,14 @@ proto_library(
     srcs = [
         "nearby_sharing_log.proto",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
-        "//google/protobuf:duration",
         "//proto:sharing_enums_proto",
+        "@com_google_protobuf//:duration_proto",
     ],
 )
 
 cc_proto_library(
     name = "sharing_log_cc_proto",
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [":sharing_log_proto"],
 )
 

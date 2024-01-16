@@ -19,7 +19,7 @@ package nearby.sharing.analytics.proto;
 import "google/protobuf/duration.proto";
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
-import "third_party/nearby/proto/sharing_enums.proto";
+import "proto/sharing_enums.proto";
 
 // "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
 
