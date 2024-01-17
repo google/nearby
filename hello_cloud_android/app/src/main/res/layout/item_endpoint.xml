@@ -4,8 +4,8 @@
     <data>
 
         <variable
-            name="endpointViewModel"
-            type="com.google.hellocloud.EndpointViewModel" />
+            name="model"
+            type="com.google.hellocloud.Endpoint" />
     </data>
 
     <LinearLayout
@@ -14,21 +14,78 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:src="@{model.stateIcon}" />
+
         <TextView
             android:id="@+id/endpointId"
             style="@style/SubheaderTextStyle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
             android:layout_weight="1"
-            android:gravity="start"
+            android:gravity="center_vertical"
             android:maxLines="1"
             android:paddingHorizontal="10dp"
-            android:text="@{endpointViewModel.toString}" />
+            android:text="@{model.toString}" />
 
-        <ImageView
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/chevron"
-            android:contentDescription="Endpoint details" />
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTING ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+                <ImageButton
+                    android:id="@+id/connect"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED}"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
+                    android:src="@{model.state == com.google.hellocloud.Endpoint.State.DISCOVERED ? @drawable/connect : @drawable/connect_disabled}" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.DISCONNECTING ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+                <ImageButton
+                    android:id="@+id/disconnect"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
+                    android:visibility="@{model.state == com.google.hellocloud.Endpoint.State.DISCONNECTING ? android.view.View.INVISIBLE : android.view.View.VISIBLE}"
+                    android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/disconnect : @drawable/disconnect_disabled}" />
+            </FrameLayout>
+            <ImageButton
+                android:id="@+id/pick"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:enabled="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED}"
+                android:src="@{model.state == com.google.hellocloud.Endpoint.State.CONNECTED ? @drawable/add_photo : @drawable/add_photo_disabled}" />
+        </LinearLayout>
     </LinearLayout>
 </layout>

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		23252B5629D739E400BB0370 /* HelloConnectionsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */; };
+		23252B5629D739E400BB0370 /* HelloCloudApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5529D739E400BB0370 /* HelloCloudApp.swift */; };
 		23252B5829D739E400BB0370 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23252B5729D739E400BB0370 /* MainView.swift */; };
 		23252B5A29D739E500BB0370 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23252B5929D739E500BB0370 /* Assets.xcassets */; };
 		23252B5D29D739E500BB0370 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23252B5C29D739E500BB0370 /* Preview Assets.xcassets */; };
@@ -15,21 +15,44 @@
 		23D1FD2629D8A9FF00620802 /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D1FD2529D8A9FF00620802 /* Endpoint.swift */; };
 		23F6A70829D7621F00558F56 /* Main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A70729D7621F00558F56 /* Main.swift */; };
 		23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 23F6A71029D772B800558F56 /* NearbyConnections */; };
-		23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F6A71229D7ADCE00558F56 /* EndpointView.swift */; };
 		7755C5752B199539003A9E0B /* CloudStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7755C5742B199539003A9E0B /* CloudStorage.swift */; };
-		7755C5BB2B199C08003A9E0B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7755C5BA2B199C08003A9E0B /* GoogleService-Info.plist */; };
+		777392172B2CE0FC002FE3BA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */; };
+		777392192B2CE8E1002FE3BA /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 777392182B2CE8E1002FE3BA /* FirebaseMessaging */; };
+		7773921B2B2CE8E1002FE3BA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 7773921A2B2CE8E1002FE3BA /* FirebaseStorage */; };
+		7773921D2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 7773921C2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community */; };
+		777392202B2D02C2002FE3BA /* IncomingPacketsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7773921F2B2D02C2002FE3BA /* IncomingPacketsView.swift */; };
+		777392222B2D033B002FE3BA /* OutgoingPacketsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777392212B2D033B002FE3BA /* OutgoingPacketsView.swift */; };
+		777CC1492B2E8D9A00E2E8FA /* File.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777CC1482B2E8D9A00E2E8FA /* File.swift */; };
+		777CC14B2B2E8F9000E2E8FA /* Packet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777CC14A2B2E8F9000E2E8FA /* Packet.swift */; };
+		777FE98C2B301027000DD6D0 /* Debug.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FE98B2B301027000DD6D0 /* Debug.swift */; };
+		777FE9902B301B47000DD6D0 /* DataWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FE98F2B301B47000DD6D0 /* DataWrapper.swift */; };
+		777FE9922B30CE2E000DD6D0 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FE9912B30CE2E000DD6D0 /* ImageView.swift */; };
+		777FE9942B311551000DD6D0 /* CloudDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FE9932B311551000DD6D0 /* CloudDatabase.swift */; };
+		777FE9962B311622000DD6D0 /* FirebaseDatabaseSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE9952B311622000DD6D0 /* FirebaseDatabaseSwift */; };
+		777FE9982B311622000DD6D0 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE9972B311622000DD6D0 /* FirebaseFunctions */; };
+		777FE99A2B311622000DD6D0 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE9992B311622000DD6D0 /* FirebaseMessaging */; };
+		777FE99C2B311622000DD6D0 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE99B2B311622000DD6D0 /* FirebaseStorage */; };
+		777FE99E2B3116C4000DD6D0 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE99D2B3116C4000DD6D0 /* FirebaseDatabase */; };
+		777FE9A02B3116C4000DD6D0 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE99F2B3116C4000DD6D0 /* FirebaseFunctions */; };
+		777FE9A22B3116C4000DD6D0 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE9A12B3116C4000DD6D0 /* FirebaseMessaging */; };
+		777FE9A42B3116C4000DD6D0 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE9A32B3116C4000DD6D0 /* FirebaseStorage */; };
+		777FE9A62B3116C4000DD6D0 /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 777FE9A52B3116C4000DD6D0 /* FirebaseStorageCombine-Community */; };
+		779087AA2B369BC700F60AF1 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 779087A92B369BC700F60AF1 /* Utils.swift */; };
+		779087AC2B36A32100F60AF1 /* QrCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 779087AB2B36A32100F60AF1 /* QrCodeView.swift */; };
+		77D47DDA2B2D20A9000D729D /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DD92B2D20A9000D729D /* FirebaseFunctions */; };
+		77D47DDC2B2D20A9000D729D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DDB2B2D20A9000D729D /* FirebaseMessaging */; };
+		77D47DDE2B2D20A9000D729D /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DDD2B2D20A9000D729D /* FirebaseStorage */; };
+		77D47DE02B2D20A9000D729D /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 77D47DDF2B2D20A9000D729D /* FirebaseStorageCombine-Community */; };
 		77DCB0D32B1B1086002A6FB2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */; };
 		77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C742B110CA600838C24 /* IncomingFile.swift */; };
 		77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C762B110CB300838C24 /* OutgoingFile.swift */; };
-		77E09C792B110CC500838C24 /* Transfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C782B110CC500838C24 /* Transfer.swift */; };
-		77E09C7B2B119B1600838C24 /* TransfersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7A2B119B1600838C24 /* TransfersView.swift */; };
-		77E09C7D2B11C13300838C24 /* OutgoingFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7C2B11C13300838C24 /* OutgoingFilesView.swift */; };
-		77E09C7F2B11D45F00838C24 /* IncomingFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */; };
+		77F8BA4C2B37E802003A6DC6 /* CodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F8BA4A2B37E801003A6DC6 /* CodeScanner.swift */; };
+		77F8BA4D2B37E802003A6DC6 /* ScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F8BA4B2B37E802003A6DC6 /* ScannerViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		23252B5229D739E400BB0370 /* HelloCloudApple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HelloCloudApple.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloConnectionsApp.swift; sourceTree = "<group>"; };
+		23252B5529D739E400BB0370 /* HelloCloudApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloCloudApp.swift; sourceTree = "<group>"; };
 		23252B5729D739E400BB0370 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		23252B5929D739E500BB0370 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		23252B5C29D739E500BB0370 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -37,16 +60,24 @@
 		23D1FD2529D8A9FF00620802 /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		23F6A70729D7621F00558F56 /* Main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Main.swift; sourceTree = "<group>"; };
 		23F6A70E29D76DC400558F56 /* nearby */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = nearby; path = ..; sourceTree = "<group>"; };
-		23F6A71229D7ADCE00558F56 /* EndpointView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointView.swift; sourceTree = "<group>"; };
 		7755C5742B199539003A9E0B /* CloudStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStorage.swift; sourceTree = "<group>"; };
-		7755C5BA2B199C08003A9E0B /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		7773921E2B2CED78002FE3BA /* HelloCloudApple.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HelloCloudApple.entitlements; sourceTree = "<group>"; };
+		7773921F2B2D02C2002FE3BA /* IncomingPacketsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingPacketsView.swift; sourceTree = "<group>"; };
+		777392212B2D033B002FE3BA /* OutgoingPacketsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingPacketsView.swift; sourceTree = "<group>"; };
+		777CC1482B2E8D9A00E2E8FA /* File.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = File.swift; sourceTree = "<group>"; };
+		777CC14A2B2E8F9000E2E8FA /* Packet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Packet.swift; sourceTree = "<group>"; };
+		777FE98B2B301027000DD6D0 /* Debug.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debug.swift; sourceTree = "<group>"; };
+		777FE98F2B301B47000DD6D0 /* DataWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataWrapper.swift; sourceTree = "<group>"; };
+		777FE9912B30CE2E000DD6D0 /* ImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
+		777FE9932B311551000DD6D0 /* CloudDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudDatabase.swift; sourceTree = "<group>"; };
+		779087A92B369BC700F60AF1 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		779087AB2B36A32100F60AF1 /* QrCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrCodeView.swift; sourceTree = "<group>"; };
 		77CD19D02B19442100654BA2 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		77E09C742B110CA600838C24 /* IncomingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFile.swift; sourceTree = "<group>"; };
 		77E09C762B110CB300838C24 /* OutgoingFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFile.swift; sourceTree = "<group>"; };
-		77E09C782B110CC500838C24 /* Transfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer.swift; sourceTree = "<group>"; };
-		77E09C7A2B119B1600838C24 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
-		77E09C7C2B11C13300838C24 /* OutgoingFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutgoingFilesView.swift; sourceTree = "<group>"; };
-		77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingFilesView.swift; sourceTree = "<group>"; };
+		77F8BA4A2B37E801003A6DC6 /* CodeScanner.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CodeScanner.swift; sourceTree = "<group>"; };
+		77F8BA4B2B37E802003A6DC6 /* ScannerViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScannerViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,7 +85,23 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				777FE9A22B3116C4000DD6D0 /* FirebaseMessaging in Frameworks */,
+				777FE99A2B311622000DD6D0 /* FirebaseMessaging in Frameworks */,
+				777FE9962B311622000DD6D0 /* FirebaseDatabaseSwift in Frameworks */,
+				777392192B2CE8E1002FE3BA /* FirebaseMessaging in Frameworks */,
+				7773921B2B2CE8E1002FE3BA /* FirebaseStorage in Frameworks */,
+				77D47DDC2B2D20A9000D729D /* FirebaseMessaging in Frameworks */,
+				7773921D2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community in Frameworks */,
+				77D47DDA2B2D20A9000D729D /* FirebaseFunctions in Frameworks */,
+				77D47DDE2B2D20A9000D729D /* FirebaseStorage in Frameworks */,
+				777FE99C2B311622000DD6D0 /* FirebaseStorage in Frameworks */,
 				23F6A71129D772B800558F56 /* NearbyConnections in Frameworks */,
+				77D47DE02B2D20A9000D729D /* FirebaseStorageCombine-Community in Frameworks */,
+				777FE9A42B3116C4000DD6D0 /* FirebaseStorage in Frameworks */,
+				777FE9982B311622000DD6D0 /* FirebaseFunctions in Frameworks */,
+				777FE9A02B3116C4000DD6D0 /* FirebaseFunctions in Frameworks */,
+				777FE99E2B3116C4000DD6D0 /* FirebaseDatabase in Frameworks */,
+				777FE9A62B3116C4000DD6D0 /* FirebaseStorageCombine-Community in Frameworks */,
 				77DCB0D32B1B1086002A6FB2 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -83,15 +130,18 @@
 		23252B5429D739E400BB0370 /* HelloCloudApple */ = {
 			isa = PBXGroup;
 			children = (
+				7773921E2B2CED78002FE3BA /* HelloCloudApple.entitlements */,
+				777392162B2CE0FC002FE3BA /* GoogleService-Info.plist */,
 				77CD19D02B19442100654BA2 /* Info.plist */,
-				7755C5BA2B199C08003A9E0B /* GoogleService-Info.plist */,
 				23F6A71429D7B0AB00558F56 /* Model */,
-				23252B5529D739E400BB0370 /* HelloConnectionsApp.swift */,
+				23252B5529D739E400BB0370 /* HelloCloudApp.swift */,
 				23252B5729D739E400BB0370 /* MainView.swift */,
-				23F6A71229D7ADCE00558F56 /* EndpointView.swift */,
-				77E09C7E2B11D45F00838C24 /* IncomingFilesView.swift */,
-				77E09C7C2B11C13300838C24 /* OutgoingFilesView.swift */,
-				77E09C7A2B119B1600838C24 /* TransfersView.swift */,
+				777FE9912B30CE2E000DD6D0 /* ImageView.swift */,
+				779087AB2B36A32100F60AF1 /* QrCodeView.swift */,
+				77F8BA4A2B37E801003A6DC6 /* CodeScanner.swift */,
+				77F8BA4B2B37E802003A6DC6 /* ScannerViewController.swift */,
+				7773921F2B2D02C2002FE3BA /* IncomingPacketsView.swift */,
+				777392212B2D033B002FE3BA /* OutgoingPacketsView.swift */,
 				23252B5929D739E500BB0370 /* Assets.xcassets */,
 				23252B5B29D739E500BB0370 /* Preview Content */,
 			);
@@ -129,8 +179,13 @@
 				23D1FD2329D8A73200620802 /* Config.swift */,
 				77E09C742B110CA600838C24 /* IncomingFile.swift */,
 				77E09C762B110CB300838C24 /* OutgoingFile.swift */,
-				77E09C782B110CC500838C24 /* Transfer.swift */,
 				7755C5742B199539003A9E0B /* CloudStorage.swift */,
+				777FE9932B311551000DD6D0 /* CloudDatabase.swift */,
+				777CC1482B2E8D9A00E2E8FA /* File.swift */,
+				777CC14A2B2E8F9000E2E8FA /* Packet.swift */,
+				777FE98B2B301027000DD6D0 /* Debug.swift */,
+				777FE98F2B301B47000DD6D0 /* DataWrapper.swift */,
+				779087A92B369BC700F60AF1 /* Utils.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -154,6 +209,22 @@
 			packageProductDependencies = (
 				23F6A71029D772B800558F56 /* NearbyConnections */,
 				77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */,
+				777392182B2CE8E1002FE3BA /* FirebaseMessaging */,
+				7773921A2B2CE8E1002FE3BA /* FirebaseStorage */,
+				7773921C2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community */,
+				77D47DD92B2D20A9000D729D /* FirebaseFunctions */,
+				77D47DDB2B2D20A9000D729D /* FirebaseMessaging */,
+				77D47DDD2B2D20A9000D729D /* FirebaseStorage */,
+				77D47DDF2B2D20A9000D729D /* FirebaseStorageCombine-Community */,
+				777FE9952B311622000DD6D0 /* FirebaseDatabaseSwift */,
+				777FE9972B311622000DD6D0 /* FirebaseFunctions */,
+				777FE9992B311622000DD6D0 /* FirebaseMessaging */,
+				777FE99B2B311622000DD6D0 /* FirebaseStorage */,
+				777FE99D2B3116C4000DD6D0 /* FirebaseDatabase */,
+				777FE99F2B3116C4000DD6D0 /* FirebaseFunctions */,
+				777FE9A12B3116C4000DD6D0 /* FirebaseMessaging */,
+				777FE9A32B3116C4000DD6D0 /* FirebaseStorage */,
+				777FE9A52B3116C4000DD6D0 /* FirebaseStorageCombine-Community */,
 			);
 			productName = HelloCloudApple;
 			productReference = 23252B5229D739E400BB0370 /* HelloCloudApple.app */;
@@ -202,7 +273,7 @@
 			files = (
 				23252B5D29D739E500BB0370 /* Preview Assets.xcassets in Resources */,
 				23252B5A29D739E500BB0370 /* Assets.xcassets in Resources */,
-				7755C5BB2B199C08003A9E0B /* GoogleService-Info.plist in Resources */,
+				777392172B2CE0FC002FE3BA /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -213,19 +284,26 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				77E09C7F2B11D45F00838C24 /* IncomingFilesView.swift in Sources */,
-				77E09C7D2B11C13300838C24 /* OutgoingFilesView.swift in Sources */,
+				777FE9922B30CE2E000DD6D0 /* ImageView.swift in Sources */,
+				777FE9942B311551000DD6D0 /* CloudDatabase.swift in Sources */,
 				23252B5829D739E400BB0370 /* MainView.swift in Sources */,
+				77F8BA4D2B37E802003A6DC6 /* ScannerViewController.swift in Sources */,
 				23F6A70829D7621F00558F56 /* Main.swift in Sources */,
 				23D1FD2429D8A73200620802 /* Config.swift in Sources */,
-				77E09C7B2B119B1600838C24 /* TransfersView.swift in Sources */,
-				23252B5629D739E400BB0370 /* HelloConnectionsApp.swift in Sources */,
+				77F8BA4C2B37E802003A6DC6 /* CodeScanner.swift in Sources */,
+				777392202B2D02C2002FE3BA /* IncomingPacketsView.swift in Sources */,
+				777FE98C2B301027000DD6D0 /* Debug.swift in Sources */,
+				23252B5629D739E400BB0370 /* HelloCloudApp.swift in Sources */,
 				23D1FD2629D8A9FF00620802 /* Endpoint.swift in Sources */,
+				779087AA2B369BC700F60AF1 /* Utils.swift in Sources */,
 				77E09C752B110CA600838C24 /* IncomingFile.swift in Sources */,
+				777CC1492B2E8D9A00E2E8FA /* File.swift in Sources */,
 				77E09C772B110CB300838C24 /* OutgoingFile.swift in Sources */,
-				77E09C792B110CC500838C24 /* Transfer.swift in Sources */,
+				777FE9902B301B47000DD6D0 /* DataWrapper.swift in Sources */,
+				779087AC2B36A32100F60AF1 /* QrCodeView.swift in Sources */,
+				777392222B2D033B002FE3BA /* OutgoingPacketsView.swift in Sources */,
+				777CC14B2B2E8F9000E2E8FA /* Packet.swift in Sources */,
 				7755C5752B199539003A9E0B /* CloudStorage.swift in Sources */,
-				23F6A71329D7ADCE00558F56 /* EndpointView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,14 +429,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = HelloCloudApple/HelloCloudApple.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
-				DEVELOPMENT_TEAM = C2D8V6M23S;
+				DEVELOPMENT_TEAM = QFP2RZ8L7U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HelloCloudApple/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Bluetooth.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to scan QR codes.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Local Network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -371,7 +451,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.google.deling.hello-cloud";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.deling.hello-cloud";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -386,14 +466,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = HelloCloudApple/HelloCloudApple.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HelloCloudApple/Preview Content\"";
-				DEVELOPMENT_TEAM = C2D8V6M23S;
+				DEVELOPMENT_TEAM = QFP2RZ8L7U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HelloCloudApple/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Bluetooth.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to scan QR codes.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This app demonstrates Nearby Connections. Supply a value for this string to explain how the user benefits when they allow the app to use Local Network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -406,7 +488,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.google.deling.hello-cloud";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.deling.hello-cloud";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -454,6 +536,86 @@
 		23F6A71029D772B800558F56 /* NearbyConnections */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NearbyConnections;
+		};
+		777392182B2CE8E1002FE3BA /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		7773921A2B2CE8E1002FE3BA /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		7773921C2B2CE8E1002FE3BA /* FirebaseStorageCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseStorageCombine-Community";
+		};
+		777FE9952B311622000DD6D0 /* FirebaseDatabaseSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabaseSwift;
+		};
+		777FE9972B311622000DD6D0 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		777FE9992B311622000DD6D0 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		777FE99B2B311622000DD6D0 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		777FE99D2B3116C4000DD6D0 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		777FE99F2B3116C4000DD6D0 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		777FE9A12B3116C4000DD6D0 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		777FE9A32B3116C4000DD6D0 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		777FE9A52B3116C4000DD6D0 /* FirebaseStorageCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseStorageCombine-Community";
+		};
+		77D47DD92B2D20A9000D729D /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		77D47DDB2B2D20A9000D729D /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		77D47DDD2B2D20A9000D729D /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		77D47DDF2B2D20A9000D729D /* FirebaseStorageCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77DCB0D12B1B1086002A6FB2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseStorageCombine-Community";
 		};
 		77DCB0D22B1B1086002A6FB2 /* FirebaseStorage */ = {
 			isa = XCSwiftPackageProductDependency;

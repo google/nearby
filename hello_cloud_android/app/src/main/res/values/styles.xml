@@ -1,11 +1,5 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="AppTheme" parent="ThemeOverlay.AppCompat.DayNight" />
-
-    <style name="HeaderTextStyle">
-        <item name="android:textAppearance">@android:style/TextAppearance.Material.Title</item>
-    </style>
-
     <style name="SubheaderTextStyle">
         <item name="android:textAppearance">@android:style/TextAppearance.Material.Subhead</item>
     </style>
@@ -14,28 +8,11 @@
         <item name="android:textAppearance">@android:style/TextAppearance.Material.Title</item>
     </style>
 
-    <style name="DefaultTextStyle">
-        <item name="android:textAppearance">@android:style/TextAppearance.Material.Body1</item>
-    </style>
-
-    <style name="TransferTimeAndSpeedStyle">
-        <item name="android:textAppearance">@android:style/TextAppearance.Material.Caption</item>
-    </style>
-
-    <style name="DetailTextStyle">
-        <item name="android:textAppearance">@android:style/TextAppearance.Material.Caption</item>
-    </style>
-
     <style name="ListItemStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:padding">10dp</item>
         <item name="android:gravity">center_vertical</item>
-    </style>
-
-    <style name="ButtonStyle">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
     </style>
 
 </resources>

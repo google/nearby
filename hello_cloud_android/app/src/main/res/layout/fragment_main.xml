@@ -6,8 +6,8 @@
     <data>
 
         <variable
-            name="mainViewModel"
-            type="com.google.hellocloud.MainViewModel" />
+            name="model"
+            type="com.google.hellocloud.Main" />
     </data>
 
     <LinearLayout
@@ -33,19 +33,19 @@
                     android:id="@+id/localEndpointIdLabel"
                     style="@style/TitleTextStyle"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:labelFor="@+id/localEndpointId"
+                    android:layout_weight="1"
                     android:drawableStart="@drawable/id"
+                    android:labelFor="@+id/localEndpointId"
                     android:text="ID" />
 
                 <TextView
                     android:id="@+id/localEndpointId"
                     style="@style/TitleTextStyle"
                     android:layout_width="0dp"
-                    android:layout_weight="3"
                     android:layout_height="45dp"
-                    android:text="@={mainViewModel.localEndpointId}" />
+                    android:layout_weight="3"
+                    android:text="@={model.localEndpointId}" />
             </LinearLayout>
 
             <!-- Endpoint Name -->
@@ -59,76 +59,132 @@
                     android:id="@+id/localEndpointNameLabel"
                     style="@style/TitleTextStyle"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:labelFor="@+id/localEndpointName"
+                    android:layout_weight="1"
                     android:drawableStart="@drawable/name"
+                    android:labelFor="@+id/localEndpointName"
                     android:text="Name" />
 
                 <EditText
                     android:id="@+id/localEndpointName"
                     android:layout_width="0dp"
-                    android:layout_weight="3"
                     android:layout_height="45dp"
+                    android:layout_weight="3"
                     android:autofillHints="The name visible to devices discovering"
                     android:imeOptions="actionDone"
                     android:inputType="text"
-                    android:text="@={mainViewModel.localEndpointName}" />
+                    android:text="@={model.localEndpointName}" />
             </LinearLayout>
 
-            <!-- Advertising -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:gravity="center_vertical"
+                android:layout_margin="10dp"
                 android:orientation="horizontal">
-
-                <TextView
-                    style="@style/TitleTextStyle"
+                <!-- Advertising -->
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:labelFor="@+id/advertisingSwitch"
-                    android:text="Advertising" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@id/advertisingSwitch"
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="@={mainViewModel.isAdvertising}" />
-            </LinearLayout>
+                    android:layout_marginHorizontal="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-            <!-- Discovering -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                    <TextView
+                        style="@style/TitleTextStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:labelFor="@+id/advertisingSwitch"
+                        android:text="Advertising" />
 
-                <TextView
-                    style="@style/TitleTextStyle"
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@id/advertisingSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="@={model.isAdvertising}" />
+                </LinearLayout>
+
+                <!-- Discovering -->
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:labelFor="@+id/discoveringSwitch"
-                    android:text="Discovering" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@id/discoveringSwitch"
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="@={mainViewModel.isDiscovering}" />
+                    android:layout_marginHorizontal="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/TitleTextStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:labelFor="@+id/discoveringSwitch"
+                        android:text="Discovering" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@id/discoveringSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="@={model.isDiscovering}" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                android:onClick="showIncomingPackets"
+                app:icon="@drawable/inbox"
+                android:text="Inbox" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                android:onClick="showOutgoingPackets"
+                app:icon="@drawable/outbox"
+                android:text="Outbox" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/send_qr"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                app:icon="@drawable/send_qr"
+                android:text="Send QR" />
+
+            <Button
+                android:id="@+id/receive_qr"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                app:icon="@drawable/receive_qr"
+                android:text="Receive QR" />
+        </LinearLayout>
+
         <ListView
-            android:id="@+id/endpointList"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:scrollbars="vertical"
-            app:entries="@{mainViewModel.endpoints}" />
+            app:entries="@{model.endpoints}" />
 
     </LinearLayout>
 </layout>

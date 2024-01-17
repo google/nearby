@@ -16,65 +16,50 @@
 
 import Foundation
 
-@Observable class IncomingFile: Identifiable, Hashable, Decodable {
+@Observable class IncomingFile: File, Identifiable, Hashable, CustomStringConvertible, Encodable, Decodable {
   enum State: Int {
-    case received, downloading, downloaded
+    case received, uploaded, downloading, downloaded
   }
 
-  let id: UUID = UUID()
-  
+  let id: UUID
   let mimeType: String
-  // Suggested file name set by the sender. We don't need to honor it.
-  let fileName: String
-  // Actual url of the local file, once it's downloaded
-  @ObservationIgnored var localUrl: URL?
 
-  @ObservationIgnored let remotePath: String
-  @ObservationIgnored let fileSize: Int64
-
+  @ObservationIgnored var fileSize: Int64 = 0
+  @ObservationIgnored var remotePath: String? = nil
+  @ObservationIgnored var localUrl: URL? = nil
   var state: State = .received
 
-  init(mimeType: String, fileName: String, localUrl: URL? = nil, remotePath: String, fileSize: Int64, state: State = .received) {
+  var description: String {
+    String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
+  }
+  
+  init(id: UUID, mimeType: String) {
+    self.id = id
     self.mimeType = mimeType
-    self.fileName = fileName
-    self.localUrl = localUrl
-    self.remotePath = remotePath
-    self.fileSize = fileSize
-    self.state = state
   }
 
-  func download(completion: ((_: URL?, _: Error?) -> Void)? = nil) -> Void {
-    if state != .received {
+  func download() async -> URL? {
+    if state != .uploaded {
       print("The file is being downloading or has already been downloaded. Skipping.")
-      return
+      return nil
+    }
+
+    guard let remotePath else {
+      print("Remote path not set. Skipping.")
+      return nil
     }
 
     state = .downloading
-    let index = remotePath.lastIndex(of: ".")
-    let ext = index == nil
-      ? ""
-      :String(remotePath[index!...])
-
-    let localPath = UUID().uuidString + ext
-    CloudStorage.shared.download(remotePath, as: localPath) { [weak self]
-      url, error in
-      guard let self else { return }
-      self.localUrl = url
-      self.state = error == nil ? .downloaded : .received
-      completion?(url, error)
-    }
+    let url = await CloudStorage.shared.download(remotePath, as: UUID().uuidString)
+    self.localUrl = url
+    state = url != nil ? .downloaded : .uploaded
+    return url;
   }
   
   static func == (lhs: IncomingFile, rhs: IncomingFile) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case mimeType, fileName, remotePath, fileSize
-  }
-
-  static func decodeIncomingFiles(fromJson json: Data) -> [IncomingFile]? {
-    let decoder = JSONDecoder()
-    let result = try? decoder.decode([IncomingFile]?.self, from: json) ?? nil
-    return result
+    case id, mimeType, fileSize, remotePath
   }
 }

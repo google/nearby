@@ -3,45 +3,26 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
-
+    app:startDestination="@id/mainFragment">
     <fragment
-        android:id="@+id/homeFragment"
+        android:id="@+id/mainFragment"
         android:name="com.google.hellocloud.MainFragment"
-        android:label="fragment_home"
-        tools:layout="@layout/fragment_main" >
+        android:label="MainFragment" >
         <action
-            android:id="@+id/action_homeFragment_to_endpointFragment"
-            app:destination="@id/endpointFragment" />
+            android:id="@+id/action_mainFragment_to_incomingPacketsFragment"
+            app:destination="@id/incomingPacketsFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_outgoingPacketsFragment"
+            app:destination="@id/outgoingPacketsFragment" />
     </fragment>
     <fragment
-        android:id="@+id/endpointFragment"
-        android:name="com.google.hellocloud.EndpointFragment"
-        android:label="fragment_endpoint"
-        tools:layout="@layout/fragment_endpoint" >
-        <action
-            android:id="@+id/action_endpointFragment_to_outgoingFilesFragment"
-            app:destination="@id/outgoingFilesFragment" />
-        <action
-            android:id="@+id/action_endpointFragment_to_incomingFilesFragment"
-            app:destination="@id/incomingFilesFragment" />
-        <action
-            android:id="@+id/action_endpointFragment_to_transfersFragment"
-            app:destination="@id/transfersFragment" />
-    </fragment>
+        android:id="@+id/incomingPacketsFragment"
+        android:name="com.google.hellocloud.IncomingPacketsFragment"
+        android:label="fragment_incoming_packets"
+        tools:layout="@layout/fragment_incoming_packets" />
     <fragment
-        android:id="@+id/outgoingFilesFragment"
-        android:name="com.google.hellocloud.OutgoingFilesFragment"
-        android:label="fragment_outgoing_files"
-        tools:layout="@layout/fragment_outgoing_files" />
-    <fragment
-        android:id="@+id/incomingFilesFragment"
-        android:name="com.google.hellocloud.IncomingFilesFragment"
-        android:label="fragment_incoming_files"
-        tools:layout="@layout/fragment_incoming_files" />
-    <fragment
-        android:id="@+id/transfersFragment"
-        android:name="com.google.hellocloud.TransfersFragment"
-        android:label="fragment_transfers"
-        tools:layout="@layout/fragment_transfers" />
+        android:id="@+id/outgoingPacketsFragment"
+        android:name="com.google.hellocloud.OutgoingPacketsFragment"
+        android:label="fragment_outgoing_packets"
+        tools:layout="@layout/fragment_outgoing_packets" />
 </navigation>

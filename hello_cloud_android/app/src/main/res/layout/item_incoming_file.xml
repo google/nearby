@@ -4,8 +4,8 @@
     <data>
 
         <variable
-            name="incomingFileViewModel"
-            type="com.google.hellocloud.IncomingFileViewModel" />
+            name="model"
+            type="com.google.hellocloud.IncomingFile" />
     </data>
 
     <LinearLayout
@@ -13,19 +13,33 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:paddingStart="?android:attr/expandableListPreferredChildPaddingLeft">
 
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/photo" />
 
-        <TextView
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="10dp"
-            android:layout_weight="1"
-            android:text="@{incomingFileViewModel.fileName}" />
+            android:layout_weight="1">
+
+            <TextView
+                android:id="@+id/link"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="showIncomingFile"
+                android:visibility="@{model.isDownloaded ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{model.toString()}"
+                android:visibility="@{model.isDownloaded ? android.view.View.INVISIBLE : android.view.View.VISIBLE}" />
+        </FrameLayout>
 
         <FrameLayout
             android:layout_width="wrap_content"
@@ -35,13 +49,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:visibility="@{incomingFileViewModel.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+                android:visibility="@{model.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
 
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:src="@{incomingFileViewModel.stateIcon}" />
+                android:src="@{model.stateIcon}" />
         </FrameLayout>
     </LinearLayout>
 </layout>

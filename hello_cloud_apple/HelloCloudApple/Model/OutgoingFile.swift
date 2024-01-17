@@ -15,54 +15,43 @@
 //
 
 import Foundation
+import SwiftUI
+import PhotosUI
 
-@Observable class OutgoingFile: Identifiable, Hashable, Encodable {
+@Observable class OutgoingFile: File, CustomStringConvertible, Hashable, Encodable, Decodable {
   enum State: Int {
-    case picked, loading, loaded, uploading, uploaded
+    case loaded, uploading, uploaded
   }
 
-  let id: UUID = UUID()
-  
-  // A suggested name for the receiver. It does not serve any other purposes. On iOS, we are only
-  // picking images which don't have names. So we'll just use a UUID. On Windows, we use
-  // the local file name.
-  let fileName: String
+  let id: UUID
   let mimeType: String
-  var state: State
 
-  @ObservationIgnored var fileSize: UInt64
-  @ObservationIgnored var data: Data?
-  @ObservationIgnored var remotePath: String?
+  @ObservationIgnored var fileSize: Int64 = 0
+  @ObservationIgnored var remotePath: String? = nil
+  @ObservationIgnored var photoItem: PhotosPickerItem? = nil
+  var state: State = .loaded
 
-  init(mimeType: String, fileSize: UInt64 = 0, state: State = .picked, remotePath: String? = nil) {
-    self.mimeType = mimeType
-    self.fileSize = fileSize
-    self.state = state
-    self.remotePath = remotePath
-
-    if mimeType == "image/jpeg" {
-      fileName = UUID().uuidString + ".jpeg"
-    } else if mimeType == "image/png" {
-      fileName = UUID().uuidString + ".png"
-    } else {
-      fileName = UUID().uuidString
-    }
+  var description: String {
+    String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
   }
 
-  func upload(completion: ((_: Int, _: Error?) -> Void)? = nil) -> Void {
-    guard let data else {
-      print("Data is not loaded. Skipping uploading.")
-      return;
-    }
-    if state != .loaded {
-      print("File is not loaded. Skipping uploading.")
-      return
-    }
-    if fileName.isEmpty {
-      print("Local path is empty. This shouldn't happen!!!")
-      return
+  init(id: UUID, mimeType: String) {
+    self.id = id
+    self.mimeType = mimeType
+  }
+
+  /** Upload to the cloud and return bytes uploaded if successful or nil otherwise */
+  func upload() async -> Int64? {
+    guard let photoItem else {
+      print("File not loaded. Skipping uploading.")
+      return nil;
     }
     
+    if state != .loaded {
+      print("File not loaded. Skipping uploading.")
+      return nil
+    }
+
     remotePath = UUID().uuidString
     if mimeType == "image/jpeg" {
       remotePath! += ".jpeg"
@@ -71,22 +60,15 @@ import Foundation
     }
 
     state = .uploading
-
-    CloudStorage.shared.upload(data, as: remotePath!) { [weak self] 
-      size, error in
-      self?.state = error == nil ? .uploaded : .loaded
-      completion?(size, error)
-    }
+    let size = await CloudStorage.shared.upload(from: self, to: remotePath!)
+    state = size != nil ? .uploaded : .loaded
+    return size
   }
 
   static func == (lhs: OutgoingFile, rhs: OutgoingFile) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher) { hasher.combine(self.id) }
 
   enum CodingKeys: String, CodingKey {
-    case mimeType, fileName, remotePath, fileSize
-  }
-
-  static func encodeOutgoingFiles(_ files: [OutgoingFile]) -> Data? {
-    return try? JSONEncoder().encode(files)
+    case id, mimeType, fileSize, remotePath
   }
 }

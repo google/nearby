@@ -13,19 +13,17 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
-import SwiftUI
 import NearbyConnections
+import SwiftUI
+import PhotosUI
 
 struct MainView: View {
-  @EnvironmentObject var model: Main
-
-  func toggleIsAdvertising() -> Void {
-    model.isAdvertising.toggle();
-  }
+  @State var model: Main
+  @State var showingQrAck: (Bool, String?) = (false, nil)
 
   var body: some View {
-    NavigationStack {
+    VStack {
+      Label("Hello Cloud", systemImage: "icloud").font(.title).padding([.top], 10)
       Form {
         Section{
           Grid (horizontalSpacing: 20, verticalSpacing: 10) {
@@ -36,32 +34,150 @@ struct MainView: View {
             GridRow {
               Label("Name:", systemImage: "a.square.fill").gridColumnAlignment(.leading)
               TextField("Local Endpoint Name", text: $model.localEndpointName)
+                .disabled(model.isAdvertising)
+            }
+          }
+
+          HStack {
+            Button(action: {model.isAdvertising.toggle()}) {
+              Label("Advertise",
+                    systemImage: model.isAdvertising ? "stop.circle" : "play.circle")
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .foregroundColor(model.isAdvertising ? .red : .green)
+            .buttonStyle(.bordered)
+
+            Button(action: {model.isDiscovering.toggle()}) {
+              Label("Discover",
+                    systemImage: model.isDiscovering ? "stop.circle" : "play.circle")
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .foregroundColor(model.isDiscovering ? .red : .green)
+            .buttonStyle(.bordered)
+          }
+
+          HStack {
+            Button(action: {model.showingInbox = true}) {
+              Label("Inbox", systemImage: "tray")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $model.showingInbox) {
+              IncomingPacketsView()
+            }
+
+            Button(action: {model.showingOutbox = true}) {
+              Label("Outbox", systemImage: "paperplane")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $model.showingOutbox) {
+              OutgoingPacketsView()
+            }
+          }
+
+          HStack {
+            PhotosPicker(selection: $model.photosPicked, matching: .images) {
+              Label("Send", systemImage: "qrcode")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .disabled(model.loadingPhotos)
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $model.showingQrCode) {
+              QrCodeView()
+                .aspectRatio(1.0, contentMode: .fit)
+            }
+
+            Button(action: {model.showingQrScanner = true}) {
+              Label("Receive", systemImage: "qrcode.viewfinder")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $model.showingQrScanner) {
+              CodeScannerView(codeTypes: [.qr]) { result in
+                model.showingQrScanner = false
+                switch result {
+                case .success(let result):
+                  print("I: QR code scanned: \(result.string)")
+                  if let packet = model.onQrCodeReceived(string: result.string) {
+                    showingQrAck = (true, "You have received a packet from \(packet.sender!)")
+                  }
+                case .failure(let error):
+                  print("E: Failed to scan QR code: \(error.localizedDescription)")
+                }
+              }
+            }
+            .alert(showingQrAck.1 ?? "", isPresented: $showingQrAck.0) {
+              Button("OK") {
+                Task {
+                  showingQrAck = (false, nil)
+                }
+              }
             }
           }
         } header: {
           Text("Local endpoint")
         }
 
-        Section {
-          Button(action: {model.isAdvertising.toggle()}) {
-            model.isAdvertising
-            ? Label("Stop advertising", systemImage: "stop.circle")
-            : Label("Start advertising", systemImage: "play.circle")
-          }.foregroundColor(model.isAdvertising ? .red : .green)
-          Button(action: {model.isDiscovering.toggle()}) {
-            model.isDiscovering
-            ? Label("Stop discovering", systemImage: "stop.circle")
-            : Label("Start discovering", systemImage: "play.circle")
-          }.foregroundColor(model.isDiscovering ? .red : .green)
-        }
-
         List {
           Section {
-            ForEach(model.endpoints) { endpoint in
-              HStack{
-                NavigationLink {EndpointView(model: endpoint)} label: {
-                  Text(endpoint.id).font(.custom("Menlo", fixedSize: 15))
-                  Text("(" + endpoint.name + ")")
+            ForEach($model.endpoints) { $endpoint in
+              HStack {
+                HStack {
+                  switch endpoint.state {
+                  case .connected:
+                    Image(systemName: "circle.fill").foregroundColor(.green)
+                  case .discovered:
+                    Image(systemName: "circle.fill").foregroundColor(.gray)
+                  default:
+                    Image(systemName: "circle.fill").foregroundColor(.gray)
+                  }
+                  VStack {
+                    Text(endpoint.id).font(.custom("Menlo", fixedSize: 10))
+                      .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(endpoint.name)
+                      .frame(maxWidth: .infinity, alignment: .leading)
+                  }
+                }
+                Spacer()
+                HStack {
+                  Button(action: { endpoint.connect() }) {
+                    ZStack {
+                      Image(systemName: "phone.connection.fill")
+                        .foregroundColor(endpoint.state == .discovered ? .green : .gray)
+                        .opacity(endpoint.state == .connecting ? 0 : 1)
+                      ProgressView().opacity(endpoint.state == .connecting ? 1 : 0)
+                    }
+                  }
+                  .disabled(endpoint.state != .discovered)
+                  .buttonStyle(.bordered).fixedSize()
+                  .frame(maxHeight: .infinity)
+                  Button(action: { endpoint.disconnect() }) {
+                    ZStack {
+                      Image(systemName: "phone.down.fill")
+                        .foregroundColor(endpoint.state == .connected ? .red : .gray)
+                        .opacity(endpoint.state == .disconnecting ? 0 : 1)
+                      ProgressView().opacity(endpoint.state == .disconnecting ? 1 : 0)
+                    }
+                  }
+                  .disabled(endpoint.state != .connected)
+                  .buttonStyle(.bordered).fixedSize()
+                  .frame(maxHeight: .infinity)
+                  PhotosPicker(selection: $endpoint.photosPicked, matching: .images) {
+                    Image(systemName: "photo.badge.plus.fill")
+                  }
+                  .disabled(endpoint.state != .connected)
+                  .buttonStyle(.bordered).fixedSize()
+                  .frame(maxHeight: .infinity)
+                  .alert("Do you want to send the claim token to the remote endpoint?",
+                         isPresented: $endpoint.showingConfirmation) {
+                    Button("Yes") {
+                      Task {
+                        await endpoint.loadAndSend()
+                      }
+                    }
+                    Button("No", role: .cancel) { }
+                  }
                 }
               }
             }
@@ -69,15 +185,11 @@ struct MainView: View {
             Text("Remote endpoints")
           }
         }
-      }.navigationTitle("Hello Cloud")
+      }
     }
   }
 }
 
-struct MainView_Previews: PreviewProvider {
-  static let model = Main.createDebugModel()
-
-  static var previews: some View {
-    MainView().environment(model)
-  }
+#Preview {
+  MainView(model: Main.createDebugModel())
 }

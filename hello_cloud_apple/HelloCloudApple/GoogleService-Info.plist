@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.google.deling.hello-cloud</string>
+	<string>com.deling.hello-cloud</string>
 	<key>PROJECT_ID</key>
 	<string>hello-cloud-5b73c</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,8 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:929507197760:ios:b411d0eaf76f1a5f8f30a5</string>
+	<string>1:929507197760:ios:aaa6ac33ad52b74a8f30a5</string>
+	<key>DATABASE_URL</key>
+	<string>https://hello-cloud-5b73c-default-rtdb.firebaseio.com</string>
 </dict>
 </plist>

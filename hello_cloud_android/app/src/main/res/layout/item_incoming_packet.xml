@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+
+        <variable
+            name="model"
+            type="com.google.hellocloud.Packet" />
+    </data>
+
+    <LinearLayout
+        style="@style/ListItemStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="?android:attr/expandableListPreferredItemPaddingLeft"
+        android:background="@{model.highlighted ? @color/packet_highlight : @android:color/transparent}">
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/photos" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:text="@{model.incomingDescription}" />
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:visibility="@{model.isBusy ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:src="@{model.incomingStateIcon}" />
+
+                <ImageButton
+                    android:onClick="downloadPacket"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/download"
+                    android:background="@null"
+                    android:visibility="@{model.canDownload ? android.view.View.VISIBLE : android.view.View.INVISIBLE}" />
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+</layout>

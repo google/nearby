@@ -17,15 +17,17 @@
 import Foundation
 import NearbyConnections
 import SwiftUI
+import PhotosUI
 
 @Observable class Endpoint: Identifiable, Hashable {
   enum State: Int, CustomStringConvertible {
-    case discovered, pending, connected, sending, receiving
+    case discovered, connecting, connected, disconnecting, sending, receiving
 
       var description: String {
         return switch self {
         case .discovered: "Discovered"
-        case .pending: "Pending"
+        case .connecting: "Connecting"
+        case .disconnecting: "Disconnecting"
         case .connected: "Connected"
         case .sending: "Sending"
         case .receiving: "Receiving"
@@ -33,30 +35,95 @@ import SwiftUI
       }
   }
 
-//  enum Medium: Int {
-//    case unknown, mDns, bluetooth, wifiHotspot, ble, wifiLan, wifiAware, nfc, wifiDirect, webRtc, bleL2Cap, usb
-//  }
-
   let id: String
   let name: String
   @ObservationIgnored var isIncoming: Bool
-
-  // var medium: Medium
+  var showingConfirmation: Bool = false
+  var photosPicked: [PhotosPickerItem] = [] {
+    didSet {
+      if photosPicked.count > 0 {
+        DispatchQueue.main.async {
+          self.showingConfirmation = true
+        }
+      }
+    }
+  }
   var state: State
-  var outgoingFiles: [OutgoingFile] = []
-  var incomingFiles: [IncomingFile] = []
-  var transfers: [Transfer] = []
+  @ObservationIgnored var notificationToken: String?
 
   static func == (lhs: Endpoint, rhs: Endpoint) -> Bool { lhs.id == rhs.id }
   func hash(into hasher: inout Hasher){ hasher.combine(id) }
 
-  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered, outgoingFiles: [OutgoingFile] = [], incomingFiles: [IncomingFile] = [], transfers: [Transfer] = []) {
+  init(id: String, name: String, isIncoming: Bool = false, state: State = State.discovered) {
     self.id = id
     self.name = name
     self.isIncoming = isIncoming
     self.state = state
-    self.outgoingFiles = outgoingFiles
-    self.incomingFiles = incomingFiles
-    self.transfers = transfers
+  }
+
+  func connect() -> Void {
+    state = .connecting
+    Main.shared.requestConnection(to: id) { [weak self] error in
+      if error != nil {
+        self?.state = .discovered
+        print("E: Failed to connect: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
+  func disconnect() -> Void {
+    state = .disconnecting
+    Main.shared.disconnect(from: id) { [weak self] error in
+      self?.state = .discovered
+      if error != nil {
+        print("I: Failed to disconnected: " + (error?.localizedDescription ?? ""))
+      }
+    }
+  }
+
+  func onNotificationTakenReceived(token: String) -> Void {
+    print("I: notification token received: \(token)")
+    notificationToken = token
+  }
+
+  func onPacketReceived(packet: Packet<IncomingFile>) -> Void {
+    packet.sender = self.name
+    packet.state = .received
+    Main.shared.incomingPackets.append(packet)
+    Main.shared.flashPacket(packet: packet)
+    Main.shared.observePacket(packet, fromQr: false)
+  }
+
+  /** Load files, create packet in memory, and send the packet to the remote endpoint. */
+  func loadAndSend() async -> Error? {
+    guard let packet = Utils.loadPhotos(
+      photos: photosPicked, receiver: name, notificationToken: notificationToken) else {
+      return NSError(domain: "Loading", code: 1)
+    }
+
+    // Encode the packet into json
+    let data = DataWrapper(packet: packet)
+    let json = try? JSONEncoder().encode(data)
+    guard let json else {
+      return NSError(domain: "Encoding", code: 1)
+    }
+
+    // Send the json data to the remote endpoint
+    if let error = await Main.shared.sendData(json, to: id) {
+      return error
+    }
+
+    if packet.notificationToken != nil {
+      print("I: Sending packet token to endpoint with notification token \(packet.notificationToken!).")
+    } else {
+      print("W: Sending packet token without notification token.")
+    }
+
+    // Add the packet to outbox
+    Main.shared.outgoingPackets.append(packet)
+
+    // Clear the photo selection for the next pick
+    photosPicked = []
+    return nil
   }
 }

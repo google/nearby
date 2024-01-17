@@ -16,16 +16,29 @@
 
 import Foundation
 import NearbyConnections
-#if os(iOS) || os(watchOS) || os(tvOS)
 import UIKit
-#endif
+import SwiftUI
+import PhotosUI
 
 @Observable class Main: ObservableObject {
-  static let shared = createDebugModel()
+  static var shared: Main! = nil
 
   private(set) var localEndpointId: String = ""
   var localEndpointName: String = ""
   
+  var qrCodeData: Data? = nil
+
+  var showingInbox = false
+  var showingOutbox = false
+  var loadingPhotos = false
+  var showingQrCode = false {
+    didSet {
+      // Once the QR code page is dismissed, clear the photo selection for the next pick.
+      photosPicked = []
+    }
+  }
+  var showingQrScanner = false
+
   var isAdvertising = false {
     didSet {
       if !isAdvertising {
@@ -33,12 +46,12 @@ import UIKit
         localEndpointId = ""
       } else {
         guard let name = localEndpointName.data(using: .utf8) else {
-          print("Device name is invalid. This shouldn't happen!")
+          print("E: Device name is invalid. This shouldn't happen.")
           return
         }
         advertiser.startAdvertising(using: name)
         localEndpointId = advertiser.getLocalEndpointId()
-        print("Starting advertising local endpoint id: " + localEndpointId)
+        print("I: Starting advertising local endpoint id: " + localEndpointId)
       }
     }
   }
@@ -56,7 +69,17 @@ import UIKit
     }
   }
 
-  private(set) var endpoints: [Endpoint] = []
+  var endpoints: [Endpoint] = []
+  var outgoingPackets: [Packet<OutgoingFile>] = []
+  var incomingPackets: [Packet<IncomingFile>] = []
+
+  var photosPicked: [PhotosPickerItem] = [] {
+    didSet {
+      if photosPicked.count > 0 {
+        Task {await self.loadAndGenerateQr()}
+      }
+    }
+  }
 
   private var connectionManager: ConnectionManager!
   private var advertiser: Advertiser!
@@ -64,82 +87,102 @@ import UIKit
   
   init() {
     connectionManager = ConnectionManager(
-      serviceID: Config.serviceId, strategy: Config.defaultStategy, delegate: self)
+      serviceID: Config.serviceId, strategy: Strategy.cluster, delegate: self)
     advertiser = Advertiser(connectionManager: connectionManager, delegate: self)
     discoverer = Discoverer(connectionManager: connectionManager, delegate: self)
-  }
-  
-  static func createDebugModel() -> Main {
-    let model = Main();
-    model.localEndpointName = Config.defaultEndpointName
 
-    model.endpoints.append(Endpoint(
-      id: "R2D2",
-      name: "Nice droid",
-      // medium: Endpoint.Medium.bluetooth,
-      isIncoming: false, state: .discovered
-    ))
-    
-    model.endpoints.append(Endpoint(
-      id: "C3P0",
-      name: "Fussy droid",
-      // medium: Endpoint.Medium.bluetooth,
-      isIncoming: false, state: .discovered,
-      outgoingFiles: [
-        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loading),
-        OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploading),
-        OutgoingFile(mimeType: "image/jpeg", fileSize: 5000000, state: .uploaded, remotePath: "1234567890ABCDEF"),
-        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .loaded),
-        OutgoingFile(mimeType: "image/jpeg", fileSize: 4000000, state: .picked)
-      ],
-      incomingFiles: [
-        IncomingFile(mimeType:"image/png", fileName: "IMG_0001.png",
-                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
-                     fileSize: 4000000, state: .downloading),
-        IncomingFile(mimeType:"image/png", fileName: "IMG_0002.png",
-                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
-                     fileSize: 5000000, state: .received),
-        IncomingFile(mimeType:"image/png", fileName: "IMG_0003.png",
-                     remotePath: "E66C4645-E8C3-4842-AE1D-C0CE47DBA1FC.png",
-                     fileSize: 5000000, state: .downloaded)
-      ],
-      transfers: [
-        Transfer(
-          direction: Transfer.Direction.upload,
-          remotePath: "1234567890ABCDEF",
-          result: .success,
-          size: 50000000,
-          duration: 10
-        ),
-        Transfer(
-          direction: Transfer.Direction.download,
-          remotePath: "XYZ",
-          result: .failure,
-          size: 40000000,
-          duration: 1.5
-        ),
-        Transfer(
-          direction: Transfer.Direction.send,
-          remotePath: "XYZ",
-          result: .success,
-          to: "R2D2"
-        ),
-        Transfer(
-          direction: Transfer.Direction.receive,
-          remotePath: "XYZ",
-          result: .cancaled,
-          from: "R2D2"
-        )
-      ]
-    ))
-    
-    return model;
+    localEndpointName = Config.defaultEndpointName
+    Main.shared = self
   }
-  
+
+  func flashPacket(packet: Packet<IncomingFile>?, after delay: Double = 0.0) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+      packet?.highlighted = true
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay + 1.5) {
+      packet?.highlighted = false
+    }
+  }
+
+
+  public func showInboxAndHilight(packet id: UUID) {
+    let packet = incomingPackets.first(where: {$0.id == id})
+    DispatchQueue.main.async {
+      self.showingInbox = true
+    }
+    flashPacket(packet: packet, after: 0.5)
+  }
+
+  func observePacket(_ packet: Packet<IncomingFile>, fromQr: Bool) {
+    CloudDatabase.shared.observePacket(id: packet.id) { [weak packet, weak self, fromQr] newPacket in
+      guard let packet, let self else {
+        return
+      }
+      packet.update(from: newPacket)
+      flashPacket(packet: packet)
+
+      if fromQr {
+        self.showLocalNotification(for: packet)
+      }
+    }
+  }
+
+  func showLocalNotification(for packet: Packet<IncomingFile>) {
+    let content = UNMutableNotificationContent()
+    content.title = "You've got files!"
+    content.subtitle = "Your files from \(packet.sender!) are ready for downloading"
+    content.sound = UNNotificationSound.default
+    content.userInfo["packetId"] = packet.id.uuidString
+
+    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+    UNUserNotificationCenter.current().add(request)
+  }
+
+  public func loadAndGenerateQr() async -> Error? {
+    loadingPhotos = true
+    defer {loadingPhotos = false}
+
+    // We have no way to get the receiver's name and notification token.
+    guard let packet = await Utils.loadPhotos(
+      photos: photosPicked, receiver: nil, notificationToken: nil) else {
+      return NSError(domain: "Loading", code: 1)
+    }
+
+    // Encode the packet
+    // TODO: make it more compact by using a more dense encoder than json
+    // or at least remove unused fields
+    qrCodeData = try? JSONEncoder().encode(packet)
+    if qrCodeData == nil {
+      print("E: Failed to encode packet into QR code")
+      return nil
+    }
+
+    // Display the QR code
+    showingQrCode = true
+    // Add the packet to outbox
+    Main.shared.outgoingPackets.append(packet)
+    return nil
+  }
+
+  public func onQrCodeReceived(string: String) -> Packet<IncomingFile>? {
+    guard let packet = try? JSONDecoder().decode(
+      Packet<IncomingFile>.self, from: string.data(using: .utf8)!) else {
+      print("E: failed to decode packet from QR code")
+      return nil
+    }
+    if packet.sender == nil {
+      return nil
+    }
+    packet.state = .received
+    incomingPackets.append(packet)
+    observePacket(packet, fromQr: true)
+    return packet
+  }
+
   public func endpoint(id: String) -> Endpoint? {
     return endpoints.first(where: {$0.id == id})
   }
-  
+
   func requestConnection(to endpointId: String, _ completionHandler: ((Error?) -> Void)?) {
     discoverer?.requestConnection(
       to: endpointId,
@@ -151,25 +194,49 @@ import UIKit
     connectionManager.disconnect(from: endpointId, completionHandler: completionHandler)
   }
   
-  func sendFiles(_ payload: Data, to endpointId: String) {
-    print("Sending files to " + endpointId)
+  func sendData(_ payload: Data, to endpointId: String) async -> Error? {
+    print("I: Sending data to \(endpointId).")
     let endpoint = endpoints.first(where: {$0.id == endpointId})
     endpoint?.state = .sending
-    _ = connectionManager.send(
-      payload,
-      to: [endpointId],
-      id: PayloadID.unique()) { [endpoint] result in
-        print("Done sending files.")
-        endpoint?.state = .connected
+
+    return await withCheckedContinuation { continuation in
+      _ = connectionManager.send(
+        payload,
+        to: [endpointId],
+        id: PayloadID.unique()) { [endpoint] error in
+          if error == nil {
+            print("I: Data sent to \(endpointId).")
+          } else {
+            print("E: Failed to send data to \(endpointId).")
+          }
+          endpoint?.state = .connected
+          continuation.resume(returning: error)
+        }
+    }
+  }
+
+  func onPacketUploaded(id: UUID) {
+    print("I: Packet \(id) is uploaded and ready for downloading.")
+    guard let packet = incomingPackets.first(where: { $0.id == id }) else {
+      print("W: Packet \(id) not in our inbox, skipping.")
+      return
+    }
+
+    Task {
+      print("I: Pulling file remote paths from the database.")
+      guard let newPacket = await CloudDatabase.shared.pull(packetId: packet.id) else {
+        return
       }
+      packet.update(from: newPacket)
+    }
   }
 }
 
 extension Main: DiscovererDelegate {
   func discoverer(_ discoverer: Discoverer, didFind endpointId: String, /*medium: Endpoint.Medium,*/ with context: Data) {
-    print("OnEndpointFound: " + endpointId)
+    print("I: Endpoint found: \(endpointId).")
     guard let endpointName = String(data: context, encoding: .utf8) else {
-      print("Failed to parse endpointInfo.")
+      print("E: Failed to parse endpointInfo.")
       return
     }
 
@@ -188,17 +255,17 @@ extension Main: DiscovererDelegate {
   }
 
   func discoverer(_ discoverer: Discoverer, didLose endpointId: String) {
-    print("OnEndpointLost: " + endpointId)
+    print("I: Endpoint lost: \(endpointId)")
     endpoints.removeAll(where: {$0.id == endpointId})
   }
 }
 
 extension Main: AdvertiserDelegate {
   func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointId: String, with endpoindInfo: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
-    print("OnConnectionInitiated from " + endpointId);
+    print("I: Connection initiated from \(endpointId).")
 
     guard let endpointName = String(data: endpoindInfo, encoding: .utf8) else {
-      print("Failed to parse endpointInfo.")
+      print("E: Failed to parse endpointInfo.")
       return
     }
 
@@ -207,7 +274,7 @@ extension Main: AdvertiserDelegate {
         id: endpointId,
         name: endpointName,
         isIncoming: true,
-        state: .pending
+        state: .connecting
       ))
     }
 
@@ -217,31 +284,35 @@ extension Main: AdvertiserDelegate {
 
 extension Main: ConnectionManagerDelegate {
   func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointId: String, verificationHandler: @escaping (Bool) -> Void) {
-    print("OnConnectionVerification token received: " + verificationCode + ". Accepting connection request.")
-    verificationHandler(true)
-    guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("End point not found. It has probably stopped advertising or canceled the connection request.")
+    print("I: Connection verification token received: \(verificationCode). Accepting connection request.")
+    if nil == endpoints.first(where: {$0.id == endpointId}) {
+      print("E: Endpoint \(endpointId) not found. It has probably stopped advertising or canceled the connection request.")
       return
     }
+    verificationHandler(true)
   }
 
   func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointId: String) {
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("Endpoint not found. " + endpointId)
+      print("E: Endpoint \(endpointId) not found.")
       return
     }
     if (endpoint.state != .sending) {
       endpoint.state = .receiving
 
-      guard let files = IncomingFile.decodeIncomingFiles(fromJson: data) else {
-        print("Failed to decode incoming files.")
+      let string = String(data: data, encoding: .utf8)
+      print(string!)
+
+      guard let data = try? JSONDecoder().decode(DataWrapper<IncomingFile>.self, from: data) else {
+        print ("E: Unable to decode incoming payload.")
         return
       }
-      
-      for file in files {
-        endpoint.incomingFiles.append(file)
-        let transfer = Transfer(direction: .receive, remotePath: file.remotePath, result: .success, from: endpointId)
-        endpoint.transfers.append(transfer)
+
+      switch data.data {
+      case .notificationToken(let notificationToken):
+        endpoint.onNotificationTakenReceived(token: notificationToken)
+      case .packet(let packet):
+        endpoint.onPacketReceived(packet: packet)
       }
     }
   }
@@ -258,13 +329,13 @@ extension Main: ConnectionManagerDelegate {
     print("OnPayloadProgress: " + endpointId)
 
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("Endpoint not found. " + endpointId)
+      print("E: Endpoint \(endpointId) not found.")
       return
     }
 
     switch update {
     case .progress(let progress):
-      print(String(format: "Transfer progress: %d/%d transferred.",
+      print(String(format: "E: Transfer progress: %d/%d transferred.",
                    progress.completedUnitCount,
                    progress.totalUnitCount))
       return
@@ -288,17 +359,23 @@ extension Main: ConnectionManagerDelegate {
       }
     }
 
-    print("OnEndpointStateChange: " + endpointId)
+    print("I: Endpoint state change: " + endpointId)
     guard let endpoint = endpoints.first(where: {$0.id == endpointId}) else {
-      print("Endpoint not found.")
+      print("I: Endpoint \(endpointId) not found.")
       return
     }
     switch (state) {
     case .connecting:
-      endpoint.state = .pending
+      endpoint.state = .connecting
       break
     case .connected:
       endpoint.state = .connected
+      if let token = AppDelegate.shared.notificationToken {
+        let data = DataWrapper<OutgoingFile>(notificationToken: token)
+        if let json = try? JSONEncoder().encode(data) {
+          Task { await sendData(json, to: endpointId) }
+        }
+      }
     case .disconnected:
       removeOrChangeState(endpoint)
     case .rejected:

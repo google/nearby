@@ -17,6 +17,8 @@
 import Foundation
 import FirebaseCore
 import FirebaseStorage
+import SwiftUI
+import PhotosUI
 
 class CloudStorage {
   static let shared = CloudStorage()
@@ -26,24 +28,65 @@ class CloudStorage {
 
   init() {
     storage = Storage.storage()
+    if Config.localCloud {
+      storage.useEmulator(withHost: Config.localCloudHost, port: 9199)
+    }
     storageRef = storage.reference()
+
+    // Set a short timeout for debugging. The default is 600s
+    storage.maxUploadRetryTime = 3
+    storage.maxDownloadRetryTime = 3
   }
 
-  func upload(_ data: Data, as remotePath: String, completion: ((_: Int, _: Error?) -> Void)? = nil) {
-    let fileRef = storageRef.child(remotePath)
-    let _ = fileRef.putData(data, metadata: nil) { metadata, error in
-      if error == nil {
-        print("Succeeded uploading file " + remotePath)
-      } else {
-        print("Failed uploading file " + remotePath +
-              ". Error: " + (error?.localizedDescription ?? ""))
+  func upload(from file: OutgoingFile, to remotePath: String) async -> Int64? {
+    // 1. Obtain jpeg or png data from the photo picker item.
+    guard let data = try? await file.photoItem!.loadTransferable(type: Data.self) else {
+      return nil
+    }
+    var typedData: Data
+    if file.mimeType == "image/jpeg" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
       }
-      completion?((Int) (metadata?.size ?? 0), error)
+      guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
+        return nil
+      }
+      typedData  = jpegData
+      file.fileSize = Int64(jpegData.count)
+    }
+    else if file.mimeType == "image/png" {
+      guard let uiImage = UIImage(data: data) else {
+        return nil
+      }
+      guard let pngData = uiImage.pngData() else {
+        return nil
+      }
+      typedData  = pngData
+      file.fileSize = Int64(pngData.count)
+    }
+    else {
+      typedData = data
+      file.fileSize = Int64(data.count)
+    }
+
+    // 2. Upload `typeData` to Firebase storage
+    let fileRef = storageRef.child(remotePath)
+    return await withCheckedContinuation { continuation in
+      _ = fileRef.putData(typedData) { metadata, error in
+        guard let metadata else {
+          print("E: Failed to upload file to \(remotePath). Error: "
+                + (error?.localizedDescription ?? ""))
+          continuation.resume(returning: nil)
+          return
+        }
+
+        print("I: Uploaded file " + remotePath)
+        continuation.resume(returning: metadata.size as Int64?)
+      }
     }
   }
 
-  func download(_ remotePath: String, as fileName: String,
-                completion: ((_: URL?, _: Error?) -> Void)? = nil) {
+  func download(_ remotePath: String, as fileName: String) async -> URL? {
     let fileRef = storageRef.child(remotePath)
 
     guard let directoryUrl = try? FileManager.default.url(
@@ -51,21 +94,23 @@ class CloudStorage {
       in: .userDomainMask,
       appropriateFor: nil,
       create: true) else {
-      let error = NSError(domain: "Failed to obtain directory for downloading.", code: 1)
-      completion?(nil, error)
-      return
+      print ("E: Failed to obtain directory for downloading.")
+      return nil
     }
 
     let fileUrl = directoryUrl.appendingPathComponent(fileName)
-    let _ = fileRef.write(toFile: fileUrl) { [remotePath, fileName]
-      url, error in
-      if error == nil {
-        print("Succeeded downloading file \(remotePath) to \(fileName)")
-      } else {
-        print("Failed downloading file \(remotePath) to \(fileName)" +
-              ". Error: " + (error?.localizedDescription ?? ""))
+    return await withCheckedContinuation { continuation in
+      _ = fileRef.write(toFile: fileUrl) { url, error in
+        guard let url else {
+          print("E: Failed to download file \(remotePath). Error: "
+                + (error?.localizedDescription ?? ""))
+          continuation.resume(returning: nil)
+          return
+        }
+
+        print("I: Downloaded file \(remotePath).")
+        continuation.resume(returning: url as URL?)
       }
-      completion?(url, error)
     }
   }
 }

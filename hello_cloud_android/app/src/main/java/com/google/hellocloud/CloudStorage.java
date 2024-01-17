@@ -9,17 +9,24 @@ import java.io.OutputStream;
 
 public class CloudStorage {
   public static CloudStorage shared = new CloudStorage();
-  ;
 
   FirebaseStorage storage;
   StorageReference storageRef;
 
   private CloudStorage() {
     storage = FirebaseStorage.getInstance();
+    // TODO: emulator doesn't seem to work for Android although iOS works fine
+    if (Config.localCloud) {
+      storage.useEmulator(Config.localCloudHost, 9199);
+    }
     storageRef = storage.getReference();
+
+    // Set a short timeout for debugging. The default is 600s
+    storage.setMaxUploadRetryTimeMillis(3000);
+    storage.setMaxDownloadRetryTimeMillis(3000);
   }
 
-  public Task<Void> download(String remotePath, Uri localUri) {
+  public Task<Long> download(String remotePath, Uri localUri) {
     StorageReference fileRef = storageRef.child(remotePath);
 
     return fileRef
@@ -27,26 +34,27 @@ public class CloudStorage {
         .continueWith(
             result -> {
               if (result.isSuccessful()) {
-                ContentResolver resolver = MainViewModel.shared.context.getContentResolver();
+                ContentResolver resolver = Main.shared.context.getContentResolver();
                 OutputStream stream = resolver.openOutputStream(localUri);
                 assert stream != null;
-                stream.write(result.getResult());
+                byte[] bytes = result.getResult();
+                stream.write(bytes);
                 stream.close();
-                return null;
+                return (long) bytes.length;
               } else {
                 throw result == null ? new Exception("Unknown error") : result.getException();
               }
             });
   }
 
-  public Task<Void> upload(String remotePath, Uri localUri) {
+  public Task<Long> upload(String remotePath, Uri localUri) {
     StorageReference fileRef = storageRef.child(remotePath);
     return fileRef
         .putFile(localUri)
         .continueWith(
             result -> {
               if (result.isSuccessful()) {
-                return null;
+                return (result.getResult().getBytesTransferred());
               } else {
                 throw result == null ? new Exception("Unknown error") : result.getException();
               }
