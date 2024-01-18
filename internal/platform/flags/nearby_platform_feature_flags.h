@@ -69,6 +69,10 @@ constexpr auto kWifiHotspotConnectionTimeoutMillis =
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);
 
+// Enable/Disable new Bluetooth refactor
+constexpr auto kEnableNewBluetoothRefactor =
+    flags::Flag<bool>(kConfigPackage, "45615156", false);
+
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform

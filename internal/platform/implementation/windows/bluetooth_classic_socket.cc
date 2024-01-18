@@ -20,9 +20,13 @@
 #include <memory>
 #include <utility>
 
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
@@ -42,6 +46,9 @@ using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::IInputStream;
 using ::winrt::Windows::Storage::Streams::InputStreamOptions;
 using ::winrt::Windows::Storage::Streams::IOutputStream;
+
+constexpr int kMaxConnectRetryCount = 3;
+constexpr absl::Duration kConnectInterval = absl::Seconds(3);
 }  // namespace
 
 BluetoothSocket::BluetoothSocket(StreamSocket stream_socket)
@@ -139,10 +146,30 @@ bool BluetoothSocket::Connect(HostName connection_host_name,
   NEARBY_LOGS(INFO) << __func__ << ": start to connect to bluetooth service:"
                     << winrt::to_string(connection_service_name);
 
-  bool connect_result =
-      InternalConnect(connection_host_name, connection_service_name);
-  if (connect_result) {
-    return connect_result;
+  if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableNewBluetoothRefactor)) {
+    bool connect_result =
+        InternalConnect(connection_host_name, connection_service_name);
+    if (connect_result) {
+      return connect_result;
+    }
+  } else {
+    int connect_called_count = 0;
+    while (connect_called_count < kMaxConnectRetryCount) {
+      connect_called_count += 1;
+      bool connect_result =
+          InternalConnect(connection_host_name, connection_service_name);
+      if (connect_result) {
+        return connect_result;
+      }
+
+      NEARBY_LOGS(WARNING) << __func__
+                           << ": Failed to connect bluetooth at the "
+                           << connect_called_count << "th call.";
+
+      absl::SleepFor(kConnectInterval);
+    }
   }
 
   NEARBY_LOGS(WARNING) << __func__ << ": Failed to connect bluetooth";
