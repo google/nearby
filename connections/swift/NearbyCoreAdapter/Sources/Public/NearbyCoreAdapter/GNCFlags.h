@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "GNCAdvertisingOptions.h"
-#import "GNCConnectionDelegate.h"
-#import "GNCConnectionOptions.h"
-#import "GNCCoreAdapter.h"
-#import "GNCDiscoveryDelegate.h"
-#import "GNCDiscoveryOptions.h"
-#import "GNCError.h"
-#import "GNCFlags.h"
-#import "GNCPayload.h"
-#import "GNCPayloadDelegate.h"
-#import "GNCStrategy.h"
-#import "GNCSupportedMediums.h"
+#import <Foundation/Foundation.h>
+
+/** A utility class for accessing and overriding Nearby feature flags. */
+@interface GNCFlags : NSObject
+
+/** Whether BLE v2 is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class) BOOL enableBLEV2;
+
+@end
