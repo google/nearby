@@ -41,7 +41,6 @@
 #include "internal/base/bluetooth_address.h"
 #include "internal/base/observer_list.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/network/http_client_factory.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -58,7 +57,6 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/client/nearby_share_client_impl.h"
-#include "sharing/client/nearby_share_http_notifier.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
@@ -73,6 +71,7 @@
 #include "sharing/incoming_share_target_info.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/sharing_platform.h"
+#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -188,7 +187,6 @@ class TransferUpdateDecorator : public TransferUpdateCallback {
 NearbySharingServiceImpl::NearbySharingServiceImpl(
     Context* context, SharingPlatform& sharing_platform,
     NearbySharingDecoder* decoder,
-    nearby::network::HttpClientFactory* http_client_factory,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     nearby::analytics::EventLogger* event_logger)
     : context_(context),
@@ -199,8 +197,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       nearby_connections_manager_(std::move(nearby_connections_manager)),
       nearby_share_client_factory_(
           std::make_unique<NearbyShareClientFactoryImpl>(
-              device_info_.GetOsType(), account_manager_, http_client_factory,
-              &nearby_share_http_notifier_, event_logger)),
+              device_info_.GetOsType(), account_manager_, event_logger)),
       profile_info_provider_(
           std::make_unique<NearbyShareProfileInfoProviderImpl>(
               device_info_, account_manager_)),
@@ -1031,8 +1028,9 @@ NearbyShareSettings* NearbySharingServiceImpl::GetSettings() {
   return settings_.get();
 }
 
-NearbyShareHttpNotifier* NearbySharingServiceImpl::GetHttpNotifier() {
-  return &nearby_share_http_notifier_;
+nearby::sharing::api::SharingRpcNotifier*
+NearbySharingServiceImpl::GetRpcNotifier() {
+  return nearby_share_client_factory_->GetRpcNotifier();
 }
 
 NearbyShareLocalDeviceDataManager*

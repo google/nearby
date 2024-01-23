@@ -34,7 +34,6 @@
 #include "absl/types/span.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/base/observer_list.h"
-#include "internal/network/http_client_factory.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -48,9 +47,6 @@
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/client/nearby_share_client.h"
-#include "sharing/client/nearby_share_client_impl.h"
-#include "sharing/client/nearby_share_http_notifier.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_profile_info_provider.h"
 #include "sharing/fast_initiation/nearby_fast_initiation.h"
@@ -58,6 +54,8 @@
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
+#include "sharing/internal/api/sharing_rpc_client.h"
+#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -109,7 +107,6 @@ class NearbySharingServiceImpl
   NearbySharingServiceImpl(
       Context* context, nearby::sharing::api::SharingPlatform& sharing_platform,
       NearbySharingDecoder* decoder,
-      nearby::network::HttpClientFactory* http_client_factory,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
       nearby::analytics::EventLogger* event_logger = nullptr);
   ~NearbySharingServiceImpl() override;
@@ -172,7 +169,7 @@ class NearbySharingServiceImpl
                        absl::string_view password) override;
   void SetArcTransferCleanupCallback(std::function<void()> callback) override;
   NearbyShareSettings* GetSettings() override;
-  NearbyShareHttpNotifier* GetHttpNotifier() override;
+  nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() override;
   NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() override;
   NearbyShareContactManager* GetContactManager() override;
   NearbyShareCertificateManager* GetCertificateManager() override;
@@ -502,8 +499,8 @@ class NearbySharingServiceImpl
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   // Scanner which is non-null when we are performing a background scan for
   // remote devices that are attempting to share.
-  NearbyShareHttpNotifier nearby_share_http_notifier_;
-  std::unique_ptr<NearbyShareClientFactory> nearby_share_client_factory_;
+  std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
+      nearby_share_client_factory_;
   std::unique_ptr<NearbyShareProfileInfoProvider> profile_info_provider_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> local_device_data_manager_;
   std::unique_ptr<NearbyShareContactManager> contact_manager_;

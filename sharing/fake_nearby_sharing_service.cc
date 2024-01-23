@@ -22,6 +22,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "sharing/attachment.h"
+#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_settings.h"
@@ -32,6 +33,8 @@
 
 namespace nearby {
 namespace sharing {
+
+using ::nearby::sharing::api::SharingRpcNotifier;
 
 void FakeNearbySharingService::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);
@@ -184,7 +187,7 @@ std::string FakeNearbySharingService::Dump() const { return ""; }
 
 NearbyShareSettings* FakeNearbySharingService::GetSettings() { return nullptr; }
 
-NearbyShareHttpNotifier* FakeNearbySharingService::GetHttpNotifier() {
+SharingRpcNotifier* FakeNearbySharingService::GetRpcNotifier() {
   return nullptr;
 }
 

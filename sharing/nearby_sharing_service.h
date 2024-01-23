@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 #include "sharing/attachment.h"
+#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_settings.h"
 #include "sharing/share_target.h"
@@ -239,7 +240,7 @@ class NearbySharingService {
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 
   virtual NearbyShareSettings* GetSettings() = 0;
-  virtual NearbyShareHttpNotifier* GetHttpNotifier() = 0;
+  virtual nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() = 0;
   virtual NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() = 0;
   virtual NearbyShareContactManager* GetContactManager() = 0;
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;

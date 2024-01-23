@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "sharing/attachment.h"
+#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_settings.h"
@@ -134,7 +135,7 @@ class FakeNearbySharingService : public NearbySharingService {
   std::string Dump() const override;
 
   NearbyShareSettings* GetSettings() override;
-  NearbyShareHttpNotifier* GetHttpNotifier() override;
+  nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() override;
   NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() override;
   NearbyShareContactManager* GetContactManager() override;
   NearbyShareCertificateManager* GetCertificateManager() override;

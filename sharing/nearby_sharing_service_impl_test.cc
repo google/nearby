@@ -45,7 +45,6 @@
 #include "internal/network/http_client_factory.h"
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_http_client_factory.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment.h"
@@ -423,7 +422,6 @@ class NearbySharingServiceImplTest : public testing::Test {
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     auto service = std::make_unique<NearbySharingServiceImpl>(
         &fake_context_, mock_sharing_platform_, &fake_decoder_,
-        fake_http_client_.get(),
         absl::WrapUnique(fake_nearby_connections_manager_));
 
     return service;
@@ -1253,8 +1251,6 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   FakeNearbyConnection connection_;
   MockNearbySharingDecoder fake_decoder_;
-  std::unique_ptr<nearby::network::HttpClientFactory> fake_http_client_ =
-      std::make_unique<nearby::network::FakeHttpClientFactory>();
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;

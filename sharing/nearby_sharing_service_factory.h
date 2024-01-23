@@ -18,7 +18,6 @@
 #include <memory>
 
 #include "internal/analytics/event_logger.h"
-#include "internal/network/http_client_factory.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_connections_manager.h"
@@ -46,7 +45,6 @@ class NearbySharingServiceFactory {
   std::unique_ptr<Context> context_;
   std::unique_ptr<::nearby::analytics::EventLogger> event_logger_;
   std::unique_ptr<NearbySharingDecoder> decoder_;
-  std::unique_ptr<nearby::network::HttpClientFactory> http_client_factory_;
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
 };

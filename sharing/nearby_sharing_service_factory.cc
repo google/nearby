@@ -18,7 +18,6 @@
 #include <utility>
 
 #include "internal/analytics/event_logger.h"
-#include "internal/network/http_client_factory_impl.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context_impl.h"
 #include "sharing/nearby_connections_manager_factory.h"
@@ -52,8 +51,6 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
       sharing_platform.GetPreferenceManager(),
       std::move(event_logger));
   decoder_ = std::make_unique<NearbySharingDecoderImpl>();
-  http_client_factory_ =
-      std::make_unique<nearby::network::HttpClientFactoryImpl>();
   nearby_connections_manager_ =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
           link_type, context_.get(), sharing_platform.GetDeviceInfo(),
@@ -61,8 +58,7 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
       context_.get(), sharing_platform, decoder_.get(),
-      http_client_factory_.get(), std::move(nearby_connections_manager_),
-      event_logger_.get());
+      std::move(nearby_connections_manager_), event_logger_.get());
 
   return nearby_sharing_service_.get();
 }
