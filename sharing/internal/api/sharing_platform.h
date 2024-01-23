@@ -20,6 +20,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
@@ -30,6 +31,7 @@
 #include "sharing/internal/api/network_monitor.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
+#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/system_info.h"
 #include "sharing/internal/api/wifi_adapter.h"
@@ -90,6 +92,10 @@ class SharingPlatform {
   virtual nearby::DeviceInfo& GetDeviceInfo() = 0;
   virtual std::unique_ptr<PublicCertificateDatabase>
   CreatePublicCertificateDatabase(absl::string_view database_path) = 0;
+
+  virtual std::unique_ptr<SharingRpcClientFactory>
+  CreateSharingRpcClientFactory(
+      nearby::analytics::EventLogger* event_logger) = 0;
 };
 }  // namespace nearby::sharing::api
 

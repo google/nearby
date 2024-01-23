@@ -56,7 +56,6 @@
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
-#include "sharing/client/nearby_share_client_impl.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
@@ -196,8 +195,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       decoder_(decoder),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
       nearby_share_client_factory_(
-          std::make_unique<NearbyShareClientFactoryImpl>(
-              device_info_.GetOsType(), account_manager_, event_logger)),
+          sharing_platform.CreateSharingRpcClientFactory(event_logger)),
       profile_info_provider_(
           std::make_unique<NearbyShareProfileInfoProviderImpl>(
               device_info_, account_manager_)),

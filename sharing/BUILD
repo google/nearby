@@ -143,7 +143,6 @@ cc_library(
         "//proto:sharing_enums_cc_proto",
         "//sharing/analytics",
         "//sharing/certificates",
-        "//sharing/client",
         "//sharing/common",
         "//sharing/common:compatible_u8_string",
         "//sharing/contacts",

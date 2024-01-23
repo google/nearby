@@ -39,6 +39,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "//internal/analytics:event_logger",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//sharing/proto:share_cc_proto",
@@ -65,6 +66,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":platform",
+        "//internal/analytics:event_logger",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/functional:any_invocable",
