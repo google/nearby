@@ -41,6 +41,10 @@ cc_proto_library(
 proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
+    deps = [
+        "//logs/proto/wireless/beto:beto_enums_proto",
+        "//logs/proto/wireless/beto:log_annotations_proto",
+    ],
 )
 
 proto_library(
