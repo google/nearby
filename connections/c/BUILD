@@ -111,6 +111,49 @@ lexan.cc_windows_dll(
     ],
 )
 
+cc_library(
+    name = "nc_types",
+    hdrs = [
+        "nc.h",
+        "nc_def.h",
+        "nc_types.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+)
+
+cc_library(
+    name = "nc",
+    srcs = [
+        "nc.cc",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DNC_DLL"],
+    deps = [
+        ":nc_types",
+        "//connections:core",
+        "//connections:core_types",
+        "//internal/platform:base",
+        "//internal/platform:types",
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+lexan.cc_windows_dll(
+    name = "nc_windows",
+    srcs = [],
+    compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DNC_DLL"],
+    tags = ["windows-dll"],
+    deps = [
+        ":nc",
+        "//internal/platform/implementation/windows",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_test(
     name = "connections_test",
     size = "small",
