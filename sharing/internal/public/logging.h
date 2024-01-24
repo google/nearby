@@ -15,8 +15,13 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_LOGGING_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_LOGGING_H_
 
+#if defined(NEARBY_CHROMIUM)
+// Chromium does not use absl log.  Forward to Chromium native log macros.
+// TODO(ftsui): include chromium logging header.
+#else  // defined(NEARBY_CHROMIUM)
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#endif  // defined(NEARBY_CHROMIUM)
 
 // Public APIs
 // The stream statement must come last, or it won't compile.
