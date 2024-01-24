@@ -19,9 +19,9 @@
 #include <string>
 #include <utility>
 
-#include "absl/memory/memory.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
@@ -30,6 +30,7 @@
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/logging.h"
 
 // TODO(b/285657711): Add tests for uncovered logic, even if trivial.
@@ -84,6 +85,19 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
 
 ServiceControllerRouter::ServiceControllerRouter() {
   NEARBY_LOGS(INFO) << "ServiceControllerRouter going up.";
+}
+
+// Constructor called by the CrOS platform implementation to override the
+// kEnableBleV2 flag.
+ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
+    : ServiceControllerRouter() {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleV2) !=
+      enable_ble_v2) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleV2,
+        enable_ble_v2);
+  }
 }
 
 ServiceControllerRouter::~ServiceControllerRouter() {

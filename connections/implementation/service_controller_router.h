@@ -58,6 +58,7 @@ namespace connections {
 class ServiceControllerRouter {
  public:
   ServiceControllerRouter();
+  explicit ServiceControllerRouter(bool enable_ble_v2);
   virtual ~ServiceControllerRouter();
   // Not copyable or movable
   ServiceControllerRouter(const ServiceControllerRouter&) = delete;

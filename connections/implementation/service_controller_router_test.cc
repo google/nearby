@@ -26,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mock_service_controller.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
@@ -35,6 +36,7 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -528,6 +530,32 @@ TEST_F(ServiceControllerRouterTest, QualityConversionWorks) {
   EXPECT_EQ(router_.GetMediumQuality(Medium::WIFI_LAN), v3::Quality::kHigh);
   EXPECT_EQ(router_.GetMediumQuality(Medium::WIFI_DIRECT), v3::Quality::kHigh);
   EXPECT_EQ(router_.GetMediumQuality(Medium::WIFI_AWARE), v3::Quality::kHigh);
+}
+
+TEST_F(ServiceControllerRouterTest, EnableBleV2InConstructor) {
+  // This constructor is used to allow the platform to set the value
+  // of kEnableBleV2 to |enable_ble_v2|.
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableBleV2, false);
+  EXPECT_FALSE(NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableBleV2));
+  ServiceControllerRouter ble_v2_enabled_router =
+      ServiceControllerRouter(/*enable_ble_v2=*/true);
+  EXPECT_TRUE(NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableBleV2));
+}
+
+TEST_F(ServiceControllerRouterTest, DisableBleV2InConstructor) {
+  // This constructor is used to allow the platform to set the value
+  // of kEnableBleV2 to |enable_ble_v2|.
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableBleV2, true);
+  EXPECT_TRUE(NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableBleV2));
+  ServiceControllerRouter ble_v2_disabled_router =
+      ServiceControllerRouter(/*enable_ble_v2=*/false);
+  EXPECT_FALSE(NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableBleV2));
 }
 
 TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
