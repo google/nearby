@@ -168,6 +168,16 @@ void UnicodeAppendUnsafe(Char* out, int32_t* size, uint32_t code_point) {
   out[(*size)++] = code_point;
 }
 
+bool IsValidCodepoint(uint32_t code_point) {
+  // Excludes code points that are not Unicode scalar values, i.e.
+  // surrogate code points ([0xD800, 0xDFFF]). Additionally, excludes
+  // code points larger than 0x10FFFF (the highest codepoint allowed).
+  // Non-characters and unassigned code points are allowed.
+  // https://unicode.org/glossary/#unicode_scalar_value
+  return code_point < 0xD800u ||
+         (code_point >= 0xE000u && code_point <= 0x10FFFFu);
+}
+
 // DoUtfConversion ------------------------------------------------------------
 // Main driver of UtfConversion specialized for different Src encodings.
 // dest has to have enough room for the converted text.
@@ -453,16 +463,6 @@ bool IsStringUtf8(std::string_view str) {
 
 bool IsStringAscii(std::wstring_view str) {
   return DoIsStringAscii(str.data(), str.length());
-}
-
-bool IsValidCodepoint(uint32_t code_point) {
-  // Excludes code points that are not Unicode scalar values, i.e.
-  // surrogate code points ([0xD800, 0xDFFF]). Additionally, excludes
-  // code points larger than 0x10FFFF (the highest codepoint allowed).
-  // Non-characters and unassigned code points are allowed.
-  // https://unicode.org/glossary/#unicode_scalar_value
-  return code_point < 0xD800u ||
-         (code_point >= 0xE000u && code_point <= 0x10FFFFu);
 }
 
 void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,

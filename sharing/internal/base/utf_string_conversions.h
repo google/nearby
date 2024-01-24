@@ -37,6 +37,7 @@ std::string WideToUtf8(std::wstring_view wide);
 bool Utf8ToWide(const char* src, size_t src_len, std::wstring* output);
 std::wstring Utf8ToWide(std::string_view utf8);
 
+/*
 bool WideToUtf16(const wchar_t* src, size_t src_len, std::u16string* output);
 std::u16string WideToUtf16(std::wstring_view wide);
 bool Utf16ToWide(const char16_t* src, size_t src_len, std::wstring* output);
@@ -54,13 +55,14 @@ std::u16string AsciiToUtf16(std::string_view ascii);
 // Converts to 7-bit ASCII by truncating. The result must be known to be ASCII
 // beforehand.
 std::string Utf16ToAscii(std::u16string_view utf16);
+*/
 
 bool IsStringAscii(std::string_view str);
 bool IsStringAscii(std::u16string_view str);
 bool IsStringAscii(std::wstring_view str);
 bool IsStringUtf8(std::string_view str);
 
-inline bool IsValidCodepoint(uint32_t code_point);
+// inline bool IsValidCodepoint(uint32_t code_point);
 
 void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
                             std::string* output);
@@ -75,6 +77,7 @@ std::wstring AsciiToWide(std::string_view ascii);
 std::string WideToAscii(std::wstring_view wide);
 #endif  // defined(WCHAR_T_IS_UTF16)
 
+/*
 // The conversion functions in this file should not be used to convert string
 // literals. Instead, the corresponding prefixes (e.g. u"" for UTF16 or L"" for
 // Wide) should be used. Deleting the overloads here catches these cases at
@@ -103,6 +106,7 @@ template <size_t N>
 std::u16string AsciiToUtf16(char (&str)[N]) {
   return AsciiToUtf16(std::string_view(str));
 }
+*/
 
 template <typename T, size_t N>
 constexpr size_t size(const T (&array)[N]) noexcept {

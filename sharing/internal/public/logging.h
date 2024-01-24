@@ -24,6 +24,7 @@
 #define NL_LOG(severity) LOG(severity)
 
 #define NL_DLOG(severity) DLOG(severity)
+#define NL_DVLOG(severity) DVLOG(severity)
 
 #define NL_CHECK(expr) CHECK(expr)
 #define NL_CHECK_EQ(a, b) CHECK_EQ((a), (b))
