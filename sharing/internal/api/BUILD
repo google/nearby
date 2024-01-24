@@ -55,7 +55,11 @@ cc_library(
 cc_library(
     name = "mock_sharing_platform",
     testonly = True,
+    srcs = [
+        "fake_nearby_share_client.cc",
+    ],
     hdrs = [
+        "fake_nearby_share_client.h",
         "mock_app_info.h",
         "mock_bluetooth_adapter.h",
         "mock_network_monitor.h",
@@ -69,8 +73,10 @@ cc_library(
         "//internal/analytics:event_logger",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
+        "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_for_library_testonly",
