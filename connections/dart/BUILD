@@ -38,6 +38,26 @@ lexan.cc_windows_dll(
     ],
 )
 
+lexan.cc_windows_dll(
+    name = "nc_windows_dart",
+    srcs = [
+        "nc_adapter_dart.cc",
+    ],
+    hdrs = [
+        "nc_adapter_dart.h",
+        "nc_adapter_def.h",
+    ],
+    copts = ["-DNC_DART_DLL"],
+    tags = ["windows-dll"],
+    deps = [
+        "//connections/c:nc_types",
+        "//connections/c:nc_windows",
+        "//internal/platform:types",
+        "//internal/platform/implementation/windows",
+        "//third_party/dart_lang/v2:dart_api_dl",
+    ],
+)
+
 objc_library(
     name = "nearby_connections_objc",
     srcs = [

@@ -212,6 +212,7 @@ typedef struct NC_STREAM_PAYLOAD {
 } NC_STREAM_PAYLOAD;
 
 typedef struct NC_FILE_PAYLOAD {
+  int64_t offset;
   char* file_name;
   char* parent_folder;
 } NC_FILE_PAYLOAD;

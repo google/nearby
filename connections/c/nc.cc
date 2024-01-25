@@ -32,6 +32,7 @@
 #include "connections/connection_options.h"
 #include "connections/core.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -39,6 +40,7 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
@@ -423,6 +425,7 @@ void NcAcceptConnection(NC_INSTANCE instance, const char* endpoint_id,
       nc_payload.content.file.file_name = (char*)payload.GetFileName().c_str();
       nc_payload.content.file.parent_folder =
           (char*)payload.GetParentFolder().c_str();
+      nc_payload.content.file.offset = payload.GetOffset();
     } else if (nc_payload.type == NC_PAYLOAD_TYPE_STREAM) {
       // TODO(guogang): support stream later.
     }
@@ -569,4 +572,13 @@ char* NcGetLocalEndpointId(NC_INSTANCE instance) {
   char* result = new char[endpoint_id.length() + 1];
   absl::SNPrintF(result, endpoint_id.length() + 1, "%s", endpoint_id);
   return result;
+}
+
+void NcEnableBleV2(NC_INSTANCE instance, bool enable,
+                   NcCallbackResult result_callback) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableBleV2,
+      enable);
+  result_callback(NC_STATUS_SUCCESS);
 }
