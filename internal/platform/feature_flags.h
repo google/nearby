@@ -62,6 +62,7 @@ class FeatureFlags {
     // requested service id before attempting to connect over rfcomm. SDP fails
     // on Windows when connecting to FP service id but the rfcomm is successful.
     bool skip_service_discovery_before_connecting_to_rfcomm = false;
+
     std::int32_t min_nc_version_supports_safe_to_disconnect = 1;
     std::int32_t min_nc_version_supports_auto_reconnect = 3;
     absl::Duration auto_reconnect_retry_delay_millis = absl::Milliseconds(5000);

@@ -31,6 +31,7 @@
 #include "connections/implementation/internal_payload.h"
 #include "connections/listeners.h"
 #include "connections/payload.h"
+#include "connections/payload_type.h"
 #include "connections/status.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
@@ -38,6 +39,7 @@
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -270,7 +272,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   bool SendPayloadLoop(ClientProxy* client, PendingPayload& pending_payload,
                        PayloadTransferFrame::PayloadHeader& payload_header,
-                       std::int64_t& next_chunk_offset, size_t resume_offset);
+                       std::int64_t& next_chunk_offset, size_t resume_offset,
+                       int index);
   void SendClientCallbacksForFinishedIncomingPayloadRunnable(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
@@ -298,7 +301,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       const std::string& parent_folder, const std::string& file_name);
 
   PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,
-                                                        ByteArray body);
+                                                        ByteArray body,
+                                                        int index);
   bool IsLastChunk(PayloadTransferFrame::PayloadChunk payload_chunk) {
     return ((payload_chunk.flags() &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0);
@@ -331,9 +335,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   void SendPayloadReceivedAck(
       ClientProxy* client, PendingPayload& pending_payload,
-      const std::string& endpoint_id,
-      const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t chunk_size, bool is_last_chunk);
+      const std::string& endpoint_id, bool is_last_chunk);
 
   bool WaitForReceivedAck(
       ClientProxy* client, const std::string& endpoint_id,
@@ -376,6 +378,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                          analytics::PacketMetaData& packet_meta_data);
   void ProcessControlPacket(ClientProxy* to_client,
                             const std::string& from_endpoint_id,
+                            PayloadTransferFrame& payload_transfer_frame);
+  void ProcessPayloadAckPacket(const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);
 
   void NotifyClientOfIncomingPayloadProgressInfo(
@@ -420,6 +424,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   SingleThreadExecutor file_payload_executor_;
   SingleThreadExecutor stream_payload_executor_;
   SingleThreadExecutor payload_status_update_executor_;
+  SingleThreadExecutor send_payload_ack_executor_;
   PendingPayloads pending_payloads_;
   EndpointManager* endpoint_manager_;
 

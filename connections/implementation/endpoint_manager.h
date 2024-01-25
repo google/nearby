@@ -141,7 +141,10 @@ class EndpointManager {
       const location::nearby::connections::PayloadTransferFrame::ControlMessage&
           control_message,
       const std::vector<std::string>& endpoint_ids);
-
+  // Receiver sends this frame when all the packets are received. Returns the
+  // list of endpoints to which sending this frame failed.
+  std::vector<std::string> SendPayloadAck(
+      std::int64_t payload_id, const std::vector<std::string>& endpoint_ids);
   // Called when we internally want to get rid of the endpoint, without the
   // client directly telling us to. For example...
   //    a) We failed to read from the endpoint in its dedicated reader thread.

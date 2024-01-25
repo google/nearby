@@ -66,6 +66,7 @@ ByteArray ForControlPayloadTransfer(
         header,
     const location::nearby::connections::PayloadTransferFrame::ControlMessage&
         control);
+ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id);
 
 // Builds Bandwidth Upgrade [BWU] messages.
 ByteArray ForBwuIntroduction(const std::string& endpoint_id,

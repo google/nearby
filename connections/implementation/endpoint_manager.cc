@@ -15,6 +15,7 @@
 #include "connections/implementation/endpoint_manager.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -30,6 +31,7 @@
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
@@ -836,7 +838,9 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
 
   NEARBY_LOGS(WARNING) << "[safe-to-disconnect] Wait for "
                        << (is_wait_for_ack ? "ack" : "disconnection")
-                       << ", timeout in " << timeout_millis;
+                       << " from endpoint: " << endpoint_id
+                       << " for reason: " << reason << ", timeout in "
+                       << timeout_millis;
   bool state = channel_manager_->CreateNewTimeoutDisconnectedState(
       endpoint_id, timeout_millis);
   if (!state) return is_safe_disconnection;
@@ -900,6 +904,21 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
   }
   return barrier;
 }
+
+std::vector<std::string> EndpointManager::SendPayloadAck(
+std::int64_t payload_id,
+      const std::vector<std::string>& endpoint_ids) {
+  ByteArray bytes = parser::ForPayloadAckPayloadTransfer(payload_id);
+  PacketMetaData packet_meta_data;
+
+  return SendTransferFrameBytes(
+      endpoint_ids, bytes, payload_id,
+      /* offset= */ -1,
+      /*packet_type=*/
+      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::PAYLOAD_ACK),
+      packet_meta_data);
+}
+
 
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,

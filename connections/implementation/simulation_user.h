@@ -81,7 +81,7 @@ class SimulationUser {
   SimulationUser(const std::string& device_name,
                  BooleanMediumSelector allowed = BooleanMediumSelector(),
                  SetSafeToDisconnect set_safe_to_disconnect =
-                     SetSafeToDisconnect(true, false, true, 2))
+                     SetSafeToDisconnect(true, false, true, 5))
       : info_{ByteArray{device_name}},
         advertising_options_{
             {

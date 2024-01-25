@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames_validator.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
@@ -223,6 +224,23 @@ ByteArray ForControlPayloadTransfer(
   sub_frame->set_packet_type(PayloadTransferFrame::CONTROL);
   *sub_frame->mutable_payload_header() = header;
   *sub_frame->mutable_control_message() = control;
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::PAYLOAD_TRANSFER);
+  auto* sub_frame = v1_frame->mutable_payload_transfer();
+  sub_frame->set_packet_type(PayloadTransferFrame::PAYLOAD_ACK);
+
+  PayloadTransferFrame::PayloadHeader header;
+  header.set_id(payload_id);
+  header.set_total_size(InternalPayload::kIndeterminateSize);
+  *sub_frame->mutable_payload_header() = header;
 
   return ToBytes(std::move(frame));
 }

@@ -17,7 +17,6 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -331,6 +330,24 @@ TEST(OfflineFramesTest, CanGenerateDataPayloadTransfer) {
       >
     >)pb";
   ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGeneratePayloadAckPayloadTransfer) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: PAYLOAD_TRANSFER
+      payload_transfer: <
+        packet_type: PAYLOAD_ACK,
+        payload_header: < id: 12345 total_size: -1 >
+      >
+    >)pb";
+  ByteArray bytes = ForPayloadAckPayloadTransfer(12345);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
