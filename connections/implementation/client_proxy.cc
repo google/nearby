@@ -982,7 +982,7 @@ void ClientProxy::RemoveAllEndpoints() {
 
 void ClientProxy::OnSessionComplete() {
   MutexLock lock(&mutex_);
-  if (connections_.empty() && !IsAdvertising() && !IsDiscovering()) {
+  if (connections_.empty() && !IsAdvertising()) {
     local_endpoint_id_.clear();
 
     analytics_recorder_->LogSession();
