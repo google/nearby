@@ -16,18 +16,10 @@ licenses(["notice"])
 
 cc_library(
     name = "utf_utils",
-    srcs = [
-        "utf_string_conversions.cc",
-    ],
     hdrs = [
-        "utf_string_configuration.h",
         "utf_string_conversions.h",
     ],
     visibility = ["//visibility:public"],
-    deps = [
-        "//sharing/internal/public:logging",
-        "//third_party/icu_utf:icu_utf_assistant",
-    ],
 )
 
 cc_library(
@@ -54,12 +46,10 @@ cc_test(
     timeout = "short",
     srcs = [
         "encode_test.cc",
-        "utf_string_conversions_test.cc",
     ],
     shard_count = 8,
     deps = [
         ":base",
-        ":utf_utils",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
