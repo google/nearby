@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/time/clock.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/proto/enums.pb.h"
@@ -32,59 +33,74 @@ using FastInitiationNotificationState =
     ::nearby::sharing::proto::FastInitiationNotificationState;
 }  // namespace
 
-const char kNearbySharingAllowedContactsName[] =
+ABSL_CONST_INIT const char kNearbySharingAllowedContactsName[] =
     "nearby_sharing.allowed_contacts";
-const char kNearbySharingBackgroundVisibilityName[] =
+ABSL_CONST_INIT const char kNearbySharingBackgroundVisibilityName[] =
     "nearby_sharing.background_visibility";
-const char kNearbySharingBackgroundTemporarilyVisibleName[] =
+ABSL_CONST_INIT const char kNearbySharingBackgroundTemporarilyVisibleName[] =
     "nearby_sharing.background_temporarily_visible";
-const char kNearbySharingBackgroundFallbackVisibilityName[] =
+ABSL_CONST_INIT const char kNearbySharingBackgroundFallbackVisibilityName[] =
     "nearby_sharing.background_fallback_visibility";
-const char kNearbySharingBackgroundVisibilityExpirationSeconds[] =
-    "nearby_sharing.background_visibility_expiration_seconds";
-const char kNearbySharingContactUploadHashName[] =
+ABSL_CONST_INIT const char
+    kNearbySharingBackgroundVisibilityExpirationSeconds[] =
+        "nearby_sharing.background_visibility_expiration_seconds";
+ABSL_CONST_INIT const char kNearbySharingContactUploadHashName[] =
     "nearby_sharing.contact_upload_hash";
-const char kNearbySharingCustomSavePath[] = "nearby_sharing.custom_save_path";
-const char kNearbySharingDataUsageName[] = "nearby_sharing.data_usage";
-const char kNearbySharingDeviceIdName[] = "nearby_sharing.device_id";
-const char kNearbySharingDeviceNameName[] = "nearby_sharing.device_name";
-const char kNearbySharingEnabledName[] = "nearby_sharing.enabled";
-const char kNearbySharingFastInitiationNotificationStateName[] =
+ABSL_CONST_INIT const char kNearbySharingCustomSavePath[] =
+    "nearby_sharing.custom_save_path";
+ABSL_CONST_INIT const char kNearbySharingDataUsageName[] =
+    "nearby_sharing.data_usage";
+ABSL_CONST_INIT const char kNearbySharingDeviceIdName[] =
+    "nearby_sharing.device_id";
+ABSL_CONST_INIT const char kNearbySharingDeviceNameName[] =
+    "nearby_sharing.device_name";
+ABSL_CONST_INIT const char kNearbySharingEnabledName[] =
+    "nearby_sharing.enabled";
+ABSL_CONST_INIT const char kNearbySharingFastInitiationNotificationStateName[] =
     "nearby_sharing.fast_initiation_notification_state";
-const char kNearbySharingOnboardingCompleteName[] =
+ABSL_CONST_INIT const char kNearbySharingOnboardingCompleteName[] =
     "nearby_sharing.onboarding_complete";
-const char kNearbySharingFullNameName[] = "nearby_sharing.full_name";
-const char kNearbySharingIconUrlName[] = "nearby_sharing.icon_url";
-const char kNearbySharingIconTokenName[] = "nearby_sharing.icon_token";
-const char kNearbySharingOnboardingDismissedTimeName[] =
+ABSL_CONST_INIT const char kNearbySharingFullNameName[] =
+    "nearby_sharing.full_name";
+ABSL_CONST_INIT const char kNearbySharingIconUrlName[] =
+    "nearby_sharing.icon_url";
+ABSL_CONST_INIT const char kNearbySharingIconTokenName[] =
+    "nearby_sharing.icon_token";
+ABSL_CONST_INIT const char kNearbySharingOnboardingDismissedTimeName[] =
     "nearby_sharing.onboarding_dismissed_time";
-const char kNearbySharingPublicCertificateExpirationDictName[] =
+ABSL_CONST_INIT const char kNearbySharingPublicCertificateExpirationDictName[] =
     "nearbyshare.public_certificate_expiration_dict";
-const char kNearbySharingPrivateCertificateListName[] =
+ABSL_CONST_INIT const char kNearbySharingPrivateCertificateListName[] =
     "nearbyshare.private_certificate_list";
-const char kNearbySharingSchedulerContactDownloadAndUploadName[] =
-    "nearby_sharing.scheduler.contact_download_and_upload";
-const char kNearbySharingSchedulerDownloadDeviceDataName[] =
+ABSL_CONST_INIT const char
+    kNearbySharingSchedulerContactDownloadAndUploadName[] =
+        "nearby_sharing.scheduler.contact_download_and_upload";
+ABSL_CONST_INIT const char kNearbySharingSchedulerDownloadDeviceDataName[] =
     "nearby_sharing.scheduler.download_device_data";
-const char kNearbySharingSchedulerDownloadPublicCertificatesName[] =
-    "nearby_sharing.scheduler.download_public_certificates";
-const char kNearbySharingSchedulerPeriodicContactUploadName[] =
+ABSL_CONST_INIT const char
+    kNearbySharingSchedulerDownloadPublicCertificatesName[] =
+        "nearby_sharing.scheduler.download_public_certificates";
+ABSL_CONST_INIT const char kNearbySharingSchedulerPeriodicContactUploadName[] =
     "nearby_sharing.scheduler.periodic_contact_upload";
-const char kNearbySharingSchedulerPrivateCertificateExpirationName[] =
-    "nearby_sharing.scheduler.private_certificate_expiration";
-const char kNearbySharingSchedulerPublicCertificateExpirationName[] =
-    "nearby_sharing.scheduler.public_certificate_expiration";
-const char kNearbySharingSchedulerUploadDeviceNameName[] =
+ABSL_CONST_INIT const char
+    kNearbySharingSchedulerPrivateCertificateExpirationName[] =
+        "nearby_sharing.scheduler.private_certificate_expiration";
+ABSL_CONST_INIT const char
+    kNearbySharingSchedulerPublicCertificateExpirationName[] =
+        "nearby_sharing.scheduler.public_certificate_expiration";
+ABSL_CONST_INIT const char kNearbySharingSchedulerUploadDeviceNameName[] =
     "nearby_sharing.scheduler.upload_device_name";
-const char kNearbySharingSchedulerUploadLocalDeviceCertificatesName[] =
-    "nearby_sharing.scheduler.upload_local_device_certificates";
-const char kNearbySharingUsersName[] = "nearby_sharing.users";
-const char kNearbySharingIsReceivingName[] = "nearby_sharing.is_receiving";
-const char kNearbySharingIsAnalyticsEnabledName[] =
+ABSL_CONST_INIT const char
+    kNearbySharingSchedulerUploadLocalDeviceCertificatesName[] =
+        "nearby_sharing.scheduler.upload_local_device_certificates";
+ABSL_CONST_INIT const char kNearbySharingUsersName[] = "nearby_sharing.users";
+ABSL_CONST_INIT const char kNearbySharingIsReceivingName[] =
+    "nearby_sharing.is_receiving";
+ABSL_CONST_INIT const char kNearbySharingIsAnalyticsEnabledName[] =
     "nearby_sharing.is_analytics_enabled";
-const char kNearbySharingIsAllContactsEnabledName[] =
+ABSL_CONST_INIT const char kNearbySharingIsAllContactsEnabledName[] =
     "nearby_sharing.is_all_contacts_enabled";
-const char kNearbySharingAutoAppStartEnabledName[] =
+ABSL_CONST_INIT const char kNearbySharingAutoAppStartEnabledName[] =
     "nearby_sharing.auto_app_start_enabled";
 
 void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,

@@ -27,10 +27,19 @@ void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
                             std::string* output) {}
 
 }  // namespace nearby::utils
-
 #elif defined(NEARBY_CHROMIUM)
 // Forward to chromium implementations.
+#include "base/strings/string_util.h"
+namespace nearby::utils {
+bool IsStringUtf8(std::string_view str) {
+  return base::IsStringUTF8(str);
+}
 
+void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
+                            std::string* output) {
+  base::TruncateUTF8ToByteSize(input, byte_size, output);
+}
+}  // namespace nearby::utils
 #else  // defined(GITHUB_BUILD)
 #include "sharing/internal/base/strings/utf_string_conversions.h"  // IWYU pragma: export
 #endif  // defined(GITHUB_BUILD)
