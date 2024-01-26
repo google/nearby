@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
-load("@bazel_skylib//lib:selects.bzl", "selects")
 
 licenses(["notice"])
 
@@ -136,6 +137,7 @@ cc_library(
     srcs = [
     ],
     hdrs = [
+        "mock_credential_manager.h",
         "mock_service_controller.h",
     ],
     visibility = [
@@ -143,8 +145,9 @@ cc_library(
     ],
     deps = [
         ":internal",
-        "//presence",
+        "//internal/platform/implementation:comm",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -341,6 +344,37 @@ cc_test(
         "//internal/platform:types",
         "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
+cc_test(
+    name = "service_controller_impl_test",
+    size = "small",
+    srcs = ["service_controller_impl_test.cc"],
+    deps = [
+        ":internal",
+        ":internal_test",
+        "//internal/platform:comm",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
+        "//internal/proto:credential_cc_proto",
+        "//net/proto2/contrib/parse_proto:testing",
+        "//presence/implementation/mediums",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ] + select({

@@ -34,9 +34,9 @@ cc_library(
         "//internal/platform:types",
         "//internal/proto:metadata_cc_proto",
         "//presence/implementation:internal",  # build_cleaner: keep
+        "//presence/implementation/mediums",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/types:variant",
     ],
 )
 

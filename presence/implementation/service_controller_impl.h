@@ -20,9 +20,10 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/implementation/broadcast_manager.h"
-#include "presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/credential_manager.h"
 #include "presence/implementation/mediums/mediums.h"
 #include "presence/implementation/scan_manager.h"
 #include "presence/implementation/service_controller.h"
@@ -39,6 +40,14 @@ class ServiceControllerImpl : public ServiceController {
  public:
   using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
 
+  ServiceControllerImpl(SingleThreadExecutor* executor,
+                        CredentialManager* credential_manager,
+                        ScanManager* scan_manager,
+                        BroadcastManager* broadcast_manager)
+      : executor_(*executor),
+        credential_manager_(*credential_manager),
+        scan_manager_(*scan_manager),
+        broadcast_manager_(*broadcast_manager) {}
   ~ServiceControllerImpl() override { executor_.Shutdown(); }
 
   absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
@@ -65,24 +74,21 @@ class ServiceControllerImpl : public ServiceController {
       const std::vector<nearby::internal::SharedCredential>&
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
+  void GetLocalCredentials(const CredentialSelector& credential_selector,
+                           GetLocalCredentialsResultCallback callback) override;
 
   SingleThreadExecutor& GetBackgroundExecutor() { return executor_; }
 
-  // Gives tests access to mediums.
-  Mediums& GetMediums() { return mediums_; }
-
  private:
-  SingleThreadExecutor executor_;
   void NotifyStartCallbackStatus(BroadcastSessionId id, absl::Status status);
   void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
     executor_.Execute(std::string(name), std::move(runnable));
   }
-  Mediums mediums_;  // NOLINT: further impl will use it.
-  CredentialManagerImpl credential_manager_{
-      &executor_};  // NOLINT: further impl will use it.
-  ScanManager scan_manager_{mediums_, credential_manager_,
-                            executor_};  // NOLINT: further impl will use it.
-  BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
+
+  SingleThreadExecutor& executor_;
+  CredentialManager& credential_manager_;
+  ScanManager& scan_manager_;
+  BroadcastManager& broadcast_manager_;
 };
 
 }  // namespace presence

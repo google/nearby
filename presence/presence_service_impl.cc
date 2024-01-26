@@ -27,7 +27,8 @@ namespace nearby {
 namespace presence {
 
 PresenceServiceImpl::PresenceServiceImpl() {
-  service_controller_ = std::make_unique<ServiceControllerImpl>();
+  service_controller_ = std::make_unique<ServiceControllerImpl>(
+      &executor_, &credential_manager_, &scan_manager_, &broadcast_manager_);
   provider_ = std::make_unique<PresenceDeviceProvider>(
       service_controller_->GetLocalDeviceMetadata());
 }

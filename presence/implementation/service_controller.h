@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
@@ -57,6 +58,9 @@ class ServiceController {
       const std::vector<nearby::internal::SharedCredential>&
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
+  virtual void GetLocalCredentials(
+      const CredentialSelector& credential_selector,
+      GetLocalCredentialsResultCallback callback) = 0;
 };
 
 }  // namespace presence

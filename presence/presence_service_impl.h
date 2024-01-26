@@ -22,6 +22,10 @@
 #include "internal/platform/borrowable.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/data_types.h"
+#include "presence/implementation/broadcast_manager.h"
+#include "presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/mediums/mediums.h"
+#include "presence/implementation/scan_manager.h"
 #include "presence/implementation/service_controller.h"
 #include "presence/presence_client.h"
 #include "presence/presence_device_provider.h"
@@ -77,6 +81,11 @@ class PresenceServiceImpl : public PresenceService {
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
  private:
+  SingleThreadExecutor executor_;
+  Mediums mediums_;
+  CredentialManagerImpl credential_manager_{&executor_};
+  ScanManager scan_manager_{mediums_, credential_manager_, executor_};
+  BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
   std::unique_ptr<ServiceController> service_controller_;
   ::nearby::Lender<PresenceService*> lender_{this};
   std::unique_ptr<PresenceDeviceProvider> provider_;
