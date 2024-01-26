@@ -150,7 +150,6 @@ cc_library(
         "//sharing/flags:nearby_sharing_feature_flags_cpp_consts_generated",
         "//sharing/internal/api:platform",
         "//sharing/internal/base",
-        "//sharing/internal/base:utf_utils",
         "//sharing/internal/public:logging",
         "//sharing/internal/public:nearby_context",
         "//sharing/internal/public:types",

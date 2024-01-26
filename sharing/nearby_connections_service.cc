@@ -24,7 +24,9 @@
 #include <utility>
 #include <vector>
 
-#include "sharing/internal/base/utf_string_conversions.h"
+#include "internal/platform/file.h"
+#include "sharing/common/compatible_u8_string.h"
+#include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
 
 namespace nearby {
@@ -43,26 +45,12 @@ Payload ConvertToPayload(NcPayload payload) {
                      std::vector<uint8_t>(data.begin(), data.end()));
     }
     case NcPayloadType::kFile: {
-      std::filesystem::path file_path;
-      std::string parent_folder;
-      // Initialize path with UTF8 cause crash on Windows with configured
-      // locale.
-      try {
-        file_path = payload.AsFile()->GetFilePath();
-        if (!std::filesystem::exists(file_path)) {
-          file_path = utils::Utf8ToWide(payload.AsFile()->GetFilePath());
-          parent_folder = payload.GetParentFolder();
-        }
-      } catch (std::exception exception) {
-        file_path = utils::Utf8ToWide(payload.AsFile()->GetFilePath());
-        parent_folder = payload.GetParentFolder();
-      } catch (...) {
-        file_path = utils::Utf8ToWide(payload.AsFile()->GetFilePath());
-        parent_folder = payload.GetParentFolder();
-      }
+      std::filesystem::path file_path =
+          std::filesystem::u8path(payload.AsFile()->GetFilePath());
+      std::string parent_folder = payload.GetParentFolder();
+      NL_VLOG(1) << __func__ << ": Payload file_path=" << file_path
+                 << ", parent_folder = " << parent_folder;
       return Payload(payload.GetId(), InputFile(file_path), parent_folder);
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Payload file_path=" << file_path
-                           << ", parent_folder = " << parent_folder;
     }
     default:
       return Payload();
@@ -72,28 +60,15 @@ Payload ConvertToPayload(NcPayload payload) {
 NcPayload ConvertToServicePayload(Payload payload) {
   switch (payload.content.type) {
     case PayloadContent::Type::kFile: {
-      // On Windows, a crash may happen when access string() of path if it is
-      // using wchar. Apply UTF8 to avoid the cross-platform issues.
-      std::string file_path;
-      std::string file_name;
-      std::string parent_folder;
       int64_t file_size = payload.content.file_payload.size;
-      try {
-        file_path =
-            utils::WideToUtf8(payload.content.file_payload.file.path.wstring());
-        file_name = utils::WideToUtf8(
-            payload.content.file_payload.file.path.filename().wstring());
-      } catch (std::exception e) {
-        file_path = payload.content.file_payload.file.path.string();
-        file_name = payload.content.file_payload.file.path.filename().string();
-      } catch (...) {
-        file_path = payload.content.file_payload.file.path.string();
-        file_name = payload.content.file_payload.file.path.filename().string();
-      }
-      parent_folder = payload.content.file_payload.parent_folder;
+      std::string file_path = GetCompatibleU8String(
+          payload.content.file_payload.file.path.u8string());
+      std::string file_name = GetCompatibleU8String(
+          payload.content.file_payload.file.path.filename().u8string());
+      std::string parent_folder = payload.content.file_payload.parent_folder;
       std::replace(parent_folder.begin(), parent_folder.end(), '\\', '/');
-      NEARBY_LOGS(VERBOSE) << __func__ << ": NC Payload file_path=" << file_path
-                           << ", parent_folder = " << parent_folder;
+      NL_VLOG(1) << __func__ << ": NC Payload file_path=" << file_path
+                 << ", parent_folder = " << parent_folder;
       nearby::InputFile input_file(file_path, file_size);
       NcPayload nc_payload(payload.id, parent_folder, file_name,
                            std::move(input_file));

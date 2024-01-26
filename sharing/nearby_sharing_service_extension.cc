@@ -22,7 +22,6 @@
 #include "absl/synchronization/notification.h"
 #include "internal/network/url.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/base/utf_string_conversions.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -107,8 +106,7 @@ NearbySharingService::StatusCodes NearbySharingServiceExtension::Open(
     NearbySharingService::StatusCodes status_codes = StatusCodes::kOk;
     absl::Notification notification;
     context_->GetShell().Open(
-        std::filesystem::path(
-            utils::Utf8ToWide(settings_->GetCustomSavePath())),
+        std::filesystem::u8path(settings_->GetCustomSavePath()),
         [&status_codes, &notification](absl::Status status) {
           if (!status.ok()) {
             NL_LOG(ERROR)
@@ -129,10 +127,10 @@ NearbySharingService::StatusCodes NearbySharingServiceExtension::Open(
   if (file_attachment.file_path().has_value()) {
     file_path = *file_attachment.file_path();
   } else {
-    file_path = std::filesystem::path(
-                    utils::Utf8ToWide(settings_->GetCustomSavePath())) /
-                // NOLINTNEXTLINE cannot build without the new string creation
-                utils::Utf8ToWide(std::string(file_attachment.file_name()));
+    file_path =
+        std::filesystem::u8path(settings_->GetCustomSavePath()) /
+        // NOLINTNEXTLINE cannot build without the new string creation
+        std::filesystem::u8path(std::string(file_attachment.file_name()));
   }
 
   NearbySharingService::StatusCodes status_codes = StatusCodes::kOk;

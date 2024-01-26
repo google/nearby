@@ -18,8 +18,6 @@
 #if defined(GITHUB_BUILD)
 // Stub out string conversion functions for github builds.
 namespace nearby::utils {
-std::string WideToUtf8(std::wstring_view wide) { return std::string(); }
-std::wstring Utf8ToWide(std::string_view utf8) { return std::wstring(); }
 
 bool IsStringUtf8(std::string_view str) { return true; }
 
