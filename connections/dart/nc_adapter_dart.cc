@@ -19,27 +19,29 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/strings/string_view.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_api.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "connections/c/nc.h"
 #include "connections/c/nc_types.h"
+#include "connections/dart/nearby_connections_client_state.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 
-static nearby::CountDownLatch *adapter_finished;
+using nearby::connections::dart::NearbyConnectionsClientState;
+using NearbyConnectionsApi = nearby::connections::dart::
+    NearbyConnectionsClientState::NearbyConnectionsApi;
 
-static Dart_Port port;
-static DiscoveryListenerDart current_discovery_listener_dart;
-static ConnectionListenerDart current_connection_listener_dart;
-static PayloadListenerDart current_payload_listener_dart;
+static absl::NoDestructor<NearbyConnectionsClientState> kClientState;
 
 NC_STRATEGY_TYPE GetStrategy(StrategyDart strategy) {
   switch (strategy) {
@@ -61,17 +63,20 @@ nearby::ByteArray ConvertBluetoothMacAddress(absl::string_view address) {
 
 NC_PAYLOAD_ID GeneratePayloadId() { return nearby::Prng().NextInt64(); }
 
-void ResultCB(NC_STATUS status) {
-  NEARBY_LOG(INFO, "ResultCB is called.");
+void ResultCB(std::optional<Dart_Port> port, NC_STATUS status) {
   (void)status;  // Avoid unused parameter warning
+  if (!port.has_value()) {
+    NEARBY_LOGS(ERROR) << "ResultCB called with invalid port.";
+    return;
+  }
+
   Dart_CObject dart_object_result_callback;
   dart_object_result_callback.type = Dart_CObject_kInt64;
   dart_object_result_callback.value.as_int64 = static_cast<int64_t>(status);
-  const bool result = Dart_PostCObject_DL(port, &dart_object_result_callback);
+  const bool result = Dart_PostCObject_DL(*port, &dart_object_result_callback);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
-  adapter_finished->CountDown();
 }
 
 void ListenerInitiatedCB(
@@ -99,9 +104,9 @@ void ListenerInitiatedCB(
   dart_object_initiated.value.as_array.length = 2;
   dart_object_initiated.value.as_array.values = elements;
 
-  const bool result =
-      Dart_PostCObject_DL(current_connection_listener_dart.initiated_dart_port,
-                          &dart_object_initiated);
+  const bool result = Dart_PostCObject_DL(
+      kClientState->GetConnectionListenerDart()->initiated_dart_port,
+      &dart_object_initiated);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
@@ -112,9 +117,9 @@ void ListenerAcceptedCB(const char *endpoint_id) {
   Dart_CObject dart_object_accepted;
   dart_object_accepted.type = Dart_CObject_kString;
   dart_object_accepted.value.as_string = const_cast<char *>(endpoint_id);
-  const bool result =
-      Dart_PostCObject_DL(current_connection_listener_dart.accepted_dart_port,
-                          &dart_object_accepted);
+  const bool result = Dart_PostCObject_DL(
+      kClientState->GetConnectionListenerDart()->accepted_dart_port,
+      &dart_object_accepted);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
@@ -125,9 +130,9 @@ void ListenerRejectedCB(const char *endpoint_id, NC_STATUS status) {
   Dart_CObject dart_object_rejected;
   dart_object_rejected.type = Dart_CObject_kString;
   dart_object_rejected.value.as_string = const_cast<char *>(endpoint_id);
-  const bool result =
-      Dart_PostCObject_DL(current_connection_listener_dart.rejected_dart_port,
-                          &dart_object_rejected);
+  const bool result = Dart_PostCObject_DL(
+      kClientState->GetConnectionListenerDart()->rejected_dart_port,
+      &dart_object_rejected);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
@@ -139,7 +144,7 @@ void ListenerDisconnectedCB(const char *endpoint_id) {
   dart_object_disconnected.type = Dart_CObject_kString;
   dart_object_disconnected.value.as_string = const_cast<char *>(endpoint_id);
   const bool result = Dart_PostCObject_DL(
-      current_connection_listener_dart.disconnected_dart_port,
+      kClientState->GetConnectionListenerDart()->disconnected_dart_port,
       &dart_object_disconnected);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
@@ -154,7 +159,7 @@ void ListenerBandwidthChangedCB(const char *endpoint_id, NC_MEDIUM medium) {
   dart_object_bandwidth_changed.value.as_string =
       const_cast<char *>(endpoint_id);
   const bool result = Dart_PostCObject_DL(
-      current_connection_listener_dart.bandwidth_changed_dart_port,
+      kClientState->GetConnectionListenerDart()->bandwidth_changed_dart_port,
       &dart_object_bandwidth_changed);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
@@ -186,7 +191,8 @@ void ListenerEndpointFoundCB(const char *endpoint_id,
   dart_object_found.value.as_array.length = 2;
   dart_object_found.value.as_array.values = elements;
   const bool result = Dart_PostCObject_DL(
-      current_discovery_listener_dart.found_dart_port, &dart_object_found);
+      kClientState->GetDiscoveryListenerDart()->found_dart_port,
+      &dart_object_found);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
@@ -198,7 +204,8 @@ void ListenerEndpointLostCB(const char *endpoint_id) {
   dart_object_lost.type = Dart_CObject_kString;
   dart_object_lost.value.as_string = const_cast<char *>(endpoint_id);
   const bool result = Dart_PostCObject_DL(
-      current_discovery_listener_dart.lost_dart_port, &dart_object_lost);
+      kClientState->GetDiscoveryListenerDart()->lost_dart_port,
+      &dart_object_lost);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
@@ -213,7 +220,7 @@ void ListenerEndpointDistanceChangedCB(const char *endpoint_id,
   dart_object_distance_changed.value.as_string =
       const_cast<char *>(endpoint_id);
   const bool result = Dart_PostCObject_DL(
-      current_discovery_listener_dart.distance_changed_dart_port,
+      kClientState->GetDiscoveryListenerDart()->distance_changed_dart_port,
       &dart_object_distance_changed);
   if (!result) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
@@ -263,7 +270,7 @@ void ListenerPayloadCB(const char *endpoint_id, const NC_PAYLOAD &payload) {
       dart_object_payload.value.as_array.length = 3;
       dart_object_payload.value.as_array.values = elements;
       if (!Dart_PostCObject_DL(
-              current_payload_listener_dart.initial_byte_info_port,
+              kClientState->GetPayloadListenerDart()->initial_byte_info_port,
               &dart_object_payload)) {
         NEARBY_LOG(INFO, "Posting message to port failed.");
       }
@@ -280,7 +287,7 @@ void ListenerPayloadCB(const char *endpoint_id, const NC_PAYLOAD &payload) {
       dart_object_payload.value.as_array.length = 2;
       dart_object_payload.value.as_array.values = elements;
       if (!Dart_PostCObject_DL(
-              current_payload_listener_dart.initial_stream_info_port,
+              kClientState->GetPayloadListenerDart()->initial_stream_info_port,
               &dart_object_payload)) {
         NEARBY_LOG(INFO, "Posting message to port failed.");
       }
@@ -308,7 +315,7 @@ void ListenerPayloadCB(const char *endpoint_id, const NC_PAYLOAD &payload) {
       dart_object_payload.value.as_array.length = 4;
       dart_object_payload.value.as_array.values = elements;
       if (!Dart_PostCObject_DL(
-              current_payload_listener_dart.initial_file_info_port,
+              kClientState->GetPayloadListenerDart()->initial_file_info_port,
               &dart_object_payload)) {
         NEARBY_LOG(INFO, "Posting message to port failed.");
       }
@@ -363,14 +370,13 @@ void ListenerPayloadProgressCB(
   dart_object_payload_progress.value.as_array.values = elements;
 
   if (!Dart_PostCObject_DL(
-          current_payload_listener_dart.payload_progress_dart_port,
+          kClientState->GetPayloadListenerDart()->payload_progress_dart_port,
           &dart_object_payload_progress)) {
     NEARBY_LOG(INFO, "Posting message to port failed.");
   }
 }
 
 void PostResult(Dart_Port &result_cb, NC_STATUS value) {
-  port = result_cb;
   Dart_CObject dart_object_result_callback;
   dart_object_result_callback.type = Dart_CObject_kInt64;
   dart_object_result_callback.value.as_int64 = static_cast<int64_t>(value);
@@ -381,9 +387,20 @@ void PostResult(Dart_Port &result_cb, NC_STATUS value) {
   }
 }
 
-NC_INSTANCE OpenServiceDart() { return NcOpenService(); }
+NC_INSTANCE OpenServiceDart() {
+  NC_INSTANCE instance = kClientState->GetOpennedService();
+  if (instance == nullptr) {
+    instance = NcOpenService();
+    kClientState->SetOpennedService(instance);
+  }
 
-void CloseServiceDart(NC_INSTANCE instance) { NcCloseService(instance); }
+  return instance;
+}
+
+void CloseServiceDart(NC_INSTANCE instance) {
+  NcCloseService(instance);
+  kClientState->reset();
+}
 
 char *GetLocalEndpointIdDart(NC_INSTANCE instance) {
   return NcGetLocalEndpointId(instance);
@@ -391,11 +408,13 @@ char *GetLocalEndpointIdDart(NC_INSTANCE instance) {
 
 void EnableBleV2Dart(NC_INSTANCE instance, int64_t enable,
                      Dart_Port result_cb) {
-  port = result_cb;
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-  NcEnableBleV2(instance, enable, [](NC_STATUS status) { ResultCB(status); });
-  finished.Await();
+  kClientState->PushNearbyConnectionsApiPort(NearbyConnectionsApi::kEnableBleV2,
+                                             result_cb);
+  NcEnableBleV2(instance, enable, [](NC_STATUS status) {
+    ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                 NearbyConnectionsApi::kEnableBleV2),
+             status);
+  });
   NEARBY_LOGS(INFO) << "EnableBleV2Dart callback is called with enable="
                     << enable;
 }
@@ -409,8 +428,10 @@ void StartAdvertisingDart(NC_INSTANCE instance, const char *service_id,
     return;
   }
 
-  port = result_cb;
-  current_connection_listener_dart = info_dart.connection_listener;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kStartAdvertising, result_cb);
+  kClientState->SetConnectionListenerDart(
+      std::make_unique<ConnectionListenerDart>(info_dart.connection_listener));
 
   NC_ADVERTISING_OPTIONS advertising_options{};
   advertising_options.common_options.strategy.type =
@@ -447,15 +468,12 @@ void StartAdvertisingDart(NC_INSTANCE instance, const char *service_id,
   request_info.disconnected_callback = ListenerDisconnectedCB;
   request_info.bandwidth_changed_callback = ListenerBandwidthChangedCB;
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
   NcStartAdvertising(instance, service_id, advertising_options, request_info,
                      [](NC_STATUS status) {
-                       ResultCB(status);
+                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                    NearbyConnectionsApi::kStartAdvertising),
+                                status);
                      });
-
-  finished.Await();
 }
 
 void StopAdvertisingDart(NC_INSTANCE instance, Dart_Port result_cb) {
@@ -464,14 +482,15 @@ void StopAdvertisingDart(NC_INSTANCE instance, Dart_Port result_cb) {
     return;
   }
 
-  port = result_cb;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kStopAdvertising, result_cb);
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
-  NcStopAdvertising(instance, [](NC_STATUS status) { ResultCB(status); });
-
-  finished.Await();
+  NcStopAdvertising(instance, [](NC_STATUS status) {
+    kClientState->SetConnectionListenerDart(nullptr);
+    ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                 NearbyConnectionsApi::kStopAdvertising),
+             status);
+  });
 }
 
 void StartDiscoveryDart(NC_INSTANCE instance, const char *service_id,
@@ -483,8 +502,10 @@ void StartDiscoveryDart(NC_INSTANCE instance, const char *service_id,
     return;
   }
 
-  port = result_cb;
-  current_discovery_listener_dart = listener_dart;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kStartAdvertising, result_cb);
+  kClientState->SetDiscoveryListenerDart(
+      std::make_unique<DiscoveryListenerDart>(listener_dart));
 
   NC_DISCOVERY_OPTIONS discovery_options{};
   discovery_options.common_options.strategy.type =
@@ -516,15 +537,12 @@ void StartDiscoveryDart(NC_INSTANCE instance, const char *service_id,
   listener.endpoint_found_callback = ListenerEndpointFoundCB;
   listener.endpoint_lost_callback = ListenerEndpointLostCB;
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
   NcStartDiscovery(instance, service_id, discovery_options, listener,
                    [](NC_STATUS status) {
-                     ResultCB(status);
+                     ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                  NearbyConnectionsApi::kStartDiscovery),
+                              status);
                    });
-
-  finished.Await();
 }
 
 void StopDiscoveryDart(NC_INSTANCE instance, Dart_Port result_cb) {
@@ -533,13 +551,15 @@ void StopDiscoveryDart(NC_INSTANCE instance, Dart_Port result_cb) {
     return;
   }
 
-  port = result_cb;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kStopDiscovery, result_cb);
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
-  NcStopDiscovery(instance, [](NC_STATUS status) { ResultCB(status); });
-  adapter_finished->Await();
+  NcStopDiscovery(instance, [](NC_STATUS status) {
+    kClientState->SetDiscoveryListenerDart(nullptr);
+    ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                 NearbyConnectionsApi::kStopDiscovery),
+             status);
+  });
 }
 
 void RequestConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
@@ -551,8 +571,10 @@ void RequestConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
     return;
   }
 
-  port = result_cb;
-  current_connection_listener_dart = info_dart.connection_listener;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kRequestConnection, result_cb);
+  kClientState->SetConnectionListenerDart(
+      std::make_unique<ConnectionListenerDart>(info_dart.connection_listener));
 
   NC_CONNECTION_OPTIONS connection_options;
   connection_options.enforce_topology_constraints =
@@ -591,13 +613,12 @@ void RequestConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
   request_info.disconnected_callback = ListenerDisconnectedCB;
   request_info.bandwidth_changed_callback = ListenerBandwidthChangedCB;
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
   NcRequestConnection(instance, endpoint_id, request_info, connection_options,
-                      [](NC_STATUS status) { ResultCB(status); });
-
-  adapter_finished->Await();
+                      [](NC_STATUS status) {
+                        ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                     NearbyConnectionsApi::kRequestConnection),
+                                 status);
+                      });
 }
 
 void AcceptConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
@@ -608,20 +629,20 @@ void AcceptConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
     return;
   }
 
-  port = result_cb;
-  current_payload_listener_dart = listener_dart;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kAcceptConnection, result_cb);
+  kClientState->SetPayloadListenerDart(
+      std::make_unique<PayloadListenerDart>(listener_dart));
 
   NC_PAYLOAD_LISTENER listener{};
   listener.received_callback = ListenerPayloadCB;
   listener.progress_updated_callback = ListenerPayloadProgressCB;
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
-  NcAcceptConnection(instance, endpoint_id, listener,
-                     [](NC_STATUS status) { ResultCB(status); });
-
-  finished.Await();
+  NcAcceptConnection(instance, endpoint_id, listener, [](NC_STATUS status) {
+    ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                 NearbyConnectionsApi::kAcceptConnection),
+             status);
+  });
 }
 
 void RejectConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
@@ -631,15 +652,14 @@ void RejectConnectionDart(NC_INSTANCE instance, const char *endpoint_id,
     return;
   }
 
-  port = result_cb;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kRejectConnection, result_cb);
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
-  NcRejectConnection(instance, endpoint_id,
-                     [](NC_STATUS status) { ResultCB(status); });
-
-  finished.Await();
+  NcRejectConnection(instance, endpoint_id, [](NC_STATUS status) {
+    ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                 NearbyConnectionsApi::kRejectConnection),
+             status);
+  });
 }
 
 void DisconnectFromEndpointDart(NC_INSTANCE instance, char *endpoint_id,
@@ -649,15 +669,14 @@ void DisconnectFromEndpointDart(NC_INSTANCE instance, char *endpoint_id,
     return;
   }
 
-  port = result_cb;
+  kClientState->PushNearbyConnectionsApiPort(
+      NearbyConnectionsApi::kDisconnectFromEndpoint, result_cb);
 
-  nearby::CountDownLatch finished(1);
-  adapter_finished = &finished;
-
-  NcDisconnectFromEndpoint(instance, endpoint_id,
-                           [](NC_STATUS status) { ResultCB(status); });
-
-  finished.Await();
+  NcDisconnectFromEndpoint(instance, endpoint_id, [](NC_STATUS status) {
+    ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                 NearbyConnectionsApi::kDisconnectFromEndpoint),
+             status);
+  });
 }
 
 void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
@@ -667,8 +686,8 @@ void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
     return;
   }
 
-  port = result_cb;
-
+  kClientState->PushNearbyConnectionsApiPort(NearbyConnectionsApi::kSendPayload,
+                                             result_cb);
   std::vector<std::string> endpoint_ids = {std::string(endpoint_id)};
 
   NEARBY_LOG(INFO, "Payload type: %d", payload_dart.type);
@@ -676,7 +695,7 @@ void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
     case PAYLOAD_TYPE_UNKNOWN:
     case PAYLOAD_TYPE_STREAM:
       NEARBY_LOG(INFO, "Payload type not supported yet");
-      PostResult(port, NC_STATUS_PAYLOADUNKNOWN);
+      PostResult(result_cb, NC_STATUS_PAYLOADUNKNOWN);
       break;
     case PAYLOAD_TYPE_BYTE: {
       NC_PAYLOAD payload{};
@@ -696,14 +715,12 @@ void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
                        return pc;
                      });
 
-      nearby::CountDownLatch finished(1);
-      adapter_finished = &finished;
-
       NcSendPayload(instance, c_string_array.size(), c_string_array.data(),
-                    std::move(payload),
-                    [](NC_STATUS status) { ResultCB(status); });
-
-      adapter_finished->Await();
+                    std::move(payload), [](NC_STATUS status) {
+                      ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                   NearbyConnectionsApi::kSendPayload),
+                               status);
+                    });
       break;
     }
     case PAYLOAD_TYPE_FILE:
@@ -729,14 +746,12 @@ void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
                        return pc;
                      });
 
-      nearby::CountDownLatch finished(1);
-      adapter_finished = &finished;
-
       NcSendPayload(instance, c_string_array.size(), c_string_array.data(),
-                    std::move(payload),
-                    [](NC_STATUS status) { ResultCB(status); });
-
-      adapter_finished->Await();
+                    std::move(payload), [](NC_STATUS status) {
+                      ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                   NearbyConnectionsApi::kSendPayload),
+                               status);
+                    });
 
       break;
   }

@@ -42,10 +42,13 @@ lexan.cc_windows_dll(
     name = "nc_windows_dart",
     srcs = [
         "nc_adapter_dart.cc",
+        "nearby_connections_client_state.cc",
     ],
     hdrs = [
         "nc_adapter_dart.h",
         "nc_adapter_def.h",
+        "nc_adapter_types.h",
+        "nearby_connections_client_state.h",
     ],
     copts = ["-DNC_DART_DLL"],
     tags = ["windows-dll"],
@@ -55,6 +58,9 @@ lexan.cc_windows_dll(
         "//internal/platform:types",
         "//internal/platform/implementation/windows",
         "//third_party/dart_lang/v2:dart_api_dl",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
