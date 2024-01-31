@@ -18,7 +18,7 @@ import Foundation
 
 @Observable class Packet<T: File>: Identifiable, CustomStringConvertible, Encodable, Decodable {
   enum State: Int {
-    case unknown, loaded, uploading, uploaded, received, downloading, downloaded
+    case unknown, picked, loading, loaded, uploading, uploaded, received, downloading, downloaded
   }
 
   let id: UUID
@@ -112,7 +112,8 @@ extension Packet<IncomingFile> {
         group.addTask {
           let result = await file.download()
           let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-          print("I: Downloaded. Size(b): \(file.fileSize). Time(s): \(duration).")
+          print(String(format: "I: Downloaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f. Speed(KB/s): %.1f",
+                                   duration, (Double(file.fileSize) as Double / 1024 / duration)))
           return result
         }
       }
@@ -125,6 +126,10 @@ extension Packet<IncomingFile> {
 
       if allSucceeded {
         print("I: All files in the packet downloaded.")
+        let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+        let totalSize = files.reduce(0, {(size: Int, file: IncomingFile) in size + Int(file.fileSize)})
+        print(String(format: "I: Downloaded packet \(id). Size(b): \(totalSize). Time(s): %.1f. Speed(KB/s): %.1f",
+                     duration, (Double(totalSize) as Double) / 1024 / duration))
         state = .downloaded
       } else {
         print("E: Some files in the packet failed to download.")
@@ -152,7 +157,9 @@ extension Packet<OutgoingFile> {
           let size = await file.upload()
           if size != nil {
             let duration: TimeInterval = Date().timeIntervalSince(beginTime)
-            print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f.", duration))
+            print(String(format: "I: Uploaded file \(file.remotePath!). Size(b): \(file.fileSize). Time(s): %.1f. Speed(KB/s): %.1f",
+                                     duration, (Double(file.fileSize) as Double / 1024 / duration)))
+            try? FileManager.default.removeItem(at: file.localUrl!)
           }
           return size
         }
@@ -166,6 +173,10 @@ extension Packet<OutgoingFile> {
 
       if allSucceeded {
         print("I: All files in the packet uploaded.")
+        let duration: TimeInterval = Date().timeIntervalSince(beginTime)
+        let totalSize = files.reduce(0, {(size: Int, file: OutgoingFile) in size + Int(file.fileSize)})
+        print(String(format: "I: Uploaded packet \(id). Size(b): \(totalSize). Time(s): %.1f. Speed(KB/s): %.1f",
+                     duration, (Double(totalSize) as Double) / 1024 / duration))
         // Update packet state in Firebase
         // The update will automatically trigger a push notification
         let ref = await CloudDatabase.shared.push(packet: self)

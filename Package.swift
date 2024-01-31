@@ -25,7 +25,7 @@ let package = Package(
     // Dependencies declare other packages that this package depends on.
     .package(
       name: "abseil-deling",
-      url: "../abseil-cpp-SwiftPM",
+      url: "https://github.com/deling-google/abseil-cpp-SwiftPM.git",
       branch: "cxx17"
     ),
     .package(

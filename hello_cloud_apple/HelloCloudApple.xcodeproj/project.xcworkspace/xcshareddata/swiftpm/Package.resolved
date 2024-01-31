@@ -12,7 +12,7 @@
       },
       {
         "package": "abseil-deling",
-        "repositoryURL": "/Users/deling/repo/abseil-cpp-SwiftPM",
+        "repositoryURL": "https://github.com/deling-google/abseil-cpp-SwiftPM.git",
         "state": {
           "branch": "cxx17",
           "revision": "3d00c4c78f239bcdec4477a03704ff89444c57e9",

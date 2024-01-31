@@ -15,21 +15,21 @@
 //
 
 import Foundation
-import SwiftUI
-import PhotosUI
 
 @Observable class OutgoingFile: File, CustomStringConvertible, Hashable, Encodable, Decodable {
   enum State: Int {
-    case loaded, uploading, uploaded
+    case picked, loading, loaded, uploading, uploaded
   }
 
+  // This is the Identifiable.id used by SwiftUI, not the file ID used for identifying the file
+  // across devices and the cloud
   let id: UUID
   let mimeType: String
 
   @ObservationIgnored var fileSize: Int64 = 0
   @ObservationIgnored var remotePath: String? = nil
-  @ObservationIgnored var photoItem: PhotosPickerItem? = nil
-  var state: State = .loaded
+  @ObservationIgnored var localUrl: URL? = nil
+  var state: State = .picked
 
   var description: String {
     String(format: "\(mimeType), %.1f KB", (Double(fileSize)/1024.0))
@@ -40,15 +40,15 @@ import PhotosUI
     self.mimeType = mimeType
   }
 
-  /** Upload to the cloud and return bytes uploaded if successful or nil otherwise */
+  /** Upload to the cloud and returns bytes uploaded if successful or nil otherwise */
   func upload() async -> Int64? {
-    guard let photoItem else {
-      print("File not loaded. Skipping uploading.")
+    guard let localUrl else {
+      print("File not saved. Skipping uploading.")
       return nil;
     }
     
     if state != .loaded {
-      print("File not loaded. Skipping uploading.")
+      print("File not saved. Skipping uploading.")
       return nil
     }
 
@@ -60,7 +60,7 @@ import PhotosUI
     }
 
     state = .uploading
-    let size = await CloudStorage.shared.upload(from: self, to: remotePath!)
+    let size = await CloudStorage.shared.upload(from: localUrl, to: remotePath!)
     state = size != nil ? .uploaded : .loaded
     return size
   }

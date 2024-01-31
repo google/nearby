@@ -17,8 +17,6 @@
 import Foundation
 import FirebaseCore
 import FirebaseStorage
-import SwiftUI
-import PhotosUI
 
 class CloudStorage {
   static let shared = CloudStorage()
@@ -38,41 +36,10 @@ class CloudStorage {
     storage.maxDownloadRetryTime = 3
   }
 
-  func upload(from file: OutgoingFile, to remotePath: String) async -> Int64? {
-    // 1. Obtain jpeg or png data from the photo picker item.
-    guard let data = try? await file.photoItem!.loadTransferable(type: Data.self) else {
-      return nil
-    }
-    var typedData: Data
-    if file.mimeType == "image/jpeg" {
-      guard let uiImage = UIImage(data: data) else {
-        return nil
-      }
-      guard let jpegData = uiImage.jpegData(compressionQuality: 1) else {
-        return nil
-      }
-      typedData  = jpegData
-      file.fileSize = Int64(jpegData.count)
-    }
-    else if file.mimeType == "image/png" {
-      guard let uiImage = UIImage(data: data) else {
-        return nil
-      }
-      guard let pngData = uiImage.pngData() else {
-        return nil
-      }
-      typedData  = pngData
-      file.fileSize = Int64(pngData.count)
-    }
-    else {
-      typedData = data
-      file.fileSize = Int64(data.count)
-    }
-
-    // 2. Upload `typeData` to Firebase storage
+  func upload(from localUri: URL, to remotePath: String) async -> Int64? {
     let fileRef = storageRef.child(remotePath)
     return await withCheckedContinuation { continuation in
-      _ = fileRef.putData(typedData) { metadata, error in
+      _ = fileRef.putFile(from: localUri) { metadata, error in
         guard let metadata else {
           print("E: Failed to upload file to \(remotePath). Error: "
                 + (error?.localizedDescription ?? ""))
