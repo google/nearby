@@ -59,7 +59,10 @@ lexan.cc_windows_dll(
         "//internal/platform/implementation/windows",
         "//third_party/dart_lang/v2:dart_api_dl",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/synchronization",
     ],
 )
@@ -67,20 +70,30 @@ lexan.cc_windows_dll(
 objc_library(
     name = "nearby_connections_objc",
     srcs = [
-        "core_adapter_dart.cc",
+        "nc_adapter_dart.cc",
+        "nearby_connections_client_state.cc",
     ],
     hdrs = [
-        "core_adapter_dart.h",
+        "nc_adapter_dart.h",
+        "nc_adapter_def.h",
+        "nc_adapter_types.h",
+        "nearby_connections_client_state.h",
     ],
     deps = [
-        "//connections:core",
-        "//connections:core_types",
-        "//connections/c",
+        "//connections/c:nc",
+        "//connections/c:nc_types",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
+        "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//third_party/dart_lang/v2:dart_api_dl",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
     ],
     alwayslink = 1,
 )

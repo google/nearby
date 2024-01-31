@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_DART_NC_ADAPTER_TYPES_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_DART_NC_ADAPTER_TYPES_H_
 
+#include <cstdint>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

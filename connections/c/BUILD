@@ -93,8 +93,8 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:types",
         "//proto:connections_enums_cc_proto",
-        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -132,6 +132,8 @@ cc_library(
         ":nc_types",
         "//connections:core",
         "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:types",
         "//proto:connections_enums_cc_proto",

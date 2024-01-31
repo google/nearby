@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/base/no_destructor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_api.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
@@ -171,7 +172,10 @@ void ListenerEndpointFoundCB(const char *endpoint_id,
                              const char *service_id) {
   NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id);
   NEARBY_LOG(INFO, "Device discovered: service_id=%s", service_id);
-  NEARBY_LOG(INFO, "Device discovered: info=%s", endpoint_info);
+
+  std::string endpoint_info_str = absl::BytesToHexString(
+      absl::string_view(endpoint_info.data, endpoint_info.size));
+  NEARBY_LOG(INFO, "Device discovered: info=%s", endpoint_info_str.c_str());
 
   Dart_CObject dart_object_endpoint_id;
   dart_object_endpoint_id.type = Dart_CObject_kString;
@@ -724,7 +728,8 @@ void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
       break;
     }
     case PAYLOAD_TYPE_FILE:
-      NEARBY_LOG(INFO, "File name: %s, size %d", payload_dart.data,
+      NEARBY_LOG(INFO, "File name: %s, size %d",
+                 std::string(payload_dart.data, payload_dart.size).c_str(),
                  payload_dart.size);
       std::string file_name_str(payload_dart.data);
 
