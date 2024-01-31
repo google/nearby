@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
@@ -29,12 +30,16 @@
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
+#include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex_lock.h"
+
+using ::nearby::api::ble_v2::BleAdvertisementData;
 
 namespace nearby {
 namespace connections {
@@ -98,8 +103,7 @@ void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
 }
 
 void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
-    BleV2Peripheral peripheral,
-    ::nearby::api::ble_v2::BleAdvertisementData advertisement_data,
+    BleV2Peripheral peripheral, BleAdvertisementData advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
   MutexLock lock(&mutex_);
 
@@ -116,6 +120,10 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     return;
   }
 
+  if (HandleOnLostAdvertisementLocked(peripheral, advertisement_data)) {
+    return;
+  }
+
   if (IsSkippableGattAdvertisement(advertisement_data)) {
     NEARBY_LOGS(INFO)
         << "Ignore GATT advertisement and wait for extended advertisement.";
@@ -125,6 +133,49 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
   HandleAdvertisement(peripheral, advertisement_data);
   HandleAdvertisementHeader(peripheral, advertisement_data,
                             std::move(advertisement_fetcher));
+}
+
+bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
+    BleV2Peripheral peripheral,
+    const BleAdvertisementData& advertisement_data) {
+  auto service_data =
+      advertisement_data.service_data.find(bleutils::kCopresenceServiceUuid);
+  if (service_data == advertisement_data.service_data.end()) {
+    return false;
+  }
+  absl::StatusOr<InstantOnLostAdvertisement> on_lost_advertisement =
+      InstantOnLostAdvertisement::CreateFromBytes(
+          service_data->second.AsStringView());
+  if (!on_lost_advertisement.ok()) {
+    return false;
+  }
+  NEARBY_LOGS(INFO) << __func__ << ": Found OnLost advertisement for hash:"
+                    << absl::BytesToHexString(on_lost_advertisement->GetHash());
+  for (const auto& it : gatt_advertisement_infos_) {
+    if (it.second.advertisement_header.GetAdvertisementHash().string_data() ==
+        on_lost_advertisement->GetHash()) {
+      auto discovery_cb_it = service_id_infos_.find(it.second.service_id);
+      if (discovery_cb_it == service_id_infos_.end()) {
+        NEARBY_LOGS(INFO)
+            << __func__
+            << ": Discarding OnLost advertisement for untracked service_id";
+        return false;
+      }
+      auto advertisements =
+          gatt_advertisements_[it.second.advertisement_header];
+      for (const auto& advertisement : advertisements) {
+        if (advertisement.IsValid()) {
+          discovery_cb_it->second.discovered_peripheral_callback
+              .peripheral_lost_cb(peripheral, it.second.service_id,
+                                  advertisement.GetData(), false);
+          NEARBY_LOGS(INFO) << __func__ << ": OnLost triggered for service_id "
+                            << it.second.service_id;
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {

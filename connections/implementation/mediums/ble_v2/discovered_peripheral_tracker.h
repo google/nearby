@@ -29,6 +29,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/lost_entity_tracker.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
@@ -242,6 +243,15 @@ class DiscoveredPeripheralTracker {
   // GATT advertisement by the input `advertisement_header` and 'mac_address`.
   void UpdateCommonStateForFoundBleAdvertisement(
       const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Processes on lost advertisements. Returns true when the advertisement:
+  // 1. Is an Instant On Lost BLE advertisement.
+  // 2. Matches a peripheral's advertisement hash that has previously been
+  // discovered.
+  bool HandleOnLostAdvertisementLocked(
+      BleV2Peripheral peripheral,
+      const ::nearby::api::ble_v2::BleAdvertisementData& advertisement_data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
