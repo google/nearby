@@ -41,7 +41,7 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
 #include "sharing/fake_nearby_connections_service.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_context.h"

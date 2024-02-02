@@ -38,7 +38,7 @@
 #include "sharing/advertisement.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"

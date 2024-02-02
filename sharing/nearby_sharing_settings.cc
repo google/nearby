@@ -39,7 +39,7 @@
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"

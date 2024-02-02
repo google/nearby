@@ -64,7 +64,7 @@
 #include "sharing/fast_initiation/fake_nearby_fast_initiation.h"
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
 #include "sharing/file_attachment.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/connectivity_manager.h"

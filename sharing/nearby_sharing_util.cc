@@ -33,7 +33,7 @@
 #include "sharing/advertisement.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"

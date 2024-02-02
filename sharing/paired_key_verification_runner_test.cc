@@ -38,7 +38,7 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/fake_nearby_connection.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/test/fake_context.h"

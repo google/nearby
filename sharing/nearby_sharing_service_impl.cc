@@ -65,7 +65,7 @@
 #include "sharing/fast_initiation/nearby_fast_initiation.h"
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
 #include "sharing/file_attachment.h"
-#include "sharing/flags/nearby_sharing_feature_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/incoming_share_target_info.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
