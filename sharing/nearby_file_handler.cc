@@ -15,8 +15,6 @@
 #include "sharing/nearby_file_handler.h"
 
 #include <stdint.h>
-#include <wrapper_internal_exception_macros.h>
-
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>

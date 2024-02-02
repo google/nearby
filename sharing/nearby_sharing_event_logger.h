@@ -34,7 +34,7 @@ class NearbySharingEventLogger : public nearby::analytics::EventLogger {
       std::unique_ptr<nearby::analytics::EventLogger> event_logger);
   ~NearbySharingEventLogger() override;
 
-  void Log(const proto2::MessageLite& message) override;
+  void Log(const ::google::protobuf::MessageLite& message) override;
 
  private:
   nearby::sharing::api::PreferenceManager& preference_manager_;

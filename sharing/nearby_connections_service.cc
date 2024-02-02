@@ -14,8 +14,6 @@
 
 #include "sharing/nearby_connections_service.h"
 
-#include <wrapper_internal_exception_macros.h>
-
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)

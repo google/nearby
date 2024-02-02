@@ -3064,7 +3064,7 @@ std::vector<Payload> NearbySharingServiceImpl::CreateWifiCredentialsPayloads(
   payloads.reserve(attachments.size());
   for (const WifiCredentialsAttachment& attachment : attachments) {
     nearby::sharing::service::proto::WifiCredentials wifi_credentials;
-    wifi_credentials.set_password(attachment.password());
+    wifi_credentials.set_password(std::string(attachment.password()));
     wifi_credentials.set_hidden_ssid(attachment.is_hidden());
 
     std::vector<uint8_t> bytes(wifi_credentials.ByteSizeLong());

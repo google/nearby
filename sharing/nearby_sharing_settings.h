@@ -36,6 +36,7 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/context.h"
+#include "sharing/internal/public/logging.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/settings_observer_data.pb.h"
 
@@ -135,7 +136,7 @@ class NearbyShareSettings
             }
             break;
           default:
-            LOG(QFATAL) << "Invalid tag: " << this->tag;
+            LOG(FATAL) << "Invalid tag: " << this->tag;
             break;
         }
         return result;

@@ -16,9 +16,7 @@
 #define THIRD_PARTY_NEARBY_SHARING_NEARBY_CONNECTIONS_TYPES_H_
 
 #include <stdint.h>
-#include <wrapper_internal_exception_macros.h>
 
-#include <exception>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <optional>

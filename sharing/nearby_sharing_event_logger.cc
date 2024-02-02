@@ -35,7 +35,7 @@ NearbySharingEventLogger::NearbySharingEventLogger(
 
 NearbySharingEventLogger::~NearbySharingEventLogger() = default;
 
-void NearbySharingEventLogger::Log(const proto2::MessageLite& message) {
+void NearbySharingEventLogger::Log(const ::google::protobuf::MessageLite& message) {
   if (event_logger_ == nullptr) {
     return;
   }
