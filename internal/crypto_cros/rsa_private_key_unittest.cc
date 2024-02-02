@@ -364,7 +364,7 @@ TEST(RSAPrivateKeyUnitTest, ShortIntegers) {
 
 TEST(RSAPrivateKeyUnitTest, CreateFromKeyTest) {
   std::unique_ptr<crypto::RSAPrivateKey> key_pair(
-      crypto::RSAPrivateKey::Create(512));
+      crypto::RSAPrivateKey::Create(2048));
   ASSERT_TRUE(key_pair.get());
 
   std::unique_ptr<crypto::RSAPrivateKey> key_copy(
