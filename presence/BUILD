@@ -19,6 +19,7 @@ cc_library(
     name = "presence",
     srcs = [
         "presence_client_impl.cc",
+        "presence_device_provider.cc",
         "presence_service_impl.cc",
     ],
     hdrs = [
@@ -30,13 +31,19 @@ cc_library(
     ],
     deps = [
         ":types",
+        "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
+        "//internal/platform:base",
         "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "//internal/proto:metadata_cc_proto",
         "//presence/implementation:internal",  # build_cleaner: keep
         "//presence/implementation/mediums",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -175,12 +182,18 @@ cc_test(
     deps = [
         ":presence",
         ":types",
+        "//internal/interop:authentication_transport_interface",
+        "//internal/interop:device",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//internal/proto:metadata_cc_proto",
+        "//presence/implementation:internal_test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@platforms//os:windows": [

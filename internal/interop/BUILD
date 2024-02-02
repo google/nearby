@@ -24,7 +24,6 @@ cc_library(
     deps = [
         ":authentication_transport_interface",
         "//internal/platform:connection_info",
-        "//internal/platform:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
     ],

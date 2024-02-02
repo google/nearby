@@ -22,6 +22,7 @@
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller_impl.h"
 #include "presence/presence_client_impl.h"
+#include "presence/presence_device_provider.h"
 
 namespace nearby {
 namespace presence {
@@ -29,8 +30,8 @@ namespace presence {
 PresenceServiceImpl::PresenceServiceImpl() {
   service_controller_ = std::make_unique<ServiceControllerImpl>(
       &executor_, &credential_manager_, &scan_manager_, &broadcast_manager_);
-  provider_ = std::make_unique<PresenceDeviceProvider>(
-      service_controller_->GetLocalDeviceMetadata());
+  provider_ =
+      std::make_unique<PresenceDeviceProvider>(service_controller_.get());
 }
 
 std::unique_ptr<PresenceClient> PresenceServiceImpl::CreatePresenceClient() {

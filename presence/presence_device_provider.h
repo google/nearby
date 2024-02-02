@@ -15,6 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_PROVIDER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_PROVIDER_H_
 
+#include <string>
+
+#include "absl/strings/string_view.h"
+#include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/presence_device.h"
@@ -22,18 +26,24 @@
 namespace nearby {
 namespace presence {
 
+class ServiceController;
+
 class PresenceDeviceProvider : public NearbyDeviceProvider {
  public:
-  explicit PresenceDeviceProvider(::nearby::internal::Metadata metadata)
-      : device_{metadata} {}
+  explicit PresenceDeviceProvider(ServiceController* service_controller);
 
   const NearbyDevice* GetLocalDevice() override { return &device_; }
+
+  // To authenticate as an initiator (when the device is in the scanning role),
+  // the PresenceDeviceProvider will block and:
+  // 1. Fetch the local credentials and select the correct one to use for
+  //    authentication.
+  // 2. Construct the frame and write to the |authentication_transport|.
+  // 3. Read the message from the remote device via |authentication_transport|.
+  // 4. Return the status of the authentication to the callers.
   AuthenticationStatus AuthenticateAsInitiator(
       const NearbyDevice& remote_device, absl::string_view shared_secret,
-      const AuthenticationTransport& authentication_transport) const override {
-    // TODO(b/282027237): Implement.
-    return AuthenticationStatus::kUnknown;
-  }
+      const AuthenticationTransport& authentication_transport) const override;
 
   AuthenticationStatus AuthenticateAsResponder(
       absl::string_view shared_secret,
@@ -55,6 +65,7 @@ class PresenceDeviceProvider : public NearbyDeviceProvider {
   }
 
  private:
+  ServiceController& service_controller_;
   PresenceDevice device_;
   std::string manager_app_id_;
 };

@@ -16,8 +16,11 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MOCK_SERVICE_CONTROLLER_H_
 
 #include <memory>
+#include <vector>
 
 #include "gmock/gmock.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "presence/implementation/service_controller.h"
 
 namespace nearby {
@@ -33,11 +36,35 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(absl::StatusOr<ScanSessionId>, StartScan,
               (ScanRequest scan_request, ScanCallback callback), (override));
+  MOCK_METHOD(void, StopScan, (ScanSessionId session_id), (override));
   MOCK_METHOD(absl::StatusOr<BroadcastSessionId>, StartBroadcast,
               (BroadcastRequest broadcast_request, BroadcastCallback callback),
               (override));
-
- private:
+  MOCK_METHOD(void, StopBroadcast, (BroadcastSessionId session_id), (override));
+  MOCK_METHOD(
+      void, UpdateLocalDeviceMetadata,
+      (const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+       absl::string_view manager_app_id,
+       const std::vector<nearby::internal::IdentityType>& identity_types,
+       int credential_life_cycle_days, int contiguous_copy_of_credentials,
+       GenerateCredentialsResultCallback credentials_generated_cb),
+      (override));
+  MOCK_METHOD(::nearby::internal::Metadata, GetLocalDeviceMetadata, (),
+              (override));
+  MOCK_METHOD(void, GetLocalPublicCredentials,
+              (const CredentialSelector& credential_selector,
+               GetPublicCredentialsResultCallback callback),
+              (override));
+  MOCK_METHOD(void, UpdateRemotePublicCredentials,
+              (absl::string_view manager_app_id, absl::string_view account_name,
+               const std::vector<nearby::internal::SharedCredential>&
+                   remote_public_creds,
+               UpdateRemotePublicCredentialsCallback credentials_updated_cb),
+              (override));
+  MOCK_METHOD(void, GetLocalCredentials,
+              (const CredentialSelector& credential_selector,
+               GetLocalCredentialsResultCallback callback),
+              (override));
 };
 
 }  // namespace presence
