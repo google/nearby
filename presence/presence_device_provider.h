@@ -18,9 +18,13 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/interop/authentication_transport.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
+#include "internal/platform/future.h"
+#include "internal/proto/local_credential.pb.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/implementation/connection_authenticator.h"
 #include "presence/presence_device.h"
 
 namespace nearby {
@@ -65,10 +69,18 @@ class PresenceDeviceProvider : public NearbyDeviceProvider {
   }
 
  private:
+  bool WriteToRemoteDevice(
+      const NearbyDevice* remote_device, absl::string_view shared_secret,
+      const AuthenticationTransport& authentication_transport,
+      const internal::LocalCredential& local_credential,
+      Future<AuthenticationStatus>& response) const;
+
   ServiceController& service_controller_;
   PresenceDevice device_;
   std::string manager_app_id_;
+  ConnectionAuthenticator connection_authenticator_;
 };
+
 }  // namespace presence
 }  // namespace nearby
 

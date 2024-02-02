@@ -16,6 +16,7 @@
 
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -28,12 +29,17 @@
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "presence/implementation/connection_authenticator.h"
 #include "presence/implementation/service_controller.h"
+#include "presence/presence_device.h"
+#include "presence/proto/presence_frame.pb.h"
 
 namespace nearby {
 namespace presence {
 
 namespace {
+
+constexpr int kPresenceVersion = 1;
 
 // TODO(b/317215548): Use Status code rather than custom defined
 // authentication status.
@@ -59,6 +65,33 @@ std::optional<internal::LocalCredential> GetValidCredential(
     }
   }
   return std::nullopt;
+}
+
+PresenceAuthenticationFrame BuildInitiatorPresenceAuthenticationFrame(
+    ConnectionAuthenticator::InitiatorData initiator_data_variant) {
+  // It is expected that the `PresenceAuthenticationFrame` built for the
+  // initator role always is `TwoWayInitiatorData`, since the local device is
+  // always expected to have a valid local credential to be used, and this is
+  // verified in AuthenticateAsInitiator(), which returns failure if no valid
+  // local credential is found (which is expected to not happen, since valid
+  // credentials will be generated if needed before the authentiation is
+  // called).
+  //
+  // Note: std::holds_alternative and std::get cannot be used here because
+  // they are not supported in Chromium.
+  DCHECK(std::holds_alternative<ConnectionAuthenticator::TwoWayInitiatorData>(
+      initiator_data_variant));
+  auto two_way_initiator_data =
+      std::get<ConnectionAuthenticator::TwoWayInitiatorData>(
+          initiator_data_variant);
+
+  PresenceAuthenticationFrame authentication_frame;
+  authentication_frame.set_version(kPresenceVersion);
+  authentication_frame.set_private_key_signature(
+      two_way_initiator_data.private_key_signature);
+  authentication_frame.set_shared_credential_id_hash(
+      two_way_initiator_data.shared_credential_hash);
+  return authentication_frame;
 }
 
 }  // namespace
@@ -87,33 +120,45 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
                                    device_.GetMetadata().account_name(),
                                .identity_type = ::nearby::internal::
                                    IdentityType::IDENTITY_TYPE_PRIVATE},
-      /*callback=*/{
-          .credentials_fetched_cb = [&response](auto status_or_credentials) {
-            if (!status_or_credentials.ok()) {
-              NEARBY_LOGS(INFO)
-                  << __func__ << ": failure to fetch local credentials";
-              response.Set(AuthenticationStatus::kFailure);
-              return;
-            }
+      /*callback=*/{.credentials_fetched_cb = [this, &response, &remote_device,
+                                               &authentication_transport,
+                                               &shared_secret](
+                                                  auto status_or_credentials) {
+        if (!status_or_credentials.ok()) {
+          NEARBY_LOGS(INFO)
+              << __func__ << ": failure to fetch local credentials";
+          response.Set(AuthenticationStatus::kFailure);
+          return;
+        }
 
-            auto credential = GetValidCredential(status_or_credentials.value());
-            if (!credential.has_value()) {
-              NEARBY_LOGS(INFO)
-                  << __func__ << ": failure to find a valid local credential";
-              response.Set(AuthenticationStatus::kFailure);
-              return;
-            }
+        auto credential = GetValidCredential(status_or_credentials.value());
+        if (!credential.has_value()) {
+          NEARBY_LOGS(INFO)
+              << __func__ << ": failure to find a valid local credential";
+          response.Set(AuthenticationStatus::kFailure);
+          return;
+        }
 
-            // TODO(b/282027237): Continue with the following steps, which will
-            // be done in follow up CL's.
-            // 2. Construct the frame and write to the
-            // |authentication_transport|.
-            // 3. Read the message from the remote device via
-            // |authentication_transport|.
-            // 4. Return the status of the authentication to the callers.
-            // For now, return success on the Future.
-            response.Set(AuthenticationStatus::kSuccess);
-          }});
+        // 2. Construct the frame and write to the
+        // |authentication_transport|.
+        if (!WriteToRemoteDevice(
+                /*remote_device=*/&remote_device,
+                /*shared_secret=*/shared_secret,
+                /*authentication_transport=*/authentication_transport,
+                /*local_credential=*/credential.value(),
+                /*response=*/response)) {
+          response.Set(AuthenticationStatus::kFailure);
+          return;
+        }
+
+        // TODO(b/282027237): Continue with the following steps, which will
+        // be done in follow up CL's.
+        // 3. Read the message from the remote device via
+        // |authentication_transport|.
+        // 4. Return the status of the authentication to the callers.
+        // For now, return success on the Future.
+        response.Set(AuthenticationStatus::kSuccess);
+      }});
 
   NEARBY_LOGS(INFO) << __func__ << ": Waiting for future to complete";
   ExceptionOr<AuthenticationStatus> result = response.Get();
@@ -122,6 +167,45 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
   NEARBY_LOGS(INFO) << "Future:[" << __func__ << "] completed with status:"
                     << AuthenticationErrorToString(result.result());
   return result.result();
+}
+
+bool PresenceDeviceProvider::WriteToRemoteDevice(
+    const NearbyDevice* remote_device, absl::string_view shared_secret,
+    const AuthenticationTransport& authentication_transport,
+    const internal::LocalCredential& local_credential,
+    Future<AuthenticationStatus>& response) const {
+  // Cast the |remote_device| to a `PresenceDevice` in order to retrieve
+  // it's shared credentials, which is safe to do since the |remote_device|
+  // passed to the `PresenceDeviceProvider` will always be a `PresenceDevice`.
+  const PresenceDevice* remote_presence_device =
+      static_cast<const PresenceDevice*>(remote_device);
+  auto shared_credential = remote_presence_device->GetDecryptSharedCredential();
+  if (!shared_credential.has_value()) {
+    NEARBY_LOGS(INFO)
+        << __func__
+        << ": failure due to no decrypt shared credential from remote device";
+    return false;
+  }
+
+  auto status_or_initiator_data =
+      connection_authenticator_.BuildSignedMessageAsInitiator(
+          /*ukey2_secret=*/shared_secret, /*local_credential=*/local_credential,
+          /*shared_credential=*/shared_credential.value());
+  // TODO(b/317219088): Add test covereage for when
+  // `ConnectionAuthenticator::BuildSignedMessageAsInitiator()` fails.
+  if (!status_or_initiator_data.ok()) {
+    NEARBY_LOGS(INFO) << __func__
+                      << ": failure to build signed message as initiator";
+    return false;
+  }
+
+  // Once the initiator data has been built, construct the Presence frame
+  // which will be written to the device with the built data.
+  authentication_transport.WriteMessage(
+      BuildInitiatorPresenceAuthenticationFrame(
+          status_or_initiator_data.value())
+          .SerializeAsString());
+  return true;
 }
 
 }  // namespace presence
