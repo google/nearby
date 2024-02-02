@@ -15,11 +15,11 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_PUBLIC_CERTIFICATE_DB_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_PUBLIC_CERTIFICATE_DB_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/public_certificate_database.h"
@@ -29,7 +29,8 @@ namespace nearby {
 class FakePublicCertificateDb
     : public nearby::sharing::api::PublicCertificateDatabase {
  public:
-  FakePublicCertificateDb() = default;
+  explicit FakePublicCertificateDb(
+    std::map<std::string, nearby::sharing::proto::PublicCertificate> entries);
   ~FakePublicCertificateDb() override = default;
 
   void Initialize(
@@ -49,14 +50,32 @@ class FakePublicCertificateDb
       absl::AnyInvocable<void(bool) &&> callback) override;
   void Destroy(absl::AnyInvocable<void(bool) &&> callback) override;
 
-  absl::flat_hash_map<std::string, nearby::sharing::proto::PublicCertificate>
+  std::map<std::string, nearby::sharing::proto::PublicCertificate>
   GetCertificatesMap() {
     return entries_;
   }
 
+  // Invoke callbacks
+  void InvokeInitStatusCallback(
+      nearby::sharing::api::PublicCertificateDatabase::InitStatus init_status);
+  void InvokeLoadCallback(bool success);
+  void InvokeAddCallback(bool success);
+  void InvokeRemoveCallback(bool success);
+  void InvokeDestroyCallback(bool success);
+
  private:
-  absl::flat_hash_map<std::string, nearby::sharing::proto::PublicCertificate>
+  std::map<std::string, nearby::sharing::proto::PublicCertificate>
       entries_;
+  absl::AnyInvocable<
+          void(nearby::sharing::api::PublicCertificateDatabase::InitStatus) &&>
+          init_status_callback_;
+  absl::AnyInvocable<
+          void(bool, std::unique_ptr<std::vector<
+                         nearby::sharing::proto::PublicCertificate>>) &&>
+          load_callback_;
+  absl::AnyInvocable<void(bool) &&> add_callback_;
+  absl::AnyInvocable<void(bool) &&> remove_callback_;
+  absl::AnyInvocable<void(bool) &&> destroy_callback_;
 };
 
 }  // namespace nearby

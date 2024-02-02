@@ -14,12 +14,12 @@
 
 #include "sharing/internal/test/fake_public_certificate_db.h"
 
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/public_certificate_database.h"
@@ -29,36 +29,33 @@ namespace nearby {
 
 using ::nearby::sharing::proto::PublicCertificate;
 
+FakePublicCertificateDb::FakePublicCertificateDb(
+    std::map<std::string, PublicCertificate> entries)
+    : entries_(std::move(entries)) {}
+
 void FakePublicCertificateDb::Initialize(
     absl::AnyInvocable<void(PublicCertificateDatabase::InitStatus) &&>
         callback) {
-  std::move(callback)(PublicCertificateDatabase::InitStatus::kOk);
+  init_status_callback_ = std::move(callback);
 }
 
 void FakePublicCertificateDb::LoadEntries(
     absl::AnyInvocable<void(bool,
                             std::unique_ptr<std::vector<PublicCertificate>>) &&>
         callback) {
-  auto result = std::make_unique<std::vector<PublicCertificate>>();
-  auto it = entries_.begin();
-  while (it != entries_.end()) {
-    result->push_back(it->second);
-    ++it;
-  }
-
-  std::move(callback)(true, std::move(result));
+  load_callback_ = std::move(callback);
 }
 
 void FakePublicCertificateDb::AddCertificates(
     absl::Span<const PublicCertificate> certificates,
     absl::AnyInvocable<void(bool) &&> callback) {
   for (const auto& cert : certificates) {
-    if (entries_.contains(cert.secret_id())) {
+    if (entries_.find(cert.secret_id()) != entries_.end()) {
       entries_.erase(cert.secret_id());
     }
     entries_.emplace(cert.secret_id(), cert);
   }
-  std::move(callback)(true);
+  add_callback_ = std::move(callback);
 }
 
 void FakePublicCertificateDb::RemoveCertificatesById(
@@ -69,13 +66,41 @@ void FakePublicCertificateDb::RemoveCertificatesById(
     entries_.erase(*it);
     ++it;
   }
-  std::move(callback)(true);
+  remove_callback_ = std::move(callback);
 }
 
 void FakePublicCertificateDb::Destroy(
     absl::AnyInvocable<void(bool) &&> callback) {
   entries_.clear();
-  std::move(callback)(true);
+  destroy_callback_ = std::move(callback);
 }
+
+void FakePublicCertificateDb::InvokeInitStatusCallback(
+    PublicCertificateDatabase::InitStatus init_status) {
+  std::move(init_status_callback_)(init_status);
+}
+
+void FakePublicCertificateDb::InvokeLoadCallback(bool success) {
+  auto result = std::make_unique<std::vector<PublicCertificate>>();
+  auto it = entries_.begin();
+  while (it != entries_.end()) {
+    result->push_back(it->second);
+    ++it;
+  }
+  std::move(load_callback_)(success, std::move(result));
+}
+
+void FakePublicCertificateDb::InvokeAddCallback(bool success) {
+  std::move(add_callback_)(success);
+}
+
+void FakePublicCertificateDb::InvokeRemoveCallback(bool success) {
+  std::move(remove_callback_)(success);
+}
+
+void FakePublicCertificateDb::InvokeDestroyCallback(bool success) {
+  std::move(destroy_callback_)(success);
+}
+
 
 }  // namespace nearby

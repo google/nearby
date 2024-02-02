@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -28,9 +29,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
@@ -166,7 +165,7 @@ class NearbyShareCertificateStorageImplTest : public ::testing::Test {
         prefs::kNearbySharingPrivateCertificateListName);
   }
 
-  void PrepopulatePublicCertificates(nearby::FakePublicCertificateDb* db) {
+  std::map<std::string, PublicCertificate> PrepopulatePublicCertificates() {
     std::vector<PublicCertificate> pub_certs;
     pub_certs.emplace_back(CreatePublicCertificate(
         kSecretId1, kSecretKey1, kPublicKey1, kStartSeconds1, kStartNanos1,
@@ -183,16 +182,18 @@ class NearbyShareCertificateStorageImplTest : public ::testing::Test {
         kEndSeconds3, kEndNanos3, kForSelectedContacts3,
         kMetadataEncryptionKey3, kEncryptedMetadataBytes3,
         kMetadataEncryptionKeyTag3));
-    db->AddCertificates(pub_certs, [](bool) {});
+    std::map<std::string, PublicCertificate> entries;
     std::vector<std::pair<std::string, int64_t>> expirations;
     for (const auto& cert : pub_certs) {
       expirations.emplace_back(
           EncodeString(cert.secret_id()),
           absl::ToUnixNanos(TimestampToTime(cert.end_time())));
+      entries.emplace(cert.secret_id(), std::move(cert));
     }
     preference_manager_.SetCertificateExpirationArray(
         prefs::kNearbySharingPublicCertificateExpirationDictName,
         expirations);
+    return entries;
   }
 
   void CaptureBoolCallback(bool* dest, bool src) { *dest = src; }
@@ -383,12 +384,12 @@ TEST_F(NearbyShareCertificateStorageImplTest, DeferredCallbackQueue) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificateIds) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
-
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   auto ids = cert_store->GetPublicCertificateIds();
   ASSERT_EQ(ids.size(), 3u);
@@ -399,12 +400,13 @@ TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificateIds) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::vector<PublicCertificate> public_certificates;
   cert_store->GetPublicCertificates([this, &public_certificates, complete = [] {
@@ -412,6 +414,7 @@ TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificates) {
     PublicCertificateCallback(&public_certificates, std::move(complete),
                               success, std::move(result));
   });
+  fake_db->InvokeLoadCallback(true);
 
   ASSERT_EQ(3u, public_certificates.size());
   for (const PublicCertificate& cert : public_certificates) {
@@ -426,9 +429,9 @@ TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificates) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, ReplacePublicCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
   std::vector<PublicCertificate> new_certs = {
       CreatePublicCertificate(kSecretId4, kSecretKey4, kPublicKey4,
                               kStartSeconds4, kStartNanos4, kEndSeconds4,
@@ -438,12 +441,15 @@ TEST_F(NearbyShareCertificateStorageImplTest, ReplacePublicCertificates) {
   };
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   bool succeeded = false;
   cert_store->ReplacePublicCertificates(
       new_certs, [this, &succeeded](bool success) {
         CaptureBoolCallback(&succeeded, success);
       });
+  fake_db->InvokeDestroyCallback(true);
+  fake_db->InvokeAddCallback(true);
 
   ASSERT_TRUE(succeeded);
   auto cert_map = fake_db->GetCertificatesMap();
@@ -464,9 +470,9 @@ TEST_F(NearbyShareCertificateStorageImplTest, ReplacePublicCertificates) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, AddPublicCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
   std::vector<PublicCertificate> new_certs = {
       CreatePublicCertificate(kSecretId3, kSecretKey2, kPublicKey2,
                               kStartSeconds2, kStartNanos2, kEndSeconds2,
@@ -482,12 +488,14 @@ TEST_F(NearbyShareCertificateStorageImplTest, AddPublicCertificates) {
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   bool succeeded = false;
   cert_store->AddPublicCertificates(new_certs,
                                     [this, &succeeded](bool success) {
                                       CaptureBoolCallback(&succeeded, success);
                                     });
+  fake_db->InvokeAddCallback(true);
 
   ASSERT_TRUE(succeeded);
   auto cert_map = fake_db->GetCertificatesMap();
@@ -520,17 +528,19 @@ TEST_F(NearbyShareCertificateStorageImplTest, AddPublicCertificates) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, ClearPublicCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   bool succeeded = false;
   cert_store->ClearPublicCertificates([this, &succeeded](bool success) {
     CaptureBoolCallback(&succeeded, success);
   });
+  fake_db->InvokeDestroyCallback(true);
 
   ASSERT_TRUE(succeeded);
   ASSERT_EQ(0u, fake_db->GetCertificatesMap().size());
@@ -539,12 +549,13 @@ TEST_F(NearbyShareCertificateStorageImplTest, ClearPublicCertificates) {
 
 TEST_F(NearbyShareCertificateStorageImplTest,
        RemoveExpiredPrivateCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::vector<NearbySharePrivateCertificate> certs = CreatePrivateCertificates(
       3, DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
@@ -571,12 +582,13 @@ TEST_F(NearbyShareCertificateStorageImplTest,
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, RemoveExpiredPublicCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::vector<absl::Time> expiration_times;
   for (const auto& pair : fake_db->GetCertificatesMap()) {
@@ -595,6 +607,7 @@ TEST_F(NearbyShareCertificateStorageImplTest, RemoveExpiredPublicCertificates) {
       now, [this, &succeeded](bool success) {
         CaptureBoolCallback(&succeeded, success);
       });
+  fake_db->InvokeRemoveCallback(true);
 
   ASSERT_TRUE(succeeded);
   auto cert_map = fake_db->GetCertificatesMap();
@@ -607,12 +620,13 @@ TEST_F(NearbyShareCertificateStorageImplTest, RemoveExpiredPublicCertificates) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, ReplaceGetPrivateCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   auto certs_before = CreatePrivateCertificates(
       3, DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
@@ -641,12 +655,13 @@ TEST_F(NearbyShareCertificateStorageImplTest, ReplaceGetPrivateCertificates) {
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, UpdatePrivateCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::vector<NearbySharePrivateCertificate> initial_certs =
       CreatePrivateCertificates(
@@ -676,12 +691,13 @@ TEST_F(NearbyShareCertificateStorageImplTest, UpdatePrivateCertificates) {
 
 TEST_F(NearbyShareCertificateStorageImplTest,
        NextPrivateCertificateExpirationTime) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   auto certs = CreatePrivateCertificates(
       3, DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
@@ -701,12 +717,13 @@ TEST_F(NearbyShareCertificateStorageImplTest,
 
 TEST_F(NearbyShareCertificateStorageImplTest,
        NextPublicCertificateExpirationTime) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::optional<absl::Time> next_expiration =
       cert_store->NextPublicCertificateExpirationTime();
@@ -723,12 +740,13 @@ TEST_F(NearbyShareCertificateStorageImplTest,
 }
 
 TEST_F(NearbyShareCertificateStorageImplTest, ClearPrivateCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::vector<NearbySharePrivateCertificate> certs_before =
       CreatePrivateCertificates(
@@ -744,12 +762,13 @@ TEST_F(NearbyShareCertificateStorageImplTest, ClearPrivateCertificates) {
 
 TEST_F(NearbyShareCertificateStorageImplTest,
        ClearPrivateCertificatesOfVisibility) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>();
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
   nearby::FakePublicCertificateDb* fake_db = db.get();
-  PrepopulatePublicCertificates(fake_db);
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
 
   std::vector<NearbySharePrivateCertificate> certs_all_contacts =
       CreatePrivateCertificates(
