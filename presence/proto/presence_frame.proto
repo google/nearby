@@ -4,6 +4,7 @@ package nearby.presence;
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
 
+option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.android.gms.nearby.presence";
 option java_outer_classname = "PresenceFrameProtocol";
 
