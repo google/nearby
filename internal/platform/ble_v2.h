@@ -398,8 +398,6 @@ class BleV2Medium final {
 
   // Returns true once the BLE scan has been initiated.
   // This interface will be deprecated soon.
-  // TODO(b/271305977) remove this function.
-  // Use 'unique_ptr<ScanningSession> StartScanningTmp' instead.
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
                      ScanCallback callback);
@@ -408,13 +406,6 @@ class BleV2Medium final {
   bool StopScanning();
 
   std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> StartScanning(
-      const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BleMedium::ScanningCallback callback);
-
-  // Temp interface for windows client to use before windows has native impl
-  // for 'unique_ptr<AdvertisingSession> StartScanning'.
-  // TODO(b/271305977) remove this function.
-  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> StartScanningTmp(
       const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback callback);
 

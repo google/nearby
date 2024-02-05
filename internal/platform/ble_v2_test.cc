@@ -434,56 +434,6 @@ TEST_F(BleV2MediumTest, CanStartAsyncScanningAndAdvertising) {
   env_.Stop();
 }
 
-TEST_F(BleV2MediumTest, CanStartAsyncScanningAndAdvertisingWithTmpImpl) {
-  env_.Start();
-  BluetoothAdapter adapter_a;
-  BluetoothAdapter adapter_b;
-  BleV2Medium ble_a(adapter_a);
-  BleV2Medium ble_b(adapter_b);
-  Uuid service_uuid(1234, 5678);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
-  CountDownLatch found_latch(1);
-
-  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session =
-      ble_a.StartScanningTmp(
-          service_uuid, kTxPowerLevel,
-          api::ble_v2::BleMedium::ScanningCallback{
-              .advertisement_found_cb =
-                  [&](api::ble_v2::BlePeripheral& peripheral,
-                      BleAdvertisementData advertisement_data) -> void {
-                found_latch.CountDown();
-              },
-          });
-
-  // Succeed to start regular advertisement.
-  BleAdvertisementData advertising_data;
-  advertising_data.is_extended_advertisement = false;
-  advertising_data.service_data = {{service_uuid, advertisement_header_bytes}};
-  std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> adv_session =
-      ble_b.StartAdvertisingTmp(
-          advertising_data,
-          {.tx_power_level = kTxPowerLevel, .is_connectable = true},
-          {.start_advertising_result = [](absl::Status) {}});
-  EXPECT_NE(adv_session, nullptr);
-
-  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
-  EXPECT_TRUE(
-      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_OK(scanning_session->stop_scanning());
-
-  EXPECT_OK(adv_session->stop_advertising());
-  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
-  EXPECT_FALSE(
-      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
-  env_.UnregisterBleV2Medium(*ble_a.GetImpl());
-  env_.UnregisterBleV2Medium(*ble_b.GetImpl());
-  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_a.GetImpl()), absl::nullopt);
-  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_b.GetImpl()), absl::nullopt);
-  env_.Stop();
-}
-
 TEST_F(BleV2MediumTest, CanStartGattServer) {
   env_.Start();
   BluetoothAdapter adapter;
