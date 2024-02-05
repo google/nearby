@@ -375,21 +375,13 @@ class BleV2Medium final {
   // Returns true once the BLE advertising has been initiated.
   // This interface will be deprecated soon.
   // TODO(b/271305977) remove this function.
-  // Use 'unique_ptr<AdvertisingSession> StartAdvertisingTmp' instead.
+  // Use 'unique_ptr<AdvertisingSession> StartAdvertising' instead.
   bool StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertise_parameters);
   // This interface will be deprecated soon.
   // TODO(b/271305977) remove this function.
   bool StopAdvertising();
-
-  // Temp interface for windows client to use before windows has native impl
-  // for 'unique_ptr<AdvertisingSession> StartAdvertising'.
-  // TODO(b/271305977) remove this function.
-  std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
-  StartAdvertisingTmp(const api::ble_v2::BleAdvertisementData& advertising_data,
-                      api::ble_v2::AdvertiseParameters advertise_set_parameters,
-                      api::ble_v2::BleMedium::AdvertisingCallback callback);
 
   std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,

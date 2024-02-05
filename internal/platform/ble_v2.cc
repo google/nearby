@@ -44,26 +44,6 @@ bool BleV2Medium::StartAdvertising(
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
 
 std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
-BleV2Medium::StartAdvertisingTmp(
-    const api::ble_v2::BleAdvertisementData& advertising_data,
-    api::ble_v2::AdvertiseParameters advertise_set_parameters,
-    api::ble_v2::BleMedium::AdvertisingCallback callback) {
-  if (impl_->StartAdvertising(advertising_data, advertise_set_parameters)) {
-    callback.start_advertising_result(absl::OkStatus());
-  } else {
-    callback.start_advertising_result(
-        absl::InternalError("Failed to start advertising"));
-    return nullptr;
-  }
-  return std::make_unique<api::ble_v2::BleMedium::AdvertisingSession>(
-      api::ble_v2::BleMedium::AdvertisingSession{.stop_advertising = [this] {
-        return impl_->StopAdvertising()
-                   ? absl::OkStatus()
-                   : absl::InternalError("Failed to stop advertising");
-      }});
-}
-
-std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
 BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertise_set_parameters,
