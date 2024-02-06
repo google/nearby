@@ -16,10 +16,9 @@
 
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
-#include "absl/log/check.h"
+#include "absl/types/variant.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/interop/authentication_transport.h"
@@ -79,10 +78,10 @@ PresenceAuthenticationFrame BuildInitiatorPresenceAuthenticationFrame(
   //
   // Note: std::holds_alternative and std::get cannot be used here because
   // they are not supported in Chromium.
-  DCHECK(std::holds_alternative<ConnectionAuthenticator::TwoWayInitiatorData>(
+  DCHECK(absl::holds_alternative<ConnectionAuthenticator::TwoWayInitiatorData>(
       initiator_data_variant));
   auto two_way_initiator_data =
-      std::get<ConnectionAuthenticator::TwoWayInitiatorData>(
+      absl::get<ConnectionAuthenticator::TwoWayInitiatorData>(
           initiator_data_variant);
 
   PresenceAuthenticationFrame authentication_frame;
