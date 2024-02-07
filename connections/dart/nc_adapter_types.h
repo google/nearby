@@ -49,6 +49,13 @@ struct MediumsDart {
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/mediums.dart)
 };
 
+struct DataDart {
+  // LINT.IfChange
+  int64_t size;
+  char *data;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/data.dart)
+};
+
 struct AdvertisingOptionsDart {
   // LINT.IfChange
   StrategyDart strategy;
@@ -58,12 +65,12 @@ struct AdvertisingOptionsDart {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
-  const char *fast_advertisement_service_uuid;
+  DataDart fast_advertisement_service_uuid;
 
   // The information about this device (eg. name, device type),
   // to appear on the remote device.
   // Defined by client/application.
-  const char *device_info;
+  DataDart device_info;
 
   MediumsDart mediums;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/advertising_options.dart)
@@ -80,8 +87,8 @@ struct ConnectionOptionsDart {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
-  char *remote_bluetooth_mac_address;
-  char *fast_advertisement_service_uuid;
+  DataDart remote_bluetooth_mac_address;
+  DataDart fast_advertisement_service_uuid;
   int64_t keep_alive_interval_millis;
   int64_t keep_alive_timeout_millis;
 
@@ -97,8 +104,8 @@ struct DiscoveryOptionsDart {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
-  const char *fast_advertisement_service_uuid;
-  const char *remote_bluetooth_mac_address;
+  DataDart fast_advertisement_service_uuid;
+  DataDart remote_bluetooth_mac_address;
 
   MediumsDart mediums;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/discovery_options.dart)
@@ -133,8 +140,7 @@ struct ConnectionListenerDart {
 
 struct ConnectionRequestInfoDart {
   // LINT.IfChange
-  int endpoint_info_size;
-  char *endpoint_info;
+  DataDart endpoint_info;
   ConnectionListenerDart connection_listener;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/connection_request_info.dart)
 };
@@ -144,7 +150,7 @@ struct PayloadDart {
   int64_t id;
   PayloadTypeDart type;
   int64_t size;
-  char *data;
+  DataDart data;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/payload.dart)
 };
 

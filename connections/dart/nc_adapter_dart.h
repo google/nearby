@@ -29,29 +29,31 @@ extern "C" {
 static void ResultCB(NC_STATUS status);
 
 static void ListenerInitiatedCB(
-    const char *endpoint_id,
+    NC_INSTANCE instance, int endpoint_id,
     const NC_CONNECTION_RESPONSE_INFO &connection_response_info);
-static void ListenerAcceptedCB(const char *endpoint_id);
-static void ListenerRejectedCB(const char *endpoint_id, NC_STATUS status);
-static void ListenerDisconnectedCB(const char *endpoint_id);
-static void ListenerBandwidthChangedCB(const char *endpoint_id,
+static void ListenerAcceptedCB(NC_INSTANCE instance, int endpoint_id);
+static void ListenerRejectedCB(NC_INSTANCE instance, int endpoint_id,
+                               NC_STATUS status);
+static void ListenerDisconnectedCB(NC_INSTANCE instance, int endpoint_id);
+static void ListenerBandwidthChangedCB(NC_INSTANCE instance, int endpoint_id,
                                        NC_MEDIUM medium);
-static void ListenerEndpointFoundCB(const char *endpoint_id,
+static void ListenerEndpointFoundCB(NC_INSTANCE instance, int endpoint_id,
                                     const NC_DATA &endpoint_info,
-                                    const char *service_id);
-static void ListenerEndpointLostCB(const char *endpoint_id);
-static void ListenerEndpointDistanceChangedCB(const char *endpoint_id,
+                                    const NC_DATA &service_id);
+static void ListenerEndpointLostCB(NC_INSTANCE instance, int endpoint_id);
+static void ListenerEndpointDistanceChangedCB(NC_INSTANCE instance,
+                                              int endpoint_id,
                                               NC_DISTANCE_INFO distance_info);
-static void ListenerPayloadCB(const char *endpoint_id,
+static void ListenerPayloadCB(NC_INSTANCE instance, int endpoint_id,
                               const NC_PAYLOAD &payload);
 static void ListenerPayloadProgressCB(
-    const char *endpoint_id,
+    NC_INSTANCE instance, int endpoint_id,
     const NC_PAYLOAD_PROGRESS_INFO &payload_progress_info);
 
-DART_API NC_INSTANCE OpenServiceDart();
+DART_API NC_INSTANCE CreateServiceDart();
 DART_API void CloseServiceDart(NC_INSTANCE instance);
 
-DART_API char *GetLocalEndpointIdDart(NC_INSTANCE instance);
+DART_API int GetLocalEndpointIdDart(NC_INSTANCE instance);
 
 DART_API void EnableBleV2Dart(NC_INSTANCE instance, int64_t enable,
                               Dart_Port result_cb);
@@ -71,7 +73,7 @@ DART_API void EnableBleV2Dart(NC_INSTANCE instance, int64_t enable,
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DART_API void StartAdvertisingDart(NC_INSTANCE instance, const char *service_id,
+DART_API void StartAdvertisingDart(NC_INSTANCE instance, DataDart service_id,
                                    AdvertisingOptionsDart options_dart,
                                    ConnectionRequestInfoDart info_dart,
                                    Dart_Port result_cb);
@@ -99,7 +101,7 @@ DART_API void StopAdvertisingDart(NC_INSTANCE instance, Dart_Port result_cb);
 //         discovering the specified service.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DART_API void StartDiscoveryDart(NC_INSTANCE instance, const char *service_id,
+DART_API void StartDiscoveryDart(NC_INSTANCE instance, DataDart service_id,
                                  DiscoveryOptionsDart options_dart,
                                  DiscoveryListenerDart listener_dart,
                                  Dart_Port result_cb);
@@ -134,8 +136,7 @@ DART_API void StopDiscoveryDart(NC_INSTANCE instance, Dart_Port result_cb);
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DART_API void RequestConnectionDart(NC_INSTANCE instance,
-                                    const char *endpoint_id,
+DART_API void RequestConnectionDart(NC_INSTANCE instance, int endpoint_id,
                                     ConnectionOptionsDart options_dart,
                                     ConnectionRequestInfoDart info_dart,
                                     Dart_Port result_cb);
@@ -152,13 +153,11 @@ DART_API void RequestConnectionDart(NC_INSTANCE instance,
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DART_API void AcceptConnectionDart(NC_INSTANCE instance,
-                                   const char *endpoint_id,
+DART_API void AcceptConnectionDart(NC_INSTANCE instance, int endpoint_id,
                                    PayloadListenerDart listener_dart,
                                    Dart_Port result_cb);
 
-DART_API void RejectConnectionDart(NC_INSTANCE instance,
-                                   const char *endpoint_id,
+DART_API void RejectConnectionDart(NC_INSTANCE instance, int endpoint_id,
                                    Dart_Port result_cb);
 
 // Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
@@ -167,8 +166,7 @@ DART_API void RejectConnectionDart(NC_INSTANCE instance,
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DART_API void DisconnectFromEndpointDart(NC_INSTANCE instance,
-                                         char *endpoint_id,
+DART_API void DisconnectFromEndpointDart(NC_INSTANCE instance, int endpoint_id,
                                          Dart_Port result_cb);
 
 // Sends a Payload to a remote endpoint. Payloads can only be sent to remote
@@ -190,7 +188,7 @@ DART_API void DisconnectFromEndpointDart(NC_INSTANCE instance,
 //         still occur during transmission (and at different times for
 //         different endpoints), and will be delivered via
 //         PayloadCallback#onPayloadTransferUpdate.
-DART_API void SendPayloadDart(NC_INSTANCE instance, const char *endpoint_id,
+DART_API void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
                               PayloadDart payload_dart, Dart_Port result_cb);
 
 #ifdef __cplusplus

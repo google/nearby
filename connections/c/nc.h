@@ -24,9 +24,8 @@
 extern "C" {
 #endif  // __cplusplus
 
-// Opens Nearby Connections service. If service is opened already, it will
-// return opened instance.
-NC_API NC_INSTANCE NcOpenService();
+// Creates a new Nearby Connections service.
+NC_API NC_INSTANCE NcCreateService();
 NC_API void NcCloseService(NC_INSTANCE instance);
 
 // Starts adververtising an endpoint using Nearby Connections.
@@ -38,7 +37,7 @@ NC_API void NcCloseService(NC_INSTANCE instance);
 //   and listeners.
 // result_callback - The result of the API operation.
 NC_API void NcStartAdvertising(
-    NC_INSTANCE instance, const char* service_id,
+    NC_INSTANCE instance, const NC_DATA& service_id,
     const NC_ADVERTISING_OPTIONS& advertising_options,
     const NC_CONNECTION_REQUEST_INFO& connection_request_info,
     NcCallbackResult result_callback);
@@ -59,7 +58,7 @@ NC_API void NcStopAdvertising(NC_INSTANCE instance,
 // discovery_listener - The callbacks notified when a remote endpoint is
 //   reported.
 // result_callback - The result of the API operation.
-NC_API void NcStartDiscovery(NC_INSTANCE instance, const char* service_id,
+NC_API void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA& service_id,
                              const NC_DISCOVERY_OPTIONS& discovery_options,
                              const NC_DISCOVERY_LISTENER& discovery_listener,
                              NcCallbackResult result_callback);
@@ -80,7 +79,7 @@ NC_API void NcStopDiscovery(NC_INSTANCE instance,
 //   corresponding call to NcStartDiscovery().
 // metadata - Metadata used in order to inject the endpoint.
 // result_callback - The result of the API operation.
-NC_API void NcInjectEndpoint(NC_INSTANCE instance, const char* service_id,
+NC_API void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA& service_id,
                              const NC_OUT_OF_BAND_CONNECTION_METADATA& metadata,
                              NcCallbackResult result_callback);
 
@@ -93,7 +92,7 @@ NC_API void NcInjectEndpoint(NC_INSTANCE instance, const char* service_id,
 // connection_options - Options to connect.
 // result_callback - The result of the API operation.
 NC_API void NcRequestConnection(
-    NC_INSTANCE instance, const char* endpoint_id,
+    NC_INSTANCE instance, int endpoint_id,
     const NC_CONNECTION_REQUEST_INFO& connection_request_info,
     const NC_CONNECTION_OPTIONS& connection_options,
     NcCallbackResult result_callback);
@@ -105,7 +104,7 @@ NC_API void NcRequestConnection(
 // payload_listener - A callback for payloads exchanged with the remote
 //   endpoint.
 // result_callback - The result of the API operation.
-NC_API void NcAcceptConnection(NC_INSTANCE instance, const char* endpoint_id,
+NC_API void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
                                NC_PAYLOAD_LISTENER payload_listener,
                                NcCallbackResult result_callback);
 
@@ -114,7 +113,7 @@ NC_API void NcAcceptConnection(NC_INSTANCE instance, const char* endpoint_id,
 // instance - The returned instance by NcOpenService.
 // endpoint_id - The identifier for the remote endpoint.
 // result_callback - The result of the API operation.
-NC_API void NcRejectConnection(NC_INSTANCE instance, const char* endpoint_id,
+NC_API void NcRejectConnection(NC_INSTANCE instance, int endpoint_id,
                                NcCallbackResult result_callback);
 
 // Sends a Payload to a remote endpoint.
@@ -125,7 +124,7 @@ NC_API void NcRejectConnection(NC_INSTANCE instance, const char* endpoint_id,
 // payload - the payload will be sent.
 // result_callback - The result of the API operation.
 NC_API void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
-                          const char** endpoint_ids, const NC_PAYLOAD& payload,
+                          const int* endpoint_ids, const NC_PAYLOAD& payload,
                           NcCallbackResult result_callback);
 
 // Cancels a Payload currently in-flight to or from remote endpoint(s).
@@ -141,8 +140,7 @@ NC_API void NcCancelPayload(NC_INSTANCE instance, NC_PAYLOAD_ID payload_id,
 // instance - The returned instance by NcOpenService.
 // endpoint_id - The endpoint ID of remote device to disconnect.
 // result_callback - The result of the API operation.
-NC_API void NcDisconnectFromEndpoint(NC_INSTANCE instance,
-                                     const char* endpoint_id,
+NC_API void NcDisconnectFromEndpoint(NC_INSTANCE instance, int endpoint_id,
                                      NcCallbackResult result_callback);
 
 // Disconnects from, and removes all traces of, all connected and/or
@@ -158,12 +156,11 @@ NC_API void NcStopAllEndpoints(NC_INSTANCE instance,
 // instance - The returned instance by NcOpenService.
 // endpoint_id - Requested to upgrade on the remote device with the endpoint ID.
 // result_callback - The result of the API operation.
-NC_API void NcInitiateBandwidthUpgrade(NC_INSTANCE instance,
-                                       const char* endpoint_id,
+NC_API void NcInitiateBandwidthUpgrade(NC_INSTANCE instance, int endpoint_id,
                                        NcCallbackResult result_callback);
 
 // Gets the local endpoint generated by Nearby Connections.
-NC_API char* NcGetLocalEndpointId(NC_INSTANCE instance);
+NC_API int NcGetLocalEndpointId(NC_INSTANCE instance);
 
 // Enable/Disable BLE V2 advertising. The method should be deprecated after
 // BLE V1 deprecated.
