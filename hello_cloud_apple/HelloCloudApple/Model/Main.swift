@@ -161,6 +161,8 @@ import PhotosUI
     showingQrCode = true
     // Add the packet to outbox
     Main.shared.outgoingPackets.append(packet)
+    // Upload the packet
+    Task { await packet.upload() }
     return nil
   }
 
