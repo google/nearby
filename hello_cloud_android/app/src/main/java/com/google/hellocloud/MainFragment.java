@@ -132,7 +132,10 @@ public class MainFragment extends Fragment {
 
     if (endpointForPicker == null) {
       // Media was launched from the main fragment's send_qr button.
-      new SendQrDialogFragment(loadAndGenerateQr(uris)).show(getChildFragmentManager(), TAG);
+      Packet<OutgoingFile> packet = loadAndGeneratePacket(uris);
+      packet.upload();
+      String qrString = DataWrapper.getGson().toJson(packet);
+      new SendQrDialogFragment(qrString).show(getChildFragmentManager(), TAG);
       return;
     }
 
@@ -144,10 +147,10 @@ public class MainFragment extends Fragment {
         .show();
   }
 
-  private String loadAndGenerateQr(List<Uri> uris) {
+  private Packet<OutgoingFile> loadAndGeneratePacket(List<Uri> uris) {
     Packet<OutgoingFile> packet = Utils.loadPhotos(getView().getContext(), uris, null, null);
     Main.shared.addOutgoingPacket(packet);
-    return DataWrapper.getGson().toJson(packet);
+    return packet;
   }
 
   private void scanQrCode() {
