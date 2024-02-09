@@ -158,6 +158,10 @@ public class Packet<T extends File> extends BaseObservable {
     }
     setState(State.DOWNLOADING);
 
+    ArrayList<Task<Long>> tasks = new ArrayList<>();
+    Instant beginTime = Instant.now();
+    long totalSize = files.stream().map(file -> file.fileSize).reduce(0L, Long::sum);
+
     for (T file : files) {
       IncomingFile incomingFile = (IncomingFile) file;
       assert incomingFile != null;
@@ -171,27 +175,44 @@ public class Packet<T extends File> extends BaseObservable {
       Uri uri = resolver.insert(imagesUri, values);
       incomingFile.setLocalUri(uri);
 
-      Instant beginTime = Instant.now();
-      incomingFile
-          .download()
-          .addOnSuccessListener(
-              result -> {
-                setState(State.DOWNLOADED);
+      Task<Long> task =
+          incomingFile
+              .download()
+              .addOnSuccessListener(
+                  result -> {
+                    setState(State.DOWNLOADED);
+                    Instant endTime = Instant.now();
+                    Duration duration = Duration.between(beginTime, endTime);
+                    Log.i(
+                        TAG,
+                        String.format(
+                            "Downloaded. Size(b): %s. Time(s): %d.",
+                            incomingFile.fileSize, duration.getSeconds()));
+                  })
+              .addOnFailureListener(
+                  error -> {
+                    setState(State.UPLOADED);
+                    logErrorAndToast(
+                        Main.shared.context,
+                        R.string.error_toast_cannot_download,
+                        error.getMessage());
+                  });
+      tasks.add(task);
+    }
+
+    Tasks.whenAllSuccess(tasks)
+        .addOnCompleteListener(
+            downloadTask -> {
+              if (downloadTask.isSuccessful()) {
                 Instant endTime = Instant.now();
-                Duration duration = Duration.between(beginTime, endTime);
+                double duration = (double) (Duration.between(beginTime, endTime).getSeconds());
                 Log.i(
                     TAG,
                     String.format(
-                        "Downloaded. Size(b): %s. Time(s): %d.",
-                        incomingFile.fileSize, duration.getSeconds()));
-              })
-          .addOnFailureListener(
-              error -> {
-                setState(State.UPLOADED);
-                logErrorAndToast(
-                    Main.shared.context, R.string.error_toast_cannot_download, error.getMessage());
-              });
-    }
+                        "Downloaded packet. Size(b): %d. Time(s): %.1f. Speed(KB/s): %.1f",
+                        totalSize, duration, ((double) totalSize) / 1024.0 / duration));
+              }
+            });
   }
 
   public void upload() {
@@ -202,11 +223,11 @@ public class Packet<T extends File> extends BaseObservable {
     setState(State.UPLOADING);
 
     ArrayList<Task<Long>> tasks = new ArrayList<>();
+    Instant beginTime = Instant.now();
+    long totalSize = files.stream().map(file -> file.fileSize).reduce(0L, Long::sum);
     for (T file : files) {
       OutgoingFile outgoingFile = (OutgoingFile) file;
       assert (outgoingFile != null);
-
-      Instant beginTime = Instant.now();
       Task<Long> task =
           outgoingFile
               .upload()
@@ -218,7 +239,7 @@ public class Packet<T extends File> extends BaseObservable {
                     Log.i(
                         TAG,
                         String.format(
-                            "Uploaded. Size(b): %s. Time(s): %d.",
+                            "Uploaded file. Size(b): %s. Time(s): %d.",
                             outgoingFile.fileSize, duration.getSeconds()));
                   })
               .addOnFailureListener(
@@ -236,6 +257,13 @@ public class Packet<T extends File> extends BaseObservable {
         .addOnCompleteListener(
             uploadTask -> {
               if (uploadTask.isSuccessful()) {
+                Instant endTime = Instant.now();
+                double duration = (double) (Duration.between(beginTime, endTime).getSeconds());
+                Log.i(
+                    TAG,
+                    String.format(
+                        "Uploaded packet. Size(b): %d. Time(s): %.1f. Speed(KB/s): %.1f",
+                        totalSize, duration, ((double) totalSize) / 1024.0 / duration));
                 CloudDatabase.shared
                     .push((Packet<OutgoingFile>) this)
                     .addOnCompleteListener(
