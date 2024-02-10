@@ -25,6 +25,15 @@ constexpr FeatureFlags::Flags kTestFeatureFlags{
     .keep_alive_interval_millis = 5000,
     .keep_alive_timeout_millis = 30000};
 
+TEST(FeatureFlagsTest, CastUpdateWorks) {
+  const FeatureFlags& features = FeatureFlags::GetInstance();
+  EXPECT_TRUE(features.GetFlags().enable_async_bandwidth_upgrade);
+  const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
+      .SetFlags({.enable_async_bandwidth_upgrade = false});
+
+  EXPECT_FALSE(features.GetFlags().enable_async_bandwidth_upgrade);
+}
+
 TEST(FeatureFlagsTest, ToSetFeatureWorks) {
   const FeatureFlags& features = FeatureFlags::GetInstance();
   EXPECT_TRUE(features.GetFlags().enable_cancellation_flag);
