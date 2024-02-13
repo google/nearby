@@ -29,9 +29,18 @@ constexpr absl::string_view kConfigPackage = "nearby";
 // The Nearby Connections features.
 namespace nearby_connections_feature {
 
+// `TARGET_OS_MAC` acts as a superclass of all Apple devices. This includes iOS,
+// macOS, watchOS, etc... See:
+// cs/google3/third_party/apple_sdks/xcode_14_3_1/iphonesimulator/usr/include/TargetConditionals.h
+#if TARGET_OS_MAC
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
     flags::Flag<bool>(kConfigPackage, "45401515", false);
+#else
+// Disable/Enable BLE v2 in Nearby Connections SDK.
+constexpr auto kEnableBleV2 =
+    flags::Flag<bool>(kConfigPackage, "45401515", false);
+#endif
 
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
