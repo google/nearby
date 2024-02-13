@@ -35,6 +35,8 @@
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/implementation/connection_authenticator.h"
+#include "presence/implementation/mock_connection_authenticator.h"
 #include "presence/implementation/mock_service_controller.h"
 #include "presence/presence_device.h"
 #include "presence/proto/presence_frame.pb.h"
@@ -49,6 +51,8 @@ constexpr absl::string_view kManagerAppId = "test_app_id";
 constexpr char kUkey2Secret[] = {0x34, 0x56, 0x78, 0x90};
 constexpr char kKeySeed[] = {1, 2, 3, 4, 5, 6, 7, 8};
 constexpr int kPresenceVersion = 1;
+constexpr absl::string_view kSharedCredentialHash = "shared_cred_hash";
+constexpr absl::string_view kPrivateKeySignature = "private_key_signature";
 
 Metadata CreateTestMetadata() {
   Metadata metadata;
@@ -90,6 +94,13 @@ internal::SharedCredential BuildSharedCredential(
   return shared_credential;
 }
 
+ConnectionAuthenticator::TwoWayInitiatorData BuildDefaultInitiatorData() {
+  ConnectionAuthenticator::TwoWayInitiatorData data;
+  data.shared_credential_hash = kSharedCredentialHash;
+  data.private_key_signature = kPrivateKeySignature;
+  return data;
+}
+
 class MockAuthenticationTransport : public AuthenticationTransport {
  public:
   MOCK_METHOD(void, WriteMessage, (absl::string_view), (const override));
@@ -101,8 +112,8 @@ class PresenceDeviceProviderTest : public ::testing::Test {
   PresenceDeviceProviderTest() {
     ON_CALL(mock_service_controller_, GetLocalDeviceMetadata)
         .WillByDefault(testing::Return(CreateTestMetadata()));
-    provider_ =
-        std::make_unique<PresenceDeviceProvider>(&mock_service_controller_);
+    provider_ = std::make_unique<PresenceDeviceProvider>(
+        &mock_service_controller_, &mock_connection_authenticator_);
   }
 
   void SetUp() override {
@@ -114,6 +125,7 @@ class PresenceDeviceProviderTest : public ::testing::Test {
   MockServiceController mock_service_controller_;
   std::unique_ptr<PresenceDeviceProvider> provider_;
   crypto::Ed25519KeyPair key_pair_;
+  MockConnectionAuthenticator mock_connection_authenticator_;
 };
 
 TEST_F(PresenceDeviceProviderTest, ProviderIsNotTriviallyConstructible) {
@@ -200,12 +212,19 @@ TEST_F(PresenceDeviceProviderTest,
   EXPECT_EQ(AuthenticationStatus::kFailure, status);
 }
 
-TEST_F(PresenceDeviceProviderTest, AuthenticateAsInitiator_Success) {
+TEST_F(PresenceDeviceProviderTest, AuthenticateAsInitiator_FailureToVerify) {
   EXPECT_CALL(mock_service_controller_, GetLocalCredentials)
       .WillOnce([&](const CredentialSelector& credential_selector,
                     GetLocalCredentialsResultCallback callback) {
         std::vector<nearby::internal::LocalCredential> credentials;
         credentials.push_back(CreateValidLocalCredential(key_pair_));
+        std::move(callback.credentials_fetched_cb)(credentials);
+      });
+  EXPECT_CALL(mock_service_controller_, GetLocalPublicCredentials)
+      .WillOnce([&](const CredentialSelector& credential_selector,
+                    GetPublicCredentialsResultCallback callback) {
+        std::vector<nearby::internal::SharedCredential> credentials;
+        credentials.push_back(BuildSharedCredential(key_pair_));
         std::move(callback.credentials_fetched_cb)(credentials);
       });
 
@@ -219,14 +238,57 @@ TEST_F(PresenceDeviceProviderTest, AuthenticateAsInitiator_Success) {
         EXPECT_TRUE(authentication_frame.ParseFromString(message));
         EXPECT_EQ(kPresenceVersion, authentication_frame.version());
       });
+  EXPECT_CALL(authentication_transport, ReadMessage).WillOnce([&]() {
+    PresenceAuthenticationFrame authentication_frame;
+    return authentication_frame.SerializeAsString();
+  });
+
+  EXPECT_CALL(mock_connection_authenticator_, BuildSignedMessageAsInitiator)
+      .WillOnce(testing::Return(BuildDefaultInitiatorData()));
+  EXPECT_CALL(mock_connection_authenticator_, VerifyMessageAsInitiator)
+      .WillOnce(testing::Return(
+          absl::Status(absl::StatusCode::kCancelled, /*msg=*/std::string())));
+
+  auto status = provider_->AuthenticateAsInitiator(
+      /*remote_device=*/remote_device, /*shared_secret=*/kUkey2Secret,
+      /*authentication_transport=*/authentication_transport);
+  EXPECT_EQ(AuthenticationStatus::kFailure, status);
+}
+
+TEST_F(PresenceDeviceProviderTest, AuthenticateAsInitiator_Success) {
+  EXPECT_CALL(mock_service_controller_, GetLocalCredentials)
+      .WillOnce([&](const CredentialSelector& credential_selector,
+                    GetLocalCredentialsResultCallback callback) {
+        std::vector<nearby::internal::LocalCredential> credentials;
+        credentials.push_back(CreateValidLocalCredential(key_pair_));
+        std::move(callback.credentials_fetched_cb)(credentials);
+      });
+  EXPECT_CALL(mock_service_controller_, GetLocalPublicCredentials)
+      .WillOnce([&](const CredentialSelector& credential_selector,
+                    GetPublicCredentialsResultCallback callback) {
+        std::vector<nearby::internal::SharedCredential> credentials;
+        credentials.push_back(BuildSharedCredential(key_pair_));
+        std::move(callback.credentials_fetched_cb)(std::move(credentials));
+      });
+
+  PresenceDevice remote_device(CreateTestMetadata());
+  remote_device.SetDecryptSharedCredential(BuildSharedCredential(key_pair_));
+
+  ON_CALL(mock_connection_authenticator_, BuildSignedMessageAsInitiator)
+      .WillByDefault(testing::Return(BuildDefaultInitiatorData()));
+
+  MockAuthenticationTransport authentication_transport;
+  EXPECT_CALL(authentication_transport, WriteMessage)
+      .WillOnce([&](absl::string_view message) {
+        PresenceAuthenticationFrame authentication_frame;
+        EXPECT_TRUE(authentication_frame.ParseFromString(message));
+        EXPECT_EQ(kPresenceVersion, authentication_frame.version());
+      });
 
   auto status = provider_->AuthenticateAsInitiator(
       /*remote_device=*/remote_device, /*shared_secret=*/kUkey2Secret,
       /*authentication_transport=*/authentication_transport);
 
-  // TODO(b/282027237): Once additional logic is added in follow up CL's
-  // to continue the authentication, add coverage in this unit test for a
-  // success case.
   EXPECT_EQ(AuthenticationStatus::kSuccess, status);
 }
 

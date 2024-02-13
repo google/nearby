@@ -20,19 +20,11 @@
 
 #include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
-#include "presence/implementation/service_controller_impl.h"
 #include "presence/presence_client_impl.h"
 #include "presence/presence_device_provider.h"
 
 namespace nearby {
 namespace presence {
-
-PresenceServiceImpl::PresenceServiceImpl() {
-  service_controller_ = std::make_unique<ServiceControllerImpl>(
-      &executor_, &credential_manager_, &scan_manager_, &broadcast_manager_);
-  provider_ =
-      std::make_unique<PresenceDeviceProvider>(service_controller_.get());
-}
 
 std::unique_ptr<PresenceClient> PresenceServiceImpl::CreatePresenceClient() {
   return PresenceClientImpl::Factory::Create(lender_.GetBorrowable());
@@ -40,21 +32,21 @@ std::unique_ptr<PresenceClient> PresenceServiceImpl::CreatePresenceClient() {
 
 absl::StatusOr<ScanSessionId> PresenceServiceImpl::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
-  return service_controller_->StartScan(scan_request, std::move(callback));
+  return service_controller_.StartScan(scan_request, std::move(callback));
 }
 
 void PresenceServiceImpl::StopScan(ScanSessionId id) {
-  service_controller_->StopScan(id);
+  service_controller_.StopScan(id);
 }
 
 absl::StatusOr<BroadcastSessionId> PresenceServiceImpl::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
-  return service_controller_->StartBroadcast(broadcast_request,
-                                             std::move(callback));
+  return service_controller_.StartBroadcast(broadcast_request,
+                                            std::move(callback));
 }
 
 void PresenceServiceImpl::StopBroadcast(BroadcastSessionId session) {
-  service_controller_->StopBroadcast(session);
+  service_controller_.StopBroadcast(session);
 }
 
 void PresenceServiceImpl::UpdateLocalDeviceMetadata(
@@ -63,9 +55,9 @@ void PresenceServiceImpl::UpdateLocalDeviceMetadata(
     const std::vector<nearby::internal::IdentityType>& identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsResultCallback credentials_generated_cb) {
-  provider_->UpdateMetadata(metadata);
-  provider_->SetManagerAppId(manager_app_id);
-  service_controller_->UpdateLocalDeviceMetadata(
+  provider_.UpdateMetadata(metadata);
+  provider_.SetManagerAppId(manager_app_id);
+  service_controller_.UpdateLocalDeviceMetadata(
       metadata, regen_credentials, manager_app_id, identity_types,
       credential_life_cycle_days, contiguous_copy_of_credentials,
       std::move(credentials_generated_cb));
@@ -74,15 +66,15 @@ void PresenceServiceImpl::UpdateLocalDeviceMetadata(
 void PresenceServiceImpl::GetLocalPublicCredentials(
     const CredentialSelector& credential_selector,
     GetPublicCredentialsResultCallback callback) {
-  service_controller_->GetLocalPublicCredentials(credential_selector,
-                                                 std::move(callback));
+  service_controller_.GetLocalPublicCredentials(credential_selector,
+                                                std::move(callback));
 }
 
 void PresenceServiceImpl::UpdateRemotePublicCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<nearby::internal::SharedCredential>& remote_public_creds,
     UpdateRemotePublicCredentialsCallback credentials_updated_cb) {
-  service_controller_->UpdateRemotePublicCredentials(
+  service_controller_.UpdateRemotePublicCredentials(
       manager_app_id, account_name, remote_public_creds,
       std::move(credentials_updated_cb));
 }

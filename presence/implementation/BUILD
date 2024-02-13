@@ -56,7 +56,7 @@ cc_library(
         "advertisement_factory.cc",
         "base_broadcast_request.cc",
         "broadcast_manager.cc",
-        "connection_authenticator.cc",
+        "connection_authenticator_impl.cc",
         "credential_manager_impl.cc",
         "ldt.cc",
         "scan_manager.cc",
@@ -69,6 +69,7 @@ cc_library(
         "base_broadcast_request.h",
         "broadcast_manager.h",
         "connection_authenticator.h",
+        "connection_authenticator_impl.h",
         "credential_manager.h",
         "credential_manager_impl.h",
         "ldt.h",
@@ -137,6 +138,7 @@ cc_library(
     srcs = [
     ],
     hdrs = [
+        "mock_connection_authenticator.h",
         "mock_credential_manager.h",
         "mock_service_controller.h",
     ],
@@ -146,7 +148,11 @@ cc_library(
     deps = [
         ":internal",
         "//internal/platform/implementation:comm",
+        "//internal/proto:credential_cc_proto",
+        "//internal/proto:local_credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
@@ -283,9 +289,9 @@ cc_test(
 )
 
 cc_test(
-    name = "connection_authenticator_test",
+    name = "connection_authenticator_impl_test",
     size = "small",
-    srcs = ["connection_authenticator_test.cc"],
+    srcs = ["connection_authenticator_impl_test.cc"],
     deps = [
         ":internal",
         "//internal/crypto",

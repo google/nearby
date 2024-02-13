@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/implementation/connection_authenticator.h"
+#include "presence/implementation/connection_authenticator_impl.h"
 
 #include <optional>
 #include <string>
@@ -47,7 +47,7 @@ constexpr char kDiscovererHkdfInfo[] =
 }  // namespace
 
 absl::StatusOr<ConnectionAuthenticator::InitiatorData>
-ConnectionAuthenticator::BuildSignedMessageAsInitiator(
+ConnectionAuthenticatorImpl::BuildSignedMessageAsInitiator(
     absl::string_view ukey2_secret,
     std::optional<const internal::LocalCredential> local_credential,
     const internal::SharedCredential& shared_credential) const {
@@ -78,7 +78,7 @@ ConnectionAuthenticator::BuildSignedMessageAsInitiator(
 }
 
 absl::StatusOr<ConnectionAuthenticator::ResponderData>
-ConnectionAuthenticator::BuildSignedMessageAsResponder(
+ConnectionAuthenticatorImpl::BuildSignedMessageAsResponder(
     absl::string_view ukey2_secret,
     const internal::LocalCredential& local_credential) const {
   auto signer = crypto::Ed25519Signer::Create(
@@ -95,7 +95,7 @@ ConnectionAuthenticator::BuildSignedMessageAsResponder(
                                                     *pkey_signature};
 }
 
-absl::Status ConnectionAuthenticator::VerifyMessageAsInitiator(
+absl::Status ConnectionAuthenticatorImpl::VerifyMessageAsInitiator(
     ResponderData authentication_data, absl::string_view ukey2_secret,
     const std::vector<internal::SharedCredential>& shared_credentials) const {
   if (authentication_data.private_key_signature.empty()) {
@@ -119,7 +119,7 @@ absl::Status ConnectionAuthenticator::VerifyMessageAsInitiator(
 }
 
 absl::StatusOr<internal::LocalCredential>
-ConnectionAuthenticator::VerifyMessageAsResponder(
+ConnectionAuthenticatorImpl::VerifyMessageAsResponder(
     absl::string_view ukey2_secret, InitiatorData initiator_data,
     const std::vector<internal::LocalCredential>& local_credentials,
     const std::vector<internal::SharedCredential>& shared_credentials) const {

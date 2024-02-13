@@ -19,17 +19,24 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/borrowable.h"
+#include "internal/platform/implementation/credential_callbacks.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/implementation/broadcast_manager.h"
+#include "presence/implementation/connection_authenticator_impl.h"
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/mediums.h"
 #include "presence/implementation/scan_manager.h"
-#include "presence/implementation/service_controller.h"
+#include "presence/implementation/service_controller_impl.h"
 #include "presence/presence_client.h"
 #include "presence/presence_device_provider.h"
 #include "presence/presence_service.h"
+#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
@@ -41,7 +48,7 @@ namespace presence {
  */
 class PresenceServiceImpl : public PresenceService {
  public:
-  PresenceServiceImpl();
+  PresenceServiceImpl() = default;
   ~PresenceServiceImpl() override { lender_.Release(); }
 
   std::unique_ptr<PresenceClient> CreatePresenceClient() override;
@@ -63,11 +70,11 @@ class PresenceServiceImpl : public PresenceService {
       GenerateCredentialsResultCallback credentials_generated_cb) override;
 
   PresenceDeviceProvider* GetLocalDeviceProvider() override {
-    return provider_.get();
+    return &provider_;
   }
 
   ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
-    return service_controller_->GetLocalDeviceMetadata();
+    return service_controller_.GetLocalDeviceMetadata();
   }
 
   void GetLocalPublicCredentials(
@@ -86,9 +93,12 @@ class PresenceServiceImpl : public PresenceService {
   CredentialManagerImpl credential_manager_{&executor_};
   ScanManager scan_manager_{mediums_, credential_manager_, executor_};
   BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
-  std::unique_ptr<ServiceController> service_controller_;
+  ServiceControllerImpl service_controller_{
+      &executor_, &credential_manager_, &scan_manager_, &broadcast_manager_};
+  ConnectionAuthenticatorImpl connection_authenticator_;
   ::nearby::Lender<PresenceService*> lender_{this};
-  std::unique_ptr<PresenceDeviceProvider> provider_;
+  PresenceDeviceProvider provider_{&service_controller_,
+                                   &connection_authenticator_};
 };
 
 }  // namespace presence

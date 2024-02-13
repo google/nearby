@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/implementation/connection_authenticator.h"
+#include "presence/implementation/connection_authenticator_impl.h"
 
 #include <string>
 #include <vector>
@@ -79,8 +79,8 @@ class PresenceAuthenticatorTest : public ::testing::Test {
 };
 
 TEST_F(PresenceAuthenticatorTest, TestTwoWayInitiatorSignResponderVerify) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
                        initiator_authenticator.BuildSignedMessageAsInitiator(
                            kUkey2Secret, initiator_local_credential_,
@@ -93,8 +93,8 @@ TEST_F(PresenceAuthenticatorTest, TestTwoWayInitiatorSignResponderVerify) {
 }
 
 TEST_F(PresenceAuthenticatorTest, TestOneWayInitiatorSignResponderVerify) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(
       ConnectionAuthenticator::InitiatorData auth_data,
       initiator_authenticator.BuildSignedMessageAsInitiator(
@@ -107,8 +107,8 @@ TEST_F(PresenceAuthenticatorTest, TestOneWayInitiatorSignResponderVerify) {
 }
 
 TEST_F(PresenceAuthenticatorTest, TestResponderSignInitiatorVerify) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
                        responder_authenticator.BuildSignedMessageAsResponder(
                            kUkey2Secret, responder_local_credential_));
@@ -118,8 +118,8 @@ TEST_F(PresenceAuthenticatorTest, TestResponderSignInitiatorVerify) {
 
 TEST_F(PresenceAuthenticatorTest,
        TestTwoWayInitiatorSignResponderVerifyNoSharedCredentialMatchFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
                        initiator_authenticator.BuildSignedMessageAsInitiator(
                            kUkey2Secret, initiator_local_credential_,
@@ -131,8 +131,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestOneWayInitiatorSignResponderVerifyNoMatchCredentialFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(
       ConnectionAuthenticator::InitiatorData auth_data,
       initiator_authenticator.BuildSignedMessageAsInitiator(
@@ -144,8 +144,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestOneWayInitiatorSignResponderVerifyNoCredentialFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(
       ConnectionAuthenticator::InitiatorData auth_data,
       initiator_authenticator.BuildSignedMessageAsInitiator(
@@ -157,8 +157,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestTwoWayInitiatorSignResponderVerifyNoMatchCredentialFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
                        initiator_authenticator.BuildSignedMessageAsInitiator(
                            kUkey2Secret, initiator_local_credential_,
@@ -170,8 +170,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestTwoWayInitiatorSignResponderVerifyWrongKeyFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
                        initiator_authenticator.BuildSignedMessageAsInitiator(
                            kUkey2Secret, initiator_local_credential_,
@@ -184,8 +184,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestResponderSignInitiatorVerifyNoMatchCredentialFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
                        responder_authenticator.BuildSignedMessageAsResponder(
                            kUkey2Secret, responder_local_credential_));
@@ -196,8 +196,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestResponderSignInitiatorVerifyWrongKeyFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
                        responder_authenticator.BuildSignedMessageAsResponder(
                            kUkey2Secret, responder_local_credential_));
@@ -209,8 +209,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestTwoWayInitiatorSignResponderVerifyNoCidHashFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
                        initiator_authenticator.BuildSignedMessageAsInitiator(
                            kUkey2Secret, initiator_local_credential_,
@@ -225,8 +225,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestTwoWayInitiatorSignResponderVerifyNoPkeySigFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::InitiatorData auth_data,
                        initiator_authenticator.BuildSignedMessageAsInitiator(
                            kUkey2Secret, initiator_local_credential_,
@@ -241,8 +241,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestOneWayInitiatorSignResponderVerifyNoCidHashFails) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(
       ConnectionAuthenticator::InitiatorData auth_data,
       initiator_authenticator.BuildSignedMessageAsInitiator(
@@ -257,8 +257,8 @@ TEST_F(PresenceAuthenticatorTest,
 
 TEST_F(PresenceAuthenticatorTest,
        TestResponderSignInitiatorVerifyNoPkeySigFail) {
-  ConnectionAuthenticator responder_authenticator;
-  ConnectionAuthenticator initiator_authenticator;
+  ConnectionAuthenticatorImpl responder_authenticator;
+  ConnectionAuthenticatorImpl initiator_authenticator;
   ASSERT_OK_AND_ASSIGN(ConnectionAuthenticator::ResponderData auth_data,
                        responder_authenticator.BuildSignedMessageAsResponder(
                            kUkey2Secret, responder_local_credential_));

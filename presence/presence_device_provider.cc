@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/types/variant.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -96,9 +97,13 @@ PresenceAuthenticationFrame BuildInitiatorPresenceAuthenticationFrame(
 }  // namespace
 
 PresenceDeviceProvider::PresenceDeviceProvider(
-    ServiceController* service_controller)
+    ServiceController* service_controller,
+    const ConnectionAuthenticator* connection_authenticator)
     : service_controller_(*service_controller),
-      device_{service_controller_.GetLocalDeviceMetadata()} {}
+      device_{service_controller_.GetLocalDeviceMetadata()},
+      connection_authenticator_(*connection_authenticator) {
+  CHECK(connection_authenticator);
+}
 
 AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
     const NearbyDevice& remote_device, absl::string_view shared_secret,
@@ -110,9 +115,12 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
   // iterates over the  returned list and returns the local credential
   // that corresponds with the current time.
   //
-  // TODO(b/304843571): Add support for additional IdentityTypes. Currently,
-  // only `IDENTITY_TYPE_PRIVATE` is supported in order to unblock Nearby
-  // Presence MVP.
+  // TODO(b/304843571): Add support for additional IdentityTypes and for
+  // AuthenticationStatus::kUnknown. Currently, only `IDENTITY_TYPE_PRIVATE` is
+  // supported in order to unblock Nearby Presence MVP on CrOS, however in
+  // order to support future IdentityTypes, there needs to be a way to
+  // plumb in the requested identity type, as well as report back the
+  // unknown result to callers in NC.
   service_controller_.GetLocalCredentials(
       /*credential_selector=*/{.manager_app_id = manager_app_id_,
                                .account_name =
@@ -141,7 +149,7 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
         // 2. Construct the frame and write to the
         // |authentication_transport|.
         if (!WriteToRemoteDevice(
-                /*remote_device=*/&remote_device,
+                /*remote_device=*/remote_device,
                 /*shared_secret=*/shared_secret,
                 /*authentication_transport=*/authentication_transport,
                 /*local_credential=*/credential.value(),
@@ -150,12 +158,17 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
           return;
         }
 
-        // TODO(b/282027237): Continue with the following steps, which will
-        // be done in follow up CL's.
         // 3. Read the message from the remote device via
-        // |authentication_transport|.
+        // |authentication_transport| and verify the response data.
+        if (!ReadAndVerifyRemoteDeviceData(
+                /*remote_device=*/remote_device,
+                /*shared_secret=*/shared_secret,
+                /*authentication_transport=*/authentication_transport)) {
+          response.Set(AuthenticationStatus::kFailure);
+          return;
+        }
+
         // 4. Return the status of the authentication to the callers.
-        // For now, return success on the Future.
         response.Set(AuthenticationStatus::kSuccess);
       }});
 
@@ -169,7 +182,7 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
 }
 
 bool PresenceDeviceProvider::WriteToRemoteDevice(
-    const NearbyDevice* remote_device, absl::string_view shared_secret,
+    const NearbyDevice& remote_device, absl::string_view shared_secret,
     const AuthenticationTransport& authentication_transport,
     const internal::LocalCredential& local_credential,
     Future<AuthenticationStatus>& response) const {
@@ -177,7 +190,7 @@ bool PresenceDeviceProvider::WriteToRemoteDevice(
   // it's shared credentials, which is safe to do since the |remote_device|
   // passed to the `PresenceDeviceProvider` will always be a `PresenceDevice`.
   const PresenceDevice* remote_presence_device =
-      static_cast<const PresenceDevice*>(remote_device);
+      static_cast<const PresenceDevice*>(&remote_device);
   auto shared_credential = remote_presence_device->GetDecryptSharedCredential();
   if (!shared_credential.has_value()) {
     NEARBY_LOGS(INFO)
@@ -190,8 +203,6 @@ bool PresenceDeviceProvider::WriteToRemoteDevice(
       connection_authenticator_.BuildSignedMessageAsInitiator(
           /*ukey2_secret=*/shared_secret, /*local_credential=*/local_credential,
           /*shared_credential=*/shared_credential.value());
-  // TODO(b/317219088): Add test covereage for when
-  // `ConnectionAuthenticator::BuildSignedMessageAsInitiator()` fails.
   if (!status_or_initiator_data.ok()) {
     NEARBY_LOGS(INFO) << __func__
                       << ": failure to build signed message as initiator";
@@ -205,6 +216,49 @@ bool PresenceDeviceProvider::WriteToRemoteDevice(
           status_or_initiator_data.value())
           .SerializeAsString());
   return true;
+}
+
+bool PresenceDeviceProvider::ReadAndVerifyRemoteDeviceData(
+    const NearbyDevice& remote_device, absl::string_view shared_secret,
+    const AuthenticationTransport& authentication_transport) const {
+  // Fetch the local public credentials to be used to verify the response data.
+  Future<bool> read_and_verify_result;
+  service_controller_.GetLocalPublicCredentials(
+      /*credential_selector=*/{.manager_app_id = manager_app_id_,
+                               .account_name =
+                                   device_.GetMetadata().account_name(),
+                               .identity_type = ::nearby::internal::
+                                   IdentityType::IDENTITY_TYPE_PRIVATE},
+      /*callback=*/{.credentials_fetched_cb = [this, &read_and_verify_result,
+                                               &authentication_transport,
+                                               &shared_secret](
+                                                  auto status_or_credentials) {
+        if (!status_or_credentials.ok()) {
+          NEARBY_LOGS(INFO)
+              << __func__ << ": failure to fetch local public credentials";
+          read_and_verify_result.Set(/*success=*/false);
+          return;
+        }
+
+        std::string response_data = authentication_transport.ReadMessage();
+        auto status = connection_authenticator_.VerifyMessageAsInitiator(
+            /*authentication_data=*/{.private_key_signature = response_data},
+            /*ukey2_secret=*/shared_secret,
+            /*shared_credential=*/status_or_credentials.value());
+        if (!status.ok()) {
+          NEARBY_LOGS(INFO) << __func__ << ": failure to verify remote device";
+          read_and_verify_result.Set(/*success=*/false);
+          return;
+        }
+
+        read_and_verify_result.Set(/*success=*/true);
+      }});
+
+  NEARBY_LOGS(INFO) << __func__ << ": Waiting for future to complete";
+  ExceptionOr<bool> result = read_and_verify_result.Get();
+  NEARBY_LOGS(INFO) << "Future:[" << __func__
+                    << "] completed with status:" << result.result();
+  return result.result();
 }
 
 }  // namespace presence
