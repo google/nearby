@@ -15,16 +15,11 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
 
+#include "internal/interop/authentication_status.h"
 #include "internal/interop/authentication_transport.h"
 #include "internal/interop/device.h"
 
 namespace nearby {
-
-enum class AuthenticationStatus {
-  kUnknown = 0,
-  kSuccess = 1,
-  kFailure = 2,
-};
 
 // The base device provider class for use with the Nearby Connections V3 APIs.
 // This class currently provides a function to get the local device for whatever

@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/interop/authentication_status.h"
 #include "internal/interop/authentication_transport.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"

@@ -22,9 +22,22 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        ":authentication_status",
         ":authentication_transport_interface",
         "//internal/platform:connection_info",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
+    ],
+)
+
+cc_library(
+    name = "authentication_status",
+    hdrs = [
+        "authentication_status.h",
+    ],
+    visibility = [
+        "//connections:__subpackages__",
+        "//presence:__subpackages__",
+        "//sharing:__subpackages__",
     ],
 )

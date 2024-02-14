@@ -27,6 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/crypto_cros/random.h"
+#include "internal/interop/authentication_status.h"
 #include "sharing/common/compatible_u8_string.h"
 
 namespace nearby {
@@ -121,6 +122,15 @@ struct ConnectionInfo {
   bool is_incoming_connection;
   // Connection status used for analytics
   Status connection_layer_status = Status::kUnknown;
+  // Result of authenticating the device with the DeviceProvider, which is only
+  // used during `RequestConnectionV3()`. Based on the result, clients should
+  // do the following:
+  // - `AuthenticationStatus::kFailure`: disconnect from the remote device
+  // - `AuthenticationStatus::kUnknown`: prompt the user to confirm the PIN on
+  //   both sides (retaining existing behavior)
+  // - `AuthenticationStatus::kSuccess`: connect to the device with no further
+  //   prompting
+  AuthenticationStatus authentication_status = AuthenticationStatus::kUnknown;
 };
 
 // Information about an endpoint when it's discovered.

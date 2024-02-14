@@ -31,6 +31,7 @@ cc_library(
     ],
     deps = [
         ":types",
+        "//internal/interop:authentication_status",
         "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
         "//internal/platform:base",
@@ -187,6 +188,7 @@ cc_test(
         ":presence",
         ":types",
         "//internal/crypto",
+        "//internal/interop:authentication_status",
         "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
         "//internal/platform:test_util",

@@ -5,6 +5,7 @@ cc_library(
     hdrs = ["nearby_connections_types.h"],
     deps = [
         "//internal/crypto_cros",
+        "//internal/interop:authentication_status",
         "//sharing/common:compatible_u8_string",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
@@ -43,6 +44,7 @@ cc_library(
     ],
     deps = [
         "//internal/crypto_cros",
+        "//internal/interop:authentication_status",
         "//internal/network:types",
         "//sharing/common",
         "//sharing/common:compatible_u8_string",
