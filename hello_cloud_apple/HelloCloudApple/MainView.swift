@@ -179,11 +179,11 @@ struct MainView: View {
                   .disabled(endpoint.loadingPhotos || endpoint.state != .connected)
                   .buttonStyle(.bordered).fixedSize()
                   .frame(maxHeight: .infinity)
-                  .alert("Do you want to send the claim token to the remote endpoint?",
+                  .alert("Do you want to upload the packet and send the claim token to the remote endpoint?",
                          isPresented: $endpoint.showingConfirmation) {
                     Button("Yes") {
                       Task {
-                        await endpoint.loadAndSend()
+                        await endpoint.loadSendAndUpload()
                       }
                     }
                     Button("No", role: .cancel) { }

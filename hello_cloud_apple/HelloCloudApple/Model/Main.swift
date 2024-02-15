@@ -122,12 +122,16 @@ import PhotosUI
       flashPacket(packet: packet)
 
       if fromQr {
-        self.showLocalNotificationAndDownload(for: packet)
+        // If it's from QR code, we won't get a push notification. So we pop up a local
+        // notification.
+        self.showLocalNotification(for: packet)
       }
+
+      Task { await packet.download() }
     }
   }
 
-  func showLocalNotificationAndDownload(for packet: Packet<IncomingFile>) {
+  func showLocalNotification(for packet: Packet<IncomingFile>) {
     let content = UNMutableNotificationContent()
     content.title = "You've got files!"
     content.subtitle = "Your files from \(packet.sender!) will start downloading"
@@ -136,7 +140,6 @@ import PhotosUI
 
     let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
     UNUserNotificationCenter.current().add(request)
-    Task { await packet.download() }
   }
 
   public func loadAndGenerateQr() async -> Error? {

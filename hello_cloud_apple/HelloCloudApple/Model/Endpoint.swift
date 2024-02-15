@@ -95,8 +95,8 @@ import PhotosUI
     Main.shared.observePacket(packet, fromQr: false)
   }
 
-  /** Load files, create packet in memory, and send the packet to the remote endpoint. */
-  func loadAndSend() async -> Error? {
+  /** Load files, create packet in memory, send the packet to the remote endpoint, and upload */
+  func loadSendAndUpload() async -> Error? {
     // Load photos and save them to local files
     loadingPhotos = true
     defer {loadingPhotos = false}
@@ -129,6 +129,9 @@ import PhotosUI
 
     // Clear the photo selection for the next pick
     photosPicked = []
+
+    // Start uploading the packet
+    Task { await packet.upload() }
     return nil
   }
 }
