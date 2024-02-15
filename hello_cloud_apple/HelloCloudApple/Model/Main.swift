@@ -136,6 +136,7 @@ import PhotosUI
 
     let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
     UNUserNotificationCenter.current().add(request)
+    Task { await packet.download() }
   }
 
   public func loadAndGenerateQr() async -> Error? {

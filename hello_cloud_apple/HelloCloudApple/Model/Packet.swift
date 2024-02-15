@@ -86,12 +86,15 @@ extension Packet<IncomingFile> {
    either observing or pulling.
    */
   func update(from newPacket: Packet<IncomingFile>) {
-    // Presumably, the new packet should contain the same information as our copy except
-    // Packet.files.remotePath. But it's easier to just replace Packet.files altogether.
-    files.removeAll()
+    // TODO: this is a O(n^2) algorithm
     for file in newPacket.files {
-      file.state = .uploaded
-      files.append(file)
+      guard let matchedFile = files.first(where: {f in f.id == file.id}) else {
+        print("E: File \(file.id) not found")
+        continue
+      }
+
+      matchedFile.remotePath = file.remotePath
+      matchedFile.state = .uploaded
     }
     state = .uploaded
   }
