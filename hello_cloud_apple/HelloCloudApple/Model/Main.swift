@@ -122,15 +122,15 @@ import PhotosUI
       flashPacket(packet: packet)
 
       if fromQr {
-        self.showLocalNotification(for: packet)
+        self.showLocalNotificationAndDownload(for: packet)
       }
     }
   }
 
-  func showLocalNotification(for packet: Packet<IncomingFile>) {
+  func showLocalNotificationAndDownload(for packet: Packet<IncomingFile>) {
     let content = UNMutableNotificationContent()
     content.title = "You've got files!"
-    content.subtitle = "Your files from \(packet.sender!) are ready for downloading"
+    content.subtitle = "Your files from \(packet.sender!) will start downloading"
     content.sound = UNNotificationSound.default
     content.userInfo["packetId"] = packet.id.uuidString
 
