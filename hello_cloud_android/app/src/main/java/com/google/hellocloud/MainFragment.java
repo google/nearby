@@ -141,8 +141,8 @@ public class MainFragment extends Fragment {
 
     Context context = getView().getContext();
     new AlertDialog.Builder(context)
-        .setMessage("Do you want to send the claim token to the remote endpoint?")
-        .setPositiveButton("Yes", (dialog, button) -> endpointForPicker.loadAndsend(context, uris))
+        .setMessage("Do you want to upload the packet and send the claim token to the remote endpoint?")
+        .setPositiveButton("Yes", (dialog, button) -> endpointForPicker.loadSendAndUpload(context, uris))
         .setNegativeButton("No", null)
         .show();
   }

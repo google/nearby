@@ -99,7 +99,7 @@ public final class Endpoint extends BaseObservable {
     return Main.shared.context.getResources().getDrawable(resource, null);
   }
 
-  void loadAndsend(Context context, List<Uri> uris) {
+  void loadSendAndUpload(Context context, List<Uri> uris) {
     if (getState() != Endpoint.State.CONNECTED) {
       return;
     }
@@ -125,6 +125,7 @@ public final class Endpoint extends BaseObservable {
               setState(State.CONNECTED);
             });
     Main.shared.addOutgoingPacket(packet);
+    packet.upload();
   }
 
   public void onPacketTransferUpdate(int status) {
@@ -153,6 +154,7 @@ public final class Endpoint extends BaseObservable {
         newPacket -> {
           packet.update(newPacket);
           Main.shared.flashPacket(packet);
+          packet.download(Main.shared.context);
           return null;
         });
   }
