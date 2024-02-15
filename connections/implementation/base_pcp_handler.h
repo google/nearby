@@ -39,6 +39,7 @@
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
+#include "internal/interop/authentication_status.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
@@ -428,6 +429,10 @@ class BasePcpHandler : public PcpHandler,
     // Client callbacks. Always valid.
     ConnectionListener listener;
     ConnectionOptions connection_options;
+
+    // Result of authentication via the DeviceProvider, if available. Only used
+    // for `RequestConnectionV3()`.
+    AuthenticationStatus authentication_status = AuthenticationStatus::kUnknown;
 
     // Only set for outgoing connections. If set, we must call
     // result->Set() when connection is established, or rejected.
