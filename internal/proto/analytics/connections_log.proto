@@ -72,6 +72,16 @@ message ConnectionsLog {
         /* type = ST_SESSION_ID */;
   }
 
+  message OperationResult {
+    // The category of the operation result
+    optional location.nearby.proto.connections.OperationResultCategory
+        result_category = 1;
+
+    // The result code of the operation result
+    optional location.nearby.proto.connections.OperationResultCode result_code =
+        2;
+  }
+
   // One round of a particular Strategy done by a client.
   message StrategySession {
     // Elapsed time in milliseconds between a call to startAdvertising/Discovery
@@ -269,6 +279,9 @@ message ConnectionsLog {
 
     // Encapsulates additional connection information.
     optional ConnectionAttemptMetadata connection_attempt_metadata = 8;
+
+    // The result code of this connection attempt
+    optional OperationResult operation_result = 9;
   }
 
   // A successfully-established connection over a particular medium.
@@ -302,6 +315,9 @@ message ConnectionsLog {
     // If this is a safe disconnection.
     optional SafeDisconnectionResult safe_disconnection_result = 9;
 
+    // The result code of this established connection
+    optional OperationResult operation_result = 10;
+
     enum SafeDisconnectionResult {
       UNKNOWN_SAFE_DISCONNECTION_RESULT = 0;
       SAFE_DISCONNECTION = 1;
@@ -331,6 +347,9 @@ message ConnectionsLog {
 
     // The number of successful auto resume.
     optional int32 num_successful_auto_resume = 7;
+
+    // The result code of this sent payload
+    optional OperationResult operation_result = 8;
   }
 
   // An attempt to upgrade an existing connection from one medium to another.
@@ -362,6 +381,9 @@ message ConnectionsLog {
     // The token used to identify this upgrade pair.
     optional string connection_token = 8
         /* type = ST_SESSION_ID */;
+
+    // The result code of this upgrade attempt
+    optional OperationResult operation_result = 9;
   }
 
   // Next Id: 22
