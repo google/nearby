@@ -31,6 +31,7 @@
 #include "connections/connection_options.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/interop/authentication_status.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
 
@@ -56,6 +57,10 @@ struct ConnectionResponseInfo {
   ByteArray raw_authentication_token;
   bool is_incoming_connection = false;
   bool is_connection_verified = false;
+
+  // Result of authentication via the DeviceProvider, if available. Only used
+  // for `RequestConnectionV3()`.
+  AuthenticationStatus authentication_status = AuthenticationStatus::kUnknown;
 };
 
 struct PayloadProgressInfo {

@@ -77,6 +77,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "//internal/interop:authentication_status",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",
