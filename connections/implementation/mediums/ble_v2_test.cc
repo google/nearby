@@ -46,6 +46,7 @@ constexpr absl::string_view kServiceIDA =
 constexpr absl::string_view kServiceIDB =
     "com.google.location.nearby.apps.test.b";
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
+constexpr absl::string_view kAdvertisementStringB = "\x01\x02\x03\x04";
 
 class BleV2Test : public testing::TestWithParam<FeatureFlags> {
  public:
@@ -574,6 +575,353 @@ TEST_F(BleV2Test, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
   // cancelled the alarm.
   EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
 
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartAsyncScanning) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  BleV2 ble_a(radio_a);
+  BleV2 ble_b(radio_b);
+  radio_a.Enable();
+  radio_b.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+
+  ble_b.StartAdvertising(std::string(kServiceIDA), advertisement_bytes,
+                         PowerLevel::kHighPower,
+                         /*is_fast_advertisement=*/false);
+
+  EXPECT_TRUE(ble_a.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_FALSE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      }));
+
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  ble_b.StopAdvertising(std::string(kServiceIDA));
+  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, StartAsyncScanningWithPlatformErrors) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  BleV2 ble_a(radio_a);
+  BleV2 ble_b(radio_b);
+  radio_a.Enable();
+  radio_b.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+
+  ble_b.StartAdvertising(std::string(kServiceIDA), advertisement_bytes,
+                         PowerLevel::kHighPower,
+                         /*is_fast_advertisement=*/false);
+
+  // Disable radio a to simulate platform error.
+  radio_a.Disable();
+  EXPECT_FALSE(ble_a.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_FALSE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      }));
+
+  radio_a.Enable();
+  EXPECT_TRUE(ble_a.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_FALSE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      }));
+
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  ble_b.StopAdvertising(std::string(kServiceIDA));
+
+  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+
+  // Should return false the second time, as we removed service ID from the map.
+  EXPECT_FALSE(ble_a.StopScanning(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, StartAsyncScanningDiscoverAndLostPeripheral) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  BleV2 ble_a(radio_a);
+  BleV2 ble_b(radio_b);
+  radio_a.Enable();
+  radio_b.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  ble_b.StartAdvertising(std::string(kServiceIDA), advertisement_bytes,
+                         PowerLevel::kHighPower,
+                         /*is_fast_advertisement=*/false);
+
+  EXPECT_TRUE(ble_a.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_FALSE(fast_advertisement);
+                found_latch.CountDown();
+              },
+          .peripheral_lost_cb =
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
+      }));
+
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(ble_b.StopAdvertising(std::string(kServiceIDA)));
+
+  // Wait for a while (2 times delay) to let the alarm occur twice and
+  // `ProcessLostGattAdvertisements` twice to lost periperal.
+  SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
+
+  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+
+  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test,
+       StartAsyncScanningDiscoverButNoPeripheralLostAfterStopScanning) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  BleV2 ble_a(radio_a);
+  BleV2 ble_b(radio_b);
+  radio_a.Enable();
+  radio_b.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  ble_b.StartAdvertising(std::string(kServiceIDA), advertisement_bytes,
+                         PowerLevel::kHighPower,
+                         /*is_fast_advertisement=*/false);
+
+  EXPECT_TRUE(ble_a.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_FALSE(fast_advertisement);
+                found_latch.CountDown();
+              },
+          .peripheral_lost_cb =
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
+      }));
+
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+
+  EXPECT_TRUE(ble_b.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+
+  // Don't receive lost peripheral callback because we have stopped scanning and
+  // cancelled the alarm.
+  EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
+
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_scanner;
+  BluetoothRadio radio_advertiser_a;
+  BluetoothRadio radio_advertiser_b;
+  BleV2 ble_scanner(radio_scanner);
+  BleV2 ble_advertiser_a(radio_advertiser_a);
+  BleV2 ble_advertiser_b(radio_advertiser_b);
+  radio_scanner.Enable();
+  radio_advertiser_a.Enable();
+  radio_advertiser_b.Enable();
+  ByteArray advertisement_bytes_a((std::string(kAdvertisementString)));
+  ByteArray advertisement_bytes_b((std::string(kAdvertisementStringB)));
+  CountDownLatch found_latch_a(1);
+  CountDownLatch found_latch_b(1);
+
+  ble_advertiser_a.StartAdvertising(
+      std::string(kServiceIDA), advertisement_bytes_a, PowerLevel::kHighPower,
+      /*is_fast_advertisement=*/false);
+  ble_advertiser_b.StartAdvertising(
+      std::string(kServiceIDB), advertisement_bytes_b, PowerLevel::kHighPower,
+      /*is_fast_advertisement=*/false);
+
+  ble_scanner.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch_a](BleV2Peripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement) {
+                EXPECT_EQ(service_id, kServiceIDA);
+                EXPECT_FALSE(fast_advertisement);
+                found_latch_a.CountDown();
+              },
+      });
+
+  ble_scanner.StartScanning(
+      std::string(kServiceIDB), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch_b](BleV2Peripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement) {
+                EXPECT_EQ(service_id, kServiceIDB);
+                EXPECT_FALSE(fast_advertisement);
+                found_latch_b.CountDown();
+              },
+      });
+
+  EXPECT_TRUE(found_latch_a.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch_b.Await(kWaitDuration).result());
+  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDB)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_scanner;
+  BluetoothRadio radio_advertiser_a;
+  BluetoothRadio radio_advertiser_b;
+  BleV2 ble_scanner(radio_scanner);
+  BleV2 ble_advertiser_a(radio_advertiser_a);
+  BleV2 ble_advertiser_b(radio_advertiser_b);
+  radio_scanner.Enable();
+  radio_advertiser_a.Enable();
+  radio_advertiser_b.Enable();
+  ByteArray advertisement_bytes_a((std::string(kAdvertisementString)));
+  ByteArray advertisement_bytes_b((std::string(kAdvertisementStringB)));
+  CountDownLatch found_latch_a(1);
+  CountDownLatch found_latch_b(1);
+  CountDownLatch lost_latch_a(1);
+  CountDownLatch lost_latch_b(1);
+
+  ble_advertiser_a.StartAdvertising(
+      std::string(kServiceIDA), advertisement_bytes_a, PowerLevel::kHighPower,
+      /*is_fast_advertisement=*/false);
+  ble_advertiser_b.StartAdvertising(
+      std::string(kServiceIDB), advertisement_bytes_b, PowerLevel::kHighPower,
+      /*is_fast_advertisement=*/false);
+
+  ble_scanner.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch_a](BleV2Peripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement) {
+                EXPECT_EQ(service_id, kServiceIDA);
+                EXPECT_FALSE(fast_advertisement);
+                found_latch_a.CountDown();
+              },
+          .peripheral_lost_cb =
+              [&lost_latch_a](BleV2Peripheral peripheral,
+                              const std::string& service_id,
+                              const ByteArray& advertisement_bytes,
+                              bool fast_advertisement) {
+                EXPECT_EQ(service_id, kServiceIDA);
+                EXPECT_FALSE(fast_advertisement);
+                lost_latch_a.CountDown();
+              },
+      });
+
+  ble_scanner.StartScanning(
+      std::string(kServiceIDB), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch_b](BleV2Peripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement) {
+                EXPECT_EQ(service_id, kServiceIDB);
+                EXPECT_FALSE(fast_advertisement);
+                found_latch_b.CountDown();
+              },
+          .peripheral_lost_cb =
+              [&lost_latch_b](BleV2Peripheral peripheral,
+                              const std::string& service_id,
+                              const ByteArray& advertisement_bytes,
+                              bool fast_advertisement) {
+                EXPECT_EQ(service_id, kServiceIDB);
+                EXPECT_FALSE(fast_advertisement);
+                lost_latch_b.CountDown();
+              },
+      });
+
+  EXPECT_TRUE(found_latch_a.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch_b.Await(kWaitDuration).result());
+
+  EXPECT_TRUE(ble_advertiser_a.StopAdvertising(std::string(kServiceIDA)));
+
+  // Wait for a while (2 times delay) to let the alarm occur twice and
+  // `ProcessLostGattAdvertisements` twice to lost periperal.
+  SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
+
+  EXPECT_TRUE(lost_latch_a.Await(kWaitDuration).result());
+
+  EXPECT_TRUE(ble_advertiser_b.StopAdvertising(std::string(kServiceIDB)));
+
+  // Wait for a while (2 times delay) to let the alarm occur twice and
+  // `ProcessLostGattAdvertisements` twice to lost periperal.
+  SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
+
+  EXPECT_TRUE(lost_latch_b.Await(kWaitDuration).result());
+
+  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDB)));
   env_.Stop();
 }
 

@@ -57,6 +57,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:types",
         "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
         "@com_google_absl//absl/container:btree",
@@ -64,6 +65,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",

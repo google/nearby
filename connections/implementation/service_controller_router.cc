@@ -31,6 +31,7 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
 // TODO(b/285657711): Add tests for uncovered logic, even if trivial.
@@ -97,6 +98,10 @@ ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2,
         enable_ble_v2);
+    // CrOS uses the async methods for Scanning and Advertising, and has
+    // no support for the sync version of those methods.
+    const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
+      .SetFlags({.enable_ble_v2_async_scanning_advertising = true});
   }
 }
 

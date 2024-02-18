@@ -62,6 +62,9 @@ class FeatureFlags {
     // requested service id before attempting to connect over rfcomm. SDP fails
     // on Windows when connecting to FP service id but the rfcomm is successful.
     bool skip_service_discovery_before_connecting_to_rfcomm = false;
+    // Controls enable or disable the use of async methods for StartScanning,
+    // StopScanning, StartAdvertising, and StopAdvertising for BLE V2.
+    bool enable_ble_v2_async_scanning_advertising = false;
 
     std::int32_t min_nc_version_supports_safe_to_disconnect = 1;
     std::int32_t min_nc_version_supports_auto_reconnect = 3;

@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
@@ -33,8 +34,11 @@
 #include "connections/implementation/mediums/utils.h"
 #include "connections/power_level.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -61,8 +65,17 @@ BleV2::BleV2(BluetoothRadio& radio)
 
 BleV2::~BleV2() {
   // Destructor is not taking locks, but methods it is calling are.
-  while (!scanned_service_ids_.empty()) {
-    StopScanning(*scanned_service_ids_.begin());
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_ble_v2_async_scanning_advertising) {
+    // If using asynchronous scanning, check the corresponding map.
+    while (!service_ids_to_scanning_sessions_.empty()) {
+      StopScanning(service_ids_to_scanning_sessions_.begin()->first);
+    }
+  } else {
+    while (!scanned_service_ids_.empty()) {
+      StopScanning(*scanned_service_ids_.begin());
+    }
   }
   while (!advertising_infos_.empty()) {
     StopAdvertising(advertising_infos_.begin()->first);
@@ -249,6 +262,12 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
       service_id, std::move(callback),
       mediums::bleutils::kCopresenceServiceUuid);
 
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_ble_v2_async_scanning_advertising) {
+    return StartAsyncScanningLocked(service_id, power_level);
+  }
+
   // Check if scan has been activated, if yes, no need to notify client
   // to scan again.
   if (!scanned_service_ids_.empty()) {
@@ -320,6 +339,11 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
 
 bool BleV2::StopScanning(const std::string& service_id) {
   MutexLock lock(&mutex_);
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_ble_v2_async_scanning_advertising) {
+    return StopAsyncScanningLocked(service_id);
+  }
 
   if (!IsScanningLocked(service_id)) {
     NEARBY_LOGS(INFO) << "Can't turn off BLE scanning because we never "
@@ -329,6 +353,7 @@ bool BleV2::StopScanning(const std::string& service_id) {
 
   discovered_peripheral_tracker_.StopTracking(service_id);
   NEARBY_LOGS(INFO) << "Turned off BLE scanning with service id=" << service_id;
+
   scanned_service_ids_.erase(service_id);
 
   // If still has scanner, don't stop the client scanning.
@@ -506,6 +531,13 @@ bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
 }
 
 bool BleV2::IsScanningLocked(const std::string& service_id) const {
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_ble_v2_async_scanning_advertising) {
+    // If using asynchronous scanning, check the corresponding map.
+    auto it = service_ids_to_scanning_sessions_.find(service_id);
+    return it != service_ids_to_scanning_sessions_.end();
+  }
   return scanned_service_ids_.contains(service_id);
 }
 
@@ -885,6 +917,121 @@ bool BleV2::StartGattAdvertisingLocked(
     return false;
   }
 
+  return true;
+}
+
+bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,
+                                     PowerLevel power_level) {
+  CHECK(FeatureFlags::GetInstance()
+            .GetFlags()
+            .enable_ble_v2_async_scanning_advertising);
+
+  // Use the asynchronous StartScanning method instead of the synchronous one.
+  // Note: using FeatureFlags instead of NearbyFlags as there is no Mendel
+  // experiment associated with this change, which was driven by ChromeOS.
+
+  // Should we check if the map is not empty, and forego scanning if true?
+  // If so, do we store a nullptr instead of a scanning session ptr?
+
+  auto scanning_session = medium_.StartScanning(
+      mediums::bleutils::kCopresenceServiceUuid,
+      PowerLevelToTxPowerLevel(power_level),
+      api::ble_v2::BleMedium::ScanningCallback{
+          .start_scanning_result =
+              [this, &service_id](absl::Status status) mutable {
+                // The `mutex_` is already held here. Use
+                // `AssumeHeld` to tell the thread
+                // annotation static analysis that
+                // `mutex_` is already exclusively
+                // locked.
+                // Note: unsure if this is always the case, but when I
+                // attempted to acquire the lock here I hit a deadlock.
+                AssumeHeld(mutex_);
+                if (status.ok()) {
+                  NEARBY_LOGS(INFO) << "BLE V2 async StartScanning started "
+                                       "successfully for service ID"
+                                    << &service_id;
+                } else {
+                  NEARBY_LOGS(ERROR) << "BLE V2 async StartScanning "
+                                        "failed for service ID"
+                                     << &service_id << ": " << status;
+                  service_ids_to_scanning_sessions_.erase(service_id);
+                }
+              },
+          .advertisement_found_cb =
+              [this](api::ble_v2::BlePeripheral& peripheral,
+                     BleAdvertisementData advertisement_data) {
+                RunOnBleThread([this, &peripheral, advertisement_data]() {
+                  MutexLock lock(&mutex_);
+                  BleV2Peripheral proxy(medium_, peripheral);
+                  discovered_peripheral_tracker_.ProcessFoundBleAdvertisement(
+                      std::move(proxy), advertisement_data,
+                      [this](BleV2Peripheral proxy, int num_slots, int psm,
+                             const std::vector<std::string>&
+                                 interesting_service_ids,
+                             mediums::AdvertisementReadResult&
+                                 advertisement_read_result) {
+                        // The `mutex_` is already held here. Use
+                        // `AssumeHeld` to tell the thread
+                        // annotation static analysis that
+                        // `mutex_` is already exclusively
+                        // locked.
+                        AssumeHeld(mutex_);
+                        ProcessFetchGattAdvertisementsRequest(
+                            std::move(proxy), num_slots, psm,
+                            interesting_service_ids, advertisement_read_result);
+                      });
+                });
+              },
+      });
+  service_ids_to_scanning_sessions_.insert(
+      {std::string(service_id), std::move(scanning_session)});
+  NEARBY_LOGS(INFO) << "Requested to start BLE scanning with service id="
+                    << service_id << " size "
+                    << service_ids_to_scanning_sessions_.size();
+
+  if (lost_alarm_ != nullptr && lost_alarm_->IsValid()) {
+    // We only use one lost alarm, which will check all service IDs for lost
+    // advertisements.
+    return true;
+  }
+
+  absl::Duration peripheral_lost_timeout =
+      absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_connections_feature::
+              kBlePeripheralLostTimeoutMillis));
+  // Set up lost alarm.
+  lost_alarm_ = std::make_unique<CancelableAlarm>(
+      "BLE.StartScanning() onLost",
+      [this]() {
+        MutexLock lock(&mutex_);
+        discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+      },
+      peripheral_lost_timeout, &alarm_executor_, /*is_recurring=*/true);
+  return true;
+}
+
+bool BleV2::StopAsyncScanningLocked(absl::string_view service_id) {
+  CHECK(FeatureFlags::GetInstance()
+            .GetFlags()
+            .enable_ble_v2_async_scanning_advertising);
+  // If using asynchronous scanning, check the corresponding map.
+  auto scanning_session = service_ids_to_scanning_sessions_.find(service_id);
+  if (scanning_session == service_ids_to_scanning_sessions_.end()) {
+    NEARBY_LOGS(INFO) << "Can't turn off async BLE scanning because we never "
+                         "started scanning for this service ID.";
+    return false;
+  }
+  absl::Status status = scanning_session->second->stop_scanning();
+  if (!status.ok()) {
+    NEARBY_LOGS(WARNING) << "StopAsyncScanningLocked error: " << status;
+  }
+  service_ids_to_scanning_sessions_.erase(scanning_session);
+
+  NEARBY_LOGS(INFO) << "Turned off BLE client scanning";
+  if (lost_alarm_->IsValid()) {
+    lost_alarm_->Cancel();
+  }
   return true;
 }
 

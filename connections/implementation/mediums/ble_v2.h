@@ -182,6 +182,13 @@ class BleV2 final {
                                   const ByteArray& medium_advertisement_bytes,
                                   bool extended_advertisement_advertised)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Called by StartScanning when using the async methods.
+  bool StartAsyncScanningLocked(absl::string_view service_id,
+                                PowerLevel power_level)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Called by StartScanning when using the async methods.
+  bool StopAsyncScanningLocked(absl::string_view service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   api::ble_v2::TxPowerLevel PowerLevelToTxPowerLevel(PowerLevel power_level);
 
@@ -204,6 +211,11 @@ class BleV2 final {
   absl::flat_hash_set<api::ble_v2::GattCharacteristic>
       hosted_gatt_characteristics_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::string> scanned_service_ids_ ABSL_GUARDED_BY(mutex_);
+  // This map has the same purpose as the set above, but is used only by
+  // the async StartScanning method.
+  absl::flat_hash_map<std::string,
+                      std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>>
+      service_ids_to_scanning_sessions_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<CancelableAlarm> lost_alarm_;
   mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
       ABSL_GUARDED_BY(mutex_){medium_.IsExtendedAdvertisementsAvailable()};
