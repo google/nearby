@@ -14,7 +14,6 @@
 
 #include "presence/implementation/credential_manager_impl.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,6 +24,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -123,15 +123,48 @@ class CredentialManagerImplTest : public ::testing::Test {
   void AddLocalIdentity(absl::string_view manager_app_id,
                         absl::string_view account_name,
                         IdentityType identity_type) {
-    Metadata metadata = CreateTestMetadata(account_name);
-
-    credential_manager_.GenerateCredentials(
-        metadata, manager_app_id, {identity_type},
+    auto public_credentials = GenerateCredentialsSync(
+        CreateTestMetadata(account_name), manager_app_id, {identity_type},
         /*credential_life_cycle_days=*/kExpectedPresenceCredentialValidDays,
-        /*contigous_copy_of_credentials=*/1,
-        {[](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-          EXPECT_OK(credentials);
-        }});
+        /*contiguous_copy_of_credentials=*/1);
+    EXPECT_OK(public_credentials);
+  }
+
+  absl::StatusOr<std::vector<SharedCredential>> GenerateCredentialsSync(
+      const Metadata& metadata, absl::string_view manager_app_id,
+      const std::vector<IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials) {
+    absl::StatusOr<std::vector<SharedCredential>> public_credentials;
+
+    CountDownLatch latch(1);
+    credential_manager_.GenerateCredentials(
+        metadata, manager_app_id, identity_types, credential_life_cycle_days,
+        contiguous_copy_of_credentials,
+        {.credentials_generated_cb =
+             [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
+               public_credentials = credentials;
+               latch.CountDown();
+             }});
+    EXPECT_TRUE(latch.Await().Ok());
+
+    return public_credentials;
+  }
+
+  std::vector<LocalCredential> GetLocalCredentialsSync(
+      CredentialSelector credential_selector) {
+    auto private_credentials = credential_manager_.GetLocalCredentialsSync(
+        credential_selector, absl::Seconds(1));
+    EXPECT_TRUE(private_credentials.ok());
+    return private_credentials.GetResult();
+  }
+
+  std::vector<SharedCredential> GetPublicCredentialsSync(
+      CredentialSelector credential_selector,
+      PublicCredentialType public_credential_type) {
+    auto public_credentials = credential_manager_.GetPublicCredentialsSync(
+        credential_selector, public_credential_type, absl::Seconds(1));
+    EXPECT_TRUE(public_credentials.ok());
+    return public_credentials.GetResult();
   }
 
  protected:
@@ -192,21 +225,17 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
 
 TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
   Metadata metadata = CreateTestMetadata();
-  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
   absl::Time previous_start_time;
   absl::Time previous_end_time;
 
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identityTypes,
-      kExpectedPresenceCredentialValidDays, kExpectedPresenceCredentialListSize,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             public_credentials = std::move(credentials);
-           }});
-
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identityTypes,
+                              kExpectedPresenceCredentialValidDays,
+                              kExpectedPresenceCredentialListSize);
   EXPECT_OK(public_credentials);
   EXPECT_EQ(public_credentials->size(), kExpectedPresenceCredentialListSize);
+
   for (int i = 0; i < kExpectedPresenceCredentialListSize; i++) {
     SharedCredential& public_credential = public_credentials->at(i);
     EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
@@ -327,16 +356,12 @@ TEST_F(CredentialManagerImplTest,
           }));
   credential_manager_ =
       CredentialManagerImpl(&executor_, std::move(credential_storage_ptr));
-  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
 
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identityTypes,
-      kExpectedPresenceCredentialValidDays, kExpectedPresenceCredentialListSize,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             public_credentials = std::move(credentials);
-           }});
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identityTypes,
+                              kExpectedPresenceCredentialValidDays,
+                              kExpectedPresenceCredentialListSize);
   EXPECT_THAT(public_credentials,
               StatusIs(absl::StatusCode::kFailedPrecondition));
 }
@@ -433,41 +458,33 @@ TEST_F(CredentialManagerImplTest, GetPublicCredentialsFailed) {
   absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
+  CountDownLatch latch(1);
   credential_manager_.GetPublicCredentials(
       credential_selector, PublicCredentialType::kLocalPublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
+             latch.CountDown();
            }});
+  EXPECT_TRUE(latch.Await().Ok());
 
   EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kNotFound));
 }
 
 TEST_F(CredentialManagerImplTest, GetCredentialsSuccessfully) {
   Metadata metadata = CreateTestMetadata();
-  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
-  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identity_types,
-      kExpectedPresenceCredentialValidDays, kExpectedPresenceCredentialListSize,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             public_credentials = std::move(credentials);
-           }});
-  credential_manager_.GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
-             private_credentials = std::move(credentials);
-           }});
-
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identity_types,
+                              kExpectedPresenceCredentialValidDays,
+                              kExpectedPresenceCredentialListSize);
   EXPECT_OK(public_credentials);
   EXPECT_EQ(public_credentials->size(), kExpectedPresenceCredentialListSize);
-  EXPECT_OK(private_credentials);
-  EXPECT_FALSE(private_credentials->empty());
+
+  auto private_credentials = GetLocalCredentialsSync(credential_selector);
+  EXPECT_FALSE(private_credentials.empty());
 }
 
 TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
@@ -483,13 +500,16 @@ TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
              absl::string_view metadata_string) { return ""; }));
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
 
+  CountDownLatch latch(1);
   credential_manager_ptr->GenerateCredentials(
       metadata, kManagerAppId, identity_types,
       kExpectedPresenceCredentialValidDays, 1,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
+             latch.CountDown();
            }});
+  EXPECT_TRUE(latch.Await().Ok());
 
   EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kInvalidArgument));
 }
@@ -499,33 +519,23 @@ TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
   constexpr uint16_t kSalt = 1000;
   absl::Status update_status = absl::UnknownError("");
   Metadata metadata = CreateTestMetadata();
-  absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
-      public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE,
                                            IDENTITY_TYPE_TRUSTED};
-  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
-  absl::StatusOr<std::vector<LocalCredential>> modified_private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identity_types,
-      kExpectedPresenceCredentialValidDays, kExpectedPresenceCredentialListSize,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
-                   credentials) {
-             public_credentials = std::move(credentials);
-           }});
-  credential_manager_.GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
-             private_credentials = std::move(credentials);
-           }});
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identity_types,
+                              kExpectedPresenceCredentialValidDays,
+                              kExpectedPresenceCredentialListSize);
+
+  auto private_credentials = GetLocalCredentialsSync(credential_selector);
+  EXPECT_EQ(kExpectedPresenceCredentialListSize, private_credentials.size());
+
   ASSERT_OK(public_credentials);
-  ASSERT_OK(private_credentials);
-  EXPECT_EQ(private_credentials->size(), kExpectedPresenceCredentialListSize);
 
   // Modify a private credential
-  LocalCredential& credential = private_credentials->at(kSelectedCredentialId);
+  auto credential = private_credentials.at(kSelectedCredentialId);
+  EXPECT_TRUE(
+      private_credentials.at(kSelectedCredentialId).consumed_salts().empty());
   credential.mutable_consumed_salts()->insert({kSalt, true});
 
   credential_manager_.UpdateLocalCredential(
@@ -534,16 +544,13 @@ TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
 
   EXPECT_OK(update_status);
 
-  // verify modified content
-  credential_manager_.GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
-             modified_private_credentials = std::move(credentials);
-           }});
-  ASSERT_OK(modified_private_credentials);
-  EXPECT_THAT(*modified_private_credentials,
-              UnorderedPointwise(EqualsProto(), *private_credentials));
+  // Verify that the modified credential has the new field in the new
+  // retrieved list of credentials.
+  auto modified_private_credentials =
+      GetLocalCredentialsSync(credential_selector);
+  EXPECT_TRUE(modified_private_credentials.at(kSelectedCredentialId)
+                  .consumed_salts()
+                  .at(kSalt));
 }
 
 TEST_F(CredentialManagerImplTest, ParseAndroidSharedCredential) {
@@ -579,84 +586,53 @@ TEST_F(CredentialManagerImplTest, ParseAndroidSharedCredential) {
   EXPECT_THAT(metadata, EqualsProto(expected_metadata));
 }
 
-TEST_F(CredentialManagerImplTest, RefillCredentailInGetLocalCredentials) {
+TEST_F(CredentialManagerImplTest, RefillCredentialsInGetLocalCredentials) {
   Metadata metadata = CreateTestMetadata();
-  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
-  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identity_types,
-      kExpectedPresenceCredentialValidDays, 1,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             public_credentials = std::move(credentials);
-           }});
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identity_types,
+                              kExpectedPresenceCredentialValidDays, 1);
 
   EXPECT_OK(public_credentials);
-  EXPECT_EQ(public_credentials->size(), 1);
+  EXPECT_EQ(1, public_credentials->size());
 
   // only generate 1 creds, expecting GetLocal would trigger refill to
   // kExpectedPresenceCredentialListSize.
-  credential_manager_.GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
-             private_credentials = std::move(credentials);
-           }});
-
-  EXPECT_OK(private_credentials);
-  EXPECT_EQ(private_credentials->size(), kExpectedPresenceCredentialListSize);
+  auto private_credentials = GetLocalCredentialsSync(credential_selector);
+  EXPECT_EQ(kExpectedPresenceCredentialListSize, private_credentials.size());
 }
 
-TEST_F(CredentialManagerImplTest, RefillCredentailInGetSharedCredentials) {
+TEST_F(CredentialManagerImplTest, RefillCredentialsInGetSharedCredentials) {
   Metadata metadata = CreateTestMetadata();
-  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
-  absl::StatusOr<std::vector<SharedCredential>> refilled_public_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identity_types,
-      kExpectedPresenceCredentialValidDays, 1,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             public_credentials = std::move(credentials);
-           }});
-
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identity_types,
+                              kExpectedPresenceCredentialValidDays, 1);
   EXPECT_OK(public_credentials);
-  EXPECT_EQ(public_credentials->size(), 1);
+  EXPECT_EQ(1, public_credentials->size());
 
   // Only generated 1 creds, expecting GetPublicCredentials for
   // kLocalPublicCredential type would trigger refill to
   // kExpectedPresenceCredentialListSize.
-  credential_manager_.GetPublicCredentials(
-      credential_selector, PublicCredentialType::kLocalPublicCredential,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             refilled_public_credentials = std::move(credentials);
-           }});
-
-  EXPECT_OK(refilled_public_credentials);
-  EXPECT_EQ(refilled_public_credentials->size(),
-            kExpectedPresenceCredentialListSize);
+  auto refilled_public_credentials = GetPublicCredentialsSync(
+      credential_selector, PublicCredentialType::kLocalPublicCredential);
+  EXPECT_EQ(kExpectedPresenceCredentialListSize,
+            refilled_public_credentials.size());
 }
 
 TEST_F(CredentialManagerImplTest, RefillExpiredCredsInGetLocal) {
   Metadata metadata = CreateTestMetadata();
-  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
-  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager_.GenerateCredentials(
-      metadata, kManagerAppId, identity_types,
-      kExpectedPresenceCredentialValidDays, kExpectedPresenceCredentialListSize,
-      {.credentials_generated_cb =
-           [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
-             public_credentials = std::move(credentials);
-           }});
+  auto public_credentials =
+      GenerateCredentialsSync(metadata, kManagerAppId, identity_types,
+                              kExpectedPresenceCredentialValidDays,
+                              kExpectedPresenceCredentialListSize);
 
   ASSERT_OK(public_credentials);
   EXPECT_EQ(public_credentials->size(), kExpectedPresenceCredentialListSize);
@@ -664,55 +640,39 @@ TEST_F(CredentialManagerImplTest, RefillExpiredCredsInGetLocal) {
   // Now generated kExpectedPresenceCredentialListSize valid creds, read out the
   // local creds list, then manually update the first credential's end time to
   // make it expired.
-  credential_manager_.GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
-             private_credentials = std::move(credentials);
-           }});
+  auto private_credentials = GetLocalCredentialsSync(credential_selector);
+  EXPECT_EQ(kExpectedPresenceCredentialListSize, private_credentials.size());
 
-  ASSERT_OK(private_credentials);
-  EXPECT_EQ(private_credentials->size(), kExpectedPresenceCredentialListSize);
-
-  LocalCredential expiring_local_credential = private_credentials->at(0);
-
+  auto expiring_local_credential = private_credentials.at(0);
   expiring_local_credential.set_end_time_millis(
       absl::ToUnixMillis(absl::Now() - absl::Hours(1)));
 
   CountDownLatch update_local_cred_latch(1);
-
   credential_manager_.UpdateLocalCredential(
       credential_selector, expiring_local_credential,
       {
           .credentials_saved_cb =
               [&](absl::Status status) {
-                if (status.ok()) {
-                  update_local_cred_latch.CountDown();
-                }
+                EXPECT_OK(status);
+                update_local_cred_latch.CountDown();
               },
       });
   EXPECT_TRUE(update_local_cred_latch.Await().Ok());
 
-  absl::StatusOr<std::vector<LocalCredential>> refilled_private_credentials;
-  credential_manager_.GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
-             refilled_private_credentials = std::move(credentials);
-           }});
+  auto refilled_private_credentials =
+      GetLocalCredentialsSync(credential_selector);
+  EXPECT_EQ(kExpectedPresenceCredentialListSize,
+            refilled_private_credentials.size());
 
-  EXPECT_OK(refilled_private_credentials);
-  EXPECT_EQ(refilled_private_credentials->size(),
-            kExpectedPresenceCredentialListSize);
   // Verifying the expired one private_credentials->at(0) is pruned in the new
   // list.
-  EXPECT_EQ(private_credentials->at(1).secret_id(),
-            refilled_private_credentials->at(0).secret_id());
+  EXPECT_EQ(private_credentials.at(1).secret_id(),
+            refilled_private_credentials.at(0).secret_id());
   // Verifying the new generated cred's start time is the same as previously
-  // exisiting list's last cred's end time.
+  // existing list's last cred's end time.
   EXPECT_EQ(
-      private_credentials->at(5).end_time_millis(),
-      refilled_private_credentials->at(kExpectedPresenceCredentialListSize - 1)
+      private_credentials.at(5).end_time_millis(),
+      refilled_private_credentials.at(kExpectedPresenceCredentialListSize - 1)
           .start_time_millis());
 }
 

@@ -323,35 +323,35 @@ std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
 void CredentialManagerImpl::GetLocalCredentials(
     const CredentialSelector& credential_selector,
     GetLocalCredentialsResultCallback callback) {
-  CountDownLatch get_local_credentials_latch(1);
-  absl::StatusOr<std::vector<LocalCredential>> get_local_credentials_result;
   credential_storage_ptr_->GetLocalCredentials(
       credential_selector,
       GetLocalCredentialsResultCallback{
           .credentials_fetched_cb =
-              [get_local_credentials_latch, &get_local_credentials_result](
+              [this, credential_selector, callback = std::move(callback)](
                   absl::StatusOr<std::vector<LocalCredential>>
-                      credentials) mutable {
-                get_local_credentials_result = std::move(credentials);
-                get_local_credentials_latch.CountDown();
+                      get_local_credentials_result) mutable {
+                if (!get_local_credentials_result.ok()) {
+                  callback.credentials_fetched_cb(
+                      get_local_credentials_result.status());
+                  return;
+                }
+
+                RunOnServiceControllerThread(
+                    "GetLocalCredentials-CheckCredentialsAndRefillIfNeeded",
+                    [this, credential_selector, get_local_credentials_result,
+                     callback = std::move(callback)]()
+                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+                          CheckCredentialsAndRefillIfNeeded(
+                              credential_selector,
+                              /* credentials_list_variant */
+                              &get_local_credentials_result.value(),
+                              /* callback_for_local_credentials */
+                              std::move(callback),
+                              /* callback_for_shared_credentials */
+                              std::nullopt);
+                        });
               },
       });
-  if (!WaitForLatch("GetLocalCredentials", &get_local_credentials_latch)) {
-    NEARBY_LOGS(INFO) << "Failed in awaiting GetLocalCredentials";
-    callback.credentials_fetched_cb(
-        absl::DeadlineExceededError("Failed in awaiting GetLocalCredentials"));
-    return;
-  }
-  if (!get_local_credentials_result.ok()) {
-    callback.credentials_fetched_cb(get_local_credentials_result.status());
-    return;
-  }
-
-  CheckCredentialsAndRefillIfNeeded(
-      credential_selector,
-      /* cal_credentials_list_variant */ &get_local_credentials_result.value(),
-      /* callback_for_local_credentials */ std::move(callback),
-      /* callback_for_shared_credentials */ std::nullopt);
 }
 
 void CredentialManagerImpl::GetPublicCredentials(
@@ -365,35 +365,34 @@ void CredentialManagerImpl::GetPublicCredentials(
     return;
   }
 
-  CountDownLatch get_shared_credentials_latch(1);
-  absl::StatusOr<std::vector<SharedCredential>> get_shared_credentials_result;
   credential_storage_ptr_->GetPublicCredentials(
       credential_selector, public_credential_type,
       GetPublicCredentialsResultCallback{
           .credentials_fetched_cb =
-              [get_shared_credentials_latch, &get_shared_credentials_result](
+              [this, credential_selector, callback = std::move(callback)](
                   absl::StatusOr<std::vector<SharedCredential>>
-                      credentials) mutable {
-                get_shared_credentials_result = std::move(credentials);
-                get_shared_credentials_latch.CountDown();
+                      get_shared_credentials_result) mutable {
+                if (!get_shared_credentials_result.ok()) {
+                  callback.credentials_fetched_cb(
+                      get_shared_credentials_result.status());
+                  return;
+                }
+
+                RunOnServiceControllerThread(
+                    "GetPublicCredentials-CheckCredentialsAndRefillIfNeeded",
+                    [this, credential_selector, get_shared_credentials_result,
+                     callback = std::move(callback)]()
+                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+                          CheckCredentialsAndRefillIfNeeded(
+                              credential_selector,
+                              /* credentials_list_variant */
+                              &get_shared_credentials_result.value(),
+                              /* callback_for_local_credentials */ std::nullopt,
+                              /* callback_for_shared_credentials */
+                              std::move(callback));
+                        });
               },
       });
-  if (!WaitForLatch("GetSharedCredentials", &get_shared_credentials_latch)) {
-    NEARBY_LOGS(INFO) << "Failed in awaiting GetSharedCredentials";
-    callback.credentials_fetched_cb(
-        absl::DeadlineExceededError("Failed in awaiting GetsharedCredentials"));
-    return;
-  }
-  if (!get_shared_credentials_result.ok()) {
-    callback.credentials_fetched_cb(get_shared_credentials_result.status());
-    return;
-  }
-
-  CheckCredentialsAndRefillIfNeeded(
-      credential_selector,
-      /* credentials_list_variant */ &get_shared_credentials_result.value(),
-      /* callback_for_local_credentials */ std::nullopt,
-      /* callback_for_shared_credentials */ std::move(callback));
 }
 
 ExceptionOr<std::vector<LocalCredential>>
@@ -432,6 +431,9 @@ CredentialManagerImpl::GetPublicCredentialsSync(
   return result.Get(timeout);
 }
 
+// TODO(b/326063431): The intent of this method is likely for
+// GetPublicCredentials() to be called after the AddSubscriber() calls, but
+// it's unlikely that this is happening on a real device. Manually verify.
 SubscriberId CredentialManagerImpl::SubscribeForPublicCredentials(
     const CredentialSelector& credential_selector,
     PublicCredentialType public_credential_type,
