@@ -1,21 +1,12 @@
 licenses(["notice"])
 
 cc_library(
-    name = "types",
+    name = "url",
     srcs = [
-        "http_request.cc",
-        "http_response.cc",
-        "http_status_code.cc",
         "url.cc",
         "utils.cc",
     ],
     hdrs = [
-        "http_body.h",
-        "http_client.h",
-        "http_client_factory.h",
-        "http_request.h",
-        "http_response.h",
-        "http_status_code.h",
         "url.h",
         "utils.h",
     ],
@@ -27,6 +18,36 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "types",
+    srcs = [
+        "http_request.cc",
+        "http_response.cc",
+        "http_status_code.cc",
+    ],
+    hdrs = [
+        "http_body.h",
+        "http_client.h",
+        "http_client_factory.h",
+        "http_request.h",
+        "http_response.h",
+        "http_status_code.h",
+    ],
+    visibility = [
+        "//fastpair:__subpackages__",
+        "//internal:__pkg__",
+        "//internal:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+    deps = [
+        ":url",
         "//internal/platform:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -83,9 +104,10 @@ cc_test(
     deps = [
         ":nearby_http_client",
         ":types",
+        ":url",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
-        "//internal/platform/implementation/g3",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",

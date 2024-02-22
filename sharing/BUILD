@@ -45,7 +45,7 @@ cc_library(
     deps = [
         "//internal/crypto_cros",
         "//internal/interop:authentication_status",
-        "//internal/network:types",
+        "//internal/network:url",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/internal/base",
@@ -136,7 +136,7 @@ cc_library(
         "//internal/base",
         "//internal/base:bluetooth_address",
         "//internal/flags:nearby_flags",
-        "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
@@ -250,6 +250,7 @@ cc_test(
         "//internal/analytics:event_logger",
         "//internal/flags:nearby_flags",
         "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",

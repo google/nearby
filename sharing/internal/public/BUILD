@@ -22,7 +22,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform:types",
         "//sharing/internal/api:platform",
         "@com_google_absl//absl/status",
@@ -44,7 +44,7 @@ cc_library(
     deps = [
         ":logging",
         ":types",
-        "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform:types",
         "//sharing/internal/api:platform",
         "@com_google_absl//absl/container:flat_hash_map",

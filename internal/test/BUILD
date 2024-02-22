@@ -75,6 +75,7 @@ cc_test(
     deps = [
         ":test",
         "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep

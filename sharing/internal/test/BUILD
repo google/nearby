@@ -39,7 +39,7 @@ cc_library(
     deps = [
         "//internal/base",
         "//internal/base:bluetooth_address",
-        "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform:types",
         "//internal/test",
         "//sharing/internal/api:platform",
