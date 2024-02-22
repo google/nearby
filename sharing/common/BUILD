@@ -21,7 +21,6 @@ cc_library(
         "nearby_share_switches.cc",
     ],
     hdrs = [
-        "nearby_share_enums.h",
         "nearby_share_prefs.h",
         "nearby_share_profile_info_provider.h",
         "nearby_share_switches.h",
@@ -52,14 +51,9 @@ cc_library(
 
 cc_library(
     name = "enum",
-    srcs = [
-    ],
-    hdrs = [
-        "nearby_share_enums.h",
-    ],
+    hdrs = ["nearby_share_enums.h"],
     visibility = ["//visibility:public"],
-    deps = [
-    ],
+    deps = [],
 )
 
 cc_library(

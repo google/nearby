@@ -29,7 +29,7 @@ cc_library(
         "//internal/analytics:event_logger",
         "//proto:sharing_enums_cc_proto",
         "//sharing:types",
-        "//sharing/common",
+        "//sharing/common:enum",
         "//sharing/internal/public:logging",
         "//sharing/proto:share_cc_proto",
         "//sharing/proto/analytics:sharing_log_cc_proto",
@@ -49,7 +49,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//proto:sharing_enums_cc_proto",
         "//sharing:types",
-        "//sharing/common",
+        "//sharing/common:enum",
         "//sharing/proto:share_cc_proto",
         "//sharing/proto/analytics:sharing_log_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
