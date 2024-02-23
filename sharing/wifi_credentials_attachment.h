@@ -55,7 +55,6 @@ class WifiCredentialsAttachment : public Attachment {
   SecurityType security_type() const { return security_type_; }
   absl::string_view password() const { return password_; }
   bool is_hidden() const { return is_hidden_; }
-  SourceType source_type() const { return source_type_; }
 
   // Attachment:
   void MoveToShareTarget(ShareTarget& share_target) override;
@@ -70,7 +69,6 @@ class WifiCredentialsAttachment : public Attachment {
   SecurityType security_type_;
   std::string password_;
   bool is_hidden_;
-  SourceType source_type_;
 };
 
 }  // namespace sharing

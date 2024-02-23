@@ -137,6 +137,16 @@ TextAttachment::TextAttachment(int64_t id, Type type, std::string text_title,
       type_(type),
       text_title_(std::move(text_title)) {}
 
+TextAttachment::TextAttachment(int64_t id, Type type, std::string text_body,
+                               std::string text_title, int64_t size,
+                               std::string mime_type, int32_t batch_id,
+                               SourceType source_type)
+    : Attachment(id, Attachment::Family::kText, size, batch_id, source_type),
+      type_(type),
+      text_title_(std::move(text_title)),
+      text_body_(std::move(text_body)),
+      mime_type_(std::move(mime_type)) {}
+
 void TextAttachment::MoveToShareTarget(ShareTarget& share_target) {
   share_target.text_attachments.push_back(std::move(*this));
 }
