@@ -441,19 +441,6 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
 bool P2pClusterPcpHandler::IsRecognizedBleEndpoint(
     const std::string& service_id,
     const BleAdvertisement& advertisement) const {
-  if (!advertisement.IsValid()) {
-    NEARBY_LOGS(INFO)
-        << "BleAdvertisement doesn't conform to the format, discarding.";
-    return false;
-  }
-
-  if (advertisement.GetVersion() != kBleAdvertisementVersion) {
-    NEARBY_LOGS(INFO) << "BleAdvertisement has an unknown version; expected "
-                      << static_cast<int>(kBleAdvertisementVersion)
-                      << ", found "
-                      << static_cast<int>(advertisement.GetVersion());
-    return false;
-  }
 
   if (advertisement.GetPcp() != GetPcp()) {
     NEARBY_LOGS(INFO) << "BleAdvertisement doesn't match on Pcp; expected "
@@ -499,8 +486,13 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
           return;
         }
 
-        // Parse the BLE advertisement bytes.
-        BleAdvertisement advertisement(fast_advertisement, advertisement_bytes);
+        auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
+            fast_advertisement, advertisement_bytes);
+        if (!ble_status_or.ok()) {
+          NEARBY_LOGS(ERROR) << ble_status_or.status().ToString();
+          return;
+        }
+        auto advertisement = ble_status_or.value();
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.
@@ -671,8 +663,13 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
           return;
         }
 
-        // Parse the BLE advertisement bytes.
-        BleAdvertisement advertisement(fast_advertisement, advertisement_bytes);
+        auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
+            fast_advertisement, advertisement_bytes);
+        if (!ble_status_or.ok()) {
+          NEARBY_LOGS(ERROR) << ble_status_or.status();
+          return;
+        }
+        auto advertisement = ble_status_or.value();
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.
@@ -761,8 +758,13 @@ void P2pClusterPcpHandler::BleV2PeripheralLostHandler(
           return;
         }
 
-        // Parse the BLE advertisement bytes.
-        BleAdvertisement advertisement(fast_advertisement, advertisement_bytes);
+        auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
+            fast_advertisement, advertisement_bytes);
+        if (!ble_status_or.ok()) {
+          NEARBY_LOGS(ERROR) << ble_status_or.status();
+          return;
+        }
+        auto advertisement = ble_status_or.value();
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.

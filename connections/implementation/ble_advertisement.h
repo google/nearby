@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_BLE_ADVERTISEMENT_H_
 #define CORE_INTERNAL_BLE_ADVERTISEMENT_H_
 
+#include "absl/status/statusor.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
 #include "internal/platform/bluetooth_utils.h"
@@ -77,8 +78,8 @@ class BleAdvertisement {
                    const ByteArray& endpoint_info,
                    const std::string& bluetooth_mac_address,
                    const ByteArray& uwb_address, WebRtcState web_rtc_state);
-  BleAdvertisement(bool fast_advertisement,
-                   const ByteArray& ble_advertisement_bytes);
+  static absl::StatusOr<BleAdvertisement> CreateBleAdvertisement(
+      bool fast_advertisement, const ByteArray& ble_advertisement_bytes);
   BleAdvertisement(const BleAdvertisement&) = default;
   BleAdvertisement& operator=(const BleAdvertisement&) = default;
   BleAdvertisement(BleAdvertisement&&) = default;
