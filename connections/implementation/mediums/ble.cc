@@ -423,12 +423,15 @@ BleSocket Ble::Connect(BlePeripheral& peripheral, const std::string& service_id,
 
 ByteArray Ble::UnwrapAdvertisementBytes(
     const ByteArray& medium_advertisement_data) {
-  mediums::BleAdvertisement medium_ble_advertisement{medium_advertisement_data};
-  if (!medium_ble_advertisement.IsValid()) {
-    return ByteArray{};
+  auto medium_ble_advertisement_status_or =
+      mediums::BleAdvertisement::CreateBleAdvertisement(
+          medium_advertisement_data);
+  if (!medium_ble_advertisement_status_or.ok()) {
+    NEARBY_LOGS(INFO) << medium_ble_advertisement_status_or.status().ToString();
+    return ByteArray();
   }
 
-  return medium_ble_advertisement.GetData();
+  return medium_ble_advertisement_status_or.value().GetData();
 }
 
 }  // namespace connections

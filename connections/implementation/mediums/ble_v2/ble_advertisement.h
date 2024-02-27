@@ -17,6 +17,7 @@
 
 #include <utility>
 
+#include "absl/status/statusor.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/byte_array.h"
 
@@ -73,7 +74,9 @@ class BleAdvertisement {
                    const ByteArray &service_id_hash, const ByteArray &data,
                    const ByteArray &device_token,
                    int psm = BleAdvertisementHeader::kDefaultPsmValue);
-  explicit BleAdvertisement(const ByteArray &ble_advertisement_bytes);
+
+  static absl::StatusOr<BleAdvertisement> CreateBleAdvertisement(
+      const ByteArray &ble_advertisement_bytes);
   BleAdvertisement(const BleAdvertisement &) = default;
   BleAdvertisement &operator=(const BleAdvertisement &) = default;
   BleAdvertisement(BleAdvertisement &&) = default;
@@ -128,8 +131,8 @@ class BleAdvertisement {
                     SocketVersion socket_version,
                     const ByteArray &service_id_hash, const ByteArray &data,
                     const ByteArray &device_token, int psm);
-  bool IsSupportedVersion(Version version) const;
-  bool IsSupportedSocketVersion(SocketVersion socket_version) const;
+  static bool IsSupportedVersion(Version version);
+  static bool IsSupportedSocketVersion(SocketVersion socket_version);
   void SerializeDataSize(bool fast_advertisement,
                          char *data_size_bytes_write_ptr,
                          size_t data_size) const;

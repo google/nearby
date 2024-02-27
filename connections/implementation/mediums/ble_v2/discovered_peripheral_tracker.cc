@@ -441,13 +441,14 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
   // TODO(edwinwu): Refactor this big loop as subroutines.
   for (const auto gatt_advertisement_bytes : gatt_advertisement_bytes_list) {
     // First, parse the raw bytes into a BleAdvertisement.
-    BleAdvertisement gatt_advertisement(*gatt_advertisement_bytes);
-    if (!gatt_advertisement.IsValid()) {
-      NEARBY_LOGS(INFO) << "Unable to parse raw GATT advertisement:"
-                        << absl::BytesToHexString(
-                               gatt_advertisement_bytes->data());
+
+    auto gatt_advertisement_status_or =
+        BleAdvertisement::CreateBleAdvertisement(*gatt_advertisement_bytes);
+    if (!gatt_advertisement_status_or.ok()) {
+      NEARBY_LOGS(INFO) << gatt_advertisement_status_or.status().ToString();
       continue;
     }
+    auto gatt_advertisement = gatt_advertisement_status_or.value();
 
     // Make sure the advertisement belongs to a service ID we're tracking.
     for (const auto& item : service_id_infos_) {
