@@ -653,6 +653,8 @@ enum OperationResultCode {
   MISCELLEANEOUS_WEB_RTC_GET_DROIDGUARD_RESULT_FAILURE = 2511;
   // Tachyon signal messenger is null
   MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL = 2512;
+  // Failed to receive message
+  MISCELLEANEOUS_WEB_RTC_FAILED_TO_RECEIVE_MESSAGE = 2513;
 
   // Section of CATEGORY_IO_ERROR, from 3000 to 3499
   // Incoming payloads failure due to file opening error
