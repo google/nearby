@@ -34,8 +34,6 @@ cc_library(
         "nearby_sharing_decoder.h",
         "share_target.h",
         "text_attachment.h",
-        "transfer_metadata.h",
-        "transfer_metadata_builder.h",
         "wifi_credentials_attachment.h",
     ],
     visibility = [
@@ -56,6 +54,26 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "transfer_metadata",
+    srcs = [
+        "transfer_metadata.cc",
+        "transfer_metadata_builder.cc",
+    ],
+    hdrs = [
+        "transfer_metadata.h",
+        "transfer_metadata_builder.h",
+    ],
+    visibility = [
+        "//location/nearby/cpp/sharing:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -86,8 +104,6 @@ cc_library(
         "payload_tracker.cc",
         "share_target_info.cc",
         "transfer_manager.cc",
-        "transfer_metadata.cc",
-        "transfer_metadata_builder.cc",
     ],
     hdrs = [
         "connection_lifecycle_listener.h",
@@ -128,6 +144,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        ":transfer_metadata",
         ":types",
         "//connections:core",
         "//connections:core_types",
@@ -191,6 +208,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":nearby_sharing_service",
+        ":transfer_metadata",
         ":types",
         "//internal/base",
         "//sharing/common:enum",
@@ -243,6 +261,7 @@ cc_test(
     deps = [
         ":nearby_sharing_service",
         ":test_support",
+        ":transfer_metadata",
         ":types",
         "//base:casts",
         "//connections:core_types",
