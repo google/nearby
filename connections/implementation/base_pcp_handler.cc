@@ -57,6 +57,7 @@
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
+#include "internal/interop/device_provider.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_connection_info.h"
@@ -505,11 +506,91 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
   };
 }
 
+EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
+    const NearbyDeviceProvider& device_provider,
+    const NearbyDevice& remote_device,
+    const EndpointChannel& endpoint_channel) {
+  return {
+      .on_success_cb =
+          [this, &device_provider, &remote_device, &endpoint_channel](
+              const std::string& endpoint_id,
+              std::unique_ptr<UKey2Handshake> ukey2,
+              const std::string& auth_token, const ByteArray& raw_auth_token) {
+            RunOnPcpHandlerThread(
+                "encryption-success",
+                [this, &device_provider, &remote_device, &endpoint_channel,
+                 raw_ukey2 = ukey2.release(), auth_token,
+                 raw_auth_token]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+                  OnEncryptionSuccessRunnableV3(
+                      remote_device, std::unique_ptr<UKey2Handshake>(raw_ukey2),
+                      auth_token, raw_auth_token, endpoint_channel,
+                      device_provider);
+                });
+          },
+      .on_failure_cb =
+          [this](const std::string& endpoint_id, EndpointChannel* channel) {
+            RunOnPcpHandlerThread(
+                "encryption-failure",
+                [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
+                  NEARBY_LOGS(ERROR)
+                      << "Encryption failed for endpoint_id=" << endpoint_id
+                      << " on medium="
+                      << location::nearby::proto::connections::Medium_Name(
+                             channel->GetMedium());
+                  OnEncryptionFailureRunnable(endpoint_id, channel);
+                });
+          },
+  };
+}
+
+void BasePcpHandler::OnEncryptionSuccessRunnableV3(
+    const NearbyDevice& remote_device, std::unique_ptr<UKey2Handshake> ukey2,
+    std::string_view auth_token, const ByteArray& raw_auth_token,
+    const EndpointChannel& endpoint_channel,
+    const NearbyDeviceProvider& device_provider) {
+  // Quick fail if we've been removed from pending connections while we were
+  // busy running UKEY2.
+  // TODO(b/316421187): Add test coverage
+  auto it = pending_connections_.find(remote_device.GetEndpointId());
+  if (it == pending_connections_.end()) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Connection not found on UKEY negotination complete; endpoint_id="
+        << remote_device.GetEndpointId();
+    return;
+  }
+
+  BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
+  Medium medium = connection_info.channel->GetMedium();
+
+  if (!ukey2) {
+    // Fail early, if there is no crypto context.
+    ProcessPreConnectionInitiationFailure(
+        connection_info.client, medium, remote_device.GetEndpointId(),
+        connection_info.channel.get(), connection_info.is_incoming,
+        connection_info.start_time, {Status::kEndpointIoError},
+        connection_info.result.lock().get());
+    return;
+  }
+
+  // TODO(b/282027237) Construct the `ConnectionsAuthenticationTransport` with
+  // |endpoint_channel|, and trigger authentication via
+  // |device_provider|. Set the returned result on the future in
+  // |connection_info|.
+
+  RegisterDeviceAfterEncryptionSuccess(
+      /*endpoint_id=*/remote_device.GetEndpointId(),
+      /*ukey2=*/std::move(ukey2), /*auth_token=*/auth_token,
+      /*raw_auth_token=*/raw_auth_token,
+      /*connection_info=*/connection_info);
+}
+
 void BasePcpHandler::OnEncryptionSuccessRunnable(
     const std::string& endpoint_id, std::unique_ptr<UKey2Handshake> ukey2,
     const std::string& auth_token, const ByteArray& raw_auth_token) {
   // Quick fail if we've been removed from pending connections while we were
   // busy running UKEY2.
+  // TODO(b/316421187): Add test coverage
   auto it = pending_connections_.find(endpoint_id);
   if (it == pending_connections_.end()) {
     NEARBY_LOGS(INFO)
@@ -531,6 +612,17 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
     return;
   }
 
+  RegisterDeviceAfterEncryptionSuccess(
+      /*endpoint_id=*/endpoint_id,
+      /*ukey2=*/std::move(ukey2), /*auth_token=*/auth_token,
+      /*raw_auth_token=*/raw_auth_token,
+      /*connection_info=*/connection_info);
+}
+
+void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
+    std::string_view endpoint_id, std::unique_ptr<UKey2Handshake> ukey2,
+    std::string_view auth_token, const ByteArray& raw_auth_token,
+    BasePcpHandler::PendingConnectionInfo& connection_info) {
   connection_info.SetCryptoContext(std::move(ukey2));
   connection_info.connection_token = GetHashedConnectionToken(raw_auth_token);
   NEARBY_LOGS(INFO)
@@ -546,12 +638,13 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
-  LogConnectionAttemptSuccess(endpoint_id, connection_info);
+  // TODO(b/282027237): Populate authentication status.
+  LogConnectionAttemptSuccess(std::string(endpoint_id), connection_info);
   endpoint_manager_->RegisterEndpoint(
-      connection_info.client, endpoint_id,
+      connection_info.client, std::string(endpoint_id),
       {
           .remote_endpoint_info = connection_info.remote_endpoint_info,
-          .authentication_token = auth_token,
+          .authentication_token = std::string(auth_token),
           .raw_authentication_token = raw_auth_token,
           .is_incoming_connection = connection_info.is_incoming,
       },
@@ -883,15 +976,18 @@ Status BasePcpHandler::RequestConnectionV3(
 
         NEARBY_LOGS(INFO) << "Initiating secure connection: endpoint_id="
                           << endpoint_id;
-        // Next, we'll set up encryption. When it's done, our future will return
-        // and RequestConnection() will finish.
-        encryption_runner_.StartClient(client, endpoint_id, endpoint_channel,
-                                       GetResultListener());
+        // Next, we'll set up encryption and authenticate the remote device.
+        // When it's done, our future will return and RequestConnectionV3()
+        // will finish.
+        encryption_runner_.StartClient(
+            client, endpoint_id, endpoint_channel,
+            GetResultListenerV3(*(client->GetLocalDeviceProvider()),
+                                remote_device, *endpoint_channel));
       });
   NEARBY_LOGS(INFO) << "Waiting for connection to complete: endpoint_id="
                     << endpoint_id;
   auto status =
-      WaitForResult(absl::StrCat("RequestConnection(", endpoint_id, ")"),
+      WaitForResult(absl::StrCat("RequestConnectionV3(", endpoint_id, ")"),
                     client->GetClientId(), result.get());
   NEARBY_LOGS(INFO) << "Wait is complete: endpoint_id=" << endpoint_id
                     << "; status=" << status.value;

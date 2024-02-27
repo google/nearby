@@ -469,13 +469,28 @@ class BasePcpHandler : public PcpHandler,
                                EndpointChannel* channel);
 
   EncryptionRunner::ResultListener GetResultListener();
+  EncryptionRunner::ResultListener GetResultListenerV3(
+      const NearbyDeviceProvider& device_provider,
+      const NearbyDevice& remote_device,
+      const EndpointChannel& endpoint_channel);
 
   void OnEncryptionSuccessRunnable(
       const std::string& endpoint_id,
       std::unique_ptr<securegcm::UKey2Handshake> ukey2,
       const std::string& auth_token, const ByteArray& raw_auth_token);
+  void OnEncryptionSuccessRunnableV3(
+      const NearbyDevice& remote_device,
+      std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
+      std::string_view auth_token, const ByteArray& raw_auth_token,
+      const EndpointChannel& endpoint_channel,
+      const NearbyDeviceProvider& device_provider);
   void OnEncryptionFailureRunnable(const std::string& endpoint_id,
                                    EndpointChannel* endpoint_channel);
+  void RegisterDeviceAfterEncryptionSuccess(
+      std::string_view endpoint_id,
+      std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
+      std::string_view auth_token, const ByteArray& raw_auth_token,
+      BasePcpHandler::PendingConnectionInfo& connection_info);
 
   static Exception WriteConnectionRequestFrame(
       NearbyDevice::Type device_type, absl::string_view device_proto_bytes,

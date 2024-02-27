@@ -17,10 +17,9 @@
 #include <optional>
 #include <string>
 #include <vector>
-
-#include "absl/types/variant.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "absl/types/variant.h"
 #include "internal/interop/authentication_status.h"
 #include "internal/interop/authentication_transport.h"
 #include "internal/interop/device.h"
@@ -51,6 +50,8 @@ std::string AuthenticationErrorToString(AuthenticationStatus status) {
     case AuthenticationStatus::kFailure:
       return "AuthenticationStatus::kFailure";
   }
+  NEARBY_LOGS(ERROR) << "Unexpected value for AuthenticationStatus: "
+                     << static_cast<int>(status);
   return "AuthenticationStatus::kUnknown";
 }
 
