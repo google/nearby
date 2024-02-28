@@ -37,6 +37,7 @@
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/connections_authentication_transport.h"
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -56,6 +57,7 @@
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/authentication_status.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/base64_utils.h"
@@ -81,7 +83,20 @@ namespace nearby {
 namespace connections {
 
 namespace {
+
 constexpr int kEndpointCancelAlarmTimeout = 10;
+
+std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
+  switch (status) {
+    case AuthenticationStatus::kUnknown:
+      return "unknown";
+    case AuthenticationStatus::kSuccess:
+      return "success";
+    case AuthenticationStatus::kFailure:
+      return "failure";
+  }
+}
+
 }  // namespace
 
 using ::location::nearby::connections::ConnectionRequestFrame;
@@ -545,7 +560,7 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
 
 void BasePcpHandler::OnEncryptionSuccessRunnableV3(
     const NearbyDevice& remote_device, std::unique_ptr<UKey2Handshake> ukey2,
-    std::string_view auth_token, const ByteArray& raw_auth_token,
+    absl::string_view auth_token, const ByteArray& raw_auth_token,
     const EndpointChannel& endpoint_channel,
     const NearbyDeviceProvider& device_provider) {
   // Quick fail if we've been removed from pending connections while we were
@@ -563,6 +578,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
   Medium medium = connection_info.channel->GetMedium();
 
+  // TODO(b/300149127): Add test coverage.
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
@@ -573,10 +589,34 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
     return;
   }
 
-  // TODO(b/282027237) Construct the `ConnectionsAuthenticationTransport` with
-  // |endpoint_channel|, and trigger authentication via
-  // |device_provider|. Set the returned result on the future in
-  // |connection_info|.
+  // For the Nearby Presence MVP on ChromeOS, only outgoing connections are
+  // support in the RequestConnectionV3() API, and this is enforced below with
+  // an early return. This means `OnEncryptionSuccessRunnableV3()` only needs to
+  // authenticate in the initiator role (as opposed to responder). In order to
+  // support incoming connections post MVP, the responder role needs to be
+  // implemented, and triggered appropriately here.
+  //
+  // TODO(b/305004353): Authenticate the connection in the responder role for
+  // outgoing connections.
+  if (!connection_info.is_incoming) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": only outgoing connections are supported";
+    return;
+  }
+
+  NEARBY_LOGS(VERBOSE)
+      << __func__
+      << ": beginning authentication to the remote device as an initiator";
+  ConnectionsAuthenticationTransport connections_authentication_transport =
+      ConnectionsAuthenticationTransport(endpoint_channel);
+  connection_info.authentication_status =
+      device_provider.AuthenticateAsInitiator(
+          /*remote_device=*/remote_device,
+          /*shared_secret=*/auth_token,
+          /*authentication_transport=*/connections_authentication_transport);
+  NEARBY_LOGS(INFO) << __func__ << ": authentication result = "
+                    << AuthenticationStatusToString(
+                           connection_info.authentication_status);
 
   RegisterDeviceAfterEncryptionSuccess(
       /*endpoint_id=*/remote_device.GetEndpointId(),
@@ -638,7 +678,6 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
-  // TODO(b/282027237): Populate authentication status.
   LogConnectionAttemptSuccess(std::string(endpoint_id), connection_info);
   endpoint_manager_->RegisterEndpoint(
       connection_info.client, std::string(endpoint_id),
@@ -647,6 +686,7 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
           .authentication_token = std::string(auth_token),
           .raw_authentication_token = raw_auth_token,
           .is_incoming_connection = connection_info.is_incoming,
+          .authentication_status = connection_info.authentication_status,
       },
       connection_options, std::move(connection_info.channel),
       connection_info.listener, connection_info.connection_token);
@@ -958,11 +998,13 @@ Status BasePcpHandler::RequestConnectionV3(
         // the connection if needed.
         // Not using designated initializers here since the VS C++ compiler
         // errors out indicating that MediumSelector<bool> is not an aggregate
+        // For the Nearby Presence MVP on ChromeOS, only outgoing connections
+        // are supported in the RequestConnectionV3() API.
         PendingConnectionInfo pendingConnectionInfo{};
         pendingConnectionInfo.client = client;
         pendingConnectionInfo.remote_endpoint_info = endpoint->endpoint_info;
         pendingConnectionInfo.nonce = connection_info.nonce;
-        pendingConnectionInfo.is_incoming = false;
+        pendingConnectionInfo.is_incoming = true;
         pendingConnectionInfo.start_time = start_time;
         pendingConnectionInfo.listener = info.listener;
         pendingConnectionInfo.connection_options = connection_options;

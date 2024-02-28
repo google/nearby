@@ -481,7 +481,7 @@ class BasePcpHandler : public PcpHandler,
   void OnEncryptionSuccessRunnableV3(
       const NearbyDevice& remote_device,
       std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
-      std::string_view auth_token, const ByteArray& raw_auth_token,
+      absl::string_view auth_token, const ByteArray& raw_auth_token,
       const EndpointChannel& endpoint_channel,
       const NearbyDeviceProvider& device_provider);
   void OnEncryptionFailureRunnable(const std::string& endpoint_id,

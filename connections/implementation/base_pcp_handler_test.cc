@@ -51,6 +51,8 @@
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/authentication_status.h"
+#include "internal/interop/authentication_transport.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
@@ -122,7 +124,22 @@ class FakePresenceDevice : public NearbyDevice {
 class FakePresenceDeviceProvider : public NearbyDeviceProvider {
  public:
   const NearbyDevice* GetLocalDevice() override { return &local_device_; }
+  AuthenticationStatus AuthenticateAsInitiator(
+      const NearbyDevice& remote_device, absl::string_view shared_secret,
+      const AuthenticationTransport& authentication_transport) const override {
+    authenticate_as_initiator_called_ = true;
+    return authentication_status_;
+  }
+
+  void SetAuthenticationStatus(AuthenticationStatus status) {
+    authentication_status_ = status;
+  }
+
   FakePresenceDevice local_device_;
+  mutable bool authenticate_as_initiator_called_ = false;
+
+ private:
+  AuthenticationStatus authentication_status_ = AuthenticationStatus::kSuccess;
 };
 
 class MockEndpointChannel : public BaseEndpointChannel {
@@ -655,8 +672,11 @@ class BasePcpHandlerTest
       MockEndpointChannel* channel_b, ClientProxy* client,
       MockPcpHandler* pcp_handler,
       location::nearby::proto::connections::Medium connect_medium,
+      FakePresenceDeviceProvider* fake_presence_device_provider,
       std::atomic_int* flag = nullptr,
-      Status expected_result = {Status::kSuccess}) {
+      Status expected_result = {Status::kSuccess},
+      AuthenticationStatus expected_authentication_status =
+          AuthenticationStatus::kSuccess) {
     ConnectionRequestInfo info{
         .endpoint_info = ByteArray{"ABCD"},
         .listener = connection_listener_,
@@ -674,7 +694,14 @@ class BasePcpHandlerTest
     EXPECT_CALL(*pcp_handler, GetStrategy)
         .WillRepeatedly(Return(Strategy::kP2pCluster));
     if (expected_result == Status{Status::kSuccess}) {
-      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call)
+          .WillOnce([&](const std::string& endpoint_id,
+                        const ConnectionResponseInfo& info) {
+            EXPECT_EQ(info.authentication_status,
+                      expected_authentication_status);
+            EXPECT_TRUE(fake_presence_device_provider
+                            ->authenticate_as_initiator_called_);
+          });
     }
     // Simulate successful discovery.
     auto encryption_runner = std::make_unique<EncryptionRunner>();
@@ -1133,7 +1160,42 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3) {
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   RequestConnectionV3(mock_device_, std::move(channel_a), channel_b.get(),
-                      &client, &pcp_handler, connect_medium);
+                      &client, &pcp_handler, connect_medium, &provider);
+  NEARBY_LOG(INFO, "RequestConnectionV3 complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, RequestConnectionV3_AuthenticationFailure) {
+  env_.Start();
+  ClientProxy client;
+  FakePresenceDeviceProvider provider;
+  provider.SetAuthenticationStatus(AuthenticationStatus::kFailure);
+  EXPECT_CALL(provider.local_device_, GetType)
+      .WillRepeatedly(Return(NearbyDevice::Type::kUnknownDevice));
+  EXPECT_CALL(provider.local_device_, ToProtoBytes);
+  client.RegisterDeviceProvider(&provider);
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  const auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnectionV3(
+      mock_device_, std::move(channel_a), channel_b.get(), &client,
+      &pcp_handler, connect_medium, &provider, /*flag=*/nullptr,
+      /*expected_result=*/{Status::kSuccess},
+      /*expected_authentication_status=*/AuthenticationStatus::kFailure);
   NEARBY_LOG(INFO, "RequestConnectionV3 complete");
   channel_b->Close();
   bwu.Shutdown();
@@ -1311,7 +1373,7 @@ TEST_P(BasePcpHandlerTest, IoError_RequestConnectionV3Fails) {
   channel_b->broken_write_ = true;
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   RequestConnectionV3(mock_device_, std::move(channel_a), channel_b.get(),
-                      &client, &pcp_handler, connect_medium, nullptr,
+                      &client, &pcp_handler, connect_medium, nullptr, nullptr,
                       {Status::kEndpointIoError});
   NEARBY_LOG(INFO, "RequestConnectionV3 complete");
   channel_b->Close();
