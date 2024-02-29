@@ -1,10 +1,10 @@
 # Nearby Connection
 
-Nearby Connections is a high level protocol on top of Bluetooth/WiFi that acts
+Nearby Connections is a high level protocol on top of Bluetooth/Wi-Fi that acts
 as a medium-agnostic socket. Devices are able to advertise, scan, and connect
 with one another over any shared medium (eg. BT <-> BT).
 Once connected, the two devices share a list of all supported mediums and
-attempt to upgrade to the one with the highest bandwidth (eg. BT -> WiFi).
+attempt to upgrade to the one with the highest bandwidth (eg. BT -> Wi-Fi).
 The connection is encrypted, reliable, and fully duplex. BYTE, FILE, and STREAM
 payloads are all supported and will be chunked & transferred internally and
 recombined on the receiving device.
