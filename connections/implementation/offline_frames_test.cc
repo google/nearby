@@ -262,15 +262,15 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
   constexpr absl::string_view kExpected =
       R"pb(
     version: V1
-    v1: <
+    v1 {
       type: CONNECTION_RESPONSE
-      connection_response: <
+      connection_response {
         status: 1
         response: REJECT
         os_info { type: LINUX }
-        safe_to_disconnect_version: 0
-      >
-    >)pb";
+        safe_to_disconnect_version: 5
+      }
+    })pb";
 
   OsInfo os_info;
   os_info.set_type(OsInfo::LINUX);
