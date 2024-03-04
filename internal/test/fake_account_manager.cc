@@ -33,7 +33,7 @@ std::optional<AccountManager::Account> FakeAccountManager::GetCurrentAccount() {
 
 void FakeAccountManager::Login(
     absl::AnyInvocable<void(Account)> login_success_callback,
-    absl::AnyInvocable<void()> login_failure_callback) {
+    absl::AnyInvocable<void(absl::Status)> login_failure_callback) {
   if (account_.has_value()) {
     login_success_callback(*account_);
     UpdateCurrentUser(account_->id);
@@ -41,7 +41,7 @@ void FakeAccountManager::Login(
     return;
   }
 
-  login_failure_callback();
+  login_failure_callback(absl::InternalError("No account."));
 }
 
 void FakeAccountManager::Logout(

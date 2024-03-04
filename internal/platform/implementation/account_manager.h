@@ -57,8 +57,9 @@ class AccountManager {
   // |login_success_callback| is called when the login succeeded. Account
   // information is passed to callback.
   // |login_failure_callback| is called when the login fails.
-  virtual void Login(absl::AnyInvocable<void(Account)> login_success_callback,
-                     absl::AnyInvocable<void()> login_failure_callback) = 0;
+  virtual void Login(
+      absl::AnyInvocable<void(Account)> login_success_callback,
+      absl::AnyInvocable<void(absl::Status)> login_failure_callback) = 0;
 
   // Logs out current active account. |logout_callback| is called when logout is
   // completed.

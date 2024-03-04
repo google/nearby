@@ -4452,7 +4452,7 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
         EXPECT_EQ(account.id, kTestAccountId);
         notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_CALL(account_observer, OnLogoutSucceeded(kTestAccountId)).Times(1);
   absl::Notification logout_notification;
@@ -4483,7 +4483,7 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   FakeTaskRunner::WaitForRunningTasksWithTimeout(kTaskWaitTimeout);
   EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
@@ -4527,7 +4527,7 @@ TEST_F(NearbySharingServiceImplTest,
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   FakeTaskRunner::WaitForRunningTasksWithTimeout(kTaskWaitTimeout);
 
@@ -4554,7 +4554,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldNotResetOnboarding) {
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   FakeTaskRunner::WaitForRunningTasksWithTimeout(kTaskWaitTimeout);
   EXPECT_FALSE(service_->GetSettings()->IsOnboardingComplete());
@@ -4580,7 +4580,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldNotResetOnboarding) {
         EXPECT_EQ(account.id, kTestAccountId);
         login2_notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(login2_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   FakeTaskRunner::WaitForRunningTasksWithTimeout(kTaskWaitTimeout);
   EXPECT_TRUE(service_->GetSettings()->IsOnboardingComplete());
@@ -4613,7 +4613,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   FakeTaskRunner::WaitForRunningTasksWithTimeout(kTaskWaitTimeout);
 
@@ -4640,7 +4640,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
         EXPECT_EQ(account.id, kTestAccountId);
         login2_notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(login2_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   FakeTaskRunner::WaitForRunningTasksWithTimeout(kTaskWaitTimeout);
 
@@ -4684,7 +4684,7 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
         EXPECT_EQ(account.id, kTestAccountId);
         notification.Notify();
       },
-      []() {});
+      [](absl::Status status) {});
   ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
 

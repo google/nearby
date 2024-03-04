@@ -117,7 +117,7 @@ class NearbyShareCertificateManagerImplTest
     fake_account_manager_.SetAccount(account);
 
     fake_account_manager_.Login([](AccountManager::Account account) {},
-                                []() {});
+                                [](absl::Status status) {});
 
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
     NearbyShareCertificateStorageImpl::Factory::SetFactoryForTesting(
