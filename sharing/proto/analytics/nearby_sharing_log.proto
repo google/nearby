@@ -407,6 +407,7 @@ message SharingLog {
     // not designed to be joined with other sessions/events of the same user to
     // reconstruct particular user's activity pattern.
     optional int64 session_id = 6 /* type = ST_SESSION_ID */;
+    optional int32 vendor_id = 7 [(datapol.semantic_type) = ST_PARTNER_ID];
   }
 
   // TODO(fdi): may consider adding a field about decipherability later.
