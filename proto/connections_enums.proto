@@ -50,6 +50,8 @@ enum EventType {
   ERROR_CODE = 6;
 }
 
+// LINT.IfChange
+
 // The strategy used for a session of Nearby.Connections.
 // Values correspond to
 // http://cs/?q=symbol:com.google.android.gms.nearby.connection.Strategy
@@ -61,6 +63,44 @@ enum ConnectionsStrategy {
   P2P_STAR = 4;
   P2P_POINT_TO_POINT = 5;
 }
+
+// An indication of the client using the Nearby Connections library.
+enum ConnectionsClient {
+  CONNECTIONS_CLIENT_UNKNOWN = 0;
+  CONNECTIONS_CLIENT_NEARBY_SHARE = 1;
+  CONNECTIONS_CLIENT_QUICK_START = 2;
+  CONNECTIONS_CLIENT_OTHER_FIRST_PARTY = 3;
+  CONNECTIONS_CLIENT_THIRD_PARTY = 4;
+}
+
+// An identifier for the type of event being reported in a shared proto.
+enum ReportedEventType {
+  NC_EVENT_TYPE_UNSPECIFIED = 0;
+
+  // The client has started discovery.
+  NC_EVENT_TYPE_START_DISCOVERY = 1;
+
+  // The client has stopped discovery.
+  NC_EVENT_TYPE_STOP_DISCOVERY = 2;
+
+  // Logged when discovery is active and an endpoint matching the current
+  // discovery parameters has been found.
+  NC_EVENT_TYPE_ENDPOINT_FOUND = 3;
+
+  // Logged when discovery is active and an endpoint which had previously
+  // matched the current discovery parameters is no longer detected.
+  NC_EVENT_TYPE_ENDPOINT_LOST = 4;
+
+  // A call to the startAdvertising method.
+  NC_EVENT_TYPE_START_ADVERTISING = 5;
+
+  // A call to the stopAdvertising method.
+  NC_EVENT_TYPE_STOP_ADVERTISING = 6;
+}
+
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
 // The role a device is playing in one StrategySession.
 enum SessionRole {
@@ -148,9 +188,6 @@ enum ConnectionAttemptDirection {
   INCOMING = 1;
   OUTGOING = 2;
 }
-// LINT.ThenChange(
-//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
-// )
 
 // Whether this is an initial or upgrade connection attempt.
 enum ConnectionAttemptType {
@@ -172,6 +209,10 @@ enum DisconnectionReason {
   PREV_CHANNEL_DISCONNECTION_IN_RECONNECT = 7;
   AUTHENTICATION_FAILURE = 8;
 }
+
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
 // The type of a Payload.
 // Values correspond to
@@ -421,6 +462,7 @@ enum PowerLevel {
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/PowerLevel.java
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
 
 // LINT.IfChange
