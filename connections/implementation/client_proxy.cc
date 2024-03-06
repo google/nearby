@@ -91,13 +91,20 @@ std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 std::string ClientProxy::GetLocalEndpointId() {
   MutexLock lock(&mutex_);
   if (!local_endpoint_id_.empty()) {
+    NEARBY_LOGS(INFO) << __func__
+                      << "Reusing cached endpoint id: " << local_endpoint_id_;
     return local_endpoint_id_;
   }
   if (external_device_provider_ == nullptr) {
     local_endpoint_id_ = GenerateLocalEndpointId();
+    NEARBY_LOGS(INFO) << __func__ << "Locally generating endpoint id: "
+                      << local_endpoint_id_;
   } else {
     local_endpoint_id_ =
         external_device_provider_->GetLocalDevice()->GetEndpointId();
+    NEARBY_LOGS(INFO)
+        << __func__ << "From external device provider, populating endpoint id: "
+        << local_endpoint_id_;
   }
   return local_endpoint_id_;
 }
