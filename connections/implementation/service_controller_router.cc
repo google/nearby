@@ -451,6 +451,8 @@ void ServiceControllerRouter::RequestConnectionV3(
                           response_info.raw_authentication_token.string_data(),
                       .is_incoming_connection =
                           response_info.is_incoming_connection,
+                      .authentication_status =
+                          response_info.authentication_status,
                   };
                   v3_info.listener.initiated_cb(remote_device, new_info);
                 },

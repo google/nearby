@@ -22,6 +22,7 @@ cc_library(
         "//connections:core_types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/crypto_cros",
+        "//internal/interop:authentication_status",
         "//internal/interop:device",
         "//internal/platform:connection_info",
         "//proto:connections_enums_cc_proto",
