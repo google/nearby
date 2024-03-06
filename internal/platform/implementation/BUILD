@@ -14,9 +14,26 @@
 licenses(["notice"])
 
 cc_library(
+    name = "account_manager",
+    hdrs = ["account_manager.h"],
+    visibility = [
+        "//fastpair:__subpackages__",
+        "//internal/account:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+        "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+    deps = [
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "types",
     hdrs = [
-        "account_manager.h",
         "atomic_boolean.h",
         "atomic_reference.h",
         "bluetooth_adapter.h",
@@ -43,7 +60,6 @@ cc_library(
         "//connections/implementation:__subpackages__",
         "//connections/implementation/analytics:__subpackages__",
         "//fastpair:__subpackages__",
-        "//internal/account:__pkg__",
         "//internal/crypto_cros:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
@@ -60,7 +76,6 @@ cc_library(
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",

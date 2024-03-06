@@ -35,6 +35,7 @@ cc_library(
         "//fastpair/pairing/fastpair:pairing",
         "//internal/base",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:bind_front",

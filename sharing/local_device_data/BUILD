@@ -28,7 +28,7 @@ cc_library(
     deps = [
         "//internal/base",
         "//internal/platform:types",
-        "//internal/platform/implementation:types",
+        "//internal/platform/implementation:account_manager",
         "//sharing/common",
         "//sharing/common:enum",
         "//sharing/internal/api:platform",
@@ -73,7 +73,7 @@ cc_test(
     ],
     deps = [
         ":local_device_data",
-        "//internal/platform/implementation:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//sharing/common",

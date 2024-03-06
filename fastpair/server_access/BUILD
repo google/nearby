@@ -38,6 +38,7 @@ cc_library(
         "//internal/network:types",
         "//internal/network:url",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

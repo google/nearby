@@ -28,6 +28,7 @@ cc_library(
         "//internal/base",
         "//internal/crypto_cros",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//sharing/common",
         "//sharing/common:enum",
@@ -97,6 +98,7 @@ cc_test(
     deps = [
         ":certificates",
         ":test_support",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",

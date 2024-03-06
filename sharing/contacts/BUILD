@@ -17,6 +17,7 @@ cc_library(
         "//internal/base",
         "//internal/crypto_cros",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//sharing/common",
         "//sharing/internal/api:platform",
@@ -49,6 +50,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":contacts",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//sharing/internal/api:platform",
         "//sharing/internal/public:types",
@@ -64,7 +66,7 @@ cc_test(
     ],
     deps = [
         ":contacts",
-        "//internal/platform/implementation:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//sharing/common",

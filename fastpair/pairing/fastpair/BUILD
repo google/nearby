@@ -36,6 +36,7 @@ cc_library(
         "//fastpair/repository",
         "//internal/platform:comm",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/time",

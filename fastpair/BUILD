@@ -112,6 +112,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//internal/preferences",
         "@com_google_absl//absl/container:flat_hash_map",

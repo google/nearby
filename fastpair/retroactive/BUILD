@@ -41,6 +41,7 @@ cc_library(
         "//internal/base",
         "//internal/platform:comm",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//third_party/magic_enum",
         "@com_google_absl//absl/container:flat_hash_set",

@@ -156,6 +156,7 @@ cc_library(
         "//internal/network:url",
         "//internal/platform:base",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//proto:sharing_enums_cc_proto",
         "//sharing/analytics",
@@ -270,6 +271,7 @@ cc_test(
         "//internal/flags:nearby_flags",
         "//internal/network:types",
         "//internal/network:url",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",

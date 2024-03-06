@@ -41,7 +41,7 @@ cc_library(
     deps = [
         "//internal/analytics:event_logger",
         "//internal/platform:types",
-        "//internal/platform/implementation:types",
+        "//internal/platform/implementation:account_manager",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
@@ -72,7 +72,7 @@ cc_library(
         ":platform",
         "//internal/analytics:event_logger",
         "//internal/platform:types",
-        "//internal/platform/implementation:types",
+        "//internal/platform/implementation:account_manager",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
