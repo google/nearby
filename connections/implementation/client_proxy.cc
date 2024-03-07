@@ -867,6 +867,7 @@ void ClientProxy::SetRemoteOsInfo(absl::string_view endpoint_id,
 
 std::optional<std::int32_t> ClientProxy::GetRemoteSafeToDisconnectVersion(
     absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->first.safe_to_disconnect_version;
@@ -877,6 +878,7 @@ std::optional<std::int32_t> ClientProxy::GetRemoteSafeToDisconnectVersion(
 void ClientProxy::SetRemoteSafeToDisconnectVersion(
     absl::string_view endpoint_id,
     const std::int32_t& safe_to_disconnect_version) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->first.safe_to_disconnect_version = safe_to_disconnect_version;
