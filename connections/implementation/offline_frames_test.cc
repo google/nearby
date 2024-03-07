@@ -23,7 +23,9 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -268,12 +270,15 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         status: 1
         response: REJECT
         os_info { type: LINUX }
-        safe_to_disconnect_version: 0
+        safe_to_disconnect_version: 5
       >
     >)pb";
 
   OsInfo os_info;
   os_info.set_type(OsInfo::LINUX);
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kSafeToDisconnectVersion, 5);
   ByteArray bytes = ForConnectionResponse(1, os_info);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());

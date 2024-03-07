@@ -250,7 +250,7 @@ TEST_F(EndpointManagerTest,
   // (IMO, it should be called as long as any connection callback was called
   // before. (in this case initiated_cb is called)).
   // Test captures current protocol behavior.
-  client_->SetRemoteSafeToDisconnectVersion(endpoint_id_, 2);
+  client_->SetRemoteSafeToDisconnectVersion(endpoint_id_, 5);
   ecm_.UpdateSafeToDisconnectForEndpoint(endpoint_id_, true);
   em_.UnregisterEndpoint(client_.get(), endpoint_id_);
 }
