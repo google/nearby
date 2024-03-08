@@ -39,6 +39,16 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "connections_westworld_enums_proto",
+    srcs = ["connections_westworld_enums.proto"],
+)
+
+java_proto_library(
+    name = "connections_westworld_enums_java_proto",
+    deps = [":connections_westworld_enums_proto"],
+)
+
+proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
 )
