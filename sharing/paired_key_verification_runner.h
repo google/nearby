@@ -55,8 +55,7 @@ class PairedKeyVerificationRunner
   };
 
   PairedKeyVerificationRunner(
-      nearby::Clock* clock,
-      nearby::DeviceInfo& device_info,
+      nearby::Clock* clock, nearby::DeviceInfo& device_info,
       NearbyShareSettings* nearby_share_settings,
       bool self_share_feature_enabled, const ShareTarget& share_target,
       absl::string_view endpoint_id, const std::vector<uint8_t>& token,
@@ -99,6 +98,9 @@ class PairedKeyVerificationRunner
       const std::vector<PairedKeyVerificationResult>& results);
   void SendCertificateInfo();
   bool RelaxRestrictToContactsIfNeeded() const;
+
+  proto::DeviceVisibility GetSignningVisibility(
+      proto::DeviceVisibility visibility) const;
 
   nearby::Clock* const clock_;
   nearby::DeviceInfo& device_info_;
