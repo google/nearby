@@ -99,8 +99,7 @@ class PairedKeyVerificationRunner
   void SendCertificateInfo();
   bool RelaxRestrictToContactsIfNeeded() const;
 
-  proto::DeviceVisibility GetSignningVisibility(
-      proto::DeviceVisibility visibility) const;
+  proto::DeviceVisibility GetSignningVisibility() const;
 
   nearby::Clock* const clock_;
   nearby::DeviceInfo& device_info_;

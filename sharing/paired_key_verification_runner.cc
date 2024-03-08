@@ -333,8 +333,7 @@ void PairedKeyVerificationRunner::SendCertificateInfo() {
 void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
   std::optional<std::vector<uint8_t>> signature =
       certificate_manager_->SignWithPrivateCertificate(
-          GetSignningVisibility(nearby_share_settings_->GetVisibility()),
-          PadPrefix(local_prefix_, raw_token_));
+          GetSignningVisibility(), PadPrefix(local_prefix_, raw_token_));
   if (!signature.has_value() || signature->empty()) {
     signature = GenerateRandomBytes(kNearbyShareNumBytesRandomSignature);
   }
@@ -360,8 +359,7 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
         << "Attempts to sign authentication token with a previous private key.";
     std::optional<std::vector<uint8_t>> optional_signature =
         certificate_manager_->SignWithPrivateCertificate(
-            GetSignningVisibility(nearby_share_settings_->GetLastVisibility()),
-            PadPrefix(local_prefix_, raw_token_));
+            GetSignningVisibility(), PadPrefix(local_prefix_, raw_token_));
 
     if (optional_signature.has_value()) {
       encryption_frame->set_optional_signed_data(optional_signature->data(),
@@ -492,14 +490,10 @@ bool PairedKeyVerificationRunner::RelaxRestrictToContactsIfNeeded() const {
           kRelaxAfterSetVisibilityTimeout);
 }
 
-DeviceVisibility PairedKeyVerificationRunner::GetSignningVisibility(
-    DeviceVisibility visibility) const {
-  if (certificate_.has_value() &&
-      visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
-    return DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
-  }
-
-  return visibility;
+DeviceVisibility PairedKeyVerificationRunner::GetSignningVisibility() const {
+  // This matches the behavior of CertificateManagerImpl.getFileNameByVisibility
+  // in Android.
+  return DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
 }
 
 }  // namespace sharing
