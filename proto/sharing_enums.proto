@@ -17,6 +17,8 @@ syntax = "proto2";
 package location.nearby.proto.sharing;
 
 // import "logs/proto/logs_annotations/logs_annotations.proto";
+import "logs/proto/wireless/beto/beto_enums.proto";
+import "logs/proto/wireless/beto/log_dimension_annotations.proto";
 
 // option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option optimize_for = LITE_RUNTIME;
@@ -53,10 +55,12 @@ enum EventType {
   DESCRIBE_ATTACHMENTS = 4;
 
   // Start of a scanning phase at sender.
-  SCAN_FOR_SHARE_TARGETS_START = 5;
+  SCAN_FOR_SHARE_TARGETS_START = 5
+      [(beto.dimensions.stage) = STAGE_QS_DISCOVER_START];
 
   // End of the scanning phase at sender.
-  SCAN_FOR_SHARE_TARGETS_END = 6;
+  SCAN_FOR_SHARE_TARGETS_END = 6
+      [(beto.dimensions.stage) = STAGE_QS_DISCOVER_END];
 
   // Receiver advertises itself for presence (a pseudo session).
   ADVERTISE_DEVICE_PRESENCE_START = 7;
@@ -84,10 +88,11 @@ enum EventType {
   RESPOND_TO_INTRODUCTION = 14;
 
   // Start of the sending attachments phase at sender.
-  SEND_ATTACHMENTS_START = 15;
+  SEND_ATTACHMENTS_START = 15
+      [(beto.dimensions.stage) = STAGE_QS_TRANSFER_START];
 
   // End of sending attachments phase at sender.
-  SEND_ATTACHMENTS_END = 16;
+  SEND_ATTACHMENTS_END = 16 [(beto.dimensions.stage) = STAGE_QS_TRANSFER_END];
 
   // Start of the receiving attachments phase at receiver.
   RECEIVE_ATTACHMENTS_START = 17;
@@ -189,7 +194,7 @@ enum EventType {
   REQUEST_SETTING_PERMISSIONS = 47;
 
   // Set up a connection with the remote device.
-  ESTABLISH_CONNECTION = 48;
+  ESTABLISH_CONNECTION = 48 [(beto.dimensions.stage) = STAGE_QS_CONNECT_END];
 
   // Track device states in Nearby Share setting.
   DEVICE_SETTINGS = 49;
@@ -301,11 +306,15 @@ enum EstablishConnectionStatus {
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
 enum AttachmentTransmissionStatus {
-  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0;
+  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0
+      [(beto.dimensions.status_bucket) = STATUS_UNKNOWN];
 
-  COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1;
-  CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2;
-  FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3;
+  COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1
+      [(beto.dimensions.status_bucket) = STATUS_SUCCESSFUL];
+  CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2
+      [(beto.dimensions.status_bucket) = STATUS_CANCELLED];
+  FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3
+      [(beto.dimensions.status_bucket) = STATUS_INTERNAL_ERROR];
 
   REJECTED_ATTACHMENT = 4 [deprecated = true];
   TIMED_OUT_ATTACHMENT = 5 [deprecated = true];

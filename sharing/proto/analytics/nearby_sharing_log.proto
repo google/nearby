@@ -17,6 +17,8 @@ syntax = "proto2";
 package nearby.sharing.analytics.proto;
 
 import "google/protobuf/duration.proto";
+import "logs/proto/wireless/beto/log_dimension_annotations.proto";
+import "logs/proto/wireless/beto/log_semantics_annotations.proto";
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "proto/sharing_enums.proto";
@@ -31,11 +33,12 @@ option objc_class_prefix = "GNCP";
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
 // Next Tag: 76
-// LINT.IfChange
+// LINT.IfChange(SharingLog)
 message SharingLog {
   /* collection_basis = {
     use_cases: UC_SERVICE_OR_API_MEASURING_USER_ENGAGEMENT
   } */
+  option (beto.dimensions.product) = PRODUCT_QUICK_SHARE;
 
   reserved 71;  // Deprecated TransferUIEvent.
 
@@ -85,7 +88,8 @@ message SharingLog {
 
   optional OpenReceivedAttachments open_received_attachments = 23;
 
-  optional LaunchActivity launch_activity = 24;
+  optional LaunchActivity launch_activity = 24
+      [(beto.semantics.usage_semantic_type) = UST_UI_INTERACTION];
 
   optional AddContact add_contact = 25;
 
@@ -210,7 +214,10 @@ message SharingLog {
   // Used only for Nearby Share Windows app now.
   message AppInfo {
     // e.g. "1.0.408"
-    optional string app_version = 1 /* type = ST_SOFTWARE_ID */;
+    optional string app_version = 1 [
+      (datapol.semantic_type) = ST_SOFTWARE_ID,
+      (beto.dimensions.field_id) = FIELD_ID_SOFTWARE_VERSION
+    ];
     // e.g. en. In Windows app, it's from the registry value.
     optional string app_language = 2
         /* type = ST_DEMOGRAPHIC_INFO */;
@@ -418,7 +425,10 @@ message SharingLog {
     // when the share target is discovered.
     optional google.protobuf.Duration duration_since_scanning = 2;
     optional int64 session_id = 3 /* type = ST_SESSION_ID */;
-    optional int64 flow_id = 4 /* type = ST_SESSION_ID */;
+    optional int64 flow_id = 4 [
+      (datapol.semantic_type) = ST_SESSION_ID,
+      (beto.dimensions.field_id) = FIELD_ID_FLOW_ID
+    ];
     optional string referrer_name = 5;
     // The time elapse from the share sheet activity starts (foreground
     // send surface) to the time when the share target is discovered.
@@ -596,7 +606,8 @@ message SharingLog {
     // Elapsed time in milliseconds between startActivity and stopActivity.
     optional int64 duration_millis = 2;
     // The name of the package that launched the activity
-    optional string referrer_name = 3;
+    optional string referrer_name = 3
+        [(beto.dimensions.field_id) = FIELD_ID_CLIENT_PACKAGE_NAME];
     // Is previous transfer in progress.
     optional bool previous_transfer_in_progress = 4;
     // Whether user has opted in before. For SETUP_ACTIVITY (Opt-In half sheet)
@@ -825,4 +836,4 @@ message SharingLog {
     optional location.nearby.proto.sharing.DesktopTransferEventType event = 1;
   }
 }
-// LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
+// LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto:SharingLog)
