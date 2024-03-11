@@ -337,6 +337,7 @@ cc_library(
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation/g3:__pkg__",
+        "//internal/platform/implementation/linux:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//internal/preferences:__subpackages__",
         "//internal/proto/analytics:__subpackages__",

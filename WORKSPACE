@@ -189,3 +189,27 @@ http_archive(
         "https://github.com/google/re2/archive/refs/tags/2021-06-01.tar.gz",
     ],
 )
+
+# bazel_pkg_config
+http_archive(
+    name = "bazel_pkg_config",
+    strip_prefix = "bazel_pkg_config-master",
+    urls = ["https://github.com/cherrry/bazel_pkg_config/archive/master.zip"],
+)
+
+load("@bazel_pkg_config//:pkg_config.bzl", "pkg_config")
+
+pkg_config(
+    name = "libsystemd",
+    pkg_name = "libsystemd",
+)
+
+pkg_config(
+    name = "libcurl",
+    pkg_name = "libcurl",
+)
+
+pkg_config(
+    name = "sdbus_cpp",
+    pkg_name = "sdbus-c++",
+)
