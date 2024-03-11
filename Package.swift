@@ -23,15 +23,25 @@ let package = Package(
   ],
   dependencies: [
     // Dependencies declare other packages that this package depends on.
+    // .package(
+    //   name: "AbseilCXX17",
+    //   url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
+    //   branch: "cxx17-test"
+    // ),
     .package(
       name: "abseil",
-      url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
-      branch: "cxx17"
+      url: "https://github.com/firebase/abseil-cpp-SwiftPM.git",
+      branch: "main"
     ),
     .package(
       name: "BoringSSL-GRPC",
       url: "https://github.com/firebase/boringssl-SwiftPM.git",
       "0.7.1"..<"0.8.0"
+    ),
+    .package(
+      name: "Firebase",
+      url: "https://github.com/firebase/firebase-ios-sdk.git",
+      "7.3.1"..<"11.0.0"
     ),
   ],
   targets: [
@@ -633,12 +643,18 @@ let package = Package(
     ),
     .testTarget(
       name: "NearbyCoreAdapterTests",
-      dependencies: ["NearbyCoreAdapter"],
+      dependencies: [
+        "NearbyCoreAdapter",
+        .product(name: "FirebaseFirestore", package: "Firebase"),
+      ],
       path: "connections/swift/NearbyCoreAdapter/Tests"
     ),
     .testTarget(
       name: "NearbyConnectionsTests",
-      dependencies: ["NearbyConnections"],
+      dependencies: [
+        "NearbyConnections",
+        .product(name: "FirebaseFirestore", package: "Firebase"),
+      ],
       path: "connections/swift/NearbyConnections/Tests"
     ),
   ],

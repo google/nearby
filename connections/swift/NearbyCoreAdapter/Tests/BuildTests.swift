@@ -1,3 +1,4 @@
+import FirebaseFirestore
 import NearbyCoreAdapter
 import XCTest
 
