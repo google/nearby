@@ -180,4 +180,16 @@ message FastPairLog {
 
   // For the SECRET_HANDSHAKE event, is the pairing device in paired history.
   optional bool is_in_paired_history = 26;
+
+  // The timestamp that the half-sheet or HUN has been triggered to pop up.
+  optional int64 triggered_timestamp_millis = 27;
+
+  // The timestamp that the scanner last time observed the device.
+  optional int64 last_observation_timestamp_millis = 28;
+
+  // The timestamp that the scanner last time observed any device.
+  optional int64 last_any_device_observation_timestamp_millis = 29;
+
+  // The current BLE scan mode of the AP scanner.
+  optional nearby.proto.fastpair.ScanMode ble_scan_mode = 30;
 }
