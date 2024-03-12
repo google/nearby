@@ -4,7 +4,7 @@ use crate::client_provider::Credential;
 
 mod fused_engine;
 mod ble_scan_provider;
-mod ble_scanner_emulator;
+mod ble_scan_emulator;
 mod client_provider;
 mod provider;
 mod client_emulator;
