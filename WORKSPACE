@@ -47,27 +47,8 @@ http_archive(
     urls = ["https://github.com/abseil/abseil-cpp/archive/4038192a57cb75f7ee671f81a3378ff4c74c4f8e.zip"],
 )
 
-# Using a protobuf javalite version that contains @com_google_protobuf_javalite//:javalite_toolchain
-http_archive(
-    name = "com_google_protobuf_javalite",
-    strip_prefix = "protobuf-javalite",
-    urls = ["https://github.com/google/protobuf/archive/javalite.zip"],
-)
-
 http_archive(
     name = "com_google_protobuf",
-    strip_prefix = "protobuf-3.21.12",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
-)
-
-http_archive(
-    name = "com_google_protobuf_cc",
-    strip_prefix = "protobuf-3.21.12",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
-)
-
-http_archive(
-    name = "com_google_protobuf_java",
     strip_prefix = "protobuf-3.21.12",
     urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
 )
@@ -78,13 +59,6 @@ protobuf_deps()
 load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies", "rules_cc_toolchains")
 rules_cc_dependencies()
 rules_cc_toolchains()
-
-http_archive(
-    name = "com_google_glog",
-    sha256 = "f28359aeba12f30d73d9e4711ef356dc842886968112162bc73002645139c39c",
-    strip_prefix = "glog-0.4.0",
-    urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
-)
 
 http_archive(
     name = "com_google_ukey2",
@@ -131,22 +105,6 @@ http_archive(
     urls = ["https://github.com/google/googletest/archive/main.zip"],
 )
 
-http_archive(
-    name = "com_google_webrtc",
-    build_file_content = """
-package(default_visibility = ["//visibility:public"])
-""",
-    urls = ["https://webrtc.googlesource.com/src/+archive/main.tar.gz"],
-)
-
-# gflags needed by glog
-http_archive(
-    name = "com_github_gflags_gflags",
-    strip_prefix = "gflags-2.2.2",
-    sha256 = "19713a36c9f32b33df59d1c79b4958434cb005b5b47dc5400a7a4b078111d9b5",
-    url = "https://github.com/gflags/gflags/archive/v2.2.2.zip",
-)
-
 # ----------------------------------------------
 # Nisaba: Script processing library from Google:
 # ----------------------------------------------
@@ -179,13 +137,4 @@ http_archive(
     name = "com_github_protobuf_matchers",
     urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
     strip_prefix = "protobuf-matchers-master",
-)
-
-http_archive(
-    name = "com_googlesource_code_re2",
-    sha256 = "26155e050b10b5969e986dab35654247a3b1b295e0532880b5a9c13c0a700ceb",
-    strip_prefix = "re2-2021-06-01",
-    urls = [
-        "https://github.com/google/re2/archive/refs/tags/2021-06-01.tar.gz",
-    ],
 )

@@ -37,7 +37,10 @@
 #define CHECK_GE(a, b) static_cast<void>(0), a >= b ? (void) 0 : abort()
 #define DCHECK_GE(a, b) static_cast<void>(0), a >= b ? (void) 0 : abort()
 #else
-#include "glog/logging.h"
+// IWYU pragma: begin_exports
+#include "absl/log/check.h"
+#include "absl/log/log.h"
+// IWYU pragma: end_exports
 #endif
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/platform.h"
