@@ -107,6 +107,8 @@ message FastPairLog {
   message ProviderInfo {
     // The number of account keys stored in the provider.
     optional int32 number_account_keys_on_provider = 1;
+    // The GATT database hash in the provider.
+    optional string database_hash = 2;
   }
 
   message FootprintsInfo {
