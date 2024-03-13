@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Check protoc version
+      run: find / -name protoc
     - name: Build Connections
       run: CC=clang CXX=clang++ bazel build --copt='-DGITHUB_BUILD' //connections:core --spawn_strategy=standalone
     - name: Build Presence
