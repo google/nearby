@@ -56,20 +56,20 @@ http_archive(
 
 http_archive(
     name = "com_google_protobuf",
-    strip_prefix = "protobuf-3.19.6",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz"],
+    strip_prefix = "protobuf-3.21.12",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
 )
 
 http_archive(
     name = "com_google_protobuf_cc",
-    strip_prefix = "protobuf-3.19.6",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz"],
+    strip_prefix = "protobuf-3.21.12",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
 )
 
 http_archive(
     name = "com_google_protobuf_java",
-    strip_prefix = "protobuf-3.19.6",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz"],
+    strip_prefix = "protobuf-3.21.12",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
 )
 
 # Load common dependencies.
