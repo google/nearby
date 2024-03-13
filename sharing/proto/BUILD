@@ -9,7 +9,6 @@ proto_library(
         "contact_rpc.proto",
         "device_rpc.proto",
         "encrypted_metadata.proto",
-        "enums.proto",
         "field_mask.proto",
         "rpc_resources.proto",
         "settings_observer_data.proto",
@@ -26,6 +25,12 @@ proto_library(
     name = "enums_proto",
     srcs = ["enums.proto"],
     visibility = ["//visibility:public"],
+)
+
+cc_proto_library(
+    name = "enums_cc_proto",
+    visibility = ["//visibility:public"],
+    deps = [":enums_proto"],
 )
 
 cc_proto_library(
