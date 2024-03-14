@@ -104,6 +104,52 @@ inline const std::string& ConnectionsStrategy_Name(T enum_t_value) {
 }
 bool ConnectionsStrategy_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionsStrategy* value);
+enum ConnectionsClient : int {
+  CONNECTIONS_CLIENT_UNKNOWN = 0,
+  CONNECTIONS_CLIENT_NEARBY_SHARE = 1,
+  CONNECTIONS_CLIENT_QUICK_START = 2,
+  CONNECTIONS_CLIENT_OTHER_FIRST_PARTY = 3,
+  CONNECTIONS_CLIENT_THIRD_PARTY = 4
+};
+bool ConnectionsClient_IsValid(int value);
+constexpr ConnectionsClient ConnectionsClient_MIN = CONNECTIONS_CLIENT_UNKNOWN;
+constexpr ConnectionsClient ConnectionsClient_MAX = CONNECTIONS_CLIENT_THIRD_PARTY;
+constexpr int ConnectionsClient_ARRAYSIZE = ConnectionsClient_MAX + 1;
+
+const std::string& ConnectionsClient_Name(ConnectionsClient value);
+template<typename T>
+inline const std::string& ConnectionsClient_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ConnectionsClient>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ConnectionsClient_Name.");
+  return ConnectionsClient_Name(static_cast<ConnectionsClient>(enum_t_value));
+}
+bool ConnectionsClient_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionsClient* value);
+enum ReportedEventType : int {
+  NC_EVENT_TYPE_UNSPECIFIED = 0,
+  NC_EVENT_TYPE_START_DISCOVERY = 1,
+  NC_EVENT_TYPE_STOP_DISCOVERY = 2,
+  NC_EVENT_TYPE_ENDPOINT_FOUND = 3,
+  NC_EVENT_TYPE_ENDPOINT_LOST = 4,
+  NC_EVENT_TYPE_START_ADVERTISING = 5,
+  NC_EVENT_TYPE_STOP_ADVERTISING = 6
+};
+bool ReportedEventType_IsValid(int value);
+constexpr ReportedEventType ReportedEventType_MIN = NC_EVENT_TYPE_UNSPECIFIED;
+constexpr ReportedEventType ReportedEventType_MAX = NC_EVENT_TYPE_STOP_ADVERTISING;
+constexpr int ReportedEventType_ARRAYSIZE = ReportedEventType_MAX + 1;
+
+const std::string& ReportedEventType_Name(ReportedEventType value);
+template<typename T>
+inline const std::string& ReportedEventType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ReportedEventType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ReportedEventType_Name.");
+  return ReportedEventType_Name(static_cast<ReportedEventType>(enum_t_value));
+}
+bool ReportedEventType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ReportedEventType* value);
 enum SessionRole : int {
   UNKNOWN_SESSION_ROLE = 0,
   ADVERTISER = 1,
@@ -648,6 +694,7 @@ enum OperationResultCode : int {
   MISCELLEANEOUS_BT_NOT_ACCEPTING_CONNECTION_FOR_WORK_PROFILE = 2510,
   MISCELLEANEOUS_WEB_RTC_GET_DROIDGUARD_RESULT_FAILURE = 2511,
   MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL = 2512,
+  MISCELLEANEOUS_WEB_RTC_FAILED_TO_RECEIVE_MESSAGE = 2513,
   IO_FILE_OPENING_ERROR = 3000,
   IO_FILE_READING_ERROR = 3001,
   IO_FILE_WRITING_ERROR = 3002,
@@ -831,6 +878,8 @@ PROTOBUF_NAMESPACE_OPEN
 
 template <> struct is_proto_enum< ::location::nearby::proto::connections::EventType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionsStrategy> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionsClient> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::connections::ReportedEventType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::SessionRole> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::Medium> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionTechnology> : ::std::true_type {};
