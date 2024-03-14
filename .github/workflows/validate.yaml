@@ -32,11 +32,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Connections
-      run: CC=clang CXX=clang++ bazel build --copt='-DGITHUB_BUILD' //connections:core --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --copt='-DGITHUB_BUILD' //connections:core
     - name: Build Presence
-      run: CC=clang CXX=clang++ bazel build --copt='-DGITHUB_BUILD' //presence --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --copt='-DGITHUB_BUILD' //presence
     - name: Build Sharing
-      run: CC=clang CXX=clang++ bazel build --copt='-DGITHUB_BUILD' //sharing:nearby_sharing_service //sharing/certificates //sharing/contacts //sharing/local_device_data //sharing/proto/... //sharing/internal/public:nearby_context //sharing/common:all //sharing/scheduling //sharing/fast_initiation:nearby_fast_initiation //sharing/analytics --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --verbose_failures --copt='-DGITHUB_BUILD' //sharing:nearby_sharing_service //sharing/certificates //sharing/contacts //sharing/local_device_data //sharing/proto/... //sharing/internal/public:nearby_context //sharing/common:all //sharing/scheduling //sharing/fast_initiation:nearby_fast_initiation //sharing/analytics
 
   build-rust-linux:
     name: Build Rust on Linux
