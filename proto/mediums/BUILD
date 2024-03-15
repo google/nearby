@@ -26,6 +26,12 @@ proto_library(
     ],
 )
 
+cc_proto_library(
+    name = "multiplex_frames_cc_proto",
+    visibility = ["//:__subpackages__"],
+    deps = [":multiplex_frames_proto"],
+)
+
 proto_library(
     name = "nfc_frames_proto",
     srcs = [

@@ -49,6 +49,7 @@ cc_library(
         "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
+        "//connections/implementation/mediums/multiplex",
         "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",
@@ -92,6 +93,7 @@ cc_library(
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums/ble_v2:__subpackages__",
+        "//connections/implementation/mediums/multiplex:__pkg__",
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
     deps = [
