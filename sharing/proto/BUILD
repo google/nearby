@@ -14,12 +14,29 @@ proto_library(
         "rpc_resources.proto",
         "settings_observer_data.proto",
         "timestamp.proto",
-        "wire_format.proto",
     ],
+    visibility = ["//visibility:public"],
+)
+
+cc_proto_library(
+    name = "share_cc_proto",
+    visibility = ["//visibility:public"],
+    deps = [":share_proto"],
+)
+
+proto_library(
+    name = "wire_format_proto",
+    srcs = ["wire_format.proto"],
     visibility = ["//visibility:public"],
     deps = [
         "//proto:sharing_enums_proto",
     ],
+)
+
+cc_proto_library(
+    name = "wire_format_cc_proto",
+    visibility = ["//visibility:public"],
+    deps = [":wire_format_proto"],
 )
 
 proto_library(
@@ -32,10 +49,4 @@ cc_proto_library(
     name = "enums_cc_proto",
     visibility = ["//visibility:public"],
     deps = [":enums_proto"],
-)
-
-cc_proto_library(
-    name = "share_cc_proto",
-    visibility = ["//visibility:public"],
-    deps = [":share_proto"],
 )
