@@ -10,7 +10,7 @@ option objc_class_prefix = "GNSHP";
 option optimize_for = LITE_RUNTIME;
 
 // File metadata. Does not include the actual bytes of the file.
-// NEXT_ID=6
+// NEXT_ID=10
 message FileMetadata {
   enum Type {
     UNKNOWN = 0;
@@ -19,6 +19,7 @@ message FileMetadata {
     ANDROID_APP = 3;
     AUDIO = 4;
     DOCUMENT = 5;
+    CONTACT_CARD = 6;
   }
 
   // The human readable name of this file (eg. 'Cookbook.pdf').
@@ -48,9 +49,12 @@ message FileMetadata {
   // A stable identifier for the attachment. Used for receiver to identify same
   // attachment from different transfers.
   optional int64 attachment_hash = 8;
+
+  // True, if image in file attachment is sensitive
+  optional bool is_sensitive_content = 9;
 }
 
-// NEXT_ID=5
+// NEXT_ID=8
 message TextMetadata {
   enum Type {
     UNKNOWN = 0;
@@ -78,9 +82,12 @@ message TextMetadata {
 
   // A uuid for the attachment. Should be unique across all attachments.
   optional int64 id = 6;
+
+  // True if text is sensitive, e.g. password
+  optional bool is_sensitive_text = 7;
 }
 
-// NEXT_ID=5
+// NEXT_ID=6
 message WifiCredentialsMetadata {
   enum SecurityType {
     UNKNOWN_SECURITY_TYPE = 0;
@@ -129,6 +136,24 @@ message AppMetadata {
   optional string package_name = 7;
 }
 
+// NEXT_ID=5
+message StreamMetadata {
+  // A human readable description for the stream.
+  optional string description = 1;
+
+  // The package name of the sending application.
+  optional string package_name = 2;
+
+  // The <TYPE> payload id that will be send as a followup containing the
+  // ParcelFileDescriptor.
+  optional int64 payload_id = 3;
+
+  // The human-readable name of the package that should be displayed as
+  // attribution if no other information is available (i.e. the package is not
+  // installed locally yet).
+  optional string attributed_app_name = 4;
+}
+
 // A frame used when sending messages over the wire.
 // NEXT_ID=3
 message Frame {
@@ -169,8 +194,14 @@ message V1Frame {
 
 // An introduction packet sent by the sending side. Contains a list of files
 // they'd like to share.
-// NEXT_ID=7
+// NEXT_ID=9
 message IntroductionFrame {
+  enum SharingUseCase {
+    UNKNOWN = 0;
+    NEARBY_SHARE = 1;
+    REMOTE_COPY = 2;
+  }
+
   repeated FileMetadata file_metadata = 1;
   repeated TextMetadata text_metadata = 2;
   // The required app package to open the content. May be null.
@@ -178,6 +209,8 @@ message IntroductionFrame {
   repeated WifiCredentialsMetadata wifi_credentials_metadata = 4;
   repeated AppMetadata app_metadata = 5;
   optional bool start_transfer = 6;
+  repeated StreamMetadata stream_metadata = 7;
+  optional SharingUseCase use_case = 8;
 }
 
 // A progress update packet sent by the sending side. Contains transfer progress
@@ -192,7 +225,7 @@ message ProgressUpdateFrame {
 
 // A response packet sent by the receiving side. Accepts or rejects the list of
 // files.
-// NEXT_ID=3
+// NEXT_ID=4
 message ConnectionResponseFrame {
   enum Status {
     UNKNOWN = 0;
@@ -208,9 +241,14 @@ message ConnectionResponseFrame {
 
   // Key is attachment hash, value is the details of attachment.
   map<int64, AttachmentDetails> attachment_details = 2;
+
+  // In the case of a stream attachments, the other side of the pipe.
+  // Both sender and receiver should validate matching counts.
+  repeated StreamMetadata stream_metadata = 3;
 }
 
 // Attachment details that sent in ConnectionResponseFrame.
+// NEXT_ID=3
 message AttachmentDetails {
   // LINT.IfChange
   enum Type {
@@ -223,6 +261,8 @@ message AttachmentDetails {
     WIFI_CREDENTIALS = 3;
     // Represents AppAttachment.
     APP = 4;
+    // Represents StreamAttachment.
+    STREAM = 5;
   }
   // LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/sharing/Attachment.java)
 
@@ -234,6 +274,7 @@ message AttachmentDetails {
 }
 
 // File attachment details included in ConnectionResponseFrame.
+// NEXT_ID=3
 message FileAttachmentDetails {
   // Existing local file size on receiver side.
   optional int64 receiver_existing_file_size = 1;
@@ -243,12 +284,14 @@ message FileAttachmentDetails {
   map<int64, PayloadsDetails> attachment_hash_payloads = 2;
 }
 
+// NEXT_ID=2
 message PayloadsDetails {
   // The list should be sorted by creation timestamp.
   repeated PayloadDetails payload_details = 1;
 }
 
 // Metadata of a payload file created by Nearby Connections.
+// NEXT_ID=4
 message PayloadDetails {
   optional int64 id = 1;
   optional int64 creation_timestamp_millis = 2;
@@ -336,4 +379,10 @@ message WifiCredentials {
   // True if the network is a hidden network that is not broadcasting its SSID.
   // Default is false.
   optional bool hidden_ssid = 2 [default = false];
+}
+
+// NEXT_ID=2
+message StreamDetails {
+  // Serialized ParcelFileDescriptor for input stream (for the receiver).
+  optional bytes input_stream_parcel_file_descriptor_bytes = 1;
 }
