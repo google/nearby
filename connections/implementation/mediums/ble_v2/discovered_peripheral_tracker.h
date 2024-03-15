@@ -46,6 +46,9 @@ namespace mediums {
 // compute found and lost peripherals.
 class DiscoveredPeripheralTracker {
  public:
+  static constexpr std::array<char, 23> kDummyAdvertisementValue = {
+      0x51, 0x43, 0x41, 0x41, 0x41, 0x42, 0x41, 0x43, 0x41, 0x41, 0x41, 0x44,
+      0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41};
   // GATT advertisement fetcher.
   // Fetches relevant GATT advertisements for the peripheral found in {@link
   // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
@@ -253,6 +256,11 @@ class DiscoveredPeripheralTracker {
       BleV2Peripheral peripheral,
       const ::nearby::api::ble_v2::BleAdvertisementData& advertisement_data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Returns true if the advertisement header met the special conditions of
+  // a legacy device dummy advertisement.
+  static bool IsLegacyDeviceAdvertisementData(
+      const api::ble_v2::BleAdvertisementData& advertisement_data);
 
   Mutex mutex_;
   bool is_extended_advertisement_available_;
