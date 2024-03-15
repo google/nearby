@@ -38,8 +38,8 @@
 #define DCHECK_GE(a, b) static_cast<void>(0), a >= b ? (void) 0 : abort()
 #else
 // IWYU pragma: begin_exports
-#include "absl/log/check.h"
-#include "absl/log/log.h"
+#include "absl/log/check.h"  // nogncheck
+#include "absl/log/log.h"  // nogncheck
 // IWYU pragma: end_exports
 #endif
 #include "internal/platform/implementation/log_message.h"
