@@ -100,7 +100,7 @@ PresenceDeviceProvider::PresenceDeviceProvider(
     ServiceController* service_controller,
     const ConnectionAuthenticator* connection_authenticator)
     : service_controller_(*service_controller),
-      device_{service_controller_.GetLocalDeviceMetadata()},
+      device_(service_controller_.GetDeviceIdentityMetaData()),
       connection_authenticator_(*connection_authenticator) {
   CHECK(connection_authenticator);
 }
@@ -124,7 +124,7 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
   service_controller_.GetLocalCredentials(
       /*credential_selector=*/{.manager_app_id = manager_app_id_,
                                .account_name =
-                                   device_.GetMetadata().account_name(),
+                                   "dummy_account_name",
                                .identity_type = ::nearby::internal::
                                    IdentityType::IDENTITY_TYPE_PRIVATE},
       /*callback=*/{.credentials_fetched_cb = [this, &response, &remote_device,
@@ -226,7 +226,7 @@ bool PresenceDeviceProvider::ReadAndVerifyRemoteDeviceData(
   service_controller_.GetLocalPublicCredentials(
       /*credential_selector=*/{.manager_app_id = manager_app_id_,
                                .account_name =
-                                   device_.GetMetadata().account_name(),
+                                   "dummy_account_name",
                                .identity_type = ::nearby::internal::
                                    IdentityType::IDENTITY_TYPE_PRIVATE},
       /*callback=*/{.credentials_fetched_cb = [this, &read_and_verify_result,

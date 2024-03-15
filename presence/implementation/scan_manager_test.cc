@@ -200,7 +200,8 @@ TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
           },
       .on_discovered_cb =
           [this, &address](PresenceDevice pd) {
-            if (pd.GetMetadata().bluetooth_mac_address() == address) {
+            if (pd.GetDeviceIdentityMetadata().bluetooth_mac_address() ==
+                address) {
               EXPECT_THAT(
                   pd.GetExtendedProperties(),
                   Contains(

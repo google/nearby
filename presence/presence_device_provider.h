@@ -60,17 +60,17 @@ class PresenceDeviceProvider : public NearbyDeviceProvider {
     return AuthenticationStatus::kUnknown;
   }
 
-  void UpdateMetadata(const ::nearby::internal::Metadata& metadata) {
-    device_.SetMetadata(metadata);
+  void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata) {
+    device_.SetDeviceIdentityMetaData(device_identity_metadata);
   }
 
   void SetManagerAppId(absl::string_view manager_app_id) {
     manager_app_id_ = manager_app_id;
   }
 
-  std::string GetManagerAppId() {
-    return manager_app_id_;
-  }
+  std::string GetManagerAppId() { return manager_app_id_; }
 
  private:
   bool WriteToRemoteDevice(

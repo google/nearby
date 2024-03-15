@@ -30,7 +30,7 @@ class MockCredentialManager : public CredentialManager {
  public:
   MOCK_METHOD(
       void, GenerateCredentials,
-      (const nearby::internal::Metadata& metadata,
+      (const nearby::internal::DeviceIdentityMetaData& device_identity_metadata,
        absl::string_view manager_app_id,
        const std::vector<nearby::internal::IdentityType>& identity_types,
        int credential_life_cycle_days, int contiguous_copy_of_credentials,
@@ -63,20 +63,21 @@ class MockCredentialManager : public CredentialManager {
               (override));
   MOCK_METHOD(void, UnsubscribeFromPublicCredentials, (SubscriberId id),
               (override));
-  MOCK_METHOD(std::string, DecryptMetadata,
+  MOCK_METHOD(std::string, DecryptDeviceIdentityMetaData,
               (absl::string_view metadata_encryption_key,
                absl::string_view key_seed, absl::string_view metadata_string),
               (override));
   MOCK_METHOD(
-      void, SetLocalDeviceMetadata,
-      (const ::nearby::internal::Metadata& metadata, bool regen_credentials,
-       absl::string_view manager_app_id,
+      void, SetDeviceIdentityMetaData,
+      (const ::nearby::internal::DeviceIdentityMetaData&
+           device_identity_metadata,
+       bool regen_credentials, absl::string_view manager_app_id,
        const std::vector<nearby::internal::IdentityType>& identity_types,
        int credential_life_cycle_days, int contiguous_copy_of_credentials,
        GenerateCredentialsResultCallback credentials_generated_cb),
       (override));
-  MOCK_METHOD(::nearby::internal::Metadata, GetLocalDeviceMetadata, (),
-              (override));
+  MOCK_METHOD(::nearby::internal::DeviceIdentityMetaData,
+              GetDeviceIdentityMetaData, (), (override));
 };
 
 }  // namespace presence

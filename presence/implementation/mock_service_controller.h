@@ -49,8 +49,17 @@ class MockServiceController : public ServiceController {
        int credential_life_cycle_days, int contiguous_copy_of_credentials,
        GenerateCredentialsResultCallback credentials_generated_cb),
       (override));
-  MOCK_METHOD(::nearby::internal::Metadata, GetLocalDeviceMetadata, (),
-              (override));
+  MOCK_METHOD(
+      void, UpdateDeviceIdentityMetaData,
+      (const ::nearby::internal::DeviceIdentityMetaData&
+           device_identity_metadata,
+       bool regen_credentials, absl::string_view manager_app_id,
+       const std::vector<nearby::internal::IdentityType>& identity_types,
+       int credential_life_cycle_days, int contiguous_copy_of_credentials,
+       GenerateCredentialsResultCallback credentials_generated_cb),
+      (override));
+  MOCK_METHOD(::nearby::internal::DeviceIdentityMetaData,
+              GetDeviceIdentityMetaData, (), (override));
   MOCK_METHOD(void, GetLocalPublicCredentials,
               (const CredentialSelector& credential_selector,
                GetPublicCredentialsResultCallback callback),

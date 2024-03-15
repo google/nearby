@@ -69,12 +69,21 @@ class PresenceServiceImpl : public PresenceService {
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
 
+  void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) override;
+
   PresenceDeviceProvider* GetLocalDeviceProvider() override {
     return &provider_;
   }
 
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
-    return service_controller_.GetLocalDeviceMetadata();
+  ::nearby::internal::DeviceIdentityMetaData GetDeviceIdentityMetaData()
+      override {
+    return service_controller_.GetDeviceIdentityMetaData();
   }
 
   void GetLocalPublicCredentials(

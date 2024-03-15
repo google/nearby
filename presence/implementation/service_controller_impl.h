@@ -62,9 +62,17 @@ class ServiceControllerImpl : public ServiceController {
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
+  void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) override;
 
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
-    return credential_manager_.GetLocalDeviceMetadata();
+  ::nearby::internal::DeviceIdentityMetaData GetDeviceIdentityMetaData()
+      override {
+    return credential_manager_.GetDeviceIdentityMetaData();
   }
   void GetLocalPublicCredentials(
       const CredentialSelector& credential_selector,

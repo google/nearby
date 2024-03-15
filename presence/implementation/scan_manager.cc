@@ -23,10 +23,10 @@
 
 #include "absl/status/status.h"
 #include "absl/types/variant.h"
-#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/credential_callbacks.h"
+#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/uuid.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
@@ -112,9 +112,11 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     return;
   }
   if (it->second.decoder.MatchesScanFilter(advert->data_elements)) {
-    internal::Metadata metadata;
-    metadata.set_bluetooth_mac_address(std::string(remote_address));
-    PresenceDevice device(DeviceMotion(), metadata, advert->identity_type);
+    internal::DeviceIdentityMetaData device_identity_metadata;
+    device_identity_metadata.set_bluetooth_mac_address(
+        std::string(remote_address));
+    PresenceDevice device(DeviceMotion(), device_identity_metadata,
+                          advert->identity_type);
     // Ok if the advertisement is for trusted/private identity.
     if (advert->public_credential.ok()) {
       device.SetDecryptSharedCredential(*(advert->public_credential));

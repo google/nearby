@@ -95,26 +95,28 @@ int ConvertToAndroidIdentityType(nearby::internal::IdentityType identity_type) {
 PresenceDevice::PresenceDevice(absl::string_view endpoint_id) noexcept
     : endpoint_id_(endpoint_id) {}
 
-PresenceDevice::PresenceDevice(Metadata metadata) noexcept
+PresenceDevice::PresenceDevice(
+    DeviceIdentityMetaData device_identity_metadata) noexcept
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
       device_motion_(DeviceMotion()),
-      metadata_(metadata) {
+      device_identity_metadata_(device_identity_metadata) {
   endpoint_id_ = GenerateRandomEndpointId();
 }
-PresenceDevice::PresenceDevice(DeviceMotion device_motion,
-                               Metadata metadata) noexcept
+PresenceDevice::PresenceDevice(
+    DeviceMotion device_motion,
+    DeviceIdentityMetaData device_identity_metadata) noexcept
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
       device_motion_(device_motion),
-      metadata_(metadata) {
+      device_identity_metadata_(device_identity_metadata) {
   endpoint_id_ = GenerateRandomEndpointId();
 }
 
 PresenceDevice::PresenceDevice(
-    DeviceMotion device_motion, Metadata metadata,
+    DeviceMotion device_motion, DeviceIdentityMetaData device_identity_metadata,
     nearby::internal::IdentityType identity_type) noexcept
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
       device_motion_(device_motion),
-      metadata_(metadata),
+      device_identity_metadata_(device_identity_metadata),
       identity_type_(identity_type) {
   endpoint_id_ = GenerateRandomEndpointId();
 }
@@ -126,9 +128,9 @@ std::vector<nearby::ConnectionInfoVariant> PresenceDevice::GetConnectionInfos()
   for (const auto& action : actions_) {
     transformed_actions.push_back(action.GetActionIdentifier());
   }
-  return {nearby::BleConnectionInfo(metadata_.bluetooth_mac_address(),
-                                    /*gatt_characteristic=*/"", /*psm=*/"",
-                                    transformed_actions)};
+  return {nearby::BleConnectionInfo(
+      device_identity_metadata_.bluetooth_mac_address(),
+      /*gatt_characteristic=*/"", /*psm=*/"", transformed_actions)};
 }
 
 std::string PresenceDevice::ToProtoBytes() const {
@@ -151,9 +153,8 @@ std::string PresenceDevice::ToProtoBytes() const {
           absl::get<BleConnectionInfo>(connection_info).ToDataElementBytes();
     }
     if (absl::holds_alternative<WifiLanConnectionInfo>(connection_info)) {
-      connection_infos +=
-          absl::get<WifiLanConnectionInfo>(connection_info)
-              .ToDataElementBytes();
+      connection_infos += std::get<WifiLanConnectionInfo>(connection_info)
+                              .ToDataElementBytes();
     }
     if (absl::holds_alternative<BluetoothConnectionInfo>(connection_info)) {
       connection_infos += absl::get<BluetoothConnectionInfo>(connection_info)
@@ -161,10 +162,10 @@ std::string PresenceDevice::ToProtoBytes() const {
     }
   }
   device.set_device_type(
-      ConvertToConnectionsDeviceType(metadata_.device_type()));
-  device.set_device_name(metadata_.device_name());
+      ConvertToConnectionsDeviceType(device_identity_metadata_.device_type()));
+  device.set_device_name(device_identity_metadata_.device_name());
   device.set_connectivity_info_list(connection_infos);
-  device.set_device_image_url(metadata_.device_profile_url());
+  device.set_device_image_url("dummy url");  // Not used.
   return device.SerializeAsString();
 }
 }  // namespace presence

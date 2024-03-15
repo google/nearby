@@ -44,7 +44,7 @@
 namespace nearby {
 namespace presence {
 namespace {
-using ::nearby::internal::Metadata;
+using ::nearby::internal::DeviceIdentityMetaData;
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 constexpr absl::string_view kManagerAppId = "test_app_id";
@@ -54,15 +54,14 @@ constexpr int kPresenceVersion = 1;
 constexpr absl::string_view kSharedCredentialHash = "shared_cred_hash";
 constexpr absl::string_view kPrivateKeySignature = "private_key_signature";
 
-Metadata CreateTestMetadata() {
-  Metadata metadata;
-  metadata.set_device_type(internal::DEVICE_TYPE_PHONE);
-  metadata.set_account_name("test_account");
-  metadata.set_device_name("NP test device");
-  metadata.set_user_name("Test user");
-  metadata.set_device_profile_url("test_image.test.com");
-  metadata.set_bluetooth_mac_address(kMacAddr);
-  return metadata;
+DeviceIdentityMetaData CreateTestDeviceIdentityMetaData() {
+  DeviceIdentityMetaData device_identity_metadata;
+  device_identity_metadata.set_device_type(
+      internal::DeviceType::DEVICE_TYPE_PHONE);
+  device_identity_metadata.set_device_name("NP test device");
+  device_identity_metadata.set_bluetooth_mac_address(kMacAddr);
+  device_identity_metadata.set_device_id("\x12\xab\xcd");
+  return device_identity_metadata;
 }
 
 nearby::internal::LocalCredential CreateValidLocalCredential(
@@ -110,8 +109,8 @@ class MockAuthenticationTransport : public AuthenticationTransport {
 class PresenceDeviceProviderTest : public ::testing::Test {
  public:
   PresenceDeviceProviderTest() {
-    ON_CALL(mock_service_controller_, GetLocalDeviceMetadata)
-        .WillByDefault(testing::Return(CreateTestMetadata()));
+    ON_CALL(mock_service_controller_, GetDeviceIdentityMetaData)
+        .WillByDefault(testing::Return(CreateTestDeviceIdentityMetaData()));
     provider_ = std::make_unique<PresenceDeviceProvider>(
         &mock_service_controller_, &mock_connection_authenticator_);
   }
@@ -136,20 +135,20 @@ TEST_F(PresenceDeviceProviderTest, DeviceProviderWorks) {
   auto device = provider_->GetLocalDevice();
   ASSERT_EQ(device->GetType(), NearbyDevice::Type::kPresenceDevice);
   auto presence_device = static_cast<const PresenceDevice*>(device);
-  EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
-            CreateTestMetadata().SerializeAsString());
+  EXPECT_EQ(presence_device->GetDeviceIdentityMetadata().SerializeAsString(),
+            CreateTestDeviceIdentityMetaData().SerializeAsString());
 }
 
 TEST_F(PresenceDeviceProviderTest, DeviceProviderCanUpdateDevice) {
   auto device = provider_->GetLocalDevice();
   ASSERT_EQ(device->GetType(), NearbyDevice::Type::kPresenceDevice);
   auto presence_device = static_cast<const PresenceDevice*>(device);
-  EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
-            CreateTestMetadata().SerializeAsString());
-  Metadata new_metadata = CreateTestMetadata();
+  EXPECT_EQ(presence_device->GetDeviceIdentityMetadata().SerializeAsString(),
+            CreateTestDeviceIdentityMetaData().SerializeAsString());
+  auto new_metadata = CreateTestDeviceIdentityMetaData();
   new_metadata.set_device_name("NP interop device");
-  provider_->UpdateMetadata(new_metadata);
-  EXPECT_EQ(presence_device->GetMetadata().SerializeAsString(),
+  provider_->UpdateDeviceIdentityMetaData(new_metadata);
+  EXPECT_EQ(presence_device->GetDeviceIdentityMetadata().SerializeAsString(),
             new_metadata.SerializeAsString());
 }
 
@@ -167,7 +166,7 @@ TEST_F(PresenceDeviceProviderTest,
             absl::Status(absl::StatusCode::kCancelled, /*msg=*/std::string()));
       });
 
-  PresenceDevice remote_device(CreateTestMetadata());
+  PresenceDevice remote_device(CreateTestDeviceIdentityMetaData());
   MockAuthenticationTransport authentication_transport;
   auto status = provider_->AuthenticateAsInitiator(
       /*remote_device=*/remote_device, /*shared_secret=*/kUkey2Secret,
@@ -185,7 +184,7 @@ TEST_F(PresenceDeviceProviderTest,
         std::move(callback.credentials_fetched_cb)(credentials);
       });
 
-  PresenceDevice remote_device(CreateTestMetadata());
+  PresenceDevice remote_device(CreateTestDeviceIdentityMetaData());
   MockAuthenticationTransport authentication_transport;
   auto status = provider_->AuthenticateAsInitiator(
       /*remote_device=*/remote_device, /*shared_secret=*/kUkey2Secret,
@@ -203,7 +202,7 @@ TEST_F(PresenceDeviceProviderTest,
         std::move(callback.credentials_fetched_cb)(credentials);
       });
 
-  PresenceDevice remote_device(CreateTestMetadata());
+  PresenceDevice remote_device(CreateTestDeviceIdentityMetaData());
   MockAuthenticationTransport authentication_transport;
   auto status = provider_->AuthenticateAsInitiator(
       /*remote_device=*/remote_device, /*shared_secret=*/kUkey2Secret,
@@ -228,7 +227,7 @@ TEST_F(PresenceDeviceProviderTest, AuthenticateAsInitiator_FailureToVerify) {
         std::move(callback.credentials_fetched_cb)(credentials);
       });
 
-  PresenceDevice remote_device(CreateTestMetadata());
+  PresenceDevice remote_device(CreateTestDeviceIdentityMetaData());
   remote_device.SetDecryptSharedCredential(BuildSharedCredential(key_pair_));
 
   MockAuthenticationTransport authentication_transport;
@@ -271,7 +270,7 @@ TEST_F(PresenceDeviceProviderTest, AuthenticateAsInitiator_Success) {
         std::move(callback.credentials_fetched_cb)(std::move(credentials));
       });
 
-  PresenceDevice remote_device(CreateTestMetadata());
+  PresenceDevice remote_device(CreateTestDeviceIdentityMetaData());
   remote_device.SetDecryptSharedCredential(BuildSharedCredential(key_pair_));
 
   ON_CALL(mock_connection_authenticator_, BuildSignedMessageAsInitiator)

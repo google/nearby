@@ -54,13 +54,20 @@ void PresenceServiceImpl::UpdateLocalDeviceMetadata(
     absl::string_view manager_app_id,
     const std::vector<nearby::internal::IdentityType>& identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
+    GenerateCredentialsResultCallback credentials_generated_cb) {}
+
+void PresenceServiceImpl::UpdateDeviceIdentityMetaData(
+    const ::nearby::internal::DeviceIdentityMetaData& device_identity_metadata,
+    bool regen_credentials, absl::string_view manager_app_id,
+    const std::vector<nearby::internal::IdentityType>& identity_types,
+    int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsResultCallback credentials_generated_cb) {
-  provider_.UpdateMetadata(metadata);
+  provider_.UpdateDeviceIdentityMetaData(device_identity_metadata);
   provider_.SetManagerAppId(manager_app_id);
-  service_controller_.UpdateLocalDeviceMetadata(
-      metadata, regen_credentials, manager_app_id, identity_types,
-      credential_life_cycle_days, contiguous_copy_of_credentials,
-      std::move(credentials_generated_cb));
+  service_controller_.UpdateDeviceIdentityMetaData(
+      device_identity_metadata, regen_credentials, manager_app_id,
+      identity_types, credential_life_cycle_days,
+      contiguous_copy_of_credentials, std::move(credentials_generated_cb));
 }
 
 void PresenceServiceImpl::GetLocalPublicCredentials(

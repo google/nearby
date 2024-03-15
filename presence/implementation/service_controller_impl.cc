@@ -43,16 +43,24 @@ void ServiceControllerImpl::StopBroadcast(BroadcastSessionId id) {
   broadcast_manager_.StopBroadcast(id);
 }
 
+// TODO(b/327629276): Remove this function.
 void ServiceControllerImpl::UpdateLocalDeviceMetadata(
     const ::nearby::internal::Metadata& metadata, bool regen_credentials,
     absl::string_view manager_app_id,
     const std::vector<nearby::internal::IdentityType>& identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
+    GenerateCredentialsResultCallback credentials_generated_cb) {}
+
+void ServiceControllerImpl::UpdateDeviceIdentityMetaData(
+    const ::nearby::internal::DeviceIdentityMetaData& device_identity_metadata,
+    bool regen_credentials, absl::string_view manager_app_id,
+    const std::vector<nearby::internal::IdentityType>& identity_types,
+    int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsResultCallback credentials_generated_cb) {
-  credential_manager_.SetLocalDeviceMetadata(
-      metadata, regen_credentials, manager_app_id, identity_types,
-      credential_life_cycle_days, contiguous_copy_of_credentials,
-      std::move(credentials_generated_cb));
+  credential_manager_.SetDeviceIdentityMetaData(
+      device_identity_metadata, regen_credentials, manager_app_id,
+      identity_types, credential_life_cycle_days,
+      contiguous_copy_of_credentials, std::move(credentials_generated_cb));
 }
 
 void ServiceControllerImpl::GetLocalPublicCredentials(

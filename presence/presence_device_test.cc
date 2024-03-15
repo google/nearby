@@ -31,7 +31,7 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using ::nearby::internal::Metadata;
+using ::nearby::internal::DeviceIdentityMetaData;
 using ::testing::Contains;
 
 constexpr DeviceMotion::MotionType kDefaultMotionType =
@@ -44,68 +44,74 @@ constexpr absl::string_view kDataElementValue = "15";
 constexpr char kEndpointId[] = "endpoint_id";
 constexpr int kTestAction = 3;
 
-Metadata CreateTestMetadata() {
-  Metadata metadata;
-  metadata.set_account_name("test_account");
-  metadata.set_device_name("NP test device");
-  metadata.set_device_profile_url("test_image.test.com");
-  metadata.set_bluetooth_mac_address(kMacAddr);
-  metadata.set_device_type(internal::DEVICE_TYPE_LAPTOP);
-  return metadata;
+DeviceIdentityMetaData CreateTestDeviceIdentityMetaData() {
+  DeviceIdentityMetaData device_identity_metadata;
+  device_identity_metadata.set_device_type(
+      internal::DeviceType::DEVICE_TYPE_LAPTOP);
+  device_identity_metadata.set_device_name("NP test device");
+  device_identity_metadata.set_bluetooth_mac_address(kMacAddr);
+  device_identity_metadata.set_device_id("\x12\xab\xcd");
+  return device_identity_metadata;
 }
-
 TEST(PresenceDeviceTest, EndpointIdConstructor) {
   PresenceDevice device(kEndpointId);
   EXPECT_EQ(device.GetEndpointId(), kEndpointId);
 }
 
 TEST(PresenceDeviceTest, DefaultMotionEquals) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device1(metadata);
-  PresenceDevice device2(metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device1(device_identity_metadata);
+  PresenceDevice device2(device_identity_metadata);
   EXPECT_EQ(device1, device2);
 }
 
 TEST(PresenceDeviceTest, ExplicitInitEquals) {
-  Metadata metadata = CreateTestMetadata();
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
   internal::SharedCredential shared_credential;
   shared_credential.set_credential_type(internal::CREDENTIAL_TYPE_GAIA);
   PresenceDevice device1 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
-                     internal::IDENTITY_TYPE_PUBLIC);
+      PresenceDevice({kDefaultMotionType, kTestConfidence},
+                     device_identity_metadata, internal::IDENTITY_TYPE_PUBLIC);
   device1.SetDecryptSharedCredential(shared_credential);
   PresenceDevice device2 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
-                     internal::IDENTITY_TYPE_PUBLIC);
+      PresenceDevice({kDefaultMotionType, kTestConfidence},
+                     device_identity_metadata, internal::IDENTITY_TYPE_PUBLIC);
   device2.SetDecryptSharedCredential(shared_credential);
   EXPECT_EQ(device1, device2);
 }
 
 TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device1 = PresenceDevice({kDefaultMotionType}, metadata,
-                                          internal::IDENTITY_TYPE_PUBLIC);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device1 =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata,
+                     internal::IDENTITY_TYPE_PUBLIC);
   PresenceDevice device2 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata,
-                     internal::IDENTITY_TYPE_PRIVATE);
+      PresenceDevice({kDefaultMotionType, kTestConfidence},
+                     device_identity_metadata, internal::IDENTITY_TYPE_PRIVATE);
   EXPECT_NE(device1, device2);
 }
 
 TEST(PresenceDeviceTest, TestGetBleConnectionInfo) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata);
   device.AddAction(PresenceAction(kTestAction));
   auto info = (device.GetConnectionInfos().at(0));
   ASSERT_TRUE(std::holds_alternative<nearby::BleConnectionInfo>(info));
   auto ble_info = std::get<nearby::BleConnectionInfo>(info);
-  EXPECT_EQ(ble_info.GetMacAddress(),
-            kMacAddr);
+  EXPECT_EQ(ble_info.GetMacAddress(), kMacAddr);
   EXPECT_EQ(ble_info.GetActions(), std::vector<uint8_t>{kTestAction});
 }
 
 TEST(PresenceDeviceTest, TestGetAddExtendedProperties) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata);
   device.AddExtendedProperty({kDataElementType, kDataElementValue});
   ASSERT_EQ(device.GetExtendedProperties().size(), 1);
   EXPECT_EQ(device.GetExtendedProperties()[0],
@@ -113,8 +119,10 @@ TEST(PresenceDeviceTest, TestGetAddExtendedProperties) {
 }
 
 TEST(PresenceDeviceTest, TestGetAddExtendedPropertiesVector) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata);
   device.AddExtendedProperties(
       {DataElement(kDataElementType, kDataElementValue)});
   ASSERT_EQ(device.GetExtendedProperties().size(), 1);
@@ -123,37 +131,45 @@ TEST(PresenceDeviceTest, TestGetAddExtendedPropertiesVector) {
 }
 
 TEST(PresenceDeviceTest, TestAddGetActions) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata);
   device.AddAction({kTestAction});
   ASSERT_EQ(device.GetActions().size(), 1);
   EXPECT_EQ(device.GetActions()[0], PresenceAction(kTestAction));
 }
 
 TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata);
   EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
 }
 
 TEST(PresenceDeviceTest, TestEndpointIdIsRandom) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device =
+      PresenceDevice({kDefaultMotionType}, device_identity_metadata);
   EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
   EXPECT_NE(device.GetEndpointId(), std::string(kEndpointIdLength, 0));
 }
 
 TEST(PresenceDeviceTest, TestGetIdentityType) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device =
-      PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device = PresenceDevice(
+      DeviceMotion(), device_identity_metadata, internal::IDENTITY_TYPE_PUBLIC);
   EXPECT_EQ(device.GetIdentityType(), internal::IDENTITY_TYPE_PUBLIC);
 }
 
 TEST(PresenceDeviceTest, TestGetDecryptSharedCredential) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device =
-      PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device = PresenceDevice(
+      DeviceMotion(), device_identity_metadata, internal::IDENTITY_TYPE_PUBLIC);
   EXPECT_EQ(device.GetDecryptSharedCredential(), std::nullopt);
   internal::SharedCredential shared_credential;
   shared_credential.set_credential_type(internal::CREDENTIAL_TYPE_GAIA);
@@ -163,9 +179,10 @@ TEST(PresenceDeviceTest, TestGetDecryptSharedCredential) {
 }
 
 TEST(PresenceDeviceTest, TestToProtoBytes) {
-  Metadata metadata = CreateTestMetadata();
-  PresenceDevice device =
-      PresenceDevice(DeviceMotion(), metadata, internal::IDENTITY_TYPE_PUBLIC);
+  DeviceIdentityMetaData device_identity_metadata =
+      CreateTestDeviceIdentityMetaData();
+  PresenceDevice device = PresenceDevice(
+      DeviceMotion(), device_identity_metadata, internal::IDENTITY_TYPE_PUBLIC);
   std::string proto_bytes = device.ToProtoBytes();
   location::nearby::connections::PresenceDevice device_frame;
   ASSERT_TRUE(device_frame.ParseFromString(proto_bytes));
@@ -177,7 +194,6 @@ TEST(PresenceDeviceTest, TestToProtoBytes) {
   EXPECT_EQ(device_frame.device_type(),
             location::nearby::connections::PresenceDevice::LAPTOP);
   EXPECT_EQ(device_frame.device_name(), "NP test device");
-  EXPECT_EQ(device_frame.device_image_url(), "test_image.test.com");
 }
 
 }  // namespace
