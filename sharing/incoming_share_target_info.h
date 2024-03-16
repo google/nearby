@@ -26,6 +26,8 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
   IncomingShareTargetInfo(IncomingShareTargetInfo&&);
   IncomingShareTargetInfo& operator=(IncomingShareTargetInfo&&);
   ~IncomingShareTargetInfo() override;
+
+  bool IsIncoming() const override { return true; }
 };
 
 }  // namespace sharing

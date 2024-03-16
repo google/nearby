@@ -42,6 +42,7 @@ class ShareTargetInfo {
   ShareTargetInfo& operator=(ShareTargetInfo&&);
   virtual ~ShareTargetInfo();
 
+  virtual bool IsIncoming() const = 0;
   const std::optional<std::string>& endpoint_id() const { return endpoint_id_; }
 
   void set_endpoint_id(std::string endpoint_id) {

@@ -343,7 +343,7 @@ class NearbySharingServiceImpl
                                 const TransferMetadata& metadata);
   void OnOutgoingTransferUpdate(const ShareTarget& share_target,
                                 const TransferMetadata& metadata);
-  void CloseConnection(const ShareTarget& share_target);
+  void CloseConnection(int64_t share_target_id);
   void OnIncomingDecryptedCertificate(
       absl::string_view endpoint_id,
       std::unique_ptr<Advertisement> advertisement,
@@ -406,28 +406,26 @@ class NearbySharingServiceImpl
                                TransferMetadata metadata);
   bool OnIncomingPayloadsComplete(ShareTarget& share_target);
   void RemoveIncomingPayloads(ShareTarget share_target);
-  void Disconnect(const ShareTarget& share_target, TransferMetadata metadata);
+  void Disconnect(int64_t share_target_id, TransferMetadata metadata);
   void OnDisconnectingConnectionTimeout(absl::string_view endpoint_id);
-  void OnDisconnectingConnectionDisconnected(const ShareTarget& share_target,
+  void OnDisconnectingConnectionDisconnected(int64_t share_target_id,
                                              absl::string_view endpoint_id);
 
   ShareTargetInfo& GetOrCreateShareTargetInfo(const ShareTarget& share_target,
                                               absl::string_view endpoint_id);
 
-  ShareTargetInfo* GetShareTargetInfo(const ShareTarget& share_target);
-  IncomingShareTargetInfo* GetIncomingShareTargetInfo(
-      const ShareTarget& share_target);
-  OutgoingShareTargetInfo* GetOutgoingShareTargetInfo(
-      const ShareTarget& share_target);
+  ShareTargetInfo* GetShareTargetInfo(int64_t share_target_id);
+  IncomingShareTargetInfo* GetIncomingShareTargetInfo(int64_t share_target_id);
+  OutgoingShareTargetInfo* GetOutgoingShareTargetInfo(int64_t share_target_id);
 
-  NearbyConnection* GetConnection(const ShareTarget& share_target);
+  NearbyConnection* GetConnection(int64_t share_target_id);
   std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
-      const ShareTarget& share_target);
+      int64_t share_target_id);
 
   void ClearOutgoingShareTargetInfoMap();
   void SetAttachmentPayloadId(const Attachment& attachment, int64_t payload_id);
   std::optional<int64_t> GetAttachmentPayloadId(int64_t attachment_id);
-  void UnregisterShareTarget(const ShareTarget& share_target);
+  void UnregisterShareTarget(bool is_incoming, int64_t share_target_id);
 
   void OnStartAdvertisingResult(bool used_device_name, Status status);
   void OnStopAdvertisingResult(Status status);

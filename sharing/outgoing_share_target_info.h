@@ -34,6 +34,8 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
   OutgoingShareTargetInfo& operator=(OutgoingShareTargetInfo&&);
   ~OutgoingShareTargetInfo() override;
 
+  bool IsIncoming() const override { return false; }
+
   const std::optional<std::string>& obfuscated_gaia_id() const {
     return obfuscated_gaia_id_;
   }
