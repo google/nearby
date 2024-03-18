@@ -382,6 +382,14 @@ void Core::RequestConnectionV3(const NearbyDevice& local_device,
         "timeout=%d, which is un-expected. Change to default.",
         connection_options.keep_alive_interval_millis,
         connection_options.keep_alive_timeout_millis);
+
+    NEARBY_LOG(
+        WARNING,
+        "Client request connection with keep-alive frame as interval=%d, "
+        "timeout=%d, which is un-expected. Change to default.",
+        connection_options.keep_alive_interval_millis,
+        connection_options.keep_alive_timeout_millis);
+
     connection_options.keep_alive_interval_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
     connection_options.keep_alive_timeout_millis =
