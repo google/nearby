@@ -51,7 +51,7 @@ std::optional<std::vector<uint8_t>> GetBluetoothMacAddressFromCertificate(
 
 // Returns device name based on arguments advertisement and certificate.
 std::optional<std::string> GetDeviceName(
-    const Advertisement* advertisement,
+    const Advertisement& advertisement,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate);
 
 // Converts authentication token to four bytes digit string.

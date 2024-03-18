@@ -780,7 +780,7 @@ void NearbySharingServiceImpl::Accept(
         bool is_incoming = info->IsIncoming();
         std::optional<std::pair<ShareTarget, TransferMetadata>> metadata =
             is_incoming ? last_incoming_metadata_ : last_outgoing_metadata_;
-        if (!ReadyToAccept(share_target,
+        if (!ReadyToAccept(info->self_share(),
                            metadata.has_value()
                                ? metadata->second.status()
                                : TransferMetadata::Status::kUnknown)) {
@@ -1749,21 +1749,15 @@ void NearbySharingServiceImpl::OnOutgoingAdvertisementDecoded(
        advertisement_copy =
            *advertisement](std::optional<NearbyShareDecryptedPublicCertificate>
                                decrypted_public_certificate) {
-        std::unique_ptr<Advertisement> advertisement =
-            Advertisement::NewInstance(
-                advertisement_copy.salt(),
-                advertisement_copy.encrypted_metadata_key(),
-                advertisement_copy.device_type(),
-                advertisement_copy.device_name());
         OnOutgoingDecryptedCertificate(endpoint_id_copy, endpoint_info_copy,
-                                       std::move(advertisement),
+                                       advertisement_copy,
                                        decrypted_public_certificate);
       });
 }
 
 void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
-    std::unique_ptr<Advertisement> advertisement,
+    const Advertisement& advertisement,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   // Check again for this endpoint id, to avoid race conditions.
   if (outgoing_share_target_map_.find(endpoint_id) !=
@@ -1774,9 +1768,9 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
 
   // The certificate provides the device name, in order to create a ShareTarget
   // to represent this remote device.
-  std::optional<ShareTarget> share_target = CreateShareTarget(
-      endpoint_id, std::move(advertisement), std::move(certificate),
-      /*is_incoming=*/false);
+  std::optional<ShareTarget> share_target =
+      CreateShareTarget(endpoint_id, advertisement, std::move(certificate),
+                        /*is_incoming=*/false);
   if (!share_target.has_value()) {
     if (discovered_advertisements_retried_set_.contains(endpoint_id)) {
       NL_LOG(INFO)
@@ -3226,13 +3220,7 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
        placeholder_share_target = std::move(placeholder_share_target)](
           std::optional<NearbyShareDecryptedPublicCertificate>
               decrypted_public_certificate) {
-        std::unique_ptr<Advertisement> advertisement =
-            Advertisement::NewInstance(
-                advertisement_copy.salt(),
-                advertisement_copy.encrypted_metadata_key(),
-                advertisement_copy.device_type(),
-                advertisement_copy.device_name());
-        OnIncomingDecryptedCertificate(endpoint_id, std::move(advertisement),
+        OnIncomingDecryptedCertificate(endpoint_id, advertisement_copy,
                                        std::move(placeholder_share_target),
                                        decrypted_public_certificate);
       });
@@ -3386,7 +3374,7 @@ void NearbySharingServiceImpl::CloseConnection(int64_t share_target_id) {
 }
 
 void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
-    absl::string_view endpoint_id, std::unique_ptr<Advertisement> advertisement,
+    absl::string_view endpoint_id, const Advertisement& advertisement,
     ShareTarget placeholder_share_target,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   NearbyConnection* connection = GetConnection(placeholder_share_target.id);
@@ -3401,8 +3389,8 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   incoming_share_target_info_map_.erase(placeholder_share_target.id);
 
   std::optional<ShareTarget> share_target =
-      CreateShareTarget(endpoint_id, std::move(advertisement),
-                        std::move(certificate), /*is_incoming=*/true);
+      CreateShareTarget(endpoint_id, advertisement, std::move(certificate),
+                        /*is_incoming=*/true);
 
   if (!share_target) {
     NL_LOG(WARNING) << __func__
@@ -3952,7 +3940,8 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::kEnableSelfShare) &&
       !four_digit_token.has_value() && share_target.for_self_share;
-  bool is_self_share_auto_accept = ShouldSelfShareAutoAccept(share_target);
+  bool is_self_share_auto_accept =
+      ShouldSelfShareAutoAccept(share_target.for_self_share);
 
   if (!is_self_share_auto_accept) {
     TransferMetadataBuilder transfer_metadata_builder;
@@ -4145,12 +4134,11 @@ void NearbySharingServiceImpl::OnOutgoingMutualAcceptanceTimeout(
 }
 
 std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
-    absl::string_view endpoint_id, std::unique_ptr<Advertisement> advertisement,
+    absl::string_view endpoint_id, const Advertisement& advertisement,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate,
     bool is_incoming) {
-  NL_DCHECK(advertisement);
 
-  if (!advertisement->device_name() && !certificate.has_value()) {
+  if (!advertisement.device_name() && !certificate.has_value()) {
     NL_VLOG(1) << __func__
                << ": Failed to retrieve public certificate for contact "
                   "only advertisement.";
@@ -4158,7 +4146,7 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
   }
 
   std::optional<std::string> device_name =
-      GetDeviceName(advertisement.get(), certificate);
+      GetDeviceName(advertisement, certificate);
   if (!device_name.has_value()) {
     NL_VLOG(1) << __func__
                << ": Failed to retrieve device name for advertisement.";
@@ -4166,7 +4154,7 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
   }
 
   ShareTarget target;
-  target.type = advertisement->device_type();
+  target.type = advertisement.device_type();
   target.device_name = std::move(*device_name);
   target.is_incoming = is_incoming;
   target.device_id = GetDeviceId(endpoint_id, certificate);
@@ -4528,6 +4516,7 @@ ShareTargetInfo& NearbySharingServiceImpl::GetOrCreateShareTargetInfo(
   if (share_target.is_incoming) {
     auto& info = incoming_share_target_info_map_[share_target.id];
     info.set_endpoint_id(std::string(endpoint_id));
+    info.set_self_share(share_target.for_self_share);
     return info;
   } else {
     // We need to explicitly remove any previous share target for
@@ -4546,6 +4535,7 @@ ShareTargetInfo& NearbySharingServiceImpl::GetOrCreateShareTargetInfo(
     auto& info = outgoing_share_target_info_map_[share_target.id];
     info.set_endpoint_id(std::string(endpoint_id));
     info.set_connection_layer_status(Status::kUnknown);
+    info.set_self_share(share_target.for_self_share);
     return info;
   }
 }
@@ -4877,11 +4867,11 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
 }
 
 bool NearbySharingServiceImpl::ShouldSelfShareAutoAccept(
-    const ShareTarget& share_target) const {
+    bool for_self_share) const {
   // Auto-accept self shares when not in high-visibility mode.
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::kEnableSelfShare) &&
-      share_target.for_self_share) {
+      for_self_share) {
     return true;
   }
 
@@ -4889,12 +4879,12 @@ bool NearbySharingServiceImpl::ShouldSelfShareAutoAccept(
 }
 
 bool NearbySharingServiceImpl::ReadyToAccept(
-    const ShareTarget& share_target, TransferMetadata::Status status) const {
+    bool for_self_share, TransferMetadata::Status status) const {
   if (status == TransferMetadata::Status::kAwaitingLocalConfirmation) {
     return true;
   }
 
-  if (ShouldSelfShareAutoAccept(share_target) &&
+  if (ShouldSelfShareAutoAccept(for_self_share) &&
       status == TransferMetadata::Status::kUnknown) {
     return true;
   }

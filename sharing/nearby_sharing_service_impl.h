@@ -267,7 +267,7 @@ class NearbySharingServiceImpl
       std::unique_ptr<Advertisement> advertisement);
   void OnOutgoingDecryptedCertificate(
       absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
-      std::unique_ptr<Advertisement> advertisement,
+      const Advertisement& advertisement,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void ScheduleCertificateDownloadDuringDiscovery(size_t attempt_count);
   void OnCertificateDownloadDuringDiscoveryTimerFired(size_t attempt_count);
@@ -345,8 +345,7 @@ class NearbySharingServiceImpl
                                 const TransferMetadata& metadata);
   void CloseConnection(int64_t share_target_id);
   void OnIncomingDecryptedCertificate(
-      absl::string_view endpoint_id,
-      std::unique_ptr<Advertisement> advertisement,
+      absl::string_view endpoint_id, const Advertisement& advertisement,
       ShareTarget placeholder_share_target,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void RunPairedKeyVerification(
@@ -398,7 +397,7 @@ class NearbySharingServiceImpl
 
   std::optional<ShareTarget> CreateShareTarget(
       absl::string_view endpoint_id,
-      std::unique_ptr<Advertisement> advertisement,
+      const Advertisement& advertisement,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate,
       bool is_incoming);
 
@@ -455,10 +454,10 @@ class NearbySharingServiceImpl
   void ResetAllSettings(bool logout);
 
   // Checks whether SDK should auto-accept remote attachments.
-  bool ShouldSelfShareAutoAccept(const ShareTarget& share_target) const;
+  bool ShouldSelfShareAutoAccept(bool for_self_share) const;
 
   // Checks whether we should accept transfer.
-  bool ReadyToAccept(const ShareTarget& share_target,
+  bool ReadyToAccept(bool for_self_share,
                      TransferMetadata::Status status) const;
 
   // Runs API/task on the service thread to avoid UI block.

@@ -115,13 +115,12 @@ std::optional<std::vector<uint8_t>> GetBluetoothMacAddressFromCertificate(
 }
 
 std::optional<std::string> GetDeviceName(
-    const Advertisement* advertisement,
+    const Advertisement& advertisement,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate) {
-  NL_DCHECK(advertisement);
 
   // Device name is always included when visible to everyone.
-  if (advertisement->device_name().has_value()) {
-    return advertisement->device_name();
+  if (advertisement.device_name().has_value()) {
+    return advertisement.device_name();
   }
 
   // For contacts only advertisements, we can't do anything without the

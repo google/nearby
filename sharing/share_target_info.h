@@ -120,6 +120,10 @@ class ShareTargetInfo {
     os_type_ = os_type;
   }
 
+  void set_self_share(bool self_share) { self_share_ = self_share; }
+
+  bool self_share() const { return self_share_; }
+
  private:
   std::optional<std::string> endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
@@ -133,6 +137,7 @@ class ShareTargetInfo {
   std::optional<absl::Time> connection_start_time_;
   ::location::nearby::proto::sharing::OSType os_type_ =
       ::location::nearby::proto::sharing::OSType::UNKNOWN_OS_TYPE;
+  bool self_share_ = false;
 };
 
 }  // namespace sharing

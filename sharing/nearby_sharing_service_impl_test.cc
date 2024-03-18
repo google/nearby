@@ -4290,16 +4290,6 @@ TEST_F(NearbySharingServiceImplTest, ScreenLocksDuringDiscovery) {
 }
 
 TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
-  auto CreateShareTarget =
-      [](NearbySharingServiceImpl* service_,
-         std::unique_ptr<Advertisement> advertisement,
-         std::optional<NearbyShareDecryptedPublicCertificate> certificate)
-      -> std::optional<ShareTarget> {
-    return service_->CreateShareTarget(kEndpointId, std::move(advertisement),
-                                       certificate,
-                                       /*is_incoming=*/true);
-  };
-
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       GetNearbyShareTestEncryptedMetadataKey().salt(),
       GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
@@ -4318,8 +4308,8 @@ TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
   ASSERT_TRUE(certificate.has_value());
   ASSERT_EQ(certificate_proto.for_self_share(), certificate->for_self_share());
 
-  std::optional<ShareTarget> share_target =
-      CreateShareTarget(service_.get(), std::move(advertisement), certificate);
+  std::optional<ShareTarget> share_target = service_->CreateShareTarget(
+      kEndpointId, *advertisement, certificate, /*is_incoming=*/true);
 
   ASSERT_TRUE(share_target.has_value());
   EXPECT_EQ(kDeviceName, share_target->device_name);
@@ -4327,12 +4317,9 @@ TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
   EXPECT_EQ(certificate_proto.for_self_share(), share_target->for_self_share);
 
   // Test when |certificate| is null.
-  advertisement = Advertisement::NewInstance(
-      GetNearbyShareTestEncryptedMetadataKey().salt(),
-      GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
-      kDeviceName);
-  share_target = CreateShareTarget(service_.get(), std::move(advertisement),
-                                   /*certificate=*/std::nullopt);
+  share_target = service_->CreateShareTarget(kEndpointId, *advertisement,
+                                             /*certificate=*/std::nullopt,
+                                             /*is_incoming=*/true);
   ASSERT_TRUE(share_target.has_value());
   EXPECT_EQ(kDeviceName, share_target->device_name);
   EXPECT_EQ(kDeviceType, share_target->type);
