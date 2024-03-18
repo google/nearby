@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
@@ -181,21 +182,41 @@ bool BleV2Medium::StopAdvertising() {
   return result;
 }
 
+// TODO(hais) manually verify the new api before switching async flags.
 std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
-    api::ble_v2::AdvertiseParameters advertise_parameters,
+    api::ble_v2::AdvertiseParameters advertise_set_parameters,
     BleV2Medium::AdvertisingCallback callback) {
-  NEARBY_LOGS(INFO) << __func__
-                    << ": advertising_data.is_extended_advertisement="
-                    << advertising_data.is_extended_advertisement
-                    << ", advertising_data.service_data size="
-                    << advertising_data.service_data.size()
-                    << ", tx_power_level="
-                    << TxPowerLevelToName(advertise_parameters.tx_power_level)
-                    << ", is_connectable="
-                    << advertise_parameters.is_connectable;
-  // TODO(hais): add real impl for windows StartAdvertising.
-  return nullptr;
+  NEARBY_LOGS(INFO)
+      << __func__ << ": advertising_data.is_extended_advertisement="
+      << advertising_data.is_extended_advertisement
+      << ", advertising_data.service_data size="
+      << advertising_data.service_data.size() << ", tx_power_level="
+      << TxPowerLevelToName(advertise_set_parameters.tx_power_level)
+      << ", is_connectable=" << advertise_set_parameters.is_connectable;
+  if (StartAdvertising(advertising_data, advertise_set_parameters)) {
+    if (callback.start_advertising_result) {
+      callback.start_advertising_result(absl::OkStatus());
+    }
+  } else {
+    if (callback.start_advertising_result) {
+      callback.start_advertising_result(
+          absl::InternalError("Failed to start advertising."));
+    }
+    return nullptr;
+  }
+
+  return std::make_unique<BleV2Medium::AdvertisingSession>(
+      BleV2Medium::AdvertisingSession{
+          .stop_advertising =
+              [this]() {
+                if (StopAdvertising()) {
+                  return absl::OkStatus();
+                } else {
+                  return absl::InternalError("Failed to stop advertising.");
+                }
+              },
+      });
 }
 
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
