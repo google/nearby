@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
@@ -99,10 +100,10 @@ class WifiLanMedium {
 
   // Callback that is invoked when a discovered service is found or lost.
   struct DiscoveredServiceCallback {
-    absl::AnyInvocable<void(NsdServiceInfo service_info)>
-        service_discovered_cb = DefaultCallback<NsdServiceInfo>();
-    absl::AnyInvocable<void(NsdServiceInfo service_info)> service_lost_cb =
-        DefaultCallback<NsdServiceInfo>();
+    absl::AnyInvocable<void(const NsdServiceInfo& service_info)>
+        service_discovered_cb = DefaultCallback<const NsdServiceInfo&>();
+    absl::AnyInvocable<void(const NsdServiceInfo& service_info)>
+        service_lost_cb = DefaultCallback<const NsdServiceInfo&>();
   };
 
   // Starts the discovery of nearby WifiLan services.

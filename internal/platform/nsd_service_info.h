@@ -63,7 +63,7 @@ class NsdServiceInfo {
 
   // Sets all TXTRecord.
   void SetTxtRecords(
-      absl::flat_hash_map<std::string, std::string>& txt_records) {
+      const absl::flat_hash_map<std::string, std::string>& txt_records) {
     txt_records_ = txt_records;
   }
 
