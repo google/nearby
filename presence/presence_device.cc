@@ -153,7 +153,7 @@ std::string PresenceDevice::ToProtoBytes() const {
           absl::get<BleConnectionInfo>(connection_info).ToDataElementBytes();
     }
     if (absl::holds_alternative<WifiLanConnectionInfo>(connection_info)) {
-      connection_infos += std::get<WifiLanConnectionInfo>(connection_info)
+      connection_infos += absl::get<WifiLanConnectionInfo>(connection_info)
                               .ToDataElementBytes();
     }
     if (absl::holds_alternative<BluetoothConnectionInfo>(connection_info)) {
