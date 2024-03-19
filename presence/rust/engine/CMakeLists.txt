@@ -15,6 +15,6 @@ add_custom_target(engine ALL
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(engine PROPERTIES BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME engine_test
+add_test(NAME rust_engine_test
     COMMAND cargo test
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

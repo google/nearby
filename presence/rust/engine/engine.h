@@ -19,7 +19,7 @@ struct DiscoveryCondition {
 
 /// Struct to hold a list of DiscoveryCondition.
 ///
-/// The `len` is the numer of items in the list.
+/// The `count` is the numer of items in the list.
 struct DiscoveryConditionList {
   const DiscoveryCondition *items;
   size_t count;
@@ -34,9 +34,13 @@ struct DiscoveryEngineRequest {
 
 extern "C" {
 
+/// Echoes back a [DiscoveryEngineRequest](struct.DiscoveryEngineRequest.html).
+/// The `*request_ptr` is cloned to the returned result.
+/// Caller owns both the input and output and is responsible to free the memory by calling
+/// [free_engine_request()](fn.free_engine_request.html)
 const DiscoveryEngineRequest *echo_request(const DiscoveryEngineRequest *request_ptr);
 
-/// Free the memory associated with the [`DiscoveryEngineRequest`](struct.DiscoveryEngineRequest.html) struct.
+/// Free the memory associated with the [`DiscoveryEngineRequest`](struct.DiscoveryEngineRequest.html).
 void free_engine_request(const DiscoveryEngineRequest *request_ptr);
 
 } // extern "C"
