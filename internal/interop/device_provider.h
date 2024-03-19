@@ -26,7 +26,8 @@ namespace nearby {
 // client implements it.
 class NearbyDeviceProvider {
  public:
-  virtual ~NearbyDeviceProvider() = default;
+  NearbyDeviceProvider();
+  virtual ~NearbyDeviceProvider();
 
   const virtual NearbyDevice* GetLocalDevice() = 0;
   virtual AuthenticationStatus AuthenticateAsInitiator(
@@ -42,6 +43,12 @@ class NearbyDeviceProvider {
     // We want to check out-of-band by default (Show UKEY2 digits to user).
     return AuthenticationStatus::kUnknown;
   }
+
+  int GetDeviceProviderId() const { return device_provider_id_; }
+
+ protected:
+  // The unique identifier for this device provider.
+  const int device_provider_id_;
 };
 }  // namespace nearby
 

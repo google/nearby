@@ -187,7 +187,9 @@ let package = Package(
       dependencies: [
         "protobuf",
         .product(name: "AbseilCXX17", package: "abseil-cpp-SwiftPM"),
-        .product(name: "openssl_grpc", package: "boringssl-SwiftPM", moduleAliases: ["NearbySSL": "openssl_grpc"]),
+        .product(
+          name: "openssl_grpc", package: "boringssl-SwiftPM",
+          moduleAliases: ["NearbySSL": "openssl_grpc"]),
       ],
       path: "third_party/ukey2",
       exclude: [
@@ -504,6 +506,7 @@ let package = Package(
         "internal/data/leveldb_data_set_test.cc",
         "internal/data/memory_data_set_test.cc",
         "internal/flags/nearby_flags_test.cc",
+        "internal/interop/nearby_device_provider_getter_test.cc",
         "internal/proto/analytics/connections_log_test.cc",
         "internal/platform/feature_flags_test.cc",
         "internal/platform/cancelable_alarm_test.cc",
