@@ -20,11 +20,15 @@
 #include <vector>
 
 #include "sharing/nearby_connections_types.h"
+#include "sharing/share_target.h"
+#include "sharing/share_target_info.h"
 
 namespace nearby {
 namespace sharing {
 
-OutgoingShareTargetInfo::OutgoingShareTargetInfo() = default;
+OutgoingShareTargetInfo::OutgoingShareTargetInfo(
+    std::string endpoint_id, const ShareTarget& share_target)
+    : ShareTargetInfo(std::move(endpoint_id), share_target) {}
 
 OutgoingShareTargetInfo::OutgoingShareTargetInfo(OutgoingShareTargetInfo&&) =
     default;

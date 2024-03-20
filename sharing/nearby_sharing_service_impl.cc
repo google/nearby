@@ -687,7 +687,7 @@ void NearbySharingServiceImpl::SendAttachments(
         NL_DCHECK(!is_transferring_);
 
         ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
-        if (!info || !info->endpoint_id()) {
+        if (!info) {
           NL_LOG(WARNING)
               << __func__
               << ": Failed to send attachments. Unknown ShareTarget.";
@@ -697,6 +697,7 @@ void NearbySharingServiceImpl::SendAttachments(
 
         // Set session ID.
         info->set_session_id(analytics_recorder_->GenerateNextId());
+        info->set_share_target(share_target_copy);
 
         if (!share_target_copy.has_attachments()) {
           NL_LOG(WARNING) << __func__ << ": No attachments to send.";
@@ -879,7 +880,7 @@ void NearbySharingServiceImpl::DoCancel(
     bool is_initiator_of_cancellation) {
   int64_t share_target_id = share_target.id;
   ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
-  if (!info || !info->endpoint_id()) {
+  if (!info) {
     NL_LOG(ERROR) << __func__
                   << ": Cancel invoked for unknown share target, returning "
                      "kOutOfOrderApiCall";
@@ -931,7 +932,7 @@ void NearbySharingServiceImpl::DoCancel(
   // info->connection() will be null.
   if (info->connection()) {
     NL_LOG(INFO) << "Disconnect fully established endpoint id:"
-                 << *info->endpoint_id();
+                 << info->endpoint_id();
     if (is_initiator_of_cancellation) {
       info->connection()->SetDisconnectionListener(
           [&, share_target_id, info]() {
@@ -958,8 +959,8 @@ void NearbySharingServiceImpl::DoCancel(
       info->connection()->Close();
     }
   } else {
-    NL_LOG(INFO) << "Disconnect endpoint id:" << *info->endpoint_id();
-    nearby_connections_manager_->Disconnect(*info->endpoint_id());
+    NL_LOG(INFO) << "Disconnect endpoint id:" << info->endpoint_id();
+    nearby_connections_manager_->Disconnect(info->endpoint_id());
     UnregisterShareTarget(info->IsIncoming(), share_target_id);
   }
 
@@ -2599,14 +2600,6 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::SendPayloads(
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .build());
 
-  if (!info->endpoint_id()) {
-    NL_LOG(WARNING) << __func__
-                    << ": Failed to send payload due to missing endpoint id.";
-    AbortAndCloseConnectionIfNecessary(
-        TransferMetadata::Status::kMissingEndpointId, share_target);
-    return StatusCodes::kOutOfOrderApiCall;
-  }
-
   ReceiveConnectionResponse(share_target);
   return StatusCodes::kOk;
 }
@@ -2734,7 +2727,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     NearbyConnection* connection) {
   int64_t share_target_id = share_target.id;
   OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target_id);
-  bool success = info && info->endpoint_id() && connection;
+  bool success = info && connection;
 
   if (!success) {
     NL_LOG(WARNING) << __func__
@@ -2774,10 +2767,10 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
 
   std::optional<std::string> four_digit_token = TokenToFourDigitString(
       nearby_connections_manager_->GetRawAuthenticationToken(
-          *info->endpoint_id()));
+          info->endpoint_id()));
 
   RunPairedKeyVerification(
-      share_target, *info->endpoint_id(),
+      share_target, info->endpoint_id(),
       [&, share_target, four_digit_token = std::move(four_digit_token)](
           PairedKeyVerificationRunner::PairedKeyVerificationResult result,
           OSType remote_os_type) {
@@ -2971,7 +2964,7 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target.id);
   bool has_payloads = info && (!info->text_payloads().empty() ||
                                !info->file_payloads().empty());
-  if (!success || !has_payloads || !info->endpoint_id()) {
+  if (!success || !has_payloads) {
     NL_LOG(WARNING) << __func__
                     << ": Failed to send file to remote ShareTarget. Failed to "
                        "create payloads.";
@@ -2994,7 +2987,7 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   info->set_connection_start_time(context_->GetClock()->Now());
 
   nearby_connections_manager_->Connect(
-      std::move(endpoint_info), *info->endpoint_id(),
+      std::move(endpoint_info), info->endpoint_id(),
       std::move(bluetooth_mac_address), settings_->GetDataUsage(),
       GetTransportType(share_target),
       [&, share_target, info](NearbyConnection* connection, Status status) {
@@ -3343,7 +3336,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
         std::optional<Payload> payload = info->ExtractNextPayload();
         if (payload.has_value()) {
           NL_LOG(INFO) << __func__ << ": Send  payload " << payload->id;
-          nearby_connections_manager_->Send(*info->endpoint_id(),
+          nearby_connections_manager_->Send(info->endpoint_id(),
                                             std::make_unique<Payload>(*payload),
                                             info->payload_tracker());
         } else {
@@ -3481,7 +3474,7 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
     PairedKeyVerificationRunner::PairedKeyVerificationResult result,
     OSType share_target_os_type) {
   ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
-  if (!info || !info->connection() || !info->endpoint_id()) {
+  if (!info || !info->connection()) {
     NL_VLOG(1) << __func__ << ": Invalid connection or endpoint id";
     return;
   }
@@ -3725,6 +3718,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
                << share_target.id;
     return;
   }
+  info->set_share_target(share_target);
 
   // Log analytics event of receiving introduction.
   analytics_recorder_->NewReceiveIntroduction(
@@ -3740,13 +3734,12 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
 
   if (introduction_frame.has_start_transfer() &&
       introduction_frame.start_transfer()) {
-    if (info->endpoint_id().has_value() &&
-        share_target.GetTotalAttachmentsSize() >=
+    if (share_target.GetTotalAttachmentsSize() >=
             kAttachmentsSizeThresholdOverHighQualityMedium) {
       NL_LOG(INFO)
           << __func__
           << ": Upgrade bandwidth when receiving an introduction frame.";
-      nearby_connections_manager_->UpgradeBandwidth(*info->endpoint_id());
+      nearby_connections_manager_->UpgradeBandwidth(info->endpoint_id());
     }
   }
 
@@ -3841,7 +3834,7 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
         if (payload.has_value()) {
           NL_LOG(INFO) << __func__ << ": Send  payload " << payload->id;
 
-          nearby_connections_manager_->Send(*info->endpoint_id(),
+          nearby_connections_manager_->Send(info->endpoint_id(),
                                             std::make_unique<Payload>(*payload),
                                             info->payload_tracker());
         } else {
@@ -3849,12 +3842,12 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
         }
       } else {
         for (auto& payload : info->ExtractTextPayloads()) {
-          nearby_connections_manager_->Send(*info->endpoint_id(),
+          nearby_connections_manager_->Send(info->endpoint_id(),
                                             std::make_unique<Payload>(payload),
                                             info->payload_tracker());
         }
         for (auto& payload : info->ExtractFilePayloads()) {
-          nearby_connections_manager_->Send(*info->endpoint_id(),
+          nearby_connections_manager_->Send(info->endpoint_id(),
                                             std::make_unique<Payload>(payload),
                                             info->payload_tracker());
         }
@@ -4061,15 +4054,14 @@ void NearbySharingServiceImpl::HandleProgressUpdateFrame(
       progress_update_frame.start_transfer()) {
     ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
 
-    if (info != nullptr && info->endpoint_id().has_value() &&
-        share_target.GetTotalAttachmentsSize() >=
-            kAttachmentsSizeThresholdOverHighQualityMedium) {
+    if (info != nullptr && share_target.GetTotalAttachmentsSize() >=
+                               kAttachmentsSizeThresholdOverHighQualityMedium) {
       NL_LOG(INFO)
           << __func__
           << ": Upgrade bandwidth when receiving progress update frame "
              "for endpoint "
-          << (*info->endpoint_id());
-      nearby_connections_manager_->UpgradeBandwidth(*info->endpoint_id());
+          << info->endpoint_id();
+      nearby_connections_manager_->UpgradeBandwidth(info->endpoint_id());
     }
   }
 
@@ -4254,6 +4246,7 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
   // transfer updates in the receive case due to the Disconnect call cleaning up
   // share targets.
   ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
+  info->set_share_target(share_target);
   if (info && info->transfer_update_callback())
     info->transfer_update_callback()->OnTransferUpdate(share_target, metadata);
 
@@ -4514,10 +4507,9 @@ void NearbySharingServiceImpl::OnDisconnectingConnectionDisconnected(
 ShareTargetInfo& NearbySharingServiceImpl::GetOrCreateShareTargetInfo(
     const ShareTarget& share_target, absl::string_view endpoint_id) {
   if (share_target.is_incoming) {
-    auto& info = incoming_share_target_info_map_[share_target.id];
-    info.set_endpoint_id(std::string(endpoint_id));
-    info.set_self_share(share_target.for_self_share);
-    return info;
+    auto [it, inserted] = incoming_share_target_info_map_.try_emplace(
+        share_target.id, std::string(endpoint_id), share_target);
+    return it->second;
   } else {
     // We need to explicitly remove any previous share target for
     // |endpoint_id| if one exists, notifying observers that a share target is
@@ -4532,10 +4524,10 @@ ShareTargetInfo& NearbySharingServiceImpl::GetOrCreateShareTargetInfo(
                << ", share_target_id=" << share_target.id
                << ") to outgoing share target map";
     outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
-    auto& info = outgoing_share_target_info_map_[share_target.id];
-    info.set_endpoint_id(std::string(endpoint_id));
+    auto [it_out, inserted] = outgoing_share_target_info_map_.try_emplace(
+        share_target.id, std::string(endpoint_id), share_target);
+    auto& info = it_out->second;
     info.set_connection_layer_status(Status::kUnknown);
-    info.set_self_share(share_target.for_self_share);
     return info;
   }
 }

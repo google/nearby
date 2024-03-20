@@ -29,6 +29,7 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
+#include "sharing/share_target.h"
 #include "sharing/transfer_update_callback.h"
 
 namespace nearby {
@@ -37,17 +38,13 @@ namespace sharing {
 // Additional information about the connection to a remote device.
 class ShareTargetInfo {
  public:
-  ShareTargetInfo();
+  ShareTargetInfo(std::string endpoint_id, const ShareTarget& share_target);
   ShareTargetInfo(ShareTargetInfo&&);
   ShareTargetInfo& operator=(ShareTargetInfo&&);
   virtual ~ShareTargetInfo();
 
   virtual bool IsIncoming() const = 0;
-  const std::optional<std::string>& endpoint_id() const { return endpoint_id_; }
-
-  void set_endpoint_id(std::string endpoint_id) {
-    endpoint_id_ = std::move(endpoint_id);
-  }
+  std::string endpoint_id() const { return endpoint_id_; }
 
   const std::optional<NearbyShareDecryptedPublicCertificate>& certificate()
       const {
@@ -120,12 +117,14 @@ class ShareTargetInfo {
     os_type_ = os_type;
   }
 
-  void set_self_share(bool self_share) { self_share_ = self_share; }
-
   bool self_share() const { return self_share_; }
 
+  void set_share_target(const ShareTarget& share_target);
+
+  ShareTarget share_target() const { return share_target_; }
+
  private:
-  std::optional<std::string> endpoint_id_;
+  std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyConnection* connection_ = nullptr;
   std::unique_ptr<TransferUpdateCallback> transfer_update_callback_;
@@ -138,6 +137,7 @@ class ShareTargetInfo {
   ::location::nearby::proto::sharing::OSType os_type_ =
       ::location::nearby::proto::sharing::OSType::UNKNOWN_OS_TYPE;
   bool self_share_ = false;
+  ShareTarget share_target_;
 };
 
 }  // namespace sharing

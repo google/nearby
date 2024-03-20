@@ -14,10 +14,18 @@
 
 #include "sharing/incoming_share_target_info.h"
 
+#include <string>
+#include <utility>
+
+#include "sharing/share_target.h"
+#include "sharing/share_target_info.h"
+
 namespace nearby {
 namespace sharing {
 
-IncomingShareTargetInfo::IncomingShareTargetInfo() = default;
+IncomingShareTargetInfo::IncomingShareTargetInfo(
+    std::string endpoint_id, const ShareTarget& share_target)
+    : ShareTargetInfo(std::move(endpoint_id), share_target) {}
 
 IncomingShareTargetInfo::IncomingShareTargetInfo(IncomingShareTargetInfo&&) =
     default;

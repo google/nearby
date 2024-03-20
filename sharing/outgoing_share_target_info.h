@@ -29,7 +29,8 @@ namespace sharing {
 // A description of the outgoing connection to a remote device.
 class OutgoingShareTargetInfo : public ShareTargetInfo {
  public:
-  OutgoingShareTargetInfo();
+  OutgoingShareTargetInfo(std::string endpoint_id,
+                          const ShareTarget& share_target);
   OutgoingShareTargetInfo(OutgoingShareTargetInfo&&);
   OutgoingShareTargetInfo& operator=(OutgoingShareTargetInfo&&);
   ~OutgoingShareTargetInfo() override;
