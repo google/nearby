@@ -877,6 +877,8 @@ enum OperationResultCode {
   CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE = 3556;
   // Failed to create connectionFlow
   CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR = 3557;
+  // Different frequencies between group and AP frequencies
+  CONNECTIVITY_DIRECT_GROUP_MCC_FAILURE = 3558;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
