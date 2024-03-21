@@ -301,25 +301,25 @@ class NearbySharingServiceImpl
   void ReceivePayloads(
       ShareTarget share_target,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
-  StatusCodes SendPayloads(const ShareTarget& share_target);
+  StatusCodes SendPayloads(int64_t share_target_id);
   void OnUniquePathFetched(int64_t attachment_id, int64_t payload_id,
                            std::function<void(Status)> callback,
                            std::filesystem::path path);
   void OnPayloadPathRegistered(Status status);
   void OnPayloadPathsRegistered(
-      const ShareTarget& share_target, std::unique_ptr<bool> aggregated_success,
+      int64_t share_target_id, std::unique_ptr<bool> aggregated_success,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
 
-  void OnOutgoingConnection(const ShareTarget& share_target,
+  void OnOutgoingConnection(int64_t share_target_id,
                             absl::Time connect_start_time,
                             NearbyConnection* connection);
-  void SendIntroduction(const ShareTarget& share_target,
+  void SendIntroduction(int64_t share_target_id,
                         std::optional<std::string> four_digit_token);
 
   void CreatePayloads(ShareTarget share_target,
                       std::function<void(ShareTarget, bool)> callback);
   void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
-                        ShareTarget share_target, bool success);
+                        int64_t share_target_id, bool success);
   void OnOpenFiles(ShareTarget share_target,
                    std::function<void(ShareTarget, bool)> callback,
                    std::vector<NearbyFileHandler::FileInfo> files);
@@ -336,10 +336,10 @@ class NearbySharingServiceImpl
   void WriteProgressUpdateFrame(NearbyConnection& connection,
                                 std::optional<bool> start_transfer,
                                 std::optional<float> progress);
-  void Fail(const ShareTarget& share_target, TransferMetadata::Status status);
+  void Fail(int64_t share_target_id, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
-      absl::string_view endpoint_id, ShareTarget placeholder_share_target,
-      std::unique_ptr<Advertisement> advertisement);
+      absl::string_view endpoint_id, int64_t placeholder_share_target_id,
+      const Advertisement& advertisement);
   void OnIncomingTransferUpdate(const ShareTarget& share_target,
                                 const TransferMetadata& metadata);
   void OnOutgoingTransferUpdate(const ShareTarget& share_target,
@@ -347,48 +347,48 @@ class NearbySharingServiceImpl
   void CloseConnection(int64_t share_target_id);
   void OnIncomingDecryptedCertificate(
       absl::string_view endpoint_id, const Advertisement& advertisement,
-      ShareTarget placeholder_share_target,
+      int64_t placeholder_share_target_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void RunPairedKeyVerification(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
+      int64_t share_target_id, absl::string_view endpoint_id,
       std::function<
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                ::location::nearby::proto::sharing::OSType)>
           callback);
   void OnIncomingConnectionKeyVerificationDone(
-      ShareTarget share_target, std::optional<std::string> four_digit_token,
+      int64_t share_target_id, std::optional<std::string> four_digit_token,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
   void OnOutgoingConnectionKeyVerificationDone(
-      const ShareTarget& share_target,
+      int64_t share_target_id,
       std::optional<std::string> four_digit_token,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
-  void ReceiveIntroduction(ShareTarget share_target,
+  void ReceiveIntroduction(int64_t share_target_id,
                            std::optional<std::string> four_digit_token);
   void OnReceivedIntroduction(
-      ShareTarget share_target, std::optional<std::string> four_digit_token,
+      int64_t share_target_id, std::optional<std::string> four_digit_token,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void ReceiveConnectionResponse(ShareTarget share_target);
+  void ReceiveConnectionResponse(int64_t share_target_id);
   void OnReceiveConnectionResponse(
-      ShareTarget share_target,
+      int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void OnStorageCheckCompleted(ShareTarget share_target,
+  void OnStorageCheckCompleted(int64_t share_target_id,
                                std::optional<std::string> four_digit_token,
                                bool is_out_of_storage);
   void OnFrameRead(
-      ShareTarget share_target,
+      int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void HandleProgressUpdateFrame(
-      const ShareTarget& share_target,
+      int64_t share_target_id,
       const nearby::sharing::service::proto::ProgressUpdateFrame&
           progress_update_frame);
 
   void OnConnectionDisconnected(int64_t share_target_id,
                                 TransferMetadata::Status status);
 
-  void OnIncomingMutualAcceptanceTimeout(const ShareTarget& share_target);
-  void OnOutgoingMutualAcceptanceTimeout(const ShareTarget& share_target);
+  void OnIncomingMutualAcceptanceTimeout(int64_t share_target_id);
+  void OnOutgoingMutualAcceptanceTimeout(int64_t share_target_id);
 
   void Cleanup();
 
@@ -437,7 +437,7 @@ class NearbySharingServiceImpl
       bool is_initiator_of_cancellation);
 
   void AbortAndCloseConnectionIfNecessary(TransferMetadata::Status status,
-                                          const ShareTarget& share_target);
+                                          int64_t share_target_id);
 
   // Monitor connectivity changes.
   void OnNetworkChanged(nearby::ConnectivityManager::ConnectionType type);
@@ -468,7 +468,7 @@ class NearbySharingServiceImpl
                       absl::AnyInvocable<void()> task);
 
   // Returns a 1-based position.It is used by group share feature.
-  int GetConnectedShareTargetPos(const ShareTarget& target);
+  int GetConnectedShareTargetPos(int64_t share_target_id);
 
   // Returns the share target count. It is used by group share feature.
   int GetConnectedShareTargetCount();
@@ -639,7 +639,7 @@ class NearbySharingServiceImpl
 
   // Tracks the path registration.
   struct PathRegistrationStatus {
-    ShareTarget share_target;
+    int64_t share_target_id;
     uint32_t expected_count;
     uint32_t current_count;
     std::function<void(StatusCodes status_codes)> status_codes_callback;
