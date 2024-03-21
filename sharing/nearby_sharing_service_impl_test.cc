@@ -549,7 +549,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         NearbySharingService::StatusCodes::kError;
     absl::Notification notification;
     service_->SendAttachments(
-        share_target, std::move(attachments),
+        share_target.id, std::move(attachments),
         [&](NearbySharingService::StatusCodes status_codes) {
           result = status_codes;
           notification.Notify();
@@ -978,7 +978,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     absl::Notification send_notification;
     NearbySharingServiceImpl::StatusCodes send_result;
     service_->SendAttachments(
-        target, CreateTextAttachments({kTextPayload}),
+        target.id, CreateTextAttachments({kTextPayload}),
         [&](NearbySharingServiceImpl::StatusCodes status_codes) {
           send_result = status_codes;
           send_notification.Notify();
@@ -1092,17 +1092,19 @@ class NearbySharingServiceImplTest : public testing::Test {
                         TransferMetadata::Status::kAwaitingRemoteAcceptance);
             }));
 
-    service_->Accept(
-        share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-          EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
-          notification.Notify();
-        });
+    service_->Accept(share_target.id,
+                     [&](NearbySharingServiceImpl::StatusCodes status_code) {
+                       EXPECT_EQ(status_code,
+                                 NearbySharingServiceImpl::StatusCodes::kOk);
+                       notification.Notify();
+                     });
 
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
     // Fail to accept again.
     service_->Accept(
-        share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+        share_target.id,
+        [&](NearbySharingServiceImpl::StatusCodes status_code) {
           EXPECT_EQ(status_code,
                     NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
         });
@@ -2681,7 +2683,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptInvalidShareTarget) {
   ShareTarget share_target;
   absl::Notification notification;
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code,
                   NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
         notification.Notify();
@@ -2699,7 +2701,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   absl::Notification notification;
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(NearbySharingServiceImpl::StatusCodes::kError, status_code);
         notification.Notify();
       });
@@ -2746,7 +2748,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTarget) {
           }));
 
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
         notification.Notify();
       });
@@ -2792,7 +2794,7 @@ TEST_F(NearbySharingServiceImplTest,
           }));
 
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
         notification.Notify();
       });
@@ -2896,7 +2898,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
           }));
 
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
         notification.Notify();
       });
@@ -2964,7 +2966,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
           }));
 
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
         notification.Notify();
       });
@@ -3016,7 +3018,7 @@ TEST_F(NearbySharingServiceImplTest, RejectInvalidShareTarget) {
   ShareTarget share_target;
   absl::Notification notification;
   service_->Reject(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code,
                   NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
         notification.Notify();
@@ -3038,7 +3040,7 @@ TEST_F(NearbySharingServiceImplTest, RejectValidShareTarget) {
           }));
 
   service_->Reject(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
         notification.Notify();
       });
@@ -3690,7 +3692,7 @@ TEST_F(NearbySharingServiceImplTest, CancelSenderInitiator) {
       fake_nearby_connections_manager_->WasPayloadCanceled(info.payload_id));
   // The initiator of the cancellation explicitly calls Cancel().
   service_->Cancel(
-      target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
         notification.Notify();
       });
@@ -3761,7 +3763,7 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
       fake_nearby_connections_manager_->WasPayloadCanceled(kFilePayloadId));
   // The initiator of the cancellation explicitly calls Cancel().
   service_->Cancel(
-      target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(NearbySharingServiceImpl::StatusCodes::kOk, status_code);
         notification.Notify();
       });
@@ -4344,7 +4346,7 @@ TEST_F(NearbySharingServiceImplTest, SelfShareAutoAccept) {
 
   // Should fail to call accept.
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code,
                   NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
       });
@@ -4386,7 +4388,7 @@ TEST_F(NearbySharingServiceImplTest, SelfShareNormalFlowWhenSelfshareDisabled) {
           }));
 
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
       });
 
@@ -4409,7 +4411,7 @@ TEST_F(NearbySharingServiceImplTest, SelfShareNoAutoAcceptInForeground) {
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_)).Times(0);
 
   service_->Accept(
-      share_target, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code,
                   NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
       });

@@ -14,6 +14,7 @@
 
 #include "sharing/fake_nearby_sharing_service.h"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -132,7 +133,7 @@ bool FakeNearbySharingService::IsScanning() const { return false; }
 
 // Sends |attachments| to the remote |share_target|.
 void FakeNearbySharingService::SendAttachments(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::vector<std::unique_ptr<Attachment>> attachments,
     std::function<void(StatusCodes)> status_codes_callback) {
   status_codes_callback(StatusCodes::kOk);
@@ -140,21 +141,21 @@ void FakeNearbySharingService::SendAttachments(
 
 // Accepts incoming share from the remote |share_target|.
 void FakeNearbySharingService::Accept(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
   status_codes_callback(StatusCodes::kOk);
 }
 
 // Rejects incoming share from the remote |share_target|.
 void FakeNearbySharingService::Reject(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
   status_codes_callback(StatusCodes::kOk);
 }
 
 // Cancels outgoing shares to the remote |share_target|.
 void FakeNearbySharingService::Cancel(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
   status_codes_callback(StatusCodes::kOk);
 }
@@ -162,7 +163,7 @@ void FakeNearbySharingService::Cancel(
 // Returns true if the local user cancelled the transfer to remote
 // |share_target|.
 bool FakeNearbySharingService::DidLocalUserCancelTransfer(
-    const ShareTarget& share_target) {
+    int64_t share_target_id) {
   return false;
 }
 

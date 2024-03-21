@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_FAKE_NEARBY_SHARING_SERVICE_H_
 #define THIRD_PARTY_NEARBY_SHARING_FAKE_NEARBY_SHARING_SERVICE_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -95,28 +96,28 @@ class FakeNearbySharingService : public NearbySharingService {
 
   // Sends |attachments| to the remote |share_target|.
   void SendAttachments(
-      const ShareTarget& share_target,
+      int64_t share_target_id,
       std::vector<std::unique_ptr<Attachment>> attachments,
       std::function<void(StatusCodes)> status_codes_callback) override;
 
   // Accepts incoming share from the remote |share_target|.
-  void Accept(const ShareTarget& share_target,
+  void Accept(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
 
   // Rejects incoming share from the remote |share_target|.
-  void Reject(const ShareTarget& share_target,
+  void Reject(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
 
   // Cancels outgoing shares to the remote |share_target|.
-  void Cancel(const ShareTarget& share_target,
+  void Cancel(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
 
   // Returns true if the local user cancelled the transfer to remote
   // |share_target|.
-  bool DidLocalUserCancelTransfer(const ShareTarget& share_target) override;
+  bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
 
   // Opens attachments from the remote |share_target|.
   void Open(const ShareTarget& share_target,

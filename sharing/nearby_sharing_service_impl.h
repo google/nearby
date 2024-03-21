@@ -29,6 +29,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -147,19 +148,19 @@ class NearbySharingServiceImpl
   bool IsWifiPowered() const override;
   std::string GetQrCodeUrl() const override;
   void SendAttachments(
-      const ShareTarget& share_target,
+      int64_t share_target_id,
       std::vector<std::unique_ptr<Attachment>> attachments,
       std::function<void(StatusCodes)> status_codes_callback) override;
-  void Accept(const ShareTarget& share_target,
+  void Accept(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
-  void Reject(const ShareTarget& share_target,
+  void Reject(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
-  void Cancel(const ShareTarget& share_target,
+  void Cancel(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
-  bool DidLocalUserCancelTransfer(const ShareTarget& share_target) override;
+  bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
   void Open(const ShareTarget& share_target,
             std::function<void(StatusCodes status_codes)> status_codes_callback)
       override;
@@ -435,7 +436,7 @@ class NearbySharingServiceImpl
   // reference could likely be invalidated by the owner during the multistep
   // cancellation process.
   void DoCancel(
-      ShareTarget share_target,
+       int64_t share_target_id,
       std::function<void(StatusCodes status_codes)> status_codes_callback,
       bool is_initiator_of_cancellation);
 
@@ -462,15 +463,16 @@ class NearbySharingServiceImpl
 
   // Runs API/task on the service thread to avoid UI block.
   void RunOnNearbySharingServiceThread(absl::string_view task_name,
-                                       std::function<void()> task);
+                                       absl::AnyInvocable<void()> task);
 
   // Runs API/task on the service thread with delayed time.
   void RunOnNearbySharingServiceThreadDelayed(absl::string_view task_name,
                                               absl::Duration delay,
-                                              std::function<void()> task);
+                                              absl::AnyInvocable<void()> task);
 
   // Runs API/task on a random thread.
-  void RunOnAnyThread(absl::string_view task_name, std::function<void()> task);
+  void RunOnAnyThread(absl::string_view task_name,
+                      absl::AnyInvocable<void()> task);
 
   // Returns a 1-based position.It is used by group share feature.
   int GetConnectedShareTargetPos(const ShareTarget& target);

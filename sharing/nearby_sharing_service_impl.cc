@@ -31,6 +31,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -661,18 +662,13 @@ std::string NearbySharingServiceImpl::GetQrCodeUrl() const {
 }
 
 void NearbySharingServiceImpl::SendAttachments(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::vector<std::unique_ptr<Attachment>> attachments,
     std::function<void(StatusCodes)> status_codes_callback) {
-  ShareTarget share_target_copy = share_target;
-  for (std::unique_ptr<Attachment>& attachment : attachments) {
-    attachment->MoveToShareTarget(share_target_copy);
-  }
-
   RunOnNearbySharingServiceThread(
       "api_send_attachments",
-      [this, share_target_copy = std::move(share_target_copy),
-       status_codes_callback = std::move(status_codes_callback)]() {
+      [this, share_target_id, attachments = std::move(attachments),
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
         if (!is_scanning_) {
           NL_LOG(WARNING) << __func__
                           << ": Failed to send attachments. Not scanning.";
@@ -686,7 +682,7 @@ void NearbySharingServiceImpl::SendAttachments(
         // |is_scanning_| and |is_transferring_| are mutually exclusive.
         NL_DCHECK(!is_transferring_);
 
-        if (!share_target_copy.has_attachments()) {
+        if (attachments.empty()) {
           NL_LOG(WARNING) << __func__ << ": No attachments to send.";
           std::move(status_codes_callback)(StatusCodes::kError);
           return;
@@ -700,7 +696,7 @@ void NearbySharingServiceImpl::SendAttachments(
           return;
         }
 
-        ShareTargetInfo* info = GetShareTargetInfo(share_target_copy.id);
+        ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
         if (!info) {
           NL_LOG(WARNING)
               << __func__
@@ -708,9 +704,13 @@ void NearbySharingServiceImpl::SendAttachments(
           std::move(status_codes_callback)(StatusCodes::kError);
           return;
         }
+        ShareTarget share_target = info->share_target();
+        for (std::unique_ptr<Attachment>& attachment : attachments) {
+          attachment->MoveToShareTarget(share_target);
+        }
         // Set session ID.
         info->set_session_id(analytics_recorder_->GenerateNextId());
-        info->set_share_target(share_target_copy);
+        info->set_share_target(share_target);
 
         // For sending advertisement from scanner, the request advertisement
         // should always be visible to everyone.
@@ -724,9 +724,9 @@ void NearbySharingServiceImpl::SendAttachments(
         // Log analytics event of sending start.
         analytics_recorder_->NewSendStart(
             info->session_id(),
-            /*transfer_position=*/GetConnectedShareTargetPos(share_target_copy),
+            /*transfer_position=*/GetConnectedShareTargetPos(share_target),
             /*concurrent_connections=*/GetConnectedShareTargetCount(),
-            share_target_copy);
+            share_target);
 
         send_attachments_timestamp_ = context_->GetClock()->Now();
         OnTransferStarted(/*is_incoming=*/false);
@@ -736,12 +736,12 @@ void NearbySharingServiceImpl::SendAttachments(
         // Send process initialized successfully, from now on status updated
         // will be sent out via OnOutgoingTransferUpdate().
         info->transfer_update_callback()->OnTransferUpdate(
-            share_target_copy,
+            share_target,
             TransferMetadataBuilder()
                 .set_status(TransferMetadata::Status::kConnecting)
                 .build());
 
-        CreatePayloads(std::move(share_target_copy),
+        CreatePayloads(std::move(share_target),
                        [this, endpoint_info = std::move(*endpoint_info)](
                            ShareTarget share_target, bool success) {
                          // Log analytics event of describing attachments.
@@ -757,13 +757,12 @@ void NearbySharingServiceImpl::SendAttachments(
 }
 
 void NearbySharingServiceImpl::Accept(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_accept",
-      [&, share_target,
+      [this, share_target_id,
        status_codes_callback = std::move(status_codes_callback)]() {
-        int64_t share_target_id = share_target.id;
         // Log analytics event of responding to introduction.
         analytics_recorder_->NewRespondToIntroduction(
             ResponseToIntroduction::ACCEPT_INTRODUCTION, receiving_session_id_);
@@ -789,6 +788,7 @@ void NearbySharingServiceImpl::Accept(
         }
 
         is_waiting_to_record_accept_to_transfer_start_metric_ = is_incoming;
+        ShareTarget share_target = info->share_target();
         if (is_incoming) {
           incoming_share_accepted_timestamp_ = context_->GetClock()->Now();
           ReceivePayloads(share_target, std::move(status_codes_callback));
@@ -800,9 +800,8 @@ void NearbySharingServiceImpl::Accept(
 }
 
 void NearbySharingServiceImpl::Reject(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
-  int64_t share_target_id = share_target.id;
   RunOnNearbySharingServiceThread(
       "api_reject",
       [this, share_target_id,
@@ -853,19 +852,19 @@ void NearbySharingServiceImpl::Reject(
 }
 
 void NearbySharingServiceImpl::Cancel(
-    const ShareTarget& share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
-  RunOnAnyThread("api_cancel", [&, share_target,
+  RunOnAnyThread("api_cancel", [this, share_target_id,
                                 status_codes_callback =
                                     std::move(status_codes_callback)]() {
     NL_LOG(INFO) << __func__ << ": User canceled transfer";
-    if (locally_cancelled_share_target_ids_.contains(share_target.id)) {
+    if (locally_cancelled_share_target_ids_.contains(share_target_id)) {
       NL_LOG(WARNING) << __func__ << ": Cancel is called again.";
       status_codes_callback(StatusCodes::kOutOfOrderApiCall);
       return;
     }
-    locally_cancelled_share_target_ids_.insert(share_target.id);
-    DoCancel(share_target, std::move(status_codes_callback),
+    locally_cancelled_share_target_ids_.insert(share_target_id);
+    DoCancel(share_target_id, std::move(status_codes_callback),
              /*is_initiator_of_cancellation=*/true);
   });
 }
@@ -874,20 +873,14 @@ void NearbySharingServiceImpl::Cancel(
 // reference could likely be invalidated by the owner during the multistep
 // cancellation process.
 void NearbySharingServiceImpl::DoCancel(
-    ShareTarget share_target,
+    int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback,
     bool is_initiator_of_cancellation) {
-  int64_t share_target_id = share_target.id;
   ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
   if (!info) {
     NL_LOG(ERROR) << __func__
                   << ": Cancel invoked for unknown share target, returning "
                      "kOutOfOrderApiCall";
-    // Make sure to clean up files just in case.
-    if (!update_file_paths_in_progress_) {
-      UpdateFilePath(share_target);
-    }
-    RemoveIncomingPayloads(share_target);
     std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
     return;
   }
@@ -936,12 +929,12 @@ void NearbySharingServiceImpl::DoCancel(
                  << info->endpoint_id();
     if (is_initiator_of_cancellation) {
       info->connection()->SetDisconnectionListener(
-          [&, share_target_id, info]() {
+          [this, share_target_id, info]() {
             info->set_connection(nullptr);
             bool is_incoming = info->IsIncoming();
             RunOnNearbySharingServiceThread(
                 "api_unregister_share_target",
-                [&, is_incoming, share_target_id]() {
+                [this, is_incoming, share_target_id]() {
                   NL_LOG(INFO)
                       << "Unregister share target in disconnection listener.";
                   UnregisterShareTarget(is_incoming, share_target_id);
@@ -950,7 +943,7 @@ void NearbySharingServiceImpl::DoCancel(
 
       RunOnNearbySharingServiceThreadDelayed(
           "initiator_cancel_delay", kInitiatorCancelDelay,
-          [&, share_target_id]() {
+          [this, share_target_id]() {
             NL_LOG(INFO) << "Close connection after cancellation delay.";
             CloseConnection(share_target_id);
           });
@@ -969,9 +962,9 @@ void NearbySharingServiceImpl::DoCancel(
 }
 
 bool NearbySharingServiceImpl::DidLocalUserCancelTransfer(
-    const ShareTarget& share_target) {
+    int64_t share_target_id) {
   return absl::c_linear_search(locally_cancelled_share_target_ids_,
-                               share_target.id);
+                               share_target_id);
 }
 
 void NearbySharingServiceImpl::Open(
@@ -2872,6 +2865,7 @@ void NearbySharingServiceImpl::SendIntroduction(
         wifi_credentials.security_type());
     wifi_credentials_metadata->set_payload_id(*payload_id);
   }
+  info->set_share_target(share_target);
 
   if (introduction->file_metadata_size() == 0 &&
       introduction->text_metadata_size() == 0 &&
@@ -3982,7 +3976,7 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
 
   if (is_self_share_auto_accept) {
     NL_LOG(INFO) << __func__ << ": Auto-accepting self share.";
-    Accept(share_target, [&](StatusCodes status_codes) {
+    Accept(share_target.id, [&](StatusCodes status_codes) {
       NL_LOG(INFO) << __func__ << ": Auto-accepting result: "
                    << static_cast<int>(status_codes);
     });
@@ -4010,7 +4004,7 @@ void NearbySharingServiceImpl::OnFrameRead(
         NL_LOG(INFO) << __func__
                      << ": Read the cancel frame, closing connection";
         DoCancel(
-            share_target, [&](StatusCodes status_codes) {},
+            share_target.id, [&](StatusCodes status_codes) {},
             /*is_initiator_of_cancellation=*/false);
       });
       break;
@@ -4894,7 +4888,7 @@ bool NearbySharingServiceImpl::ReadyToAccept(
 }
 
 void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(
-    absl::string_view task_name, std::function<void()> task) {
+    absl::string_view task_name, absl::AnyInvocable<void()> task) {
   if (is_shutting_down_ == nullptr || *is_shutting_down_) {
     NL_LOG(WARNING) << __func__ << ": Skip the task " << task_name
                     << " due to service is shutting down.";
@@ -4905,8 +4899,8 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(
                << " on API thread.";
 
   service_thread_->PostTask(
-      [&, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
-       task_name = std::string(task_name), task = std::move(task)]() {
+      [is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+       task_name = std::string(task_name), task = std::move(task)]() mutable {
         std::shared_ptr<bool> is_shutting = is_shutting_down.lock();
         if (is_shutting == nullptr || *is_shutting) {
           NL_LOG(WARNING) << __func__ << ": Give up the task " << task_name
@@ -4925,7 +4919,7 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(
 
 void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
     absl::string_view task_name, absl::Duration delay,
-    std::function<void()> task) {
+    absl::AnyInvocable<void()> task) {
   if (is_shutting_down_ == nullptr || *is_shutting_down_) {
     NL_LOG(WARNING) << __func__ << ": Skip the delayed task " << task_name
                     << " due to service is shutting down.";
@@ -4935,8 +4929,9 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
   NL_LOG(INFO) << __func__ << ": Scheduled to run delayed task " << task_name
                << " on API thread.";
   service_thread_->PostDelayedTask(
-      delay, [&, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
-              task_name = std::string(task_name), task = std::move(task)]() {
+      delay,
+      [is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+       task_name = std::string(task_name), task = std::move(task)]() mutable {
         std::shared_ptr<bool> is_shutting = is_shutting_down.lock();
         if (is_shutting == nullptr || *is_shutting) {
           NL_LOG(WARNING) << __func__ << ": Give up the delayed task "
@@ -4954,7 +4949,7 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
 }
 
 void NearbySharingServiceImpl::RunOnAnyThread(absl::string_view task_name,
-                                              std::function<void()> task) {
+                                              absl::AnyInvocable<void()> task) {
   if (is_shutting_down_ == nullptr || *is_shutting_down_) {
     NL_LOG(WARNING) << __func__ << ": Skip the task " << task_name
                     << " due to service is shutting down.";
@@ -4962,23 +4957,23 @@ void NearbySharingServiceImpl::RunOnAnyThread(absl::string_view task_name,
   }
 
   NL_LOG(INFO) << __func__ << ": Scheduled to run task " << task_name
-               << " on API thread.";
+               << " on runner thread.";
   context_->GetTaskRunner()->PostTask(
-      [&, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
-       task_name = std::string(task_name), task = std::move(task)]() {
+      [is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+       task_name = std::string(task_name), task = std::move(task)]() mutable {
         std::shared_ptr<bool> is_shutting = is_shutting_down.lock();
         if (is_shutting == nullptr || *is_shutting) {
-          NL_LOG(WARNING) << __func__ << ": Give up the delayed task "
+          NL_LOG(WARNING) << __func__ << ": Give up the task on runner thread "
                           << task_name << " due to service is shutting down.";
           return;
         }
 
         NL_LOG(INFO) << __func__ << ": Started to run task " << task_name
-                     << " on API thread.";
+                     << " on runner thread.";
         task();
 
         NL_LOG(INFO) << __func__ << ": Completed to run task " << task_name
-                     << " on API thread.";
+                     << " on runner thread.";
       });
 }
 
