@@ -4,605 +4,728 @@
 #include "internal/proto/credential.pb.h"
 
 #include <algorithm>
-
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/extension_set.h>
-#include <google/protobuf/wire_format_lite.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/generated_message_reflection.h>
-#include <google/protobuf/reflection_ops.h>
-#include <google/protobuf/wire_format.h>
+#include "google/protobuf/io/coded_stream.h"
+#include "google/protobuf/extension_set.h"
+#include "google/protobuf/wire_format_lite.h"
+#include "google/protobuf/io/zero_copy_stream_impl_lite.h"
+#include "google/protobuf/generated_message_tctable_impl.h"
 // @@protoc_insertion_point(includes)
-#include <google/protobuf/port_def.inc>
 
+// Must be included last.
+#include "google/protobuf/port_def.inc"
 PROTOBUF_PRAGMA_INIT_SEG
+namespace _pb = ::google::protobuf;
+namespace _pbi = ::google::protobuf::internal;
+namespace _fl = ::google::protobuf::internal::field_layout;
 namespace nearby {
 namespace internal {
-constexpr SharedCredential::SharedCredential(
-  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
-  : secret_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , key_seed_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , encrypted_metadata_bytes_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , metadata_encryption_key_tag_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , connection_signature_verification_key_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , advertisement_signature_verification_key_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , version_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , start_time_millis_(int64_t{0})
-  , end_time_millis_(int64_t{0})
-  , identity_type_(0)
-{}
+
+inline constexpr SharedCredential::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : secret_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_seed_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        encrypted_metadata_bytes_v0_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        metadata_encryption_key_tag_v0_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        connection_signature_verification_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        advertisement_signature_verification_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        version_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        encrypted_metadata_bytes_v1_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        metadata_encryption_key_unsigned_adv_tag_v1_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        dusi_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        signature_version_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        start_time_millis_{::int64_t{0}},
+        end_time_millis_{::int64_t{0}},
+        identity_type_{static_cast< ::nearby::internal::IdentityType >(0)},
+        credential_type_{static_cast< ::nearby::internal::CredentialType >(0)},
+        id_{::int64_t{0}},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SharedCredential::SharedCredential(::_pbi::ConstantInitialized)
+    : _impl_(::_pbi::ConstantInitialized()) {}
 struct SharedCredentialDefaultTypeInternal {
-  constexpr SharedCredentialDefaultTypeInternal()
-    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  PROTOBUF_CONSTEXPR SharedCredentialDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~SharedCredentialDefaultTypeInternal() {}
   union {
     SharedCredential _instance;
   };
 };
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharedCredentialDefaultTypeInternal _SharedCredential_default_instance_;
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedCredentialDefaultTypeInternal _SharedCredential_default_instance_;
 }  // namespace internal
 }  // namespace nearby
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_internal_2fproto_2fcredential_2eproto[1];
-static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_internal_2fproto_2fcredential_2eproto[1];
-static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_internal_2fproto_2fcredential_2eproto = nullptr;
-
-const uint32_t TableStruct_internal_2fproto_2fcredential_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, secret_id_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, key_seed_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, start_time_millis_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, end_time_millis_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, encrypted_metadata_bytes_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, metadata_encryption_key_tag_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, connection_signature_verification_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, advertisement_signature_verification_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, identity_type_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, version_),
-};
-static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::nearby::internal::SharedCredential)},
-};
-
-static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_SharedCredential_default_instance_),
-};
-
-const char descriptor_table_protodef_internal_2fproto_2fcredential_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\037internal/proto/credential.proto\022\017nearb"
-  "y.internal\"\332\002\n\020SharedCredential\022\021\n\tsecre"
-  "t_id\030\001 \001(\014\022\020\n\010key_seed\030\002 \001(\014\022\031\n\021start_ti"
-  "me_millis\030\003 \001(\003\022\027\n\017end_time_millis\030\004 \001(\003"
-  "\022 \n\030encrypted_metadata_bytes\030\005 \001(\014\022#\n\033me"
-  "tadata_encryption_key_tag\030\006 \001(\014\022-\n%conne"
-  "ction_signature_verification_key\030\007 \001(\014\0220"
-  "\n(advertisement_signature_verification_k"
-  "ey\030\010 \001(\014\0224\n\ridentity_type\030\t \001(\0162\035.nearby"
-  ".internal.IdentityType\022\017\n\007version\030\n \001(\014*"
-  "\234\001\n\014IdentityType\022\035\n\031IDENTITY_TYPE_UNSPEC"
-  "IFIED\020\000\022\031\n\025IDENTITY_TYPE_PRIVATE\020\001\022\031\n\025ID"
-  "ENTITY_TYPE_TRUSTED\020\002\022\030\n\024IDENTITY_TYPE_P"
-  "UBLIC\020\003\022\035\n\031IDENTITY_TYPE_PROVISIONED\020\004B/"
-  "\n\032com.google.nearby.presenceB\017Credential"
-  "ProtoP\001b\006proto3"
-  ;
-static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_internal_2fproto_2fcredential_2eproto_once;
-const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_internal_2fproto_2fcredential_2eproto = {
-  false, false, 615, descriptor_table_protodef_internal_2fproto_2fcredential_2eproto, "internal/proto/credential.proto", 
-  &descriptor_table_internal_2fproto_2fcredential_2eproto_once, nullptr, 0, 1,
-  schemas, file_default_instances, TableStruct_internal_2fproto_2fcredential_2eproto::offsets,
-  file_level_metadata_internal_2fproto_2fcredential_2eproto, file_level_enum_descriptors_internal_2fproto_2fcredential_2eproto, file_level_service_descriptors_internal_2fproto_2fcredential_2eproto,
-};
-PROTOBUF_ATTRIBUTE_WEAK const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable* descriptor_table_internal_2fproto_2fcredential_2eproto_getter() {
-  return &descriptor_table_internal_2fproto_2fcredential_2eproto;
-}
-
-// Force running AddDescriptors() at dynamic initialization time.
-PROTOBUF_ATTRIBUTE_INIT_PRIORITY static ::PROTOBUF_NAMESPACE_ID::internal::AddDescriptorsRunner dynamic_init_dummy_internal_2fproto_2fcredential_2eproto(&descriptor_table_internal_2fproto_2fcredential_2eproto);
 namespace nearby {
 namespace internal {
-const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* IdentityType_descriptor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_internal_2fproto_2fcredential_2eproto);
-  return file_level_enum_descriptors_internal_2fproto_2fcredential_2eproto[0];
-}
+PROTOBUF_CONSTINIT const uint32_t IdentityType_internal_data_[] = {
+    327680u, 0u, };
 bool IdentityType_IsValid(int value) {
-  switch (value) {
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-      return true;
-    default:
-      return false;
-  }
+  return 0 <= value && value <= 4;
+}
+static ::google::protobuf::internal::ExplicitlyConstructed<std::string>
+    IdentityType_strings[5] = {};
+
+static const char IdentityType_names[] = {
+    "IDENTITY_TYPE_PRIVATE"
+    "IDENTITY_TYPE_PROVISIONED"
+    "IDENTITY_TYPE_PUBLIC"
+    "IDENTITY_TYPE_TRUSTED"
+    "IDENTITY_TYPE_UNSPECIFIED"
+};
+
+static const ::google::protobuf::internal::EnumEntry IdentityType_entries[] =
+    {
+        {{&IdentityType_names[0], 21}, 1},
+        {{&IdentityType_names[21], 25}, 4},
+        {{&IdentityType_names[46], 20}, 3},
+        {{&IdentityType_names[66], 21}, 2},
+        {{&IdentityType_names[87], 25}, 0},
+};
+
+static const int IdentityType_entries_by_number[] = {
+    4,  // 0 -> IDENTITY_TYPE_UNSPECIFIED
+    0,  // 1 -> IDENTITY_TYPE_PRIVATE
+    3,  // 2 -> IDENTITY_TYPE_TRUSTED
+    2,  // 3 -> IDENTITY_TYPE_PUBLIC
+    1,  // 4 -> IDENTITY_TYPE_PROVISIONED
+};
+
+const std::string& IdentityType_Name(IdentityType value) {
+  static const bool kDummy =
+      ::google::protobuf::internal::InitializeEnumStrings(
+          IdentityType_entries, IdentityType_entries_by_number,
+          5, IdentityType_strings);
+  (void)kDummy;
+
+  int idx = ::google::protobuf::internal::LookUpEnumName(
+      IdentityType_entries, IdentityType_entries_by_number, 5,
+      value);
+  return idx == -1 ? ::google::protobuf::internal::GetEmptyString()
+                   : IdentityType_strings[idx].get();
 }
 
+bool IdentityType_Parse(absl::string_view name, IdentityType* value) {
+  int int_value;
+  bool success = ::google::protobuf::internal::LookUpEnumValue(
+      IdentityType_entries, 5, name, &int_value);
+  if (success) {
+    *value = static_cast<IdentityType>(int_value);
+  }
+  return success;
+}
+PROTOBUF_CONSTINIT const uint32_t CredentialType_internal_data_[] = {
+    196608u, 0u, };
+bool CredentialType_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+static ::google::protobuf::internal::ExplicitlyConstructed<std::string>
+    CredentialType_strings[3] = {};
 
+static const char CredentialType_names[] = {
+    "CREDENTIAL_TYPE_DEVICE"
+    "CREDENTIAL_TYPE_GAIA"
+    "CREDENTIAL_TYPE_UNKNOWN"
+};
+
+static const ::google::protobuf::internal::EnumEntry CredentialType_entries[] =
+    {
+        {{&CredentialType_names[0], 22}, 1},
+        {{&CredentialType_names[22], 20}, 2},
+        {{&CredentialType_names[42], 23}, 0},
+};
+
+static const int CredentialType_entries_by_number[] = {
+    2,  // 0 -> CREDENTIAL_TYPE_UNKNOWN
+    0,  // 1 -> CREDENTIAL_TYPE_DEVICE
+    1,  // 2 -> CREDENTIAL_TYPE_GAIA
+};
+
+const std::string& CredentialType_Name(CredentialType value) {
+  static const bool kDummy =
+      ::google::protobuf::internal::InitializeEnumStrings(
+          CredentialType_entries, CredentialType_entries_by_number,
+          3, CredentialType_strings);
+  (void)kDummy;
+
+  int idx = ::google::protobuf::internal::LookUpEnumName(
+      CredentialType_entries, CredentialType_entries_by_number, 3,
+      value);
+  return idx == -1 ? ::google::protobuf::internal::GetEmptyString()
+                   : CredentialType_strings[idx].get();
+}
+
+bool CredentialType_Parse(absl::string_view name, CredentialType* value) {
+  int int_value;
+  bool success = ::google::protobuf::internal::LookUpEnumValue(
+      CredentialType_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<CredentialType>(int_value);
+  }
+  return success;
+}
 // ===================================================================
 
 class SharedCredential::_Internal {
  public:
 };
 
-SharedCredential::SharedCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                         bool is_message_owned)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
-  SharedCtor();
-  if (!is_message_owned) {
-    RegisterArenaDtor(arena);
-  }
+SharedCredential::SharedCredential(::google::protobuf::Arena* arena)
+    : ::google::protobuf::MessageLite(arena) {
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:nearby.internal.SharedCredential)
 }
-SharedCredential::SharedCredential(const SharedCredential& from)
-  : ::PROTOBUF_NAMESPACE_ID::Message() {
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  secret_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_secret_id().empty()) {
-    secret_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_secret_id(), 
-      GetArenaForAllocation());
-  }
-  key_seed_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    key_seed_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_key_seed().empty()) {
-    key_seed_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_key_seed(), 
-      GetArenaForAllocation());
-  }
-  encrypted_metadata_bytes_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    encrypted_metadata_bytes_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_encrypted_metadata_bytes().empty()) {
-    encrypted_metadata_bytes_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_encrypted_metadata_bytes(), 
-      GetArenaForAllocation());
-  }
-  metadata_encryption_key_tag_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    metadata_encryption_key_tag_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_metadata_encryption_key_tag().empty()) {
-    metadata_encryption_key_tag_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_metadata_encryption_key_tag(), 
-      GetArenaForAllocation());
-  }
-  connection_signature_verification_key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    connection_signature_verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_connection_signature_verification_key().empty()) {
-    connection_signature_verification_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_connection_signature_verification_key(), 
-      GetArenaForAllocation());
-  }
-  advertisement_signature_verification_key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    advertisement_signature_verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_advertisement_signature_verification_key().empty()) {
-    advertisement_signature_verification_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_advertisement_signature_verification_key(), 
-      GetArenaForAllocation());
-  }
-  version_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    version_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_version().empty()) {
-    version_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_version(), 
-      GetArenaForAllocation());
-  }
-  ::memcpy(&start_time_millis_, &from.start_time_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&identity_type_) -
-    reinterpret_cast<char*>(&start_time_millis_)) + sizeof(identity_type_));
+inline PROTOBUF_NDEBUG_INLINE SharedCredential::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from)
+      : secret_id_(arena, from.secret_id_),
+        key_seed_(arena, from.key_seed_),
+        encrypted_metadata_bytes_v0_(arena, from.encrypted_metadata_bytes_v0_),
+        metadata_encryption_key_tag_v0_(arena, from.metadata_encryption_key_tag_v0_),
+        connection_signature_verification_key_(arena, from.connection_signature_verification_key_),
+        advertisement_signature_verification_key_(arena, from.advertisement_signature_verification_key_),
+        version_(arena, from.version_),
+        encrypted_metadata_bytes_v1_(arena, from.encrypted_metadata_bytes_v1_),
+        metadata_encryption_key_unsigned_adv_tag_v1_(arena, from.metadata_encryption_key_unsigned_adv_tag_v1_),
+        dusi_(arena, from.dusi_),
+        signature_version_(arena, from.signature_version_),
+        _cached_size_{0} {}
+
+SharedCredential::SharedCredential(
+    ::google::protobuf::Arena* arena,
+    const SharedCredential& from)
+    : ::google::protobuf::MessageLite(arena) {
+  SharedCredential* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<std::string>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, start_time_millis_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, start_time_millis_),
+           offsetof(Impl_, id_) -
+               offsetof(Impl_, start_time_millis_) +
+               sizeof(Impl_::id_));
+
   // @@protoc_insertion_point(copy_constructor:nearby.internal.SharedCredential)
 }
+inline PROTOBUF_NDEBUG_INLINE SharedCredential::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : secret_id_(arena),
+        key_seed_(arena),
+        encrypted_metadata_bytes_v0_(arena),
+        metadata_encryption_key_tag_v0_(arena),
+        connection_signature_verification_key_(arena),
+        advertisement_signature_verification_key_(arena),
+        version_(arena),
+        encrypted_metadata_bytes_v1_(arena),
+        metadata_encryption_key_unsigned_adv_tag_v1_(arena),
+        dusi_(arena),
+        signature_version_(arena),
+        _cached_size_{0} {}
 
-inline void SharedCredential::SharedCtor() {
-secret_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-key_seed_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  key_seed_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-encrypted_metadata_bytes_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  encrypted_metadata_bytes_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-metadata_encryption_key_tag_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  metadata_encryption_key_tag_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-connection_signature_verification_key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  connection_signature_verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-advertisement_signature_verification_key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  advertisement_signature_verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-version_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  version_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-    reinterpret_cast<char*>(&start_time_millis_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&identity_type_) -
-    reinterpret_cast<char*>(&start_time_millis_)) + sizeof(identity_type_));
+inline void SharedCredential::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, start_time_millis_),
+           0,
+           offsetof(Impl_, id_) -
+               offsetof(Impl_, start_time_millis_) +
+               sizeof(Impl_::id_));
 }
-
 SharedCredential::~SharedCredential() {
   // @@protoc_insertion_point(destructor:nearby.internal.SharedCredential)
-  if (GetArenaForAllocation() != nullptr) return;
+  _internal_metadata_.Delete<std::string>();
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
-
 inline void SharedCredential::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  secret_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  key_seed_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  encrypted_metadata_bytes_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  metadata_encryption_key_tag_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  connection_signature_verification_key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  advertisement_signature_verification_key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  version_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  ABSL_DCHECK(GetArena() == nullptr);
+  _impl_.secret_id_.Destroy();
+  _impl_.key_seed_.Destroy();
+  _impl_.encrypted_metadata_bytes_v0_.Destroy();
+  _impl_.metadata_encryption_key_tag_v0_.Destroy();
+  _impl_.connection_signature_verification_key_.Destroy();
+  _impl_.advertisement_signature_verification_key_.Destroy();
+  _impl_.version_.Destroy();
+  _impl_.encrypted_metadata_bytes_v1_.Destroy();
+  _impl_.metadata_encryption_key_unsigned_adv_tag_v1_.Destroy();
+  _impl_.dusi_.Destroy();
+  _impl_.signature_version_.Destroy();
+  _impl_.~Impl_();
 }
 
-void SharedCredential::ArenaDtor(void* object) {
-  SharedCredential* _this = reinterpret_cast< SharedCredential* >(object);
-  (void)_this;
-}
-void SharedCredential::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
-void SharedCredential::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
-}
-
-void SharedCredential::Clear() {
+PROTOBUF_NOINLINE void SharedCredential::Clear() {
 // @@protoc_insertion_point(message_clear_start:nearby.internal.SharedCredential)
-  uint32_t cached_has_bits = 0;
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  secret_id_.ClearToEmpty();
-  key_seed_.ClearToEmpty();
-  encrypted_metadata_bytes_.ClearToEmpty();
-  metadata_encryption_key_tag_.ClearToEmpty();
-  connection_signature_verification_key_.ClearToEmpty();
-  advertisement_signature_verification_key_.ClearToEmpty();
-  version_.ClearToEmpty();
-  ::memset(&start_time_millis_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&identity_type_) -
-      reinterpret_cast<char*>(&start_time_millis_)) + sizeof(identity_type_));
-  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+  _impl_.secret_id_.ClearToEmpty();
+  _impl_.key_seed_.ClearToEmpty();
+  _impl_.encrypted_metadata_bytes_v0_.ClearToEmpty();
+  _impl_.metadata_encryption_key_tag_v0_.ClearToEmpty();
+  _impl_.connection_signature_verification_key_.ClearToEmpty();
+  _impl_.advertisement_signature_verification_key_.ClearToEmpty();
+  _impl_.version_.ClearToEmpty();
+  _impl_.encrypted_metadata_bytes_v1_.ClearToEmpty();
+  _impl_.metadata_encryption_key_unsigned_adv_tag_v1_.ClearToEmpty();
+  _impl_.dusi_.ClearToEmpty();
+  _impl_.signature_version_.ClearToEmpty();
+  ::memset(&_impl_.start_time_millis_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.id_) -
+      reinterpret_cast<char*>(&_impl_.start_time_millis_)) + sizeof(_impl_.id_));
+  _internal_metadata_.Clear<std::string>();
 }
 
-const char* SharedCredential::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  while (!ctx->Done(&ptr)) {
-    uint32_t tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    switch (tag >> 3) {
-      // bytes secret_id = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
-          auto str = _internal_mutable_secret_id();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // bytes key_seed = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
-          auto str = _internal_mutable_key_seed();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int64 start_time_millis = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
-          start_time_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int64 end_time_millis = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
-          end_time_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // bytes encrypted_metadata_bytes = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
-          auto str = _internal_mutable_encrypted_metadata_bytes();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // bytes metadata_encryption_key_tag = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
-          auto str = _internal_mutable_metadata_encryption_key_tag();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // bytes connection_signature_verification_key = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
-          auto str = _internal_mutable_connection_signature_verification_key();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // bytes advertisement_signature_verification_key = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
-          auto str = _internal_mutable_advertisement_signature_verification_key();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // .nearby.internal.IdentityType identity_type = 9;
-      case 9:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
-          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-          _internal_set_identity_type(static_cast<::nearby::internal::IdentityType>(val));
-        } else
-          goto handle_unusual;
-        continue;
-      // bytes version = 10;
-      case 10:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
-          auto str = _internal_mutable_version();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      default:
-        goto handle_unusual;
-    }  // switch
-  handle_unusual:
-    if ((tag == 0) || ((tag & 7) == 4)) {
-      CHK_(ptr);
-      ctx->SetLastTag(tag);
-      goto message_done;
-    }
-    ptr = UnknownFieldParse(
-        tag,
-        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-        ptr, ctx);
-    CHK_(ptr != nullptr);
-  }  // while
-message_done:
+const char* SharedCredential::_InternalParse(
+    const char* ptr, ::_pbi::ParseContext* ctx) {
+  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
   return ptr;
-failure:
-  ptr = nullptr;
-  goto message_done;
-#undef CHK_
 }
 
-uint8_t* SharedCredential::_InternalSerialize(
-    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:nearby.internal.SharedCredential)
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
 
-  // bytes secret_id = 1;
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 16, 0, 78, 2> SharedCredential::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    16, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294901760,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    16,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    &_SharedCredential_default_instance_._instance,
+    ::_pbi::TcParser::GenericFallbackLite,  // fallback
+  }, {{
+    // string signature_version = 16;
+    {::_pbi::TcParser::FastUS2,
+     {386, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.signature_version_)}},
+    // bytes secret_id = 1 [deprecated = true];
+    {::_pbi::TcParser::FastBS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.secret_id_)}},
+    // bytes key_seed = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.key_seed_)}},
+    // int64 start_time_millis = 3;
+    {::_pbi::TcParser::FastV64S1,
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.start_time_millis_)}},
+    // int64 end_time_millis = 4;
+    {::_pbi::TcParser::FastV64S1,
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.end_time_millis_)}},
+    // bytes encrypted_metadata_bytes_v0 = 5;
+    {::_pbi::TcParser::FastBS1,
+     {42, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.encrypted_metadata_bytes_v0_)}},
+    // bytes metadata_encryption_key_tag_v0 = 6;
+    {::_pbi::TcParser::FastBS1,
+     {50, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.metadata_encryption_key_tag_v0_)}},
+    // bytes connection_signature_verification_key = 7;
+    {::_pbi::TcParser::FastBS1,
+     {58, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.connection_signature_verification_key_)}},
+    // bytes advertisement_signature_verification_key = 8;
+    {::_pbi::TcParser::FastBS1,
+     {66, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.advertisement_signature_verification_key_)}},
+    // .nearby.internal.IdentityType identity_type = 9;
+    {::_pbi::TcParser::FastV32S1,
+     {72, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.identity_type_)}},
+    // bytes version = 10;
+    {::_pbi::TcParser::FastBS1,
+     {82, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.version_)}},
+    // .nearby.internal.CredentialType credential_type = 11;
+    {::_pbi::TcParser::FastV32S1,
+     {88, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.credential_type_)}},
+    // bytes encrypted_metadata_bytes_v1 = 12;
+    {::_pbi::TcParser::FastBS1,
+     {98, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.encrypted_metadata_bytes_v1_)}},
+    // bytes metadata_encryption_key_unsigned_adv_tag_v1 = 13;
+    {::_pbi::TcParser::FastBS1,
+     {106, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.metadata_encryption_key_unsigned_adv_tag_v1_)}},
+    // int64 id = 14;
+    {::_pbi::TcParser::FastV64S1,
+     {112, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.id_)}},
+    // string dusi = 15;
+    {::_pbi::TcParser::FastUS1,
+     {122, 63, 0, PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.dusi_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes secret_id = 1 [deprecated = true];
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.secret_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes key_seed = 2;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.key_seed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // int64 start_time_millis = 3;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.start_time_millis_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt64)},
+    // int64 end_time_millis = 4;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.end_time_millis_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt64)},
+    // bytes encrypted_metadata_bytes_v0 = 5;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.encrypted_metadata_bytes_v0_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes metadata_encryption_key_tag_v0 = 6;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.metadata_encryption_key_tag_v0_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes connection_signature_verification_key = 7;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.connection_signature_verification_key_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes advertisement_signature_verification_key = 8;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.advertisement_signature_verification_key_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .nearby.internal.IdentityType identity_type = 9;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.identity_type_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
+    // bytes version = 10;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.version_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .nearby.internal.CredentialType credential_type = 11;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.credential_type_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
+    // bytes encrypted_metadata_bytes_v1 = 12;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.encrypted_metadata_bytes_v1_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes metadata_encryption_key_unsigned_adv_tag_v1 = 13;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.metadata_encryption_key_unsigned_adv_tag_v1_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBytes | ::_fl::kRepAString)},
+    // int64 id = 14;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt64)},
+    // string dusi = 15;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.dusi_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string signature_version = 16;
+    {PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.signature_version_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\40\0\0\0\0\0\0\0\0\0\0\0\0\0\0\4\21\0\0\0\0\0\0\0"
+    "nearby.internal.SharedCredential"
+    "dusi"
+    "signature_version"
+  }},
+};
+
+::uint8_t* SharedCredential::_InternalSerialize(
+    ::uint8_t* target,
+    ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.internal.SharedCredential)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // bytes secret_id = 1 [deprecated = true];
   if (!this->_internal_secret_id().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        1, this->_internal_secret_id(), target);
+    const std::string& _s = this->_internal_secret_id();
+    target = stream->WriteBytesMaybeAliased(1, _s, target);
   }
 
   // bytes key_seed = 2;
   if (!this->_internal_key_seed().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        2, this->_internal_key_seed(), target);
+    const std::string& _s = this->_internal_key_seed();
+    target = stream->WriteBytesMaybeAliased(2, _s, target);
   }
 
   // int64 start_time_millis = 3;
   if (this->_internal_start_time_millis() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(3, this->_internal_start_time_millis(), target);
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt64ToArrayWithField<3>(
+            stream, this->_internal_start_time_millis(), target);
   }
 
   // int64 end_time_millis = 4;
   if (this->_internal_end_time_millis() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(4, this->_internal_end_time_millis(), target);
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt64ToArrayWithField<4>(
+            stream, this->_internal_end_time_millis(), target);
   }
 
-  // bytes encrypted_metadata_bytes = 5;
-  if (!this->_internal_encrypted_metadata_bytes().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        5, this->_internal_encrypted_metadata_bytes(), target);
+  // bytes encrypted_metadata_bytes_v0 = 5;
+  if (!this->_internal_encrypted_metadata_bytes_v0().empty()) {
+    const std::string& _s = this->_internal_encrypted_metadata_bytes_v0();
+    target = stream->WriteBytesMaybeAliased(5, _s, target);
   }
 
-  // bytes metadata_encryption_key_tag = 6;
-  if (!this->_internal_metadata_encryption_key_tag().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        6, this->_internal_metadata_encryption_key_tag(), target);
+  // bytes metadata_encryption_key_tag_v0 = 6;
+  if (!this->_internal_metadata_encryption_key_tag_v0().empty()) {
+    const std::string& _s = this->_internal_metadata_encryption_key_tag_v0();
+    target = stream->WriteBytesMaybeAliased(6, _s, target);
   }
 
   // bytes connection_signature_verification_key = 7;
   if (!this->_internal_connection_signature_verification_key().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        7, this->_internal_connection_signature_verification_key(), target);
+    const std::string& _s = this->_internal_connection_signature_verification_key();
+    target = stream->WriteBytesMaybeAliased(7, _s, target);
   }
 
   // bytes advertisement_signature_verification_key = 8;
   if (!this->_internal_advertisement_signature_verification_key().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        8, this->_internal_advertisement_signature_verification_key(), target);
+    const std::string& _s = this->_internal_advertisement_signature_verification_key();
+    target = stream->WriteBytesMaybeAliased(8, _s, target);
   }
 
   // .nearby.internal.IdentityType identity_type = 9;
   if (this->_internal_identity_type() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
-      9, this->_internal_identity_type(), target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+        9, this->_internal_identity_type(), target);
   }
 
   // bytes version = 10;
   if (!this->_internal_version().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        10, this->_internal_version(), target);
+    const std::string& _s = this->_internal_version();
+    target = stream->WriteBytesMaybeAliased(10, _s, target);
+  }
+
+  // .nearby.internal.CredentialType credential_type = 11;
+  if (this->_internal_credential_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+        11, this->_internal_credential_type(), target);
+  }
+
+  // bytes encrypted_metadata_bytes_v1 = 12;
+  if (!this->_internal_encrypted_metadata_bytes_v1().empty()) {
+    const std::string& _s = this->_internal_encrypted_metadata_bytes_v1();
+    target = stream->WriteBytesMaybeAliased(12, _s, target);
+  }
+
+  // bytes metadata_encryption_key_unsigned_adv_tag_v1 = 13;
+  if (!this->_internal_metadata_encryption_key_unsigned_adv_tag_v1().empty()) {
+    const std::string& _s = this->_internal_metadata_encryption_key_unsigned_adv_tag_v1();
+    target = stream->WriteBytesMaybeAliased(13, _s, target);
+  }
+
+  // int64 id = 14;
+  if (this->_internal_id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt64ToArrayWithField<14>(
+            stream, this->_internal_id(), target);
+  }
+
+  // string dusi = 15;
+  if (!this->_internal_dusi().empty()) {
+    const std::string& _s = this->_internal_dusi();
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "nearby.internal.SharedCredential.dusi");
+    target = stream->WriteStringMaybeAliased(15, _s, target);
+  }
+
+  // string signature_version = 16;
+  if (!this->_internal_signature_version().empty()) {
+    const std::string& _s = this->_internal_signature_version();
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "nearby.internal.SharedCredential.signature_version");
+    target = stream->WriteStringMaybeAliased(16, _s, target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
-        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+    target = stream->WriteRaw(
+        _internal_metadata_.unknown_fields<std::string>(::google::protobuf::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::google::protobuf::internal::GetEmptyString).size()), target);
   }
   // @@protoc_insertion_point(serialize_to_array_end:nearby.internal.SharedCredential)
   return target;
 }
 
-size_t SharedCredential::ByteSizeLong() const {
+::size_t SharedCredential::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:nearby.internal.SharedCredential)
-  size_t total_size = 0;
+  ::size_t total_size = 0;
 
-  uint32_t cached_has_bits = 0;
+  ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // bytes secret_id = 1;
+  // bytes secret_id = 1 [deprecated = true];
   if (!this->_internal_secret_id().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_secret_id());
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_secret_id());
   }
 
   // bytes key_seed = 2;
   if (!this->_internal_key_seed().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_key_seed());
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_key_seed());
   }
 
-  // bytes encrypted_metadata_bytes = 5;
-  if (!this->_internal_encrypted_metadata_bytes().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_encrypted_metadata_bytes());
+  // bytes encrypted_metadata_bytes_v0 = 5;
+  if (!this->_internal_encrypted_metadata_bytes_v0().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_encrypted_metadata_bytes_v0());
   }
 
-  // bytes metadata_encryption_key_tag = 6;
-  if (!this->_internal_metadata_encryption_key_tag().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_metadata_encryption_key_tag());
+  // bytes metadata_encryption_key_tag_v0 = 6;
+  if (!this->_internal_metadata_encryption_key_tag_v0().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_metadata_encryption_key_tag_v0());
   }
 
   // bytes connection_signature_verification_key = 7;
   if (!this->_internal_connection_signature_verification_key().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_connection_signature_verification_key());
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_connection_signature_verification_key());
   }
 
   // bytes advertisement_signature_verification_key = 8;
   if (!this->_internal_advertisement_signature_verification_key().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_advertisement_signature_verification_key());
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_advertisement_signature_verification_key());
   }
 
   // bytes version = 10;
   if (!this->_internal_version().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_version());
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_version());
+  }
+
+  // bytes encrypted_metadata_bytes_v1 = 12;
+  if (!this->_internal_encrypted_metadata_bytes_v1().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_encrypted_metadata_bytes_v1());
+  }
+
+  // bytes metadata_encryption_key_unsigned_adv_tag_v1 = 13;
+  if (!this->_internal_metadata_encryption_key_unsigned_adv_tag_v1().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                    this->_internal_metadata_encryption_key_unsigned_adv_tag_v1());
+  }
+
+  // string dusi = 15;
+  if (!this->_internal_dusi().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                    this->_internal_dusi());
+  }
+
+  // string signature_version = 16;
+  if (!this->_internal_signature_version().empty()) {
+    total_size += 2 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                    this->_internal_signature_version());
   }
 
   // int64 start_time_millis = 3;
   if (this->_internal_start_time_millis() != 0) {
-    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_start_time_millis());
+    total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+        this->_internal_start_time_millis());
   }
 
   // int64 end_time_millis = 4;
   if (this->_internal_end_time_millis() != 0) {
-    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_end_time_millis());
+    total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+        this->_internal_end_time_millis());
   }
 
   // .nearby.internal.IdentityType identity_type = 9;
   if (this->_internal_identity_type() != 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_identity_type());
+                  ::_pbi::WireFormatLite::EnumSize(this->_internal_identity_type());
   }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_cached_size_);
+  // .nearby.internal.CredentialType credential_type = 11;
+  if (this->_internal_credential_type() != 0) {
+    total_size += 1 +
+                  ::_pbi::WireFormatLite::EnumSize(this->_internal_credential_type());
+  }
+
+  // int64 id = 14;
+  if (this->_internal_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+        this->_internal_id());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::google::protobuf::internal::GetEmptyString).size();
+  }
+  _impl_._cached_size_.Set(::_pbi::ToCachedSize(total_size));
+  return total_size;
 }
 
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData SharedCredential::_class_data_ = {
-    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSizeCheck,
-    SharedCredential::MergeImpl
-};
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SharedCredential::GetClassData() const { return &_class_data_; }
-
-void SharedCredential::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
-                      const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-  static_cast<SharedCredential *>(to)->MergeFrom(
-      static_cast<const SharedCredential &>(from));
+void SharedCredential::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const SharedCredential*>(
+      &from));
 }
-
 
 void SharedCredential::MergeFrom(const SharedCredential& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:nearby.internal.SharedCredential)
-  GOOGLE_DCHECK_NE(&from, this);
-  uint32_t cached_has_bits = 0;
+  SharedCredential* const _this = this;
+  // @@protoc_insertion_point(class_specific_merge_from_start:nearby.internal.SharedCredential)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (!from._internal_secret_id().empty()) {
-    _internal_set_secret_id(from._internal_secret_id());
+    _this->_internal_set_secret_id(from._internal_secret_id());
   }
   if (!from._internal_key_seed().empty()) {
-    _internal_set_key_seed(from._internal_key_seed());
+    _this->_internal_set_key_seed(from._internal_key_seed());
   }
-  if (!from._internal_encrypted_metadata_bytes().empty()) {
-    _internal_set_encrypted_metadata_bytes(from._internal_encrypted_metadata_bytes());
+  if (!from._internal_encrypted_metadata_bytes_v0().empty()) {
+    _this->_internal_set_encrypted_metadata_bytes_v0(from._internal_encrypted_metadata_bytes_v0());
   }
-  if (!from._internal_metadata_encryption_key_tag().empty()) {
-    _internal_set_metadata_encryption_key_tag(from._internal_metadata_encryption_key_tag());
+  if (!from._internal_metadata_encryption_key_tag_v0().empty()) {
+    _this->_internal_set_metadata_encryption_key_tag_v0(from._internal_metadata_encryption_key_tag_v0());
   }
   if (!from._internal_connection_signature_verification_key().empty()) {
-    _internal_set_connection_signature_verification_key(from._internal_connection_signature_verification_key());
+    _this->_internal_set_connection_signature_verification_key(from._internal_connection_signature_verification_key());
   }
   if (!from._internal_advertisement_signature_verification_key().empty()) {
-    _internal_set_advertisement_signature_verification_key(from._internal_advertisement_signature_verification_key());
+    _this->_internal_set_advertisement_signature_verification_key(from._internal_advertisement_signature_verification_key());
   }
   if (!from._internal_version().empty()) {
-    _internal_set_version(from._internal_version());
+    _this->_internal_set_version(from._internal_version());
+  }
+  if (!from._internal_encrypted_metadata_bytes_v1().empty()) {
+    _this->_internal_set_encrypted_metadata_bytes_v1(from._internal_encrypted_metadata_bytes_v1());
+  }
+  if (!from._internal_metadata_encryption_key_unsigned_adv_tag_v1().empty()) {
+    _this->_internal_set_metadata_encryption_key_unsigned_adv_tag_v1(from._internal_metadata_encryption_key_unsigned_adv_tag_v1());
+  }
+  if (!from._internal_dusi().empty()) {
+    _this->_internal_set_dusi(from._internal_dusi());
+  }
+  if (!from._internal_signature_version().empty()) {
+    _this->_internal_set_signature_version(from._internal_signature_version());
   }
   if (from._internal_start_time_millis() != 0) {
-    _internal_set_start_time_millis(from._internal_start_time_millis());
+    _this->_internal_set_start_time_millis(from._internal_start_time_millis());
   }
   if (from._internal_end_time_millis() != 0) {
-    _internal_set_end_time_millis(from._internal_end_time_millis());
+    _this->_internal_set_end_time_millis(from._internal_end_time_millis());
   }
   if (from._internal_identity_type() != 0) {
-    _internal_set_identity_type(from._internal_identity_type());
+    _this->_internal_set_identity_type(from._internal_identity_type());
   }
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_credential_type() != 0) {
+    _this->_internal_set_credential_type(from._internal_credential_type());
+  }
+  if (from._internal_id() != 0) {
+    _this->_internal_set_id(from._internal_id());
+  }
+  _this->_internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
 
 void SharedCredential::CopyFrom(const SharedCredential& from) {
@@ -612,72 +735,47 @@ void SharedCredential::CopyFrom(const SharedCredential& from) {
   MergeFrom(from);
 }
 
-bool SharedCredential::IsInitialized() const {
+PROTOBUF_NOINLINE bool SharedCredential::IsInitialized() const {
   return true;
 }
 
-void SharedCredential::InternalSwap(SharedCredential* other) {
+::_pbi::CachedSize* SharedCredential::AccessCachedSize() const {
+  return &_impl_._cached_size_;
+}
+void SharedCredential::InternalSwap(SharedCredential* PROTOBUF_RESTRICT other) {
   using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &secret_id_, lhs_arena,
-      &other->secret_id_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &key_seed_, lhs_arena,
-      &other->key_seed_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &encrypted_metadata_bytes_, lhs_arena,
-      &other->encrypted_metadata_bytes_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &metadata_encryption_key_tag_, lhs_arena,
-      &other->metadata_encryption_key_tag_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &connection_signature_verification_key_, lhs_arena,
-      &other->connection_signature_verification_key_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &advertisement_signature_verification_key_, lhs_arena,
-      &other->advertisement_signature_verification_key_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &version_, lhs_arena,
-      &other->version_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharedCredential, identity_type_)
-      + sizeof(SharedCredential::identity_type_)
-      - PROTOBUF_FIELD_OFFSET(SharedCredential, start_time_millis_)>(
-          reinterpret_cast<char*>(&start_time_millis_),
-          reinterpret_cast<char*>(&other->start_time_millis_));
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.secret_id_, &other->_impl_.secret_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.key_seed_, &other->_impl_.key_seed_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.encrypted_metadata_bytes_v0_, &other->_impl_.encrypted_metadata_bytes_v0_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.metadata_encryption_key_tag_v0_, &other->_impl_.metadata_encryption_key_tag_v0_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.connection_signature_verification_key_, &other->_impl_.connection_signature_verification_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.advertisement_signature_verification_key_, &other->_impl_.advertisement_signature_verification_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.version_, &other->_impl_.version_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.encrypted_metadata_bytes_v1_, &other->_impl_.encrypted_metadata_bytes_v1_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.metadata_encryption_key_unsigned_adv_tag_v1_, &other->_impl_.metadata_encryption_key_unsigned_adv_tag_v1_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.dusi_, &other->_impl_.dusi_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.signature_version_, &other->_impl_.signature_version_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.id_)
+      + sizeof(SharedCredential::_impl_.id_)
+      - PROTOBUF_FIELD_OFFSET(SharedCredential, _impl_.start_time_millis_)>(
+          reinterpret_cast<char*>(&_impl_.start_time_millis_),
+          reinterpret_cast<char*>(&other->_impl_.start_time_millis_));
 }
 
-::PROTOBUF_NAMESPACE_ID::Metadata SharedCredential::GetMetadata() const {
-  return ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(
-      &descriptor_table_internal_2fproto_2fcredential_2eproto_getter, &descriptor_table_internal_2fproto_2fcredential_2eproto_once,
-      file_level_metadata_internal_2fproto_2fcredential_2eproto[0]);
+std::string SharedCredential::GetTypeName() const {
+  return "nearby.internal.SharedCredential";
 }
 
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace internal
 }  // namespace nearby
-PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::nearby::internal::SharedCredential* Arena::CreateMaybeMessage< ::nearby::internal::SharedCredential >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::nearby::internal::SharedCredential >(arena);
-}
-PROTOBUF_NAMESPACE_CLOSE
-
+namespace google {
+namespace protobuf {
+}  // namespace protobuf
+}  // namespace google
 // @@protoc_insertion_point(global_scope)
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"
