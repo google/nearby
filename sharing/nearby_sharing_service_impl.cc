@@ -1571,13 +1571,7 @@ NearbySharingServiceImpl::CreateEndpointInfo(
   std::vector<uint8_t> encrypted_key;
 
   if (account_manager_.GetCurrentAccount().has_value()) {
-    // If the user already signed in, setup contacts certificate for everyone
-    // mode to show correct user icon on remote device.
     DeviceVisibility visibility = settings_->GetVisibility();
-    if (visibility == proto::DEVICE_VISIBILITY_EVERYONE) {
-      // Make sure using all contacts certificate for everyone mode
-      visibility = proto::DEVICE_VISIBILITY_ALL_CONTACTS;
-    }
 
     std::optional<NearbyShareEncryptedMetadataKey> encrypted_metadata_key =
         certificate_manager_->EncryptPrivateCertificateMetadataKey(visibility);

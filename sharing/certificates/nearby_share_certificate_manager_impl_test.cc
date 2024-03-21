@@ -465,6 +465,12 @@ class NearbyShareCertificateManagerImplTest
 
 TEST_F(NearbyShareCertificateManagerImplTest,
        EncryptPrivateCertificateMetadataKey) {
+  // No certificates exist for hidden or unspecified visibility.
+  EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
+      DeviceVisibility::DEVICE_VISIBILITY_HIDDEN));
+  EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
+      DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
+
   // No valid certificates exist.
   cert_store_->ReplacePrivateCertificates({});
   EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
@@ -500,6 +506,21 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   EXPECT_NE(cert_store_->GetPrivateCertificates()->at(0).ToCertificateData(),
             private_certificate.ToCertificateData());
 
+  // Set up valid all-contacts visibility certificate. Then test with everyone
+  // visibility.
+  cert_store_->ReplacePrivateCertificates({private_certificate});
+  FastForward(GetNearbyShareTestNotBefore() +
+              kNearbyShareCertificateValidityPeriod * 0.5 - Now());
+
+  std::optional<NearbyShareEncryptedMetadataKey> encrypted_metadata_key_everyone
+      =
+      cert_manager_->EncryptPrivateCertificateMetadataKey(
+          DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
+  EXPECT_EQ(GetNearbyShareTestEncryptedMetadataKey().encrypted_key(),
+            encrypted_metadata_key_everyone->encrypted_key());
+  EXPECT_EQ(GetNearbyShareTestEncryptedMetadataKey().salt(),
+            encrypted_metadata_key_everyone->salt());
+
   // No valid certificates exist.
   FastForward(kNearbyShareCertificateValidityPeriod);
   EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
@@ -523,9 +544,31 @@ TEST_F(NearbyShareCertificateManagerImplTest, SignWithPrivateCertificate) {
           DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
           GetNearbyShareTestPayloadToSign())));
 
+  // Set up valid all-contacts visibility certificate. Then test with everyone
+  // visibility.
+  cert_store_->ReplacePrivateCertificates({private_certificate});
+  FastForward(GetNearbyShareTestNotBefore() +
+              kNearbyShareCertificateValidityPeriod * 0.5 - Now());
+
+  // Perform sign/verify round trip.
+  EXPECT_TRUE(GetNearbyShareTestDecryptedPublicCertificate().VerifySignature(
+      GetNearbyShareTestPayloadToSign(),
+      *cert_manager_->SignWithPrivateCertificate(
+          DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+          GetNearbyShareTestPayloadToSign())));
+
   // No selected-contact visibility certificate in storage.
   EXPECT_FALSE(cert_manager_->SignWithPrivateCertificate(
       DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS,
+      GetNearbyShareTestPayloadToSign()));
+
+  // No certificates exist for hidden or unspecified visibility.
+  EXPECT_FALSE(cert_manager_->SignWithPrivateCertificate(
+      DeviceVisibility::DEVICE_VISIBILITY_HIDDEN,
+      GetNearbyShareTestPayloadToSign()));
+
+  EXPECT_FALSE(cert_manager_->SignWithPrivateCertificate(
+      DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED,
       GetNearbyShareTestPayloadToSign()));
 }
 
@@ -544,9 +587,30 @@ TEST_F(NearbyShareCertificateManagerImplTest,
                 DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
                 GetNearbyShareTestPayloadToSign()));
 
+  // Set up valid all-contacts visibility certificate. Then test with everyone
+  // visibility.
+  cert_store_->ReplacePrivateCertificates({private_certificate});
+  FastForward(GetNearbyShareTestNotBefore() +
+              kNearbyShareCertificateValidityPeriod * 0.5 - Now());
+
+  EXPECT_EQ(private_certificate.HashAuthenticationToken(
+                GetNearbyShareTestPayloadToSign()),
+            cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
+                DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+                GetNearbyShareTestPayloadToSign()));
+
   // No selected-contact visibility certificate in storage.
   EXPECT_FALSE(cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
       DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS,
+      GetNearbyShareTestPayloadToSign()));
+
+  // No certificates exist for hidden or unspecified visibility.
+  EXPECT_FALSE(cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
+      DeviceVisibility::DEVICE_VISIBILITY_HIDDEN,
+      GetNearbyShareTestPayloadToSign()));
+
+  EXPECT_FALSE(cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
+      DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED,
       GetNearbyShareTestPayloadToSign()));
 }
 

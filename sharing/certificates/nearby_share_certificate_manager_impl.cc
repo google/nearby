@@ -470,6 +470,17 @@ void NearbyShareCertificateManagerImpl::OnStop() {
 std::optional<NearbySharePrivateCertificate>
 NearbyShareCertificateManagerImpl::GetValidPrivateCertificate(
     DeviceVisibility visibility) const {
+  if (visibility == DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED ||
+      visibility == DeviceVisibility::DEVICE_VISIBILITY_HIDDEN) {
+    return std::nullopt;
+  }
+
+  // If the user already signed in, setup contacts certificate for everyone
+  // mode to show correct user icon on remote device.
+  if (visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
+    visibility = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
+  }
+
   std::optional<std::vector<NearbySharePrivateCertificate>> certs =
       *certificate_storage_->GetPrivateCertificates();
   for (auto& cert : *certs) {
