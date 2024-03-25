@@ -18,7 +18,9 @@
 namespace nearby {
 namespace connections {
 
-enum class PayloadType { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
+// TODO(edwinwu) : re-number kFile(3->2) and kStream(2->3) to align with Android
+// platform. Need to test for other platforms handled this to avoid side effect.
+enum class PayloadType { kUnknown = 0, kBytes = 1, kFile = 2, kStream = 3 };
 enum PayloadDirection {
   UNKNOWN_DIRECTION_PAYLOAD = 0,
   INCOMING_PAYLOAD = 1,
