@@ -54,6 +54,7 @@ cc_library(
         "action_factory.cc",
         "advertisement_decoder.cc",
         "advertisement_factory.cc",
+        "advertisement_filter.cc",
         "base_broadcast_request.cc",
         "broadcast_manager.cc",
         "connection_authenticator_impl.cc",
@@ -66,6 +67,7 @@ cc_library(
         "action_factory.h",
         "advertisement_decoder.h",
         "advertisement_factory.h",
+        "advertisement_filter.h",
         "base_broadcast_request.h",
         "broadcast_manager.h",
         "connection_authenticator.h",
@@ -162,6 +164,28 @@ cc_test(
     name = "advertisement_decoder_test",
     size = "small",
     srcs = ["advertisement_decoder_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform:base",
+        "//internal/proto:credential_cc_proto",
+        "//presence:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
+cc_test(
+    name = "advertisement_filter_test",
+    size = "small",
+    srcs = ["advertisement_filter_test.cc"],
     deps = [
         ":internal",
         "//internal/platform:base",

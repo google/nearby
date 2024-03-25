@@ -26,6 +26,7 @@
 #include "internal/proto/credential.pb.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
+#include "presence/implementation/advertisement_filter.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/implementation/mediums/mediums.h"
 #include "presence/scan_request.h"
@@ -66,6 +67,7 @@ class ScanManager {
     absl::flat_hash_map<IdentityType, std::vector<SharedCredential>>
         credentials;
     AdvertisementDecoder decoder;
+    AdvertisementFilter advertisement_filter;
     std::unique_ptr<ScanningSession> scanning_session;
   };
   void NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,

@@ -57,18 +57,11 @@ class AdvertisementDecoder {
     AddBannedDataTypes();
   }
 
-  static std::vector<CredentialSelector> GetCredentialSelectors(
-      const ScanRequest& scan_request);
-
   // Returns a list of Data Elements decoded from the advertisement.
   // Returns an error if the advertisement is misformatted or if it couldn't be
   // decrypted.
   absl::StatusOr<Advertisement> DecodeAdvertisement(
       absl::string_view advertisement);
-
-  // Returns true if the decoded advertisement in `data_elements` matches the
-  // filters in `scan_request`.
-  bool MatchesScanFilter(const std::vector<DataElement>& data_elements);
 
  private:
   // Decrypts data elements stored inside encrypted `elem` and appends them to
@@ -81,10 +74,6 @@ class AdvertisementDecoder {
       const std::vector<internal::SharedCredential>& credentials,
       absl::string_view salt, absl::string_view data_elements);
   void AddBannedDataTypes();
-  bool MatchesScanFilter(const std::vector<DataElement>& data_elements,
-                         const PresenceScanFilter& filter);
-  bool MatchesScanFilter(const std::vector<DataElement>& data_elements,
-                         const LegacyPresenceScanFilter& filter);
 
   ScanRequest scan_request_;
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>*

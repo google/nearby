@@ -14,7 +14,6 @@
 
 #include "presence/implementation/advertisement_decoder.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -154,36 +153,6 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
                        << absl::BytesToHexString(input.substr(start, length));
   return DataElement(data_type, input.substr(start, length));
 }
-
-bool Contains(const std::vector<DataElement>& data_elements,
-              const DataElement& data_element) {
-  return std::find(data_elements.begin(), data_elements.end(), data_element) !=
-         data_elements.end();
-}
-
-bool ContainsAll(const std::vector<DataElement>& data_elements,
-                 const std::vector<DataElement>& extended_properties) {
-  for (const auto& filter_element : extended_properties) {
-    if (!Contains(data_elements, filter_element)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool ContainsAny(const std::vector<DataElement>& data_elements,
-                 const std::vector<int>& actions) {
-  if (actions.empty()) {
-    return true;
-  }
-  for (int action : actions) {
-    if (Contains(data_elements, DataElement(ActionBit(action)))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 }  // namespace
 
 void AdvertisementDecoder::DecodeBaseAction(
@@ -372,64 +341,6 @@ absl::StatusOr<Advertisement> AdvertisementDecoder::DecodeAdvertisement(
     }
   }
   return std::move(decoded_advertisement_);
-}
-
-bool AdvertisementDecoder::MatchesScanFilter(
-    const std::vector<DataElement>& data_elements) {
-  // The advertisement matches the scan request when it matches at least
-  // one of the filters in the request.
-  if (scan_request_.scan_filters.empty()) {
-    return true;
-  }
-  for (const auto& filter : scan_request_.scan_filters) {
-    if (absl::holds_alternative<PresenceScanFilter>(filter)) {
-      if (MatchesScanFilter(data_elements,
-                            absl::get<PresenceScanFilter>(filter))) {
-        return true;
-      }
-    } else if (absl::holds_alternative<LegacyPresenceScanFilter>(filter)) {
-      if (MatchesScanFilter(data_elements,
-                            absl::get<LegacyPresenceScanFilter>(filter))) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-bool AdvertisementDecoder::MatchesScanFilter(
-    const std::vector<DataElement>& data_elements,
-    const PresenceScanFilter& filter) {
-  // The advertisement must contain all Data Elements in scan request.
-  return ContainsAll(data_elements, filter.extended_properties);
-}
-
-bool AdvertisementDecoder::MatchesScanFilter(
-    const std::vector<DataElement>& data_elements,
-    const LegacyPresenceScanFilter& filter) {
-  // The advertisement must:
-  // * contain any Action from scan request,
-  // * contain all Data Elements in scan request.
-  return ContainsAny(data_elements, filter.actions) &&
-         ContainsAll(data_elements, filter.extended_properties);
-}
-
-std::vector<CredentialSelector> AdvertisementDecoder::GetCredentialSelectors(
-    const ScanRequest& scan_request) {
-  std::vector<IdentityType> all_types = {
-      IdentityType::IDENTITY_TYPE_PRIVATE, IdentityType::IDENTITY_TYPE_TRUSTED,
-      IdentityType::IDENTITY_TYPE_PUBLIC,
-      IdentityType::IDENTITY_TYPE_PROVISIONED};
-  std::vector<CredentialSelector> selectors;
-  for (auto identity_type :
-       (scan_request.identity_types.empty() ? all_types
-                                            : scan_request.identity_types)) {
-    selectors.push_back(
-        CredentialSelector{.manager_app_id = scan_request.manager_app_id,
-                           .account_name = scan_request.account_name,
-                           .identity_type = identity_type});
-  }
-  return selectors;
 }
 
 }  // namespace presence

@@ -28,6 +28,7 @@
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/uuid.h"
+#include "presence//implementation/advertisement_filter.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
 #include "presence/implementation/mediums/ble.h"
@@ -49,35 +50,36 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
   ScanSessionId id = nearby::RandData<ScanSessionId>();
   RunOnServiceControllerThread(
       "start-scan",
-      [this, id, scan_request, scan_callback = std::move(cb)]()
-          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
-            ScanningCallback callback = ScanningCallback{
-                .start_scanning_result =
-                    [start_scan_client =
-                         std::move(scan_callback.start_scan_cb)](
-                        absl::Status ble_status) mutable {
-                      start_scan_client(ble_status);
-                    },
-                .advertisement_found_cb =
-                    [this, id](BlePeripheral& peripheral,
-                               BleAdvertisementData data) {
-                      RunOnServiceControllerThread(
-                          "notify-found-ble",
-                          [this, id, data = std::move(data),
-                           address = peripheral.GetAddress()]()
-                              ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                                NotifyFoundBle(id, data, address);
-                              });
-                    }};
-            FetchCredentials(id, scan_request);
-            scan_sessions_.insert(
-                {id, ScanSessionState{
-                         .request = scan_request,
-                         .callback = std::move(scan_callback),
-                         .decoder = AdvertisementDecoder(scan_request),
-                         .scanning_session = mediums_->GetBle().StartScanning(
-                             scan_request, std::move(callback))}});
-          });
+      [this, id, scan_request,
+       scan_callback =
+           std::move(cb)]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+        ScanningCallback callback = ScanningCallback{
+            .start_scanning_result =
+                [start_scan_client = std::move(scan_callback.start_scan_cb)](
+                    absl::Status ble_status) mutable {
+                  start_scan_client(ble_status);
+                },
+            .advertisement_found_cb =
+                [this, id](BlePeripheral& peripheral,
+                           BleAdvertisementData data) {
+                  RunOnServiceControllerThread(
+                      "notify-found-ble",
+                      [this, id, data = std::move(data),
+                       address = peripheral.GetAddress()]()
+                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                            NotifyFoundBle(id, data, address);
+                          });
+                }};
+        FetchCredentials(id, scan_request);
+        scan_sessions_.insert(
+            {id, ScanSessionState{
+                     .request = scan_request,
+                     .callback = std::move(scan_callback),
+                     .decoder = AdvertisementDecoder(scan_request),
+                     .advertisement_filter = AdvertisementFilter(scan_request),
+                     .scanning_session = mediums_->GetBle().StartScanning(
+                         scan_request, std::move(callback))}});
+      });
   return id;
 }
 
@@ -111,7 +113,8 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     // This advertisement is not relevant to the current element, skip.
     return;
   }
-  if (it->second.decoder.MatchesScanFilter(advert->data_elements)) {
+  if (it->second.advertisement_filter.MatchesScanFilter(
+          advert->data_elements)) {
     internal::DeviceIdentityMetaData device_identity_metadata;
     device_identity_metadata.set_bluetooth_mac_address(
         std::string(remote_address));
@@ -132,10 +135,29 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
   }
 }
 
+std::vector<CredentialSelector> GetCredentialSelectors(
+    const ScanRequest& scan_request) {
+  std::vector<nearby::internal::IdentityType> all_types = {
+      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE,
+      nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED,
+      nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC,
+      nearby::internal::IdentityType::IDENTITY_TYPE_PROVISIONED};
+  std::vector<CredentialSelector> selectors;
+  for (auto identity_type :
+       (scan_request.identity_types.empty() ? all_types
+                                            : scan_request.identity_types)) {
+    selectors.push_back(
+        CredentialSelector{.manager_app_id = scan_request.manager_app_id,
+                           .account_name = scan_request.account_name,
+                           .identity_type = identity_type});
+  }
+  return selectors;
+}
+
 void ScanManager::FetchCredentials(ScanSessionId id,
                                    const ScanRequest& scan_request) {
   std::vector<CredentialSelector> credential_selectors =
-      AdvertisementDecoder::GetCredentialSelectors(scan_request);
+      GetCredentialSelectors(scan_request);
   for (const CredentialSelector& selector : credential_selectors) {
     // Not fetching for PUBLIC.
     if (selector.identity_type == internal::IDENTITY_TYPE_UNSPECIFIED ||
