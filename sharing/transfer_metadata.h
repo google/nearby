@@ -46,7 +46,6 @@ class TransferMetadata {
     kUnsupportedAttachmentType,
     kExternalProviderLaunched,
     kDecodeAdvertisementFailed,
-    kMissingTransferUpdateCallback,
     kMissingShareTarget,
     kMissingEndpointId,
     kMissingPayloads,

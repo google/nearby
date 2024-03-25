@@ -15,13 +15,16 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
 #define THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "sharing/nearby_connections_types.h"
+#include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
+#include "sharing/transfer_metadata.h"
 
 namespace nearby {
 namespace sharing {
@@ -29,8 +32,10 @@ namespace sharing {
 // A description of the outgoing connection to a remote device.
 class OutgoingShareTargetInfo : public ShareTargetInfo {
  public:
-  OutgoingShareTargetInfo(std::string endpoint_id,
-                          const ShareTarget& share_target);
+  OutgoingShareTargetInfo(
+      std::string endpoint_id, const ShareTarget& share_target,
+      std::function<void(const ShareTarget&, const TransferMetadata&)>
+          transfer_update_callback);
   OutgoingShareTargetInfo(OutgoingShareTargetInfo&&);
   OutgoingShareTargetInfo& operator=(OutgoingShareTargetInfo&&);
   ~OutgoingShareTargetInfo() override;

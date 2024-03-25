@@ -15,17 +15,21 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_TARGET_INFO_H_
 #define THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_TARGET_INFO_H_
 
+#include <functional>
 #include <string>
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
+#include "sharing/transfer_metadata.h"
 
 namespace nearby {
 namespace sharing {
 
 class IncomingShareTargetInfo : public ShareTargetInfo {
  public:
-  IncomingShareTargetInfo(std::string endpoint_id,
-                          const ShareTarget& share_target);
+  IncomingShareTargetInfo(
+      std::string endpoint_id, const ShareTarget& share_target,
+      std::function<void(const ShareTarget&, const TransferMetadata&)>
+          transfer_update_callback);
   IncomingShareTargetInfo(IncomingShareTargetInfo&&);
   IncomingShareTargetInfo& operator=(IncomingShareTargetInfo&&);
   ~IncomingShareTargetInfo() override;

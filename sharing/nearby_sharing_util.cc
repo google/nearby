@@ -215,8 +215,6 @@ AttachmentTransmissionStatus ConvertToTransmissionStatus(
       return AttachmentTransmissionStatus::FAILED_NO_SHARE_TARGET_ENDPOINT;
     case TransferMetadata::Status::kMissingPayloads:
       return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
-    case TransferMetadata::Status::kMissingTransferUpdateCallback:
-      return AttachmentTransmissionStatus::FAILED_NO_TRANSFER_UPDATE_CALLBACK;
     case TransferMetadata::Status::kPairedKeyVerificationFailed:
       return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
     case TransferMetadata::Status::kRejected:

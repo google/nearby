@@ -364,7 +364,6 @@ class NearbySharingServiceImpl
       std::optional<std::string> four_digit_token,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
-  void RefreshUIOnDisconnection(ShareTarget share_target);
   void ReceiveIntroduction(ShareTarget share_target,
                            std::optional<std::string> four_digit_token);
   void OnReceivedIntroduction(
@@ -388,8 +387,8 @@ class NearbySharingServiceImpl
       const nearby::sharing::service::proto::ProgressUpdateFrame&
           progress_update_frame);
 
-  void OnIncomingConnectionDisconnected(const ShareTarget& share_target);
-  void OnOutgoingConnectionDisconnected(const ShareTarget& share_target);
+  void OnConnectionDisconnected(int64_t share_target_id,
+                                TransferMetadata::Status status);
 
   void OnIncomingMutualAcceptanceTimeout(const ShareTarget& share_target);
   void OnOutgoingMutualAcceptanceTimeout(const ShareTarget& share_target);
@@ -425,7 +424,7 @@ class NearbySharingServiceImpl
   void ClearOutgoingShareTargetInfoMap();
   void SetAttachmentPayloadId(const Attachment& attachment, int64_t payload_id);
   std::optional<int64_t> GetAttachmentPayloadId(int64_t attachment_id);
-  void UnregisterShareTarget(bool is_incoming, int64_t share_target_id);
+  void UnregisterShareTarget(int64_t share_target_id);
 
   void OnStartAdvertisingResult(bool used_device_name, Status status);
   void OnStopAdvertisingResult(Status status);

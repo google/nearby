@@ -14,18 +14,23 @@
 
 #include "sharing/incoming_share_target_info.h"
 
+#include <functional>
 #include <string>
 #include <utility>
 
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
+#include "sharing/transfer_metadata.h"
 
 namespace nearby {
 namespace sharing {
 
 IncomingShareTargetInfo::IncomingShareTargetInfo(
-    std::string endpoint_id, const ShareTarget& share_target)
-    : ShareTargetInfo(std::move(endpoint_id), share_target) {}
+    std::string endpoint_id, const ShareTarget& share_target,
+    std::function<void(const ShareTarget&, const TransferMetadata&)>
+        transfer_update_callback)
+    : ShareTargetInfo(std::move(endpoint_id), share_target,
+                      std::move(transfer_update_callback)) {}
 
 IncomingShareTargetInfo::IncomingShareTargetInfo(IncomingShareTargetInfo&&) =
     default;

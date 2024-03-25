@@ -46,7 +46,6 @@ bool TransferMetadata::IsFinalStatus(Status status) {
     case Status::kMissingEndpointId:
     case Status::kMissingPayloads:
     case Status::kMissingShareTarget:
-    case Status::kMissingTransferUpdateCallback:
     case Status::kNotEnoughSpace:
     case Status::kPairedKeyVerificationFailed:
     case Status::kRejected:
@@ -101,8 +100,6 @@ std::string TransferMetadata::StatusToString(Status status) {
       return "kExternalProviderLaunched";
     case Status::kDecodeAdvertisementFailed:
       return "kDecodeAdvertisementFailed";
-    case Status::kMissingTransferUpdateCallback:
-      return "kMissingTransferUpdateCallback";
     case Status::kMissingShareTarget:
       return "kMissingShareTarget";
     case Status::kMissingEndpointId:

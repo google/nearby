@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -30,7 +31,7 @@
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/share_target.h"
-#include "sharing/transfer_update_callback.h"
+#include "sharing/transfer_metadata.h"
 
 namespace nearby {
 namespace sharing {
@@ -38,7 +39,10 @@ namespace sharing {
 // Additional information about the connection to a remote device.
 class ShareTargetInfo {
  public:
-  ShareTargetInfo(std::string endpoint_id, const ShareTarget& share_target);
+  ShareTargetInfo(
+      std::string endpoint_id, const ShareTarget& share_target,
+      std::function<void(const ShareTarget&, const TransferMetadata&)>
+          transfer_update_callback);
   ShareTargetInfo(ShareTargetInfo&&);
   ShareTargetInfo& operator=(ShareTargetInfo&&);
   virtual ~ShareTargetInfo();
@@ -61,14 +65,7 @@ class ShareTargetInfo {
     connection_ = connection;
   }
 
-  TransferUpdateCallback* transfer_update_callback() const {
-    return transfer_update_callback_.get();
-  }
-
-  void set_transfer_update_callback(
-      std::unique_ptr<TransferUpdateCallback> transfer_update_callback) {
-    transfer_update_callback_ = std::move(transfer_update_callback);
-  }
+  void UpdateTransferMetadata(const TransferMetadata& transfer_metadata);
 
   const std::optional<std::string>& token() const { return token_; }
 
@@ -127,7 +124,6 @@ class ShareTargetInfo {
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyConnection* connection_ = nullptr;
-  std::unique_ptr<TransferUpdateCallback> transfer_update_callback_;
   std::optional<std::string> token_;
   std::shared_ptr<IncomingFramesReader> frames_reader_;
   std::shared_ptr<PairedKeyVerificationRunner> key_verification_runner_;
@@ -138,6 +134,9 @@ class ShareTargetInfo {
       ::location::nearby::proto::sharing::OSType::UNKNOWN_OS_TYPE;
   bool self_share_ = false;
   ShareTarget share_target_;
+  bool got_final_status_ = false;
+  std::function<void(const ShareTarget&, const TransferMetadata&)>
+      transfer_update_callback_;
 };
 
 }  // namespace sharing
