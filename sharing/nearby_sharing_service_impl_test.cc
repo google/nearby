@@ -375,8 +375,6 @@ class NearbySharingServiceImplTest : public testing::Test {
             kEnableBackgroundScanning,
         true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableSelfShare, true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);
 
@@ -396,8 +394,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         config_package_nearby::nearby_sharing_feature::
             kEnableBackgroundScanning,
         true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableSelfShare, true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);
@@ -468,11 +464,6 @@ class NearbySharingServiceImplTest : public testing::Test {
   void SetScreenLocked(bool locked) {
     fake_device_info_.SetScreenLocked(locked);
     FlushTesting();
-  }
-
-  void DisableSelfshareFeature() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableSelfShare, false);
   }
 
   NearbySharingService::StatusCodes RegisterSendSurface(
@@ -762,10 +753,7 @@ class NearbySharingServiceImplTest : public testing::Test {
           EXPECT_FALSE(metadata.is_final_status());
           TransferMetadata::Status expected_status;
 
-          if (for_self_share &&
-              NearbyFlags::GetInstance().GetBoolFlag(
-                  config_package_nearby::nearby_sharing_feature::
-                      kEnableSelfShare)) {
+          if (for_self_share) {
             expected_status =
                 TransferMetadata::Status::kAwaitingRemoteAcceptance;
           } else {
@@ -4363,39 +4351,6 @@ TEST_F(NearbySharingServiceImplTest, SelfShareAutoAccept) {
   FlushTesting();
   Shutdown();
   service_.reset();
-}
-
-TEST_F(NearbySharingServiceImplTest, SelfShareNormalFlowWhenSelfshareDisabled) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
-  DisableSelfshareFeature();
-
-  NiceMock<MockTransferUpdateCallback> callback;
-  ShareTarget share_target = SetUpIncomingConnection(
-      callback, /*is_foreground=*/false, /*for_self_share=*/true);
-
-  absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
-      .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
-            EXPECT_FALSE(metadata.is_final_status());
-            EXPECT_EQ(metadata.status(),
-                      TransferMetadata::Status::kAwaitingRemoteAcceptance);
-            notification.Notify();
-          }));
-
-  service_->Accept(
-      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-        EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
-      });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-
-  // To avoid UAF in OnIncomingTransferUpdate().
-  UnregisterReceiveSurface(&callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SelfShareNoAutoAcceptInForeground) {

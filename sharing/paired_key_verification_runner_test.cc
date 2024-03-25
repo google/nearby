@@ -212,8 +212,6 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
         DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
     FastForward(absl::Minutes(15));
     share_target_.is_incoming = true;
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableSelfShare, true);
   }
 
   void RunVerification(
@@ -226,12 +224,10 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
                   GetNearbyShareTestDecryptedPublicCertificate())
             : std::nullopt;
 
-    bool self_share_feature_enabled = NearbyFlags::GetInstance().GetBoolFlag(
-        config_package_nearby::nearby_sharing_feature::kEnableSelfShare);
     auto runner = std::make_shared<PairedKeyVerificationRunner>(
         context_.GetClock(), fake_device_info_, nearby_share_settings_.get(),
-        self_share_feature_enabled, share_target_, kEndpointId, GetAuthToken(),
-        &connection_, std::move(public_certificate), &certificate_manager_,
+        share_target_, kEndpointId, GetAuthToken(), &connection_,
+        std::move(public_certificate), &certificate_manager_,
         restricted_to_contacts, &frames_reader_, kTimeout);
 
     runner->Run(

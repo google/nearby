@@ -57,9 +57,8 @@ class PairedKeyVerificationRunner
   PairedKeyVerificationRunner(
       nearby::Clock* clock, nearby::DeviceInfo& device_info,
       NearbyShareSettings* nearby_share_settings,
-      bool self_share_feature_enabled, const ShareTarget& share_target,
-      absl::string_view endpoint_id, const std::vector<uint8_t>& token,
-      NearbyConnection* connection,
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      const std::vector<uint8_t>& token, NearbyConnection* connection,
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       NearbyShareCertificateManager* certificate_manager,
       bool restrict_to_contacts, IncomingFramesReader* frames_reader,
@@ -96,13 +95,11 @@ class PairedKeyVerificationRunner
       const nearby::sharing::service::proto::V1Frame& frame);
   PairedKeyVerificationResult MergeResults(
       const std::vector<PairedKeyVerificationResult>& results);
-  void SendCertificateInfo();
   bool RelaxRestrictToContactsIfNeeded() const;
 
   nearby::Clock* const clock_;
   nearby::DeviceInfo& device_info_;
   NearbyShareSettings* nearby_share_settings_;
-  bool self_share_feature_enabled_;
   ShareTarget share_target_;
   std::string endpoint_id_;
   std::vector<uint8_t> raw_token_;

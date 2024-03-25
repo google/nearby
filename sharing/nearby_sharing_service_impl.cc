@@ -3365,15 +3365,13 @@ void NearbySharingServiceImpl::RunPairedKeyVerification(
   bool restrict_to_contacts = share_target.is_incoming &&
                               settings_->GetVisibility() !=
                                   DeviceVisibility::DEVICE_VISIBILITY_EVERYONE;
-  bool self_share_feature_enabled = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_sharing_feature::kEnableSelfShare);
   share_target_info->set_key_verification_runner(
       std::make_shared<PairedKeyVerificationRunner>(
-          context_->GetClock(), device_info_, GetSettings(),
-          self_share_feature_enabled, share_target, endpoint_id, *token,
-          share_target_info->connection(), share_target_info->certificate(),
-          GetCertificateManager(), restrict_to_contacts,
-          share_target_info->frames_reader(), kReadFramesTimeout));
+          context_->GetClock(), device_info_, GetSettings(), share_target,
+          endpoint_id, *token, share_target_info->connection(),
+          share_target_info->certificate(), GetCertificateManager(),
+          restrict_to_contacts, share_target_info->frames_reader(),
+          kReadFramesTimeout));
   share_target_info->key_verification_runner()->Run(std::move(callback));
 }
 
@@ -3800,11 +3798,8 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
       [&, share_target]() { OnIncomingMutualAcceptanceTimeout(share_target); });
 
   bool is_self_share =
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableSelfShare) &&
       !four_digit_token.has_value() && share_target.for_self_share;
-  bool is_self_share_auto_accept =
-      ShouldSelfShareAutoAccept(share_target.for_self_share);
+  bool is_self_share_auto_accept = share_target.for_self_share;
 
   if (!is_self_share_auto_accept) {
     TransferMetadataBuilder transfer_metadata_builder;
@@ -3881,7 +3876,7 @@ void NearbySharingServiceImpl::OnFrameRead(
       break;
 
     case nearby::sharing::service::proto::V1Frame::CERTIFICATE_INFO:
-      HandleCertificateInfoFrame(frame->certificate_info());
+      // No-op, no longer used.
       break;
 
     case nearby::sharing::service::proto::V1Frame::PROGRESS_UPDATE:
@@ -3906,15 +3901,6 @@ void NearbySharingServiceImpl::OnFrameRead(
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target, std::move(frame));
       });
-}
-
-void NearbySharingServiceImpl::HandleCertificateInfoFrame(
-    const nearby::sharing::service::proto::CertificateInfoFrame&
-        certificate_frame) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableSelfShare)) {
-    return;
-  }
 }
 
 void NearbySharingServiceImpl::HandleProgressUpdateFrame(
@@ -4004,10 +3990,7 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
   target.is_incoming = is_incoming;
   target.device_id = GetDeviceId(endpoint_id, certificate);
   if (certificate.has_value()) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_sharing_feature::kEnableSelfShare)) {
-      target.for_self_share = certificate->for_self_share();
-    }
+    target.for_self_share = certificate->for_self_share();
 
     if (certificate->unencrypted_metadata().has_full_name())
       target.full_name = certificate->unencrypted_metadata().full_name();
@@ -4703,26 +4686,13 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   InvalidateSurfaceState();
 }
 
-bool NearbySharingServiceImpl::ShouldSelfShareAutoAccept(
-    bool for_self_share) const {
-  // Auto-accept self shares when not in high-visibility mode.
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableSelfShare) &&
-      for_self_share) {
-    return true;
-  }
-
-  return false;
-}
-
 bool NearbySharingServiceImpl::ReadyToAccept(
     bool for_self_share, TransferMetadata::Status status) const {
   if (status == TransferMetadata::Status::kAwaitingLocalConfirmation) {
     return true;
   }
 
-  if (ShouldSelfShareAutoAccept(for_self_share) &&
-      status == TransferMetadata::Status::kUnknown) {
+  if (for_self_share && status == TransferMetadata::Status::kUnknown) {
     return true;
   }
 

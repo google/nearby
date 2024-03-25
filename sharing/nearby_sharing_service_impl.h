@@ -379,9 +379,6 @@ class NearbySharingServiceImpl
   void OnFrameRead(
       ShareTarget share_target,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void HandleCertificateInfoFrame(
-      const nearby::sharing::service::proto::CertificateInfoFrame&
-          certificate_frame);
   void HandleProgressUpdateFrame(
       const ShareTarget& share_target,
       const nearby::sharing::service::proto::ProgressUpdateFrame&
@@ -452,9 +449,6 @@ class NearbySharingServiceImpl
   // visibility to a state that is valid when logged out. For example:
   // `contacts` -> `off`.
   void ResetAllSettings(bool logout);
-
-  // Checks whether SDK should auto-accept remote attachments.
-  bool ShouldSelfShareAutoAccept(bool for_self_share) const;
 
   // Checks whether we should accept transfer.
   bool ReadyToAccept(bool for_self_share,

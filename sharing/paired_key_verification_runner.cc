@@ -51,7 +51,6 @@ namespace sharing {
 
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::proto::DeviceVisibility;
-using ::nearby::sharing::service::proto::CertificateInfoFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::PairedKeyEncryptionFrame;
 using ::nearby::sharing::service::proto::PairedKeyResultFrame;
@@ -118,9 +117,9 @@ std::ostream& operator<<(
 
 PairedKeyVerificationRunner::PairedKeyVerificationRunner(
     Clock* clock, DeviceInfo& device_info,
-    NearbyShareSettings* nearby_share_settings, bool self_share_feature_enabled,
-    const ShareTarget& share_target, absl::string_view endpoint_id,
-    const std::vector<uint8_t>& token, NearbyConnection* connection,
+    NearbyShareSettings* nearby_share_settings, const ShareTarget& share_target,
+    absl::string_view endpoint_id, const std::vector<uint8_t>& token,
+    NearbyConnection* connection,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
     NearbyShareCertificateManager* certificate_manager,
     bool restrict_to_contacts, IncomingFramesReader* frames_reader,
@@ -128,7 +127,6 @@ PairedKeyVerificationRunner::PairedKeyVerificationRunner(
     : clock_(clock),
       device_info_(device_info),
       nearby_share_settings_(nearby_share_settings),
-      self_share_feature_enabled_(self_share_feature_enabled),
       share_target_(share_target),
       endpoint_id_(std::string(endpoint_id)),
       raw_token_(token),
@@ -193,20 +191,20 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
   PairedKeyVerificationResult remote_public_certificate_result =
       VerifyRemotePublicCertificate(*frame);
 
-  if (remote_public_certificate_result ==
+  if (remote_public_certificate_result !=
       PairedKeyVerificationResult::kSuccess) {
-    SendCertificateInfo();
-  } else if (restrict_to_contacts_ && !relax_restrict_to_contacts_) {
-    NL_VLOG(1) << __func__
-               << ": we are only allowing connections with contacts. "
-                  "Rejecting connection from unknown ShareTarget - "
-               << share_target_.id;
-    std::move(callback_)(PairedKeyVerificationResult::kFail,
-                         OSType::UNKNOWN_OS_TYPE);
-    return;
-  } else if (relax_restrict_to_contacts_) {
-    remote_public_certificate_result =
-        VerifyRemotePublicCertificateRelaxed(*frame);
+    if (restrict_to_contacts_ && !relax_restrict_to_contacts_) {
+      NL_VLOG(1) << __func__
+                 << ": we are only allowing connections with contacts. "
+                    "Rejecting connection from unknown ShareTarget - "
+                 << share_target_.id;
+      std::move(callback_)(PairedKeyVerificationResult::kFail,
+                           OSType::UNKNOWN_OS_TYPE);
+      return;
+    } else if (relax_restrict_to_contacts_) {
+      remote_public_certificate_result =
+          VerifyRemotePublicCertificateRelaxed(*frame);
+    }
   }
 
   verification_results.push_back(remote_public_certificate_result);
@@ -292,37 +290,6 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
 
   // Set OS type to allow remote device knowns the paring device OS type.
   result_frame->set_os_type(ToProtoOsType(device_info_.GetOsType()));
-
-  std::vector<uint8_t> data(frame.ByteSize());
-  frame.SerializeToArray(data.data(), frame.ByteSize());
-
-  connection_->Write(std::move(data));
-}
-
-void PairedKeyVerificationRunner::SendCertificateInfo() {
-  if (self_share_feature_enabled_) return;
-
-  std::vector<nearby::sharing::proto::PublicCertificate> certificates;
-
-  if (certificates.empty()) return;
-
-  Frame frame;
-  frame.set_version(Frame::V1);
-  V1Frame* v1_frame = frame.mutable_v1();
-  v1_frame->set_type(V1Frame::CERTIFICATE_INFO);
-  CertificateInfoFrame* cert_frame = v1_frame->mutable_certificate_info();
-  for (const auto& certificate : certificates) {
-    nearby::sharing::service::proto::PublicCertificate* cert =
-        cert_frame->add_public_certificate();
-    cert->set_secret_id(certificate.secret_id());
-    cert->set_authenticity_key(certificate.secret_key());
-    cert->set_public_key(certificate.public_key());
-    cert->set_start_time(certificate.start_time().seconds() * 1000);
-    cert->set_end_time(certificate.end_time().seconds() * 1000);
-    cert->set_encrypted_metadata_bytes(certificate.encrypted_metadata_bytes());
-    cert->set_metadata_encryption_key_tag(
-        certificate.metadata_encryption_key_tag());
-  }
 
   std::vector<uint8_t> data(frame.ByteSize());
   frame.SerializeToArray(data.data(), frame.ByteSize());
