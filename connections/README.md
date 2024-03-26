@@ -59,3 +59,77 @@ To build the Nearby Connection library:
 ```shell
 swift build
 ```
+
+# Supported Mediums
+### Legend
+:heavy_check_mark: Supported
+:black_medium_square: Support is possible but not implemented
+n/a: Support is not possible or does not make sense.
+
+|Android           |                      |                      |                      |
+|------------------|----------------------|----------------------|----------------------|
+|Mediums           |Advertising           |Scanning              |Data                  |
+|Bluetooth Classic |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|BLE (Fast)        |:heavy_check_mark:    |:heavy_check_mark:    |n/a                   |
+|BLE (GATT)        |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|BLE (Extended)    |:heavy_check_mark:    |:heavy_check_mark:    |n/a                   |
+|BLE (L2CAP)       |n/a                   |n/a                   |:heavy_check_mark:    |
+|WiFi LAN          |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|WiFi Hotspot      |n/a                   |n/a                   |:heavy_check_mark:    |
+|WiFi Direct       |n/a                   |n/a                   |:heavy_check_mark:    |
+|WiFi Aware        |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|WebRTC            |n/a                   |n/a                   |:heavy_check_mark:    |
+|NFC               |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|USB               |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|AWDL              |n/a                   |n/a                   |n/a                   |
+
+|ChromeOS          |                      |                      |                      |
+|------------------|----------------------|----------------------|----------------------|
+|Mediums           |Advertising           |Scanning              |Data                  |
+|Bluetooth Classic |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|BLE (Fast)        |:heavy_check_mark:    |:heavy_check_mark:    |n/a                   |
+|BLE (GATT)        |:black_medium_square: |:black_medium_square: |:black_medium_square: |
+|BLE (Extended)    |:black_medium_square: |:black_medium_square: |n/a                   |
+|BLE (L2CAP)       |n/a                   |n/a                   |n/a                   |
+|WiFi LAN          |:black_medium_square: |:black_medium_square: |:heavy_check_mark:    |
+|WiFi Hotspot      |n/a                   |n/a                   |:black_medium_square: |
+|WiFi Direct       |n/a                   |n/a                   |:black_medium_square: |
+|WiFi Aware        |n/a                   |n/a                   |n/a                   |
+|WebRTC            |n/a                   |n/a                   |:heavy_check_mark:    |
+|NFC               |n/a                   |n/a                   |n/a                   |
+|USB               |:black_medium_square: |:black_medium_square: |:black_medium_square: |
+|AWDL              |n/a                   |n/a                   |n/a                   |
+
+|Windows           |                      |                      |                      |
+|------------------|----------------------|----------------------|----------------------|
+|Mediums           |Advertising           |Scanning              |Data                  |
+|Bluetooth Classic |n/a                   |:heavy_check_mark:    |:heavy_check_mark:    |
+|BLE (Fast)        |:heavy_check_mark:    |:heavy_check_mark:    |n/a                   |
+|BLE (GATT)        |:heavy_check_mark:    |:heavy_check_mark:    |:black_medium_square: |
+|BLE (Extended)    |:heavy_check_mark:    |:heavy_check_mark:    |n/a                   |
+|BLE (L2CAP)       |n/a                   |n/a                   |n/a                   |
+|WiFi LAN          |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|WiFi Hotspot      |n/a                   |n/a                   |:heavy_check_mark:    |
+|WiFi Direct       |n/a                   |n/a                   |:black_medium_square: |
+|WiFi Aware        |n/a                   |n/a                   |n/a                   |
+|WebRTC            |n/a                   |n/a                   |:black_medium_square: |
+|NFC               |n/a                   |n/a                   |n/a                   |
+|USB               |:black_medium_square: |:black_medium_square: |:black_medium_square: |
+|AWDL              |n/a                   |n/a                   |n/a                   |
+
+|iOS/macOS         |                      |                      |                      |
+|------------------|----------------------|----------------------|----------------------|
+|Mediums           |Advertising           |Scanning              |Data                  |
+|Bluetooth Classic |n/a                   |:black_medium_square: |:black_medium_square: |
+|BLE (Fast)        |:heavy_check_mark:    |:heavy_check_mark:    |n/a                   |
+|BLE (GATT)        |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|BLE (Extended)    |n/a                   |:black_medium_square: |n/a                   |
+|BLE (L2CAP)       |n/a                   |n/a                   |:black_medium_square: |
+|WiFi LAN          |:heavy_check_mark:    |:heavy_check_mark:    |:heavy_check_mark:    |
+|WiFi Hotspot      |n/a                   |n/a                   |:black_medium_square: |
+|WiFi Direct       |n/a                   |n/a                   |n/a                   |
+|WiFi Aware        |n/a                   |n/a                   |n/a                   |
+|WebRTC            |n/a                   |n/a                   |:black_medium_square: |
+|NFC               |n/a                   |:black_medium_square: |n/a                   |
+|USB               |n/a                   |n/a                   |n/a                   |
+|AWDL              |:black_medium_square: |:black_medium_square: |:black_medium_square: |
