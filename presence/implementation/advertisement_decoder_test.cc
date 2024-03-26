@@ -14,15 +14,16 @@
 
 #include "presence/implementation/advertisement_decoder.h"
 
-#include <array>
 #include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/proto/credential.pb.h"
@@ -34,13 +35,10 @@ namespace nearby {
 namespace presence {
 
 namespace {
-using ::nearby::ByteArray;  // NOLINT
-using ::nearby::internal::IdentityType;
+using ::nearby::ByteArray;                   // NOLINT
+using ::nearby::internal::IdentityType;      // NOLINT
 using ::nearby::internal::SharedCredential;  // NOLINT
 using ::testing::ElementsAre;
-using ::testing::Matcher;
-using ::testing::Pointwise;
-using ::testing::Return;
 using ::testing::UnorderedElementsAre;
 using ::testing::status::StatusIs;
 
@@ -64,7 +62,6 @@ ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
       .AddIdentityType(IdentityType::IDENTITY_TYPE_TRUSTED)
       .AddIdentityType(IdentityType::IDENTITY_TYPE_PUBLIC)
       .AddIdentityType(IdentityType::IDENTITY_TYPE_PROVISIONED)
-      .AddScanFilter(scan_filter)
       .Build();
 }
 
@@ -91,11 +88,10 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisement) {
       credentials;
   credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(
       GetPublicCredential());
-  AdvertisementDecoder decoder(GetScanRequest(), &credentials);
+  AdvertisementDecoder decoder(&credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("00514142c2c30e79fee14599e36e34d5d42e49fc37b0df"));
-
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
   EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE);
@@ -112,13 +108,15 @@ TEST(AdvertisementDecoder,
   const std::string salt = "AB";
   ByteArray metadata_key(
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
-  std::vector<SharedCredential> credentials = {GetPublicCredential()};
 
-  AdvertisementDecoder decoder(GetScanRequest(credentials));
+  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
+      credentials;
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(
+      GetPublicCredential());
+  AdvertisementDecoder decoder(&credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("00514142c2c30e79fee14599e36e34d5d42e49fc37b0df"));
-
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
   EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE);
@@ -138,11 +136,10 @@ TEST(AdvertisementDecoder, DecodeBaseNpTrustedAdvertisement) {
       credentials;
   credentials[IdentityType::IDENTITY_TYPE_TRUSTED].push_back(
       GetPublicCredential());
-  AdvertisementDecoder decoder(GetScanRequest(), &credentials);
+  AdvertisementDecoder decoder(&credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("00524142099500aeef8bff5df05169a79726e11563b865"));
-
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
   EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_TRUSTED);
@@ -165,11 +162,10 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
       credentials;
   credentials[IdentityType::IDENTITY_TYPE_PROVISIONED].push_back(
       GetPublicCredential());
-  AdvertisementDecoder decoder(GetScanRequest(), &credentials);
+  AdvertisementDecoder decoder(&credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("00544142099500aeef8bff5df05169a79726e11563b865"));
-
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
   EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PROVISIONED);
@@ -192,7 +188,7 @@ TEST(AdvertisementDecoder, InvalidEncryptedContent) {
       credentials;
   credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(
       GetPublicCredential());
-  AdvertisementDecoder decoder(GetScanRequest(), &credentials);
+  AdvertisementDecoder decoder(&credentials);
 
   EXPECT_THAT(decoder.DecodeAdvertisement(absl::HexStringToBytes(
                   "00414142f085d661ac8cb110e792e7faeb736294")),
@@ -203,7 +199,7 @@ TEST(AdvertisementDecoder, InvalidEncryptedContent) {
 
 TEST(AdvertisementDecoder, DecodeBaseNpPublicAdvertisement) {
   const std::string salt = "AB";
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   const absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("002041420337C1C2C31BEE"));
@@ -223,7 +219,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpPublicAdvertisement) {
 
 TEST(AdvertisementDecoder, DecodeBaseNpWithTxAndActionFields) {
   std::string salt = "AB";
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   auto result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("0020414203155036B04180"));
@@ -242,12 +238,11 @@ TEST(AdvertisementDecoder, DecodeBaseNpWithTxAndActionFields) {
 }
 
 TEST(AdvertisementDecoder, DecodeBaseNpV0PublicIdentityWithTxAndActionFields) {
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   auto result = decoder.DecodeAdvertisement(
       // v0 public identity, power and action, action value 8 for active unlock.
       absl::HexStringToBytes("000315FF260080"));
-
   EXPECT_OK(result);
   EXPECT_THAT(result->data_elements,
               UnorderedElementsAre(
@@ -257,21 +252,8 @@ TEST(AdvertisementDecoder, DecodeBaseNpV0PublicIdentityWithTxAndActionFields) {
                   DataElement(DataElement(ActionBit::kActiveUnlockAction))));
 }
 
-TEST(AdvertisementDecoder,
-     ScanForEncryptedIdentityIgnoresPublicIdentityAdvertisement) {
-  AdvertisementDecoder decoder(
-      {.account_name = std::string(kAccountName),
-       .identity_types = {IdentityType::IDENTITY_TYPE_PRIVATE,
-                          IdentityType::IDENTITY_TYPE_TRUSTED,
-                          IdentityType::IDENTITY_TYPE_PROVISIONED}});
-
-  EXPECT_THAT(decoder.DecodeAdvertisement(
-                  absl::HexStringToBytes("00204142034650B04180")),
-              StatusIs(absl::StatusCode::kFailedPrecondition));
-}
-
 TEST(AdvertisementDecoder, DecodeEddystone) {
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
   std::string eddystone_id =
       absl::HexStringToBytes("A0A1A2A3A4A5A6A7A8A9B0B1B2B3B4B5B6B7B8B9");
 
@@ -287,7 +269,7 @@ TEST(AdvertisementDecoder, DecodeEddystone) {
 // TODO(b/238214467): Add more negative tests
 TEST(AdvertisementDecoder, UnsupportedDataElement) {
   std::string valid_header_and_salt = absl::HexStringToBytes("00204142");
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   EXPECT_THAT(decoder.DecodeAdvertisement(valid_header_and_salt +
                                           absl::HexStringToBytes("0D")),
@@ -295,7 +277,7 @@ TEST(AdvertisementDecoder, UnsupportedDataElement) {
 }
 
 TEST(AdvertisementDecoder, InvalidAdvertisementFieldTooShort) {
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   // 0x59 header means 5 bytes long Account Key Data but only 4 bytes follow.
   EXPECT_THAT(
@@ -304,7 +286,7 @@ TEST(AdvertisementDecoder, InvalidAdvertisementFieldTooShort) {
 }
 
 TEST(AdvertisementDecoder, ZeroLengthPayload) {
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   // A action with type 0xA and no payload
   const absl::StatusOr<Advertisement> result =
@@ -315,14 +297,14 @@ TEST(AdvertisementDecoder, ZeroLengthPayload) {
 }
 
 TEST(AdvertisementDecoder, EmptyAdvertisement) {
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   EXPECT_THAT(decoder.DecodeAdvertisement(""),
               StatusIs(absl::StatusCode::kOutOfRange));
 }
 
 TEST(AdvertisementDecoder, UnsupportedAdvertisementVersion) {
-  AdvertisementDecoder decoder(GetScanRequest());
+  AdvertisementDecoder decoder;
 
   EXPECT_THAT(decoder.DecodeAdvertisement(
                   absl::HexStringToBytes("012041420318CD29EEFF")),

@@ -170,6 +170,9 @@ cc_test(
         "//internal/proto:credential_cc_proto",
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({

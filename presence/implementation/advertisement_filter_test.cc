@@ -27,6 +27,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
+#include "presence/implementation/advertisement_decoder.h"
 #include "presence/scan_request.h"
 #include "presence/scan_request_builder.h"
 
@@ -42,7 +43,8 @@ TEST(AdvertisementFilter, MatchesScanFilterNoFilterPasses) {
 
   // A scan request without scan filters matches any advertisement
   EXPECT_TRUE(adv_filter.MatchesScanFilter(
-      {DataElement(DataElement::kPrivateIdentityFieldType, "payload")}));
+      {.data_elements = {
+           DataElement(DataElement::kPrivateIdentityFieldType, "payload")}}));
   EXPECT_TRUE(adv_filter.MatchesScanFilter({}));
 }
 
@@ -56,14 +58,16 @@ TEST(AdvertisementFilter, MatchesPresenceScanFilter) {
   PresenceScanFilter filter = {.extended_properties = {model_id, salt}};
 
   AdvertisementFilter adv_filter(
-
       ScanRequestBuilder().AddScanFilter(filter).Build());
 
   EXPECT_FALSE(adv_filter.MatchesScanFilter({}));
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({salt}));
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({salt, model_id}));
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({salt, salt2, model_id}));
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({salt2, model_id}));
+  EXPECT_FALSE(adv_filter.MatchesScanFilter({.data_elements = {salt}}));
+  EXPECT_TRUE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt, model_id}}));
+  EXPECT_TRUE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt, salt2, model_id}}));
+  EXPECT_FALSE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt2, model_id}}));
 }
 
 TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilter) {
@@ -76,14 +80,48 @@ TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilter) {
   LegacyPresenceScanFilter filter = {.extended_properties = {model_id, salt}};
 
   AdvertisementFilter adv_filter(
-
       ScanRequestBuilder().AddScanFilter(filter).Build());
 
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({}));
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({salt}));
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({salt, model_id}));
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({salt, salt2, model_id}));
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({salt2, model_id}));
+  EXPECT_FALSE(adv_filter.MatchesScanFilter(Advertisement{}));
+  EXPECT_FALSE(adv_filter.MatchesScanFilter({.data_elements = {salt}}));
+  EXPECT_TRUE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt, model_id}}));
+  EXPECT_TRUE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt, salt2, model_id}}));
+  EXPECT_FALSE(adv_filter.MatchesScanFilter(
+      Advertisement{.data_elements = {salt2, model_id}}));
+}
+
+TEST(AdvertisementFilter,
+     EncryptedIdentityFilterIgnoresPublicIdentityAdvertisement) {
+  AdvertisementFilter adv_filter(
+      {.identity_types = {internal::IdentityType::IDENTITY_TYPE_PRIVATE,
+                          internal::IdentityType::IDENTITY_TYPE_TRUSTED,
+                          internal::IdentityType::IDENTITY_TYPE_PROVISIONED}});
+
+  EXPECT_FALSE(adv_filter.MatchesScanFilter(
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));
+  EXPECT_TRUE(adv_filter.MatchesScanFilter(
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE}));
+}
+
+TEST(AdvertisementFilter, PublicIdentityFilterMatchesPublicIdentityAdv) {
+  AdvertisementFilter adv_filter(
+      {.identity_types = {internal::IdentityType::IDENTITY_TYPE_PUBLIC}});
+
+  EXPECT_TRUE(adv_filter.MatchesScanFilter(
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));
+  EXPECT_FALSE(adv_filter.MatchesScanFilter(
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE}));
+}
+
+TEST(AdvertisementFilter, EmptyIdentityFilterMatchesAllAdvIdentityTypes) {
+  AdvertisementFilter adv_filter({});
+
+  EXPECT_TRUE(adv_filter.MatchesScanFilter(
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));
+  EXPECT_TRUE(adv_filter.MatchesScanFilter(
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE}));
 }
 
 TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilterWithActions) {
@@ -99,11 +137,12 @@ TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilterWithActions) {
       .extended_properties = {model_id, salt}};
 
   AdvertisementFilter adv_filter(
-
       ScanRequestBuilder().AddScanFilter(filter).Build());
 
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({salt, model_id}));
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({salt, ttt_action, model_id}));
+  EXPECT_FALSE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt, model_id}}));
+  EXPECT_TRUE(adv_filter.MatchesScanFilter(
+      {.data_elements = {salt, ttt_action, model_id}}));
 }
 
 TEST(AdvertisementFilter, MatchesMultipleFilters) {
@@ -124,9 +163,10 @@ TEST(AdvertisementFilter, MatchesMultipleFilters) {
                                      .AddScanFilter(legacy_filter)
                                      .Build());
 
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({model_id}));
-  EXPECT_TRUE(adv_filter.MatchesScanFilter({salt, ttt_action}));
-  EXPECT_FALSE(adv_filter.MatchesScanFilter({ttt_action}));
+  EXPECT_TRUE(adv_filter.MatchesScanFilter({.data_elements = {model_id}}));
+  EXPECT_TRUE(
+      adv_filter.MatchesScanFilter({.data_elements = {salt, ttt_action}}));
+  EXPECT_FALSE(adv_filter.MatchesScanFilter({.data_elements = {ttt_action}}));
 }
 
 }  // namespace
