@@ -14,11 +14,13 @@
 
 #include "presence/implementation/advertisement_decoder.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
@@ -155,8 +157,8 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
 }
 }  // namespace
 
-void AdvertisementDecoder::DecodeBaseAction(
-    absl::string_view serialized_action) {
+void DecodeBaseAction(Advertisement& decoded_adv,
+                      absl::string_view serialized_action) {
   if (serialized_action.empty() || serialized_action.size() > 3) {
     NEARBY_LOGS(WARNING) << "Base NP action \'"
                          << absl::BytesToHexString(serialized_action)
@@ -171,26 +173,25 @@ void AdvertisementDecoder::DecodeBaseAction(
     action.action |= serialized_action[i] << offset;
   }
 
-  ActionFactory::DecodeAction(action, decoded_advertisement_.data_elements);
+  ActionFactory::DecodeAction(action, decoded_adv.data_elements);
 }
 
-absl::StatusOr<std::string> AdvertisementDecoder::DecryptLdt(
+absl::StatusOr<std::string> DecryptLdt(
+    Advertisement& decoded_adv,
     const std::vector<internal::SharedCredential>& credentials,
-    absl::string_view salt, absl::string_view data_elements) {
+    absl::string_view salt, absl::string_view encrypted_contents) {
   if (credentials.empty()) {
     return absl::UnavailableError("No credentials");
   }
   for (const auto& credential : credentials) {
     absl::StatusOr<LdtEncryptor> encryptor = LdtEncryptor::Create(
-        credential.key_seed(),
-        credential.metadata_encryption_key_tag_v0());
+        credential.key_seed(), credential.metadata_encryption_key_tag_v0());
     if (encryptor.ok()) {
       absl::StatusOr<std::string> result =
-          encryptor->DecryptAndVerify(data_elements, salt);
+          encryptor->DecryptAndVerify(encrypted_contents, salt);
       if (result.ok() && result->size() > kBaseMetadataSize) {
-        decoded_advertisement_.public_credential = credential;
-        decoded_advertisement_.metadata_key =
-            result->substr(0, kBaseMetadataSize);
+        decoded_adv.public_credential = credential;
+        decoded_adv.metadata_key = result->substr(0, kBaseMetadataSize);
         return result->substr(kBaseMetadataSize);
       }
     }
@@ -199,7 +200,9 @@ absl::StatusOr<std::string> AdvertisementDecoder::DecryptLdt(
       "Couldn't decrypt the message with any credentials");
 }
 
-absl::Status AdvertisementDecoder::DecryptDataElements(
+absl::Status DecryptDataElements(
+    Advertisement& decoded_adv,
+    const std::vector<internal::SharedCredential>& credentials,
     const DataElement& elem) {
   if (elem.GetValue().size() <= kEncryptedIdentityAdditionalLength) {
     return absl::OutOfRangeError(absl::StrFormat(
@@ -207,10 +210,10 @@ absl::Status AdvertisementDecoder::DecryptDataElements(
         elem.GetValue().size()));
   }
   absl::string_view salt = elem.GetValue().substr(0, kSaltSize);
-  decoded_advertisement_.data_elements.emplace_back(DataElement::kSaltFieldType,
-                                                    salt);
+  decoded_adv.data_elements.emplace_back(DataElement::kSaltFieldType, salt);
   absl::string_view encrypted = elem.GetValue().substr(kSaltSize);
-  absl::StatusOr<std::string> decrypted = Decrypt(salt, encrypted);
+  absl::StatusOr<std::string> decrypted =
+      DecryptLdt(decoded_adv, credentials, salt, encrypted);
   if (!decrypted.ok()) {
     NEARBY_LOGS(WARNING) << "Failed to decrypt advertisement, status: "
                          << decrypted.status();
@@ -226,74 +229,19 @@ absl::Status AdvertisementDecoder::DecryptDataElements(
       return internal_elem.status();
     }
     if (internal_elem->GetType() == DataElement::kActionFieldType) {
-      DecodeBaseAction(internal_elem->GetValue());
+      DecodeBaseAction(decoded_adv, internal_elem->GetValue());
     } else {
-      decoded_advertisement_.data_elements.push_back(*std::move(internal_elem));
+      decoded_adv.data_elements.push_back(*std::move(internal_elem));
     }
   }
   return absl::OkStatus();
-}
-
-absl::StatusOr<std::string> AdvertisementDecoder::Decrypt(
-    absl::string_view salt, absl::string_view encrypted) {
-  for (const auto& scan_filter : scan_request_.scan_filters) {
-    if (!absl::holds_alternative<LegacyPresenceScanFilter>(scan_filter)) {
-      continue;
-    }
-    const std::vector<nearby::internal::SharedCredential>& credentials =
-        absl::get<LegacyPresenceScanFilter>(scan_filter)
-            .remote_public_credentials;
-    if (credentials.empty()) {
-      continue;
-    }
-    absl::StatusOr<std::string> decrypted =
-        DecryptLdt(credentials, salt, encrypted);
-    if (decrypted.ok()) {
-      return decrypted;
-    }
-  }
-  if (credentials_ == nullptr) {
-    return absl::FailedPreconditionError("Missing credentials");
-  }
-
-  return DecryptLdt((*credentials_)[decoded_advertisement_.identity_type], salt,
-                    encrypted);
-}
-
-void AdvertisementDecoder::AddBannedDataTypes() {
-  // The scan request has information what identity types the client is
-  // interested in. We'll ban all other idenitity data types.
-  banned_data_types_ = {DataElement::kPrivateIdentityFieldType,
-                        DataElement::kTrustedIdentityFieldType,
-                        DataElement::kPublicIdentityFieldType,
-                        DataElement::kProvisionedIdentityFieldType};
-  for (nearby::internal::IdentityType identity_type :
-       scan_request_.identity_types) {
-    switch (identity_type) {
-      case internal::IDENTITY_TYPE_PRIVATE:
-        banned_data_types_.erase(DataElement::kPrivateIdentityFieldType);
-        break;
-      case internal::IDENTITY_TYPE_TRUSTED:
-        banned_data_types_.erase(DataElement::kTrustedIdentityFieldType);
-        break;
-      case internal::IDENTITY_TYPE_PUBLIC:
-        banned_data_types_.erase(DataElement::kPublicIdentityFieldType);
-        break;
-      case internal::IDENTITY_TYPE_PROVISIONED:
-        banned_data_types_.erase(DataElement::kProvisionedIdentityFieldType);
-        break;
-      default:
-        // Nothing to do
-        break;
-    }
-  }
 }
 
 absl::StatusOr<Advertisement> AdvertisementDecoder::DecodeAdvertisement(
     absl::string_view advertisement) {
   // Let's keep the result advertisement in a member variable to avoid passing
   // it around all the time.
-  decoded_advertisement_ = Advertisement{};
+  Advertisement decoded_adv = Advertisement{};
   std::vector<DataElement> result;
   NEARBY_LOGS(INFO) << "Advertisement: "
                     << absl::BytesToHexString(advertisement);
@@ -306,7 +254,7 @@ absl::StatusOr<Advertisement> AdvertisementDecoder::DecodeAdvertisement(
     return absl::UnimplementedError(absl::StrFormat(
         "Advertisement version (%d) is not supported", version));
   }
-  decoded_advertisement_.version = version;
+  decoded_adv.version = version;
   size_t index = 1;
   absl::StatusOr<std::string> decrypted;
   while (index < advertisement.size()) {
@@ -316,31 +264,30 @@ absl::StatusOr<Advertisement> AdvertisementDecoder::DecodeAdvertisement(
                            << elem.status();
       return elem.status();
     }
-    // This checks allows us to bail before decryption when, for example, the
-    // client is scanning for advertisements with private identity but the
-    // advertisement uses trusted identity.
-    if (banned_data_types_.contains(elem->GetType())) {
-      return absl::FailedPreconditionError(
-          absl::StrFormat("Ignoring advertisement with data element type: %d",
-                          elem->GetType()));
-    }
     if (IsIdentity(elem->GetType())) {
-      decoded_advertisement_.identity_type = GetIdentityType(elem->GetType());
+      decoded_adv.identity_type = GetIdentityType(elem->GetType());
     }
     if (IsEncryptedIdentity(elem->GetType())) {
-      absl::Status status = DecryptDataElements(*elem);
+      if (credentials_ == nullptr) {
+        return absl::FailedPreconditionError("Missing credentials");
+      }
+      auto identity_type_specific_creds =
+          (*credentials_)[decoded_adv.identity_type];
+      absl::Status status =
+          DecryptDataElements(decoded_adv, identity_type_specific_creds, *elem);
       if (!status.ok()) {
         return status;
       }
     } else {
       if (elem->GetType() == DataElement::kActionFieldType) {
-        DecodeBaseAction(elem->GetValue());
+        DecodeBaseAction(decoded_adv, elem->GetValue());
       } else {
-        decoded_advertisement_.data_elements.push_back(*std::move(elem));
+        decoded_adv.data_elements.push_back(*std::move(elem));
       }
     }
   }
-  return std::move(decoded_advertisement_);
+
+  return std::move(decoded_adv);
 }
 
 }  // namespace presence
