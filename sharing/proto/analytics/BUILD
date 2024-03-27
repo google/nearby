@@ -25,6 +25,7 @@ proto_library(
         "nearby_sharing_log.proto",
     ],
     deps = [
+        "//logs/proto/wireless/beto:beto_enums_proto",
         "//proto:sharing_enums_proto",
         "@com_google_protobuf//:duration_proto",
     ],
