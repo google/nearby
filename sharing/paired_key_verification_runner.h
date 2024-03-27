@@ -35,7 +35,6 @@
 #include "sharing/nearby_sharing_settings.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/wire_format.pb.h"
-#include "sharing/share_target.h"
 
 namespace nearby {
 namespace sharing {
@@ -55,14 +54,14 @@ class PairedKeyVerificationRunner
   };
 
   PairedKeyVerificationRunner(
-      nearby::Clock* clock, nearby::DeviceInfo& device_info,
-      NearbyShareSettings* nearby_share_settings,
-      const ShareTarget& share_target, absl::string_view endpoint_id,
-      const std::vector<uint8_t>& token, NearbyConnection* connection,
+      Clock* clock, DeviceInfo& device_info, int64_t share_target_id,
+      bool share_target_is_incoming, proto::DeviceVisibility visibility,
+      proto::DeviceVisibility last_visibility, absl::Time last_visibility_time,
+      absl::string_view endpoint_id, const std::vector<uint8_t>& token,
+      NearbyConnection* connection,
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       NearbyShareCertificateManager* certificate_manager,
-      bool restrict_to_contacts, IncomingFramesReader* frames_reader,
-      absl::Duration read_frame_timeout);
+      IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout);
 
   ~PairedKeyVerificationRunner();
 
@@ -99,14 +98,15 @@ class PairedKeyVerificationRunner
 
   nearby::Clock* const clock_;
   nearby::DeviceInfo& device_info_;
-  NearbyShareSettings* nearby_share_settings_;
-  ShareTarget share_target_;
+  const int64_t share_target_id_;
+  proto::DeviceVisibility visibility_;
+  proto::DeviceVisibility last_visibility_;
+  absl::Time last_visibility_time_;
   std::string endpoint_id_;
   std::vector<uint8_t> raw_token_;
   NearbyConnection* connection_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyShareCertificateManager* certificate_manager_;
-  bool restrict_to_contacts_ = false;
   IncomingFramesReader* frames_reader_;
   const absl::Duration read_frame_timeout_;
   std::function<void(PairedKeyVerificationResult,

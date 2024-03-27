@@ -39,12 +39,10 @@
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_sharing_settings.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 #include "sharing/proto/wire_format.pb.h"
-#include "sharing/share_target.h"
 
 namespace nearby {
 namespace sharing {
@@ -116,42 +114,48 @@ std::ostream& operator<<(
 }
 
 PairedKeyVerificationRunner::PairedKeyVerificationRunner(
-    Clock* clock, DeviceInfo& device_info,
-    NearbyShareSettings* nearby_share_settings, const ShareTarget& share_target,
+    Clock* clock, DeviceInfo& device_info, int64_t share_target_id,
+    bool share_target_is_incoming, DeviceVisibility visibility,
+    DeviceVisibility last_visibility, absl::Time last_visibility_time,
     absl::string_view endpoint_id, const std::vector<uint8_t>& token,
     NearbyConnection* connection,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
     NearbyShareCertificateManager* certificate_manager,
-    bool restrict_to_contacts, IncomingFramesReader* frames_reader,
-    absl::Duration read_frame_timeout)
+    IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout)
     : clock_(clock),
       device_info_(device_info),
-      nearby_share_settings_(nearby_share_settings),
-      share_target_(share_target),
+      share_target_id_(share_target_id),
       endpoint_id_(std::string(endpoint_id)),
       raw_token_(token),
       connection_(connection),
       certificate_(certificate),
       certificate_manager_(certificate_manager),
-      restrict_to_contacts_(restrict_to_contacts),
       frames_reader_(frames_reader),
       read_frame_timeout_(read_frame_timeout) {
   NL_DCHECK(clock_);
-  NL_DCHECK(nearby_share_settings);
   NL_DCHECK(connection);
   NL_DCHECK(certificate_manager);
   NL_DCHECK(frames_reader);
 
-  if (share_target.is_incoming) {
+  if (share_target_is_incoming) {
     local_prefix_ = kNearbyShareReceiverVerificationPrefix;
     remote_prefix_ = kNearbyShareSenderVerificationPrefix;
+    visibility_ = visibility;
+    last_visibility_ = last_visibility;
+    last_visibility_time_ = last_visibility_time;
+    // Receiver will try to re-validate signature using previous visibility if
+    // it has changed recently.
     relax_restrict_to_contacts_ =
         RelaxRestrictToContactsIfNeeded() ||
-        nearby_share_settings_->GetVisibility() ==
-            DeviceVisibility::DEVICE_VISIBILITY_EVERYONE;
+        visibility_ == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE;
   } else {
     remote_prefix_ = kNearbyShareReceiverVerificationPrefix;
     local_prefix_ = kNearbyShareSenderVerificationPrefix;
+    // Sender always uses ALL_CONTACTS cert to sign and verify signature.
+    visibility_ = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
+    last_visibility_ = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
+    last_visibility_time_ = absl::UnixEpoch();
+    relax_restrict_to_contacts_ = true;
   }
 }
 
@@ -193,15 +197,16 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
 
   if (remote_public_certificate_result !=
       PairedKeyVerificationResult::kSuccess) {
-    if (restrict_to_contacts_ && !relax_restrict_to_contacts_) {
+    if (!relax_restrict_to_contacts_) {
       NL_VLOG(1) << __func__
                  << ": we are only allowing connections with contacts. "
                     "Rejecting connection from unknown ShareTarget - "
-                 << share_target_.id;
+                 << share_target_id_;
+      SendPairedKeyResultFrame(PairedKeyVerificationResult::kFail);
       std::move(callback_)(PairedKeyVerificationResult::kFail,
                            OSType::UNKNOWN_OS_TYPE);
       return;
-    } else if (relax_restrict_to_contacts_) {
+    } else {
       remote_public_certificate_result =
           VerifyRemotePublicCertificateRelaxed(*frame);
     }
@@ -291,18 +296,15 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
   // Set OS type to allow remote device knowns the paring device OS type.
   result_frame->set_os_type(ToProtoOsType(device_info_.GetOsType()));
 
-  std::vector<uint8_t> data(frame.ByteSize());
-  frame.SerializeToArray(data.data(), frame.ByteSize());
+  std::vector<uint8_t> data(frame.ByteSizeLong());
+  frame.SerializeToArray(data.data(), frame.ByteSizeLong());
 
   connection_->Write(std::move(data));
 }
 
 void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
-  // This matches the behavior of CertificateManagerImpl.getFileNameByVisibility
-  // in Android. Sender always return all contacts visibility certificates.
   std::optional<std::vector<uint8_t>> signature =
-      certificate_manager_->SignWithPrivateCertificate(
-          DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      certificate_manager_->SignWithPrivateCertificate(visibility_,
           PadPrefix(local_prefix_, raw_token_));
   if (!signature.has_value() || signature->empty()) {
     signature = GenerateRandomBytes(kNearbyShareNumBytesRandomSignature);
@@ -329,8 +331,7 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
         << "Attempts to sign authentication token with a previous private key.";
     std::optional<std::vector<uint8_t>> optional_signature =
         certificate_manager_->SignWithPrivateCertificate(
-            DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
-            PadPrefix(local_prefix_, raw_token_));
+            last_visibility_, PadPrefix(local_prefix_, raw_token_));
 
     if (optional_signature.has_value()) {
       encryption_frame->set_optional_signed_data(optional_signature->data(),
@@ -339,8 +340,8 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
   }
   encryption_frame->set_secret_id_hash(certificate_id_hash.data(),
                                        certificate_id_hash.size());
-  std::vector<uint8_t> data(frame.ByteSize());
-  frame.SerializeToArray(data.data(), frame.ByteSize());
+  std::vector<uint8_t> data(frame.ByteSizeLong());
+  frame.SerializeToArray(data.data(), frame.ByteSizeLong());
 
   connection_->Write(std::move(data));
 }
@@ -348,15 +349,15 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
 PairedKeyVerificationRunner::PairedKeyVerificationResult
 PairedKeyVerificationRunner::VerifyRemotePublicCertificate(
     const V1Frame& frame) {
-  return VerifyRemotePublicCertificateWithPrivateCertificate(
-      nearby_share_settings_->GetVisibility(), frame);
+  return VerifyRemotePublicCertificateWithPrivateCertificate(visibility_,
+                                                             frame);
 }
 
 PairedKeyVerificationRunner::PairedKeyVerificationResult
 PairedKeyVerificationRunner::VerifyRemotePublicCertificateRelaxed(
     const nearby::sharing::service::proto::V1Frame& frame) {
-  return VerifyRemotePublicCertificateWithPrivateCertificate(
-      nearby_share_settings_->GetLastVisibility(), frame);
+  return VerifyRemotePublicCertificateWithPrivateCertificate(last_visibility_,
+                                                             frame);
 }
 
 PairedKeyVerificationRunner::PairedKeyVerificationResult
@@ -388,7 +389,7 @@ PairedKeyVerificationRunner::VerifyPairedKeyEncryptionFrame(
   if (!certificate_) {
     NL_VLOG(1) << __func__
                << ": Unable to verify remote paired key encryption frame. "
-                  "Certificate not found.";
+                  "Remote side is not a known share target.";
     return PairedKeyVerificationResult::kUnable;
   }
 
@@ -429,13 +430,6 @@ PairedKeyVerificationRunner::VerifyPairedKeyEncryptionFrame(
     }
   }
 
-  if (!share_target_.is_known) {
-    NL_LOG(INFO) << __func__
-                 << ": Unable to verify remote paired key encryption frame. "
-                    "Remote side is not a known share target.";
-    return PairedKeyVerificationResult::kUnable;
-  }
-
   NL_VLOG(1) << __func__
              << ": Successfully verified remote paired key encryption frame.";
   return PairedKeyVerificationResult::kSuccess;
@@ -456,9 +450,8 @@ PairedKeyVerificationRunner::MergeResults(
 }
 
 bool PairedKeyVerificationRunner::RelaxRestrictToContactsIfNeeded() const {
-  return share_target_.is_known &&
-         (clock_->Now() - nearby_share_settings_->GetLastVisibilityTimestamp() <
-          kRelaxAfterSetVisibilityTimeout);
+  return certificate_.has_value() && (clock_->Now() - last_visibility_time_ <
+                                      kRelaxAfterSetVisibilityTimeout);
 }
 
 }  // namespace sharing

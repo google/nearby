@@ -241,9 +241,33 @@ cc_test(
 )
 
 cc_test(
-    name = "nearby_sharing_service_test",
+    name = "paired_key_verification_runner_test",
     size = "small",
-    timeout = "short",
+    srcs = ["paired_key_verification_runner_test.cc"],
+    deps = [
+        ":nearby_sharing_service",
+        ":test_support",
+        ":types",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/test",
+        "//proto:sharing_enums_cc_proto",
+        "//sharing/certificates",
+        "//sharing/certificates:test_support",
+        "//sharing/internal/public:logging",
+        "//sharing/internal/public:types",
+        "//sharing/internal/test:nearby_test",
+        "//sharing/proto:enums_cc_proto",
+        "//sharing/proto:share_cc_proto",
+        "//sharing/proto:wire_format_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "nearby_sharing_service_test",
+    size = "medium",
     srcs = [
         "fake_nearby_connections_service.h",
         "incoming_frames_reader_test.cc",
@@ -258,7 +282,6 @@ cc_test(
         "nearby_sharing_service_impl_test.cc",
         "nearby_sharing_service_test.cc",
         "nearby_sharing_settings_test.cc",
-        "paired_key_verification_runner_test.cc",
         "payload_tracker_test.cc",
         "share_target_test.cc",
         "text_attachment_test.cc",

@@ -350,7 +350,7 @@ class NearbySharingServiceImpl
       ShareTarget placeholder_share_target,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void RunPairedKeyVerification(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
+      int64_t share_target_id, absl::string_view endpoint_id,
       std::function<
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                ::location::nearby::proto::sharing::OSType)>

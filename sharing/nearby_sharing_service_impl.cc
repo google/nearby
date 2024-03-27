@@ -2690,7 +2690,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
           info->endpoint_id()));
 
   RunPairedKeyVerification(
-      share_target, info->endpoint_id(),
+      share_target_id, info->endpoint_id(),
       [&, share_target, four_digit_token = std::move(four_digit_token)](
           PairedKeyVerificationRunner::PairedKeyVerificationResult result,
           OSType remote_os_type) {
@@ -3327,7 +3327,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
       nearby_connections_manager_->GetRawAuthenticationToken(endpoint_id));
 
   RunPairedKeyVerification(
-      *share_target, endpoint_id,
+      share_target->id, endpoint_id,
       [&, share_target = *share_target,
        four_digit_token = std::move(four_digit_token)](
           PairedKeyVerificationRunner::PairedKeyVerificationResult
@@ -3340,7 +3340,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
 }
 
 void NearbySharingServiceImpl::RunPairedKeyVerification(
-    const ShareTarget& share_target, absl::string_view endpoint_id,
+    int64_t share_target_id, absl::string_view endpoint_id,
     std::function<void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                        OSType)>
         callback) {
@@ -3356,21 +3356,20 @@ void NearbySharingServiceImpl::RunPairedKeyVerification(
     return;
   }
 
-  ShareTargetInfo* share_target_info = GetShareTargetInfo(share_target.id);
+  ShareTargetInfo* share_target_info = GetShareTargetInfo(share_target_id);
   NL_DCHECK(share_target_info);
 
   share_target_info->set_frames_reader(std::make_shared<IncomingFramesReader>(
       context_, decoder_, share_target_info->connection()));
 
-  bool restrict_to_contacts = share_target.is_incoming &&
-                              settings_->GetVisibility() !=
-                                  DeviceVisibility::DEVICE_VISIBILITY_EVERYONE;
   share_target_info->set_key_verification_runner(
       std::make_shared<PairedKeyVerificationRunner>(
-          context_->GetClock(), device_info_, GetSettings(), share_target,
-          endpoint_id, *token, share_target_info->connection(),
-          share_target_info->certificate(), GetCertificateManager(),
-          restrict_to_contacts, share_target_info->frames_reader(),
+          context_->GetClock(), device_info_, share_target_id,
+          share_target_info->IsIncoming(), settings_->GetVisibility(),
+          settings_->GetLastVisibility(),
+          settings_->GetLastVisibilityTimestamp(), endpoint_id, *token,
+          share_target_info->connection(), share_target_info->certificate(),
+          GetCertificateManager(), share_target_info->frames_reader(),
           kReadFramesTimeout));
   share_target_info->key_verification_runner()->Run(std::move(callback));
 }

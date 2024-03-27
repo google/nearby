@@ -20,7 +20,6 @@
 #include <list>
 #include <memory>
 #include <optional>
-#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -28,9 +27,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "proto/sharing_enums.pb.h"
@@ -38,16 +35,13 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/fake_nearby_connection.h"
-#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/internal/public/context.h"
+#include "sharing/internal/public/logging.h"
 #include "sharing/internal/test/fake_context.h"
-#include "sharing/internal/test/fake_preference_manager.h"
-#include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
-#include "sharing/nearby_sharing_settings.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -127,30 +121,6 @@ std::list<PairedKeyResultFrame> GeneratePairedKeyResultFrame() {
 
 const absl::Duration kTimeout = absl::Seconds(1);
 
-class MockNearbyShareLocalDeviceDataManager
-    : public NearbyShareLocalDeviceDataManager {
- public:
-  MOCK_METHOD(std::string, GetId, (), (override));
-  MOCK_METHOD(std::string, GetDeviceName, (), (override, const));
-  MOCK_METHOD(std::optional<std::string>, GetFullName, (), (override, const));
-  MOCK_METHOD(std::optional<std::string>, GetIconUrl, (), (override, const));
-  MOCK_METHOD(DeviceNameValidationResult, ValidateDeviceName,
-              (absl::string_view), (override));
-  MOCK_METHOD(DeviceNameValidationResult, SetDeviceName, (absl::string_view),
-              (override));
-  MOCK_METHOD(void, DownloadDeviceData, (), (override));
-  MOCK_METHOD(void, UploadContacts,
-              (std::vector<nearby::sharing::proto::Contact>,
-               UploadCompleteCallback),
-              (override));
-  MOCK_METHOD(void, UploadCertificates,
-              (std::vector<nearby::sharing::proto::PublicCertificate>,
-               UploadCompleteCallback),
-              (override));
-  MOCK_METHOD(void, OnStart, (), (override));
-  MOCK_METHOD(void, OnStop, (), (override));
-};
-
 class MockIncomingFramesReader : public IncomingFramesReader {
  public:
   MockIncomingFramesReader(Context* context, NearbySharingDecoder* decoder,
@@ -205,17 +175,14 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
       : frames_reader_(&context_, &decoder_, &connection_) {}
 
   void SetUp() override {
-    nearby_share_settings_ = std::make_unique<NearbyShareSettings>(
-        &context_, context_.GetClock(), fake_device_info_, preference_manager_,
-        &local_device_data_manager_);
-    nearby_share_settings_->SetVisibility(
-        DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-    FastForward(absl::Minutes(15));
+    GetFakeClock()->FastForward(absl::Minutes(15));
     share_target_.is_incoming = true;
   }
 
   void RunVerification(
-      bool use_valid_public_certificate, bool restricted_to_contacts,
+      bool is_incoming,
+      bool use_valid_public_certificate, DeviceVisibility visibility,
+      DeviceVisibility last_visibility, absl::Time last_visibility_time,
       PairedKeyVerificationRunner::PairedKeyVerificationResult expected_result,
       OSType expected_os_type = OSType::UNKNOWN_OS_TYPE) {
     std::optional<NearbyShareDecryptedPublicCertificate> public_certificate =
@@ -225,10 +192,11 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
             : std::nullopt;
 
     auto runner = std::make_shared<PairedKeyVerificationRunner>(
-        context_.GetClock(), fake_device_info_, nearby_share_settings_.get(),
-        share_target_, kEndpointId, GetAuthToken(), &connection_,
-        std::move(public_certificate), &certificate_manager_,
-        restricted_to_contacts, &frames_reader_, kTimeout);
+        context_.GetClock(), fake_device_info_, share_target_.id,
+        is_incoming, visibility, last_visibility,
+        last_visibility_time, kEndpointId, GetAuthToken(), &connection_,
+        std::move(public_certificate), &certificate_manager_, &frames_reader_,
+        kTimeout);
 
     runner->Run(
         [&, expected_result, expected_os_type](
@@ -274,9 +242,6 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
                 encryption_frame->set_secret_id_hash(
                     GetPrivateCertificateHashAuthToken().data(),
                     GetPrivateCertificateHashAuthToken().size());
-                // make sure the optional codes are executed
-                nearby_share_settings_->SetVisibility(
-                    DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
               } else if (frame_type == ReturnFrameType::kInValid) {
                 nearby::sharing::service::proto::PairedKeyEncryptionFrame*
                     encryption_frame = frame.mutable_paired_key_encryption();
@@ -339,8 +304,6 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
     ASSERT_TRUE(frame.v1().has_paired_key_encryption());
   }
 
-  void ExpectCertificateInfoSent() {}
-
   void ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::Status status) {
     nearby::sharing::service::proto::Frame frame = GetWrittenFrame();
     ASSERT_TRUE(frame.has_v1());
@@ -348,24 +311,18 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
     EXPECT_EQ(status, frame.v1().paired_key_result().status());
   }
 
-  void FastForward(absl::Duration duration) {
-    context_.fake_clock()->FastForward(duration);
-  }
+  FakeClock* GetFakeClock() { return context_.fake_clock(); }
 
  protected:
   ShareTarget share_target_;
 
  private:
-  nearby::FakePreferenceManager preference_manager_;
   FakeDeviceInfo fake_device_info_;
   FakeContext context_;
   FakeNearbyConnection connection_;
   NearbySharingDecoderImpl decoder_;
   testing::NiceMock<MockIncomingFramesReader> frames_reader_;
   FakeNearbyShareCertificateManager certificate_manager_;
-  ::testing::NiceMock<MockNearbyShareLocalDeviceDataManager>
-      local_device_data_manager_;
-  std::unique_ptr<NearbyShareSettings> nearby_share_settings_;
 };
 
 TEST_F(PairedKeyVerificationRunnerTest,
@@ -374,8 +331,11 @@ TEST_F(PairedKeyVerificationRunnerTest,
   SetUpPairedKeyEncryptionFrame(ReturnFrameType::kEmpty);
 
   RunVerification(
+      share_target_.is_incoming,
       /*use_valid_public_certificate=*/false,
-      /*restricted_to_contacts=*/true,
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      GetFakeClock()->Now(),
       /*expected_result=*/
       PairedKeyVerificationResult::kFail);
 
@@ -390,36 +350,42 @@ TEST_F(PairedKeyVerificationRunnerTest,
   SetUpPairedKeyResultFrame(ReturnFrameType::kNull);
 
   RunVerification(
+      share_target_.is_incoming,
       /*use_valid_public_certificate=*/true,
-      /*restricted_to_contacts=*/false,
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      GetFakeClock()->Now(),
       /*expected_result=*/
       PairedKeyVerificationResult::kFail);
 
   ExpectPairedKeyEncryptionFrameSent();
-  ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::UNABLE);
+  ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::SUCCESS);
 }
 
 struct TestParameters {
-  bool is_target_known;
-  bool is_valid_certificate;
+  bool is_incoming;
+  bool has_valid_certificate;
   PairedKeyVerificationRunnerTest::ReturnFrameType encryption_frame_type;
   PairedKeyVerificationRunner::PairedKeyVerificationResult result;
 } kParameters[] = {
-    {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
-     PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess},
     {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kEmpty,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail},
-    {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
-     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
-    {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kEmpty,
-     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
-    {false, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
-     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
+    {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess},
     {true, true,
      PairedKeyVerificationRunnerTest::ReturnFrameType::kOptionalValid,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess},
     {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kInValid,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail},
+    {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kEmpty,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
+    {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
+    {true, false,
+     PairedKeyVerificationRunnerTest::ReturnFrameType::kOptionalValid,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
+    {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kInValid,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
 };
 
 using KeyVerificationTestParam =
@@ -436,7 +402,14 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
   PairedKeyVerificationRunner::PairedKeyVerificationResult expected_result =
       Merge(params.result, result_frame.status());
 
-  share_target_.is_known = params.is_target_known;
+  NL_LOG(ERROR) << "ValidEncryptionFrame_ValidResultFrame: " << "is_incoming="
+                << params.is_incoming
+                << ", has_valid_cert=" << params.has_valid_certificate
+                << ", encryption_frame_type="
+                << (int)params.encryption_frame_type
+                << ", result=" << (int)params.result
+                << ", expected_result=" << (int)expected_result
+                << ", result_frame=" << (int)result_frame.status();
 
   SetUpPairedKeyEncryptionFrame(params.encryption_frame_type);
   SetUpPairedKeyResultFrame(
@@ -446,18 +419,18 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
                                  : OSType::UNKNOWN_OS_TYPE);
 
   RunVerification(
-      /*use_valid_public_certificate=*/params.is_valid_certificate,
-      /*restricted_to_contacts=*/false, expected_result,
+      /*is_incoming=*/params.is_incoming,
+      /*use_valid_public_certificate=*/params.has_valid_certificate,
+      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      GetFakeClock()->Now(), expected_result,
       result_frame.has_os_type() ? result_frame.os_type()
                                  : OSType::UNKNOWN_OS_TYPE);
 
   ExpectPairedKeyEncryptionFrameSent();
-  if (params.encryption_frame_type ==
-      PairedKeyVerificationRunnerTest::ReturnFrameType::kValid)
-    ExpectCertificateInfoSent();
 
   // Check for result frame sent.
-  if (!params.is_valid_certificate) {
+  if (!params.has_valid_certificate) {
     ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::UNABLE);
     return;
   }
@@ -474,11 +447,7 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
     return;
   }
 
-  if (params.is_target_known) {
-    ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::SUCCESS);
-  } else {
-    ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::UNABLE);
-  }
+  ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::SUCCESS);
 }
 
 INSTANTIATE_TEST_SUITE_P(
