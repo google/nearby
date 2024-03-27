@@ -73,9 +73,10 @@ SharedCredential GetPublicCredential() {
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
                   184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
                   200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
-  ByteArray known_mac({223, 185, 10,  31,  155, 31, 226, 141, 24,  187, 204,
-                       165, 34,  64,  181, 204, 44, 203, 95,  141, 82,  137,
-                       163, 203, 100, 235, 53,  65, 202, 97,  75,  180});
+  ByteArray known_mac({0xB4, 0xC5, 0x9F, 0xA5, 0x99, 0x24, 0x1B, 0x81,
+                       0x75, 0x8D, 0x97, 0x6B, 0x5A, 0x62, 0x1C, 0x05,
+                       0x23, 0x2F, 0xE1, 0xBF, 0x89, 0xAE, 0x59, 0x87,
+                       0xCA, 0x25, 0x4C, 0x35, 0x54, 0xDC, 0xE5, 0x0E});
   SharedCredential public_credential;
   public_credential.set_key_seed(seed.AsStringView());
   public_credential.set_metadata_encryption_key_tag_v0(
@@ -94,7 +95,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisement) {
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00514142c2c30e79fee14599e36e34d5d42e49fc37b0df"));
+      absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -117,7 +118,7 @@ TEST(AdvertisementDecoder,
   AdvertisementDecoder decoder(GetScanRequest(credentials));
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00514142c2c30e79fee14599e36e34d5d42e49fc37b0df"));
+      absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -141,7 +142,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpTrustedAdvertisement) {
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00524142099500aeef8bff5df05169a79726e11563b865"));
+      absl::HexStringToBytes("0052414257a35c020f1c547d7e169303196d75da7118ba"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -152,9 +153,9 @@ TEST(AdvertisementDecoder, DecodeBaseNpTrustedAdvertisement) {
                            DataElement(DataElement::kTxPowerFieldType,
                                        absl::HexStringToBytes("05")),
                            DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("08")),
+                                       absl::HexStringToBytes("0c")),
                            DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("0A"))));
+                                       absl::HexStringToBytes("08"))));
 }
 
 TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
@@ -168,7 +169,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
 
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00544142099500aeef8bff5df05169a79726e11563b865"));
+      absl::HexStringToBytes("0054414257a35c020f1c547d7e169303196d75da7118ba"));
 
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
@@ -179,9 +180,9 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
                            DataElement(DataElement::kTxPowerFieldType,
                                        absl::HexStringToBytes("05")),
                            DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("08")),
+                                       absl::HexStringToBytes("0c")),
                            DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("0A"))));
+                                       absl::HexStringToBytes("08"))));
 }
 
 TEST(AdvertisementDecoder, InvalidEncryptedContent) {
