@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 load("expand_version_template.bzl", "expand_version_template")
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = [
     "//connections:__subpackages__",
