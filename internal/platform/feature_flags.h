@@ -65,6 +65,9 @@ class FeatureFlags {
     // Controls enable or disable the use of async methods for StartScanning,
     // StopScanning, StartAdvertising, and StopAdvertising for BLE V2.
     bool enable_ble_v2_async_scanning_advertising = false;
+    // Enable legacy device discovered callback being used inside ble v2
+    // DiscoverPeripheralTracker flow.
+    bool enable_invoking_legacy_device_discovered_cb = false;
 
     std::int32_t min_nc_version_supports_safe_to_disconnect = 1;
     std::int32_t min_nc_version_supports_auto_reconnect = 3;

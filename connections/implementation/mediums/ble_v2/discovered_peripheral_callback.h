@@ -37,6 +37,7 @@ struct DiscoveredPeripheralCallback {
       const ByteArray& advertisement_bytes, bool fast_advertisement)>
       peripheral_lost_cb =
           [](BleV2Peripheral, const std::string&, const ByteArray&, bool) {};
+  absl::AnyInvocable<void(void)> legacy_device_discovered_cb = [](){};
 };
 
 }  // namespace mediums
