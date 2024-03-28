@@ -654,8 +654,10 @@ void NearbySharingServiceImpl::SendAttachments(
           std::move(status_codes_callback)(StatusCodes::kError);
           return;
         }
+        // Outgoing connections always announces with contacts visibility.
         std::optional<std::vector<uint8_t>> endpoint_info =
-            CreateEndpointInfo(local_device_data_manager_->GetDeviceName());
+            CreateEndpointInfo(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+                               local_device_data_manager_->GetDeviceName());
         if (!endpoint_info) {
           NL_LOG(WARNING) << __func__
                           << ": Could not create local endpoint info.";
@@ -1510,13 +1512,12 @@ bool NearbySharingServiceImpl::IsVisibleInBackground(
 
 std::optional<std::vector<uint8_t>>
 NearbySharingServiceImpl::CreateEndpointInfo(
+    DeviceVisibility visibility,
     const std::optional<std::string>& device_name) const {
   std::vector<uint8_t> salt;
   std::vector<uint8_t> encrypted_key;
 
   if (account_manager_.GetCurrentAccount().has_value()) {
-    DeviceVisibility visibility = settings_->GetVisibility();
-
     std::optional<NearbyShareEncryptedMetadataKey> encrypted_metadata_key =
         certificate_manager_->EncryptPrivateCertificateMetadataKey(visibility);
     if (encrypted_metadata_key.has_value()) {
@@ -2053,23 +2054,22 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   }
 
   std::optional<std::string> device_name;
-  if (settings_->GetVisibility() ==
-      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
+  DeviceVisibility visibility = settings_->GetVisibility();
+  if (visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
     device_name = local_device_data_manager_->GetDeviceName();
   }
 
   // Starts advertising through Nearby Connections. Caller is expected to ensure
   // |listener| remains valid until StopAdvertising is called.
   std::optional<std::vector<uint8_t>> endpoint_info =
-      CreateEndpointInfo(device_name);
+      CreateEndpointInfo(visibility, device_name);
   if (!endpoint_info) {
     NL_VLOG(1) << __func__
                << ": Unable to advertise since could not parse the "
                   "endpoint info from the advertisement.";
     return;
   }
-  bool used_device_name = device_name.has_value();
-  if (used_device_name) {
+  if (device_name.has_value()) {
     for (auto& observer : observers_.GetObservers()) {
       observer->OnHighVisibilityChangeRequested();
     }
@@ -2080,17 +2080,16 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   nearby_connections_manager_->StartAdvertising(
       *endpoint_info,
       /*listener=*/this, power_level, data_usage,
-      [&, used_device_name, data_usage](Status status) {
+      [&, visibility, data_usage](Status status) {
         // Log analytics event of advertising start.
         analytics_recorder_->NewAdvertiseDevicePresenceStart(
-            advertising_session_id_,
-            used_device_name ? DeviceVisibility::DEVICE_VISIBILITY_EVERYONE
-                             : settings_->GetVisibility(),
+            advertising_session_id_, visibility,
             status == Status::kSuccess ? SessionStatus::SUCCEEDED_SESSION_STATUS
                                        : SessionStatus::FAILED_SESSION_STATUS,
             data_usage, std::nullopt);
 
-        OnStartAdvertisingResult(used_device_name, status);
+        OnStartAdvertisingResult(
+            visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE, status);
       });
 
   advertising_power_level_ = power_level;

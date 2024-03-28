@@ -245,6 +245,7 @@ class NearbySharingServiceImpl
       ReceiveSurfaceState state);
   bool IsVisibleInBackground(proto::DeviceVisibility visibility);
   std::optional<std::vector<uint8_t>> CreateEndpointInfo(
+      proto::DeviceVisibility visibility,
       const std::optional<std::string>& device_name) const;
   void StartFastInitiationAdvertising();
   void OnStartFastInitiationAdvertising();
