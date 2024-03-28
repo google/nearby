@@ -3,5 +3,4 @@ This directory contains Rust implementation of Nearby Presence.
 Presence Engine provides discovery service to applications by aggregating
 signals from wireless medium.
 
-The Engine will be shared across multiple platforms including AOSP, ChromeOS,
-Windows, and IOS.
+Presence Engine is implemented in Rust.
