@@ -15,17 +15,16 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "internal/platform/implementation/credential_callbacks.h"
+#include "absl/strings/string_view.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
-#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
@@ -42,20 +41,13 @@ struct Advertisement {
 // Decodes BLE NP advertisements
 class AdvertisementDecoder {
  public:
-  using IdentityType = ::nearby::internal::IdentityType;
+  explicit AdvertisementDecoder(
+      absl::flat_hash_map<internal::IdentityType,
+                          std::vector<internal::SharedCredential>>*
+          credentials_map)
+      : credentials_map_(credentials_map) {};
 
-  AdvertisementDecoder(
-      ScanRequest scan_request,
-      absl::flat_hash_map<IdentityType,
-                          std::vector<internal::SharedCredential>>* credentials)
-      : scan_request_(scan_request), credentials_(credentials) {
-    AddBannedDataTypes();
-  }
-
-  explicit AdvertisementDecoder(ScanRequest scan_request)
-      : scan_request_(scan_request) {
-    AddBannedDataTypes();
-  }
+  explicit AdvertisementDecoder() = default;
 
   // Returns a list of Data Elements decoded from the advertisement.
   // Returns an error if the advertisement is misformatted or if it couldn't be
@@ -64,22 +56,9 @@ class AdvertisementDecoder {
       absl::string_view advertisement);
 
  private:
-  // Decrypts data elements stored inside encrypted `elem` and appends them to
-  // `decoded_advertisement_`.
-  absl::Status DecryptDataElements(const DataElement& elem);
-  absl::StatusOr<std::string> Decrypt(absl::string_view salt,
-                                      absl::string_view encrypted);
-  void DecodeBaseAction(absl::string_view serialized_action);
-  absl::StatusOr<std::string> DecryptLdt(
-      const std::vector<internal::SharedCredential>& credentials,
-      absl::string_view salt, absl::string_view data_elements);
-  void AddBannedDataTypes();
-
-  ScanRequest scan_request_;
-  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>*
-      credentials_ = nullptr;
-  absl::flat_hash_set<int> banned_data_types_;
-  Advertisement decoded_advertisement_;
+  absl::flat_hash_map<internal::IdentityType,
+                      std::vector<internal::SharedCredential>>*
+      credentials_map_ = nullptr;
 };
 
 }  // namespace presence

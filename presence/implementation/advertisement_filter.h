@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "presence/data_element.h"
+#include "presence/implementation/advertisement_decoder.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
@@ -29,7 +30,7 @@ class AdvertisementFilter {
 
   // Returns true if the decoded advertisement in `data_elements` matches the
   // filters in `scan_request`.
-  bool MatchesScanFilter(const std::vector<DataElement>& data_elements);
+  bool MatchesScanFilter(const Advertisement& adv);
 
  private:
   bool MatchesScanFilter(const std::vector<DataElement>& data_elements,

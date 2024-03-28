@@ -14,9 +14,7 @@
 
 #include "presence/implementation/scan_manager.h"
 
-#include <math.h>
-
-#include <algorithm>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,17 +23,30 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/time/time.h"
+#include "absl/types/variant.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/proto/credential.proto.h"
+#include "presence/broadcast_request.h"
+#include "presence/data_element.h"
+#include "presence/data_types.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 #include "presence/implementation/mediums/ble.h"
 #include "presence/implementation/mediums/mediums.h"
+#include "presence/implementation/mock_credential_manager.h"
+#include "presence/power_mode.h"
+#include "presence/presence_action.h"
+#include "presence/presence_device.h"
+#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
@@ -323,6 +334,90 @@ TEST_F(ScanManagerTest, NoDeviceFoundAfterStopScan) {
 
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
   executor_.Shutdown();
+}
+
+internal::SharedCredential GetPublicCredential() {
+  // Values copied from LDT tests
+  ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
+                  184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
+                  200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
+  ByteArray known_mac({0xB4, 0xC5, 0x9F, 0xA5, 0x99, 0x24, 0x1B, 0x81,
+                       0x75, 0x8D, 0x97, 0x6B, 0x5A, 0x62, 0x1C, 0x05,
+                       0x23, 0x2F, 0xE1, 0xBF, 0x89, 0xAE, 0x59, 0x87,
+                       0xCA, 0x25, 0x4C, 0x35, 0x54, 0xDC, 0xE5, 0x0E});
+  internal::SharedCredential public_credential;
+  public_credential.set_key_seed(seed.AsStringView());
+  public_credential.set_metadata_encryption_key_tag_v0(
+      known_mac.AsStringView());
+  return public_credential;
+}
+
+std::vector<internal::SharedCredential> BuildSharedCredentials() {
+  return {GetPublicCredential()};
+}
+
+internal::LocalCredential CreateLocalCredential(
+    internal::IdentityType identity_type) {
+  // Values copied from LDT tests
+  ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
+                  184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
+                  200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
+  ByteArray metadata_key(
+      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
+
+  internal::LocalCredential private_credential;
+  private_credential.set_identity_type(identity_type);
+  private_credential.set_key_seed(seed.AsStringView());
+  private_credential.set_metadata_encryption_key_v0(
+      metadata_key.AsStringView());
+  return private_credential;
+}
+
+TEST_F(ScanManagerTest, ScanningE2EWithEncryptedAdvertisementAndCredentials) {
+  Mediums mediums;
+  auto mock_credential_manager = MockCredentialManager();
+  EXPECT_CALL(mock_credential_manager, GetPublicCredentials)
+      .WillOnce([&](const CredentialSelector& credential_selector,
+                    PublicCredentialType public_credential_type,
+                    GetPublicCredentialsResultCallback callback) {
+        callback.credentials_fetched_cb(BuildSharedCredentials());
+      });
+  ScanManager manager(mediums, mock_credential_manager, executor_);
+
+  // Set up advertiser to broadcast a private identity adv
+  nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  PresenceBroadcast::BroadcastSection section = {
+      .identity = internal::IdentityType::IDENTITY_TYPE_PRIVATE,
+      .extended_properties = MakeDefaultExtendedProperties(),
+      .account_name = "Test account"};
+  PresenceBroadcast presence_request = {.sections = {section}};
+  BroadcastRequest input = {.tx_power = 30, .variant = presence_request};
+  absl::StatusOr<BaseBroadcastRequest> request =
+      BaseBroadcastRequest::Create(input);
+  EXPECT_OK(request);
+  absl::StatusOr<AdvertisementData> advertisement =
+      AdvertisementFactory().CreateAdvertisement(
+          request.value(),
+          CreateLocalCredential(internal::IdentityType::IDENTITY_TYPE_PRIVATE));
+  EXPECT_OK(advertisement);
+  std::unique_ptr<AdvertisingSession> session = ble2.StartAdvertising(
+      advertisement.value(), PowerMode::kLowPower,
+      AdvertisingCallback{.start_advertising_result = [](absl::Status) {}});
+  env_.Sync();
+
+  auto scan_request = MakeDefaultScanRequest();
+  scan_request.identity_types = {
+      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE};
+
+  // Start scanning
+  ScanSessionId scan_session =
+      manager.StartScan(scan_request, MakeDefaultScanCallback());
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+  EXPECT_TRUE(start_latch_.Await().Ok());
+  EXPECT_TRUE(found_latch_.Await().Ok());
+  manager.StopScan(scan_session);
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
 }  // namespace

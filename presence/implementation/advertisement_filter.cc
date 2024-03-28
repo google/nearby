@@ -18,7 +18,9 @@
 #include <vector>
 
 #include "absl/types/variant.h"
+#include "internal/platform/logging.h"
 #include "presence/data_element.h"
+#include "presence/implementation/advertisement_decoder.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
@@ -54,21 +56,42 @@ bool ContainsAny(const std::vector<DataElement>& data_elements,
 }
 
 bool AdvertisementFilter::MatchesScanFilter(
-    const std::vector<DataElement>& data_elements) {
+    const Advertisement& advertisement) {
+  // Verify the identity is one requested in the scan_request.
+  // Per the Public API of scan_request, if identity_types provided in the
+  // scan_request is empty then decode advertisements of every identity type
+  auto requested_identity_types = scan_request_.identity_types;
+  if (!requested_identity_types.empty() &&
+      !(std::find(
+            requested_identity_types.begin(), requested_identity_types.end(),
+            advertisement.identity_type) != requested_identity_types.end())) {
+    NEARBY_LOGS(INFO)
+        << "Skipping advertisement with identity type: "
+        << advertisement.identity_type
+        << " because that identity type was not requested in the scan "
+           "request";
+    return false;
+  }
+
   // The advertisement matches the scan request when it matches at least
   // one of the filters in the request.
   if (scan_request_.scan_filters.empty()) {
     return true;
   }
+
+  // NOLINT is used to suppress google3-legacy-absl-backport lints because the
+  // the suggestion is not compatible with Chrome
   for (const auto& filter : scan_request_.scan_filters) {
-    if (absl::holds_alternative<PresenceScanFilter>(filter)) {
-      if (MatchesScanFilter(data_elements,
-                            absl::get<PresenceScanFilter>(filter))) {
+    if (absl::holds_alternative<PresenceScanFilter>(filter)) {  // NOLINT
+      if (MatchesScanFilter(advertisement.data_elements,
+                            absl::get<PresenceScanFilter>(filter))) {  // NOLINT
         return true;
       }
-    } else if (absl::holds_alternative<LegacyPresenceScanFilter>(filter)) {
-      if (MatchesScanFilter(data_elements,
-                            absl::get<LegacyPresenceScanFilter>(filter))) {
+    } else if (absl::holds_alternative<LegacyPresenceScanFilter>(  // NOLINT
+                   filter)) {
+      if (MatchesScanFilter(
+              advertisement.data_elements,
+              absl::get<LegacyPresenceScanFilter>(filter))) {  // NOLINT
         return true;
       }
     }

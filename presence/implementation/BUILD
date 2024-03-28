@@ -170,6 +170,9 @@ cc_test(
         "//internal/proto:credential_cc_proto",
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({
@@ -370,12 +373,19 @@ cc_test(
     srcs = ["scan_manager_test.cc"],
     deps = [
         ":internal",
+        ":internal_test",
+        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
+        "//internal/proto:credential_cc_proto",
+        "//presence:types",
         "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@platforms//os:windows": [

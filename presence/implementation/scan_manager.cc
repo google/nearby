@@ -14,24 +14,29 @@
 
 #include "presence/implementation/scan_manager.h"
 
-#include <algorithm>
-#include <functional>
+#include <assert.h>
+
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
-#include "absl/types/variant.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
-#include "internal/platform/uuid.h"
+#include "internal/platform/logging.h"
 #include "presence//implementation/advertisement_filter.h"
+#include "presence/data_element.h"
 #include "presence/data_types.h"
+#include "presence/device_motion.h"
 #include "presence/implementation/advertisement_decoder.h"
 #include "presence/implementation/mediums/ble.h"
+#include "presence/presence_action.h"
 #include "presence/presence_device.h"
 #include "presence/scan_request.h"
 
@@ -75,7 +80,7 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
             {id, ScanSessionState{
                      .request = scan_request,
                      .callback = std::move(scan_callback),
-                     .decoder = AdvertisementDecoder(scan_request),
+                     .decoder = AdvertisementDecoder(),
                      .advertisement_filter = AdvertisementFilter(scan_request),
                      .scanning_session = mediums_->GetBle().StartScanning(
                          scan_request, std::move(callback))}});
@@ -113,8 +118,8 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     // This advertisement is not relevant to the current element, skip.
     return;
   }
-  if (it->second.advertisement_filter.MatchesScanFilter(
-          advert->data_elements)) {
+
+  if (it->second.advertisement_filter.MatchesScanFilter(*advert)) {
     internal::DeviceIdentityMetaData device_identity_metadata;
     device_identity_metadata.set_bluetooth_mac_address(
         std::string(remote_address));
@@ -194,13 +199,19 @@ void ScanManager::FetchCredentials(ScanSessionId id,
 void ScanManager::UpdateCredentials(ScanSessionId id,
                                     IdentityType identity_type,
                                     std::vector<SharedCredential> credentials) {
+  // Credentials should never get fetched for PUBLIC of No-Identity requests
+  assert(identity_type != internal::IDENTITY_TYPE_UNSPECIFIED);
+  assert(identity_type != internal::IDENTITY_TYPE_PUBLIC);
+
   auto it = scan_sessions_.find(id);
+
   if (it == scan_sessions_.end()) {
     return;
   }
+
   ScanSessionState& session = it->second;
   session.credentials[identity_type] = std::move(credentials);
-  session.decoder = AdvertisementDecoder(session.request, &session.credentials);
+  session.decoder = AdvertisementDecoder(&session.credentials);
 }
 
 int ScanManager::ScanningCallbacksLengthForTest() {
