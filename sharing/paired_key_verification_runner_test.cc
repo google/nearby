@@ -59,8 +59,6 @@ using PairedKeyVerificationResult =
     PairedKeyVerificationRunner::PairedKeyVerificationResult;
 using ::location::nearby::proto::sharing::OSType;
 
-constexpr char kEndpointId[] = "test_endpoint_id";
-
 const std::vector<uint8_t>& GetAuthToken() {
   static std::vector<uint8_t>* auth_token = new std::vector<uint8_t>({0, 1, 2});
   return *auth_token;
@@ -116,6 +114,27 @@ std::list<PairedKeyResultFrame> GeneratePairedKeyResultFrame() {
   frame.set_os_type(OSType::WINDOWS);
   result.push_back(frame);
 
+  return result;
+}
+
+struct VisibilityChange {
+  DeviceVisibility visibility;
+  DeviceVisibility last_visibility;
+};
+
+std::list<VisibilityChange> GenerateVisibilityChanges() {
+  constexpr DeviceVisibility kValidVisibilities[] = {
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE,
+      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+      DeviceVisibility::DEVICE_VISIBILITY_HIDDEN,
+  };
+  std::list<VisibilityChange> result;
+  for (DeviceVisibility visibility : kValidVisibilities) {
+    for (DeviceVisibility last_visibility : kValidVisibilities) {
+      result.push_back({visibility, last_visibility});
+    }
+  }
   return result;
 }
 
@@ -192,11 +211,10 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
             : std::nullopt;
 
     auto runner = std::make_shared<PairedKeyVerificationRunner>(
-        context_.GetClock(), fake_device_info_, share_target_.id,
-        is_incoming, visibility, last_visibility,
-        last_visibility_time, kEndpointId, GetAuthToken(), &connection_,
-        std::move(public_certificate), &certificate_manager_, &frames_reader_,
-        kTimeout);
+        context_.GetClock(), fake_device_info_, share_target_.id, is_incoming,
+        visibility, last_visibility, last_visibility_time, GetAuthToken(),
+        &connection_, std::move(public_certificate), &certificate_manager_,
+        &frames_reader_, kTimeout);
 
     runner->Run(
         [&, expected_result, expected_os_type](
@@ -326,9 +344,10 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
 };
 
 TEST_F(PairedKeyVerificationRunnerTest,
-       NullCertificate_InvalidPairedKeyEncryptionFrame_RestrictToContacts) {
+       NullCertificate_InvalidPairedKeyEncryptionFrame) {
   // Empty key encryption frame fails the certificate verification.
   SetUpPairedKeyEncryptionFrame(ReturnFrameType::kEmpty);
+  SetUpPairedKeyResultFrame(ReturnFrameType::kValid);
 
   RunVerification(
       share_target_.is_incoming,
@@ -337,9 +356,10 @@ TEST_F(PairedKeyVerificationRunnerTest,
       DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
       GetFakeClock()->Now(),
       /*expected_result=*/
-      PairedKeyVerificationResult::kFail);
+      PairedKeyVerificationResult::kUnable);
 
   ExpectPairedKeyEncryptionFrameSent();
+  ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::UNABLE);
 }
 
 TEST_F(PairedKeyVerificationRunnerTest,
@@ -368,6 +388,8 @@ struct TestParameters {
   PairedKeyVerificationRunnerTest::ReturnFrameType encryption_frame_type;
   PairedKeyVerificationRunner::PairedKeyVerificationResult result;
 } kParameters[] = {
+    {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kNull,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail},
     {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kEmpty,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail},
     {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
@@ -376,6 +398,8 @@ struct TestParameters {
      PairedKeyVerificationRunnerTest::ReturnFrameType::kOptionalValid,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess},
     {true, true, PairedKeyVerificationRunnerTest::ReturnFrameType::kInValid,
+     PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail},
+    {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kNull,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail},
     {true, false, PairedKeyVerificationRunnerTest::ReturnFrameType::kEmpty,
      PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable},
@@ -389,7 +413,7 @@ struct TestParameters {
 };
 
 using KeyVerificationTestParam =
-    std::tuple<TestParameters, service::proto::PairedKeyResultFrame>;
+    std::tuple<TestParameters, PairedKeyResultFrame, VisibilityChange>;
 
 class ParameterisedPairedKeyVerificationRunnerTest
     : public PairedKeyVerificationRunnerTest,
@@ -399,6 +423,7 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
        ValidEncryptionFrame_ValidResultFrame) {
   const TestParameters& params = std::get<0>(GetParam());
   PairedKeyResultFrame result_frame = std::get<1>(GetParam());
+  VisibilityChange visibility_changes = std::get<2>(GetParam());
   PairedKeyVerificationRunner::PairedKeyVerificationResult expected_result =
       Merge(params.result, result_frame.status());
 
@@ -409,25 +434,56 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
                 << (int)params.encryption_frame_type
                 << ", result=" << (int)params.result
                 << ", expected_result=" << (int)expected_result
-                << ", result_frame=" << (int)result_frame.status();
+                << ", result_frame=" << (int)result_frame.status()
+                << ", visibility=" << (int)visibility_changes.visibility
+                << ", last_visibility="
+                << (int)visibility_changes.last_visibility;
 
   SetUpPairedKeyEncryptionFrame(params.encryption_frame_type);
-  SetUpPairedKeyResultFrame(
-      PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
-      result_frame.status(),
-      result_frame.has_os_type() ? result_frame.os_type()
-                                 : OSType::UNKNOWN_OS_TYPE);
+  bool encryption_frame_timeout =
+      params.encryption_frame_type ==
+      PairedKeyVerificationRunnerTest::ReturnFrameType::kNull;
+  if (!encryption_frame_timeout) {
+    // Result frame is only expected if Encryption frame read does not time out.
+    SetUpPairedKeyResultFrame(
+        PairedKeyVerificationRunnerTest::ReturnFrameType::kValid,
+        result_frame.status(),
+        result_frame.has_os_type() ? result_frame.os_type()
+                                   : OSType::UNKNOWN_OS_TYPE);
+  }
 
+  // If our visibility has no certificates, then downgrade expected result to
+  // kUnable if it is not expected to fail.
+  if ((visibility_changes.visibility ==
+           DeviceVisibility::DEVICE_VISIBILITY_EVERYONE ||
+       visibility_changes.visibility ==
+           DeviceVisibility::DEVICE_VISIBILITY_HIDDEN) &&
+      (visibility_changes.last_visibility ==
+           DeviceVisibility::DEVICE_VISIBILITY_EVERYONE ||
+       visibility_changes.last_visibility ==
+           DeviceVisibility::DEVICE_VISIBILITY_HIDDEN)) {
+    if (expected_result ==
+        PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess) {
+      expected_result =
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable;
+    }
+  }
   RunVerification(
       /*is_incoming=*/params.is_incoming,
       /*use_valid_public_certificate=*/params.has_valid_certificate,
-      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
-      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      visibility_changes.visibility, visibility_changes.last_visibility,
       GetFakeClock()->Now(), expected_result,
-      result_frame.has_os_type() ? result_frame.os_type()
-                                 : OSType::UNKNOWN_OS_TYPE);
+      result_frame.has_os_type() && !encryption_frame_timeout
+          ? result_frame.os_type()
+          : OSType::UNKNOWN_OS_TYPE);
 
   ExpectPairedKeyEncryptionFrameSent();
+
+  if (encryption_frame_timeout) {
+    // If timed out waiting from PairedKeyEncryptionFrame, no result frame would
+    // be sent.
+    return;
+  }
 
   // Check for result frame sent.
   if (!params.has_valid_certificate) {
@@ -453,7 +509,8 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
 INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/, ParameterisedPairedKeyVerificationRunnerTest,
     testing::Combine(testing::ValuesIn(kParameters),
-                     testing::ValuesIn(GeneratePairedKeyResultFrame())));
+                     testing::ValuesIn(GeneratePairedKeyResultFrame()),
+                     testing::ValuesIn(GenerateVisibilityChanges())));
 
 }  // namespace
 }  // namespace sharing

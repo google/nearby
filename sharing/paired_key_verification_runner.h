@@ -32,7 +32,6 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_sharing_settings.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/wire_format.pb.h"
 
@@ -57,8 +56,7 @@ class PairedKeyVerificationRunner
       Clock* clock, DeviceInfo& device_info, int64_t share_target_id,
       bool share_target_is_incoming, proto::DeviceVisibility visibility,
       proto::DeviceVisibility last_visibility, absl::Time last_visibility_time,
-      absl::string_view endpoint_id, const std::vector<uint8_t>& token,
-      NearbyConnection* connection,
+      const std::vector<uint8_t>& token, NearbyConnection* connection,
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       NearbyShareCertificateManager* certificate_manager,
       IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout);
@@ -79,22 +77,18 @@ class PairedKeyVerificationRunner
   void OnReadPairedKeyEncryptionFrame(
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void OnReadPairedKeyResultFrame(
-      std::vector<PairedKeyVerificationResult> verification_results,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void SendPairedKeyResultFrame(PairedKeyVerificationResult result);
-  PairedKeyVerificationResult VerifyRemotePublicCertificate(
-      const nearby::sharing::service::proto::V1Frame& frame);
-  PairedKeyVerificationResult VerifyRemotePublicCertificateRelaxed(
-      const nearby::sharing::service::proto::V1Frame& frame);
-  PairedKeyVerificationResult
-  VerifyRemotePublicCertificateWithPrivateCertificate(
+  // Verifies auth token hash in frame using private certificate for visibility.
+  // Returns either kSuccess or kUnable.  This function never returns kFail.
+  PairedKeyVerificationResult VerifyAuthTokenHashWithPrivateCertificate(
       proto::DeviceVisibility visibility,
       const nearby::sharing::service::proto::V1Frame& frame);
   PairedKeyVerificationResult VerifyPairedKeyEncryptionFrame(
       const nearby::sharing::service::proto::V1Frame& frame);
-  PairedKeyVerificationResult MergeResults(
-      const std::vector<PairedKeyVerificationResult>& results);
-  bool RelaxRestrictToContactsIfNeeded() const;
+  void ApplyResult(PairedKeyVerificationResult result);
+  // True if visibility has changed recently.
+  bool IsVisibilityRecentlyUpdated() const;
 
   nearby::Clock* const clock_;
   nearby::DeviceInfo& device_info_;
@@ -102,7 +96,6 @@ class PairedKeyVerificationRunner
   proto::DeviceVisibility visibility_;
   proto::DeviceVisibility last_visibility_;
   absl::Time last_visibility_time_;
-  std::string endpoint_id_;
   std::vector<uint8_t> raw_token_;
   NearbyConnection* connection_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
@@ -112,8 +105,7 @@ class PairedKeyVerificationRunner
   std::function<void(PairedKeyVerificationResult,
                      ::location::nearby::proto::sharing::OSType)>
       callback_;
-  bool relax_restrict_to_contacts_ = false;
-
+  PairedKeyVerificationResult verification_result_;
   char local_prefix_;
   char remote_prefix_;
 };

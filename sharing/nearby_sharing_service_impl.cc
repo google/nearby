@@ -3366,7 +3366,7 @@ void NearbySharingServiceImpl::RunPairedKeyVerification(
           context_->GetClock(), device_info_, share_target_id,
           share_target_info->IsIncoming(), settings_->GetVisibility(),
           settings_->GetLastVisibility(),
-          settings_->GetLastVisibilityTimestamp(), endpoint_id, *token,
+          settings_->GetLastVisibilityTimestamp(), *token,
           share_target_info->connection(), share_target_info->certificate(),
           GetCertificateManager(), share_target_info->frames_reader(),
           kReadFramesTimeout));

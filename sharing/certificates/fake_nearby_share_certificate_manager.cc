@@ -32,6 +32,7 @@
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
+#include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
 namespace nearby {
@@ -112,6 +113,10 @@ void FakeNearbyShareCertificateManager::OnStop() {}
 std::optional<NearbySharePrivateCertificate>
 FakeNearbyShareCertificateManager::GetValidPrivateCertificate(
     DeviceVisibility visibility) const {
+  if (visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE ||
+      visibility == DeviceVisibility::DEVICE_VISIBILITY_HIDDEN) {
+    return std::nullopt;
+  }
   auto cert = GetNearbyShareTestPrivateCertificate(visibility);
   cert.next_salts_for_testing() = std::queue<std::vector<uint8_t>>();
   cert.next_salts_for_testing().push(next_salt_);
