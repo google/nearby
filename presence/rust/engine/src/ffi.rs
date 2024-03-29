@@ -16,13 +16,28 @@
 use client_provider;
 use libc::size_t;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(C)]
+pub enum IdentityType {
+    Private = 0,
+    Trusted,
+    Public,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(C)]
+pub enum MeasurementAccuracy {
+    Unknown = 0,
+    CoarseAccuracy,
+    BestAvailable,
+}
 /// Struct to hold an action, identity type and their associated discovery condition.
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct DiscoveryCondition {
-    pub action: i32,
-    pub identity_type: i32,
-    pub measurement_accuracy: i32,
+    pub action: u32,
+    pub identity_type: IdentityType,
+    pub measurement_accuracy: MeasurementAccuracy,
 }
 
 /// Struct to hold a list of DiscoveryCondition.

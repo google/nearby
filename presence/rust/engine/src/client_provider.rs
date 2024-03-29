@@ -62,13 +62,21 @@ unsafe fn copy_from_raw_list<T>(ptr: *const T, count: usize) -> Vec<T> {
 mod tests {
     use ffi;
     use client_provider::DiscoveryEngineRequest;
-    use ffi::DiscoveryCondition;
+    use ffi::{DiscoveryCondition, IdentityType, MeasurementAccuracy};
 
     #[test]
     fn test_request_from_raw() {
         let conditions: Vec<ffi::DiscoveryCondition> = Vec::from([
-            ffi::DiscoveryCondition { action: 1, identity_type: 0, measurement_accuracy: 0 },
-            ffi::DiscoveryCondition { action: 2, identity_type: 0, measurement_accuracy: 0 }
+            ffi::DiscoveryCondition {
+                action: 10,
+                identity_type: IdentityType::Private,
+                measurement_accuracy: MeasurementAccuracy::CoarseAccuracy,
+            },
+            ffi::DiscoveryCondition {
+                action: 11,
+                identity_type: IdentityType::Public,
+                measurement_accuracy: MeasurementAccuracy::BestAvailable,
+            }
         ]);
         let raw_conditions = ffi::DiscoveryConditionList {
             items: Box::into_raw(conditions.into_boxed_slice()) as *const ffi::DiscoveryCondition,
@@ -82,16 +90,28 @@ mod tests {
             let request = DiscoveryEngineRequest::from_raw(raw_request);
             assert_eq!(request.priority, 3);
             assert_eq!(request.conditions.len(), 2);
-            assert_eq!(request.conditions[0].action, 1);
-            assert_eq!(request.conditions[1].action, 2);
+            assert_eq!(request.conditions[0].action, 10);
+            assert_eq!(request.conditions[0].identity_type, IdentityType::Private);
+            assert_eq!(request.conditions[0].measurement_accuracy, MeasurementAccuracy::CoarseAccuracy);
+            assert_eq!(request.conditions[1].action, 11);
+            assert_eq!(request.conditions[1].identity_type, IdentityType::Public);
+            assert_eq!(request.conditions[1].measurement_accuracy, MeasurementAccuracy::BestAvailable);
         }
     }
 
     #[test]
     fn test_request_to_raw() {
         let conditions: Vec<DiscoveryCondition> = Vec::from([
-            DiscoveryCondition { action: 1, identity_type: 0, measurement_accuracy: 0 },
-            DiscoveryCondition { action: 2, identity_type: 0, measurement_accuracy: 0 }
+            ffi::DiscoveryCondition {
+                action: 10,
+                identity_type: IdentityType::Private,
+                measurement_accuracy: MeasurementAccuracy::CoarseAccuracy,
+            },
+            ffi::DiscoveryCondition {
+                action: 11,
+                identity_type: IdentityType::Public,
+                measurement_accuracy: MeasurementAccuracy::BestAvailable,
+            }
         ]);
         let request = DiscoveryEngineRequest {
             priority: 3,
@@ -101,8 +121,15 @@ mod tests {
             let request_ptr = request.to_raw();
             assert_eq!((*request_ptr).priority, 3);
             assert_eq!((*request_ptr).conditions.count, 2);
-            assert_eq!((*(*request_ptr).conditions.items).action, 1);
-            assert_eq!((*(*request_ptr).conditions.items.add(1)).action, 2);
+            assert_eq!((*(*request_ptr).conditions.items).action, 10);
+            assert_eq!((*(*request_ptr).conditions.items).identity_type, IdentityType::Private);
+            assert_eq!((*(*request_ptr).conditions.items).measurement_accuracy,
+                       MeasurementAccuracy::CoarseAccuracy);
+            assert_eq!((*(*request_ptr).conditions.items.add(1)).action, 11);
+            assert_eq!((*(*request_ptr).conditions.items.add(1)).identity_type,
+                       IdentityType::Public);
+            assert_eq!((*(*request_ptr).conditions.items.add(1)).measurement_accuracy,
+                       MeasurementAccuracy::BestAvailable);
         }
     }
 }

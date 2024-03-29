@@ -23,8 +23,10 @@ int main(int argc, char **argv) {
 
   const int conditionCnt = 2;
   DiscoveryCondition conditions[conditionCnt] = {
-     {1, 2, 3}, // action, identity type, accuracy.
-     {4, 5, 6},
+     {10, // action
+      IdentityType::Private, MeasurementAccuracy::CoarseAccuracy},
+     {11, // action
+      IdentityType::Trusted, MeasurementAccuracy::BestAvailable},
   };
   DiscoveryConditionList condition_list = {
      &conditions[0],
@@ -42,7 +44,9 @@ int main(int argc, char **argv) {
   auto conditions_echoed = request_echoed->conditions;
   for (int i = 0; i < conditions_echoed.count; i++) {
      cout << "Condition: " << i << endl;
-     cout << "action: " << conditions_echoed.items[i].action << endl;
+     cout << "Action: " << conditions_echoed.items[i].action << endl;
+     cout << "Identity Type: " << int(conditions_echoed.items[i].identity_type) << endl;
+     cout << "Measurement Accuracy: " << int(conditions_echoed.items[i].measurement_accuracy) << endl;
   }
   free_engine_request(request_echoed);
 }

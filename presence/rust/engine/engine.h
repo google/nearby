@@ -24,11 +24,23 @@
 #include <new>
 
 
+enum class IdentityType {
+  Private = 0,
+  Trusted,
+  Public,
+};
+
+enum class MeasurementAccuracy {
+  Unknown = 0,
+  CoarseAccuracy,
+  BestAvailable,
+};
+
 /// Struct to hold an action, identity type and their associated discovery condition.
 struct DiscoveryCondition {
-  int32_t action;
-  int32_t identity_type;
-  int32_t measurement_accuracy;
+  uint32_t action;
+  IdentityType identity_type;
+  MeasurementAccuracy measurement_accuracy;
 };
 
 /// Struct to hold a list of DiscoveryCondition.
