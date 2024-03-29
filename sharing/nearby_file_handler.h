@@ -32,7 +32,7 @@ namespace sharing {
 class NearbyFileHandler {
  public:
   struct FileInfo {
-    int64_t size;
+    uint64_t size;
     std::filesystem::path file_path;
   };
 

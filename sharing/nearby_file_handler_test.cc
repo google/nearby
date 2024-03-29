@@ -22,6 +22,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "sharing/common/files.h"
 
 namespace nearby {
 namespace sharing {
@@ -36,22 +37,6 @@ bool CreateFile(std::filesystem::path file_path) {
   return true;
 }
 
-bool DeleteFile(std::filesystem::path file_path) {
-  if (std::filesystem::exists(file_path)) {
-    return std::filesystem::remove(file_path);
-  }
-
-  return true;
-}
-
-bool ExistFile(std::filesystem::path file_path) {
-  if (std::filesystem::exists(file_path)) {
-    return true;
-  }
-
-  return false;
-}
-
 TEST(NearbyFileHandler, GetUniquePath) {
   NearbyFileHandler nearby_file_handler;
   std::filesystem::path unique_path;
@@ -63,7 +48,7 @@ TEST(NearbyFileHandler, GetUniquePath) {
       std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
 
   ASSERT_TRUE(CreateFile(test_file));
-  ASSERT_TRUE(DeleteFile(expected_file));
+  ASSERT_TRUE(RemoveFile(expected_file));
 
   nearby_file_handler.GetUniquePath(
       test_file, [&notification, &unique_path](std::filesystem::path path) {
@@ -92,7 +77,7 @@ TEST(NearbyFileHandler, OpenFiles) {
 
   notification.WaitForNotificationWithTimeout(absl::Seconds(1));
   EXPECT_EQ(result.size(), 1);
-  ASSERT_TRUE(DeleteFile(test_file));
+  ASSERT_TRUE(RemoveFile(test_file));
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
@@ -103,9 +88,9 @@ TEST(NearbyFileHandler, DeleteAFileFromDisk) {
   std::vector<std::filesystem::path> file_paths;
   file_paths.push_back(test_file);
   nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
-  ASSERT_TRUE(ExistFile(test_file));
+  ASSERT_TRUE(FileExists(test_file));
   absl::SleepFor(absl::Seconds(2));
-  ASSERT_FALSE(ExistFile(test_file));
+  ASSERT_FALSE(FileExists(test_file));
 }
 
 TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
@@ -120,13 +105,13 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
   file_paths = {test_file, test_file2, test_file3};
   // Check it doesn't throw an exception.
   nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
-  ASSERT_FALSE(ExistFile(test_file));
-  ASSERT_FALSE(ExistFile(test_file2));
-  ASSERT_FALSE(ExistFile(test_file3));
+  ASSERT_FALSE(FileExists(test_file));
+  ASSERT_FALSE(FileExists(test_file2));
+  ASSERT_FALSE(FileExists(test_file3));
   absl::SleepFor(absl::Seconds(2));
-  ASSERT_FALSE(ExistFile(test_file));
-  ASSERT_FALSE(ExistFile(test_file2));
-  ASSERT_FALSE(ExistFile(test_file3));
+  ASSERT_FALSE(FileExists(test_file));
+  ASSERT_FALSE(FileExists(test_file2));
+  ASSERT_FALSE(FileExists(test_file3));
 }
 
 TEST(NearbyFileHandler, TestCallback) {
@@ -140,10 +125,10 @@ TEST(NearbyFileHandler, TestCallback) {
   nearby_file_handler.DeleteFilesFromDisk(
       file_paths, [&received_callback]() { received_callback = true; });
   ASSERT_FALSE(received_callback);
-  ASSERT_TRUE(ExistFile(test_file));
+  ASSERT_TRUE(FileExists(test_file));
   absl::SleepFor(absl::Seconds(2));
   ASSERT_TRUE(received_callback);
-  ASSERT_FALSE(ExistFile(test_file));
+  ASSERT_FALSE(FileExists(test_file));
 }
 
 }  // namespace

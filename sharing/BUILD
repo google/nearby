@@ -7,6 +7,7 @@ cc_library(
         "//internal/crypto_cros",
         "//internal/interop:authentication_status",
         "//sharing/common:compatible_u8_string",
+        "//sharing/common:files",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
     ],
@@ -30,7 +31,6 @@ cc_library(
         "file_attachment.h",
         "nearby_connection.h",
         "nearby_connections_manager.h",
-        "nearby_connections_types.h",
         "nearby_sharing_decoder.h",
         "share_target.h",
         "text_attachment.h",
@@ -41,6 +41,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        ":connection_types",
         "//internal/crypto_cros",
         "//internal/interop:authentication_status",
         "//internal/network:url",
@@ -146,6 +147,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        ":connection_types",
         ":transfer_metadata",
         ":types",
         "//connections:core",
@@ -166,6 +168,7 @@ cc_library(
         "//sharing/common",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
+        "//sharing/common:files",
         "//sharing/contacts",
         "//sharing/fast_initiation:nearby_fast_initiation",
         "//sharing/flags/generated:generated_flags",
@@ -214,6 +217,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        ":connection_types",
         ":nearby_sharing_service",
         ":transfer_metadata",
         ":types",
@@ -290,6 +294,7 @@ cc_test(
     ],
     shard_count = 8,
     deps = [
+        ":connection_types",
         ":nearby_sharing_service",
         ":test_support",
         ":transfer_metadata",
@@ -311,6 +316,7 @@ cc_test(
         "//sharing/common",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
+        "//sharing/common:files",
         "//sharing/contacts",
         "//sharing/contacts:test_support",
         "//sharing/fast_initiation:nearby_fast_initiation",

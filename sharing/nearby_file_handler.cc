@@ -18,6 +18,7 @@
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -26,6 +27,7 @@
 #include "absl/types/span.h"
 #include "internal/platform/task_runner_impl.h"
 #include "sharing/common/compatible_u8_string.h"
+#include "sharing/common/files.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby {
@@ -37,16 +39,13 @@ std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
     absl::Span<const std::filesystem::path> file_paths) {
   std::vector<NearbyFileHandler::FileInfo> files;
   for (const auto& file_path : file_paths) {
-    if (!std::filesystem::exists(file_path)) {
+    std::optional<uintmax_t> size = GetFileSize(file_path);
+    if (!size.has_value()) {
       NL_LOG(ERROR) << __func__ << ": Failed to open file. File="
                     << GetCompatibleU8String(file_path.u8string());
       return {};
     }
-
-    int64_t size = std::filesystem::file_size(file_path);
-    if (size < 0) return {};
-
-    files.push_back({size, file_path});
+    files.push_back({*size, file_path});
   }
   return files;
 }
@@ -83,19 +82,6 @@ void NearbyFileHandler::GetUniquePath(const std::filesystem::path& file_path,
         std::filesystem::path unique_path = GenerateUniquePath(file_path);
         callback(unique_path);
       });
-}
-
-bool RemoveFile(const std::filesystem::path file) noexcept {
-  try {
-    if (!std::filesystem::remove(file)) {
-      return false;
-    }
-  } catch (std::exception) {
-    return false;
-  } catch (...) {
-    return false;
-  }
-  return true;
 }
 
 void NearbyFileHandler::DeleteFilesFromDisk(
