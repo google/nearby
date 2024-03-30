@@ -52,6 +52,13 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "files",
+    srcs = ["files.cc"],
+    hdrs = ["files.h"],
+    visibility = ["//visibility:public"],
+)
+
 cc_test(
     name = "base_test",
     size = "small",

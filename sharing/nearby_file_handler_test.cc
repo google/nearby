@@ -22,7 +22,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "sharing/common/files.h"
+#include "internal/base/files.h"
 
 namespace nearby {
 namespace sharing {

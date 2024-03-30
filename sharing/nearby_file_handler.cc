@@ -25,9 +25,9 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/base/files.h"
 #include "internal/platform/task_runner_impl.h"
 #include "sharing/common/compatible_u8_string.h"
-#include "sharing/common/files.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby {

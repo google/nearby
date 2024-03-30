@@ -61,10 +61,3 @@ cc_library(
     hdrs = ["compatible_u8_string.h"],
     visibility = ["//sharing:__subpackages__"],
 )
-
-cc_library(
-    name = "files",
-    srcs = ["files.cc"],
-    hdrs = ["files.h"],
-    visibility = ["//visibility:public"],
-)

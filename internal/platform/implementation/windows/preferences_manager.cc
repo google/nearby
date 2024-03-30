@@ -24,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/windows/preferences_repository.h"
 #include "internal/platform/logging.h"
 
@@ -39,7 +40,8 @@ PreferencesManager::PreferencesManager(absl::string_view file_path)
       nearby::api::ImplementationPlatform::CreateDeviceInfo()
           ->GetLocalAppDataPath();
   if (!path.has_value()) {
-    path = std::filesystem::temp_directory_path();
+    path = nearby::sharing::GetTemporaryDirectory().value_or(
+        nearby::sharing::CurrentDirectory());
   }
 
   std::filesystem::path full_path = *path / std::string(file_path);

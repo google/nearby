@@ -26,10 +26,10 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/files.h"
 #include "internal/crypto_cros/random.h"
 #include "internal/interop/authentication_status.h"
 #include "sharing/common/compatible_u8_string.h"
-#include "sharing/common/files.h"
 
 namespace nearby {
 namespace sharing {

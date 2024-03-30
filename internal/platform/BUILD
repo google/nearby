@@ -352,6 +352,7 @@ cc_library(
     deps = [
         ":base",
         ":util",
+        "//internal/base:files",
         "//internal/crypto_cros",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",

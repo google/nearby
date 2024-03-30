@@ -21,6 +21,7 @@
 
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/files.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -68,8 +69,8 @@ bool PreferencesRepository::SavePreferences(json preferences) {
   absl::MutexLock lock(&mutex_);
   try {
     std::filesystem::path path = path_;
-    if (!std::filesystem::exists(path) &&
-        !std::filesystem::create_directories(path)) {
+    if (!nearby::sharing::FileExists(path) &&
+        !nearby::sharing::CreateDirectories(path)) {
       NEARBY_LOGS(ERROR) << "Failed to create preferences path.";
       return false;
     }
@@ -78,9 +79,11 @@ bool PreferencesRepository::SavePreferences(json preferences) {
     std::filesystem::path full_name_backup = path / kPreferencesBackupFileName;
 
     // Create a backup without moving the bytes on disk
-    if (std::filesystem::exists(full_name)) {
+    if (nearby::sharing::FileExists(full_name)) {
       NEARBY_LOGS(INFO) << "Making backup of preferences file.";
-      std::filesystem::rename(full_name, full_name_backup);
+      if (!nearby::sharing::Rename(full_name, full_name_backup)) {
+        NEARBY_LOGS(ERROR) << "Failed to rename preferences backup file.";
+      }
     }
 
     std::ofstream preferences_file(full_name.c_str());
@@ -111,7 +114,8 @@ bool PreferencesRepository::SavePreferences(json preferences) {
 std::optional<json> PreferencesRepository::AttemptLoad() {
   std::filesystem::path path = path_;
   std::filesystem::path full_name = path / kPreferencesFileName;
-  if (!std::filesystem::exists(path) || !std::filesystem::exists(full_name)) {
+  if (!nearby::sharing::FileExists(path) ||
+      !nearby::sharing::FileExists(full_name)) {
     return std::nullopt;
   }
 
@@ -144,13 +148,15 @@ std::optional<json> PreferencesRepository::RestoreFromBackup() {
   std::filesystem::path full_name = path / kPreferencesFileName;
   std::filesystem::path full_name_backup = path / kPreferencesBackupFileName;
 
-  if (!std::filesystem::exists(full_name_backup)) {
+  if (!nearby::sharing::FileExists(full_name_backup)) {
     NEARBY_LOGS(WARNING)
         << "Backup requested but no backup preferences file found.";
     return std::nullopt;
   }
 
-  std::filesystem::rename(full_name_backup, full_name);
+  if (!nearby::sharing::Rename(full_name_backup, full_name)) {
+    NEARBY_LOGS(ERROR) << "Failed to rename preferences backup file.";
+  }
 
   NEARBY_LOGS(INFO) << "Attempting load from backup preferences.";
   return AttemptLoad();

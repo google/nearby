@@ -53,6 +53,7 @@ cc_library(
         "//base",
         "//base:stringprintf",
         "//internal/base:bluetooth_address",
+        "//internal/base:files",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:uuid",
@@ -214,6 +215,7 @@ cc_library(
         ":crypto",  # build_cleaner: keep
         ":types",
         "//internal/account",
+        "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",

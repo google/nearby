@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "sharing/common/files.h"
+#include "internal/base/files.h"
 
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
@@ -58,6 +58,40 @@ bool RemoveFile(const std::filesystem::path& path) {
   }
   std::error_code error_code;
   return std::filesystem::remove(path, error_code);
+}
+
+std::optional<std::filesystem::path> GetTemporaryDirectory() {
+  std::error_code error_code;
+  std::filesystem::path temp_dir =
+      std::filesystem::temp_directory_path(error_code);
+  if (temp_dir.empty()) {
+    return std::nullopt;
+  }
+  return temp_dir;
+}
+
+std::filesystem::path CurrentDirectory() {
+  // temp_directory_path() returns empty path on error.
+  std::error_code error_code;
+  return std::filesystem::current_path(error_code);
+}
+
+bool Rename(std::filesystem::path old_path, std::filesystem::path new_path) {
+  std::error_code error_code;
+  std::filesystem::rename(old_path, new_path, error_code);
+  if (error_code) {
+    return false;
+  }
+  return true;
+}
+
+bool CreateDirectories(std::filesystem::path path) {
+  std::error_code error_code;
+  std::filesystem::create_directories(path, error_code);
+  if (error_code) {
+    return false;
+  }
+  return true;
 }
 
 }  // namespace nearby::sharing

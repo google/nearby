@@ -14,10 +14,14 @@
 
 #include "internal/platform/device_info_impl.h"
 
+#include <cstddef>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
-#include <system_error>
+#include "absl/strings/string_view.h"
+#include "internal/base/files.h"
+#include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 
@@ -61,7 +65,8 @@ std::filesystem::path DeviceInfoImpl::GetDownloadPath() const {
   if (path.has_value()) {
     return *path;
   }
-  return std::filesystem::temp_directory_path();
+  return nearby::sharing::GetTemporaryDirectory().value_or(
+      nearby::sharing::CurrentDirectory());
 }
 
 std::filesystem::path DeviceInfoImpl::GetAppDataPath() const {
@@ -70,7 +75,8 @@ std::filesystem::path DeviceInfoImpl::GetAppDataPath() const {
   if (path.has_value()) {
     return *path;
   }
-  return std::filesystem::temp_directory_path();
+  return nearby::sharing::GetTemporaryDirectory().value_or(
+      nearby::sharing::CurrentDirectory());
 }
 
 std::filesystem::path DeviceInfoImpl::GetTemporaryPath() const {
@@ -79,7 +85,8 @@ std::filesystem::path DeviceInfoImpl::GetTemporaryPath() const {
   if (path.has_value()) {
     return *path;
   }
-  return std::filesystem::temp_directory_path();
+  return nearby::sharing::GetTemporaryDirectory().value_or(
+      nearby::sharing::CurrentDirectory());
 }
 
 std::optional<size_t> DeviceInfoImpl::GetAvailableDiskSpaceInBytes(

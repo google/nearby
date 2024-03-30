@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_SHARING_COMMON_FILES_H_
-#define THIRD_PARTY_NEARBY_SHARING_COMMON_FILES_H_
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
 
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
@@ -36,6 +36,20 @@ bool DirectoryExists(const std::filesystem::path& path);
 // Returns false if path does not exist, is not a file or cannot be removed.
 bool RemoveFile(const std::filesystem::path& path);
 
+// Returns path to a temporary directory if available.
+std::optional<std::filesystem::path> GetTemporaryDirectory();
+
+// Returns path to the current directory.  On failure returns an empty path.
+std::filesystem::path CurrentDirectory();
+
+// Renames the file at old_path to new_path.
+// Returns true on success.
+bool Rename(std::filesystem::path old_path, std::filesystem::path new_path);
+
+// Creates all directory leading to path.
+// Returns true on success.
+bool CreateDirectories(std::filesystem::path path);
+
 }  // namespace nearby::sharing
 
-#endif  // THIRD_PARTY_NEARBY_SHARING_COMMON_FILES_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_

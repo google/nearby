@@ -18,13 +18,14 @@
 #include <windows.h>
 #include <wtsapi32.h>
 
-#include <filesystem>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/logging.h"
@@ -300,7 +301,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetCommonAppDataPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
-  return std::filesystem::temp_directory_path();
+  return nearby::sharing::GetTemporaryDirectory();
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
