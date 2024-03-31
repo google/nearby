@@ -45,10 +45,7 @@ cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],
-    visibility = [
-        "//connections/implementation:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-    ],
+    visibility = ["//internal/platform/implementation:__subpackages__"],
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:types",
