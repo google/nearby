@@ -151,13 +151,23 @@ bool BleV2::StartAdvertising(const std::string& service_id,
     return false;
   }
 
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_instant_on_loss_advertising) {
+    // Remove existing InstantOnLoss advertisements for this service_id.
+    advertising_infos_.erase(service_id);
+    instant_on_loss_alarms_.erase(service_id);
+  }
+
   advertising_infos_.insert(
-      {service_id,
-       AdvertisingInfo{.medium_advertisement = medium_advertisement,
-                       .power_level = power_level,
-                       .is_fast_advertisement = is_fast_advertisement}});
+      {service_id, AdvertisingInfo{.medium_advertisement = medium_advertisement,
+                                   .power_level = power_level,
+                                   .type = is_fast_advertisement
+                                               ? AdvertisementType::FAST
+                                               : AdvertisementType::REGULAR}});
 
   // Stop the pre-existing BLE advertisement if there is one.
+  // This also stops InstantOnLoss advertisements.
   medium_.StopAdvertising();
 
   if (!StartAdvertisingLocked(service_id)) {
@@ -169,7 +179,12 @@ bool BleV2::StartAdvertising(const std::string& service_id,
 
 bool BleV2::StopAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
-  if (!IsAdvertisingLocked(service_id)) {
+  return StopAdvertisingLocked(service_id);
+}
+
+bool BleV2::StopAdvertisingLocked(const std::string& service_id) {
+  if (!IsAdvertisingLocked(service_id) &&
+      !instant_on_loss_alarms_.contains(service_id)) {
     NEARBY_LOGS(INFO) << "Cannot stop BLE advertising for service_id="
                       << service_id << " because it never started.";
     return false;
@@ -178,6 +193,29 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
   // Stop the BLE advertisement. We will restart it later if necessary.
   NEARBY_LOGS(INFO) << "Turned off BLE advertising with service_id="
                     << service_id;
+
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_instant_on_loss_advertising) {
+    // Cancel an previously registered alarms.
+    instant_on_loss_alarms_.erase(service_id);
+
+    // If there was an existing advertisement, register an InstantOnLoss
+    // advertisement instead.
+    auto active_advertisement = advertising_infos_.find(service_id);
+    if (active_advertisement != advertising_infos_.end() &&
+        active_advertisement->second.type !=
+            AdvertisementType::INSTANT_ON_LOSS) {
+      // Update the existing advertisement to be InstantOnLoss.
+      active_advertisement->second.type = AdvertisementType::INSTANT_ON_LOSS;
+      // Restart advertising to use the new advertisement type.
+      medium_.StopAdvertising();
+      if (StartAdvertisingLocked(service_id)) {
+        return true;
+      }
+    }
+  }
+
   advertising_infos_.erase(service_id);
   medium_.StopAdvertising();
 
@@ -363,9 +401,7 @@ bool BleV2::StopScanning(const std::string& service_id) {
 
   // If no more scanning activities, then stop client scanning.
   NEARBY_LOGS(INFO) << "Turned off BLE client scanning";
-  if (lost_alarm_->IsValid()) {
-    lost_alarm_->Cancel();
-  }
+  lost_alarm_.reset();
   return medium_.StopScanning();
 }
 
@@ -527,7 +563,18 @@ BleV2Socket BleV2::Connect(const std::string& service_id,
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
-  return advertising_infos_.contains(service_id);
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_instant_on_loss_advertising) {
+    auto entry = advertising_infos_.find(service_id);
+    if (entry != advertising_infos_.end() &&
+        entry->second.type != AdvertisementType::INSTANT_ON_LOSS) {
+      return true;
+    }
+    return false;
+  } else {
+    return advertising_infos_.contains(service_id);
+  }
 }
 
 bool BleV2::IsScanningLocked(const std::string& service_id) const {
@@ -772,12 +819,19 @@ bool BleV2::StartAdvertisingLocked(const std::string& service_id) {
   }
 
   const AdvertisingInfo& info = it->second;
-  if (info.is_fast_advertisement) {
-    return StartFastAdvertisingLocked(info.power_level,
-                                      info.medium_advertisement);
-  } else {
-    return StartRegularAdvertisingLocked(service_id, info.power_level,
-                                         info.medium_advertisement);
+  switch (info.type) {
+    case AdvertisementType::REGULAR:
+      return StartRegularAdvertisingLocked(service_id, info.power_level,
+                                           info.medium_advertisement);
+    case AdvertisementType::FAST:
+      return StartFastAdvertisingLocked(info.power_level,
+                                        info.medium_advertisement);
+    case AdvertisementType::INSTANT_ON_LOSS:
+      CHECK(FeatureFlags::GetInstance()
+                .GetFlags()
+                .enable_instant_on_loss_advertising);
+      return StartInstantOnLossAdvertisingLocked(service_id, info.power_level,
+                                                 info.medium_advertisement);
   }
 }
 
@@ -836,7 +890,7 @@ bool BleV2::StartRegularAdvertisingLocked(
     }
   }
 
-  // Start GATT advertisement no matter extended advertisment succeeded or not.
+  // Start GATT advertisement no matter extended advertisement succeeded or not.
   // This is to ensure that legacy devices which don't support extended
   // advertisement can get the advertisement via GATT connection.
   bool gatt_advertisement_success = StartGattAdvertisingLocked(
@@ -844,6 +898,62 @@ bool BleV2::StartRegularAdvertisingLocked(
       medium_advertisement_bytes, extended_regular_advertisement_success);
 
   return extended_regular_advertisement_success || gatt_advertisement_success;
+}
+
+bool BleV2::StartInstantOnLossAdvertisingLocked(
+    const std::string& service_id, PowerLevel power_level,
+    const mediums::BleAdvertisement& medium_advertisement) {
+  CHECK(FeatureFlags::GetInstance()
+            .GetFlags()
+            .enable_instant_on_loss_advertising);
+
+  // Hash the previous advertisement header. Receivers will use this hash to
+  // identify which endpoint is being lost.
+  BleAdvertisementData advertising_data;
+  ByteArray hash = mediums::bleutils::GenerateAdvertisementHash(
+      ByteArray(medium_advertisement));
+  // InstantOnLoss header is [3 bit version][5bit reserved][4byte hash].
+  std::string medium_advertisement_data =
+      absl::StrCat(std::string(1, 0b00100000), std::string(hash));
+
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data.insert(
+      {mediums::bleutils::kCopresenceServiceUuid,
+       ByteArray(medium_advertisement_data)});
+
+  // Start the InstantOnLoss advertising operation.
+  if (!medium_.StartAdvertising(
+          advertising_data,
+          {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
+           .is_connectable = false})) {
+    NEARBY_LOGS(ERROR) << "Failed to turn on BLE InstantOnLoss advertising "
+                          "with advertisement bytes="
+                       << absl::BytesToHexString(medium_advertisement_data);
+    return false;
+  }
+
+  absl::Duration instant_on_loss_duration =
+      absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_connections_feature::
+              kBleInstantOnLossDurationMillis));
+  auto [entry, did_create_alarm] = instant_on_loss_alarms_.try_emplace(
+      service_id, std::make_unique<CancelableAlarm>(
+                      "BLE InstantOnLoss expire",
+                      [this, service_id]() {
+                        RunOnBleThread([this, service_id]() {
+                          MutexLock lock(&mutex_);
+                          StopAdvertisingLocked(service_id);
+                        });
+                      },
+                      instant_on_loss_duration, &alarm_executor_));
+  if (!did_create_alarm) {
+    NEARBY_LOGS(ERROR) << "Failed to create InstantOnLoss alarm: "
+                       << service_id;
+    StopAdvertisingLocked(service_id);
+    return false;
+  };
+
+  return true;
 }
 
 bool BleV2::StartGattAdvertisingLocked(
@@ -1029,9 +1139,7 @@ bool BleV2::StopAsyncScanningLocked(absl::string_view service_id) {
   service_ids_to_scanning_sessions_.erase(scanning_session);
 
   NEARBY_LOGS(INFO) << "Turned off BLE client scanning";
-  if (lost_alarm_->IsValid()) {
-    lost_alarm_->Cancel();
-  }
+  lost_alarm_.reset();
   return true;
 }
 

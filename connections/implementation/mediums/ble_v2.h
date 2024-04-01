@@ -125,10 +125,16 @@ class BleV2 final {
   }
 
  private:
+  enum AdvertisementType {
+    REGULAR,
+    FAST,
+    INSTANT_ON_LOSS,
+  };
+
   struct AdvertisingInfo {
     mediums::BleAdvertisement medium_advertisement;
     PowerLevel power_level;
-    bool is_fast_advertisement;
+    AdvertisementType type;
   };
 
   // Same as IsAvailable(), but must be called with `mutex_` held.
@@ -169,11 +175,17 @@ class BleV2 final {
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   bool StartAdvertisingLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StopAdvertisingLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartFastAdvertisingLocked(
       PowerLevel power_level,
       const mediums::BleAdvertisement& medium_advertisement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartRegularAdvertisingLocked(
+      const std::string& service_id, PowerLevel power_level,
+      const mediums::BleAdvertisement& medium_advertisement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartInstantOnLossAdvertisingLocked(
       const std::string& service_id, PowerLevel power_level,
       const mediums::BleAdvertisement& medium_advertisement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -219,6 +231,8 @@ class BleV2 final {
   std::unique_ptr<CancelableAlarm> lost_alarm_;
   mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
       ABSL_GUARDED_BY(mutex_){medium_.IsExtendedAdvertisementsAvailable()};
+  absl::flat_hash_map<std::string, std::unique_ptr<CancelableAlarm>>
+      instant_on_loss_alarms_;
 
   // A thread pool dedicated to running all the accept loops from
   // StartAcceptingConnections().

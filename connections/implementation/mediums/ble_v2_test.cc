@@ -304,6 +304,62 @@ TEST_F(BleV2Test, CanStartAdvertising) {
   env_.Stop();
 }
 
+TEST_P(BleV2Test, SendsInstantOnLossAdvertisement) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  BleV2 ble_a(radio_a);
+  BleV2 ble_b(radio_b);
+  radio_a.Enable();
+  radio_b.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  ble_b.StartAdvertising(std::string(kServiceIDA), advertisement_bytes,
+                         PowerLevel::kHighPower,
+                         /*is_fast_advertisement=*/true);
+
+  ble_a.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+          .peripheral_lost_cb =
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
+      });
+
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+
+  ble_b.StopAdvertising(std::string(kServiceIDA));
+  if (feature_flags.enable_instant_on_loss_advertising) {
+    // Do not wait for the device lost alarm, instead expect an immediate
+    // InstantOnLoss advertisement to trigger the device lost event.
+    EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+    // TODO(b/332402335): Ensure advertising is stopped after specific duration.
+  } else {
+    EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
+    // Wait for a while (2 times delay) to let the alarm occur twice and
+    // `ProcessLostGattAdvertisements` twice to lost peripheral.
+    SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
+    EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  }
+
+  ble_a.StopScanning(std::string(kServiceIDA));
+  env_.Stop();
+}
+
 TEST_F(BleV2Test, CanStartScanning) {
   env_.Start();
   BluetoothRadio radio_a;

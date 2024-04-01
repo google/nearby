@@ -39,19 +39,23 @@ class CancelableAlarm {
   CancelableAlarm(absl::string_view name, absl::AnyInvocable<void()>&& runnable,
                   absl::Duration delay, ScheduledExecutor* scheduled_executor,
                   bool is_recurring = false)
-      : name_(name), scheduled_executor_(scheduled_executor), delay_(delay) {
-    if (is_recurring) {
-      runnable_ = std::move(runnable);
-      Schedule();
-    } else {
-      cancelable_ = scheduled_executor_->Schedule(std::move(runnable), delay_);
-    }
+      : name_(name),
+        scheduled_executor_(scheduled_executor),
+        delay_(delay),
+        runnable_(std::move(runnable)),
+        is_recurring_(is_recurring) {
+    Schedule();
   }
-  ~CancelableAlarm() = default;
+  ~CancelableAlarm() { Cancel(); }
 
   bool Cancel() {
     MutexLock lock(&mutex_);
-    return cancelable_.Cancel();
+    if (is_cancelable_) {
+      is_cancelable_ = false;
+      return cancelable_.Cancel();
+    } else {
+      return false;
+    }
   }
 
   bool IsValid() {
@@ -65,7 +69,11 @@ class CancelableAlarm {
     cancelable_ = scheduled_executor_->Schedule(
         [this]() {
           runnable_();
-          Schedule();
+          if (is_recurring_) {
+            Schedule();
+          } else {
+            is_cancelable_ = false;
+          }
         },
         delay_);
   }
@@ -76,6 +84,8 @@ class CancelableAlarm {
   ScheduledExecutor* scheduled_executor_;
   absl::Duration delay_;
   absl::AnyInvocable<void()> runnable_;
+  bool is_recurring_;
+  bool is_cancelable_ = true;
 };
 
 }  // namespace nearby

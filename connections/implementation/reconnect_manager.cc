@@ -113,15 +113,14 @@ bool ReconnectManager::AutoReconnect(
     auto time_out = FeatureFlags::GetInstance()
                         .GetFlags()
                         .auto_reconnect_skip_duplicated_endpoint_duration;
-    std::make_unique<CancelableAlarm>(
-        absl::StrCat("RemoveSuccessfulResumedEndpointId for ", endpoint_id),
+    alarm_executor_.Schedule(
         [this, endpoint_id, time_out]() {
           NEARBY_LOGS(INFO)
               << TAG << "Timeout after " << time_out
               << "ms. RemoveSuccessfulResumedEndpointId for " << endpoint_id;
           resumed_endpoints_.erase(endpoint_id);
         },
-        time_out, &alarm_executor_);
+        time_out);
 
     return true;
   }
@@ -319,13 +318,12 @@ bool ReconnectManager::BaseMediumImpl::RehostForIncomingConnections() {
             });
           });
 
-  std::make_unique<CancelableAlarm>(
-      absl::StrCat(TAG, " unregisterOnCancelListener"),
+  reconnect_manager_.alarm_executor_.Schedule(
       [cancellation_listener = std::move(cancellation_listener)]() mutable {
         // clean up the listener after auto reconnect is done.
         cancellation_listener.reset();
       },
-      time_out, &reconnect_manager_.alarm_executor_);
+      time_out);
   return true;
 }
 
@@ -723,20 +721,12 @@ bool ReconnectManager::BaseMediumImpl::HasPendingIncomingConnections(
   return false;
 }
 
-void ReconnectManager::BaseMediumImpl::
-    CancelClearHostTimeoutAlarm(const std::string& service_id) {
+void ReconnectManager::BaseMediumImpl::CancelClearHostTimeoutAlarm(
+    const std::string& service_id) {
   MutexLock lock(&reconnect_manager_.mutex_);
-  auto item =
-      reconnect_manager_.listen_timeout_alarm_by_service_id_.find(service_id);
-  if (item == reconnect_manager_.listen_timeout_alarm_by_service_id_.end())
-    return;
-
-  if (item->second->IsValid()) {
-    item->second->Cancel();
-    item->second.reset();
-  }
-  reconnect_manager_.listen_timeout_alarm_by_service_id_.erase(item);
+  reconnect_manager_.listen_timeout_alarm_by_service_id_.erase(service_id);
 }
+
 void ReconnectManager::BaseMediumImpl::
     ClearReconnectData(const std::string& service_id, bool is_incoming) {
   auto& metadata_map = reconnect_manager_.endpoint_id_metadata_map_;

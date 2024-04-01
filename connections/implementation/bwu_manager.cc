@@ -160,7 +160,10 @@ void BwuManager::Shutdown() {
     channel->Close(DisconnectionReason::SHUTDOWN);
   }
 
-  CancelAllRetryUpgradeAlarms();
+  NEARBY_LOGS(INFO) << "Cancelling all retry upgrade alarms.";
+  retry_upgrade_alarms_.clear();
+  retry_delays_.clear();
+
   medium_ = Medium::UNKNOWN_MEDIUM;
   endpoint_id_to_bwu_medium_.clear();
   for (auto& medium_handler_pair : handlers_) {
@@ -1448,23 +1451,9 @@ absl::Duration BwuManager::CalculateNextRetryDelay(
 }
 
 void BwuManager::CancelRetryUpgradeAlarm(const std::string& endpoint_id) {
-  NEARBY_LOGS(INFO) << "CancelRetryUpgradeAlarm for endpoint " << endpoint_id;
-  auto item = retry_upgrade_alarms_.extract(endpoint_id);
-  if (item.empty()) return;
-  auto& pair = item.mapped();
-  pair.first->Cancel();
-}
-
-void BwuManager::CancelAllRetryUpgradeAlarms() {
-  NEARBY_LOGS(INFO) << "CancelAllRetryUpgradeAlarms invoked";
-  for (auto& item : retry_upgrade_alarms_) {
-    const std::string& endpoint_id = item.first;
-    CancelableAlarm* cancellable_alarm = item.second.first.get();
-    NEARBY_LOGS(INFO) << "CancelRetryUpgradeAlarm for endpoint " << endpoint_id;
-    cancellable_alarm->Cancel();
-  }
-  retry_upgrade_alarms_.clear();
-  retry_delays_.clear();
+  NEARBY_LOGS(INFO) << "Cancelling retry upgrade alarm for endpoint "
+                    << endpoint_id;
+  retry_upgrade_alarms_.erase(endpoint_id);
 }
 
 }  // namespace connections
