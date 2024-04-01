@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 import PackageDescription
 
@@ -13,23 +13,22 @@ let package = Package(
   products: [
     // Products define the executables and libraries a package produces, and make them visible to other packages.
     .library(
-      name: "NearbyCoreAdapter",
-      targets: ["NearbyCoreAdapter"]
+      name: "NearbyConnections",
+      targets: ["NearbyConnections"]
     ),
     .library(
-      name: "NearbyConnections",
+      name: "NearbyConnectionsDynamic",
+      type: .dynamic,
       targets: ["NearbyConnections"]
     ),
   ],
   dependencies: [
     // Dependencies declare other packages that this package depends on.
     .package(
-      name: "abseil",
       url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
-      branch: "cxx17"
+      branch: "cxx17-test"
     ),
     .package(
-      name: "BoringSSL-GRPC",
       url: "https://github.com/firebase/boringssl-SwiftPM.git",
       "0.7.1"..<"0.8.0"
     ),
@@ -172,8 +171,8 @@ let package = Package(
       name: "ukey2",
       dependencies: [
         "protobuf",
-        .product(name: "abseil", package: "abseil"),
-        .product(name: "openssl_grpc", package: "BoringSSL-GRPC"),
+        .product(name: "AbseilCXX17", package: "abseil-cpp-SwiftPM"),
+        .product(name: "openssl_grpc", package: "boringssl-SwiftPM", moduleAliases: ["NearbySSL": "openssl_grpc"]),
       ],
       path: "third_party/ukey2",
       exclude: [
@@ -362,7 +361,7 @@ let package = Package(
         "smhasher",
         "ukey2",
         "protobuf",
-        .product(name: "abseil", package: "abseil"),
+        .product(name: "AbseilCXX17", package: "abseil-cpp-SwiftPM"),
       ],
       path: ".",
       exclude: [
