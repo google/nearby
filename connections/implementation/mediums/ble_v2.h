@@ -78,6 +78,18 @@ class BleV2 final {
   bool IsAdvertising(const std::string& service_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Use dummy bytes to do ble advertising, only for legacy devices.
+  // Returns true, if data is successfully set, and false otherwise.
+  bool StartLegacyAdvertising(
+      const std::string& service_id, const std::string& local_endpoint_id,
+      const std::string& fast_advertisement_service_uuid)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // (TODO:hais) update this after ble_v2 async api refactor.
+  // Stop Ble advertising with dummy bytes for legagy device.
+  bool StopLegacyAdvertising(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Enables BLE scanning for a service ID. Will report any discoverable
   // advertisement data through a callback.
   // Returns true, if the scanning is successfully enabled, false otherwise.
@@ -167,6 +179,10 @@ class BleV2 final {
   ByteArray CreateAdvertisementHeader(int psm,
                                       bool extended_advertisement_advertised)
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+
+  // For devices that don't have extended nor gatt adverting.
+  api::ble_v2::BleAdvertisementData CreateAdvertisingDataForLegacyDevice();
+
   bool StartAdvertisingLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartFastAdvertisingLocked(
@@ -216,6 +232,11 @@ class BleV2 final {
   absl::flat_hash_map<std::string,
                       std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>>
       service_ids_to_scanning_sessions_ ABSL_GUARDED_BY(mutex_);
+  // Save advertising sessions by service id, used by the async StartAdvertising
+  // method.
+  absl::flat_hash_map<
+      std::string, std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>>
+      service_ids_to_advertising_sessions_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<CancelableAlarm> lost_alarm_;
   mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
       ABSL_GUARDED_BY(mutex_){medium_.IsExtendedAdvertisementsAvailable()};

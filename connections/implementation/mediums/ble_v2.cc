@@ -30,6 +30,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
+#include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/power_level.h"
@@ -228,6 +229,96 @@ bool BleV2::IsAdvertising(const std::string& service_id) const {
   MutexLock lock(&mutex_);
 
   return IsAdvertisingLocked(service_id);
+}
+
+bool BleV2::StartLegacyAdvertising(
+    const std::string& input_service_id, const std::string& local_endpoint_id,
+    const std::string& fast_advertisement_service_uuid) {
+  NEARBY_LOGS(INFO) << "StartLegacyAdvertising: " << input_service_id.c_str()
+                    << ", local_endpoint_id: " << local_endpoint_id.c_str();
+  MutexLock lock(&mutex_);
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO) << "Can't start BLE v2 legacy advertising because "
+                         "Bluetooth was never turned on";
+    return false;
+  }
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn on BLE v2 legacy advertising. BLE is not available.";
+    return false;
+  }
+  // Checking to avoid conflicts to the bool StartAdvertsing invokes.
+  // TODO(hais) remove this if check after deprecating bool StartAdvertising.
+  if (IsAdvertisingLocked(input_service_id)) {
+    NEARBY_LOGS(INFO) << "Failed to BLE v2 legacy device advertise as ble is "
+                         "already advertising.";
+    return false;
+  }
+  std::string service_id = input_service_id + "-Legacy";
+  if (service_ids_to_advertising_sessions_.find(service_id) !=
+      service_ids_to_advertising_sessions_.end()) {
+    NEARBY_LOGS(INFO) << "Already started legacy device advertising for "
+                      << service_id;
+    return false;
+  }
+
+  std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
+      legacy_device_advertizing_session = medium_.StartAdvertising(
+          CreateAdvertisingDataForLegacyDevice(),
+          {.tx_power_level = TxPowerLevel::kMedium, .is_connectable = true},
+          api::ble_v2::BleMedium::AdvertisingCallback{
+              .start_advertising_result =
+                  [this, &service_id](absl::Status status) mutable {
+                    AssumeHeld(mutex_);
+                    if (status.ok()) {
+                      NEARBY_LOGS(INFO)
+                          << "BLE V2 advertising for legacy device started "
+                             "successfully for service ID "
+                          << &service_id;
+                    } else {
+                      NEARBY_LOGS(ERROR) << "BLE V2 advertising for legacy "
+                                            "device failed for service ID "
+                                         << &service_id << ": " << status;
+                      service_ids_to_advertising_sessions_.erase(service_id);
+                    }
+                  },
+          });
+  if (legacy_device_advertizing_session == nullptr) {
+    NEARBY_LOGS(ERROR) << "Failed to turn on BLE v2 advertising for legacy "
+                          "device for service ID "
+                       << service_id;
+    return false;
+  }
+
+  service_ids_to_advertising_sessions_.insert(
+      {std::string(service_id), std::move(legacy_device_advertizing_session)});
+  return true;
+}
+
+bool BleV2::StopLegacyAdvertising(const std::string& input_service_id) {
+  NEARBY_LOGS(INFO) << "StopLegacyAdvertising:" << input_service_id.c_str();
+  MutexLock lock(&mutex_);
+
+  std::string service_id = input_service_id + "-Legacy";
+  auto legacy_device_advertising_session =
+      service_ids_to_advertising_sessions_.find(service_id);
+  if (legacy_device_advertising_session ==
+      service_ids_to_advertising_sessions_.end()) {
+    NEARBY_LOGS(INFO) << "Can't find session to turn off legacy device BLE "
+                         "advertisingfor this service ID: "
+                      << service_id;
+    return false;
+  }
+  absl::Status status =
+      legacy_device_advertising_session->second->stop_advertising();
+
+  if (!status.ok()) {
+    NEARBY_LOGS(WARNING) << "StopLegacyAdvertising error: " << status;
+  }
+  service_ids_to_advertising_sessions_.erase(legacy_device_advertising_session);
+  NEARBY_LOGS(INFO) << "Removed advertising-session for " << service_id;
+  return status.ok();
 }
 
 bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
@@ -761,6 +852,19 @@ ByteArray BleV2::CreateAdvertisementHeader(
       extended_advertisement_advertised,
       /*num_slots=*/gatt_advertisements_.size(), ByteArray(bloom_filter),
       advertisement_hash, psm));
+}
+
+api::ble_v2::BleAdvertisementData
+BleV2::CreateAdvertisingDataForLegacyDevice() {
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+
+  ByteArray encoded_bytes{
+      mediums::DiscoveredPeripheralTracker::kDummyAdvertisementValue};
+
+  advertising_data.service_data.insert(
+      {mediums::bleutils::kCopresenceServiceUuid, encoded_bytes});
+  return advertising_data;
 }
 
 bool BleV2::StartAdvertisingLocked(const std::string& service_id) {

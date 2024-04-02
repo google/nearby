@@ -47,6 +47,8 @@ constexpr absl::string_view kServiceIDB =
     "com.google.location.nearby.apps.test.b";
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
 constexpr absl::string_view kAdvertisementStringB = "\x01\x02\x03\x04";
+constexpr absl::string_view kLocalEndpointId = "local_endpoint_id";
+constexpr absl::string_view kFastAdvertisementServiceUuid{"\xf3\xfe"};
 
 class BleV2Test : public testing::TestWithParam<FeatureFlags> {
  public:
@@ -575,6 +577,126 @@ TEST_F(BleV2Test, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
   // cancelled the alarm.
   EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
 
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartAndStopLegacyAdvertising) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a{radio_a};
+  radio_a.Enable();
+  std::string service_id(kServiceIDA);
+  EXPECT_TRUE(
+      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
+                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_FALSE(ble_a.IsAdvertising(service_id));
+  EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotStartLegacyAdvertisingWhenRadioNotEnabled) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a{radio_a};
+  radio_a.Disable();
+  std::string service_id(kServiceIDA);
+  EXPECT_FALSE(
+      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
+                                   std::string(kFastAdvertisementServiceUuid)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotStopLegacyAdvertisingForNonExistingServiceId) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a{radio_a};
+  radio_a.Enable();
+  std::string service_id(kServiceIDA);
+  EXPECT_FALSE(ble_a.StopLegacyAdvertising(service_id));
+  EXPECT_TRUE(
+      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
+                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, StartLegacyAdvertisingBlockedByRegularAdvertising) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a{radio_a};
+  radio_a.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+
+  ble_a.StartAdvertising(std::string(kServiceIDA), advertisement_bytes,
+                         PowerLevel::kHighPower,
+                         /*is_fast_advertisement=*/false);
+  EXPECT_TRUE(ble_a.IsAdvertising(service_id));
+  EXPECT_FALSE(
+      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
+                                   std::string(kFastAdvertisementServiceUuid)));
+  ble_a.StopAdvertising(std::string(kServiceIDA));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, DuplicateStartLegacyAdvertisingReturnsFalse) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a{radio_a};
+  radio_a.Enable();
+  std::string service_id(kServiceIDA);
+  EXPECT_TRUE(
+      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
+                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_FALSE(
+      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
+                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, HandleLegacyAdvertising) {
+  env_.SetFeatureFlags(
+      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true,
+                    .enable_invoking_legacy_device_discovered_cb = true}});
+  env_.Start();
+  BluetoothRadio radio_a;
+  BluetoothRadio radio_b;
+  BleV2 ble_a(radio_a);
+  BleV2 ble_b(radio_b);
+  radio_a.Enable();
+  radio_b.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch legacy_device_found_latch(1);
+
+  ble_b.StartLegacyAdvertising(std::string(kServiceIDA),
+                               std::string(kLocalEndpointId),
+                               std::string(kFastAdvertisementServiceUuid));
+  std::string legacy_service_id("NearbySharing");
+  EXPECT_TRUE(ble_a.StartScanning(
+      legacy_service_id, PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [](BleV2Peripheral peripheral, const std::string& service_id,
+                 const ByteArray& advertisement_bytes,
+                 bool fast_advertisement) {
+                FAIL() << "Legacy device shouldn't be reported here.";
+              },
+          .legacy_device_discovered_cb =
+              [&legacy_device_found_latch]() {
+                legacy_device_found_latch.CountDown();
+              },
+      }));
+
+  EXPECT_TRUE(legacy_device_found_latch.Await(kWaitDuration).result());
+  ble_b.StopAdvertising(std::string(kServiceIDA));
+  EXPECT_TRUE(ble_a.StopScanning(legacy_service_id));
   env_.Stop();
 }
 
