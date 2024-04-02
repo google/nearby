@@ -80,7 +80,7 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
             {id, ScanSessionState{
                      .request = scan_request,
                      .callback = std::move(scan_callback),
-                     .decoder = AdvertisementDecoder(),
+                     .decoder = AdvertisementDecoderImpl(),
                      .advertisement_filter = AdvertisementFilter(scan_request),
                      .scanning_session = mediums_->GetBle().StartScanning(
                          scan_request, std::move(callback))}});
@@ -211,7 +211,7 @@ void ScanManager::UpdateCredentials(ScanSessionId id,
 
   ScanSessionState& session = it->second;
   session.credentials[identity_type] = std::move(credentials);
-  session.decoder = AdvertisementDecoder(&session.credentials);
+  session.decoder = AdvertisementDecoderImpl(&session.credentials);
 }
 
 int ScanManager::ScanningCallbacksLengthForTest() {

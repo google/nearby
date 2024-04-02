@@ -25,9 +25,27 @@ bool_flag(
     build_setting_default = False,
 )
 
+bool_flag(
+    name = "enable_rust_decoder",
+    build_setting_default = False,
+)
+
 config_setting(
     name = "no_link_with_rust",
     flag_values = {
+        ":enable_rust_ldt": "false",
+        ":enable_rust_decoder": "false",
+    },
+)
+
+# In order to build with the rust decoder turned on use:
+#   blaze build third_party/nearby/presence/implementation:internal /
+#    --//third_party/nearby/presence/implementation:enable_rust_decoder /
+#    --no//third_party/nearby/presence/implementation:enable_rust_ldt
+config_setting(
+    name = "use_rust_decoder",
+    flag_values = {
+        ":enable_rust_decoder": "true",
         ":enable_rust_ldt": "false",
     },
 )
@@ -52,7 +70,6 @@ cc_library(
     name = "internal",
     srcs = [
         "action_factory.cc",
-        "advertisement_decoder.cc",
         "advertisement_factory.cc",
         "advertisement_filter.cc",
         "base_broadcast_request.cc",
@@ -62,7 +79,14 @@ cc_library(
         "ldt.cc",
         "scan_manager.cc",
         "service_controller_impl.cc",
-    ],
+    ] + select({
+        ":use_rust_decoder": [
+            "advertisement_decoder_rust_impl.cc",
+        ],
+        "//conditions:default": [
+            "advertisement_decoder_impl.cc",
+        ],
+    }),
     hdrs = [
         "action_factory.h",
         "advertisement_decoder.h",
@@ -78,9 +102,17 @@ cc_library(
         "scan_manager.h",
         "service_controller.h",
         "service_controller_impl.h",
-    ],
+    ] + select({
+        ":use_rust_decoder": [
+            "advertisement_decoder_rust_impl.h",
+        ],
+        "//conditions:default": [
+            "advertisement_decoder_impl.h",
+        ],
+    }),
     defines = select({
         ":norust_or_windows_or_android": [],
+        ":use_rust_decoder": ["USE_RUST_DECODER=1"],
         "//conditions:default": ["USE_RUST_LDT=1"],
     }),
     visibility = [
@@ -117,6 +149,7 @@ cc_library(
         "@com_google_absl//absl/types:variant",
     ] + select({
         ":norust_or_windows_or_android": [":ldt_stub"],
+        ":use_rust_decoder": ["//third_party/beto_core/nearby/presence/np_cpp_ffi"],
         "//conditions:default": ["//third_party/beto_core/nearby/presence/ldt_np_adv_ffi"],
     }),
 )

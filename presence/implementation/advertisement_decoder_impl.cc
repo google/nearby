@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/implementation/advertisement_decoder.h"
+#include "presence/implementation/advertisement_decoder_impl.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +30,7 @@
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/action_factory.h"
+#include "presence/implementation/advertisement_decoder.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/ldt.h"
 
@@ -238,10 +239,8 @@ absl::Status DecryptDataElements(
   return absl::OkStatus();
 }
 
-absl::StatusOr<Advertisement> AdvertisementDecoder::DecodeAdvertisement(
+absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
     absl::string_view advertisement) {
-  // Let's keep the result advertisement in a member variable to avoid passing
-  // it around all the time.
   Advertisement decoded_advertisement = Advertisement{};
   std::vector<DataElement> result;
   NEARBY_LOGS(INFO) << "Advertisement: "

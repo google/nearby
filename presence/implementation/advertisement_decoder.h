@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ADVERTISEMENT_DECODER_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ADVERTISEMENT_DECODER_H_
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -29,6 +28,7 @@
 namespace nearby {
 namespace presence {
 
+// The structured decoded form of a detected Nearby Presence advertisement
 struct Advertisement {
   uint8_t version = 0;
   std::vector<DataElement> data_elements;
@@ -38,30 +38,22 @@ struct Advertisement {
   std::string metadata_key;
 };
 
-// Decodes BLE NP advertisements
+// Interface for decoding Nearby Presence advertisements from a payload of raw
+// bytes into a structured, decrypted, and decoded format
 class AdvertisementDecoder {
  public:
-  explicit AdvertisementDecoder(
-      absl::flat_hash_map<internal::IdentityType,
-                          std::vector<internal::SharedCredential>>*
-          credentials_map)
-      : credentials_map_(credentials_map) {};
+  // Is needed otherwise deleting an instance via a pointer to a base class
+  // results in undefined behavior
+  virtual ~AdvertisementDecoder() = default;
 
-  explicit AdvertisementDecoder() = default;
-
-  // Returns a list of Data Elements decoded from the advertisement.
-  // Returns an error if the advertisement is misformatted or if it couldn't be
-  // decrypted.
-  absl::StatusOr<Advertisement> DecodeAdvertisement(
-      absl::string_view advertisement);
-
- private:
-  absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::SharedCredential>>*
-      credentials_map_ = nullptr;
+  // Returns the structured and decoded contents of an advertisement given a
+  // payload of bytes as a string. Returns an error if the advertisement is
+  // misformatted or if it couldn't be decrypted.
+  virtual absl::StatusOr<Advertisement> DecodeAdvertisement(
+      absl::string_view advertisement) = 0;
 };
 
 }  // namespace presence
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ADVERTISEMENT_DECODER_H_
