@@ -44,11 +44,12 @@ std::filesystem::path CurrentDirectory();
 
 // Renames the file at old_path to new_path.
 // Returns true on success.
-bool Rename(std::filesystem::path old_path, std::filesystem::path new_path);
+bool Rename(const std::filesystem::path& old_path,
+            const std::filesystem::path& new_path);
 
 // Creates all directory leading to path.
 // Returns true on success.
-bool CreateDirectories(std::filesystem::path path);
+bool CreateDirectories(const std::filesystem::path& path);
 
 }  // namespace nearby::sharing
 

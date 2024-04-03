@@ -86,7 +86,7 @@ bool PreferencesRepository::SavePreferences(json preferences) {
       }
     }
 
-    std::ofstream preferences_file(full_name.c_str());
+    std::ofstream preferences_file(full_name);
     preferences_file << preferences;
     preferences_file.close();
 
@@ -114,13 +114,13 @@ bool PreferencesRepository::SavePreferences(json preferences) {
 std::optional<json> PreferencesRepository::AttemptLoad() {
   std::filesystem::path path = path_;
   std::filesystem::path full_name = path / kPreferencesFileName;
-  if (!nearby::sharing::FileExists(path) ||
+  if (!nearby::sharing::DirectoryExists(path) ||
       !nearby::sharing::FileExists(full_name)) {
     return std::nullopt;
   }
 
   try {
-    std::ifstream preferences_file(full_name.c_str());
+    std::ifstream preferences_file(full_name);
     if (!preferences_file.good()) {
       return std::nullopt;
     }

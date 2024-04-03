@@ -76,7 +76,8 @@ std::filesystem::path CurrentDirectory() {
   return std::filesystem::current_path(error_code);
 }
 
-bool Rename(std::filesystem::path old_path, std::filesystem::path new_path) {
+bool Rename(const std::filesystem::path& old_path,
+            const std::filesystem::path& new_path) {
   std::error_code error_code;
   std::filesystem::rename(old_path, new_path, error_code);
   if (error_code) {
@@ -85,7 +86,7 @@ bool Rename(std::filesystem::path old_path, std::filesystem::path new_path) {
   return true;
 }
 
-bool CreateDirectories(std::filesystem::path path) {
+bool CreateDirectories(const std::filesystem::path& path) {
   std::error_code error_code;
   std::filesystem::create_directories(path, error_code);
   if (error_code) {
