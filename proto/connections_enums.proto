@@ -845,6 +845,36 @@ enum OperationResultCode {
   CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR = 3557;
   // Different frequencies between group and AP frequencies
   CONNECTIVITY_DIRECT_GROUP_MCC_FAILURE = 3558;
+  // Payloads IOError due to endpoint get IOException on BLE medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE = 3559;
+  // Payloads IOError due to endpoint get IOException on L2CAP medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE_L2CAP = 3560;
+  // Payloads IOError due to endpoint get IOException on BT medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_BT = 3561;
+  // Payloads IOError due to endpoint get IOException on WebRtc medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WEB_RTC = 3562;
+  // Payloads IOError due to endpoint get IOException on Lan medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_LAN = 3563;
+  // Payloads IOError due to endpoint get IOException on WFD medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_DIRECT = 3564;
+  // Payloads IOError due to endpoint get IOException on Hotspot medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_HOTSPOT = 3565;
+  // Payloads IOError due to endpoint get IOException on Aware medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_AWARE = 3566;
+  // Payloads IOError due to endpoint get IOException on NFC medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_NFC = 3567;
+  // Payloads IOError due to endpoint get IOException on USB medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_USB = 3568;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
