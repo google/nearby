@@ -8,9 +8,7 @@ cc_library(
     copts = [
         "-Ithird_party",
     ],
-    visibility = [
-        "//fastpair:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//internal/network:types",
         "@com_google_absl//absl/functional:any_invocable",
