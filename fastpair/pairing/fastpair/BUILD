@@ -24,10 +24,7 @@ cc_library(
         "fast_pair_pairer_impl.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [
-        "//fastpair:__subpackages__",
-        "//internal:__subpackages__",
-    ],
+    visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",
         "//fastpair/crypto",
