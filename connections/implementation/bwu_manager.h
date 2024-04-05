@@ -185,7 +185,6 @@ class BwuManager : public EndpointManager::FrameProcessor {
                                   const std::string& endpoint_id,
                                   const UpgradePathInfo& upgrade_info);
   void CancelRetryUpgradeAlarm(const std::string& endpoint_id);
-  void CancelAllRetryUpgradeAlarms();
   void TryNextBestUpgradeMediums(ClientProxy* client,
                                  const std::string& endpoint_id,
                                  std::vector<Medium> upgrade_mediums);

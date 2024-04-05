@@ -161,11 +161,7 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
   info.signaling_messenger.reset();
 
   // Cancel the scheduled alarm.
-  if (info.restart_tachyon_receive_messages_alarm &&
-      info.restart_tachyon_receive_messages_alarm->IsValid()) {
-    info.restart_tachyon_receive_messages_alarm->Cancel();
-    info.restart_tachyon_receive_messages_alarm.reset();
-  }
+  info.restart_tachyon_receive_messages_alarm.reset();
 
   // If we had any in-progress connections that haven't materialized into full
   // DataChannels yet, it's time to shut them down since they can't reach us

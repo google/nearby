@@ -1199,10 +1199,7 @@ void BasePcpHandler::StopEndpointLostByMediumAlarm(
     absl::string_view endpoint_id,
     location::nearby::proto::connections::Medium medium) {
   std::string key = GetEndpointLostByMediumAlarmKey(endpoint_id, medium);
-  if (endpoint_lost_by_medium_alarms_.contains(key)) {
-    endpoint_lost_by_medium_alarms_[key]->Cancel();
-    endpoint_lost_by_medium_alarms_.erase(key);
-  }
+  endpoint_lost_by_medium_alarms_.erase(key);
 }
 
 mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
@@ -1501,12 +1498,7 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
   RunOnPcpHandlerThread(
       "on-endpoint-disconnect", [this, client, endpoint_id, barrier,
                                  reason]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        auto item = pending_alarms_.find(endpoint_id);
-        if (item != pending_alarms_.end()) {
-          auto& alarm = item->second;
-          alarm->Cancel();
-          pending_alarms_.erase(item);
-        }
+        pending_alarms_.erase(endpoint_id);
         ProcessPreConnectionResultFailure(
             client, endpoint_id,
             /* should_call_disconnect_endpoint= */ false, reason);

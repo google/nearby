@@ -76,5 +76,18 @@ TEST(CancelableAlarmTest, CanCreateRecurringAlarm) {
   EXPECT_EQ(count.Get(), 2);
 }
 
+TEST(CancelableAlarmTest, DestructedAlarmDoesNotFire) {
+  ScheduledExecutor alarm_executor;
+  AtomicBoolean done{false};
+  // Create the alarm in a nested scope so that it is immediately dropped.
+  {
+    CancelableAlarm alarm(
+        "test_alarm", [&done]() { done.Set(true); }, absl::Milliseconds(100),
+        &alarm_executor);
+  }
+  SystemClock::Sleep(absl::Milliseconds(1000));
+  EXPECT_FALSE(done.Get());
+}
+
 }  // namespace
 }  // namespace nearby

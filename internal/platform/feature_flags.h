@@ -65,6 +65,9 @@ class FeatureFlags {
     // Controls enable or disable the use of async methods for StartScanning,
     // StopScanning, StartAdvertising, and StopAdvertising for BLE V2.
     bool enable_ble_v2_async_scanning_advertising = false;
+    // Enable InstantOnLoss advertising whenever the BLE V2 medium stops
+    // advertising.
+    bool enable_instant_on_loss_advertising = false;
     // Enable legacy device discovered callback being used inside ble v2
     // DiscoverPeripheralTracker flow.
     bool enable_invoking_legacy_device_discovered_cb = false;
