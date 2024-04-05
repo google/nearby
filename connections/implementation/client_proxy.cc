@@ -183,7 +183,8 @@ void ClientProxy::StartedAdvertising(
         << "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: client="
         << GetClientId() << "; local_high_vis_mode_cache_endpoint_id_="
         << local_high_vis_mode_cache_endpoint_id_;
-    CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+    // Cancel any previously registered alarm.
+    clear_local_high_vis_mode_cache_endpoint_id_alarm_.reset();
   }
 
   advertising_info_ = {service_id, listener};
@@ -1047,7 +1048,8 @@ void ClientProxy::ExitHighVisibilityMode() {
 }
 
 void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
-  CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+  // Cancel any previously registered alarm.
+  clear_local_high_vis_mode_cache_endpoint_id_alarm_.reset();
 
   if (local_high_vis_mode_cache_endpoint_id_.empty()) {
     NEARBY_LOGS(VERBOSE) << "ClientProxy [There is no cached local high power "
@@ -1077,14 +1079,6 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
           },
           kHighPowerAdvertisementEndpointIdCacheTimeout,
           &single_thread_executor_);
-}
-
-void ClientProxy::CancelClearLocalHighVisModeCacheEndpointIdAlarm() {
-  if (clear_local_high_vis_mode_cache_endpoint_id_alarm_ &&
-      clear_local_high_vis_mode_cache_endpoint_id_alarm_->IsValid()) {
-    clear_local_high_vis_mode_cache_endpoint_id_alarm_->Cancel();
-    clear_local_high_vis_mode_cache_endpoint_id_alarm_.reset();
-  }
 }
 
 OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {

@@ -372,7 +372,6 @@ class ClientProxy final {
   std::string GenerateLocalEndpointId();
 
   void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
-  void CancelClearLocalHighVisModeCacheEndpointIdAlarm();
 
   location::nearby::connections::OsInfo::OsType OSNameToOsInfoType(
       api::OSName osName);
