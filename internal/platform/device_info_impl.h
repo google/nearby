@@ -16,7 +16,7 @@
 #define PLATFORM_PUBLIC_DEVICE_INFO_IMPL_H_
 
 #include <cstddef>
-#include <filesystem>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
 #include <optional>
@@ -46,6 +46,7 @@ class DeviceInfoImpl : public DeviceInfo {
   std::filesystem::path GetDownloadPath() const override;
   std::filesystem::path GetAppDataPath() const override;
   std::filesystem::path GetTemporaryPath() const override;
+  std::filesystem::path GetLogPath() const override;
 
   std::optional<size_t> GetAvailableDiskSpaceInBytes(
       const std::filesystem::path& path) const override;

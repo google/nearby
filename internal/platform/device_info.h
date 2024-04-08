@@ -15,7 +15,8 @@
 #ifndef PLATFORM_PUBLIC_DEVICE_INFO_H_
 #define PLATFORM_PUBLIC_DEVICE_INFO_H_
 
-#include <filesystem>
+#include <cstddef>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -41,6 +42,7 @@ class DeviceInfo {
   virtual std::filesystem::path GetDownloadPath() const = 0;
   virtual std::filesystem::path GetAppDataPath() const = 0;
   virtual std::filesystem::path GetTemporaryPath() const = 0;
+  virtual std::filesystem::path GetLogPath() const = 0;
 
   virtual std::optional<size_t> GetAvailableDiskSpaceInBytes(
       const std::filesystem::path& path) const = 0;

@@ -89,6 +89,11 @@ std::filesystem::path DeviceInfoImpl::GetTemporaryPath() const {
       nearby::sharing::CurrentDirectory());
 }
 
+std::filesystem::path DeviceInfoImpl::GetLogPath() const {
+  std::optional<std::filesystem::path> path = device_info_impl_->GetLogPath();
+  return path.value_or(GetTemporaryPath());
+}
+
 std::optional<size_t> DeviceInfoImpl::GetAvailableDiskSpaceInBytes(
     const std::filesystem::path& path) const {
   std::error_code error_code;

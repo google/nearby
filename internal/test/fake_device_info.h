@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_DEVICE_INFO_H_
 
 #include <cstddef>
-#include <filesystem>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <limits>
 #include <optional>
@@ -62,6 +62,8 @@ class FakeDeviceInfo : public DeviceInfo {
   }
 
   std::filesystem::path GetTemporaryPath() const override { return temp_path_; }
+
+  std::filesystem::path GetLogPath() const override { return temp_path_; }
 
   std::optional<size_t> GetAvailableDiskSpaceInBytes(
       const std::filesystem::path& path) const override {
