@@ -62,13 +62,6 @@ class PresenceServiceImpl : public PresenceService {
 
   void StopBroadcast(BroadcastSessionId session_id) override;
 
-  void UpdateLocalDeviceMetadata(
-      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
-      absl::string_view manager_app_id,
-      const std::vector<nearby::internal::IdentityType>& identity_types,
-      int credential_life_cycle_days, int contiguous_copy_of_credentials,
-      GenerateCredentialsResultCallback credentials_generated_cb) override;
-
   void UpdateDeviceIdentityMetaData(
       const ::nearby::internal::DeviceIdentityMetaData&
           device_identity_metadata,

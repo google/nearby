@@ -45,8 +45,9 @@ class FakePresenceService : public PresenceService {
 
   void StopBroadcast(BroadcastSessionId session_id) override;
 
-  void UpdateLocalDeviceMetadata(
-      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+  void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData& metadata,
+      bool regen_credentials,
       absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
@@ -54,7 +55,8 @@ class FakePresenceService : public PresenceService {
 
   PresenceDeviceProvider* GetLocalDeviceProvider() override;
 
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
+  ::nearby::internal::DeviceIdentityMetaData GetDeviceIdentityMetaData()
+      override {
     return metadata_;
   }
 
@@ -103,7 +105,7 @@ class FakePresenceService : public PresenceService {
   absl::Status gen_credentials_status_;
   absl::Status update_remote_public_credentials_status_;
   absl::Status get_public_credentials_status_;
-  ::nearby::internal::Metadata metadata_;
+  ::nearby::internal::DeviceIdentityMetaData metadata_;
   ::nearby::Lender<PresenceService*> lender_{this};
 };
 
