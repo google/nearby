@@ -2658,6 +2658,50 @@ TEST_F(BasePcpHandlerTest, TestUpdateDiscoveryOptionsFailsWithBadStatus) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest, TestNoEndpointIdInConnectionRequestReturnsError) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  v3::ConnectionListeningOptions options = {
+      .strategy = Strategy::kP2pCluster,
+      .enable_ble_listening = true,
+      .enable_bluetooth_listening = true,
+      .enable_wlan_listening = true,
+      .listening_endpoint_type = NearbyDevice::Type::kConnectionsDevice};
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+  EXPECT_TRUE(
+      pcp_handler
+          .StartListeningForIncomingConnections(&client, "service", options, {})
+          .first.Ok());
+  ASSERT_TRUE(client.IsListeningForIncomingConnections());
+  ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_info = ByteArray("local endpoint"),
+          });
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(serialized_frame.AsStringView());
+  // do a dummy write to get to the actual write.
+  channel_pair.first->Write(ByteArray());
+  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  EXPECT_FALSE(pcp_handler
+                  .OnIncomingConnection(&client, ByteArray("remote endpoint"),
+                                        std::move(channel_pair.second),
+                                        Medium::BLUETOOTH,
+                                        NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
