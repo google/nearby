@@ -819,6 +819,9 @@ bool DiscoveredPeripheralTracker::IsLegacyDeviceAdvertisementData(
     const BleAdvertisementData& advertisement_data) {
   return !advertisement_data.is_extended_advertisement &&
          advertisement_data.service_data.size() == 1 &&
+         advertisement_data.service_data.find(
+             bleutils::kCopresenceServiceUuid) !=
+             advertisement_data.service_data.end() &&
          advertisement_data.service_data.at(bleutils::kCopresenceServiceUuid) ==
              ByteArray(DiscoveredPeripheralTracker::kDummyAdvertisementValue);
 }
