@@ -78,6 +78,9 @@ class BleV2 final {
   bool IsAdvertising(const std::string& service_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  bool IsAdvertisingForLegacyDevice(const std::string& service_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Use dummy bytes to do ble advertising, only for legacy devices.
   // Returns true, if data is successfully set, and false otherwise.
   bool StartLegacyAdvertising(
@@ -148,6 +151,11 @@ class BleV2 final {
 
   // Same as IsAdvertising(), but must be called with `mutex_` held.
   bool IsAdvertisingLocked(const std::string& service_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Same as IsAdvertisingForLegacyDevice(), but must be called with `mutex_`
+  // held.
+  bool IsAdvertisingForLegacyDeviceLocked(const std::string& service_id) const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Same as IsScanning(), but must be called with `mutex_` held.

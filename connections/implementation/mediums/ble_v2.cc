@@ -231,6 +231,12 @@ bool BleV2::IsAdvertising(const std::string& service_id) const {
   return IsAdvertisingLocked(service_id);
 }
 
+bool BleV2::IsAdvertisingForLegacyDevice(const std::string& service_id) const {
+  MutexLock lock(&mutex_);
+
+  return IsAdvertisingForLegacyDeviceLocked(service_id);
+}
+
 bool BleV2::StartLegacyAdvertising(
     const std::string& input_service_id, const std::string& local_endpoint_id,
     const std::string& fast_advertisement_service_uuid) {
@@ -619,6 +625,11 @@ bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
   return advertising_infos_.contains(service_id);
+}
+
+bool BleV2::IsAdvertisingForLegacyDeviceLocked(
+    const std::string& service_id) const {
+  return service_ids_to_advertising_sessions_.contains(service_id + "-Legacy");
 }
 
 bool BleV2::IsScanningLocked(const std::string& service_id) const {
