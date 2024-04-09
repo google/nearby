@@ -4,7 +4,7 @@
 Quick Share by Google has its own UI, and to use the below launch intents, the availability of these intents needs to be checked first.
 This can be done by calling `PackageManager#queryIntentActivities()` with the intent required. A good rule of thumb to check if Quick Share is enabled is to run this check with the intent ```com.google.android.gms.SHARE_NEARBY```.
 
-Code:
+Example code:
 ```kotlin
 val shareIntent = Intent("com.google.android.gms.SHARE_NEARBY")
         .setType("text/plain")
@@ -18,7 +18,7 @@ val activities = packageManager.queryIntentActivities(intent, PackageManager.MAT
 ## Launching the settings page
 The Google Quick Share settings page can be launched by sending an intent with the action ```com.google.android.gms.settings.SHARING```. There are no extras to be provided.
 
-Code for this:
+Example code:
 ```kotlin
 const val QUICK_SHARE_SETTINGS_INTENT = "com.google.android.gms.settings.SHARING"
 context.startActivity(Intent(QUICK_SHARE_SETTINGS_INTENT))
@@ -27,7 +27,7 @@ context.startActivity(Intent(QUICK_SHARE_SETTINGS_INTENT))
 ## Launching the receiving UI
 The Google Quick Share receiving UI can be launched by sending an intent with the action ```com.google.android.gms.RECEIVE_NEARBY```. You will need to set the type of the intent to be `*/*` to match the filter.
 
-Code:
+Example code:
 ```kotlin
 const val QUICK_SHARE_RECEIVE_INTENT = "com.google.android.gms.RECEIVE_NEARBY"
 context.startActivity(Intent(QUICK_SHARE_RECEIVE_INTENT).setType("*/*"))
@@ -67,7 +67,7 @@ The nearby module in GMSCore provides a third-party accessible slice to bind to,
 The slice URI is `content://com.google.android.gms.nearby.sharing/scan`. Upon first launch after install, you will be prompted to grant permission to the client application. After that, the slice will be kept up to date with the latest targets nearby.
 
 ## How to use the API ##
-In Kotlin:
+Example code:
 ```kotlin
 // Derive the Slice URI.
 val sliceUri = Uri.parse("content://com.google.android.gms.nearby.sharing/scan")
