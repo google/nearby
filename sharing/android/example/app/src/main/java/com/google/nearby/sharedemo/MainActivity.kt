@@ -56,9 +56,21 @@ class MainActivity : ComponentActivity() {
             onShareTargetClicked = { data, intent ->
               viewModel.onShareTargetClicked(data, this@MainActivity, intent)
             })
+
+          Button(onClick = { startActivity(Intent(QUICK_SHARE_SETTINGS_INTENT)) }) {
+            Text("Launch settings")
+          }
+          Button(onClick = { startActivity(Intent(QUICK_SHARE_RECEIVE_INTENT).setType("*/*")) }) {
+            Text("Launch receiving UI")
+          }
         }
       }
     }
+  }
+
+  companion object {
+    private const val QUICK_SHARE_SETTINGS_INTENT = "com.google.android.gms.settings.SHARING"
+    private const val QUICK_SHARE_RECEIVE_INTENT = "com.google.android.gms.RECEIVE_NEARBY"
   }
 }
 
