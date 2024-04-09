@@ -45,9 +45,11 @@ val sendIntent = Intent(Intent.ACTION_SEND)
 
 ## Sending a folder via Quick Share
 To send folders, Quick Share has a custom intent: `com.google.android.gms.nearby.SEND_FOLDER`.
-# Mandatory extras
+### Mandatory extras
 To place files in a parent folder, you can supply the following string extra: `com.google.android.gms.nearby.PARENT_FOLDER`. If this is not desirable, leave it as an empty string.
+
 To provide the file count of the number of the files in the folder, supply the following extra: `com.google.android.gms.nearby.FILE_COUNT`. If this is not supplied, Quick Share will assume 0 files are in the folder.
+
 To provide the actual content of the folder, supply the following extra: `com.google.android.gms.nearby.SEND_FOLDER_CONTENT_URI`. This will take the form of a Uri that can be provided by a FileProvider. If not available, Quick Share will fail the transfer.
 
 Putting this all together, we have the following intent structure:
