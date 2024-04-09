@@ -34,7 +34,7 @@ class AdvertisementDecoderImpl : public AdvertisementDecoder {
       absl::flat_hash_map<nearby::internal::IdentityType,
                           std::vector<internal::SharedCredential>>*
           credentials_map)
-      : credentials_map_(credentials_map) {};
+      : credentials_map_(credentials_map) {}
 
   absl::StatusOr<Advertisement> DecodeAdvertisement(
       absl::string_view advertisement) override;
