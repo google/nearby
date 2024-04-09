@@ -154,6 +154,7 @@ cc_library(
         "//internal/test:__subpackages__",
         "//internal/weave:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
+        "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
     ],
