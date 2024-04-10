@@ -108,9 +108,9 @@ TEST(MultiplexFrameTest, HashValidtion) {
 
 TEST(MultiplexFrameTest, CanGenerateConnectionRequest) {
   ByteArray bytes = ForConnectionRequest(std::string(kServiceId_1), "1234");
-  auto response = FromBytes(bytes);
-  ASSERT_TRUE(response.ok());
-  auto frame = response.result();
+  auto request = FromBytes(bytes);
+  ASSERT_TRUE(request.ok());
+  auto frame = request.result();
   EXPECT_EQ(frame.control_frame().control_frame_type(),
             MultiplexControlFrame::CONNECTION_REQUEST);
   EXPECT_EQ(frame.header().salted_service_id_hash(),

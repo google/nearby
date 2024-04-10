@@ -66,8 +66,8 @@ ByteArray ToBytes(MultiplexFrame&& frame) {
   return bytes;
 }
 
-ByteArray ForConnectionRequest(std::string service_id,
-                               std::string service_id_hash_salt) {
+ByteArray ForConnectionRequest(const std::string& service_id,
+                               const std::string& service_id_hash_salt) {
   MultiplexFrame frame;
 
   frame.set_frame_type(MultiplexFrame::CONTROL_FRAME);
@@ -84,7 +84,8 @@ ByteArray ForConnectionRequest(std::string service_id,
 }
 
 ByteArray ForConnectionResponse(
-    ByteArray& salted_service_id_hash, std::string service_id_hash_salt,
+    const ByteArray& salted_service_id_hash,
+    const std::string& service_id_hash_salt,
     ConnectionResponseFrame::ConnectionResponseCode response_code) {
   MultiplexFrame frame;
 
@@ -103,8 +104,8 @@ ByteArray ForConnectionResponse(
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForDisconnection(std::string service_id,
-                               std::string service_id_hash_salt) {
+ByteArray ForDisconnection(const std::string& service_id,
+                           const std::string& service_id_hash_salt) {
   MultiplexFrame frame;
 
   frame.set_frame_type(MultiplexFrame::CONTROL_FRAME);
@@ -120,8 +121,9 @@ ByteArray ForDisconnection(std::string service_id,
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForData(std::string service_id, std::string service_id_hash_salt,
-                  bool should_pass_salt, ByteArray& data) {
+ByteArray ForData(const std::string& service_id,
+                  const std::string& service_id_hash_salt,
+                  bool should_pass_salt, const ByteArray& data) {
   MultiplexFrame frame;
 
   frame.set_frame_type(MultiplexFrame::DATA_FRAME);

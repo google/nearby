@@ -62,31 +62,33 @@ std::string GenerateServiceIdHashKeyWithSalt(const std::string& service_id,
 // Build a MultiplexFrame Connection Request frame Bytes stream.
 // @param service_id The service ID of the connection.
 // @param service_id_hash_salt The salt used to generate the service ID hash.
-ByteArray ForConnectionRequest(std::string service_id,
-                               std::string service_id_hash_salt);
+ByteArray ForConnectionRequest(const std::string& service_id,
+                               const std::string& service_id_hash_salt);
 
 // Build a MultiplexFrame Connection Response frame Bytes stream.
 // @param salted_service_id_hash The salted service ID hash.
 // @param service_id_hash_salt The salt used to generate the service ID hash.
 // @param response_code The response code of the connection.
 ByteArray ForConnectionResponse(
-    ByteArray& salted_service_id_hash, std::string service_id_hash_salt,
+    const ByteArray& salted_service_id_hash,
+    const std::string& service_id_hash_salt,
     location::nearby::mediums::ConnectionResponseFrame::ConnectionResponseCode
         response_code);
 
 // Build a MultiplexFrame Disconnection frame Bytes stream.
 // @param service_id The service ID of the connection.
 // @param service_id_hash_salt The salt used to generate the service ID hash.
-ByteArray ForDisconnection(std::string service_id,
-                           std::string service_id_hash_salt);
+ByteArray ForDisconnection(const std::string& service_id,
+                           const std::string& service_id_hash_salt);
 
 // Build a MultiplexFrame Data frame Bytes stream.
 // @param service_id The service ID of the connection.
 // @param service_id_hash_salt The salt used to generate the service ID hash.
 // @param should_pass_salt Whether to pass the salt in the data frame.
 // @param data The data to send.
-ByteArray ForData(std::string service_id, std::string service_id_hash_salt,
-                  bool should_pass_salt, ByteArray& data);
+ByteArray ForData(const std::string& service_id,
+                  const std::string& service_id_hash_salt,
+                  bool should_pass_salt, const ByteArray& data);
 
 ExceptionOr<location::nearby::mediums::MultiplexFrame> FromBytes(
     const ByteArray& multiplex_frame_bytes);

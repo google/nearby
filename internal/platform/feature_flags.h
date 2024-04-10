@@ -91,6 +91,21 @@ class FeatureFlags {
     // If the receiver doesn't ack with payload_received_ack frame in 1s, the
     // sender will timeout the waiting.
     absl::Duration wait_payload_received_ack_millis = absl::Milliseconds(1000);
+
+    // Multiplex related flags
+    // Timeout value for read frame operation in endpoint channel.
+    absl::Duration mediums_frame_read_timeout_millis =
+        absl::Milliseconds(15000);
+    // Timeout value for write frame operation in endpoint channel.
+    absl::Duration mediums_frame_write_timeout_millis =
+        absl::Milliseconds(15000);
+    // The timeout for waiting on connection request response.
+    absl::Duration multiplex_socket_connection_response_timeout_millis =
+        absl::Milliseconds(3000);
+    // The capacity of the middle priority queue inner MultiplexOutputStream.
+    // The new outgoing frame with the middle priority will wait for space to
+    // become available if the queue is full.'
+    std::uint32_t multiplex_socket_middle_priority_queue_capacity = 50;
   };
 
   static const FeatureFlags& GetInstance() {

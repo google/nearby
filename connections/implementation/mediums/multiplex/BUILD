@@ -17,9 +17,11 @@ cc_library(
     name = "multiplex",
     srcs = [
         "multiplex_frames.cc",
+        "multiplex_output_stream.cc",
     ],
     hdrs = [
         "multiplex_frames.h",
+        "multiplex_output_stream.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
@@ -35,6 +37,7 @@ cc_library(
         "//internal/platform:util",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//proto/mediums:multiplex_frames_cc_proto",
         "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/base:core_headers",
@@ -55,6 +58,7 @@ cc_test(
     name = "multiplex_test",
     srcs = [
         "multiplex_frames_test.cc",
+        "multiplex_output_stream_test.cc",
     ],
     deps = [
         ":multiplex",
