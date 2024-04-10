@@ -35,11 +35,7 @@ cc_library(
         "single_thread_executor.h",
         "timer.h",
     ],
-    visibility = [
-        "//internal/test:__subpackages__",
-        "//location/nearby/cpp:__subpackages__",
-        "//sharing:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":preferences_repository",
         "//internal/platform:base",
