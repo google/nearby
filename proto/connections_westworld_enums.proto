@@ -61,6 +61,44 @@ enum ReportedEventType {
   // The current discovery options have been modified, for instance to include
   // a different power level or mediums.
   NC_EVENT_TYPE_DISCOVERY_OPTIONS_UPDATED = 7;
+
+  // The client has called requestConnection.
+  NC_EVENT_TYPE_ON_REQUEST_CONNECTION = 8;
+
+  // The client has sent a connection request to another endpoint.
+  NC_EVENT_TYPE_ON_CONNECTION_REQUEST_SENT = 9;
+
+  // The client has received a connection request from another endpoint.
+  NC_EVENT_TYPE_ON_CONNECTION_REQUEST_RECEIVED = 10;
+
+  // During connection establishment, the local endpoint has accepted the
+  // connection.
+  NC_EVENT_TYPE_ON_LOCAL_ENDPOINT_ACCEPTED = 11;
+
+  // During connection establishment, the local endpoint has rejected the
+  // connection.
+  NC_EVENT_TYPE_ON_LOCAL_ENDPOINT_REJECTED = 12;
+
+  // During connection establishment, the remote endpoint has accepted the
+  // connection.
+  NC_EVENT_TYPE_ON_REMOTE_ENDPOINT_ACCEPTED = 13;
+
+  // During connection establishment, the remote endpoint has rejected the
+  // connection.
+  NC_EVENT_TYPE_ON_REMOTE_ENDPOINT_REJECTED = 14;
+
+  // A remote endpoint is attempting to connect to the client.
+  NC_EVENT_TYPE_ON_INCOMING_CONNECTION_ATTEMPT = 15;
+
+  // The client is attempting to connect to a remote endpoint.
+  NC_EVENT_TYPE_ON_OUTGOING_CONNECTION_ATTEMPT = 16;
+
+  // A connection has been established.
+  NC_EVENT_TYPE_ON_CONNECTION_ESTABLSHED = 17;
+
+  // A connection has been closed. Note that sometimes a connection is closed
+  // because it is being upgraded to a higher bandwidth Medium.
+  NC_EVENT_TYPE_ON_CONNECTION_CLOSED = 18;
 }
 
 // LINT.ThenChange(
