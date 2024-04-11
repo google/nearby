@@ -27,8 +27,10 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
@@ -128,7 +130,10 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
     return it->second;
   }
 
-  bool has_incoming_payloads() { return !incoming_payloads_.empty(); }
+  bool has_incoming_payloads() {
+    absl::MutexLock lock(&incoming_payloads_mutex_);
+    return !incoming_payloads_.empty();
+  }
 
  private:
   void HandleStartAdvertisingCallback(ConnectionsStatus status);
@@ -163,7 +168,9 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   std::map<int64_t, ConnectionsStatus> payload_path_status_;
   std::map<int64_t, std::weak_ptr<PayloadStatusListener>>
       payload_status_listeners_;
-  std::map<int64_t, std::unique_ptr<Payload>> incoming_payloads_;
+  absl::Mutex incoming_payloads_mutex_;
+  std::map<int64_t, std::unique_ptr<Payload>> incoming_payloads_
+      ABSL_GUARDED_BY(incoming_payloads_mutex_);
   std::map<int64_t, std::filesystem::path> registered_payload_paths_;
 
   std::string Dump() const override;

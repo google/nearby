@@ -29,6 +29,7 @@
 #include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_manager.h"
@@ -148,6 +149,7 @@ void FakeNearbyConnectionsManager::RegisterPayloadPath(
 
 Payload* FakeNearbyConnectionsManager::GetIncomingPayload(int64_t payload_id) {
   NL_DCHECK(!is_shutdown());
+  absl::MutexLock lock(&incoming_payloads_mutex_);
   auto it = incoming_payloads_.find(payload_id);
   if (it == incoming_payloads_.end()) return nullptr;
 
@@ -173,6 +175,7 @@ void FakeNearbyConnectionsManager::Cancel(int64_t payload_id) {
 }
 
 void FakeNearbyConnectionsManager::ClearIncomingPayloads() {
+  absl::MutexLock lock(&incoming_payloads_mutex_);
   incoming_payloads_.clear();
   payload_status_listeners_.clear();
 }
@@ -243,6 +246,7 @@ FakeNearbyConnectionsManager::GetRegisteredPayloadStatusListener(
 
 void FakeNearbyConnectionsManager::SetIncomingPayload(
     int64_t payload_id, std::unique_ptr<Payload> payload) {
+  absl::MutexLock lock(&incoming_payloads_mutex_);
   incoming_payloads_[payload_id] = std::move(payload);
 }
 
