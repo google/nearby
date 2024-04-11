@@ -14,6 +14,7 @@
 
 #include "sharing/nearby_file_handler.h"
 
+#include <atomic>
 #include <cstdio>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <vector>
@@ -115,7 +116,7 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
 }
 
 TEST(NearbyFileHandler, TestCallback) {
-  bool received_callback = false;
+  std::atomic_bool received_callback = false;
   NearbyFileHandler nearby_file_handler;
   std::filesystem::path test_file =
       std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
