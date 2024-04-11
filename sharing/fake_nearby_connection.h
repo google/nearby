@@ -21,6 +21,8 @@
 #include <queue>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "sharing/nearby_connection.h"
 
 namespace nearby {
@@ -37,21 +39,27 @@ class FakeNearbyConnection : public NearbyConnection {
   void Close() override;
   void SetDisconnectionListener(std::function<void()> listener) override;
 
-  void AppendReadableData(std::vector<uint8_t> bytes);
+  void AppendReadableData(std::vector<uint8_t> bytes)
+      ABSL_LOCKS_EXCLUDED(read_mutex_);
   std::vector<uint8_t> GetWrittenData();
 
   bool IsClosed();
-  bool has_read_callback_been_run() { return has_read_callback_been_run_; }
+  bool has_read_callback_been_run() {
+    absl::MutexLock lock(&read_mutex_);
+    return has_read_callback_been_run_;
+  }
 
  private:
-  void MaybeRunCallback();
+  void MaybeRunCallback() ABSL_LOCKS_EXCLUDED(read_mutex_);
 
   bool closed_ = false;
-  bool has_read_callback_been_run_ = false;
 
-  ReadCallback callback_;
-  std::queue<std::vector<uint8_t>> read_data_;
-  std::queue<std::vector<uint8_t>> write_data_;
+  absl::Mutex read_mutex_;
+  bool has_read_callback_been_run_ ABSL_GUARDED_BY(read_mutex_) = false;
+  ReadCallback callback_ ABSL_GUARDED_BY(read_mutex_);
+  std::queue<std::vector<uint8_t>> read_data_ ABSL_GUARDED_BY(read_mutex_);
+  absl::Mutex write_mutex_;
+  std::queue<std::vector<uint8_t>> write_data_ ABSL_GUARDED_BY(write_mutex_);
   std::function<void()> disconnect_listener_;
 };
 

@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/mutex.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 
@@ -32,12 +33,16 @@ FakeNearbyConnection::~FakeNearbyConnection() = default;
 
 void FakeNearbyConnection::Read(ReadCallback callback) {
   NL_DCHECK(!closed_);
-  callback_ = std::move(callback);
+  {
+    absl::MutexLock lock(&read_mutex_);
+    callback_ = std::move(callback);
+  }
   MaybeRunCallback();
 }
 
 void FakeNearbyConnection::Write(std::vector<uint8_t> bytes) {
   NL_DCHECK(!closed_);
+  absl::MutexLock lock(&write_mutex_);
   write_data_.push(std::move(bytes));
 }
 
@@ -49,6 +54,7 @@ void FakeNearbyConnection::Close() {
     std::move(disconnect_listener_)();
   }
 
+  absl::MutexLock lock(&read_mutex_);
   if (callback_) {
     has_read_callback_been_run_ = true;
     auto callback = std::move(callback_);
@@ -65,11 +71,15 @@ void FakeNearbyConnection::SetDisconnectionListener(
 
 void FakeNearbyConnection::AppendReadableData(std::vector<uint8_t> bytes) {
   NL_DCHECK(!closed_);
-  read_data_.push(std::move(bytes));
+  {
+    absl::MutexLock lock(&read_mutex_);
+    read_data_.push(std::move(bytes));
+  }
   MaybeRunCallback();
 }
 
 std::vector<uint8_t> FakeNearbyConnection::GetWrittenData() {
+  absl::MutexLock lock(&write_mutex_);
   if (write_data_.empty()) return {};
 
   std::vector<uint8_t> bytes = std::move(write_data_.front());
@@ -81,12 +91,17 @@ bool FakeNearbyConnection::IsClosed() { return closed_; }
 
 void FakeNearbyConnection::MaybeRunCallback() {
   NL_DCHECK(!closed_);
-  if (!callback_ || read_data_.empty()) return;
-  auto item = std::move(read_data_.front());
-  read_data_.pop();
-  has_read_callback_been_run_ = true;
-  auto callback = std::move(callback_);
-  callback_ = nullptr;
+  std::vector<uint8_t> item;
+  ReadCallback callback;
+  {
+    absl::MutexLock lock(&read_mutex_);
+    if (!callback_ || read_data_.empty()) return;
+    item = std::move(read_data_.front());
+    read_data_.pop();
+    callback = std::move(callback_);
+    callback_ = nullptr;
+    has_read_callback_been_run_ = true;
+  }
   callback(std::move(item));
 }
 
