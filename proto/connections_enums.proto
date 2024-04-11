@@ -677,34 +677,34 @@ enum OperationResultCode {
   IO_STREAM_CREATE_PIPE_FAILURE = 3004;
   // Payloads IOError due to endpoint get IOException on BLE medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_BLE = 3005;
+  IO_ENDPOINT_IO_ERROR_ON_BLE = 3005 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on L2CAP medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP = 3006;
+  IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP = 3006 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on BT medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_BT = 3007;
+  IO_ENDPOINT_IO_ERROR_ON_BT = 3007 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on WebRtc medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WEB_RTC = 3008;
+  IO_ENDPOINT_IO_ERROR_ON_WEB_RTC = 3008 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on Lan medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_LAN = 3009;
+  IO_ENDPOINT_IO_ERROR_ON_LAN = 3009 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on WFD medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WIFI_DIRECT = 3010;
+  IO_ENDPOINT_IO_ERROR_ON_WIFI_DIRECT = 3010 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on Hotspot medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WIFI_HOTSPOT = 3011;
+  IO_ENDPOINT_IO_ERROR_ON_WIFI_HOTSPOT = 3011 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on Aware medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WIFI_AWARE = 3012;
+  IO_ENDPOINT_IO_ERROR_ON_WIFI_AWARE = 3012 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on NFC medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_NFC = 3013;
+  IO_ENDPOINT_IO_ERROR_ON_NFC = 3013 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on USB medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_USB = 3014;
+  IO_ENDPOINT_IO_ERROR_ON_USB = 3014 [deprecated = true];
 
   // Section of CATEGORY_CONNECTIVITY_ERROR, from 3500 to 4499
   // Attach result of WifiAwareManager failure
