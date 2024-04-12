@@ -17,6 +17,8 @@ syntax = "proto2";
 package location.nearby.proto.sharing;
 
 // import "logs/proto/logs_annotations/logs_annotations.proto";
+// import "logs/proto/wireless/beto/beto_enums.proto";
+// import "logs/proto/wireless/beto/log_dimension_annotations.proto";
 
 // option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option optimize_for = LITE_RUNTIME;
@@ -53,16 +55,20 @@ enum EventType {
   DESCRIBE_ATTACHMENTS = 4;
 
   // Start of a scanning phase at sender.
-  SCAN_FOR_SHARE_TARGETS_START = 5;
+  SCAN_FOR_SHARE_TARGETS_START = 5
+      /* stage = STAGE_QS_DISCOVER_START */;
 
   // End of the scanning phase at sender.
-  SCAN_FOR_SHARE_TARGETS_END = 6;
+  SCAN_FOR_SHARE_TARGETS_END = 6
+      /* stage = STAGE_QS_DISCOVER_END */;
 
   // Receiver advertises itself for presence (a pseudo session).
-  ADVERTISE_DEVICE_PRESENCE_START = 7;
+  ADVERTISE_DEVICE_PRESENCE_START = 7
+      /* stage = STAGE_QS_ADVERTISE_START */;
 
   // End of the advertising phase at receiver.
-  ADVERTISE_DEVICE_PRESENCE_END = 8;
+  ADVERTISE_DEVICE_PRESENCE_END = 8
+      /* stage = STAGE_QS_ADVERTISE_END */;
 
   // Sender sends a fast initialization to receiver.
   SEND_FAST_INITIALIZATION = 9;
@@ -71,7 +77,7 @@ enum EventType {
   RECEIVE_FAST_INITIALIZATION = 10;
 
   // Sender discovers a share target.
-  DISCOVER_SHARE_TARGET = 11;
+  DISCOVER_SHARE_TARGET = 11 /* stage = STAGE_QS_DISCOVERED */;
 
   // Sender sends introduction (before attachments being sent).
   SEND_INTRODUCTION = 12;
@@ -84,10 +90,11 @@ enum EventType {
   RESPOND_TO_INTRODUCTION = 14;
 
   // Start of the sending attachments phase at sender.
-  SEND_ATTACHMENTS_START = 15;
+  SEND_ATTACHMENTS_START = 15
+      /* stage = STAGE_QS_TRANSFER_START */;
 
   // End of sending attachments phase at sender.
-  SEND_ATTACHMENTS_END = 16;
+  SEND_ATTACHMENTS_END = 16 /* stage = STAGE_QS_TRANSFER_END */;
 
   // Start of the receiving attachments phase at receiver.
   RECEIVE_ATTACHMENTS_START = 17;
@@ -117,7 +124,7 @@ enum EventType {
   FAST_SHARE_SERVER_RESPONSE = 25;
 
   // The start of a sending session.
-  SEND_START = 26;
+  SEND_START = 26 /* stage = STAGE_QS_CONNECT_START */;
 
   // Receiver accepts a fast initialization.
   ACCEPT_FAST_INITIALIZATION = 27;
@@ -189,7 +196,7 @@ enum EventType {
   REQUEST_SETTING_PERMISSIONS = 47;
 
   // Set up a connection with the remote device.
-  ESTABLISH_CONNECTION = 48;
+  ESTABLISH_CONNECTION = 48 /* stage = STAGE_QS_CONNECT_END */;
 
   // Track device states in Nearby Share setting.
   DEVICE_SETTINGS = 49;
@@ -301,12 +308,14 @@ enum EstablishConnectionStatus {
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
 enum AttachmentTransmissionStatus {
-  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0;
-
-  COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1;
-  CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2;
-  FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3;
-
+  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0
+      /* status_bucket = STATUS_UNKNOWN */;
+  COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1
+      /* status_bucket = STATUS_SUCCESSFUL */;
+  CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2
+      /* status_bucket = STATUS_CANCELLED */;
+  FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3
+      /* status_bucket = STATUS_INTERNAL_ERROR */;
   REJECTED_ATTACHMENT = 4 [deprecated = true];
   TIMED_OUT_ATTACHMENT = 5 [deprecated = true];
   AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT = 6 [deprecated = true];
@@ -337,7 +346,8 @@ enum AttachmentTransmissionStatus {
 
   REJECTED_ATTACHMENT_TRANSMISSION_STATUS = 22;
   TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS = 23;
-  NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS = 24;
+  NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS = 24
+      /* status_bucket = STATUS_INTERRUPTION */;
   UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS = 25;
   FAILED_UNKNOWN_REMOTE_RESPONSE_TRANSMISSION_STATUS = 26;
   // Connection failed due to Wifi is disconnected or Bluetooth setting is off
@@ -348,7 +358,8 @@ enum AttachmentTransmissionStatus {
   NO_RESPONSE_FRAME_CONNECTION_CLOSED_TRANSMISSION_STATUS = 28;
   // Connection failed due to Wifi is disconnected or Bluetooth setting is off
   // or user turn on airplane mode.
-  LOST_CONNECTIVITY_TRANSMISSION_STATUS = 29;
+  LOST_CONNECTIVITY_TRANSMISSION_STATUS = 29
+      /* status_bucket = STATUS_INTERRUPTION */;
 }
 
 // Generic result status of NearbyConnections API calls.
