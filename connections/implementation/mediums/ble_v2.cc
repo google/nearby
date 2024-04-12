@@ -68,7 +68,7 @@ BleV2::~BleV2() {
   // Destructor is not taking locks, but methods it is calling are.
   if (FeatureFlags::GetInstance()
           .GetFlags()
-          .enable_ble_v2_async_scanning_advertising) {
+          .enable_ble_v2_async_scanning) {
     // If using asynchronous scanning, check the corresponding map.
     while (!service_ids_to_scanning_sessions_.empty()) {
       StopScanning(service_ids_to_scanning_sessions_.begin()->first);
@@ -361,7 +361,7 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
 
   if (FeatureFlags::GetInstance()
           .GetFlags()
-          .enable_ble_v2_async_scanning_advertising) {
+          .enable_ble_v2_async_scanning) {
     return StartAsyncScanningLocked(service_id, power_level);
   }
 
@@ -438,7 +438,7 @@ bool BleV2::StopScanning(const std::string& service_id) {
   MutexLock lock(&mutex_);
   if (FeatureFlags::GetInstance()
           .GetFlags()
-          .enable_ble_v2_async_scanning_advertising) {
+          .enable_ble_v2_async_scanning) {
     return StopAsyncScanningLocked(service_id);
   }
 
@@ -635,7 +635,7 @@ bool BleV2::IsAdvertisingForLegacyDeviceLocked(
 bool BleV2::IsScanningLocked(const std::string& service_id) const {
   if (FeatureFlags::GetInstance()
           .GetFlags()
-          .enable_ble_v2_async_scanning_advertising) {
+          .enable_ble_v2_async_scanning) {
     // If using asynchronous scanning, check the corresponding map.
     auto it = service_ids_to_scanning_sessions_.find(service_id);
     return it != service_ids_to_scanning_sessions_.end();
@@ -1039,7 +1039,7 @@ bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,
                                      PowerLevel power_level) {
   CHECK(FeatureFlags::GetInstance()
             .GetFlags()
-            .enable_ble_v2_async_scanning_advertising);
+            .enable_ble_v2_async_scanning);
 
   // Use the asynchronous StartScanning method instead of the synchronous one.
   // Note: using FeatureFlags instead of NearbyFlags as there is no Mendel
@@ -1129,7 +1129,7 @@ bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,
 bool BleV2::StopAsyncScanningLocked(absl::string_view service_id) {
   CHECK(FeatureFlags::GetInstance()
             .GetFlags()
-            .enable_ble_v2_async_scanning_advertising);
+            .enable_ble_v2_async_scanning);
   // If using asynchronous scanning, check the corresponding map.
   auto scanning_session = service_ids_to_scanning_sessions_.find(service_id);
   if (scanning_session == service_ids_to_scanning_sessions_.end()) {

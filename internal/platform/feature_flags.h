@@ -62,9 +62,10 @@ class FeatureFlags {
     // requested service id before attempting to connect over rfcomm. SDP fails
     // on Windows when connecting to FP service id but the rfcomm is successful.
     bool skip_service_discovery_before_connecting_to_rfcomm = false;
-    // Controls enable or disable the use of async methods for StartScanning,
-    // StopScanning, StartAdvertising, and StopAdvertising for BLE V2.
-    bool enable_ble_v2_async_scanning_advertising = false;
+    // Controls enable or disable the use of async methods for StartScanning
+    // and StopScanning for BLE V2.
+    // TODO(b/333408829): Add flag to control async advertising.
+    bool enable_ble_v2_async_scanning = false;
     // Enable legacy device discovered callback being used inside ble v2
     // DiscoverPeripheralTracker flow.
     bool enable_invoking_legacy_device_discovered_cb = false;

@@ -98,10 +98,11 @@ ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2,
         enable_ble_v2);
-    // CrOS uses the async methods for Scanning and Advertising, and has
-    // no support for the sync version of those methods.
+    // CrOS uses the async signature for Scanning and has no support for the
+    // sync version.
+    // TODO(b/333408829): Enable async advertising flag once supported.
     const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
-      .SetFlags({.enable_ble_v2_async_scanning_advertising = true});
+        .SetFlags({.enable_ble_v2_async_scanning = true});
   }
 }
 

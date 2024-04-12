@@ -581,8 +581,6 @@ TEST_F(BleV2Test, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
 }
 
 TEST_F(BleV2Test, CanStartAndStopLegacyAdvertising) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BleV2 ble_a{radio_a};
@@ -599,8 +597,6 @@ TEST_F(BleV2Test, CanStartAndStopLegacyAdvertising) {
 }
 
 TEST_F(BleV2Test, CanNotStartLegacyAdvertisingWhenRadioNotEnabled) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BleV2 ble_a{radio_a};
@@ -614,8 +610,6 @@ TEST_F(BleV2Test, CanNotStartLegacyAdvertisingWhenRadioNotEnabled) {
 }
 
 TEST_F(BleV2Test, CanNotStopLegacyAdvertisingForNonExistingServiceId) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BleV2 ble_a{radio_a};
@@ -673,8 +667,7 @@ TEST_F(BleV2Test, DuplicateStartLegacyAdvertisingReturnsFalse) {
 
 TEST_F(BleV2Test, HandleLegacyAdvertising) {
   env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true,
-                    .enable_invoking_legacy_device_discovered_cb = true}});
+      {FeatureFlags{.enable_invoking_legacy_device_discovered_cb = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BluetoothRadio radio_b;
@@ -712,8 +705,7 @@ TEST_F(BleV2Test, HandleLegacyAdvertising) {
 }
 
 TEST_F(BleV2Test, CanStartAsyncScanning) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BluetoothRadio radio_b;
@@ -748,8 +740,7 @@ TEST_F(BleV2Test, CanStartAsyncScanning) {
 }
 
 TEST_F(BleV2Test, StartAsyncScanningWithPlatformErrors) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BluetoothRadio radio_b;
@@ -804,8 +795,7 @@ TEST_F(BleV2Test, StartAsyncScanningWithPlatformErrors) {
 }
 
 TEST_F(BleV2Test, StartAsyncScanningDiscoverAndLostPeripheral) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BluetoothRadio radio_b;
@@ -854,8 +844,7 @@ TEST_F(BleV2Test, StartAsyncScanningDiscoverAndLostPeripheral) {
 
 TEST_F(BleV2Test,
        StartAsyncScanningDiscoverButNoPeripheralLostAfterStopScanning) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
   env_.Start();
   BluetoothRadio radio_a;
   BluetoothRadio radio_b;
@@ -902,8 +891,7 @@ TEST_F(BleV2Test,
 }
 
 TEST_F(BleV2Test, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
   env_.Start();
   BluetoothRadio radio_scanner;
   BluetoothRadio radio_advertiser_a;
@@ -962,8 +950,7 @@ TEST_F(BleV2Test, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
 }
 
 TEST_F(BleV2Test, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
-  env_.SetFeatureFlags(
-      {FeatureFlags{.enable_ble_v2_async_scanning_advertising = true}});
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
   env_.Start();
   BluetoothRadio radio_scanner;
   BluetoothRadio radio_advertiser_a;
