@@ -18,35 +18,174 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "third_party/beto-core/src/nearby/presence/np_c_ffi/include/cpp/np_cpp_ffi_types.h"
 #include "third_party/beto-core/src/nearby/presence/np_cpp_ffi/include/nearby_protocol.h"
 #include "internal/proto/credential.proto.h"
 #include "presence/data_element.h"
+#include "presence/implementation/action_factory.h"
 #include "presence/implementation/advertisement_decoder.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {
 
-AdvertisementDecoderImpl::AdvertisementDecoderImpl(
+nearby_protocol::CredentialBook
+AdvertisementDecoderImpl::InitializeCredentialBook(
     absl::flat_hash_map<nearby::internal::IdentityType,
                         std::vector<::nearby::internal::SharedCredential>>*
         credentials_map) {
-  // TODO(nwadih): implement this b/330746928
+  if (credentials_map == nullptr) {
+    nearby_protocol::CredentialSlab slab;
+    nearby_protocol::CredentialBook cred_book(slab);
+    return cred_book;
+  }
+
+  nearby_protocol::CredentialSlab slab;
+  for (const auto& credential :
+       (*credentials_map)[internal::IdentityType::IDENTITY_TYPE_PRIVATE]) {
+    std::vector<uint8_t> metadata_bytes(
+        credential.encrypted_metadata_bytes_v0().begin(),
+        credential.encrypted_metadata_bytes_v0().end());
+    nearby_protocol::MatchedCredentialData matched_cred(0, metadata_bytes);
+
+    auto key_seed = credential.key_seed();
+    std::array<uint8_t, 32> key_seed_array;
+    std::copy(key_seed.begin(), key_seed.end(), key_seed_array.data());
+
+    auto tag = credential.metadata_encryption_key_tag_v0();
+    std::array<uint8_t, 32> tag_array;
+    std::copy(tag.begin(), tag.end(), tag_array.data());
+
+    auto matchable_credential = nearby_protocol::V0MatchableCredential(
+        key_seed_array, tag_array, matched_cred);
+    slab.AddV0Credential(matchable_credential);
+  }
+  nearby_protocol::CredentialBook cred_book(slab);
+  return cred_book;
+}
+
+DataElement ConvertDataElement(
+    const nearby_protocol::V0DataElement& data_element,
+    Advertisement& advertisement) {
+  switch (data_element.GetKind()) {
+    case nearby_protocol::V0DataElementKind::TxPower: {
+      return DataElement(DataElement::kTxPowerFieldType,
+                         data_element.AsTxPower().GetAsI8());
+    }
+    case nearby_protocol::V0DataElementKind::Actions: {
+      // TODO(b/333937213): finish action bit parsing
+      ActionFactory::DecodeAction(Action(data_element.AsActions().GetAsU32()),
+                                  advertisement.data_elements);
+      return DataElement(DataElement::kActionFieldType, 00);
+    }
+  }
+}
+
+internal::IdentityType GetIdentityType(
+    nearby_protocol::DeserializedV0IdentityKind identity) {
+  switch (identity) {
+    case np_ffi::internal::DeserializedV0IdentityKind::Plaintext:
+      return internal::IdentityType::IDENTITY_TYPE_PUBLIC;
+    case np_ffi::internal::DeserializedV0IdentityKind::Decrypted:
+      return internal::IdentityType::IDENTITY_TYPE_PRIVATE;
+  }
+}
+
+absl::Status ProcessLegibleV0Adv(
+    nearby_protocol::LegibleDeserializedV0Advertisement legible_adv,
+    Advertisement& advertisement) {
+  advertisement.identity_type = GetIdentityType(legible_adv.GetIdentityKind());
+
+  auto num_des = legible_adv.GetNumberOfDataElements();
+  auto payload = legible_adv.IntoPayload();
+  std::vector<DataElement> data_elements;
+
+  // TODO(b/333126765): salt isn't a DE, we should restructure the Advertisement
+  // struct to reflect this
+  if (advertisement.identity_type ==
+      internal::IdentityType::IDENTITY_TYPE_PRIVATE) {
+    auto cred_details = payload.TryGetIdentityDetails();
+    if (!cred_details.ok()) {
+      return cred_details.status();
+    }
+    // TODO(b/333126765): update salt to use unsigned char * to remove cast
+    std::string salt(reinterpret_cast<char const*>(cred_details->salt), 2);
+    data_elements.push_back(DataElement(0x00, salt));
+
+    std::string metadata_key(
+        reinterpret_cast<char const*>(cred_details->identity_token), 14);
+    advertisement.metadata_key = std::move(metadata_key);
+  }
+
+  for (int i = 0; i < num_des; i++) {
+    auto de_result = payload.TryGetDataElement(i);
+    if (!de_result.ok()) {
+      return de_result.status();
+    }
+    data_elements.push_back(ConvertDataElement(*de_result, advertisement));
+  }
+  advertisement.data_elements = std::move(data_elements);
+  return absl::OkStatus();
+}
+
+absl::Status ProcessV0Advertisement(
+    nearby_protocol::DeserializedV0Advertisement result, Advertisement& adv) {
+  switch (result.GetKind()) {
+    case nearby_protocol::DeserializedV0AdvertisementKind::Legible:
+      return ProcessLegibleV0Adv(result.IntoLegible(), adv);
+      break;
+    case nearby_protocol::DeserializedV0AdvertisementKind::
+        NoMatchingCredentials: {
+      return absl::UnavailableError(
+          "Couldn't decrypt the message with any credentials");
+    }
+  }
 }
 
 absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
     absl::string_view advertisement) {
-  // TODO(nwadih): implement this b/330746928
-  return absl::UnimplementedError("Not implemented");
+  auto byte_buffer = nearby_protocol::ByteBuffer<
+      nearby_protocol::MAX_ADV_PAYLOAD_SIZE>::TryFromString(advertisement);
+  if (!byte_buffer.ok()) {
+    return absl::InvalidArgumentError("Invalid length advertisement");
+  }
+
+  Advertisement decoded_advertisement;
+  const nearby_protocol::RawAdvertisementPayload payload(byte_buffer.value());
+  auto deserialize_result =
+      nearby_protocol::Deserializer::DeserializeAdvertisement(payload,
+                                                              cred_book_);
+
+  switch (deserialize_result.GetKind()) {
+    case np_ffi::internal::DeserializeAdvertisementResultKind::Error: {
+      return absl::InvalidArgumentError("Invalid advertisement format");
+    }
+    case np_ffi::internal::DeserializeAdvertisementResultKind::V1: {
+      return absl::UnimplementedError(
+          absl::StrFormat("V1 Advertisement format is not supported"));
+    }
+    case np_ffi::internal::DeserializeAdvertisementResultKind::V0: {
+      decoded_advertisement.version = 0;
+      auto result = ProcessV0Advertisement(deserialize_result.IntoV0(),
+                                           decoded_advertisement);
+      if (!result.ok()) {
+        return result;
+      }
+      break;
+    }
+  }
+
+  return decoded_advertisement;
 }
 
 }  // namespace presence

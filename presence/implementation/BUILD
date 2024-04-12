@@ -110,9 +110,14 @@ cc_library(
             "advertisement_decoder_impl.h",
         ],
     }),
+    # TODO(b/334166657): Move rust backed decoder to its own build target so it recieved coverage
+    # metrics
     defines = select({
         ":norust_or_windows_or_android": [],
-        ":use_rust_decoder": ["USE_RUST_DECODER=1"],
+        ":use_rust_decoder": [
+            "USE_RUST_DECODER=1",
+            "USE_RUST_LDT=1",
+        ],
         "//conditions:default": ["USE_RUST_LDT=1"],
     }),
     visibility = [
@@ -136,6 +141,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/hash",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/log:die_if_null",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
@@ -149,7 +155,11 @@ cc_library(
         "@com_google_absl//absl/types:variant",
     ] + select({
         ":norust_or_windows_or_android": [":ldt_stub"],
-        ":use_rust_decoder": ["//third_party/beto_core/nearby/presence/np_cpp_ffi"],
+        ":use_rust_decoder": [
+            "//third_party/beto_core/nearby/presence/ldt_np_adv_ffi",
+            "//third_party/beto_core/nearby/presence/np_c_ffi:np_c_ffi_types",
+            "//third_party/beto_core/nearby/presence/np_cpp_ffi",
+        ],
         "//conditions:default": ["//third_party/beto_core/nearby/presence/ldt_np_adv_ffi"],
     }),
 )
@@ -197,6 +207,31 @@ cc_test(
     name = "advertisement_decoder_test",
     size = "small",
     srcs = ["advertisement_decoder_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform:base",
+        "//internal/proto:credential_cc_proto",
+        "//presence:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
+cc_test(
+    name = "advertisement_decoder_new_format_test",
+    size = "small",
+    srcs = ["advertisement_decoder_new_format_test.cc"],
     deps = [
         ":internal",
         "//internal/platform:base",
