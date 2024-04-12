@@ -1,0 +1,1 @@
+add_library(cpp_ffi ffi.cpp)

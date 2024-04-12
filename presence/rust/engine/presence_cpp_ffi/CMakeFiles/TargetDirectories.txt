@@ -1,0 +1,3 @@
+/usr/local/google/home/chenw/nearby_repo/dataclass/nearby/presence/rust/engine/presence_cpp_ffi/CMakeFiles/engine.dir
+/usr/local/google/home/chenw/nearby_repo/dataclass/nearby/presence/rust/engine/presence_cpp_ffi/CMakeFiles/edit_cache.dir
+/usr/local/google/home/chenw/nearby_repo/dataclass/nearby/presence/rust/engine/presence_cpp_ffi/CMakeFiles/rebuild_cache.dir
