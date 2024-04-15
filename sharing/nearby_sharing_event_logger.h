@@ -15,8 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_EVENT_LOGGER_H_
 #define THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_EVENT_LOGGER_H_
 
-#include <memory>
-
 #include "internal/analytics/event_logger.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "google/protobuf/message_lite.h"
@@ -30,15 +28,15 @@ namespace sharing {
 class NearbySharingEventLogger : public nearby::analytics::EventLogger {
  public:
   NearbySharingEventLogger(
-      nearby::sharing::api::PreferenceManager& preference_manager,
-      std::unique_ptr<nearby::analytics::EventLogger> event_logger);
+      const nearby::sharing::api::PreferenceManager& preference_manager,
+      nearby::analytics::EventLogger* event_logger);
   ~NearbySharingEventLogger() override;
 
   void Log(const ::google::protobuf::MessageLite& message) override;
 
  private:
-  nearby::sharing::api::PreferenceManager& preference_manager_;
-  std::unique_ptr<nearby::analytics::EventLogger> event_logger_;
+  const nearby::sharing::api::PreferenceManager& preference_manager_;
+  nearby::analytics::EventLogger* const event_logger_;
 };
 
 }  // namespace sharing

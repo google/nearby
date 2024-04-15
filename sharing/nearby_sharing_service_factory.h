@@ -37,13 +37,14 @@ class NearbySharingServiceFactory {
   NearbySharingService* CreateSharingService(
       LinkType link_type,
       nearby::sharing::api::SharingPlatform& sharing_platform,
-      std::unique_ptr<::nearby::analytics::EventLogger> event_logger = nullptr);
+      std::unique_ptr<::nearby::analytics::EventLogger> event_logger);
 
  private:
   NearbySharingServiceFactory() = default;
 
   std::unique_ptr<Context> context_;
-  std::unique_ptr<::nearby::analytics::EventLogger> event_logger_;
+  std::unique_ptr<::nearby::analytics::EventLogger> base_event_logger_;
+  std::unique_ptr<::nearby::analytics::EventLogger> sharing_event_logger_;
   std::unique_ptr<NearbySharingDecoder> decoder_;
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;

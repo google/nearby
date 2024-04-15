@@ -40,10 +40,9 @@ class NearbySharingEventLoggerTest : public ::testing::Test {
   NearbySharingEventLoggerTest() = default;
 
   void SetUp() override {
-    auto event_logger = std::make_unique<MockEventLogger>();
-    raw_event_logger_ = event_logger.get();
+    event_logger_ = std::make_unique<MockEventLogger>();
     sharing_event_logger_ = std::make_unique<NearbySharingEventLogger>(
-        preference_manager_, std::move(event_logger));
+        preference_manager_, event_logger_.get());
   }
 
   void SetEventLogger(bool enabled) {
@@ -51,7 +50,7 @@ class NearbySharingEventLoggerTest : public ::testing::Test {
                                    enabled);
   }
 
-  const MockEventLogger* event_logger() { return raw_event_logger_; }
+  const MockEventLogger* event_logger() { return event_logger_.get(); }
 
   std::unique_ptr<SharingLog> GetTestEvent() {
     auto sharing_log =
@@ -72,7 +71,7 @@ class NearbySharingEventLoggerTest : public ::testing::Test {
 
  private:
   nearby::FakePreferenceManager preference_manager_;
-  MockEventLogger* raw_event_logger_ = nullptr;
+  std::unique_ptr<MockEventLogger> event_logger_;
   std::unique_ptr<NearbySharingEventLogger> sharing_event_logger_;
 };
 

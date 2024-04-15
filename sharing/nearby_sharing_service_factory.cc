@@ -47,18 +47,18 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
 
   context_ =
       std::make_unique<ContextImpl>(sharing_platform);
-  event_logger_ = std::make_unique<NearbySharingEventLogger>(
-      sharing_platform.GetPreferenceManager(),
-      std::move(event_logger));
+  base_event_logger_ = std::move(event_logger);
+  sharing_event_logger_ = std::make_unique<NearbySharingEventLogger>(
+      sharing_platform.GetPreferenceManager(), base_event_logger_.get());
   decoder_ = std::make_unique<NearbySharingDecoderImpl>();
   nearby_connections_manager_ =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
           link_type, context_.get(), sharing_platform.GetDeviceInfo(),
-          event_logger_.get());
+          sharing_event_logger_.get());
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
       context_.get(), sharing_platform, decoder_.get(),
-      std::move(nearby_connections_manager_), event_logger_.get());
+      std::move(nearby_connections_manager_), sharing_event_logger_.get());
 
   return nearby_sharing_service_.get();
 }

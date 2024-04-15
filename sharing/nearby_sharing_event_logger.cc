@@ -14,9 +14,6 @@
 
 #include "sharing/nearby_sharing_event_logger.h"
 
-#include <memory>
-#include <utility>
-
 #include "internal/analytics/event_logger.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -28,10 +25,9 @@ namespace sharing {
 using ::nearby::sharing::api::PreferenceManager;
 
 NearbySharingEventLogger::NearbySharingEventLogger(
-    PreferenceManager& preference_manager,
-    std::unique_ptr<nearby::analytics::EventLogger> event_logger)
-    : preference_manager_(preference_manager),
-      event_logger_(std::move(event_logger)) {}
+    const PreferenceManager& preference_manager,
+    nearby::analytics::EventLogger* event_logger)
+    : preference_manager_(preference_manager), event_logger_(event_logger) {}
 
 NearbySharingEventLogger::~NearbySharingEventLogger() = default;
 
