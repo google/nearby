@@ -62,6 +62,10 @@ constexpr auto kEnablePayloadReceivedAck =
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 
+// When true, skip the BWU frame if the pcp is not connected.
+constexpr auto kProcessBwuFrameAfterPcpConnected =
+    flags::Flag<bool>(kConfigPackage, "45627835", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
