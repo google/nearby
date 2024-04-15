@@ -1,0 +1,41 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package nearby.experiments;
+
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "ExperimentsLogProtos";
+option java_package = "com.google.nearby.experiments";
+// option (datapol.file_vetting_status) = "latest";
+
+// This proto encapsulates the experiments info to identify which logs belong
+// to which experiments. It's passed from Phenotype
+// (google3/location/nearby/cpp/experiments) to Clearcut event logger
+// (google3/location/nearby/analytics/cpp/logging/) so that the event logger
+// can generate the experiment-based Rasta metrics (go/rasta-overview).
+// NextId: 3
+message ExperimentsLog {
+  // Experiment token associated with the Mendel config package.
+  optional bytes experiment_token = 1
+      /* type = ST_EXPERIMENT_ID */;
+
+  // Zwieback cookie shared between Phenotype and Clearcut clients so that
+  // Rasta metrics can reflect the correct population of devices.
+  optional string zwieback_cookie = 2
+      /* type = ST_ZWIEBACK_ID */;
+}
