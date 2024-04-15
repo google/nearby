@@ -6,7 +6,7 @@
       "location" : "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
       "state" : {
         "branch" : "cxx17-test",
-        "revision" : "df22baef6992ac19219337c2a59a4c759fc92c0f"
+        "revision" : "9314d8e4e095fc3dce2be1abda8c875617dcaba4"
       }
     },
     {
