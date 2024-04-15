@@ -17,7 +17,6 @@
 
 #include "internal/analytics/event_logger.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace sharing {
@@ -32,7 +31,12 @@ class NearbySharingEventLogger : public nearby::analytics::EventLogger {
       nearby::analytics::EventLogger* event_logger);
   ~NearbySharingEventLogger() override;
 
-  void Log(const ::google::protobuf::MessageLite& message) override;
+  void Log(const location::nearby::analytics::proto::ConnectionsLog& message)
+      override;
+  void Log(const sharing::analytics::proto::SharingLog& message) override;
+  void Log(const nearby::proto::fastpair::FastPairLog& message) override;
+  void ConfigureExperiments(
+      const experiments::ExperimentsLog& message) override;
 
  private:
   const nearby::sharing::api::PreferenceManager& preference_manager_;

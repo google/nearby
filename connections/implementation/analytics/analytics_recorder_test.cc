@@ -17,7 +17,6 @@
 #include <stddef.h>
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -25,16 +24,14 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/analytics/event_logger.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/exception.h"
 #include "internal/proto/analytics/connections_log.proto.h"
 #include "proto/connections_enums.proto.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace analytics {
@@ -70,7 +67,7 @@ using ::location::nearby::proto::connections::WEB_RTC;
 using ::location::nearby::proto::connections::WIFI_LAN;
 using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
 using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
-using ::nearby::analytics::EventLogger;
+using ::nearby::analytics::MockEventLogger;
 using ::proto2::contrib::parse_proto::ParseTextProtoOrDie;
 using ::testing::Contains;
 using ::protobuf_matchers::EqualsProto;
@@ -79,7 +76,7 @@ using ::testing::proto::Partially;
 
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
 
-class FakeEventLogger : public EventLogger {
+class FakeEventLogger : public MockEventLogger {
  public:
   explicit FakeEventLogger(CountDownLatch& client_session_done_latch)
       : client_session_done_latch_(client_session_done_latch) {}
@@ -90,20 +87,15 @@ class FakeEventLogger : public EventLogger {
         start_client_session_done_latch_ptr_(
             start_client_session_done_latch_ptr) {}
 
-  void Log(const ::google::protobuf::MessageLite& message) override {
-    auto connections_log = dynamic_cast<const ConnectionsLog*>(&message);
-    if (connections_log == nullptr) {
-      return;
-    }
-
-    EventType event_type = connections_log->event_type();
+  void Log(const ConnectionsLog& message) override {
+    EventType event_type = message.event_type();
     logged_event_types_.push_back(event_type);
     if (event_type == CLIENT_SESSION) {
       logged_client_session_count_++;
-      logged_client_session_ = connections_log->client_session();
+      logged_client_session_ = message.client_session();
     }
     if (event_type == ERROR_CODE) {
-      error_code_ = connections_log->error_code();
+      error_code_ = message.error_code();
     }
     if (event_type == STOP_CLIENT_SESSION) {
       client_session_done_latch_.CountDown();

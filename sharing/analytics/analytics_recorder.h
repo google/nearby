@@ -30,7 +30,6 @@
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_target.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace sharing {
@@ -44,7 +43,7 @@ class AnalyticsRecorder {
 
   void NewEstablishConnection(
       int64_t session_id,
-      ::location::nearby::proto::sharing::EstablishConnectionStatus
+      location::nearby::proto::sharing::EstablishConnectionStatus
           connection_status,
       ShareTarget share_target, int transfer_position,
       int concurrent_connections, int64_t duration_millis,
@@ -63,14 +62,14 @@ class AnalyticsRecorder {
   void NewTapHelp();
 
   void NewLaunchDeviceContactConsent(
-      ::location::nearby::proto::sharing::ConsentAcceptanceStatus status);
+      location::nearby::proto::sharing::ConsentAcceptanceStatus status);
 
   void NewAdvertiseDevicePresenceEnd(int64_t session_id);
 
   void NewAdvertiseDevicePresenceStart(
-      int64_t session_id, ::nearby::sharing::proto::DeviceVisibility visibility,
-      ::location::nearby::proto::sharing::SessionStatus status,
-      ::nearby::sharing::proto::DataUsage data_usage,
+      int64_t session_id, nearby::sharing::proto::DeviceVisibility visibility,
+      location::nearby::proto::sharing::SessionStatus status,
+      nearby::sharing::proto::DataUsage data_usage,
       std::optional<std::string> referrer_package);
 
   void NewDescribeAttachments(
@@ -83,7 +82,7 @@ class AnalyticsRecorder {
       int64_t latency_since_send_surface_registered_millis);
 
   void NewEnableNearbySharing(
-      ::location::nearby::proto::sharing::NearbySharingStatus status);
+      location::nearby::proto::sharing::NearbySharingStatus status);
 
   void NewOpenReceivedAttachments(
       const std::vector<std::unique_ptr<Attachment>>& attachments,
@@ -91,12 +90,12 @@ class AnalyticsRecorder {
 
   void NewProcessReceivedAttachmentsEnd(
       int64_t session_id,
-      ::location::nearby::proto::sharing::ProcessReceivedAttachmentsStatus
+      location::nearby::proto::sharing::ProcessReceivedAttachmentsStatus
           status);
 
   void NewReceiveAttachmentsEnd(
       int64_t session_id, int64_t received_bytes,
-      ::location::nearby::proto::sharing::AttachmentTransmissionStatus status,
+      location::nearby::proto::sharing::AttachmentTransmissionStatus status,
       std::optional<std::string> referrer_package);
 
   void NewReceiveAttachmentsStart(
@@ -112,10 +111,10 @@ class AnalyticsRecorder {
   void NewReceiveIntroduction(
       int64_t session_id, ShareTarget share_target,
       std::optional<std::string> referrer_package,
-      ::location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
   void NewRespondToIntroduction(
-      ::location::nearby::proto::sharing::ResponseToIntroduction action,
+      location::nearby::proto::sharing::ResponseToIntroduction action,
       int64_t session_id);
 
   void NewTapPrivacyNotification();
@@ -126,18 +125,18 @@ class AnalyticsRecorder {
 
   void NewScanForShareTargetsStart(
       int64_t session_id,
-      ::location::nearby::proto::sharing::SessionStatus status,
+      location::nearby::proto::sharing::SessionStatus status,
       AnalyticsInformation analytics_information, int64_t flow_id,
       std::optional<std::string> referrer_package);
 
   void NewSendAttachmentsEnd(
       int64_t session_id, int64_t sent_bytes, ShareTarget share_target,
-      ::location::nearby::proto::sharing::AttachmentTransmissionStatus status,
+      location::nearby::proto::sharing::AttachmentTransmissionStatus status,
       int transfer_position, int concurrent_connections,
       int64_t duration_millis, std::optional<std::string> referrer_package,
-      ::location::nearby::proto::sharing::ConnectionLayerStatus
+      location::nearby::proto::sharing::ConnectionLayerStatus
           connection_layer_status,
-      ::location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
   void NewSendAttachmentsStart(
       int64_t session_id,
@@ -151,28 +150,27 @@ class AnalyticsRecorder {
 
   void NewSendIntroduction(
       ShareTargetType target_type, int64_t session_id,
-      ::location::nearby::proto::sharing::DeviceRelationship relationship,
-      ::location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::DeviceRelationship relationship,
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
   void NewSendIntroduction(
       int64_t session_id, ShareTarget share_target, int transfer_position,
       int concurrent_connections,
-      ::location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
-  void NewSetVisibility(
-      ::nearby::sharing::proto::DeviceVisibility src_visibility,
-      ::nearby::sharing::proto::DeviceVisibility dst_visibility,
-      int64_t duration_millis);
+  void NewSetVisibility(nearby::sharing::proto::DeviceVisibility src_visibility,
+                        nearby::sharing::proto::DeviceVisibility dst_visibility,
+                        int64_t duration_millis);
 
   void NewDeviceSettings(AnalyticsDeviceSettings settings);
 
   void NewFastShareServerResponse(
-      ::location::nearby::proto::sharing::ServerActionName name,
-      ::location::nearby::proto::sharing::ServerResponseState state,
+      location::nearby::proto::sharing::ServerActionName name,
+      location::nearby::proto::sharing::ServerResponseState state,
       int64_t latency_millis);
 
-  void NewSetDataUsage(::nearby::sharing::proto::DataUsage original_preference,
-                       ::nearby::sharing::proto::DataUsage preference);
+  void NewSetDataUsage(nearby::sharing::proto::DataUsage original_preference,
+                       nearby::sharing::proto::DataUsage preference);
 
   void NewAddQuickSettingsTile();
 
@@ -181,41 +179,40 @@ class AnalyticsRecorder {
   void NewTapQuickSettingsTile();
 
   void NewToggleShowNotification(
-      ::location::nearby::proto::sharing::ShowNotificationStatus prev_status,
-      ::location::nearby::proto::sharing::ShowNotificationStatus
-          current_status);
+      location::nearby::proto::sharing::ShowNotificationStatus prev_status,
+      location::nearby::proto::sharing::ShowNotificationStatus current_status);
 
   void NewSetDeviceName(int device_name_size);
 
   void NewRequestSettingPermissions(
-      ::location::nearby::proto::sharing::PermissionRequestType type,
-      ::location::nearby::proto::sharing::PermissionRequestResult result);
+      location::nearby::proto::sharing::PermissionRequestType type,
+      location::nearby::proto::sharing::PermissionRequestResult result);
 
   void NewInstallAPKStatus(
-      ::location::nearby::proto::sharing::InstallAPKStatus status,
-      ::location::nearby::proto::sharing::ApkSource source);
+      location::nearby::proto::sharing::InstallAPKStatus status,
+      location::nearby::proto::sharing::ApkSource source);
 
   void NewVerifyAPKStatus(
-      ::location::nearby::proto::sharing::VerifyAPKStatus status,
-      ::location::nearby::proto::sharing::ApkSource source);
+      location::nearby::proto::sharing::VerifyAPKStatus status,
+      location::nearby::proto::sharing::ApkSource source);
 
   void NewSendDesktopNotification(
-      ::location::nearby::proto::sharing::DesktopNotification event);
+      location::nearby::proto::sharing::DesktopNotification event);
 
   void NewSendDesktopTransferEvent(
-      ::location::nearby::proto::sharing::DesktopTransferEventType event);
+      location::nearby::proto::sharing::DesktopTransferEventType event);
 
   // Generates a random number for session ID or flow ID.
   int64_t GenerateNextId();
 
  private:
-  std::unique_ptr<::nearby::sharing::analytics::proto::SharingLog>
+  std::unique_ptr<nearby::sharing::analytics::proto::SharingLog>
   CreateSharingLog(
-      ::location::nearby::proto::sharing::EventCategory event_category,
-      ::location::nearby::proto::sharing::EventType event_type);
-  void LogEvent(const ::google::protobuf::MessageLite& message);
+      location::nearby::proto::sharing::EventCategory event_category,
+      location::nearby::proto::sharing::EventType event_type);
+  void LogEvent(const nearby::sharing::analytics::proto::SharingLog& message);
 
-  ::nearby::analytics::EventLogger* event_logger_ = nullptr;
+  nearby::analytics::EventLogger* event_logger_ = nullptr;
 };
 
 }  // namespace analytics

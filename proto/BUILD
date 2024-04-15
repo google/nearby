@@ -56,7 +56,6 @@ proto_library(
 proto_library(
     name = "fast_pair_enums_proto",
     srcs = ["fast_pair_enums.proto"],
-    compatible_with = ["//buildenv/target:non_prod"],
 )
 
 cc_proto_library(

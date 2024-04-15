@@ -19,7 +19,6 @@
 #include "internal/analytics/event_logger.h"
 #include "internal/proto/analytics/fast_pair_log.proto.h"
 #include "proto/fast_pair_enums.proto.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace fastpair {
@@ -118,7 +117,7 @@ void AnalyticsRecorder::NewKeyBasedPairingInfo(int request_flag,
 
 // start private methods
 
-void AnalyticsRecorder::LogEvent(const ::google::protobuf::MessageLite& message) {
+void AnalyticsRecorder::LogEvent(const FastPairLog& message) {
   if (event_logger_ == nullptr) {
     return;
   }

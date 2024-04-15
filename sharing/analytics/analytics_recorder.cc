@@ -1058,7 +1058,7 @@ std::unique_ptr<SharingLog> AnalyticsRecorder::CreateSharingLog(
   return sharing_log;
 }
 
-void AnalyticsRecorder::LogEvent(const ::google::protobuf::MessageLite& message) {
+void AnalyticsRecorder::LogEvent(const SharingLog& message) {
   if (event_logger_ == nullptr) {
     return;
   }
