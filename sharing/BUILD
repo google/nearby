@@ -320,7 +320,7 @@ cc_test(
         "//base:casts",
         "//connections:core_types",
         "//internal/account",
-        "//internal/analytics:event_logger",
+        "//internal/analytics:mock_event_logger",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/network:types",

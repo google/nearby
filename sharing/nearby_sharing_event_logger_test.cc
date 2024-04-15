@@ -20,7 +20,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/analytics/event_logger.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/test/fake_preference_manager.h"
@@ -32,15 +32,8 @@ namespace sharing {
 namespace {
 using ::location::nearby::proto::sharing::EventCategory;
 using ::location::nearby::proto::sharing::EventType;
-using ::nearby::analytics::EventLogger;
+using ::nearby::analytics::MockEventLogger;
 using ::nearby::sharing::analytics::proto::SharingLog;
-
-class MockEventLogger : public EventLogger {
- public:
-  ~MockEventLogger() override = default;
-
-  MOCK_METHOD(void, Log, (const proto2::MessageLite& message), (override));
-};
 
 class NearbySharingEventLoggerTest : public ::testing::Test {
  public:

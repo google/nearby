@@ -28,3 +28,16 @@ cc_library(
     ],
     deps = ["@com_google_protobuf//:protobuf_lite"],
 )
+
+cc_library(
+    name = "mock_event_logger",
+    testonly = True,
+    hdrs = ["mock_event_logger.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":event_logger",
+        "@com_google_googletest//:gtest_for_library_testonly",
+        "@com_google_protobuf//:protobuf_lite",
+    ],
+)

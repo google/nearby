@@ -19,7 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/analytics/event_logger.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/proto/analytics/fast_pair_log.proto.h"
 #include "proto/fast_pair_enums.proto.h"
 #include "google/protobuf/message_lite.h"
@@ -29,16 +29,9 @@ namespace fastpair {
 namespace analytics {
 namespace {
 
+using ::nearby::analytics::MockEventLogger;
 using ::nearby::proto::fastpair::FastPairEvent;
 using ::nearby::proto::fastpair::FastPairLog;
-
-class MockEventLogger : public ::nearby::analytics::EventLogger {
- public:
-  MockEventLogger() = default;
-  ~MockEventLogger() override = default;
-
-  MOCK_METHOD(void, Log, (const ::google::protobuf::MessageLite& message), (override));
-};
 
 class AnalyticsRecorderTest : public ::testing::Test {
  public:

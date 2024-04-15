@@ -26,7 +26,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "internal/analytics/event_logger.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
@@ -48,6 +48,7 @@ namespace {
 using ::location::nearby::proto::sharing::EventCategory;
 using ::location::nearby::proto::sharing::EventType;
 using ::location::nearby::proto::sharing::OSType;
+using ::nearby::analytics::MockEventLogger;
 using ::nearby::sharing::analytics::proto::SharingLog;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
@@ -58,14 +59,6 @@ constexpr absl::string_view kFileDocumentName = "abc.pdf";
 constexpr absl::string_view kFileMimeType = "application/pdf";
 constexpr absl::string_view kTextMimeType = "text/plain";
 constexpr absl::string_view kAppPackageName = "com.google.android.youtube";
-
-class MockEventLogger : public ::nearby::analytics::EventLogger {
- public:
-  MockEventLogger() = default;
-  ~MockEventLogger() override = default;
-
-  MOCK_METHOD(void, Log, (const ::google::protobuf::MessageLite& message), (override));
-};
 
 class AnalyticsRecorderTest : public ::testing::Test {
  public:

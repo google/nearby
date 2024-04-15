@@ -45,7 +45,7 @@ cc_test(
     srcs = ["analytics_recorder_test.cc"],
     deps = [
         ":analytics",
-        "//internal/analytics:event_logger",
+        "//internal/analytics:mock_event_logger",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//proto:sharing_enums_cc_proto",
         "//sharing:types",

@@ -38,7 +38,7 @@ cc_test(
     srcs = ["analytics_recorder_test.cc"],
     deps = [
         ":analytics",
-        "//internal/analytics:event_logger",
+        "//internal/analytics:mock_event_logger",
         "//internal/proto/analytics:fast_pair_log_cc_proto",
         "//proto:fast_pair_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
