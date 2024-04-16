@@ -122,11 +122,13 @@ enum EventType : int {
   FAST_INIT_DISCOVER_DEVICE = 61,
   SEND_DESKTOP_NOTIFICATION = 62,
   SET_ACCOUNT = 63,
-  DECRYPT_CERTIFICATE_FAILURE = 64
+  DECRYPT_CERTIFICATE_FAILURE = 64,
+  SHOW_ALLOW_PERMISSION_AUTO_ACCESS = 65,
+  SEND_DESKTOP_TRANSFER_EVENT = 66
 };
 bool EventType_IsValid(int value);
 constexpr EventType EventType_MIN = UNKNOWN_EVENT_TYPE;
-constexpr EventType EventType_MAX = DECRYPT_CERTIFICATE_FAILURE;
+constexpr EventType EventType_MAX = SEND_DESKTOP_TRANSFER_EVENT;
 constexpr int EventType_ARRAYSIZE = EventType_MAX + 1;
 
 const std::string& EventType_Name(EventType value);
@@ -228,11 +230,18 @@ enum EstablishConnectionStatus : int {
   CONNECTION_STATUS_UNKNOWN = 0,
   CONNECTION_STATUS_SUCCESS = 1,
   CONNECTION_STATUS_FAILURE = 2,
-  CONNECTION_STATUS_CANCELLATION = 3
+  CONNECTION_STATUS_CANCELLATION = 3,
+  CONNECTION_STATUS_MEDIA_UNAVAILABLE_ATTACHMENT = 4,
+  CONNECTION_STATUS_FAILED_PAIRED_KEYHANDSHAKE = 5,
+  CONNECTION_STATUS_FAILED_WRITE_INTRODUCTION = 6,
+  CONNECTION_STATUS_FAILED_NULL_CONNECTION = 7,
+  CONNECTION_STATUS_FAILED_NO_TRANSFER_UPDATE_CALLBACK = 8,
+  CONNECTION_STATUS_LOST_CONNECTIVITY = 9,
+  CONNECTION_STATUS_INVALID_ADVERTISEMENT = 10
 };
 bool EstablishConnectionStatus_IsValid(int value);
 constexpr EstablishConnectionStatus EstablishConnectionStatus_MIN = CONNECTION_STATUS_UNKNOWN;
-constexpr EstablishConnectionStatus EstablishConnectionStatus_MAX = CONNECTION_STATUS_CANCELLATION;
+constexpr EstablishConnectionStatus EstablishConnectionStatus_MAX = CONNECTION_STATUS_INVALID_ADVERTISEMENT;
 constexpr int EstablishConnectionStatus_ARRAYSIZE = EstablishConnectionStatus_MAX + 1;
 
 const std::string& EstablishConnectionStatus_Name(EstablishConnectionStatus value);
@@ -250,28 +259,36 @@ enum AttachmentTransmissionStatus : int {
   COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1,
   CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2,
   FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3,
-  REJECTED_ATTACHMENT = 4,
-  TIMED_OUT_ATTACHMENT = 5,
+  REJECTED_ATTACHMENT PROTOBUF_DEPRECATED_ENUM = 4,
+  TIMED_OUT_ATTACHMENT PROTOBUF_DEPRECATED_ENUM = 5,
   AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT PROTOBUF_DEPRECATED_ENUM = 6,
-  NOT_ENOUGH_SPACE_ATTACHMENT = 7,
-  FAILED_NO_TRANSFER_UPDATE_CALLBACK = 8,
-  MEDIA_UNAVAILABLE_ATTACHMENT = 9,
-  UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT = 10,
-  NO_ATTACHMENT_FOUND = 11,
-  FAILED_NO_SHARE_TARGET_ENDPOINT = 12,
-  FAILED_PAIRED_KEYHANDSHAKE = 13,
-  FAILED_NULL_CONNECTION = 14,
-  FAILED_NO_PAYLOAD = 15,
-  FAILED_WRITE_INTRODUCTION = 16,
-  FAILED_UNKNOWN_REMOTE_RESPONSE = 17,
+  NOT_ENOUGH_SPACE_ATTACHMENT PROTOBUF_DEPRECATED_ENUM = 7,
+  FAILED_NO_TRANSFER_UPDATE_CALLBACK PROTOBUF_DEPRECATED_ENUM = 8,
+  MEDIA_UNAVAILABLE_ATTACHMENT PROTOBUF_DEPRECATED_ENUM = 9,
+  UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT PROTOBUF_DEPRECATED_ENUM = 10,
+  NO_ATTACHMENT_FOUND PROTOBUF_DEPRECATED_ENUM = 11,
+  FAILED_NO_SHARE_TARGET_ENDPOINT PROTOBUF_DEPRECATED_ENUM = 12,
+  FAILED_PAIRED_KEYHANDSHAKE PROTOBUF_DEPRECATED_ENUM = 13,
+  FAILED_NULL_CONNECTION PROTOBUF_DEPRECATED_ENUM = 14,
+  FAILED_NO_PAYLOAD PROTOBUF_DEPRECATED_ENUM = 15,
+  FAILED_WRITE_INTRODUCTION PROTOBUF_DEPRECATED_ENUM = 16,
+  FAILED_UNKNOWN_REMOTE_RESPONSE PROTOBUF_DEPRECATED_ENUM = 17,
   FAILED_NULL_CONNECTION_INIT_OUTGOING = 18,
   FAILED_NULL_CONNECTION_DISCONNECTED = 19,
-  FAILED_NULL_CONNECTION_LOST_CONNECTIVITY = 20,
-  FAILED_NULL_CONNECTION_FAILURE = 21
+  FAILED_NULL_CONNECTION_LOST_CONNECTIVITY PROTOBUF_DEPRECATED_ENUM = 20,
+  FAILED_NULL_CONNECTION_FAILURE PROTOBUF_DEPRECATED_ENUM = 21,
+  REJECTED_ATTACHMENT_TRANSMISSION_STATUS = 22,
+  TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS = 23,
+  NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS = 24,
+  UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS = 25,
+  FAILED_UNKNOWN_REMOTE_RESPONSE_TRANSMISSION_STATUS = 26,
+  NO_RESPONSE_FRAME_CONNECTION_CLOSED_LOST_CONNECTIVITY_TRANSMISSION_STATUS PROTOBUF_DEPRECATED_ENUM = 27,
+  NO_RESPONSE_FRAME_CONNECTION_CLOSED_TRANSMISSION_STATUS = 28,
+  LOST_CONNECTIVITY_TRANSMISSION_STATUS = 29
 };
 bool AttachmentTransmissionStatus_IsValid(int value);
 constexpr AttachmentTransmissionStatus AttachmentTransmissionStatus_MIN = UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
-constexpr AttachmentTransmissionStatus AttachmentTransmissionStatus_MAX = FAILED_NULL_CONNECTION_FAILURE;
+constexpr AttachmentTransmissionStatus AttachmentTransmissionStatus_MAX = LOST_CONNECTIVITY_TRANSMISSION_STATUS;
 constexpr int AttachmentTransmissionStatus_ARRAYSIZE = AttachmentTransmissionStatus_MAX + 1;
 
 const std::string& AttachmentTransmissionStatus_Name(AttachmentTransmissionStatus value);
@@ -410,11 +427,12 @@ enum OSType : int {
   ANDROID = 1,
   CHROME_OS = 2,
   IOS = 3,
-  WINDOWS = 4
+  WINDOWS = 4,
+  MACOS = 5
 };
 bool OSType_IsValid(int value);
 constexpr OSType OSType_MIN = UNKNOWN_OS_TYPE;
-constexpr OSType OSType_MAX = WINDOWS;
+constexpr OSType OSType_MAX = MACOS;
 constexpr int OSType_ARRAYSIZE = OSType_MAX + 1;
 
 const std::string& OSType_Name(OSType value);
@@ -483,11 +501,13 @@ enum ServerActionName : int {
   DOWNLOAD_SENDER_CERTIFICATES = 7,
   UPLOAD_CONTACTS_AND_CERTIFICATES = 8,
   LIST_REACHABLE_PHONE_NUMBERS = 9,
-  LIST_MY_DEVICES = 10
+  LIST_MY_DEVICES = 10,
+  LIST_CONTACT_PEOPLE = 11,
+  DOWNLOAD_CERTIFICATES_INFO = 12
 };
 bool ServerActionName_IsValid(int value);
 constexpr ServerActionName ServerActionName_MIN = UNKNOWN_SERVER_ACTION;
-constexpr ServerActionName ServerActionName_MAX = LIST_MY_DEVICES;
+constexpr ServerActionName ServerActionName_MAX = DOWNLOAD_CERTIFICATES_INFO;
 constexpr int ServerActionName_ARRAYSIZE = ServerActionName_MAX + 1;
 
 const std::string& ServerActionName_Name(ServerActionName value);
@@ -544,11 +564,13 @@ enum SyncPurpose : int {
   SYNC_PURPOSE_SHOW_C11N_VIEW = 12,
   SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY = 13,
   SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE = 14,
-  SYNC_PURPOSE_ACCOUNT_CHANGE = 15
+  SYNC_PURPOSE_ACCOUNT_CHANGE = 15,
+  SYNC_PURPOSE_REGENERATE_CERTIFICATES = 16,
+  SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE = 17
 };
 bool SyncPurpose_IsValid(int value);
 constexpr SyncPurpose SyncPurpose_MIN = SYNC_PURPOSE_UNKNOWN;
-constexpr SyncPurpose SyncPurpose_MAX = SYNC_PURPOSE_ACCOUNT_CHANGE;
+constexpr SyncPurpose SyncPurpose_MAX = SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE;
 constexpr int SyncPurpose_ARRAYSIZE = SyncPurpose_MAX + 1;
 
 const std::string& SyncPurpose_Name(SyncPurpose value);
@@ -645,6 +667,28 @@ inline const std::string& AdvertisingMode_Name(T enum_t_value) {
 }
 bool AdvertisingMode_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AdvertisingMode* value);
+enum DiscoveryMode : int {
+  UNKNOWN_DISCOVERY_MODE = 0,
+  SCREEN_OFF_DISCOVERY_MODE = 1,
+  BACKGROUND_DISCOVERY_MODE = 2,
+  MIDGROUND_DISCOVERY_MODE = 3,
+  FOREGROUND_DISCOVERY_MODE = 4
+};
+bool DiscoveryMode_IsValid(int value);
+constexpr DiscoveryMode DiscoveryMode_MIN = UNKNOWN_DISCOVERY_MODE;
+constexpr DiscoveryMode DiscoveryMode_MAX = FOREGROUND_DISCOVERY_MODE;
+constexpr int DiscoveryMode_ARRAYSIZE = DiscoveryMode_MAX + 1;
+
+const std::string& DiscoveryMode_Name(DiscoveryMode value);
+template<typename T>
+inline const std::string& DiscoveryMode_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DiscoveryMode>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DiscoveryMode_Name.");
+  return DiscoveryMode_Name(static_cast<DiscoveryMode>(enum_t_value));
+}
+bool DiscoveryMode_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DiscoveryMode* value);
 enum ActivityName : int {
   UNKNOWN_ACTIVITY = 0,
   SHARE_SHEET_ACTIVITY = 1,
@@ -1118,6 +1162,7 @@ template <> struct is_proto_enum< ::location::nearby::proto::sharing::ClientRole
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ScanType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ParsingFailedType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::AdvertisingMode> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::DiscoveryMode> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ActivityName> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ConsentType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::ConsentAcceptanceStatus> : ::std::true_type {};
