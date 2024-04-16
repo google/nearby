@@ -27,9 +27,14 @@ cc_library(
 
 cc_library(
     name = "device",
+    srcs = [
+        "device_provider.cc",
+        "nearby_device_provider_getter.cc",
+    ],
     hdrs = [
         "device.h",
         "device_provider.h",
+        "nearby_device_provider_getter.h",
     ],
     visibility = [
         "//connections:__subpackages__",
@@ -39,6 +44,9 @@ cc_library(
         ":authentication_status",
         ":authentication_transport_interface",
         "//internal/platform:connection_info",
+        "//internal/platform:types",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
     ],
@@ -54,4 +62,49 @@ cc_library(
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
     ],
+)
+
+cc_library(
+    name = "test_support",
+    testonly = 1,
+    srcs = [
+        "fake_device_provider.cc",
+    ],
+    hdrs = [
+        "fake_device_provider.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//presence:__subpackages__",
+    ],
+    deps = [
+        ":authentication_status",
+        ":authentication_transport_interface",
+        ":device",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_test(
+    name = "interop_test",
+    size = "small",
+    srcs = [
+        "nearby_device_provider_getter_test.cc",
+    ],
+    shard_count = 6,
+    deps = [
+        ":device",
+        ":test_support",
+        "//internal/platform:connection_info",
+        "//internal/platform:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )

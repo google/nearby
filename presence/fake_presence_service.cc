@@ -18,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include "internal/interop/device_provider.h"
 #include "internal/platform/borrowable.h"
 #include "presence/fake_presence_client.h"
 
@@ -75,9 +76,8 @@ void FakePresenceService::UpdateDeviceIdentityMetaData(
   }
 }
 
-// Not implemented.
-PresenceDeviceProvider* FakePresenceService::GetLocalDeviceProvider() {
-  return nullptr;
+NearbyDeviceProvider* FakePresenceService::GetLocalDeviceProvider() {
+  return provider_;
 }
 
 void FakePresenceService::GetLocalPublicCredentials(
