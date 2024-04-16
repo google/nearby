@@ -37,6 +37,7 @@
 #include "presence/presence_device_provider.h"
 #include "presence/presence_service.h"
 #include "presence/scan_request.h"
+#include "internal/interop/device_provider.h"
 
 namespace nearby {
 namespace presence {
@@ -70,7 +71,7 @@ class PresenceServiceImpl : public PresenceService {
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
 
-  PresenceDeviceProvider* GetLocalDeviceProvider() override {
+  NearbyDeviceProvider* GetLocalDeviceProvider() override {
     return &provider_;
   }
 
