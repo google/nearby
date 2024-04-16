@@ -3613,14 +3613,20 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     return;
   }
 
-  if (introduction_frame.has_start_transfer() &&
-      introduction_frame.start_transfer()) {
-    if (share_target.GetTotalAttachmentsSize() >=
-            kAttachmentsSizeThresholdOverHighQualityMedium) {
-      NL_LOG(INFO)
-          << __func__
-          << ": Upgrade bandwidth when receiving an introduction frame.";
-      nearby_connections_manager_->UpgradeBandwidth(info->endpoint_id());
+  // Controls BWU using a flag when receiving an introduction frame, since it
+  // could be a problem before accepted by a user.
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          sharing::config_package_nearby::nearby_sharing_feature::
+              kUpgradeBandwidthAfterAccept)) {
+    if (introduction_frame.has_start_transfer() &&
+        introduction_frame.start_transfer()) {
+      if (share_target.GetTotalAttachmentsSize() >=
+          kAttachmentsSizeThresholdOverHighQualityMedium) {
+        NL_LOG(INFO)
+            << __func__
+            << ": Upgrade bandwidth when receiving an introduction frame.";
+        nearby_connections_manager_->UpgradeBandwidth(info->endpoint_id());
+      }
     }
   }
 
