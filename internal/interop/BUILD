@@ -39,6 +39,7 @@ cc_library(
         ":authentication_status",
         ":authentication_transport_interface",
         "//internal/platform:connection_info",
+        "//internal/platform:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
     ],
@@ -53,5 +54,26 @@ cc_library(
         "//connections:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
+    ],
+)
+
+cc_library(
+    name = "test_support",
+    testonly = 1,
+    srcs = [
+        "fake_device_provider.cc",
+    ],
+    hdrs = [
+        "fake_device_provider.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//presence:__subpackages__",
+    ],
+    deps = [
+        ":authentication_status",
+        ":authentication_transport_interface",
+        ":device",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )

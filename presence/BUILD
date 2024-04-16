@@ -66,8 +66,11 @@ cc_library(
     deps = [
         ":presence",
         ":types",
+        "//internal/interop:device",
+        "//internal/interop:test_support",
         "//internal/platform:types",
         "//internal/proto:metadata_cc_proto",
+        "//presence/implementation:internal",  # build_cleaner: keep
         "@com_google_absl//absl/status:statusor",
     ],
 )
