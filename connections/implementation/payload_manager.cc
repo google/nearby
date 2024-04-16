@@ -522,6 +522,30 @@ void PayloadManager::OnIncomingFrame(
   PayloadTransferFrame& frame =
       *offline_frame.mutable_v1()->mutable_payload_transfer();
 
+  // Block any payload before the connection been accepted by both sides
+  // to prevent unauthorized transfer.
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kProcessBwuFrameAfterPcpConnected) &&
+      !to_client->IsConnectedToEndpoint(from_endpoint_id)) {
+    if (frame.packet_type() == PayloadTransferFrame::DATA) {
+      PendingPayloadHandle pending_payload =
+          pending_payloads_.GetPayload(frame.payload_header().id());
+      bool is_last = IsLastChunk(frame.payload_chunk());
+      // If payload need to be ack'd receiving, then send back the ACK frame.
+      if (pending_payload && is_last &&
+          IsPayloadReceivedAckEnabled(to_client, from_endpoint_id,
+                                      *pending_payload)) {
+        SendPayloadReceivedAck(to_client, *pending_payload, from_endpoint_id,
+                               is_last);
+      }
+    }
+    NEARBY_LOGS(INFO)
+        << "PayloadManager skipped process payloads before PCP connected, "
+        << frame.payload_header().id();
+    return;
+  }
+
   switch (frame.packet_type()) {
     case PayloadTransferFrame::CONTROL:
       NEARBY_LOGS(INFO) << "PayloadManager::OnIncomingFrame [CONTROL]: self="
@@ -534,7 +558,8 @@ void PayloadManager::OnIncomingFrame(
       break;
     case PayloadTransferFrame::PAYLOAD_ACK:
       NEARBY_LOGS(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender "
-                           "received payload ack from " << from_endpoint_id;
+                           "received payload ack from "
+                        << from_endpoint_id;
       ProcessPayloadAckPacket(from_endpoint_id, frame);
       break;
     default:
@@ -556,8 +581,8 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
   }
   RunOnStatusUpdateThread(
       "payload-manager-on-disconnect",
-      [this, client, endpoint_id,
-       barrier, reason]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() mutable {
+      [this, client, endpoint_id, barrier,
+       reason]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() mutable {
         // Iterate through all our payloads and look for payloads associated
         // with this endpoint.
         MutexLock lock(&mutex_);
@@ -586,20 +611,19 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
           // Send a client notification of a payload transfer failure.
           client->OnPayloadProgress(endpoint_id, update);
 
-              PayloadStatus payload_status;
-              switch (reason) {
-                case DisconnectionReason::LOCAL_DISCONNECTION:
-                  payload_status = PayloadStatus::LOCAL_CLIENT_DISCONNECTION;
-                  break;
-                case DisconnectionReason::REMOTE_DISCONNECTION:
-                  payload_status = PayloadStatus::REMOTE_CLIENT_DISCONNECTION;
-                  break;
-                case DisconnectionReason::IO_ERROR:
-                default:
-                  payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
-                  break;
-              }
-
+          PayloadStatus payload_status;
+          switch (reason) {
+            case DisconnectionReason::LOCAL_DISCONNECTION:
+              payload_status = PayloadStatus::LOCAL_CLIENT_DISCONNECTION;
+              break;
+            case DisconnectionReason::REMOTE_DISCONNECTION:
+              payload_status = PayloadStatus::REMOTE_CLIENT_DISCONNECTION;
+              break;
+            case DisconnectionReason::IO_ERROR:
+            default:
+              payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
+              break;
+          }
 
           if (pending_payload->IsIncoming()) {
             client->GetAnalyticsRecorder().OnIncomingPayloadDone(
@@ -843,9 +867,10 @@ void PayloadManager::SendControlMessage(
                                         endpoint_ids);
 }
 
-void PayloadManager::SendPayloadReceivedAck(
-    ClientProxy* client, PendingPayload& pending_payload,
-    const std::string& endpoint_id, bool is_last_chunk) {
+void PayloadManager::SendPayloadReceivedAck(ClientProxy* client,
+                                            PendingPayload& pending_payload,
+                                            const std::string& endpoint_id,
+                                            bool is_last_chunk) {
   if (!is_last_chunk ||
       !IsPayloadReceivedAckEnabled(client, endpoint_id, pending_payload)) {
     return;
@@ -1296,8 +1321,8 @@ void PayloadManager::ProcessDataPacket(
   packet_meta_data.StopFileIo();
   bool is_last_chunk = (payload_chunk.flags() &
                         PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
-  SendPayloadReceivedAck(
-      to_client, *pending_payload, from_endpoint_id, is_last_chunk);
+  SendPayloadReceivedAck(to_client, *pending_payload, from_endpoint_id,
+                         is_last_chunk);
 
   HandleSuccessfulIncomingChunk(to_client, from_endpoint_id, payload_header,
                                 payload_chunk.flags(), payload_chunk.offset(),

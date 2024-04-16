@@ -26,10 +26,13 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/fake_bwu_handler.h"
 #include "connections/implementation/fake_endpoint_channel.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
@@ -926,6 +929,65 @@ TEST_F(BwuManagerTest, OnReceiveBwuEvent) {
 
 TEST_F(BwuManagerTest, OnProcessBwuEvent) {
   // TODO(b/235109434): Add more unit tests coverage for BWU module
+}
+
+TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kProcessBwuFrameAfterPcpConnected,
+      false);
+  CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  ExceptionOr<OfflineFrame> hotspot_path_available_frame =
+      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
+          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
+          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1",
+          true));
+  OfflineFrame frame = hotspot_path_available_frame.result();
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+
+  upgrade_path_info->set_supports_client_introduction_ack(false);
+  upgrade_path_info->set_supports_disabling_encryption(true);
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH, packet_meta_data_);
+  CountDownLatch latch(1);
+  // The BWU frame should not be drop, so the inProgressUpgrades should not be
+  // empty.
+  ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)), true);
+  UnRegisterChannelForEndpoint(kEndpointId1);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kProcessBwuFrameAfterPcpConnected,
+      true);
+  CreateInitialEndpoint(kServiceIdA, kEndpointId2, Medium::BLUETOOTH);
+
+  ExceptionOr<OfflineFrame> hotspot_path_available_frame2 =
+      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
+          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
+          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1",
+          true));
+  OfflineFrame frame2 = hotspot_path_available_frame2.result();
+  frame2.set_version(OfflineFrame::V1);
+  auto* v1_frame2 = frame2.mutable_v1();
+  auto* sub_frame2 = v1_frame2->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info2 = sub_frame2->mutable_upgrade_path_info();
+
+  upgrade_path_info2->set_supports_client_introduction_ack(false);
+  upgrade_path_info2->set_supports_disabling_encryption(true);
+  bwu_manager_->OnIncomingFrame(frame2, std::string(kEndpointId2), &client_,
+                                Medium::BLUETOOTH, packet_meta_data_);
+  CountDownLatch latch2(1);
+  // The BWU frame should be drop, so the inProgressUpgrades should be empty.
+  ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)), false);
+  UnRegisterChannelForEndpoint(kEndpointId2);
 }
 
 INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,

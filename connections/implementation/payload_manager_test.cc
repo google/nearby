@@ -21,13 +21,18 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
@@ -35,6 +40,9 @@
 namespace nearby {
 namespace connections {
 namespace {
+using ::location::nearby::connections::OfflineFrame;
+using ::nearby::analytics::PacketMetaData;
+using ::location::nearby::proto::connections::Medium;
 
 constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
@@ -88,6 +96,29 @@ class PayloadSimulationUser : public SimulationUser {
   void SendPayload(Payload payload) {
     sender_payload_id_ = payload.GetId();
     pm_.SendPayload(&client_, {discovered_.endpoint_id}, std::move(payload));
+  }
+
+  void ReceivePayload(Payload payload, std::string from_payload_id) {
+    PayloadTransferFrame::PayloadHeader header;
+    header.set_id(payload.GetId());
+    header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+    header.set_total_size(payload.AsBytes().size());
+    header.set_file_name("test_file.txt");
+    header.set_parent_folder("");
+    PayloadTransferFrame::PayloadChunk chunk;
+    chunk.set_body(payload.AsBytes().data());
+    chunk.set_offset(payload.GetOffset());
+    chunk.set_flags(1);
+
+    OfflineFrame offline_frame;
+
+    ByteArray bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(std::string(bytes));
+
+    PacketMetaData packet_meta_data;
+
+    pm_.OnIncomingFrame(offline_frame, from_payload_id, &client_,
+                        Medium::WIFI_HOTSPOT, packet_meta_data);
   }
 
   Status CancelPayload() {
@@ -366,6 +397,23 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   NEARBY_LOG(INFO, "Test completed.");
   user_a.Stop();
   user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kProcessBwuFrameAfterPcpConnected,
+      false);
+  env_.Start();
+  PayloadSimulationUser user(kDeviceB, GetParam());
+  auto [input, tx] = CreatePipe();
+  const ByteArray message{std::string(kMessage)};
+  tx->Write(message);
+  Payload payload(std::move(input));
+  user.ReceivePayload(std::move(payload), "1234");
+  ASSERT_EQ(user.GetPayload().AsStream(), nullptr);
+  user.Stop();
   env_.Stop();
 }
 

@@ -26,6 +26,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #ifdef NO_WEBRTC
@@ -36,6 +37,7 @@
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "connections/implementation/wifi_lan_bwu_handler.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
@@ -471,6 +473,26 @@ void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
   NEARBY_LOGS(INFO) << "OnBwuNegotiationFrame: processing incoming "
                     << BwuNegotiationFrame::EventType_Name(frame.event_type())
                     << " frame for endpoint " << endpoint_id;
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kProcessBwuFrameAfterPcpConnected) &&
+      !client->IsConnectedToEndpoint(endpoint_id)) {
+    NEARBY_LOGS(WARNING)
+        << "BwuManager skips the process BANDWIDTH_UPGRADE_NEGOTIATION before "
+           "PCP connected, "
+        << frame.event_type();
+
+    // For the case discover side not yet get the local accept from client, but
+    // advertise side already get, discover side should inform advertise side
+    // the upgrade failed, so the advertise side could have chance to initialize
+    // another upgrade flow again.
+    if (frame.event_type() == BwuNegotiationFrame::UPGRADE_PATH_AVAILABLE) {
+      RunUpgradeFailedProtocol(client, endpoint_id, frame.upgrade_path_info());
+    }
+    return;
+  }
+
   switch (frame.event_type()) {
     case BwuNegotiationFrame::UPGRADE_PATH_AVAILABLE:
       ProcessBwuPathAvailableEvent(client, endpoint_id,
