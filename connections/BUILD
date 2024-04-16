@@ -25,7 +25,6 @@ cc_library(
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
         "//sharing:__subpackages__",
     ],
@@ -72,7 +71,6 @@ cc_library(
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
         "//sharing:__subpackages__",
     ],
