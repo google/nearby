@@ -18,10 +18,10 @@
 #include <memory>
 #include <vector>
 
+#include "internal/interop/device_provider.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/data_types.h"
 #include "presence/presence_client.h"
-#include "presence/presence_device_provider.h"
 
 namespace nearby {
 namespace presence {
@@ -49,7 +49,7 @@ class PresenceService {
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) = 0;
 
-  virtual PresenceDeviceProvider* GetLocalDeviceProvider() = 0;
+  virtual NearbyDeviceProvider* GetLocalDeviceProvider() = 0;
 
   virtual void GetLocalPublicCredentials(
       const CredentialSelector& credential_selector,
