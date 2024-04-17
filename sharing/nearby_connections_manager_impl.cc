@@ -829,7 +829,7 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 
   if (payload_it->second.content.type != PayloadContent::Type::kBytes) {
     NL_LOG(WARNING) << "Received unknown payload of file type. Cancelling.";
-    if (!NearbyFlags::GetInstance().GetBoolFlag(
+    if (NearbyFlags::GetInstance().GetBoolFlag(
             sharing::config_package_nearby::nearby_sharing_feature::
                 kDeleteUnexpectedReceivedFile)) {
       // if we get kFile and have file_path, delete the file path.
