@@ -33,7 +33,6 @@ proto_library(
 proto_library(
     name = "fast_pair_log_proto",
     srcs = ["fast_pair_log.proto"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = ["//proto:fast_pair_enums_proto"],
 )
 
@@ -51,6 +50,7 @@ cc_proto_library(
     name = "connections_log_cc_proto",
     visibility = [
         "//connections:__subpackages__",
+        "//internal/analytics:__pkg__",
         "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [":connections_log_proto"],
@@ -64,6 +64,7 @@ proto_library(
 cc_proto_library(
     name = "experiments_log_cc_proto",
     visibility = [
+        "//internal/analytics:__pkg__",
         "//location/nearby/analytics/cpp/logging:__subpackages__",
         "//location/nearby/cpp/experiments:__subpackages__",
     ],

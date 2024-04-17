@@ -20,7 +20,6 @@
 #include "internal/analytics/event_logger.h"
 #include "internal/proto/analytics/fast_pair_log.proto.h"
 #include "proto/fast_pair_enums.proto.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace fastpair {
@@ -35,8 +34,7 @@ class AnalyticsRecorder {
   void NewGattEvent(int error_from_os);
 
   void NewBrEdrHandoverEvent(
-      ::nearby::proto::fastpair::FastPairEvent::BrEdrHandoverErrorCode
-          error_code
+      nearby::proto::fastpair::FastPairEvent::BrEdrHandoverErrorCode error_code
 
   );
 
@@ -45,7 +43,7 @@ class AnalyticsRecorder {
       int unbond_reason);
 
   void NewConnectEvent(
-      ::nearby::proto::fastpair::FastPairEvent::ConnectErrorCode error_code,
+      nearby::proto::fastpair::FastPairEvent::ConnectErrorCode error_code,
       int profile_uuid);
 
   void NewProviderInfo(int number_account_keys_on_provider);
@@ -56,10 +54,9 @@ class AnalyticsRecorder {
                               int response_flag, int response_device_count);
 
  private:
-  std::unique_ptr<::nearby::proto::fastpair::FastPairLog> createFastPairLog();
-  void LogEvent(const ::google::protobuf::MessageLite& message);
+  void LogEvent(const nearby::proto::fastpair::FastPairLog& message);
 
-  ::nearby::analytics::EventLogger* event_logger_ = nullptr;
+  nearby::analytics::EventLogger* event_logger_ = nullptr;
 };
 
 }  // namespace analytics

@@ -34,6 +34,7 @@ using ::location::nearby::proto::sharing::EventCategory;
 using ::location::nearby::proto::sharing::EventType;
 using ::nearby::analytics::MockEventLogger;
 using ::nearby::sharing::analytics::proto::SharingLog;
+using ::testing::An;
 
 class NearbySharingEventLoggerTest : public ::testing::Test {
  public:
@@ -50,7 +51,7 @@ class NearbySharingEventLoggerTest : public ::testing::Test {
                                    enabled);
   }
 
-  const MockEventLogger* event_logger() { return event_logger_.get(); }
+  MockEventLogger* event_logger() { return event_logger_.get(); }
 
   std::unique_ptr<SharingLog> GetTestEvent() {
     auto sharing_log =
@@ -77,13 +78,10 @@ class NearbySharingEventLoggerTest : public ::testing::Test {
 
 TEST_F(NearbySharingEventLoggerTest, LogEventWhenEnabled) {
   SetEventLogger(true);
-  EXPECT_CALL(*event_logger(), Log)
-      .WillOnce([&](const ::google::protobuf::MessageLite& message) {
-        const SharingLog* sharing_log =
-            dynamic_cast<const SharingLog*>(&message);
-        ASSERT_NE(sharing_log, nullptr);
-        EXPECT_EQ(sharing_log->event_category(), EventCategory::SETTINGS_EVENT);
-        EXPECT_EQ(sharing_log->event_type(), EventType::TAP_HELP);
+  EXPECT_CALL(*event_logger(), Log(An<const SharingLog&>()))
+      .WillOnce([&](const SharingLog& message) {
+        EXPECT_EQ(message.event_category(), EventCategory::SETTINGS_EVENT);
+        EXPECT_EQ(message.event_type(), EventType::TAP_HELP);
       });
 
   std::unique_ptr<SharingLog> event = GetTestEvent();
@@ -92,7 +90,7 @@ TEST_F(NearbySharingEventLoggerTest, LogEventWhenEnabled) {
 
 TEST_F(NearbySharingEventLoggerTest, NoLogEventWhenDisabled) {
   SetEventLogger(false);
-  EXPECT_CALL(*event_logger(), Log).Times(0);
+  EXPECT_CALL(*event_logger(), Log(An<const SharingLog&>())).Times(0);
 
   std::unique_ptr<SharingLog> event = GetTestEvent();
   sharing_event_logger()->Log(*event);

@@ -26,7 +26,12 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
     ],
-    deps = ["@com_google_protobuf//:protobuf_lite"],
+    deps = [
+        "//internal/proto/analytics:connections_log_cc_proto",
+        "//internal/proto/analytics:experiments_log_cc_proto",
+        "//internal/proto/analytics:fast_pair_log_cc_proto",
+        "//sharing/proto/analytics:sharing_log_cc_proto",
+    ],
 )
 
 cc_library(

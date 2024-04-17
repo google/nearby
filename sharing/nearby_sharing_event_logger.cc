@@ -17,7 +17,6 @@
 #include "internal/analytics/event_logger.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace sharing {
@@ -31,7 +30,8 @@ NearbySharingEventLogger::NearbySharingEventLogger(
 
 NearbySharingEventLogger::~NearbySharingEventLogger() = default;
 
-void NearbySharingEventLogger::Log(const ::google::protobuf::MessageLite& message) {
+void NearbySharingEventLogger::Log(
+    const location::nearby::analytics::proto::ConnectionsLog& message) {
   if (event_logger_ == nullptr) {
     return;
   }
@@ -42,6 +42,48 @@ void NearbySharingEventLogger::Log(const ::google::protobuf::MessageLite& messag
   }
 
   event_logger_->Log(message);
+}
+
+void NearbySharingEventLogger::Log(
+    const sharing::analytics::proto::SharingLog& message) {
+  if (event_logger_ == nullptr) {
+    return;
+  }
+
+  if (!preference_manager_.GetBoolean(
+          prefs::kNearbySharingIsAnalyticsEnabledName, false)) {
+    return;
+  }
+
+  event_logger_->Log(message);
+}
+
+void NearbySharingEventLogger::Log(
+    const nearby::proto::fastpair::FastPairLog& message) {
+  if (event_logger_ == nullptr) {
+    return;
+  }
+
+  if (!preference_manager_.GetBoolean(
+          prefs::kNearbySharingIsAnalyticsEnabledName, false)) {
+    return;
+  }
+
+  event_logger_->Log(message);
+}
+
+void NearbySharingEventLogger::ConfigureExperiments(
+    const experiments::ExperimentsLog& message) {
+  if (event_logger_ == nullptr) {
+    return;
+  }
+
+  if (!preference_manager_.GetBoolean(
+          prefs::kNearbySharingIsAnalyticsEnabledName, false)) {
+    return;
+  }
+
+  event_logger_->ConfigureExperiments(message);
 }
 
 }  // namespace sharing

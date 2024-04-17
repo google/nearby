@@ -25,17 +25,13 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/str_format.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/strategy.h"
-#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
-#include "connections/v3/connections_device_provider.h"
-#include "internal/analytics/event_logger.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
@@ -64,15 +60,13 @@ constexpr FeatureFlags::Flags kTestCases[] = {
     },
 };
 
-class FakeEventLogger : public ::nearby::analytics::EventLogger {
+class FakeEventLogger : public ::nearby::analytics::MockEventLogger {
  public:
   explicit FakeEventLogger() = default;
 
-  void Log(const ::google::protobuf::MessageLite& message) override {
-    ConnectionsLog log;
-    log.CheckTypeAndMergeFrom(message);
+  void Log(const ConnectionsLog& message) override {
     MutexLock lock(&mutex_);
-    logs_.push_back(std::move(log));
+    logs_.push_back(message);
   }
 
   int GetCompleteClientSessionCount() {

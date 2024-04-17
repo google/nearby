@@ -17,7 +17,6 @@
 
 #include "gmock/gmock.h"
 #include "internal/analytics/event_logger.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby::analytics {
 
@@ -26,7 +25,17 @@ class MockEventLogger : public ::nearby::analytics::EventLogger {
   MockEventLogger() = default;
   ~MockEventLogger() override = default;
 
-  MOCK_METHOD(void, Log, (const ::google::protobuf::MessageLite& message), (override));
+  MOCK_METHOD(
+      void, Log,
+      (const location::nearby::analytics::proto::ConnectionsLog& message),
+      (override));
+  MOCK_METHOD(void, Log, (const sharing::analytics::proto::SharingLog& message),
+              (override));
+  MOCK_METHOD(void, Log, (const nearby::proto::fastpair::FastPairLog& message),
+              (override));
+
+  MOCK_METHOD(void, ConfigureExperiments,
+              (const experiments::ExperimentsLog& message), (override));
 };
 
 }  // namespace nearby::analytics
