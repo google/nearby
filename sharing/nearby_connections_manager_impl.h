@@ -45,8 +45,7 @@ namespace sharing {
 class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
  public:
   explicit NearbyConnectionsManagerImpl(
-      Context* context,
-      nearby::ConnectivityManager& connectivity_manager,
+      Context* context, nearby::ConnectivityManager& connectivity_manager,
       nearby::DeviceInfo& device_info,
       std::unique_ptr<NearbyConnectionsService> nearby_connections_service);
   ~NearbyConnectionsManagerImpl() override;
@@ -85,11 +84,19 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
       absl::string_view endpoint_id) override;
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
   void SetCustomSavePath(absl::string_view custom_save_path) override;
+  absl::flat_hash_set<std::filesystem::path> GetUnknownFilePathsToDelete()
+      override;
+  absl::flat_hash_set<std::filesystem::path>
+  GetAndClearUnknownFilePathsToDelete() override;
+  void ClearUnknownFilePathsToDelete() override;
+
   std::string Dump() const override;
 
   NearbyConnectionsService* GetNearbyConnectionsService() const {
     return nearby_connections_service_.get();
   }
+
+  void AddUnknownFilePathsToDeleteForTesting(std::filesystem::path file_path);
 
  private:
   // EndpointDiscoveryListener:
@@ -175,6 +182,10 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
 
   // Avoid calling to disconnect on an endpoint multiple times.
   absl::flat_hash_set<std::string> disconnecting_endpoints_
+      ABSL_GUARDED_BY(mutex_);
+
+  // A set of file paths to delete.
+  absl::flat_hash_set<std::filesystem::path> file_paths_to_delete_
       ABSL_GUARDED_BY(mutex_);
 };
 

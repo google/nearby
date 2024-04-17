@@ -58,19 +58,17 @@ cc_library(
     deps = [
         ":connection_types",
         "//internal/crypto_cros",
-        "//internal/interop:authentication_status",
         "//internal/network:url",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/internal/base",
         "//sharing/internal/public:logging",
         "//sharing/proto:enums_cc_proto",
-        "//sharing/proto:share_cc_proto",
         "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -326,7 +324,6 @@ cc_test(
         "//internal/network:types",
         "//internal/network:url",
         "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//proto:sharing_enums_cc_proto",

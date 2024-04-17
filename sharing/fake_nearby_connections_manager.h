@@ -75,6 +75,11 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
       absl::string_view endpoint_id) override;
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
   void SetCustomSavePath(absl::string_view custom_save_path) override;
+  absl::flat_hash_set<std::filesystem::path> GetUnknownFilePathsToDelete()
+      override;
+  absl::flat_hash_set<std::filesystem::path>
+  GetAndClearUnknownFilePathsToDelete() override;
+  void ClearUnknownFilePathsToDelete() override;
 
   // Testing methods
   void SetRawAuthenticationToken(absl::string_view endpoint_id,
@@ -135,6 +140,8 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
     return !incoming_payloads_.empty();
   }
 
+  void AddUnknownFilePathsToDeleteForTesting(std::filesystem::path file_path);
+
  private:
   void HandleStartAdvertisingCallback(ConnectionsStatus status);
   void HandleStopAdvertisingCallback(ConnectionsStatus status);
@@ -172,7 +179,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   std::map<int64_t, std::unique_ptr<Payload>> incoming_payloads_
       ABSL_GUARDED_BY(incoming_payloads_mutex_);
   std::map<int64_t, std::filesystem::path> registered_payload_paths_;
-
+  absl::flat_hash_set<std::filesystem::path> file_paths_to_delete_;
   std::string Dump() const override;
 };
 

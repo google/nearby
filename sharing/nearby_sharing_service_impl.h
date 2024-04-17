@@ -88,6 +88,7 @@ class NearbyShareContactManager;
 
 namespace NearbySharingServiceUnitTests {
 class NearbySharingServiceImplTest_CreateShareTarget_Test;
+class NearbySharingServiceImplTest_RemoveIncomingPayloads_Test;
 };
 
 // All methods should be called from the same sequence that created the service.
@@ -103,6 +104,8 @@ class NearbySharingServiceImpl
       public NearbyConnectionsManager::DiscoveryListener {
   FRIEND_TEST(NearbySharingServiceUnitTests::NearbySharingServiceImplTest,
               CreateShareTarget);
+  FRIEND_TEST(NearbySharingServiceUnitTests::NearbySharingServiceImplTest,
+              RemoveIncomingPayloads);
 
  public:
   NearbySharingServiceImpl(

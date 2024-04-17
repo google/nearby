@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -161,6 +162,17 @@ class NearbyConnectionsManager {
 
   // Sets a custom save path.
   virtual void SetCustomSavePath(absl::string_view custom_save_path) = 0;
+
+  // Gets the file paths to delete.
+  virtual absl::flat_hash_set<std::filesystem::path>
+  GetUnknownFilePathsToDelete() = 0;
+
+  // Deletes the file paths to delete.
+  virtual void ClearUnknownFilePathsToDelete() = 0;
+
+  // Gets the file paths to delete and clear the hash set.
+  virtual absl::flat_hash_set<std::filesystem::path>
+  GetAndClearUnknownFilePathsToDelete() = 0;
 
   // Dump internal state for debugging purposes.
   virtual std::string Dump() const = 0;

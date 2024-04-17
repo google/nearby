@@ -110,6 +110,7 @@ using ::nearby::sharing::service::proto::V1Frame;
 using ::testing::InSequence;
 using ::testing::NiceMock;
 using ::testing::ReturnRef;
+using ::testing::UnorderedElementsAre;
 
 class MockTransferUpdateCallback : public TransferUpdateCallback {
  public:
@@ -362,9 +363,8 @@ class NearbySharingServiceImplTest : public testing::Test {
         &contact_manager_factory_);
     NearbyShareCertificateManagerImpl::Factory::SetFactoryForTesting(
         &certificate_manager_factory_);
-    AccountManagerImpl::Factory::SetFactoryForTesting([]() {
-      return std::make_unique<FakeAccountManager>();
-    });
+    AccountManagerImpl::Factory::SetFactoryForTesting(
+        []() { return std::make_unique<FakeAccountManager>(); });
     nearby_fast_initiation_factory_ =
         std::make_unique<FakeNearbyFastInitiation::Factory>();
     NearbyFastInitiationImpl::Factory::SetFactoryForTesting(
@@ -1197,9 +1197,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         std::filesystem::temp_directory_path(), size);
   }
 
-  void ResetDiskSpace() {
-    fake_device_info_.ResetDiskSpace();
-  }
+  void ResetDiskSpace() { fake_device_info_.ResetDiskSpace(); }
 
  protected:
   FakeNearbyShareLocalDeviceDataManager* local_device_data_manager() {
@@ -1212,9 +1210,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     return certificate_manager_factory_.instances().back();
   }
 
-  FakeAccountManager& account_manager() {
-    return fake_account_manager_;
-  }
+  FakeAccountManager& account_manager() { return fake_account_manager_; }
 
   std::filesystem::path CreateTestFile(absl::string_view name,
                                        const std::vector<uint8_t>& content) {
@@ -1907,7 +1903,8 @@ TEST_F(NearbySharingServiceImplTest,
   ::nearby::AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -1962,7 +1959,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        DataUsageChangedRegisterReceiveSurfaceRestartsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingDataUsageName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingDataUsageName,
       static_cast<int>(DataUsage::OFFLINE_DATA_USAGE));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -1973,7 +1971,8 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(DataUsage::OFFLINE_DATA_USAGE,
             fake_nearby_connections_manager_->advertising_data_usage());
 
-  preference_manager().SetInteger(prefs::kNearbySharingDataUsageName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingDataUsageName,
       static_cast<int>(DataUsage::ONLINE_DATA_USAGE));
   FlushTesting();
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
@@ -1985,7 +1984,8 @@ TEST_F(
     NearbySharingServiceImplTest,
     UnregisterForegroundReceiveSurfaceVisibilityAllContactsRestartAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
   FlushTesting();
 
@@ -2160,7 +2160,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        ForegroundReceiveSurfaceNoOneVisibilityIsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2173,7 +2174,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceNoOneVisibilityNotAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2187,7 +2189,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceVisibilityToNoOneStopsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2196,7 +2199,8 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
 
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
   FlushTesting();
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
@@ -2206,7 +2210,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceVisibilityToSelectedStartsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2216,7 +2221,8 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
   EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
 
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
   FlushTesting();
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
@@ -2225,7 +2231,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        ForegroundReceiveSurfaceSelectedContactsVisibilityIsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2238,7 +2245,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceSelectedContactsVisibilityIsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2251,7 +2259,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        ForegroundReceiveSurfaceAllContactsVisibilityIsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2264,7 +2273,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceAllContactsVisibilityNotAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -4688,6 +4698,40 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
   UnregisterReceiveSurface(&callback);
+}
+
+TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::
+          kDeleteUnexpectedReceivedFile,
+      true);
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      "test1.txt");
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      "test2.txt");
+  auto unknown_file_paths_to_delete =
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDelete();
+  EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
+  EXPECT_THAT(unknown_file_paths_to_delete,
+              UnorderedElementsAre("test1.txt", "test2.txt"));
+  ShareTarget share_target;
+  share_target.is_incoming = true;
+  service_->RemoveIncomingPayloads(share_target);
+  EXPECT_EQ(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDelete().size(),
+      0);
+
+  // Test GetAndClearUnknownFilePathsToDelete
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      "test1.txt");
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      "test2.txt");
+  unknown_file_paths_to_delete =
+      fake_nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
+  EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
+  EXPECT_EQ(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDelete().size(),
+      0);
 }
 
 }  // namespace NearbySharingServiceUnitTests

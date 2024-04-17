@@ -136,8 +136,7 @@ std::string MediumSelectionToString(const MediumSelection& mediums) {
 }  // namespace
 
 NearbyConnectionsManagerImpl::NearbyConnectionsManagerImpl(
-    Context* context,
-    ConnectivityManager& connectivity_manager,
+    Context* context, ConnectivityManager& connectivity_manager,
     nearby::DeviceInfo& device_info,
     std::unique_ptr<NearbyConnectionsService> nearby_connections_service)
     : context_(context),
@@ -489,8 +488,7 @@ void NearbyConnectionsManagerImpl::Send(
 
   if (transfer_managers_.contains(endpoint_id) && payload->content.is_file()) {
     NL_LOG(INFO) << __func__ << ": Send payload " << payload->id << " to "
-                 << endpoint_id
-                 << " to transfer manager. payload is file: "
+                 << endpoint_id << " to transfer manager. payload is file: "
                  << payload->content.is_file() << ", is bytes "
                  << payload->content.is_bytes();
     transfer_managers_.at(endpoint_id)
@@ -831,6 +829,17 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 
   if (payload_it->second.content.type != PayloadContent::Type::kBytes) {
     NL_LOG(WARNING) << "Received unknown payload of file type. Cancelling.";
+    if (!NearbyFlags::GetInstance().GetBoolFlag(
+            sharing::config_package_nearby::nearby_sharing_feature::
+                kDeleteUnexpectedReceivedFile)) {
+      // if we get kFile and have file_path, delete the file path.
+      if (payload_it->second.content.type == PayloadContent::Type::kFile) {
+        auto file_path = payload_it->second.content.file_payload.file.path;
+        NL_LOG(WARNING) << __func__
+                        << ": Payload is Type::kFile type. Removing.";
+        file_paths_to_delete_.insert(file_path);
+      }
+    }
     nearby_connections_service_->CancelPayload(kServiceId, payload_it->first,
                                                [](Status status) {});
     return;
@@ -896,6 +905,31 @@ void NearbyConnectionsManagerImpl::SetCustomSavePath(
                       "Connections with result: "
                    << static_cast<int>(status);
       });
+}
+
+absl::flat_hash_set<std::filesystem::path>
+NearbyConnectionsManagerImpl::GetUnknownFilePathsToDelete() {
+  MutexLock lock(&mutex_);
+  return file_paths_to_delete_;
+}
+
+void NearbyConnectionsManagerImpl::ClearUnknownFilePathsToDelete() {
+  MutexLock lock(&mutex_);
+  file_paths_to_delete_.clear();
+}
+
+absl::flat_hash_set<std::filesystem::path>
+NearbyConnectionsManagerImpl::GetAndClearUnknownFilePathsToDelete() {
+  MutexLock lock(&mutex_);
+  auto file_paths_to_delete = file_paths_to_delete_;
+  file_paths_to_delete_.clear();
+  return file_paths_to_delete;
+}
+
+void NearbyConnectionsManagerImpl::AddUnknownFilePathsToDeleteForTesting(
+    std::filesystem::path file_path) {
+  MutexLock lock(&mutex_);
+  file_paths_to_delete_.insert(file_path);
 }
 
 std::string NearbyConnectionsManagerImpl::Dump() const {

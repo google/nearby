@@ -279,8 +279,7 @@ void NearbySharingServiceImpl::Shutdown(
         foreground_receive_callbacks_.Clear();
         background_receive_callbacks_.Clear();
 
-        device_info_.UnregisterScreenLockedListener(
-            kScreenStateListenerName);
+        device_info_.UnregisterScreenLockedListener(kScreenStateListenerName);
 
         settings_->RemoveSettingsObserver(this);
 
@@ -1160,8 +1159,7 @@ std::string NearbySharingServiceImpl::Dump() const {
   sstream << "  IsSendingFile: " << IsSendingFile() << std::endl;
   sstream << "  IsReceivingFile: " << IsReceivingFile() << std::endl;
 
-  sstream << "  IsScreenLocked: " << device_info_.IsScreenLocked()
-          << std::endl;
+  sstream << "  IsScreenLocked: " << device_info_.IsScreenLocked() << std::endl;
   sstream << "  IsBluetoothPresent: " << IsBluetoothPresent() << std::endl;
   sstream << "  IsBluetoothPowered: " << IsBluetoothPowered() << std::endl;
   sstream << "  IsExtendedAdvertisingSupported: "
@@ -3972,7 +3970,6 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
     absl::string_view endpoint_id, const Advertisement& advertisement,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate,
     bool is_incoming) {
-
   if (!advertisement.device_name() && !certificate.has_value()) {
     NL_VLOG(1) << __func__
                << ": Failed to retrieve public certificate for contact "
@@ -4115,9 +4112,8 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
 
   connection->SetDisconnectionListener([&, share_target_id]() {
     RunOnNearbySharingServiceThread(
-        "disconnection_listener", [&, share_target_id]() {
-          UnregisterShareTarget(share_target_id);
-        });
+        "disconnection_listener",
+        [&, share_target_id]() { UnregisterShareTarget(share_target_id); });
   });
 
   if (!update_file_paths_in_progress_) {
@@ -4241,6 +4237,17 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
   NL_LOG(INFO) << __func__ << ": Cleaning up payloads due to transfer failure";
   nearby_connections_manager_->ClearIncomingPayloads();
   std::vector<std::filesystem::path> files_for_deletion;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kDeleteUnexpectedReceivedFile)) {
+    auto file_paths_to_delete =
+        nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
+    for (auto it = file_paths_to_delete.begin();
+         it != file_paths_to_delete.end(); ++it) {
+      NL_VLOG(1) << __func__ << ": Has unknown file path to delete.";
+      files_for_deletion.push_back(*it);
+    }
+  }
   for (const auto& file : share_target.file_attachments) {
     if (!file.file_path().has_value()) continue;
     auto file_path = *file.file_path();

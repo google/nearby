@@ -315,6 +315,28 @@ void FakeNearbyConnectionsManager::SetCustomSavePath(
   custom_save_path_ = custom_save_path;
 }
 
+absl::flat_hash_set<std::filesystem::path>
+FakeNearbyConnectionsManager::GetUnknownFilePathsToDelete() {
+  return file_paths_to_delete_;
+}
+
+void FakeNearbyConnectionsManager::ClearUnknownFilePathsToDelete() {
+  file_paths_to_delete_.clear();
+}
+
+void FakeNearbyConnectionsManager::AddUnknownFilePathsToDeleteForTesting(
+    std::filesystem::path file_path) {
+  file_paths_to_delete_.insert(file_path);
+}
+
+absl::flat_hash_set<std::filesystem::path>
+FakeNearbyConnectionsManager::GetAndClearUnknownFilePathsToDelete() {
+  absl::flat_hash_set<std::filesystem::path> file_paths_to_delete =
+      file_paths_to_delete_;
+  file_paths_to_delete_.clear();
+  return file_paths_to_delete;
+}
+
 std::string FakeNearbyConnectionsManager::Dump() const { return ""; }
 
 }  // namespace sharing
