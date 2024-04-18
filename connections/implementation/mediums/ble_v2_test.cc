@@ -626,7 +626,7 @@ TEST_F(BleV2Test, CanNotStopLegacyAdvertisingForNonExistingServiceId) {
   env_.Stop();
 }
 
-TEST_F(BleV2Test, StartLegacyAdvertisingBlockedByRegularAdvertising) {
+TEST_F(BleV2Test, StartLegacyAdvertisingNotBlockedByRegularAdvertising) {
   env_.Start();
   BluetoothRadio radio_a;
   BleV2 ble_a{radio_a};
@@ -638,10 +638,10 @@ TEST_F(BleV2Test, StartLegacyAdvertisingBlockedByRegularAdvertising) {
                          PowerLevel::kHighPower,
                          /*is_fast_advertisement=*/false);
   EXPECT_TRUE(ble_a.IsAdvertising(service_id));
-  EXPECT_FALSE(
+  EXPECT_TRUE(
       ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
                                    std::string(kFastAdvertisementServiceUuid)));
-  EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(service_id));
+  EXPECT_TRUE(ble_a.IsAdvertisingForLegacyDevice(service_id));
   ble_a.StopAdvertising(std::string(kServiceIDA));
   env_.Stop();
 }

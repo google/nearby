@@ -74,9 +74,10 @@ class P2pClusterPcpHandlerTest
  protected:
   void SetUp() override {
     NEARBY_LOG(INFO, "SetUp: begin");
+    auto ble_v2_enabled = std::get<1>(GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        std::get<1>(GetParam()));
+        ble_v2_enabled);
     if (advertising_options_.allowed.ble) {
       NEARBY_LOG(INFO, "SetUp: BLE enabled");
     }
@@ -89,6 +90,7 @@ class P2pClusterPcpHandlerTest
     if (advertising_options_.allowed.web_rtc) {
       NEARBY_LOG(INFO, "SetUp: WebRTC enabled");
     }
+    NEARBY_LOG(INFO, "SetUp: ble v2 enabled: %d", ble_v2_enabled);
     NEARBY_LOG(INFO, "SetUp: end");
   }
 
@@ -157,6 +159,35 @@ TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
       handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
+  handler_a.StopAdvertising(&client_a_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, AdvertiseForLegacyDeviceWithBt) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  EXPECT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  // advertising for legacy device depends on both BT and BLE V2 enabled.
+  if (std::get<0>(GetParam()).bluetooth && std::get<1>(GetParam())) {
+    EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  } else {
+    EXPECT_FALSE(
+        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
+  handler_a.StopAdvertising(&client_a_);
+  if (std::get<0>(GetParam()).bluetooth && std::get<1>(GetParam())) {
+    EXPECT_FALSE(
+        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
   env_.Stop();
 }
 
@@ -188,11 +219,15 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptions) {
   ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
   mediums_a.GetBleV2().StopAdvertising(service_id_);
   ASSERT_FALSE(mediums_a.GetBleV2().IsAdvertising(service_id_));
+  BooleanMediumSelector enabled = advertising_options_.allowed;
+  if (ble_v2_enabled && enabled.bluetooth) {
+    EXPECT_FALSE(
+        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
-  BooleanMediumSelector enabled = advertising_options_.allowed;
   EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsAdvertising(service_id_));
@@ -201,6 +236,9 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptions) {
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   EXPECT_EQ(enabled.bluetooth,
             mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
+  if (ble_v2_enabled && enabled.bluetooth) {
+    EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
   // Turn discoverability back on
   mediums_a.GetBluetoothClassic().TurnOnDiscoverability(service_id_);
   AdvertisingOptions new_options{
@@ -217,6 +255,11 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptions) {
       Status{Status::kSuccess});
   if (ble_v2_enabled) {
     EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+    // Low power won't restart BT, nor BLE advertising for legacy device.
+    if (enabled.bluetooth) {
+      EXPECT_FALSE(
+          mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+    }
   } else {
     EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsAdvertising(service_id_));
   }
@@ -267,6 +310,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
       true,   // low_power
       false,  // enable_bluetooth_listening
   };
+  if (ble_v2_enabled && enabled.bluetooth) {
+    EXPECT_FALSE(
+        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, old_options,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
@@ -277,6 +324,9 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
   EXPECT_EQ(
       enabled.bluetooth,
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
+  if (ble_v2_enabled && enabled.bluetooth) {
+    EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
   EXPECT_EQ(enabled.bluetooth,
             mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
   EXPECT_EQ(handler_a.UpdateAdvertisingOptions(&client_a_, service_id_,
@@ -284,6 +334,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
             Status{Status::kSuccess});
   if (ble_v2_enabled) {
     EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+    if (enabled.bluetooth) {
+      EXPECT_TRUE(
+          mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+    }
   } else {
     EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsAdvertising(service_id_));
   }
@@ -295,6 +349,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
       enabled.bluetooth || enabled.ble,
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   handler_a.StopAdvertising(&client_a_);
+  if (ble_v2_enabled && enabled.bluetooth) {
+    EXPECT_FALSE(
+        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
+  }
   env_.Stop();
 }
 
@@ -332,6 +390,51 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
                 }),
             Status{Status::kSuccess});
   EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  // We discovered endpoint over one medium. Before we finish the test, we have
+  // to stop discovery for other mediums that may be still ongoing.
+  handler_b.StopDiscovery(&client_b_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTest, CanDiscoverLegacy) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  Mediums mediums_b;
+  EndpointChannelManager ecm_a;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_a(&ecm_a);
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  CountDownLatch latch(1);
+  EXPECT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  EXPECT_EQ(handler_b.StartDiscovery(
+                &client_b_, service_id_, discovery_options_,
+                {
+                    .endpoint_found_cb =
+                        [&latch](const std::string& endpoint_id,
+                                 const ByteArray& endpoint_info,
+                                 const std::string& service_id) {
+                          NEARBY_LOG(INFO, "Device discovered: id=%s",
+                                     endpoint_id.c_str());
+                          latch.CountDown();
+                        },
+                }),
+            Status{Status::kSuccess});
+  // advertising for legacy device depends on both BT and BLE V2 enabled.
+  //  if (std::get<0>(GetParam()).bluetooth && std::get<1>(GetParam())) {
+  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  /*  } else {
+      EXPECT_FALSE(latch.Await(absl::Milliseconds(1000)).result());
+    }*/
   // We discovered endpoint over one medium. Before we finish the test, we have
   // to stop discovery for other mediums that may be still ongoing.
   handler_b.StopDiscovery(&client_b_);

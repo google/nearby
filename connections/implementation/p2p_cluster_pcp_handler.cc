@@ -168,6 +168,28 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           bluetooth_medium_.TurnOffDiscoverability();
           bluetooth_medium_.StopAcceptingConnections(service_id);
         }
+      } else if ((api::ImplementationPlatform::GetCurrentOS() ==
+                      api::OSName::kChromeOS ||
+                  api::ImplementationPlatform::GetCurrentOS() ==
+                      api::OSName::kLinux) &&
+                 NearbyFlags::GetInstance().GetBoolFlag(
+                     config_package_nearby::nearby_connections_feature::
+                         kEnableBleV2)) {
+        if (ble_v2_medium_.StartLegacyAdvertising(
+                service_id, local_endpoint_id,
+                advertising_options.fast_advertisement_service_uuid)) {
+          NEARBY_LOGS(INFO)
+              << __func__ << "Ble v2 started advertising for legacy device.";
+          mediums_started_successfully.push_back(bluetooth_medium);
+          NEARBY_LOGS(INFO) << __func__ << "After Ble v2, BT added";
+          bluetooth_classic_advertiser_client_id_ = client->GetClientId();
+        } else {
+          NEARBY_LOG(WARNING,
+                     "P2pClusterPcpHandler::StartAdvertisingImpl: BLE legacy "
+                     "failed, revert BTC");
+          bluetooth_medium_.TurnOffDiscoverability();
+          bluetooth_medium_.StopAcceptingConnections(service_id);
+        }
       } else {
         NEARBY_LOG(INFO,
                    "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
@@ -228,6 +250,14 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
         !NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
       ble_medium_.StopLegacyAdvertising(client->GetAdvertisingServiceId());
+    } else if ((api::ImplementationPlatform::GetCurrentOS() ==
+                    api::OSName::kChromeOS ||
+                api::ImplementationPlatform::GetCurrentOS() ==
+                    api::OSName::kLinux) &&
+               NearbyFlags::GetInstance().GetBoolFlag(
+                   config_package_nearby::nearby_connections_feature::
+                       kEnableBleV2)) {
+      ble_v2_medium_.StopLegacyAdvertising(client->GetAdvertisingServiceId());
     }
     bluetooth_classic_advertiser_client_id_ = 0;
   } else {
@@ -446,7 +476,6 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
 bool P2pClusterPcpHandler::IsRecognizedBleEndpoint(
     const std::string& service_id,
     const BleAdvertisement& advertisement) const {
-
   if (advertisement.GetPcp() != GetPcp()) {
     NEARBY_LOGS(INFO) << "BleAdvertisement doesn't match on Pcp; expected "
                       << PcpToStrategy(GetPcp()).GetName() << ", found "
@@ -681,8 +710,6 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
         if (!IsRecognizedBleV2Endpoint(service_id, advertisement)) return;
 
         // Report the discovered endpoint to the client.
-        // BleV2EndpointState ble_endpoint_state(/*ble=*/true, /*l2cap=*/false,
-        // /*bt=alse*/false);
         BleV2EndpointState ble_endpoint_state;
         ByteArray peripheral_id = peripheral.GetId();
         found_endpoints_in_ble_discover_cb_.insert(
@@ -1277,6 +1304,15 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
     // TODO(hais): update this after ble_v2 refactor.
     if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS) {
       mediums_->GetBle().StopLegacyAdvertising(std::string(service_id));
+    } else if ((api::ImplementationPlatform::GetCurrentOS() ==
+                    api::OSName::kChromeOS ||
+                api::ImplementationPlatform::GetCurrentOS() ==
+                    api::OSName::kLinux) &&
+               NearbyFlags::GetInstance().GetBoolFlag(
+                   config_package_nearby::nearby_connections_feature::
+                       kEnableBleV2)) {
+      mediums_->GetBleV2().StopLegacyAdvertising(
+          client->GetAdvertisingServiceId());
     }
   }
 
@@ -1355,18 +1391,41 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
             NEARBY_LOGS(INFO)
                 << "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: "
                    "Ble legacy started advertising";
-            NEARBY_LOG(
-                INFO,
-                "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: BT added");
+            NEARBY_LOG(INFO,
+                       "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: "
+                       "BT added");
             restarted_mediums.push_back(Medium::BLUETOOTH);
           } else {
             NEARBY_LOG(WARNING,
                        "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: "
-                       "BLE legacy "
-                       "failed, revert BTC");
+                       "BLE legacy failed, revert BTC");
             bluetooth_medium_.TurnOffDiscoverability();
             bluetooth_medium_.StopAcceptingConnections(std::string(service_id));
           }
+        } else if ((api::ImplementationPlatform::GetCurrentOS() ==
+                        api::OSName::kChromeOS ||
+                    api::ImplementationPlatform::GetCurrentOS() ==
+                        api::OSName::kLinux) &&
+                   NearbyFlags::GetInstance().GetBoolFlag(
+                       config_package_nearby::nearby_connections_feature::
+                           kEnableBleV2)) {
+          if (ble_v2_medium_.StartLegacyAdvertising(
+                  std::string(service_id), std::string(local_endpoint_id),
+                  advertising_options.fast_advertisement_service_uuid)) {
+            NEARBY_LOGS(INFO)
+                << __func__ << "Ble v2 started advertising for legacy device.";
+            restarted_mediums.push_back(Medium::BLUETOOTH);
+            NEARBY_LOGS(INFO) << __func__
+                              << "After Ble v2 started advertising, for "
+                                 "legacy, BT added to restarted mediums";
+          } else {
+            NEARBY_LOGS(WARNING)
+                << __func__
+                << "BLE v2 failed advertising for legacy device, revert BTC";
+            bluetooth_medium_.TurnOffDiscoverability();
+            bluetooth_medium_.StopAcceptingConnections(std::string(service_id));
+          }
+
         } else {
           restarted_mediums.push_back(Medium::BLUETOOTH);
         }
@@ -1448,8 +1507,8 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
             location::nearby::proto::connections::UNKNOWN_MEDIUM) {
           restarted_mediums.push_back(Medium::BLE);
         } else {
-          NEARBY_LOGS(WARNING)
-              << "UpdateDiscoveryOptionsImpl: unable to restart blev2 scanning";
+          NEARBY_LOGS(WARNING) << "UpdateDiscoveryOptionsImpl: unable to "
+                                  "restart blev2 scanning";
         }
       } else {
         if (StartBleScanning(

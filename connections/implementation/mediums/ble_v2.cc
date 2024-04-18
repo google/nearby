@@ -254,12 +254,9 @@ bool BleV2::StartLegacyAdvertising(
         << "Can't turn on BLE v2 legacy advertising. BLE is not available.";
     return false;
   }
-  // Checking to avoid conflicts to the bool StartAdvertsing invokes.
-  // TODO(hais) remove this if check after deprecating bool StartAdvertising.
-  if (IsAdvertisingLocked(input_service_id)) {
-    NEARBY_LOGS(INFO) << "Failed to BLE v2 legacy device advertise as ble is "
-                         "already advertising.";
-    return false;
+  if (medium_.IsExtendedAdvertisementsAvailable()) {
+    NEARBY_LOGS(INFO) << "Skip dummy advertising for non legacy device";
+    return true;
   }
   std::string service_id = input_service_id + "-Legacy";
   if (service_ids_to_advertising_sessions_.find(service_id) !=
