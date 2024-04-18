@@ -56,21 +56,6 @@ cc_proto_library(
     deps = [":connections_log_proto"],
 )
 
-proto_library(
-    name = "experiments_log_proto",
-    srcs = ["experiments_log.proto"],
-)
-
-cc_proto_library(
-    name = "experiments_log_cc_proto",
-    visibility = [
-        "//internal/analytics:__pkg__",
-        "//location/nearby/analytics/cpp/logging:__subpackages__",
-        "//location/nearby/cpp/experiments:__subpackages__",
-    ],
-    deps = [":experiments_log_proto"],
-)
-
 cc_test(
     name = "proto_analytics_test",
     size = "small",

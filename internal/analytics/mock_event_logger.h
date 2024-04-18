@@ -33,9 +33,6 @@ class MockEventLogger : public ::nearby::analytics::EventLogger {
               (override));
   MOCK_METHOD(void, Log, (const nearby::proto::fastpair::FastPairLog& message),
               (override));
-
-  MOCK_METHOD(void, ConfigureExperiments,
-              (const experiments::ExperimentsLog& message), (override));
 };
 
 }  // namespace nearby::analytics

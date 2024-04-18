@@ -16,7 +16,6 @@
 #define NEARBY_ANALYTICS_EVENT_LOGGER_H_
 
 #include "internal/proto/analytics/connections_log.pb.h"
-#include "internal/proto/analytics/experiments_log.pb.h"
 #include "internal/proto/analytics/fast_pair_log.pb.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 
@@ -36,10 +35,6 @@ class EventLogger {
       const location::nearby::analytics::proto::ConnectionsLog& message) = 0;
   virtual void Log(const sharing::analytics::proto::SharingLog& message) = 0;
   virtual void Log(const nearby::proto::fastpair::FastPairLog& message) = 0;
-
-  // Configure experiment parameters used by this logger.
-  virtual void ConfigureExperiments(
-      const experiments::ExperimentsLog& message) = 0;
 };
 
 }  // namespace analytics
