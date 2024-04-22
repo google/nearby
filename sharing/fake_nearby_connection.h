@@ -60,7 +60,8 @@ class FakeNearbyConnection : public NearbyConnection {
   std::queue<std::vector<uint8_t>> read_data_ ABSL_GUARDED_BY(read_mutex_);
   absl::Mutex write_mutex_;
   std::queue<std::vector<uint8_t>> write_data_ ABSL_GUARDED_BY(write_mutex_);
-  std::function<void()> disconnect_listener_;
+  absl::Mutex disconnect_mutex_;
+  std::function<void()> disconnect_listener_ ABSL_GUARDED_BY(disconnect_mutex_);
 };
 
 }  // namespace sharing

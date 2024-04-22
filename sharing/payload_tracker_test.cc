@@ -58,7 +58,7 @@ class PayloadTrackerTest : public ::testing::Test {
                                  std::move(attachment_info));
     payload_tracker_ = std::make_unique<PayloadTracker>(
         context(), share_target_, attachment_info_map_,
-        [&](ShareTarget share_target, TransferMetadata transfer_metadata) {
+        [&](int64_t share_target_id, TransferMetadata transfer_metadata) {
           current_percentage_ = transfer_metadata.progress();
         });
   }

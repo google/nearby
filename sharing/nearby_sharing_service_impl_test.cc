@@ -1025,9 +1025,11 @@ class NearbySharingServiceImplTest : public testing::Test {
   void FinishOutgoingTransfer(MockTransferUpdateCallback& transfer_callback,
                               const ShareTarget& target,
                               const PayloadInfo& info) {
+    absl::Notification completion_notification;
     // Simulate a successful transfer via Nearby Connections.
-    ExpectTransferUpdates(transfer_callback, target,
-                          {TransferMetadata::Status::kComplete}, [] {});
+    ExpectTransferUpdates(
+        transfer_callback, target, {TransferMetadata::Status::kComplete},
+        [&completion_notification] { completion_notification.Notify(); });
 
     auto payload_transfer_update = std::make_unique<PayloadTransferUpdate>(
         info.payload_id, PayloadStatus::kSuccess,
@@ -1037,6 +1039,8 @@ class NearbySharingServiceImplTest : public testing::Test {
       listener->OnStatusUpdate(std::move(payload_transfer_update),
                                /*upgraded_medium=*/std::nullopt);
     }
+    EXPECT_TRUE(completion_notification.WaitForNotificationWithTimeout(
+        absl::Seconds(5)));
   }
 
   std::unique_ptr<Advertisement> GetCurrentAdvertisement() {
@@ -3557,6 +3561,8 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
   EXPECT_TRUE(
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
 
+  // Give the sharing service time to disconnect.
+  absl::SleepFor(absl::Milliseconds(100));
   // Forward time until we send the disconnect request to Nearby
   FastForward(kOutgoingDisconnectionDelay);
 
