@@ -146,8 +146,11 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   void HandleStartAdvertisingCallback(ConnectionsStatus status);
   void HandleStopAdvertisingCallback(ConnectionsStatus status);
 
-  IncomingConnectionListener* advertising_listener_ = nullptr;
-  DiscoveryListener* discovery_listener_ = nullptr;
+  mutable absl::Mutex listener_mutex_;
+  IncomingConnectionListener* advertising_listener_
+      ABSL_GUARDED_BY(listener_mutex_) = nullptr;
+  DiscoveryListener* discovery_listener_ ABSL_GUARDED_BY(listener_mutex_) =
+      nullptr;
   bool is_shutdown_ = false;
   proto::DataUsage advertising_data_usage_ =
       proto::DataUsage::UNKNOWN_DATA_USAGE;
