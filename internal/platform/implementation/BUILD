@@ -67,7 +67,6 @@ cc_library(
         "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
-        "//location/nearby/cpp/common:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
@@ -104,7 +103,6 @@ cc_library(
     copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//fastpair/internal:__pkg__",
         "//fastpair/internal/mediums:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
