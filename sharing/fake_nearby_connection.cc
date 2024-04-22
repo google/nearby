@@ -50,8 +50,11 @@ void FakeNearbyConnection::Close() {
   NL_DCHECK(!closed_);
   closed_ = true;
 
-  if (disconnect_listener_) {
-    std::move(disconnect_listener_)();
+  {
+    absl::MutexLock lock(&disconnect_mutex_);
+    if (disconnect_listener_) {
+      std::move(disconnect_listener_)();
+    }
   }
 
   absl::MutexLock lock(&read_mutex_);
@@ -66,6 +69,7 @@ void FakeNearbyConnection::Close() {
 void FakeNearbyConnection::SetDisconnectionListener(
     std::function<void()> listener) {
   NL_DCHECK(!closed_);
+  absl::MutexLock lock(&disconnect_mutex_);
   disconnect_listener_ = std::move(listener);
 }
 
