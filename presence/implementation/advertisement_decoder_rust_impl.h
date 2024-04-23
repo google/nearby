@@ -21,8 +21,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "third_party/beto-core/src/nearby/presence/np_cpp_ffi/include/nearby_protocol.h"
-#include "internal/proto/credential.pb.h"
+#include "third_party/beto_core/nearby/presence/np_cpp_ffi/include/nearby_protocol.h"
 #include "presence/implementation/advertisement_decoder.h"
 
 namespace nearby {
