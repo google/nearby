@@ -1,5 +1,4 @@
 build --action_env=BAZEL_CXXOPTS=-"std=c++20:-stdlib=libc++"
 # Definition of --config=memcheck
 build:memcheck --strip=never --test_timeout=3600
-build --sandbox_block_path=/usr/local
 common --enable_bzlmod
