@@ -30,7 +30,6 @@
 #include "absl/strings/string_view.h"
 #include "np_cpp_ffi_types.h"
 #include "nearby_protocol.h"
-#include "internal/proto/credential.proto.h"
 #include "presence/data_element.h"
 #include "presence/implementation/action_factory.h"
 #include "presence/implementation/advertisement_decoder.h"
