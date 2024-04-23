@@ -1,4 +1,4 @@
-build --action_env=BAZEL_CXXOPTS=-"std=c++20:-stdlib=libc++"
+build --action_env=BAZEL_CXXOPTS=-"std=c++20"
 # Definition of --config=memcheck
 build:memcheck --strip=never --test_timeout=3600
 common --enable_bzlmod
