@@ -156,8 +156,8 @@ cc_library(
     ] + select({
         ":norust_or_windows_or_android": [":ldt_stub"],
         ":use_rust_decoder": [
-            "//third_party/beto_core/nearby/presence/np_c_ffi:np_c_ffi_types",
             "@beto-core//:ldt_np_adv_ffi",
+            "@beto-core//:np_c_ffi_types",
             "@beto-core//:np_cpp_ffi",
         ],
         "//conditions:default": ["@beto-core//:ldt_np_adv_ffi"],
