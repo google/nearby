@@ -53,3 +53,6 @@ Carthage/Build
 
 # Rust
 Cargo.lock
+
+# Bazel
+bazel-*
