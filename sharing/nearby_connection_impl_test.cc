@@ -33,6 +33,7 @@ namespace sharing {
 namespace {
 
 TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
+  FakeTaskRunner::ResetPendingTasksCount();
   FakeNearbyConnectionsManager connection_manager;
   FakeContext context;
   FakeDeviceInfo device_info;
@@ -57,6 +58,7 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
 }
 
 TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
+  FakeTaskRunner::ResetPendingTasksCount();
   FakeNearbyConnectionsManager connection_manager;
   FakeContext context;
   FakeDeviceInfo device_info;

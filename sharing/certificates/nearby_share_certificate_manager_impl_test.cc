@@ -95,6 +95,7 @@ class NearbyShareCertificateManagerImplTest
   ~NearbyShareCertificateManagerImplTest() override = default;
 
   void SetUp() override {
+    FakeTaskRunner::ResetPendingTasksCount();
     ON_CALL(mock_sharing_platform_, GetPreferenceManager)
         .WillByDefault(ReturnRef(preference_manager_));
     ON_CALL(mock_sharing_platform_, GetAccountManager)

@@ -184,6 +184,7 @@ class NearbyShareContactManagerImplTest
   ~NearbyShareContactManagerImplTest() override = default;
 
   void SetUp() override {
+    FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
     AccountManager::Account account;

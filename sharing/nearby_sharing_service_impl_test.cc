@@ -351,6 +351,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   ~NearbySharingServiceImplTest() override = default;
 
   void SetUp() override {
+    FakeTaskRunner::ResetPendingTasksCount();
     ON_CALL(mock_sharing_platform_, GetDeviceInfo)
         .WillByDefault(ReturnRef(fake_device_info_));
     ON_CALL(mock_sharing_platform_, GetPreferenceManager)

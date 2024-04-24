@@ -14,28 +14,32 @@
 
 #include "internal/test/fake_task_runner.h"
 
+#include <atomic>
 #include <memory>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/timer.h"
 #include "internal/test/fake_timer.h"
 
 namespace nearby {
 
-std::atomic_uint FakeTaskRunner::total_running_thread_count_ = 0;
+std::atomic_uint FakeTaskRunner::pending_tasks_count_ = 0;
 
 FakeTaskRunner::~FakeTaskRunner() { absl::MutexLock lock(&mutex_); }
 
 bool FakeTaskRunner::PostTask(absl::AnyInvocable<void()> task) {
   absl::MutexLock lock(&mutex_);
-  ++total_running_thread_count_;
+  ++pending_tasks_count_;
   task_executor_->Execute([task = std::move(task)]() mutable {
     task();
-    --total_running_thread_count_;
+    --pending_tasks_count_;
   });
   return true;
 }
@@ -70,12 +74,12 @@ bool FakeTaskRunner::SyncWithTimeout(absl::Duration timeout) {
 
 bool FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Duration timeout) {
   int i = (timeout / absl::Milliseconds(1)) / 50;
-  while (total_running_thread_count_ != 0 && i > 0) {
+  while (pending_tasks_count_ != 0 && i > 0) {
     absl::SleepFor(absl::Milliseconds(50));
     --i;
   }
 
-  return total_running_thread_count_ == 0;
+  return pending_tasks_count_ == 0;
 }
 
 }  // namespace nearby

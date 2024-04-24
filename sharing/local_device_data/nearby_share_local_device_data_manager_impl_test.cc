@@ -127,6 +127,7 @@ class NearbyShareLocalDeviceDataManagerImplTest
   ~NearbyShareLocalDeviceDataManagerImplTest() override = default;
 
   void SetUp() override {
+    FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
     profile_info_provider()->set_given_name(kFakeGivenName);

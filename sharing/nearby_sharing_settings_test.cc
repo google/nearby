@@ -158,6 +158,7 @@ class NearbyShareSettingsTest : public ::testing::Test {
  public:
   NearbyShareSettingsTest()
       : local_device_data_manager_(kDefaultDeviceName) {
+    FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     nearby_share_settings_ = std::make_unique<NearbyShareSettings>(
         &context_, context_.GetClock(), fake_device_info_, preference_manager_,
