@@ -34,7 +34,6 @@ cc_library(
     ],
     visibility = [
         "//location/nearby/analytics/cpp/logging:__pkg__",
-        "//location/nearby/apps/better_together/macos/nearby_share:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
     ],
