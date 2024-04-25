@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef USE_RUST_DECODER
-
 #include "presence/implementation/advertisement_decoder.h"
 
 #include <string>
@@ -315,5 +313,3 @@ TEST(AdvertisementDecoderImpl, UnsupportedAdvertisementVersion) {
 }  // namespace
 }  // namespace presence
 }  // namespace nearby
-
-#endif

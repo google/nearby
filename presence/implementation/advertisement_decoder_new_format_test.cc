@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef USE_RUST_DECODER
-
 #include <string>
 #include <vector>
 
@@ -152,5 +150,3 @@ TEST(AdvertisementDecoderImpl, V0InvalidAdvContents) {
 }  // namespace
 }  // namespace presence
 }  // namespace nearby
-
-#endif
