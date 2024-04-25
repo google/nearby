@@ -22,12 +22,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-
-#if defined(USE_RUST_LDT) || defined(USE_RUST_DECODER)
 #include "np_ldt.h"
-#else
-#include "presence/implementation/np_ldt.h"
-#endif /* USE_RUST_LDT */
 
 namespace nearby {
 namespace presence {

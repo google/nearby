@@ -18,18 +18,16 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
-#include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 
 namespace {
 using ::nearby::ByteArray;
-using ::nearby::internal::SharedCredential;
-
-#ifdef USE_RUST_LDT
 
 // Test data from Android tests.
 constexpr absl::string_view kKeySeedBase16 =
@@ -94,23 +92,6 @@ TEST(Ldt, DecryptAndroidData) {
   ASSERT_OK(decrypted);
   EXPECT_EQ(*decrypted, absl::HexStringToBytes(kPlainTextBase16));
 }
-
-#else
-TEST(Ldt, LdtUnvailable) {
-  ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
-                  184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
-                  200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
-  ByteArray known_mac({223, 185, 10,  31,  155, 31, 226, 141, 24,  187, 204,
-                       165, 34,  64,  181, 204, 44, 203, 95,  141, 82,  137,
-                       163, 203, 100, 235, 53,  65, 202, 97,  75,  180});
-
-  absl::StatusOr<LdtEncryptor> encryptor =
-      LdtEncryptor::Create(seed.AsStringView(), known_mac.AsStringView());
-
-  EXPECT_THAT(encryptor.status(),
-              absl::UnavailableError("Failed to create LDT encryptor"));
-}
-#endif
 
 }  // namespace
 }  // namespace presence

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef USE_RUST_DECODER
+
 #include "presence/implementation/advertisement_decoder.h"
 
 #include <string>
@@ -53,7 +55,6 @@ ScanRequest GetScanRequest() {
                              IdentityType::IDENTITY_TYPE_PROVISIONED}};
 }
 
-#ifdef USE_RUST_LDT
 ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
   LegacyPresenceScanFilter scan_filter = {.remote_public_credentials =
                                               credentials};
@@ -197,8 +198,6 @@ TEST(AdvertisementDecoderImpl, InvalidEncryptedContent) {
               StatusIs(absl::StatusCode::kOutOfRange));
 }
 
-#endif /*USE_RUST_LDT*/
-
 TEST(AdvertisementDecoderImpl, DecodeBaseNpPublicAdvertisement) {
   const std::string salt = "AB";
   AdvertisementDecoderImpl decoder;
@@ -269,7 +268,6 @@ TEST(AdvertisementDecoderImpl, DecodeEddystone) {
                                       eddystone_id)));
 }
 
-// TODO(b/238214467): Add more negative tests
 TEST(AdvertisementDecoderImpl, UnsupportedDataElement) {
   std::string valid_header_and_salt = absl::HexStringToBytes("00204142");
   AdvertisementDecoderImpl decoder;
@@ -317,3 +315,5 @@ TEST(AdvertisementDecoderImpl, UnsupportedAdvertisementVersion) {
 }  // namespace
 }  // namespace presence
 }  // namespace nearby
+
+#endif

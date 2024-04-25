@@ -1,5 +1,3 @@
-load("@bazel_skylib//lib:selects.bzl", "selects")
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,53 +15,19 @@ load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
 licenses(["notice"])
 
-# Command line build option that enables linking with the LDT encryption implementation in Rust.
-#
-# When not set, LDT encryption will not be available. We won't be able to advertise encrypted BLE4.2 advertisements nor scan for them.
-bool_flag(
-    name = "enable_rust_ldt",
-    build_setting_default = False,
-)
-
 bool_flag(
     name = "enable_rust_decoder",
     build_setting_default = False,
 )
 
-config_setting(
-    name = "no_link_with_rust",
-    flag_values = {
-        ":enable_rust_ldt": "false",
-        ":enable_rust_decoder": "false",
-    },
-)
-
 # In order to build with the rust decoder turned on use:
 #   blaze build third_party/nearby/presence/implementation:internal /
 #    --//third_party/nearby/presence/implementation:enable_rust_decoder /
-#    --no//third_party/nearby/presence/implementation:enable_rust_ldt
 config_setting(
     name = "use_rust_decoder",
     flag_values = {
         ":enable_rust_decoder": "true",
-        ":enable_rust_ldt": "false",
     },
-)
-
-# Current google3 does not support Rust on Android or Windows.
-selects.config_setting_group(
-    name = "norust_or_windows_or_android",
-    match_any = [
-        ":no_link_with_rust",
-        "@platforms//os:windows",
-        "@platforms//os:android",
-    ],
-)
-
-cc_library(
-    name = "ldt_stub",
-    srcs = ["np_ldt.c"],
-    hdrs = ["np_ldt.h"],
 )
 
 cc_library(
@@ -113,12 +77,10 @@ cc_library(
     # TODO(b/334166657): Move rust backed decoder to its own build target so it recieved coverage
     # metrics
     defines = select({
-        ":norust_or_windows_or_android": [],
         ":use_rust_decoder": [
             "USE_RUST_DECODER=1",
-            "USE_RUST_LDT=1",
         ],
-        "//conditions:default": ["USE_RUST_LDT=1"],
+        "//conditions:default": [],
     }),
     visibility = [
         "//presence:__subpackages__",
@@ -137,6 +99,7 @@ cc_library(
         "//internal/proto:metadata_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
+        "@beto-core//:ldt_np_adv_ffi",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -154,13 +117,11 @@ cc_library(
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",
     ] + select({
-        ":norust_or_windows_or_android": [":ldt_stub"],
         ":use_rust_decoder": [
-            "@beto-core//:ldt_np_adv_ffi",
             "@beto-core//:np_c_ffi_types",
             "@beto-core//:np_cpp_ffi",
         ],
-        "//conditions:default": ["@beto-core//:ldt_np_adv_ffi"],
+        "//conditions:default": [],
     }),
 )
 
@@ -329,8 +290,8 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform:base",
-        "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ] + select({

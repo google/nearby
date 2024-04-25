@@ -40,7 +40,6 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::status::StatusIs;
 
-#ifdef USE_RUST_LDT
 LocalCredential CreateLocalCredential(IdentityType identity_type) {
   // Values copied from LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
@@ -130,7 +129,6 @@ TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
   EXPECT_EQ(absl::BytesToHexString(result->content),
             "0054414257a35c020f1c547d7e169303196d75da7118ba");
 }
-#endif /*USE_RUST_LDT*/
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
   std::string salt = "AB";
