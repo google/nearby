@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -31,6 +32,10 @@ namespace nearby {
 class Uuid final {
  public:
   Uuid() = default;
+
+  // Constructs a UUID from the canonical string format as
+  // xxxxxABCD-xxxx-xxxx-xxxxxxxxxxxxxx
+  static std::optional<Uuid> FromString(absl::string_view data);
 
   // Constructs a type 3 (name based) UUID based on the input string.
   explicit Uuid(absl::string_view data);
