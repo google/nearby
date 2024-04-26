@@ -47,6 +47,8 @@ class FakeTaskRunner : public TaskRunner {
                        absl::AnyInvocable<void()> task) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Wait for all thread completed.
   void Sync();
 

@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 
 namespace nearby {
@@ -130,6 +131,20 @@ TEST_P(TaskRunnerImplTest, PostEmptyTask) {
   TaskRunnerImpl task_runner{GetParam()};
   EXPECT_TRUE(task_runner.PostTask(nullptr));
   EXPECT_TRUE(task_runner.PostDelayedTask(absl::Milliseconds(100), nullptr));
+}
+
+TEST_P(TaskRunnerImplTest, PostTaskAfterShutdown) {
+  TaskRunnerImpl task_runner{GetParam()};
+  task_runner.Shutdown();
+
+  EXPECT_FALSE(task_runner.PostTask([]() {}));
+}
+
+TEST_P(TaskRunnerImplTest, PostDelayedTaskAfterShutdown) {
+  TaskRunnerImpl task_runner{GetParam()};
+  task_runner.Shutdown();
+
+  EXPECT_FALSE(task_runner.PostDelayedTask(absl::Milliseconds(50), []() {}));
 }
 
 INSTANTIATE_TEST_SUITE_P(ParameterizedTaskRunnerImplTest, TaskRunnerImplTest,

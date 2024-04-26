@@ -29,13 +29,19 @@ class TaskRunner {
   // Posts a task to task runner. The task runs immediately or not depends on
   // the implementation of class. If the implementation supports multiple
   // threads, posted tasks could run concurrently.
+  // Returns false if TashRunner has been shutdown.
   virtual bool PostTask(absl::AnyInvocable<void()> task) = 0;
 
   // Posts a task to run with delay. Multiple tasks can be scheduled. Tasks will
   // execute in the order of their delay expiring, not in the order they were
   // posted.
+  // Returns false if TashRunner has been shutdown.
   virtual bool PostDelayedTask(absl::Duration delay,
                                absl::AnyInvocable<void()> task) = 0;
+
+  // Shutdown this TaskRunner so that scheduled tasks are no longer executed.
+  // New tasks posted after Shutdown all will be ignored.
+  virtual void Shutdown() = 0;
 };
 
 }  // namespace nearby

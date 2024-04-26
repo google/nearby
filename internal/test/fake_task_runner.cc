@@ -32,7 +32,12 @@ namespace nearby {
 
 std::atomic_uint FakeTaskRunner::pending_tasks_count_ = 0;
 
-FakeTaskRunner::~FakeTaskRunner() { absl::MutexLock lock(&mutex_); }
+FakeTaskRunner::~FakeTaskRunner() { Shutdown(); }
+
+void FakeTaskRunner::Shutdown() {
+  absl::MutexLock lock(&mutex_);
+  task_executor_->Shutdown();
+}
 
 bool FakeTaskRunner::PostTask(absl::AnyInvocable<void()> task) {
   absl::MutexLock lock(&mutex_);
@@ -78,7 +83,6 @@ bool FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Duration timeout) {
     absl::SleepFor(absl::Milliseconds(50));
     --i;
   }
-
   return pending_tasks_count_ == 0;
 }
 
