@@ -33,7 +33,7 @@ using ::nearby::internal::IdentityType;
 constexpr absl::string_view kAccountName = "Google User";
 constexpr bool kUseBle = true;
 constexpr bool kOnlyScreenOnScan = true;
-const IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
+const IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
 const ScanType kScanType = ScanType::kPresenceScan;
 const PowerMode powerMode = PowerMode::kLowLatency;
 constexpr absl::string_view kManagerAppId = "Google App Manager";

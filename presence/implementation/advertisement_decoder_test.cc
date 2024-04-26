@@ -47,8 +47,8 @@ constexpr absl::string_view kAccountName = "test account";
 
 ScanRequest GetScanRequest() {
   return {.account_name = std::string(kAccountName),
-          .identity_types = {IdentityType::IDENTITY_TYPE_PRIVATE,
-                             IdentityType::IDENTITY_TYPE_TRUSTED,
+          .identity_types = {IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
+                             IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
                              IdentityType::IDENTITY_TYPE_PUBLIC,
                              IdentityType::IDENTITY_TYPE_PROVISIONED}};
 }
@@ -58,8 +58,8 @@ ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
                                               credentials};
   return ScanRequestBuilder()
       .SetAccountName(kAccountName)
-      .AddIdentityType(IdentityType::IDENTITY_TYPE_PRIVATE)
-      .AddIdentityType(IdentityType::IDENTITY_TYPE_TRUSTED)
+      .AddIdentityType(IdentityType::IDENTITY_TYPE_PRIVATE_GROUP)
+      .AddIdentityType(IdentityType::IDENTITY_TYPE_CONTACTS_GROUP)
       .AddIdentityType(IdentityType::IDENTITY_TYPE_PUBLIC)
       .AddIdentityType(IdentityType::IDENTITY_TYPE_PROVISIONED)
       .Build();
@@ -87,7 +87,7 @@ TEST(AdvertisementDecoderImpl, DecodeBaseNpPrivateAdvertisement) {
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
       GetPublicCredential());
   AdvertisementDecoderImpl decoder(&credentials);
 
@@ -95,7 +95,7 @@ TEST(AdvertisementDecoderImpl, DecodeBaseNpPrivateAdvertisement) {
       absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE);
+  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_THAT(result->data_elements,
               ElementsAre(DataElement(DataElement::kSaltFieldType, salt),
                           DataElement(DataElement::kTxPowerFieldType,
@@ -112,7 +112,7 @@ TEST(AdvertisementDecoderImpl,
 
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
       GetPublicCredential());
   AdvertisementDecoderImpl decoder(&credentials);
 
@@ -120,7 +120,7 @@ TEST(AdvertisementDecoderImpl,
       absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE);
+  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_THAT(result->data_elements,
               ElementsAre(DataElement(DataElement::kSaltFieldType, salt),
                           DataElement(DataElement::kTxPowerFieldType,
@@ -135,7 +135,7 @@ TEST(AdvertisementDecoderImpl, DecodeBaseNpTrustedAdvertisement) {
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;
-  credentials[IdentityType::IDENTITY_TYPE_TRUSTED].push_back(
+  credentials[IdentityType::IDENTITY_TYPE_CONTACTS_GROUP].push_back(
       GetPublicCredential());
   AdvertisementDecoderImpl decoder(&credentials);
 
@@ -143,7 +143,7 @@ TEST(AdvertisementDecoderImpl, DecodeBaseNpTrustedAdvertisement) {
       absl::HexStringToBytes("0052414257a35c020f1c547d7e169303196d75da7118ba"));
   ASSERT_OK(result);
   EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_TRUSTED);
+  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_CONTACTS_GROUP);
   EXPECT_THAT(
       result->data_elements,
       UnorderedElementsAre(DataElement(DataElement::kSaltFieldType, salt),
@@ -187,7 +187,7 @@ TEST(AdvertisementDecoderImpl, InvalidEncryptedContent) {
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
       GetPublicCredential());
   AdvertisementDecoderImpl decoder(&credentials);
 

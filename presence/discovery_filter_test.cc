@@ -25,7 +25,7 @@ namespace {
 using ::nearby::internal::IdentityType;
 
 const PresenceAction kTestAction = {1};
-const IdentityType kTestIdentity = {IdentityType::IDENTITY_TYPE_TRUSTED};
+const IdentityType kTestIdentity = {IdentityType::IDENTITY_TYPE_CONTACTS_GROUP};
 
 TEST(DiscoveryFilterTest, DefaultConstructorWorks) {
   DiscoveryFilter filter;

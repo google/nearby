@@ -66,10 +66,10 @@ absl::Status AppendDataElement(unsigned data_type,
 
 uint8_t GetIdentityFieldType(IdentityType type) {
   switch (type) {
-    case IdentityType::IDENTITY_TYPE_PRIVATE:
-      return DataElement::kPrivateIdentityFieldType;
-    case IdentityType::IDENTITY_TYPE_TRUSTED:
-      return DataElement::kTrustedIdentityFieldType;
+    case IdentityType::IDENTITY_TYPE_PRIVATE_GROUP:
+      return DataElement::kPrivateGroupIdentityFieldType;
+    case IdentityType::IDENTITY_TYPE_CONTACTS_GROUP:
+      return DataElement::kContactsGroupIdentityFieldType;
     case IdentityType::IDENTITY_TYPE_PUBLIC:
       return DataElement::kPublicIdentityFieldType;
     case IdentityType::IDENTITY_TYPE_PROVISIONED:
@@ -94,8 +94,8 @@ std::string SerializeAction(const Action& action) {
 }
 
 bool RequiresCredentials(IdentityType identity_type) {
-  return identity_type == IdentityType::IDENTITY_TYPE_PRIVATE ||
-         identity_type == IdentityType::IDENTITY_TYPE_TRUSTED ||
+  return identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP ||
+         identity_type == IdentityType::IDENTITY_TYPE_CONTACTS_GROUP ||
          identity_type == IdentityType::IDENTITY_TYPE_PROVISIONED;
 }
 }  // namespace
