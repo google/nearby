@@ -597,6 +597,10 @@ enum OperationResultCode {
   MEDIUM_UNAVAILABLE_UPGRADE_ON_SAME_MEDIUM = 1537;
   // WEBRTC is unavailable due to framework not support
   MEDIUM_UNAVAILABLE_WEB_RTC_NO_INTERNET = 1538;
+  // Sta connection failure due to non-disruptive
+  MEDIUM_UNAVAILABLE_STA_DISRUPTIVE_FALSE = 1539;
+  // Sta connection failure due to user restriction
+  MEDIUM_UNAVAILABLE_STA_USER_NOT_ALLOW = 1540;
 
   // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
   // NC already hosting a WFD group for this client (same service id)
@@ -633,6 +637,8 @@ enum OperationResultCode {
   CLIENT_DUPLICATE_WIFI_AWARE_SUBSCRIBING_REQUEST = 2015;
   // BLE and USB should not be upgrade mediums
   CLIENT_UNSUPPORTED_USB_TO_BE_UPGRADE_MEDIUM = 2016;
+  // Log the tie break loss symptom
+  CLIENT_PROCESS_TIE_BREAK_LOSS = 2017;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -875,6 +881,32 @@ enum OperationResultCode {
   // Payloads IOError due to endpoint get IOException on USB medium (IOException
   // on Channel#write)
   CONNECTIVITY_CHANNEL_IO_ERROR_ON_USB = 3568;
+  // Payloads IOError due to endpoint get IOException on UNKNOWN medium
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_UNKNOWN_MEDIUM = 3569;
+  // IOException on bluetooth socket creation
+  CONNECTIVITY_BT_SOCKET_CREATION_IO_EXCEPTION = 3570;
+  // IOException on bluetooth socket connection
+  CONNECTIVITY_BT_SOCKET_CONNECT_IO_EXCEPTION = 3571;
+  // Interrupted exception on bluetooth socket connection
+  CONNECTIVITY_BT_CONNECTION_INTERRUPTED_EXCEPTION = 3572;
+  // Execution exception on bluetooth socket connection
+  CONNECTIVITY_BT_CONNECTION_EXECUTION_EXCEPTION = 3573;
+  // Timeout exception on bluetooth socket connection
+  CONNECTIVITY_BT_CONNECTION_TIMEOUT_EXCEPTION = 3574;
+  // Failure on WifiManager#connect
+  CONNECTIVITY_WIFI_DIRECT_P2P_CONNECTION_FAILURE = 3575;
+  // Interrupted exception on Wifi Direct socket connection
+  CONNECTIVITY_WFD_CONNECTION_INTERRUPTED_EXCEPTION = 3576;
+  // Execution exception on Wifi Direct socket connection
+  CONNECTIVITY_WFD_CONNECTION_EXECUTION_EXCEPTION = 3577;
+  // Timeout exception on Wifi Direct socket connection
+  CONNECTIVITY_WFD_CONNECTION_TIMEOUT_EXCEPTION = 3578;
+  // Hosted address is null in Wifi Direct group
+  CONNECTIVITY_WFD_CONNECTION_HOSTED_ADDRESS_NULL = 3579;
+  // Connect to Wifi Hotspot Specifier failure
+  CONNECTIVITY_WIFI_HOTSPOT_SPECIFIER_FAILURE = 3580;
+  // Connect to Wifi Hotspot failure
+  CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE = 3581;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -1022,6 +1054,10 @@ enum OperationResultCode {
   NEARBY_WIFI_LAN_IP_ADDRESS_ERROR = 4565;
   // PSM value less than 1
   NEARBY_L2CAP_PSM_NOT_POSITIVE = 4566;
+  // Log the encryption failure case
+  NEARBY_ENCRYPTION_FAILURE = 4567;
+  // Log the authentication failure case
+  NEARBY_AUTHENTICATION_FAILURE = 4568;
 }
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
