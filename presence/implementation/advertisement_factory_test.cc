@@ -59,7 +59,7 @@ LocalCredential CreateLocalCredential(IdentityType identity_type) {
 TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
-  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
+  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
@@ -83,7 +83,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
 TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
-  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_CONTACTS_GROUP;
+  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_TRUSTED;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   data_elements.emplace_back(ActionBit::kPresenceManagerAction);
@@ -152,7 +152,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
 
 TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
   std::string salt = "AB";
-  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE_GROUP;
+  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);

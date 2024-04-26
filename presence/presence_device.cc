@@ -39,8 +39,8 @@ constexpr char kEndpointIdChars[] = {
 
 // LINT.IfChange
 constexpr int kAndroidIdentityTypeUnknown = -1;
-constexpr int kAndroidIdentityTypePrivateGroup = 0;
-constexpr int kAndroidIdentityTypeContactsGroup = 1;
+constexpr int kAndroidIdentityTypePrivate = 0;
+constexpr int kAndroidIdentityTypeTrusted = 1;
 constexpr int kAndroidIdentityTypePublic = 2;
 // LINT.ThenChange(
 //  //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/presence/PresenceIdentity.java
@@ -79,10 +79,10 @@ ConvertToConnectionsDeviceType(internal::DeviceType device_type) {
 
 int ConvertToAndroidIdentityType(nearby::internal::IdentityType identity_type) {
   switch (identity_type) {
-    case internal::IDENTITY_TYPE_PRIVATE_GROUP:
-      return kAndroidIdentityTypePrivateGroup;
-    case internal::IDENTITY_TYPE_CONTACTS_GROUP:
-      return kAndroidIdentityTypeContactsGroup;
+    case internal::IDENTITY_TYPE_PRIVATE:
+      return kAndroidIdentityTypePrivate;
+    case internal::IDENTITY_TYPE_TRUSTED:
+      return kAndroidIdentityTypeTrusted;
     case internal::IDENTITY_TYPE_PUBLIC:
       return kAndroidIdentityTypePublic;
     default:

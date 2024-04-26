@@ -92,14 +92,13 @@ TEST(AdvertisementDecoderImpl, DecodeEncryptedAdvertisement) {
       known_mac.AsStringView());
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
-      public_credential);
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE].push_back(public_credential);
   AdvertisementDecoderImpl decoder = AdvertisementDecoderImpl(&credentials);
 
   absl::StatusOr<Advertisement> result =
       decoder.DecodeAdvertisement(absl::HexStringToBytes(V0AdvEncryptedBytes));
   ASSERT_OK(result);
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
+  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE);
   EXPECT_EQ(result->version, 0);
   EXPECT_THAT(result->data_elements,
               ElementsAre(DataElement(DataElement::kSaltFieldType,

@@ -67,10 +67,8 @@ SharedCredential CreatePublicCredential(absl::string_view secret_id,
 
 std::vector<LocalCredential> BuildPrivateCreds(absl::string_view secret_id) {
   std::vector<LocalCredential> private_credentials = {
-      CreateLocalCredential(secret_id,
-                            IdentityType::IDENTITY_TYPE_PRIVATE_GROUP),
-      CreateLocalCredential(secret_id,
-                            IdentityType::IDENTITY_TYPE_CONTACTS_GROUP),
+      CreateLocalCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
+      CreateLocalCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
       CreateLocalCredential(secret_id,
                             IdentityType::IDENTITY_TYPE_PROVISIONED)};
   return private_credentials;
@@ -78,10 +76,8 @@ std::vector<LocalCredential> BuildPrivateCreds(absl::string_view secret_id) {
 
 std::vector<SharedCredential> BuildPublicCreds(absl::string_view secret_id) {
   std::vector<SharedCredential> public_credentials = {
-      CreatePublicCredential(secret_id,
-                             IdentityType::IDENTITY_TYPE_PRIVATE_GROUP),
-      CreatePublicCredential(secret_id,
-                             IdentityType::IDENTITY_TYPE_CONTACTS_GROUP),
+      CreatePublicCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
+      CreatePublicCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
       CreatePublicCredential(secret_id,
                              IdentityType::IDENTITY_TYPE_PROVISIONED)};
   return public_credentials;
@@ -454,10 +450,9 @@ TEST_P(IdentityFilterTest, FilterLocalCredentialsByIdentityType) {
 TEST_P(IdentityFilterTest, FilterLocalCredentialsFailsWhenNoCredentialsMatch) {
   IdentityType identity_type = GetParam();
   // Create a credential of a different identity type than the one we query.
-  IdentityType other_type =
-      identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP
-          ? IdentityType::IDENTITY_TYPE_CONTACTS_GROUP
-          : IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
+  IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
+                                ? IdentityType::IDENTITY_TYPE_TRUSTED
+                                : IdentityType::IDENTITY_TYPE_PRIVATE;
   std::vector<LocalCredential> private_creds = {
       CreateLocalCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
@@ -491,10 +486,9 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsByIdentityType) {
 TEST_P(IdentityFilterTest, FilterPublicCredentialsFailsWhenNoCredentialsMatch) {
   IdentityType identity_type = GetParam();
   // Create a credential of a different identity type than the one we query.
-  IdentityType other_type =
-      identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP
-          ? IdentityType::IDENTITY_TYPE_CONTACTS_GROUP
-          : IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
+  IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
+                                ? IdentityType::IDENTITY_TYPE_TRUSTED
+                                : IdentityType::IDENTITY_TYPE_PRIVATE;
   std::vector<SharedCredential> public_creds = {
       CreatePublicCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
@@ -509,8 +503,8 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsFailsWhenNoCredentialsMatch) {
 
 INSTANTIATE_TEST_SUITE_P(
     CredentialStorageImplTest, IdentityFilterTest,
-    testing::Values(IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
-                    IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
+    testing::Values(IdentityType::IDENTITY_TYPE_PRIVATE,
+                    IdentityType::IDENTITY_TYPE_TRUSTED,
                     IdentityType::IDENTITY_TYPE_PROVISIONED));
 
 }  // namespace

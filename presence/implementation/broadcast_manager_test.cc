@@ -162,7 +162,7 @@ TEST_P(BroadcastManagerTest, StartBroadcastPrivateIdentityFails) {
   // TODO(b/256249404): Support private identity.
   absl::StatusOr<BroadcastSessionId> session =
       broadcast_manager_.StartBroadcast(
-          CreateBroadcastRequest(internal::IDENTITY_TYPE_PRIVATE_GROUP),
+          CreateBroadcastRequest(internal::IDENTITY_TYPE_PRIVATE),
           CreateBroadcastCallback());
 
   ASSERT_OK(session);

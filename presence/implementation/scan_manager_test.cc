@@ -388,7 +388,7 @@ TEST_F(ScanManagerTest, ScanningE2EWithEncryptedAdvertisementAndCredentials) {
   nearby::BluetoothAdapter server_adapter;
   Ble ble2(server_adapter);
   PresenceBroadcast::BroadcastSection section = {
-      .identity = internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
+      .identity = internal::IdentityType::IDENTITY_TYPE_PRIVATE,
       .extended_properties = MakeDefaultExtendedProperties(),
       .account_name = "Test account"};
   PresenceBroadcast presence_request = {.sections = {section}};
@@ -399,8 +399,7 @@ TEST_F(ScanManagerTest, ScanningE2EWithEncryptedAdvertisementAndCredentials) {
   absl::StatusOr<AdvertisementData> advertisement =
       AdvertisementFactory().CreateAdvertisement(
           request.value(),
-          CreateLocalCredential(
-              internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP));
+          CreateLocalCredential(internal::IdentityType::IDENTITY_TYPE_PRIVATE));
   EXPECT_OK(advertisement);
   std::unique_ptr<AdvertisingSession> session = ble2.StartAdvertising(
       advertisement.value(), PowerMode::kLowPower,
@@ -409,7 +408,7 @@ TEST_F(ScanManagerTest, ScanningE2EWithEncryptedAdvertisementAndCredentials) {
 
   auto scan_request = MakeDefaultScanRequest();
   scan_request.identity_types = {
-      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP};
+      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE};
 
   // Start scanning
   ScanSessionId scan_session =

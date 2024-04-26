@@ -47,7 +47,7 @@ CredentialSelector BuildDefaultCredentialSelector() {
   credential_selector.manager_app_id = std::string(kManagerAppId);
   credential_selector.account_name = std::string(kAccountName);
   credential_selector.identity_type =
-      ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
+      ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
   return credential_selector;
 }
 

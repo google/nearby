@@ -22,8 +22,7 @@ namespace presence {
 namespace {
 using ::nearby::internal::IdentityType;
 
-constexpr IdentityType kTestIdentityType =
-    IdentityType::IDENTITY_TYPE_CONTACTS_GROUP;
+constexpr IdentityType kTestIdentityType = IdentityType::IDENTITY_TYPE_TRUSTED;
 
 TEST(PresenceIdentityTest, ExplicitInitEquals) {
   IdentityType identity1 = {kTestIdentityType};

@@ -143,8 +143,8 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
 std::vector<CredentialSelector> GetCredentialSelectors(
     const ScanRequest& scan_request) {
   std::vector<nearby::internal::IdentityType> all_types = {
-      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
-      nearby::internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
+      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE,
+      nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED,
       nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC,
       nearby::internal::IdentityType::IDENTITY_TYPE_PROVISIONED};
   std::vector<CredentialSelector> selectors;

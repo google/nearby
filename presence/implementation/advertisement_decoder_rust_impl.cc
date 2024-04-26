@@ -50,8 +50,8 @@ AdvertisementDecoderImpl::InitializeCredentialBook(
   }
 
   nearby_protocol::CredentialSlab slab;
-  for (const auto& credential : (*credentials_map)
-           [internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP]) {
+  for (const auto& credential :
+       (*credentials_map)[internal::IdentityType::IDENTITY_TYPE_PRIVATE]) {
     std::vector<uint8_t> metadata_bytes(
         credential.encrypted_metadata_bytes_v0().begin(),
         credential.encrypted_metadata_bytes_v0().end());
@@ -96,7 +96,7 @@ internal::IdentityType GetIdentityType(
     case np_ffi::internal::DeserializedV0IdentityKind::Plaintext:
       return internal::IdentityType::IDENTITY_TYPE_PUBLIC;
     case np_ffi::internal::DeserializedV0IdentityKind::Decrypted:
-      return internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
+      return internal::IdentityType::IDENTITY_TYPE_PRIVATE;
   }
 }
 
@@ -112,7 +112,7 @@ absl::Status ProcessLegibleV0Adv(
   // TODO(b/333126765): salt isn't a DE, we should restructure the Advertisement
   // struct to reflect this
   if (advertisement.identity_type ==
-      internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP) {
+      internal::IdentityType::IDENTITY_TYPE_PRIVATE) {
     auto cred_details = payload.TryGetIdentityDetails();
     if (!cred_details.ok()) {
       return cred_details.status();
