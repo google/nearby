@@ -452,6 +452,9 @@ message ConnectionsLog {
 
     // The dual band support status
     optional bool supports_dual_band = 6;
+
+    // The wifi aware support status
+    optional bool supports_wifi_aware = 7;
   }
 
   // Some additional information to keep with the discovery phase.
