@@ -14,11 +14,20 @@
 
 #include "internal/platform/uuid.h"
 
+#include <array>
+#include <cstdint>
 #include <iomanip>
+#include <ios>
+#include <optional>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
-#include "absl/strings/escaping.h"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/crypto.h"
 
 namespace nearby {
@@ -31,6 +40,49 @@ std::ostream& write_hex(std::ostream& os, absl::string_view data) {
   return os;
 }
 }  // namespace
+
+// Based on the Java implementation
+// http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#191
+std::optional<Uuid> Uuid::FromString(absl::string_view data) {
+  std::vector<std::string> components = absl::StrSplit(data, '-');
+  if (components.size() != 5) {
+    return std::nullopt;
+  }
+
+  for (std::string& component : components) {
+    component = absl::StrCat("0x", component);
+  }
+
+  int64_t most_sig_bits = 0L;
+  int64_t least_sig_bits = 0L;
+  int64_t temp;
+  if (!absl::SimpleHexAtoi(components[0], &temp)) {
+    return std::nullopt;
+  }
+  most_sig_bits = temp;
+  most_sig_bits <<= 16;
+  if (!absl::SimpleHexAtoi(components[1], &temp)) {
+    return std::nullopt;
+  }
+  most_sig_bits |= temp;
+  most_sig_bits <<= 16;
+  if (!absl::SimpleHexAtoi(components[2], &temp)) {
+    return std::nullopt;
+  }
+  most_sig_bits |= temp;
+
+  if (!absl::SimpleHexAtoi(components[3], &temp)) {
+    return std::nullopt;
+  }
+  least_sig_bits = temp;
+  least_sig_bits <<= 48;
+  if (!absl::SimpleHexAtoi(components[4], &temp)) {
+    return std::nullopt;
+  }
+  least_sig_bits |= temp;
+
+  return Uuid(most_sig_bits, least_sig_bits);
+}
 
 Uuid::Uuid(absl::string_view data) {
   // Based on the Java counterpart at
