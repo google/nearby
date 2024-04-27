@@ -6,6 +6,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/flags:flag_reader",
+        "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/strings:string_view",
     ],
 )

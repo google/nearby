@@ -17,6 +17,8 @@
 #define THIRD_PARTY_NEARBY_SHARING_FLAGS_NEARBY_SHARING_FEATURE_FLAGS_H_
 
 #include <cstdint>
+
+#include "absl/container/btree_map.h"
 #include "absl/strings/string_view.h"
 #include "internal/flags/flag.h"
 
@@ -27,7 +29,7 @@ namespace config_package_nearby {
 constexpr absl::string_view kConfigPackage = "nearby";
 
 namespace nearby_sharing_feature {
-// Enable/disable deleting the file payload which received unexpectedly.
+// When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFile =
     flags::Flag<bool>(kConfigPackage, "45627826", false);
 // Enable/disable background scanning
@@ -124,12 +126,65 @@ constexpr auto kShowAutoUpdateSetting =
 // Suppress Fast Initiation HUN by switching from kNotify to kSilent
 constexpr auto kSuppressFastInitHun =
     flags::Flag<bool>(kConfigPackage, "45409586", true);
-// Enable/disable BWU after accepting a connection.
-constexpr auto kUpgradeBandwidthAfterAccept =
-    flags::Flag<bool>(kConfigPackage, "45627824", false);
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
+// When true, we only upgrade the bandwidth after accepting a connection.
+constexpr auto kUpgradeBandwidthAfterAccept =
+    flags::Flag<bool>(kConfigPackage, "45627824", false);
+
+inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
+  return {
+      {45627826, kDeleteUnexpectedReceivedFile},
+      {45418904, kEnableBackgroundScanning},
+      {45427466, kEnableBleForTransfer},
+      {45401516, kEnableBleV2},
+      {45409184, kEnableCertificatesDump},
+      {45412090, kEnableComponentsRefactor},
+      {45415713, kEnableDumpingFeatureFlags},
+      {45408998, kEnableEstimatedTimeRemainingUi},
+      {45411907, kEnableFatalLog},
+      {45409353, kEnableLoggingBatteryUsage},
+      {45409411, kEnableLoggingForegroundReceiving},
+      {45412418, kEnableLoggingSystemInfoMetrics},
+      {45418905, kEnableMediumWebRtc},
+      {45418906, kEnableMediumWifiLan},
+      {45418903, kEnableNearbySharing},
+      {45411213, kEnablePlatformThreadToNearbyClient},
+      {45417647, kEnableQrCodeUi},
+      {45411589, kEnableRetryResumeTransfer},
+      {45418907, kEnableSelfShare},
+      {45418908, kEnableSelfShareUi},
+      {45459748, kEnableSendingDesktopEvents},
+      {45411567, kEnableTipsCarouselUi},
+      {45429881, kEnableTransferCancellationOptimization},
+      {45411620, kEnableWebrtcMedium},
+      {45411353, kSenderSkipsConfirmation},
+      {45419546, kShareZwiebackBtwPhenotypeAndClearcut},
+      {45410558, kShowAdminModeWarning},
+      {45411601, kShowAutoAppStartSetting},
+      {45409033, kShowAutoUpdateSetting},
+      {45409586, kSuppressFastInitHun},
+      {45627824, kUpgradeBandwidthAfterAccept},
+  };
+}
+
+inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
+  return {
+      {45401358, kLoggingLevel},
+  };
+}
+
+inline absl::btree_map<int, const flags::Flag<double>&> GetDoubleFlags() {
+  return {};
+}
+
+inline absl::btree_map<int, const flags::Flag<absl::string_view>&>
+GetStringFlags() {
+  return {
+      {45409861, kUpdateTrack},
+  };
+}
 
 }  // namespace nearby_sharing_feature
 }  // namespace config_package_nearby
