@@ -308,8 +308,7 @@ enum EstablishConnectionStatus {
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
 enum AttachmentTransmissionStatus {
-  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0
-      /* status_bucket = STATUS_UNKNOWN */;
+  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0;
   COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1
       /* status_bucket = STATUS_SUCCESSFUL */;
   CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2
