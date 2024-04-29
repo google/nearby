@@ -44,6 +44,7 @@ cc_library(
         "//:__subpackages__",
         "//googlemac/iPhone/Shared/Identity/SmartSetup:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
+        "//location/nearby/sharing/sdk:__subpackages__",
     ],
     deps = [
         ":flag_reader",

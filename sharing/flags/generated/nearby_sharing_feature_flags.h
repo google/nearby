@@ -132,6 +132,9 @@ constexpr auto kUpdateTrack =
 // When true, we only upgrade the bandwidth after accepting a connection.
 constexpr auto kUpgradeBandwidthAfterAccept =
     flags::Flag<bool>(kConfigPackage, "45627824", false);
+// When true, use gRpc client to access backend.
+constexpr auto kUseGrpcClient =
+    flags::Flag<bool>(kConfigPackage, "45630055", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -166,6 +169,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45409586, kSuppressFastInitHun},
       {45627824, kUpgradeBandwidthAfterAccept},
+      {45630055, kUseGrpcClient},
   };
 }
 
