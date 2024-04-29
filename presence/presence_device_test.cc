@@ -88,9 +88,9 @@ TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
   PresenceDevice device1 =
       PresenceDevice({kDefaultMotionType}, device_identity_metadata,
                      internal::IDENTITY_TYPE_PUBLIC);
-  PresenceDevice device2 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence},
-                     device_identity_metadata, internal::IDENTITY_TYPE_PRIVATE);
+  PresenceDevice device2 = PresenceDevice(
+      {kDefaultMotionType, kTestConfidence}, device_identity_metadata,
+      internal::IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_NE(device1, device2);
 }
 

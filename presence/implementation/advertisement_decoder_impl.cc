@@ -63,9 +63,9 @@ bool IsDataElementAllowed(uint8_t header) {
       return length == 2;
     case DataElement::kPublicIdentityFieldType:
       return length == 0;
-    case DataElement::kPrivateIdentityFieldType:
+    case DataElement::kPrivateGroupIdentityFieldType:
     case DataElement::kProvisionedIdentityFieldType:
-    case DataElement::kTrustedIdentityFieldType:
+    case DataElement::kContactsGroupIdentityFieldType:
       return length >= 2 && length <= 6;
     case DataElement::kTxPowerFieldType:
       return length == 1;
@@ -87,8 +87,8 @@ bool IsDataElementAllowed(uint8_t header) {
 }
 
 bool IsEncryptedIdentity(int data_type) {
-  return data_type == DataElement::kPrivateIdentityFieldType ||
-         data_type == DataElement::kTrustedIdentityFieldType ||
+  return data_type == DataElement::kPrivateGroupIdentityFieldType ||
+         data_type == DataElement::kContactsGroupIdentityFieldType ||
          data_type == DataElement::kProvisionedIdentityFieldType;
 }
 
@@ -99,10 +99,10 @@ bool IsIdentity(int data_type) {
 
 internal::IdentityType GetIdentityType(int data_type) {
   switch (data_type) {
-    case DataElement::kPrivateIdentityFieldType:
-      return internal::IDENTITY_TYPE_PRIVATE;
-    case DataElement::kTrustedIdentityFieldType:
-      return internal::IDENTITY_TYPE_TRUSTED;
+    case DataElement::kPrivateGroupIdentityFieldType:
+      return internal::IDENTITY_TYPE_PRIVATE_GROUP;
+    case DataElement::kContactsGroupIdentityFieldType:
+      return internal::IDENTITY_TYPE_CONTACTS_GROUP;
     case DataElement::kProvisionedIdentityFieldType:
       return internal::IDENTITY_TYPE_PROVISIONED;
     case DataElement::kPublicIdentityFieldType:

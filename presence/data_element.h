@@ -45,8 +45,8 @@ class DataElement {
   // The field types listed below require special processing when generating and
   // parsing NP advertisements.
   static constexpr int kSaltFieldType = 0;
-  static constexpr int kPrivateIdentityFieldType = 1;
-  static constexpr int kTrustedIdentityFieldType = 2;
+  static constexpr int kPrivateGroupIdentityFieldType = 1;
+  static constexpr int kContactsGroupIdentityFieldType = 2;
   static constexpr int kPublicIdentityFieldType = 3;
   static constexpr int kProvisionedIdentityFieldType = 4;
   static constexpr int kTxPowerFieldType = 5;

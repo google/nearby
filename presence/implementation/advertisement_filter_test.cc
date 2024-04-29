@@ -37,20 +37,20 @@ namespace {
 
 TEST(AdvertisementFilter, MatchesScanFilterNoFilterPasses) {
   std::vector<DataElement> adv = {
-      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+      DataElement(DataElement::kPrivateGroupIdentityFieldType, "payload")};
   ScanRequest empty_scan_request = {};
   AdvertisementFilter adv_filter(empty_scan_request);
 
   // A scan request without scan filters matches any advertisement
   EXPECT_TRUE(adv_filter.MatchesScanFilter(
-      {.data_elements = {
-           DataElement(DataElement::kPrivateIdentityFieldType, "payload")}}));
+      {.data_elements = {DataElement(
+           DataElement::kPrivateGroupIdentityFieldType, "payload")}}));
   EXPECT_TRUE(adv_filter.MatchesScanFilter({}));
 }
 
 TEST(AdvertisementFilter, MatchesPresenceScanFilter) {
   std::vector<DataElement> adv = {
-      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+      DataElement(DataElement::kPrivateGroupIdentityFieldType, "payload")};
   DataElement model_id =
       DataElement(DataElement::kModelIdFieldType, "model id");
   DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
@@ -72,7 +72,7 @@ TEST(AdvertisementFilter, MatchesPresenceScanFilter) {
 
 TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilter) {
   std::vector<DataElement> adv = {
-      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+      DataElement(DataElement::kPrivateGroupIdentityFieldType, "payload")};
   DataElement model_id =
       DataElement(DataElement::kModelIdFieldType, "model id");
   DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
@@ -95,14 +95,14 @@ TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilter) {
 TEST(AdvertisementFilter,
      EncryptedIdentityFilterIgnoresPublicIdentityAdvertisement) {
   AdvertisementFilter adv_filter(
-      {.identity_types = {internal::IdentityType::IDENTITY_TYPE_PRIVATE,
-                          internal::IdentityType::IDENTITY_TYPE_TRUSTED,
+      {.identity_types = {internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
+                          internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
                           internal::IdentityType::IDENTITY_TYPE_PROVISIONED}});
 
   EXPECT_FALSE(adv_filter.MatchesScanFilter(
       {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));
   EXPECT_TRUE(adv_filter.MatchesScanFilter(
-      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE}));
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP}));
 }
 
 TEST(AdvertisementFilter, PublicIdentityFilterMatchesPublicIdentityAdv) {
@@ -112,7 +112,7 @@ TEST(AdvertisementFilter, PublicIdentityFilterMatchesPublicIdentityAdv) {
   EXPECT_TRUE(adv_filter.MatchesScanFilter(
       {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));
   EXPECT_FALSE(adv_filter.MatchesScanFilter(
-      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE}));
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP}));
 }
 
 TEST(AdvertisementFilter, EmptyIdentityFilterMatchesAllAdvIdentityTypes) {
@@ -121,12 +121,12 @@ TEST(AdvertisementFilter, EmptyIdentityFilterMatchesAllAdvIdentityTypes) {
   EXPECT_TRUE(adv_filter.MatchesScanFilter(
       {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));
   EXPECT_TRUE(adv_filter.MatchesScanFilter(
-      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE}));
+      {.identity_type = internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP}));
 }
 
 TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilterWithActions) {
   std::vector<DataElement> adv = {
-      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+      DataElement(DataElement::kPrivateGroupIdentityFieldType, "payload")};
   DataElement model_id =
       DataElement(DataElement::kModelIdFieldType, "model id");
   DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
@@ -147,7 +147,7 @@ TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilterWithActions) {
 
 TEST(AdvertisementFilter, MatchesMultipleFilters) {
   std::vector<DataElement> adv = {
-      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+      DataElement(DataElement::kPrivateGroupIdentityFieldType, "payload")};
   DataElement model_id =
       DataElement(DataElement::kModelIdFieldType, "model id");
   DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");

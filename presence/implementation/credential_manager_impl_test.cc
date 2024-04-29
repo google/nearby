@@ -48,8 +48,8 @@ using ::nearby::internal::LocalCredential;
 
 using ::nearby::internal::DeviceIdentityMetaData;
 using ::nearby::internal::SharedCredential;
-using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
-using ::nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED;
+using ::nearby::internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP;
+using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::UnorderedPointwise;
 using ::testing::status::StatusIs;
@@ -73,7 +73,7 @@ CredentialSelector BuildDefaultCredentialSelector() {
   CredentialSelector credential_selector;
   credential_selector.manager_app_id = std::string(kManagerAppId);
   credential_selector.account_name = std::string(kAccountName);
-  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
+  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE_GROUP;
   return credential_selector;
 }
 
@@ -182,11 +182,12 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   constexpr absl::Time kEndTime = absl::FromUnixSeconds(200000);
 
   auto credentials = credential_manager_.CreateLocalCredential(
-      device_identity_metadata, IDENTITY_TYPE_PRIVATE, kStartTime, kEndTime);
+      device_identity_metadata, IDENTITY_TYPE_PRIVATE_GROUP, kStartTime,
+      kEndTime);
 
   LocalCredential private_credential = credentials.first;
   // Verify the private credential.
-  EXPECT_EQ(private_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
+  EXPECT_EQ(private_credential.identity_type(), IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_FALSE(private_credential.secret_id().empty());
   EXPECT_EQ(private_credential.start_time_millis(),
             absl::ToUnixMillis(kStartTime));
@@ -199,7 +200,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
 
   SharedCredential public_credential = credentials.second;
   // Verify the public credential.
-  EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
+  EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_FALSE(public_credential.secret_id().empty());
   EXPECT_EQ(private_credential.key_seed(), public_credential.key_seed());
   EXPECT_LE(public_credential.start_time_millis(),
@@ -226,7 +227,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
 
 TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
   auto device_identity_metadata = CreateTestDeviceIdentityMetaData();
-  std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE_GROUP};
   absl::Time previous_start_time;
   absl::Time previous_end_time;
 
@@ -239,7 +240,7 @@ TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
 
   for (int i = 0; i < kExpectedPresenceCredentialListSize; i++) {
     SharedCredential& public_credential = public_credentials->at(i);
-    EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
+    EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE_GROUP);
     EXPECT_FALSE(public_credential.secret_id().empty());
     absl::Time start_time_millis =
         absl::FromUnixMillis(public_credential.start_time_millis());
@@ -263,12 +264,12 @@ TEST_F(CredentialManagerImplTest,
        SubscribeCallsCallbackWithExistingCredentials) {
   absl::StatusOr<std::vector<SharedCredential>> public_credentials1;
   absl::StatusOr<std::vector<SharedCredential>> public_credentials2;
-  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE);
+  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE_GROUP);
 
   SubscriberId id1 = credential_manager_.SubscribeForPublicCredentials(
       CredentialSelector{.manager_app_id = std::string(kManagerAppId),
                          .account_name = std::string(kAccountName),
-                         .identity_type = IDENTITY_TYPE_PRIVATE},
+                         .identity_type = IDENTITY_TYPE_PRIVATE_GROUP},
       PublicCredentialType::kLocalPublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
@@ -277,7 +278,7 @@ TEST_F(CredentialManagerImplTest,
   SubscriberId id2 = credential_manager_.SubscribeForPublicCredentials(
       CredentialSelector{.manager_app_id = std::string(kManagerAppId),
                          .account_name = std::string(kAccountName),
-                         .identity_type = IDENTITY_TYPE_PRIVATE},
+                         .identity_type = IDENTITY_TYPE_PRIVATE_GROUP},
       PublicCredentialType::kLocalPublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
@@ -302,7 +303,7 @@ TEST_F(CredentialManagerImplTest,
   SubscriberId id = credential_manager_.SubscribeForPublicCredentials(
       CredentialSelector{.manager_app_id = std::string(kManagerAppId),
                          .account_name = std::string(kAccountName),
-                         .identity_type = IDENTITY_TYPE_PRIVATE},
+                         .identity_type = IDENTITY_TYPE_PRIVATE_GROUP},
       PublicCredentialType::kLocalPublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
@@ -311,7 +312,7 @@ TEST_F(CredentialManagerImplTest,
   Fence();
   EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kUnknown));
 
-  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE);
+  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE_GROUP);
 
   Fence();
   ASSERT_OK(public_credentials);
@@ -326,7 +327,7 @@ TEST_F(CredentialManagerImplTest, NoCallbacksAfterUnsubscribe) {
   SubscriberId id = credential_manager_.SubscribeForPublicCredentials(
       CredentialSelector{.manager_app_id = std::string(kManagerAppId),
                          .account_name = std::string(kAccountName),
-                         .identity_type = IDENTITY_TYPE_PRIVATE},
+                         .identity_type = IDENTITY_TYPE_PRIVATE_GROUP},
       PublicCredentialType::kLocalPublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
@@ -334,7 +335,7 @@ TEST_F(CredentialManagerImplTest, NoCallbacksAfterUnsubscribe) {
            }});
 
   credential_manager_.UnsubscribeFromPublicCredentials(id);
-  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE);
+  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE_GROUP);
 
   Fence();
   EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kUnknown));
@@ -357,7 +358,7 @@ TEST_F(CredentialManagerImplTest,
           }));
   credential_manager_ =
       CredentialManagerImpl(&executor_, std::move(credential_storage_ptr));
-  std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE_GROUP};
 
   auto public_credentials = GenerateCredentialsSync(
       device_identity_metadata, kManagerAppId, identityTypes,
@@ -370,7 +371,7 @@ TEST_F(CredentialManagerImplTest,
 TEST_F(CredentialManagerImplTest, UpdateRemotePublicCredentialsSuccessfully) {
   SharedCredential public_credential_for_test;
   public_credential_for_test.set_identity_type(
-      IdentityType::IDENTITY_TYPE_TRUSTED);
+      IdentityType::IDENTITY_TYPE_CONTACTS_GROUP);
   std::vector<SharedCredential> public_credentials{
       {public_credential_for_test}};
 
@@ -396,7 +397,7 @@ TEST_F(CredentialManagerImplTest,
   absl::StatusOr<std::vector<SharedCredential>> subscribed_credentials;
   SharedCredential public_credential_for_test;
   public_credential_for_test.set_identity_type(
-      IdentityType::IDENTITY_TYPE_PRIVATE);
+      IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
   std::vector<SharedCredential> public_credentials{
       {public_credential_for_test}};
   nearby::CountDownLatch updated_latch(1);
@@ -409,18 +410,20 @@ TEST_F(CredentialManagerImplTest,
           },
   };
   SubscriberId id1 = credential_manager_.SubscribeForPublicCredentials(
-      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
-                         .account_name = std::string(kAccountName),
-                         .identity_type = internal::IDENTITY_TYPE_PRIVATE},
+      CredentialSelector{
+          .manager_app_id = std::string(kManagerAppId),
+          .account_name = std::string(kAccountName),
+          .identity_type = internal::IDENTITY_TYPE_PRIVATE_GROUP},
       PublicCredentialType::kRemotePublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              subscribed_credentials = std::move(credentials);
            }});
   SubscriberId id2 = credential_manager_.SubscribeForPublicCredentials(
-      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
-                         .account_name = std::string(kAccountName),
-                         .identity_type = internal::IDENTITY_TYPE_TRUSTED},
+      CredentialSelector{
+          .manager_app_id = std::string(kManagerAppId),
+          .account_name = std::string(kAccountName),
+          .identity_type = internal::IDENTITY_TYPE_CONTACTS_GROUP},
       PublicCredentialType::kRemotePublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
@@ -474,7 +477,7 @@ TEST_F(CredentialManagerImplTest, GetPublicCredentialsFailed) {
 
 TEST_F(CredentialManagerImplTest, GetCredentialsSuccessfully) {
   auto device_identity_metadata = CreateTestDeviceIdentityMetaData();
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP};
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
   auto public_credentials = GenerateCredentialsSync(
@@ -499,7 +502,7 @@ TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
           [](absl::string_view metadata_encryption_key,
              absl::string_view key_seed,
              absl::string_view metadata_string) { return ""; }));
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP};
 
   CountDownLatch latch(1);
   credential_manager_ptr->GenerateCredentials(
@@ -520,8 +523,8 @@ TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
   constexpr uint16_t kSalt = 1000;
   absl::Status update_status = absl::UnknownError("");
   auto device_identity_metadata = CreateTestDeviceIdentityMetaData();
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE,
-                                           IDENTITY_TYPE_TRUSTED};
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP,
+                                           IDENTITY_TYPE_CONTACTS_GROUP};
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
   auto public_credentials = GenerateCredentialsSync(
       device_identity_metadata, kManagerAppId, identity_types,
@@ -578,7 +581,7 @@ TEST_F(CredentialManagerImplTest, EncryptAndDecryptDeviceIdentityMetaData) {
 
 TEST_F(CredentialManagerImplTest, RefillCredentialsInGetLocalCredentials) {
   auto device_identity_metadata = CreateTestDeviceIdentityMetaData();
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP};
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
   auto public_credentials = GenerateCredentialsSync(
@@ -596,7 +599,7 @@ TEST_F(CredentialManagerImplTest, RefillCredentialsInGetLocalCredentials) {
 
 TEST_F(CredentialManagerImplTest, RefillCredentialsInGetSharedCredentials) {
   auto device_identity_metadata = CreateTestDeviceIdentityMetaData();
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP};
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
   auto public_credentials = GenerateCredentialsSync(
@@ -616,7 +619,7 @@ TEST_F(CredentialManagerImplTest, RefillCredentialsInGetSharedCredentials) {
 
 TEST_F(CredentialManagerImplTest, RefillExpiredCredsInGetLocal) {
   auto device_identity_metadata = CreateTestDeviceIdentityMetaData();
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP};
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
   auto public_credentials = GenerateCredentialsSync(

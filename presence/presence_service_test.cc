@@ -56,7 +56,7 @@ CredentialSelector BuildDefaultCredentialSelector() {
   CredentialSelector credential_selector;
   credential_selector.manager_app_id = std::string(kManagerAppId);
   credential_selector.account_name = std::string(kAccountName);
-  credential_selector.identity_type = internal::IDENTITY_TYPE_PRIVATE;
+  credential_selector.identity_type = internal::IDENTITY_TYPE_PRIVATE_GROUP;
   return credential_selector;
 }
 
@@ -126,7 +126,7 @@ TEST_F(PresenceServiceTest, TestUpdateRemotePublicCredentials) {
   PresenceServiceImpl presence_service;
   internal::SharedCredential public_credential_for_test;
   public_credential_for_test.set_identity_type(
-      internal::IdentityType::IDENTITY_TYPE_TRUSTED);
+      internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP);
   std::vector<internal::SharedCredential> public_credentials{
       {public_credential_for_test}};
 

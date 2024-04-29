@@ -58,7 +58,7 @@ class BleTest : public testing::TestWithParam<FeatureFlags> {
   std::string account_name_ = "Test-Name";
   constexpr static PowerMode kPowerMode = PowerMode::kBalanced;
   std::vector<nearby::internal::IdentityType> identity_types_ = {
-      nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED,
+      nearby::internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
   };
   std::vector<DataElement> extended_properties_ = {
       DataElement{DataElement::kTxPowerFieldType, "-10"}};
