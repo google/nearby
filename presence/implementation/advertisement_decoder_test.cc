@@ -47,10 +47,11 @@ constexpr absl::string_view kAccountName = "test account";
 
 ScanRequest GetScanRequest() {
   return {.account_name = std::string(kAccountName),
-          .identity_types = {IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
-                             IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
-                             IdentityType::IDENTITY_TYPE_PUBLIC,
-                             IdentityType::IDENTITY_TYPE_PROVISIONED}};
+          .identity_types = {
+              IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
+              IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
+              IdentityType::IDENTITY_TYPE_PUBLIC,
+          }};
 }
 
 ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
@@ -61,7 +62,6 @@ ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
       .AddIdentityType(IdentityType::IDENTITY_TYPE_PRIVATE_GROUP)
       .AddIdentityType(IdentityType::IDENTITY_TYPE_CONTACTS_GROUP)
       .AddIdentityType(IdentityType::IDENTITY_TYPE_PUBLIC)
-      .AddIdentityType(IdentityType::IDENTITY_TYPE_PROVISIONED)
       .Build();
 }
 
@@ -127,58 +127,6 @@ TEST(AdvertisementDecoderImpl,
                                       absl::HexStringToBytes("05")),
                           DataElement(DataElement::kActionFieldType,
                                       absl::HexStringToBytes("08"))));
-}
-
-TEST(AdvertisementDecoderImpl, DecodeBaseNpTrustedAdvertisement) {
-  std::string salt = "AB";
-  ByteArray metadata_key(
-      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
-  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
-      credentials;
-  credentials[IdentityType::IDENTITY_TYPE_CONTACTS_GROUP].push_back(
-      GetPublicCredential());
-  AdvertisementDecoderImpl decoder(&credentials);
-
-  absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("0052414257a35c020f1c547d7e169303196d75da7118ba"));
-  ASSERT_OK(result);
-  EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_CONTACTS_GROUP);
-  EXPECT_THAT(
-      result->data_elements,
-      UnorderedElementsAre(DataElement(DataElement::kSaltFieldType, salt),
-                           DataElement(DataElement::kTxPowerFieldType,
-                                       absl::HexStringToBytes("05")),
-                           DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("0c")),
-                           DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("08"))));
-}
-
-TEST(AdvertisementDecoderImpl, DecodeBaseNpProvisionedAdvertisement) {
-  std::string salt = "AB";
-  ByteArray metadata_key(
-      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
-  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
-      credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PROVISIONED].push_back(
-      GetPublicCredential());
-  AdvertisementDecoderImpl decoder(&credentials);
-
-  absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("0054414257a35c020f1c547d7e169303196d75da7118ba"));
-  ASSERT_OK(result);
-  EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PROVISIONED);
-  EXPECT_THAT(
-      result->data_elements,
-      UnorderedElementsAre(DataElement(DataElement::kSaltFieldType, salt),
-                           DataElement(DataElement::kTxPowerFieldType,
-                                       absl::HexStringToBytes("05")),
-                           DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("0c")),
-                           DataElement(DataElement::kActionFieldType,
-                                       absl::HexStringToBytes("08"))));
 }
 
 TEST(AdvertisementDecoderImpl, InvalidEncryptedContent) {
@@ -250,20 +198,6 @@ TEST(AdvertisementDecoderImpl,
                   DataElement(DataElement::kTxPowerFieldType,
                               absl::HexStringToBytes("ff")),
                   DataElement(DataElement(ActionBit::kActiveUnlockAction))));
-}
-
-TEST(AdvertisementDecoderImpl, DecodeEddystone) {
-  AdvertisementDecoderImpl decoder;
-  std::string eddystone_id =
-      absl::HexStringToBytes("A0A1A2A3A4A5A6A7A8A9B0B1B2B3B4B5B6B7B8B9");
-
-  auto result = decoder.DecodeAdvertisement(absl::HexStringToBytes("0008") +
-                                            eddystone_id);
-
-  EXPECT_OK(result);
-  EXPECT_THAT(result->data_elements,
-              ElementsAre(DataElement(DataElement::kEddystoneIdFieldType,
-                                      eddystone_id)));
 }
 
 TEST(AdvertisementDecoderImpl, UnsupportedDataElement) {

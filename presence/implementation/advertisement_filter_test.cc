@@ -95,9 +95,9 @@ TEST(AdvertisementFilter, MatchesLegacyPresenceScanFilter) {
 TEST(AdvertisementFilter,
      EncryptedIdentityFilterIgnoresPublicIdentityAdvertisement) {
   AdvertisementFilter adv_filter(
-      {.identity_types = {internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
-                          internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
-                          internal::IdentityType::IDENTITY_TYPE_PROVISIONED}});
+      {.identity_types = {
+           internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
+           internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP}});
 
   EXPECT_FALSE(adv_filter.MatchesScanFilter(
       {.identity_type = internal::IdentityType::IDENTITY_TYPE_PUBLIC}));

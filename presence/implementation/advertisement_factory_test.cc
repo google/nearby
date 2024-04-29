@@ -105,31 +105,6 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
             "0052414257a35c020f1c547d7e169303196d75da7118ba");
 }
 
-TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
-  std::string account_name = "Test account";
-  std::string salt = "AB";
-  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PROVISIONED;
-  std::vector<DataElement> data_elements;
-  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
-  data_elements.emplace_back(ActionBit::kPresenceManagerAction);
-  Action action = ActionFactory::CreateAction(data_elements);
-  BaseBroadcastRequest request =
-      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
-                               .SetAccountName(account_name)
-                               .SetSalt(salt)
-                               .SetTxPower(5)
-                               .SetAction(action));
-
-  absl::StatusOr<AdvertisementData> result =
-      AdvertisementFactory().CreateAdvertisement(
-          request, CreateLocalCredential(kIdentity));
-
-  ASSERT_OK(result);
-  EXPECT_FALSE(result->is_extended_advertisement);
-  EXPECT_EQ(absl::BytesToHexString(result->content),
-            "0054414257a35c020f1c547d7e169303196d75da7118ba");
-}
-
 TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PUBLIC;

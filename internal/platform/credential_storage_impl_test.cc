@@ -14,10 +14,7 @@
 
 #include "internal/platform/credential_storage_impl.h"
 
-#include <memory>
-#include <optional>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -25,6 +22,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
@@ -70,9 +68,7 @@ std::vector<LocalCredential> BuildPrivateCreds(absl::string_view secret_id) {
       CreateLocalCredential(secret_id,
                             IdentityType::IDENTITY_TYPE_PRIVATE_GROUP),
       CreateLocalCredential(secret_id,
-                            IdentityType::IDENTITY_TYPE_CONTACTS_GROUP),
-      CreateLocalCredential(secret_id,
-                            IdentityType::IDENTITY_TYPE_PROVISIONED)};
+                            IdentityType::IDENTITY_TYPE_CONTACTS_GROUP)};
   return private_credentials;
 }
 
@@ -81,9 +77,7 @@ std::vector<SharedCredential> BuildPublicCreds(absl::string_view secret_id) {
       CreatePublicCredential(secret_id,
                              IdentityType::IDENTITY_TYPE_PRIVATE_GROUP),
       CreatePublicCredential(secret_id,
-                             IdentityType::IDENTITY_TYPE_CONTACTS_GROUP),
-      CreatePublicCredential(secret_id,
-                             IdentityType::IDENTITY_TYPE_PROVISIONED)};
+                             IdentityType::IDENTITY_TYPE_CONTACTS_GROUP)};
   return public_credentials;
 }
 
@@ -510,8 +504,7 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsFailsWhenNoCredentialsMatch) {
 INSTANTIATE_TEST_SUITE_P(
     CredentialStorageImplTest, IdentityFilterTest,
     testing::Values(IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
-                    IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
-                    IdentityType::IDENTITY_TYPE_PROVISIONED));
+                    IdentityType::IDENTITY_TYPE_CONTACTS_GROUP));
 
 }  // namespace
 }  // namespace nearby

@@ -145,8 +145,7 @@ std::vector<CredentialSelector> GetCredentialSelectors(
   std::vector<nearby::internal::IdentityType> all_types = {
       nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
       nearby::internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP,
-      nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC,
-      nearby::internal::IdentityType::IDENTITY_TYPE_PROVISIONED};
+      nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC};
   std::vector<CredentialSelector> selectors;
   for (auto identity_type :
        (scan_request.identity_types.empty() ? all_types

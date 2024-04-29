@@ -48,7 +48,6 @@ class DataElement {
   static constexpr int kPrivateGroupIdentityFieldType = 1;
   static constexpr int kContactsGroupIdentityFieldType = 2;
   static constexpr int kPublicIdentityFieldType = 3;
-  static constexpr int kProvisionedIdentityFieldType = 4;
   static constexpr int kTxPowerFieldType = 5;
   static constexpr int kActionFieldType = 6;
   static constexpr int kModelIdFieldType = 7;

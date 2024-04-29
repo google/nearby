@@ -28,7 +28,6 @@ namespace {
 using ::nearby::internal::LocalCredential;
 using ::nearby::internal::SharedCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
-using ::nearby::internal::IdentityType::IDENTITY_TYPE_PROVISIONED;
 
 using ::protobuf_matchers::EqualsProto;
 
@@ -59,7 +58,7 @@ TEST(CredentialsTest, InitLocalCredential) {
 
 TEST(CredentialsTest, CopyLocalCredential) {
   LocalCredential pc1 = {};
-  pc1.set_identity_type(IDENTITY_TYPE_PROVISIONED);
+  pc1.set_identity_type(IDENTITY_TYPE_PRIVATE_GROUP);
   auto salts = pc1.mutable_consumed_salts();
   salts->insert(std::pair<int32, bool>(15, true));
   LocalCredential pc1_copy = {pc1};
@@ -68,7 +67,7 @@ TEST(CredentialsTest, CopyLocalCredential) {
 
 TEST(CredentialsTest, CopySharedCredential) {
   SharedCredential pc1 = {};
-  pc1.set_identity_type(IDENTITY_TYPE_PROVISIONED);
+  pc1.set_identity_type(IDENTITY_TYPE_PRIVATE_GROUP);
   for (const uint8_t byte : nearby::Uuid().data()) {
     pc1.mutable_secret_id()->push_back(byte);
   }
