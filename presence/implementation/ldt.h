@@ -18,9 +18,14 @@
 #include <string>
 #include <utility>
 
+#ifdef NEARBY_CHROMIUM
+#include "third_party/beto-core/src/nearby/presence/ldt_np_adv_ffi/c/include/np_ldt.h"
+#else
+#include "np_ldt.h"
+#endif
+
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "np_ldt.h"
 
 namespace nearby {
 namespace presence {
