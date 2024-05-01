@@ -81,67 +81,22 @@ SharedCredential GetPublicCredential() {
   return public_credential;
 }
 
-TEST(AdvertisementDecoderImpl, DecodeBaseNpPrivateAdvertisement) {
-  std::string salt = "AB";
-  ByteArray metadata_key(
-      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
-  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
-      credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
-      GetPublicCredential());
-  AdvertisementDecoderImpl decoder(&credentials);
-
-  absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
-  ASSERT_OK(result);
-  EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
-  EXPECT_THAT(result->data_elements,
-              ElementsAre(DataElement(DataElement::kSaltFieldType, salt),
-                          DataElement(DataElement::kTxPowerFieldType,
-                                      absl::HexStringToBytes("05")),
-                          DataElement(DataElement::kActionFieldType,
-                                      absl::HexStringToBytes("08"))));
-}
-
 TEST(AdvertisementDecoderImpl,
-     DecodeBaseNpPrivateAdvertisementWithPublicCredentialFromScanRequest) {
-  const std::string salt = "AB";
-  ByteArray metadata_key(
-      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
+     DecodeBaseNpV0PublicIdentityWithTxAndActionFields) {
+  AdvertisementDecoderImpl decoder;
+  // v0 public identity, power and action, action value 8 for active unlock.
+  // These values all come from
+  // //third_party/nearby/presence/implementation/advertisement_factory_test.cc
+  auto result =
+      decoder.DecodeAdvertisement(absl::HexStringToBytes("000315FF260080"));
 
-  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
-      credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
-      GetPublicCredential());
-  AdvertisementDecoderImpl decoder(&credentials);
-
-  absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
-      absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
   ASSERT_OK(result);
-  EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
-  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_THAT(result->data_elements,
-              ElementsAre(DataElement(DataElement::kSaltFieldType, salt),
-                          DataElement(DataElement::kTxPowerFieldType,
-                                      absl::HexStringToBytes("05")),
-                          DataElement(DataElement::kActionFieldType,
-                                      absl::HexStringToBytes("08"))));
-}
-
-TEST(AdvertisementDecoderImpl, InvalidEncryptedContent) {
-  std::string salt = "AB";
-  ByteArray metadata_key(
-      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
-  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
-      credentials;
-  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
-      GetPublicCredential());
-  AdvertisementDecoderImpl decoder(&credentials);
-
-  EXPECT_THAT(decoder.DecodeAdvertisement(absl::HexStringToBytes(
-                  "00414142f085d661ac8cb110e792e7faeb736294")),
-              StatusIs(absl::StatusCode::kOutOfRange));
+              UnorderedElementsAre(
+                  DataElement(DataElement::kPublicIdentityFieldType, ""),
+                  DataElement(DataElement::kTxPowerFieldType,
+                              absl::HexStringToBytes("ff")),
+                  DataElement(DataElement(ActionBit::kActiveUnlockAction))));
 }
 
 TEST(AdvertisementDecoderImpl, DecodeBaseNpPublicAdvertisement) {
@@ -184,20 +139,42 @@ TEST(AdvertisementDecoderImpl, DecodeBaseNpWithTxAndActionFields) {
                   DataElement(DataElement(ActionBit::kNearbyShareAction))));
 }
 
-TEST(AdvertisementDecoderImpl,
-     DecodeBaseNpV0PublicIdentityWithTxAndActionFields) {
-  AdvertisementDecoderImpl decoder;
+TEST(AdvertisementDecoderImpl, DecodeBaseNpPrivateAdvertisement) {
+  std::string salt = "AB";
+  ByteArray metadata_key(
+      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
+  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
+      credentials;
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
+      GetPublicCredential());
+  AdvertisementDecoderImpl decoder(&credentials);
 
-  auto result = decoder.DecodeAdvertisement(
-      // v0 public identity, power and action, action value 8 for active unlock.
-      absl::HexStringToBytes("000315FF260080"));
-  EXPECT_OK(result);
+  absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
+      absl::HexStringToBytes("00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c"));
+  ASSERT_OK(result);
+  EXPECT_EQ(result->metadata_key, metadata_key.AsStringView());
+  EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_THAT(result->data_elements,
-              UnorderedElementsAre(
-                  DataElement(DataElement::kPublicIdentityFieldType, ""),
-                  DataElement(DataElement::kTxPowerFieldType,
-                              absl::HexStringToBytes("ff")),
-                  DataElement(DataElement(ActionBit::kActiveUnlockAction))));
+              ElementsAre(DataElement(DataElement::kSaltFieldType, salt),
+                          DataElement(DataElement::kTxPowerFieldType,
+                                      absl::HexStringToBytes("05")),
+                          DataElement(DataElement::kActionFieldType,
+                                      absl::HexStringToBytes("08"))));
+}
+
+TEST(AdvertisementDecoderImpl, InvalidEncryptedContent) {
+  std::string salt = "AB";
+  ByteArray metadata_key(
+      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
+  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
+      credentials;
+  credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
+      GetPublicCredential());
+  AdvertisementDecoderImpl decoder(&credentials);
+
+  EXPECT_THAT(decoder.DecodeAdvertisement(absl::HexStringToBytes(
+                  "00414142f085d661ac8cb110e792e7faeb736294")),
+              StatusIs(absl::StatusCode::kOutOfRange));
 }
 
 TEST(AdvertisementDecoderImpl, UnsupportedDataElement) {

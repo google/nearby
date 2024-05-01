@@ -59,7 +59,7 @@ TEST(AdvertisementDecoderImpl, DecodePublicAdvertisementMultiDe) {
   std::string V0AdvPlaintextMultiDeBytes =
       "00"       // Adv Header V0 unencrypted
       "1505"     // length 1 Tx Power DE value 5
-      "264040";  // length 2 actions de
+      "260040";  // length 2 actions de with NearbyShare bit set
 
   AdvertisementDecoderImpl decoder = AdvertisementDecoderImpl();
   absl::StatusOr<Advertisement> result = decoder.DecodeAdvertisement(
@@ -70,8 +70,7 @@ TEST(AdvertisementDecoderImpl, DecodePublicAdvertisementMultiDe) {
   EXPECT_THAT(result->data_elements,
               ElementsAre(DataElement(DataElement::kTxPowerFieldType,
                                       absl::HexStringToBytes("05")),
-                          DataElement(DataElement::kActionFieldType,
-                                      absl::HexStringToBytes("00"))));
+                          DataElement(ActionBit::kNearbyShareAction)));
 }
 
 // V0 encrypted advertisement data - ripped out of np_adv/tests/examples_v0.rs
