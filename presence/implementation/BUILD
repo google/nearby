@@ -15,7 +15,7 @@
 licenses(["notice"])
 
 cc_library(
-    name = "internal_with_rust",
+    name = "internal",
     srcs = [
         "action_factory.cc",
         "advertisement_decoder_rust_impl.cc",
@@ -46,13 +46,11 @@ cc_library(
         "service_controller.h",
         "service_controller_impl.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     defines = ["USE_RUST_DECODER=1"],
     visibility = [
         "//presence:__subpackages__",
     ],
     deps = [
-        "//devtools/rust:rust_okay_here",
         "//internal/crypto",
         "//internal/crypto_cros",
         "//internal/platform:base",
@@ -89,7 +87,7 @@ cc_library(
 )
 
 cc_library(
-    name = "internal",
+    name = "internal_deprecated",
     srcs = [
         "action_factory.cc",
         "advertisement_decoder_impl.cc",
@@ -124,6 +122,7 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        "//devtools/rust:rust_okay_here",
         "//internal/crypto",
         "//internal/crypto_cros",
         "//internal/platform:base",
@@ -201,7 +200,7 @@ cc_test(
     size = "small",
     srcs = ["advertisement_decoder_test.cc"],
     deps = [
-        ":internal",
+        ":internal_deprecated",
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
         "//presence:types",
@@ -226,7 +225,7 @@ cc_test(
     size = "small",
     srcs = ["advertisement_decoder_new_format_test.cc"],
     deps = [
-        ":internal_with_rust",
+        ":internal",
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
         "//presence:types",
@@ -445,6 +444,7 @@ cc_test(
         "//presence:types",
         "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",

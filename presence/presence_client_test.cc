@@ -12,12 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "presence/presence_client.h"
+
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
 #include "presence/presence_device.h"
