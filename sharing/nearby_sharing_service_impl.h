@@ -340,9 +340,9 @@ class NearbySharingServiceImpl
   void WriteProgressUpdateFrame(NearbyConnection& connection,
                                 std::optional<bool> start_transfer,
                                 std::optional<float> progress);
-  void Fail(const ShareTarget& share_target, TransferMetadata::Status status);
+  void Fail(int64_t share_target_id, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
-      absl::string_view endpoint_id, ShareTarget placeholder_share_target,
+      absl::string_view endpoint_id, int64_t placeholder_share_target_id,
       std::unique_ptr<Advertisement> advertisement);
   void OnIncomingTransferUpdate(const ShareTarget& share_target,
                                 const TransferMetadata& metadata);
@@ -351,7 +351,7 @@ class NearbySharingServiceImpl
   void CloseConnection(int64_t share_target_id);
   void OnIncomingDecryptedCertificate(
       absl::string_view endpoint_id, const Advertisement& advertisement,
-      ShareTarget placeholder_share_target,
+      int64_t placeholder_share_target_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void RunPairedKeyVerification(
       int64_t share_target_id, absl::string_view endpoint_id,
@@ -391,8 +391,8 @@ class NearbySharingServiceImpl
   void OnConnectionDisconnected(int64_t share_target_id,
                                 TransferMetadata::Status status);
 
-  void OnIncomingMutualAcceptanceTimeout(const ShareTarget& share_target);
-  void OnOutgoingMutualAcceptanceTimeout(const ShareTarget& share_target);
+  void OnIncomingMutualAcceptanceTimeout(int64_t share_target_id);
+  void OnOutgoingMutualAcceptanceTimeout(int64_t share_target_id);
 
   void Cleanup();
 
@@ -441,7 +441,7 @@ class NearbySharingServiceImpl
       bool is_initiator_of_cancellation);
 
   void AbortAndCloseConnectionIfNecessary(TransferMetadata::Status status,
-                                          const ShareTarget& share_target);
+                                          int64_t share_target_id);
 
   // Monitor connectivity changes.
   void OnNetworkChanged(nearby::ConnectivityManager::ConnectionType type);
