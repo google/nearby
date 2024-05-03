@@ -413,6 +413,9 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
             Payload(payload_id, InputFile(payload_id, total_size)),
             OutputFile(payload_id), total_size);
       } else {
+        NEARBY_LOGS(ERROR)
+            << "CreateIncomingInternalPayload: create input/output file "
+            << file_path;
         return std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, parent_folder, file_name,
                     InputFile(file_path, total_size)),
