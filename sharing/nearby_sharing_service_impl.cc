@@ -2619,24 +2619,15 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
           .set_token(info->token())
           .build());
 
-  std::optional<std::string> endpoint_id = info->endpoint_id();
-  if (endpoint_id.has_value()) {
-    if (share_target.GetTotalAttachmentsSize() >=
-        kAttachmentsSizeThresholdOverHighQualityMedium) {
-      // Upgrade bandwidth regardless of advertising visibility because either
-      // the system or the user has verified the sender's identity; the
-      // stable identifiers potentially exposed by performing a bandwidth
-      // upgrade are no longer a concern.
-      NL_LOG(INFO) << __func__ << ": Upgrade bandwidth when receiving accept.";
-      nearby_connections_manager_->UpgradeBandwidth(*endpoint_id);
-    }
-  } else {
-    NL_LOG(WARNING) << __func__
-                    << ": Failed to initiate bandwidth upgrade. No endpoint_id "
-                       "found for target - "
-                    << share_target.id;
-    std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
-    return;
+  std::string endpoint_id = info->endpoint_id();
+  if (share_target.GetTotalAttachmentsSize() >=
+      kAttachmentsSizeThresholdOverHighQualityMedium) {
+    // Upgrade bandwidth regardless of advertising visibility because either
+    // the system or the user has verified the sender's identity; the
+    // stable identifiers potentially exposed by performing a bandwidth
+    // upgrade are no longer a concern.
+    NL_LOG(INFO) << __func__ << ": Upgrade bandwidth when receiving accept.";
+    nearby_connections_manager_->UpgradeBandwidth(endpoint_id);
   }
 
   std::move(status_codes_callback)(StatusCodes::kOk);
@@ -4284,22 +4275,14 @@ void NearbySharingServiceImpl::Disconnect(int64_t share_target_id,
     return;
   }
 
-  std::optional<std::string> endpoint_id = share_target_info->endpoint_id();
-  if (!endpoint_id.has_value()) {
-    NL_LOG(WARNING)
-        << __func__
-        << ": Failed to disconnect. No endpoint id found for share target - "
-        << share_target_id;
-    return;
-  }
-
+  std::string endpoint_id = share_target_info->endpoint_id();
   // Failed to send or receive. No point in continuing, so disconnect
   // immediately.
   if (metadata.status() != TransferMetadata::Status::kComplete) {
     if (share_target_info->connection()) {
       share_target_info->connection()->Close();
     } else {
-      nearby_connections_manager_->Disconnect(*endpoint_id);
+      nearby_connections_manager_->Disconnect(endpoint_id);
     }
     return;
   }
@@ -4309,35 +4292,24 @@ void NearbySharingServiceImpl::Disconnect(int64_t share_target_id,
     if (share_target_info->connection()) {
       share_target_info->connection()->Close();
     } else {
-      nearby_connections_manager_->Disconnect(*endpoint_id);
+      nearby_connections_manager_->Disconnect(endpoint_id);
     }
     return;
   }
 
   // Disconnect after a timeout to make sure any pending payloads are sent.
-  //
-  // We assign endpoint_id = *endpoint_id here since endpoint_id is
-  // std::optional<std::string> so the lambda will capture the string by value.
-  // For absl::string_view, please make it sure you wrap the string_view object
-  // with std::string() so that it captures the string by value correctly.
   auto timer = context_->CreateTimer();
   timer->Start(absl::ToInt64Milliseconds(kOutgoingDisconnectionDelay), 0,
-               [this, endpoint_id = *endpoint_id]() {
+               [this, endpoint_id]() {
                  OnDisconnectingConnectionTimeout(endpoint_id);
                });
 
-  disconnection_timeout_alarms_[*endpoint_id] = std::move(timer);
+  disconnection_timeout_alarms_[endpoint_id] = std::move(timer);
 
   // Stop the disconnection timeout if the connection has been closed already.
-  //
-  // We assign endpoint_id = *endpoint_id here since endpoint_id is
-  // std::optional<std::string> so the lambda will capture the string by value.
-  // For absl::string_view, please make it sure you wrap the string_view object
-  // with std::string() so that it captures the string by value correctly.
   if (share_target_info->connection()) {
     share_target_info->connection()->SetDisconnectionListener(
-        [this, share_target_id, share_target_info,
-         endpoint_id = std::move(*endpoint_id)]() {
+        [this, share_target_id, share_target_info, endpoint_id]() {
           share_target_info->set_connection(nullptr);
           RunOnNearbySharingServiceThread(
               "disconnection_listener", [this, share_target_id, endpoint_id]() {
