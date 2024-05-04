@@ -126,10 +126,9 @@ void CredentialStorageImpl::UpdateLocalCredential(
     NEARBY_LOGS(WARNING) << credentials.status();
     credentials = std::vector<LocalCredential>();
   }
-  auto it = std::find_if(credentials->begin(), credentials->end(),
-                         [&](const LocalCredential& a) {
-                           return a.secret_id() == credential.secret_id();
-                         });
+  auto it = std::find_if(
+      credentials->begin(), credentials->end(),
+      [&](const LocalCredential& a) { return a.id() == credential.id(); });
   if (it == credentials->end()) {
     credentials->push_back(std::move(credential));
   } else {

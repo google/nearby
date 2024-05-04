@@ -188,7 +188,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   LocalCredential private_credential = credentials.first;
   // Verify the private credential.
   EXPECT_EQ(private_credential.identity_type(), IDENTITY_TYPE_PRIVATE_GROUP);
-  EXPECT_FALSE(private_credential.secret_id().empty());
+  EXPECT_NE(private_credential.id(), 0);
   EXPECT_EQ(private_credential.start_time_millis(),
             absl::ToUnixMillis(kStartTime));
   EXPECT_EQ(private_credential.end_time_millis(), absl::ToUnixMillis(kEndTime));
@@ -201,7 +201,8 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   SharedCredential public_credential = credentials.second;
   // Verify the public credential.
   EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE_GROUP);
-  EXPECT_FALSE(public_credential.secret_id().empty());
+  EXPECT_NE(public_credential.id(), 0);
+  EXPECT_EQ(private_credential.id(), public_credential.id());
   EXPECT_EQ(private_credential.key_seed(), public_credential.key_seed());
   EXPECT_LE(public_credential.start_time_millis(),
             absl::ToUnixMillis(kStartTime));
@@ -241,7 +242,7 @@ TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
   for (int i = 0; i < kExpectedPresenceCredentialListSize; i++) {
     SharedCredential& public_credential = public_credentials->at(i);
     EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE_GROUP);
-    EXPECT_FALSE(public_credential.secret_id().empty());
+    EXPECT_NE(public_credential.id(), 0);
     absl::Time start_time_millis =
         absl::FromUnixMillis(public_credential.start_time_millis());
     absl::Time end_time_millis =

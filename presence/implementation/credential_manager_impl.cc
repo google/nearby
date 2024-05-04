@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -27,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/variant.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #ifdef NEARBY_CHROMIUM
 #include "crypto/aead.h"
@@ -74,6 +76,8 @@ constexpr absl::string_view kEmptyAccountName = "";
 constexpr int kExpectedValidLocalCredtialSize = 6;
 // The expiration time in days for a credential.
 constexpr int kCredentialLifeCycleDays = 5;
+// The minimum size of bytes to generate credential id.
+constexpr int kExpectedByteSizeOfCredentialId = 8;
 
 // Returns a random duration in [0, max_duration] range.
 absl::Duration RandomDuration(absl::Duration max_duration) {
@@ -89,6 +93,29 @@ std::string CustomizeBytesSize(absl::string_view bytes, size_t len) {
 }
 
 }  // namespace
+
+// Returns a positive long value extracted from a byte array.
+int64_t GenerateIdFromByteArray(const ByteArray& input) {
+  size_t inputLength = input.size();
+
+  ByteArray processed_bytes(kExpectedByteSizeOfCredentialId);
+  // Only use first 8 bytes if the input is longer than 8 bytes.
+  if (inputLength > kExpectedByteSizeOfCredentialId) {
+    processed_bytes.CopyAt(0, input);
+  } else {
+    // Extend the input with zeros if it's shorter than 8 bytes
+    processed_bytes.CopyAt(kExpectedByteSizeOfCredentialId - inputLength,
+                           input);
+  }
+
+  int64_t id = 0;
+  for (int i = 0; i < kExpectedByteSizeOfCredentialId; ++i) {
+    id |= (static_cast<int64_t>(processed_bytes.data()[i]) << (8 * i));
+  }
+  if (id == std::numeric_limits<int64_t>::min())
+    return std::numeric_limits<int64_t>::max();
+  return id;
+}
 
 void CredentialManagerImpl::GenerateCredentials(
     const DeviceIdentityMetaData& device_identity_metadata,
@@ -198,7 +225,7 @@ CredentialManagerImpl::CreateLocalCredential(
   // empty ByteArray.
   CHECK(!secret_id.Empty()) << "Crypto::Sha256 failed!";
 
-  private_credential.set_secret_id(std::string(secret_id.AsStringView()));
+  private_credential.set_id(GenerateIdFromByteArray(secret_id));
 
   std::string alias = Base64Utils::Encode(secret_id);
   auto prefixedAlias = kPairedKeyAliasPrefix + alias;
@@ -241,7 +268,7 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
       RandomDuration(absl::Hours(3));
   SharedCredential public_credential;
   public_credential.set_identity_type(private_credential.identity_type());
-  public_credential.set_secret_id(private_credential.secret_id());
+  public_credential.set_id(private_credential.id());
   public_credential.set_key_seed(private_credential.key_seed());
   public_credential.set_start_time_millis(absl::ToUnixMillis(start_time));
   public_credential.set_end_time_millis(absl::ToUnixMillis(end_time));
