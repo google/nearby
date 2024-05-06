@@ -30,6 +30,7 @@ namespace presence {
 // The values are bit numbers in BE ordering.
 // TODO(b/338107166): these are out of date, need to be updated to latest spec
 enum class ActionBit {
+  kCallTransferAction = 4,
   kActiveUnlockAction = 8,
   kNearbyShareAction = 9,
   kInstantTetheringAction = 10,
@@ -44,10 +45,11 @@ enum class ActionBit {
 // helpful for enumerating overall all possible action bit types, this must be
 // kept in sync with the above enum
 constexpr std::initializer_list<ActionBit> kAllActionBits = {
-    ActionBit::kActiveUnlockAction,     ActionBit::kNearbyShareAction,
-    ActionBit::kInstantTetheringAction, ActionBit::kPhoneHubAction,
-    ActionBit::kPresenceManagerAction,  ActionBit::kFinderAction,
-    ActionBit::kFastPairSassAction,     ActionBit::kTapToTransferAction};
+    ActionBit::kCallTransferAction, ActionBit::kActiveUnlockAction,
+    ActionBit::kNearbyShareAction,  ActionBit::kInstantTetheringAction,
+    ActionBit::kPhoneHubAction,     ActionBit::kPresenceManagerAction,
+    ActionBit::kFinderAction,       ActionBit::kFastPairSassAction,
+    ActionBit::kTapToTransferAction};
 
 /** Describes a custom Data element in NP advertisement. */
 class DataElement {
