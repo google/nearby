@@ -87,6 +87,7 @@
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_update_callback.h"
+#include "sharing/wifi_credentials_attachment.h"
 #include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
@@ -342,6 +343,15 @@ std::vector<std::unique_ptr<Attachment>> CreateFileAttachments(
     attachments.push_back(
         std::make_unique<FileAttachment>(std::move(file_path)));
   }
+  return attachments;
+}
+
+std::vector<std::unique_ptr<Attachment>> CreateWifiCredentialAttachments(
+    std::string ssid, std::string password) {
+  std::vector<std::unique_ptr<Attachment>> attachments;
+  attachments.push_back(std::make_unique<WifiCredentialsAttachment>(
+      std::move(ssid), service::proto::WifiCredentialsMetadata::WPA_PSK,
+      std::move(password)));
   return attachments;
 }
 
@@ -3641,6 +3651,76 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
         ASSERT_TRUE(payload->content.is_file());
         std::filesystem::path file = payload->content.file_payload.file.path;
         ASSERT_TRUE(std::filesystem::exists(file));
+
+        payload_notification.Notify();
+      });
+
+  // We're now waiting for the remote device to respond with the accept
+  // result.
+  absl::Notification accept_notification;
+  ExpectTransferUpdates(transfer_callback, target,
+                        {TransferMetadata::Status::kInProgress},
+                        [&]() { accept_notification.Notify(); });
+
+  // Kick off send process by accepting the transfer from the remote device.
+  SendConnectionResponse(ConnectionResponseFrame::ACCEPT);
+
+  EXPECT_TRUE(accept_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  EXPECT_TRUE(
+      payload_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+
+  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+}
+
+TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::
+          kEnableTransferCancellationOptimization,
+      true);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  ShareTarget target =
+      SetUpOutgoingShareTarget(transfer_callback, discovery_callback);
+
+  absl::Notification introduction_notification;
+  ExpectTransferUpdates(transfer_callback, target,
+                        {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kAwaitingLocalConfirmation,
+                         TransferMetadata::Status::kAwaitingRemoteAcceptance},
+                        [&]() { introduction_notification.Notify(); });
+
+  EXPECT_EQ(SendAttachments(target, CreateWifiCredentialAttachments(
+                                        "GoogleGuest", "password")),
+            NearbySharingServiceImpl::StatusCodes::kOk);
+  EXPECT_TRUE(
+      introduction_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+
+  // Verify data sent to the remote device so far.
+  EXPECT_TRUE(ExpectPairedKeyEncryptionFrame());
+  EXPECT_TRUE(ExpectPairedKeyResultFrame());
+  std::optional<IntroductionFrame> intro = ExpectIntroductionFrame();
+
+  ASSERT_TRUE(intro.has_value());
+  ASSERT_EQ(intro->wifi_credentials_metadata_size(), 1);
+  auto meta = intro->wifi_credentials_metadata(0);
+
+  EXPECT_EQ(meta.ssid(), "GoogleGuest");
+  EXPECT_EQ(meta.security_type(),
+            service::proto::WifiCredentialsMetadata::WPA_PSK);
+
+  // Expect the wifi credential payload to be sent in the end.
+  absl::Notification payload_notification;
+  fake_nearby_connections_manager_->set_send_payload_callback(
+      [&](std::unique_ptr<nearby::sharing::Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        ASSERT_TRUE(payload->content.is_bytes());
+        std::vector<uint8_t> bytes = payload->content.bytes_payload.bytes;
+        nearby::sharing::service::proto::WifiCredentials wifi_credentials;
+        ASSERT_TRUE(
+            wifi_credentials.ParseFromArray(bytes.data(), bytes.size()));
+        EXPECT_EQ(wifi_credentials.password(), "password");
+        EXPECT_FALSE(wifi_credentials.hidden_ssid());
 
         payload_notification.Notify();
       });

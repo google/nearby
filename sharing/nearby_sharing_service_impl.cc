@@ -2584,9 +2584,8 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
 
   info->set_payload_tracker(std::make_shared<PayloadTracker>(
       context_, share_target, attachment_info_map_,
-      [this](ShareTarget share_target, TransferMetadata transfer_metadata) {
-        OnPayloadTransferUpdate(share_target, transfer_metadata);
-      }));
+      absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
+                       this)));
 
   // Register status listener for all payloads.
   for (int64_t attachment_id : share_target.GetAttachmentIds()) {
@@ -2870,7 +2869,8 @@ void NearbySharingServiceImpl::OnCreatePayloads(
     bool success) {
   OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target.id);
   bool has_payloads = info && (!info->text_payloads().empty() ||
-                               !info->file_payloads().empty());
+                               !info->file_payloads().empty() ||
+                               !info->wifi_credentials_payloads().empty());
   if (!success || !has_payloads) {
     NL_LOG(WARNING) << __func__
                     << ": Failed to send file to remote ShareTarget. Failed to "
@@ -3703,9 +3703,8 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
 
       info->set_payload_tracker(std::make_unique<PayloadTracker>(
           context_, share_target, attachment_info_map_,
-          [this](ShareTarget share_target, TransferMetadata transfer_metadata) {
-            OnPayloadTransferUpdate(share_target, transfer_metadata);
-          }));
+          absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
+                           this)));
 
       if (NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_sharing_feature::
@@ -4018,84 +4017,95 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
 }
 
 void NearbySharingServiceImpl::OnPayloadTransferUpdate(
-    ShareTarget share_target, TransferMetadata metadata) {
+    int64_t share_target_id, TransferMetadata metadata) {
+  ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
+  if (!info) {
+    // ShareTarget already disconnected.
+    NL_LOG(WARNING)
+        << "Received payload update after share target disconnected: "
+        << share_target_id;
+    return;
+  }
   bool is_in_progress =
       metadata.status() == TransferMetadata::Status::kInProgress;
-
-  if (is_in_progress && share_target.is_incoming &&
-      is_waiting_to_record_accept_to_transfer_start_metric_) {
-    is_waiting_to_record_accept_to_transfer_start_metric_ = false;
-  }
 
   // kInProgress status is logged extensively elsewhere so avoid the spam.
   if (!is_in_progress) {
     NL_VLOG(1) << __func__ << ": Nearby Share service: "
                << "Payload transfer update for share target with ID "
-               << share_target.id << ": "
+               << share_target_id << ": "
                << TransferMetadata::StatusToString(metadata.status());
   }
 
-  // Update file paths during progress. It may impact transfer speed.
-  // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
-  // MacOS.
-  if (update_file_paths_in_progress_ && share_target.is_incoming) {
-    UpdateFilePath(share_target);
-  }
-
-  if (metadata.status() == TransferMetadata::Status::kComplete &&
-      share_target.is_incoming) {
-    if (!OnIncomingPayloadsComplete(share_target)) {
-      metadata = TransferMetadataBuilder()
-                     .set_status(TransferMetadata::Status::kIncompletePayloads)
-                     .build();
-
-      // Reset file paths for file attachments.
-      for (auto& file : share_target.file_attachments)
-        file.set_file_path(std::nullopt);
-
-      // Reset body of text attachments.
-      for (auto& text : share_target.text_attachments)
-        text.set_text_body(std::string());
-
-      // Reset password of Wi-Fi credentials attachments.
-      for (auto& wifi_credentials : share_target.wifi_credentials_attachments) {
-        wifi_credentials.set_password(std::string());
-        wifi_credentials.set_is_hidden(false);
-      }
+  bool payload_incomplete = false;
+  if (info->IsIncoming()) {
+    if (is_in_progress &&
+        is_waiting_to_record_accept_to_transfer_start_metric_) {
+      is_waiting_to_record_accept_to_transfer_start_metric_ = false;
     }
 
-    if (IsBackgroundScanningFeatureEnabled()) {
-      fast_initiation_scanner_cooldown_timer_->Stop();
-      fast_initiation_scanner_cooldown_timer_->Start(
-          absl::ToInt64Milliseconds(kFastInitiationScannerCooldown), 0,
-          [this]() {
-            fast_initiation_scanner_cooldown_timer_->Stop();
-            InvalidateFastInitiationScanning();
-          });
-    }
-  } else if (metadata.status() == TransferMetadata::Status::kCancelled &&
-             share_target.is_incoming) {
-    NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
-    if (!update_file_paths_in_progress_) {
+    ShareTarget share_target = info->share_target();
+    // Update file paths during progress. It may impact transfer speed.
+    // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
+    // MacOS.
+    if (update_file_paths_in_progress_) {
       UpdateFilePath(share_target);
     }
+
+    if (metadata.status() == TransferMetadata::Status::kComplete) {
+      if (!OnIncomingPayloadsComplete(share_target)) {
+        payload_incomplete = true;
+
+        // Reset file paths for file attachments.
+        for (auto& file : share_target.file_attachments)
+          file.set_file_path(std::nullopt);
+
+        // Reset body of text attachments.
+        for (auto& text : share_target.text_attachments)
+          text.set_text_body(std::string());
+
+        // Reset password of Wi-Fi credentials attachments.
+        for (auto& wifi_credentials :
+             share_target.wifi_credentials_attachments) {
+          wifi_credentials.set_password(std::string());
+          wifi_credentials.set_is_hidden(false);
+        }
+      }
+
+      if (IsBackgroundScanningFeatureEnabled()) {
+        fast_initiation_scanner_cooldown_timer_->Stop();
+        fast_initiation_scanner_cooldown_timer_->Start(
+            absl::ToInt64Milliseconds(kFastInitiationScannerCooldown), 0,
+            [this]() {
+              fast_initiation_scanner_cooldown_timer_->Stop();
+              InvalidateFastInitiationScanning();
+            });
+      }
+    } else if (metadata.status() == TransferMetadata::Status::kCancelled) {
+      NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
+      if (!update_file_paths_in_progress_) {
+        UpdateFilePath(share_target);
+      }
+    }
+    info->set_share_target(share_target);
   }
 
   // Make sure to call this before calling Disconnect, or we risk losing some
   // transfer updates in the receive case due to the Disconnect call cleaning up
   // share targets.
-  ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
-  if (info) {
-    info->set_share_target(share_target);
-    info->UpdateTransferMetadata(metadata);
-  }
+  info->UpdateTransferMetadata(
+      payload_incomplete
+          ? TransferMetadataBuilder()
+                .set_status(TransferMetadata::Status::kIncompletePayloads)
+                .build()
+          : metadata);
 
-  // Cancellation has its own disconnection strategy, possibly adding a delay
-  // before disconnection to provide the other party time to process the
-  // cancellation.
+  // Cancellation has its own disconnection strategy, possibly adding a
+  // delay before disconnection to provide the other party time to process
+  // the cancellation.
   if (TransferMetadata::IsFinalStatus(metadata.status()) &&
       metadata.status() != TransferMetadata::Status::kCancelled) {
-    Disconnect(share_target.id, metadata);
+    Disconnect(share_target_id, metadata);
   }
 }
 

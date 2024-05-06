@@ -402,7 +402,7 @@ class NearbySharingServiceImpl
       std::optional<NearbyShareDecryptedPublicCertificate> certificate,
       bool is_incoming);
 
-  void OnPayloadTransferUpdate(ShareTarget share_target,
+  void OnPayloadTransferUpdate(int64_t share_target_id,
                                TransferMetadata metadata);
   bool OnIncomingPayloadsComplete(ShareTarget& share_target);
   void RemoveIncomingPayloads(ShareTarget share_target);

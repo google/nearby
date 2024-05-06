@@ -43,9 +43,9 @@ namespace sharing {
 PayloadTracker::PayloadTracker(
     Context* context, const ShareTarget& share_target,
     const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_info_map,
-    std::function<void(ShareTarget, TransferMetadata)> update_callback)
+    std::function<void(int64_t, TransferMetadata)> update_callback)
     : context_(context),
-      share_target_(share_target),
+      share_target_id_(share_target.id),
       update_callback_(std::move(update_callback)) {
   total_transfer_size_ = 0;
   confirmed_transfer_size_ = 0;
@@ -152,7 +152,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   if (IsComplete()) {
     NL_VLOG(1) << __func__ << ": All payloads are complete.";
     update_callback_(
-        share_target_,
+        share_target_id_,
         TransferMetadataBuilder()
             .set_status(TransferMetadata::Status::kComplete)
             .set_progress(100)
@@ -165,7 +165,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   if (IsCancelled(state)) {
     NL_VLOG(1) << __func__ << ": Payloads cancelled.";
     update_callback_(
-        share_target_,
+        share_target_id_,
         TransferMetadataBuilder()
             .set_status(TransferMetadata::Status::kCancelled)
             .set_total_attachments_count(payload_state_.size())
@@ -177,7 +177,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   if (HasFailed(state)) {
     NL_VLOG(1) << __func__ << ": Payloads failed.";
     update_callback_(
-        share_target_,
+        share_target_id_,
         TransferMetadataBuilder()
             .set_status(TransferMetadata::Status::kFailed)
             .set_total_attachments_count(payload_state_.size())
@@ -240,7 +240,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   last_update_timestamp_ = current_time;
 
   update_callback_(
-      share_target_,
+      share_target_id_,
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .set_progress(percent)

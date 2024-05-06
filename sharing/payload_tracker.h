@@ -42,7 +42,7 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
   PayloadTracker(
       Context* context, const ShareTarget& share_target,
       const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_info_map,
-      std::function<void(ShareTarget, TransferMetadata)> update_callback);
+      std::function<void(int64_t, TransferMetadata)> update_callback);
   ~PayloadTracker() override;
 
   // NearbyConnectionsManager::PayloadStatusListener:
@@ -71,8 +71,8 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
   double CalculateProgressPercent(const State& state) const;
 
   Context* context_;
-  ShareTarget share_target_;
-  std::function<void(ShareTarget, TransferMetadata)> update_callback_;
+  const int64_t share_target_id_;
+  std::function<void(int64_t, TransferMetadata)> update_callback_;
 
   // Map of payload id to state of payload.
   std::map<int64_t, State> payload_state_;
