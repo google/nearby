@@ -77,7 +77,7 @@ std::vector<uint8_t> ComputeAuthenticationTokenHash(
 
 std::vector<uint8_t> GenerateRandomBytes(size_t num_bytes) {
   std::vector<uint8_t> bytes(num_bytes);
-  crypto::RandBytes(absl::Span<uint8_t>(bytes));
+  crypto::RandBytes(bytes);
   return bytes;
 }
 

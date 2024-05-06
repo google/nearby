@@ -22,7 +22,13 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/constant.h"
+#ifdef NEARBY_CHROMIUM
+#include "base/containers/span.h"
+#include "crypto/random.h"
+#else
+#include "internal/base/containers/span.h"
 #include "internal/crypto_cros/random.h"
+#endif
 
 namespace nearby {
 namespace fastpair {
@@ -37,7 +43,7 @@ class AccountKey {
 
   static AccountKey CreateRandomKey() {
     std::string key(kAccountKeySize, 0);
-    ::crypto::RandBytes(key.data(), kAccountKeySize);
+    ::crypto::RandBytes(base::as_writable_byte_span(key));
     return AccountKey(key);
   }
 

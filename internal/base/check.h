@@ -12,18 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/crypto_cros/random.h"
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_BASE_CHECK_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_BASE_CHECK_H_
 
-#include <stddef.h>
+#ifdef NEARBY_CHROMIUM
+#error "Use chromium headers when NEARBY_CHROMIUM is defined."
+#endif
 
-#include <string>
+// Redirect to absl logging.
+#include "absl/log/check.h"
 
-#include <openssl/rand.h>
-
-namespace crypto {
-
-void RandBytes(base::span<uint8_t> bytes) {
-  RAND_bytes(bytes.data(), bytes.size());
-}
-
-}  // namespace crypto
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_BASE_CHECK_H_

@@ -22,9 +22,16 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "internal/crypto_cros/random.h"
 #include <openssl/base.h>
 #include <openssl/evp.h>
+
+#ifdef NEARBY_CHROMIUM
+#include "base/containers/span.h"
+#include "crypto/random.h"
+#else
+#include "internal/base/containers/span.h"
+#include "internal/crypto_cros/random.h"
+#endif
 
 namespace crypto {
 
@@ -98,9 +105,8 @@ absl::StatusOr<Ed25519KeyPair> Ed25519Signer::CreateNewKeyPair(
 
 absl::StatusOr<Ed25519KeyPair> Ed25519Signer::CreateNewKeyPair() {
   uint8_t key_seed[kEd25519KeySeedSize] = {0};
-  RandBytes(key_seed, kEd25519KeySeedSize);
-  return CreateNewKeyPair(
-      std::string(reinterpret_cast<char *>(key_seed), kEd25519KeySeedSize));
+  RandBytes(key_seed);
+  return CreateNewKeyPair(std::string(base::as_string_view(key_seed)));
 }
 
 Ed25519Signer::Ed25519Signer(CryptoKeyUniquePtr private_key) {

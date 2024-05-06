@@ -15,6 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
 
+#ifdef NEARBY_CHROMIUM
+#error "Use chromium headers when NEARBY_CHROMIUM is defined."
+#endif
+
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <optional>

@@ -15,6 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_BASE_BLUETOOTH_ADDRESS_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_BASE_BLUETOOTH_ADDRESS_H_
 
+#ifdef NEARBY_CHROMIUM
+#error "Use chromium headers when NEARBY_CHROMIUM is defined."
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 

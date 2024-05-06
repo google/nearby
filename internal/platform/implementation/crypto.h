@@ -17,8 +17,10 @@
 
 #include "absl/strings/string_view.h"
 #ifdef NEARBY_CHROMIUM
+#include "base/containers/span.h"
 #include "crypto/random.h"
 #else
+#include "internal/base/containers/span.h"
 #include "internal/crypto_cros/random.h"
 #endif
 #include "internal/platform/byte_array.h"
@@ -41,7 +43,7 @@ class Crypto {
 template <typename T>
 T RandData() {
   T data;
-  ::crypto::RandBytes(&data, sizeof(data));
+  ::crypto::RandBytes(base::byte_span_from_ref(data));
   return data;
 }
 

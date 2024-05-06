@@ -42,6 +42,53 @@ cc_library(
 )
 
 cc_library(
+    name = "base_chromium",
+    srcs = [
+    ],
+    hdrs = [
+        "check.h",
+        "check_op.h",
+        "compiler_specific.h",
+        "containers/checked_iterators.h",
+        "containers/dynamic_extent.h",
+        "containers/span.h",
+        "containers/util.h",
+        "memory/raw_ptr_exclusion.h",
+        "types/to_address.h",
+        "numerics/angle_conversions.h",
+        "numerics/basic_ops_impl.h",
+        "numerics/byte_conversions.h",
+        "numerics/checked_math.h",
+        "numerics/checked_math_impl.h",
+        "numerics/clamped_math.h",
+        "numerics/clamped_math_impl.h",
+        "numerics/math_constants.h",
+        "numerics/ostream_operators.h",
+        "numerics/ranges.h",
+        "numerics/safe_conversions_arm_impl.h",
+        "numerics/safe_conversions.h",
+        "numerics/safe_conversions_impl.h",
+        "numerics/safe_math_arm_impl.h",
+        "numerics/safe_math_clang_gcc_impl.h",
+        "numerics/safe_math.h",
+        "numerics/safe_math_shared_impl.h",
+        "numerics/wrapping_math.h",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    visibility = [
+        "//internal/crypto_cros:__pkg__",
+        "//internal/crypto_chromium:__pkg__",
+    ],
+    deps = [
+        "//internal/build:build_chromium",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/log:check",
+    ],
+)
+
+cc_library(
     name = "bluetooth_address",
     srcs = [
         "bluetooth_address.cc",

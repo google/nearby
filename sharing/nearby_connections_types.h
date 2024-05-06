@@ -472,7 +472,7 @@ struct Payload {
 
   int64_t GenerateId() {
     int64_t id;
-    crypto::RandBytes(&id, sizeof(id));
+    crypto::RandBytes(base::byte_span_from_ref(id));
     return id;
   }
 };

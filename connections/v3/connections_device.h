@@ -18,9 +18,14 @@
 #include <string>
 #include <vector>
 
-#include "internal/crypto_cros/random.h"
 #include "internal/interop/device.h"
 #include "internal/platform/connection_info.h"
+
+#if NEARBY_CHROMIUM
+#include "crypto/random.h"
+#else
+#include "internal/crypto_cros/random.h"
+#endif
 
 namespace nearby {
 namespace connections {
@@ -59,8 +64,7 @@ class ConnectionsDevice : public nearby::NearbyDevice {
  private:
   std::string GenerateRandomEndpointId() {
     std::string result(kEndpointIdLength, 0);
-    crypto::RandBytes(const_cast<std::string::value_type*>(result.data()),
-                      result.size());
+    crypto::RandBytes(base::as_writable_byte_span(result));
     return result;
   }
 

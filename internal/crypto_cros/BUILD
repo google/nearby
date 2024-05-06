@@ -39,7 +39,6 @@ cc_library(
         "hmac.cc",
         "nearby_base.cc",
         "openssl_util.cc",
-        "random.cc",
         "rsa_private_key.cc",
         "secure_hash.cc",
         "secure_util.cc",
@@ -58,7 +57,6 @@ cc_library(
         "hmac.h",
         "nearby_base.h",
         "openssl_util.h",
-        "random.h",
         "rsa_private_key.h",
         "secure_hash.h",
         "secure_util.h",
@@ -71,6 +69,8 @@ cc_library(
         "-Ithird_party",
     ],
     deps = [
+        "//internal/base:base_chromium",
+        ":crypto_chromium",
         "@boringssl//:crypto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log",
@@ -81,6 +81,25 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "crypto_chromium",
+    srcs = [
+        "random.cc",
+    ],
+    hdrs = [
+        "crypto_chromium_export.h",
+        "random.h",
+    ],
+    copts = [
+        "-DCRYPTO_CHROMIUM_IMPLEMENTATION",
+        "-Ithird_party",
+    ],
+    deps = [
+        "//internal/base:base_chromium",
+        "@boringssl//:crypto",
     ],
 )
 

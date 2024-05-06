@@ -19,6 +19,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "internal/base/containers/span.h"
 #include "internal/crypto_cros/nearby_base.h"
 #include "internal/platform/implementation/crypto.h"
 
@@ -40,17 +41,7 @@ bool IsTrivial(const std::string& bytes) {
 
 TEST(RandBytes, RandBytes) {
   std::string bytes(16, '\0');
-  RandBytes(nearbybase::WriteInto(&bytes, bytes.size()), bytes.size());
-  EXPECT_TRUE(!IsTrivial(bytes));
-}
-
-TEST(RandBytes, RandomString) {
-  constexpr size_t kSize = 30;
-
-  std::string bytes(kSize, 0);
-  RandBytes(const_cast<std::string::value_type*>(bytes.data()), bytes.size());
-
-  EXPECT_EQ(bytes.size(), kSize);
+  RandBytes(base::as_writable_byte_span(bytes));
   EXPECT_TRUE(!IsTrivial(bytes));
 }
 

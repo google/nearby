@@ -187,8 +187,7 @@ CredentialManagerImpl::CreateLocalCredential(
 
   // Creates an AES key to encrypt the whole broadcast.
   std::string secret_key(kAuthenticityKeyByteSize, 0);
-  crypto::RandBytes(const_cast<std::string::value_type*>(secret_key.data()),
-                    secret_key.size());
+  crypto::RandBytes(base::as_writable_byte_span(secret_key));
   private_credential.set_key_seed(secret_key);
 
   // Uses SHA-256 algorithm to generate the credential ID from the
@@ -211,8 +210,7 @@ CredentialManagerImpl::CreateLocalCredential(
       std::string(private_key.begin(), private_key.end()));
   // Create an AES key to encrypt the device identity metadata.
   std::string metadata_key(kBaseMetadataSize, 0);
-  crypto::RandBytes(const_cast<std::string::value_type*>(metadata_key.data()),
-                    metadata_key.size());
+  crypto::RandBytes(base::as_writable_byte_span(metadata_key));
   private_credential.set_metadata_encryption_key_v0(metadata_key);
 
   // Generate the public credential
