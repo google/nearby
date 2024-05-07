@@ -121,7 +121,10 @@ void Core::RequestConnection(absl::string_view endpoint_id,
                              ConnectionRequestInfo info,
                              ConnectionOptions connection_options,
                              ResultCallback callback) {
-  CHECK(!endpoint_id.empty());
+  if (endpoint_id.empty()) {
+    callback(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   // Assign the default from feature flags for the keep-alive frame interval and
   // timeout values if client don't mind them or has the unexpected ones.
@@ -147,7 +150,10 @@ void Core::RequestConnection(absl::string_view endpoint_id,
 
 void Core::AcceptConnection(absl::string_view endpoint_id,
                             PayloadListener listener, ResultCallback callback) {
-  CHECK(!endpoint_id.empty());
+  if (endpoint_id.empty()) {
+    callback(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->AcceptConnection(&client_, endpoint_id, std::move(listener),
                             std::move(callback));
@@ -155,7 +161,10 @@ void Core::AcceptConnection(absl::string_view endpoint_id,
 
 void Core::RejectConnection(absl::string_view endpoint_id,
                             ResultCallback callback) {
-  CHECK(!endpoint_id.empty());
+  if (endpoint_id.empty()) {
+    callback(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->RejectConnection(&client_, endpoint_id, std::move(callback));
 }
@@ -182,7 +191,10 @@ void Core::CancelPayload(std::int64_t payload_id, ResultCallback callback) {
 
 void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
                                   ResultCallback callback) {
-  CHECK(!endpoint_id.empty());
+  if (endpoint_id.empty()) {
+    callback(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->DisconnectFromEndpoint(&client_, endpoint_id, std::move(callback));
 }
@@ -399,7 +411,10 @@ void Core::RequestConnectionV3(const NearbyDevice& remote_device,
       .local_device = const_cast<NearbyDevice&>(*(client_.GetLocalDevice())),
       .listener = std::move(connection_cb),
   };
-  CHECK(!remote_device.GetEndpointId().empty());
+  if (remote_device.GetEndpointId().empty()) {
+    result_cb(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   // Assign the default from feature flags for the keep-alive frame interval and
   // timeout values if client don't mind them or has the unexpected ones.
@@ -425,7 +440,10 @@ void Core::RequestConnectionV3(const NearbyDevice& remote_device,
 void Core::AcceptConnectionV3(const NearbyDevice& remote_device,
                               v3::PayloadListener listener_cb,
                               ResultCallback result_cb) {
-  CHECK(!remote_device.GetEndpointId().empty());
+  if (remote_device.GetEndpointId().empty()) {
+    result_cb(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->AcceptConnectionV3(&client_, remote_device, std::move(listener_cb),
                               std::move(result_cb));
@@ -433,7 +451,10 @@ void Core::AcceptConnectionV3(const NearbyDevice& remote_device,
 
 void Core::RejectConnectionV3(const NearbyDevice& remote_device,
                               ResultCallback result_cb) {
-  CHECK(!remote_device.GetEndpointId().empty());
+  if (remote_device.GetEndpointId().empty()) {
+    result_cb(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->RejectConnectionV3(&client_, remote_device, std::move(result_cb));
 }
@@ -441,7 +462,10 @@ void Core::RejectConnectionV3(const NearbyDevice& remote_device,
 void Core::SendPayloadV3(const NearbyDevice& remote_device, Payload payload,
                          ResultCallback result_cb) {
   CHECK(payload.GetType() != PayloadType::kUnknown);
-  CHECK(!remote_device.GetEndpointId().empty());
+  if (remote_device.GetEndpointId().empty()) {
+    result_cb(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->SendPayloadV3(&client_, remote_device, std::move(payload),
                          std::move(result_cb));
@@ -457,7 +481,10 @@ void Core::CancelPayloadV3(const NearbyDevice& remote_device,
 
 void Core::DisconnectFromDeviceV3(const NearbyDevice& remote_device,
                                   ResultCallback result_cb) {
-  CHECK(!remote_device.GetEndpointId().empty());
+  if (remote_device.GetEndpointId().empty()) {
+    result_cb(Status{.value = Status::kEndpointUnknown});
+    return;
+  }
 
   router_->DisconnectFromDeviceV3(&client_, remote_device,
                                   std::move(result_cb));

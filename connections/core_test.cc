@@ -64,70 +64,130 @@ class FakeNearbyDeviceProvider : public NearbyDeviceProvider {
 };
 
 TEST(CoreTest, ConstructorDestructorWorks) {
-  MockServiceControllerRouter mock;
+  MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         callback({Status::kSuccess});
       });
-  Core core{&mock};
+  Core core{&mock_controller};
 }
 
 TEST(CoreTest, DestructorReportsFatalFailure) {
   ASSERT_DEATH(
       {
-        MockServiceControllerRouter mock;
+        MockServiceControllerRouter mock_controller;
         // Never invoke the result callback so ~Core will time out.
-        EXPECT_CALL(mock, StopAllEndpoints);
-        Core core{&mock};
+        EXPECT_CALL(mock_controller, StopAllEndpoints);
+        Core core{&mock_controller};
       },
       "Unable to shutdown");
 }
 
 TEST(CoreTest, RequestConnectionCallsScRouter) {
-  MockServiceControllerRouter mock;
+  MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         callback({Status::kSuccess});
       });
-  EXPECT_CALL(mock, RequestConnection);
-  Core core{&mock};
+  EXPECT_CALL(mock_controller, RequestConnection);
+  Core core{&mock_controller};
   core.RequestConnection("TEST", {}, {}, {});
 }
 
-TEST(CoreTest, AcceptConnectionCallsScRouter) {
-  MockServiceControllerRouter mock;
+TEST(CoreTest, RequestConnectionFailsWithEmptyEndpoint) {
+  MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         callback({Status::kSuccess});
       });
-  EXPECT_CALL(mock, AcceptConnection);
-  Core core{&mock};
+  Status final_status;
+  Core core{&mock_controller};
+  core.RequestConnection(
+      "", {}, {}, [&](Status result_status) { final_status = result_status; });
+  EXPECT_EQ(final_status.value, Status::kEndpointUnknown);
+}
+
+TEST(CoreTest, AcceptConnectionCallsScRouter) {
+  MockServiceControllerRouter mock_controller;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock_controller, AcceptConnection);
+  Core core{&mock_controller};
   core.AcceptConnection("TEST", {}, {});
 }
 
-TEST(CoreTest, SendPayloadCallsScRouter) {
-  MockServiceControllerRouter mock;
+TEST(CoreTest, AcceptConnectionFailsWithEmptyEndpoint) {
+  MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         callback({Status::kSuccess});
       });
-  EXPECT_CALL(mock, SendPayload);
-  Core core{&mock};
+  Status final_status;
+  Core core{&mock_controller};
+  core.AcceptConnection(
+      "", {}, [&](Status result_status) { final_status = result_status; });
+
+  EXPECT_EQ(final_status.value, Status::kEndpointUnknown);
+}
+
+TEST(CoreTest, RejectConnectionFailsWithEmptyEndpoint) {
+  MockServiceControllerRouter mock_controller;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  Status final_status;
+  Core core{&mock_controller};
+  core.RejectConnection(
+      "", [&](Status result_status) { final_status = result_status; });
+
+  EXPECT_EQ(final_status.value, Status::kEndpointUnknown);
+}
+
+TEST(CoreTest, DisconnectFailsWithEmptyEndpoint) {
+  MockServiceControllerRouter mock_controller;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  Status final_status;
+  Core core{&mock_controller};
+  core.DisconnectFromEndpoint(
+      "", [&](Status result_status) { final_status = result_status; });
+
+  EXPECT_EQ(final_status.value, Status::kEndpointUnknown);
+}
+
+
+TEST(CoreTest, SendPayloadCallsScRouter) {
+  MockServiceControllerRouter mock_controller;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, ResultCallback callback) {
+        callback({Status::kSuccess});
+      });
+  EXPECT_CALL(mock_controller, SendPayload);
+  Core core{&mock_controller};
   core.SendPayload({"TEST"}, Payload(ByteArray("Hello world")), {});
 }
 
 TEST(CoreV3Test, TestAdvertisingOptionsConversionWorks) {
-  MockServiceControllerRouter mock;
+  MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         callback({Status::kSuccess});
       });
-  EXPECT_CALL(mock, StartAdvertising)
+  EXPECT_CALL(mock_controller, StartAdvertising)
       .WillOnce([](ClientProxy*, absl::string_view,
                    const AdvertisingOptions& options,
                    const ConnectionRequestInfo& info, ResultCallback) {
@@ -137,7 +197,7 @@ TEST(CoreV3Test, TestAdvertisingOptionsConversionWorks) {
         EXPECT_FALSE(options.auto_upgrade_bandwidth);
         EXPECT_EQ(options.fast_advertisement_service_uuid, "NearbyConnections");
       });
-  Core core{&mock};
+  Core core{&mock_controller};
   v3::AdvertisingOptions advertising_options = {
       .strategy = Strategy::kP2pCluster,
       .power_level = PowerLevel::kHighPower,
@@ -150,13 +210,13 @@ TEST(CoreV3Test, TestAdvertisingOptionsConversionWorks) {
 }
 
 TEST(CoreV3Test, TestDiscoveryOptionsConversionWorks) {
-  MockServiceControllerRouter mock;
+  MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         callback({Status::kSuccess});
       });
-  EXPECT_CALL(mock, StartDiscovery)
+  EXPECT_CALL(mock_controller, StartDiscovery)
       .WillOnce([](ClientProxy*, absl::string_view,
                    const DiscoveryOptions& options, DiscoveryListener,
                    ResultCallback) {
@@ -165,7 +225,7 @@ TEST(CoreV3Test, TestDiscoveryOptionsConversionWorks) {
         EXPECT_TRUE(options.auto_upgrade_bandwidth);
         EXPECT_EQ(options.fast_advertisement_service_uuid, "NearbyConnections");
       });
-  Core core{&mock};
+  Core core{&mock_controller};
   v3::DiscoveryOptions discovery_options = {
       .strategy = Strategy::kP2pCluster,
       .power_level = PowerLevel::kHighPower,
@@ -176,8 +236,8 @@ TEST(CoreV3Test, TestDiscoveryOptionsConversionWorks) {
 }
 
 TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
-  MockServiceControllerRouter mock;
-  EXPECT_CALL(mock, StartAdvertising)
+  MockServiceControllerRouter mock_controller;
+  EXPECT_CALL(mock_controller, StartAdvertising)
       .WillOnce([&](ClientProxy*, absl::string_view, const AdvertisingOptions&,
                     const ConnectionRequestInfo& info, const ResultCallback&) {
         NEARBY_LOGS(INFO) << "StartAdvertising called";
@@ -189,12 +249,12 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
         info.listener.bandwidth_changed_cb("FAKE", Medium::BLUETOOTH);
         info.listener.disconnected_cb("FAKE");
       });
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
         callback({Status::kSuccess});
       });
-  Core core{&mock};
+  Core core{&mock_controller};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
@@ -233,8 +293,8 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
 }
 
 TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
-  MockServiceControllerRouter mock;
-  EXPECT_CALL(mock, StartAdvertising)
+  MockServiceControllerRouter mock_controller;
+  EXPECT_CALL(mock_controller, StartAdvertising)
       .WillOnce([&](ClientProxy*, absl::string_view, const AdvertisingOptions&,
                     const ConnectionRequestInfo& info, ResultCallback) {
         NEARBY_LOGS(INFO) << "StartAdvertising called";
@@ -246,12 +306,12 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
         info.listener.bandwidth_changed_cb("FAKE", Medium::BLUETOOTH);
         info.listener.disconnected_cb("FAKE");
       });
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
         callback({Status::kSuccess});
       });
-  Core core{&mock};
+  Core core{&mock_controller};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
@@ -292,8 +352,8 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
 }
 
 TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
-  MockServiceControllerRouter mock;
-  EXPECT_CALL(mock, StartAdvertising)
+  MockServiceControllerRouter mock_controller;
+  EXPECT_CALL(mock_controller, StartAdvertising)
       .WillOnce([&](ClientProxy*, absl::string_view, const AdvertisingOptions&,
                     const ConnectionRequestInfo& info, const ResultCallback&) {
         NEARBY_LOGS(INFO) << "StartAdvertising called";
@@ -305,12 +365,12 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
         info.listener.bandwidth_changed_cb("FAKE", Medium::BLUETOOTH);
         info.listener.disconnected_cb("FAKE");
       });
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
         callback({Status::kSuccess});
       });
-  Core core{&mock};
+  Core core{&mock_controller};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
@@ -350,8 +410,8 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
 }
 
 TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
-  MockServiceControllerRouter mock;
-  EXPECT_CALL(mock, StartAdvertising)
+  MockServiceControllerRouter mock_controller;
+  EXPECT_CALL(mock_controller, StartAdvertising)
       .WillOnce([&](ClientProxy*, absl::string_view, const AdvertisingOptions&,
                     const ConnectionRequestInfo& info, const ResultCallback&) {
         NEARBY_LOGS(INFO) << "StartAdvertising called";
@@ -363,12 +423,12 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
         info.listener.bandwidth_changed_cb("FAKE", Medium::BLUETOOTH);
         info.listener.disconnected_cb("FAKE");
       });
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
         callback({Status::kSuccess});
       });
-  Core core{&mock};
+  Core core{&mock_controller};
   CountDownLatch result_latch(2);
   CountDownLatch bandwidth_changed_latch(1);
   CountDownLatch disconnected_latch(1);
@@ -408,8 +468,8 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
 }
 
 TEST(CoreV3Test, TestCallbackWrapWorksStartDiscoveryV3) {
-  MockServiceControllerRouter mock;
-  EXPECT_CALL(mock, StartDiscovery)
+  MockServiceControllerRouter mock_controller;
+  EXPECT_CALL(mock_controller, StartDiscovery)
       .WillOnce([&](ClientProxy*, absl::string_view, const DiscoveryOptions&,
                     DiscoveryListener listener, const ResultCallback&) {
         // call all callbacks to make sure it all gets called correctly.
@@ -418,14 +478,14 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartDiscoveryV3) {
         listener.endpoint_found_cb("FAKE", ByteArray(), "");
         listener.endpoint_lost_cb("FAKE");
       });
-  EXPECT_CALL(mock, StopAllEndpoints)
+  EXPECT_CALL(mock_controller, StopAllEndpoints)
       .WillOnce([&](ClientProxy* client, ResultCallback callback) {
         NEARBY_LOGS(INFO) << "StopAllEndpoints called";
         callback({Status::kSuccess});
       });
   v3::DiscoveryOptions options;
   options.strategy = Strategy::kP2pCluster;
-  Core core{&mock};
+  Core core{&mock_controller};
   CountDownLatch endpoint_distance_latch(1);
   CountDownLatch endpoint_found_latch(1);
   CountDownLatch endpoint_lost_latch(1);
