@@ -447,7 +447,6 @@ cc_test(
         "multi_thread_executor_test.cc",
         "mutex_test.cc",
         "pipe_test.cc",
-        "random_unittest.cc",
         "scheduled_executor_test.cc",
         "single_thread_executor_test.cc",
         "task_runner_impl_test.cc",

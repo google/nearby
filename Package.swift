@@ -515,7 +515,6 @@ let package = Package(
         "internal/platform/scheduled_executor_test.cc",
         "internal/platform/count_down_latch_test.cc",
         "internal/platform/pipe_test.cc",
-        "internal/platform/random_unittest.cc",
         "internal/platform/timer_impl_test.cc",
         "internal/platform/task_runner_impl_test.cc",
         "internal/platform/uuid_test.cc",
