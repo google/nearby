@@ -35,6 +35,9 @@ class Crypto {
 // Fills the given buffer with |length| random bytes of cryptographically
 // secure random numbers.
 // |length| must be positive.
+//
+// TODO(crbug.com/40284755): Convert all callers in Nearby to use spans
+// and remove this RandBytes overload.
 void RandBytes(void *bytes, size_t length);
 
 // Fills |bytes| with cryptographically-secure random bits.

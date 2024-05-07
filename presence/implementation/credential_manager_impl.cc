@@ -314,7 +314,7 @@ std::string CredentialManagerImpl::DecryptDeviceIdentityMetaData(
   auto result = aead.Open(encrypted_metadata_bytes,
                           /*nonce=*/
                           iv_bytes,
-                          /*additional_data=*/CryptoSpan<uint8_t>());
+                          /*additional_data=*/absl::Span<uint8_t>());
 
   return std::string(result.value().begin(), result.value().end());
 }
@@ -339,7 +339,7 @@ std::string CredentialManagerImpl::EncryptDeviceIdentityMetaData(
   auto encrypted = aead.Seal(metadata_bytes,
                              /*nonce=*/
                              iv_bytes,
-                             /*additional_data=*/CryptoSpan<uint8_t>());
+                             /*additional_data=*/absl::Span<uint8_t>());
 
   return std::string(encrypted.begin(), encrypted.end());
 }
@@ -349,8 +349,8 @@ std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
   return crypto::HkdfSha256(
       std::vector<uint8_t>(metadata_encryption_key.begin(),
                            metadata_encryption_key.end()),
-      /*salt=*/CryptoSpan<uint8_t>(),
-      /*info=*/CryptoSpan<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
+      /*salt=*/absl::Span<uint8_t>(),
+      /*info=*/absl::Span<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
 }
 
 void CredentialManagerImpl::GetLocalCredentials(
