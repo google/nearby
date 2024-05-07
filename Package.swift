@@ -429,6 +429,7 @@ let package = Package(
         "internal/flags/BUILD",
         "internal/network/BUILD",
         "internal/base/BUILD",
+        "internal/build/BUILD",
         "internal/data/BUILD",
         "internal/test/BUILD",
         // tests
