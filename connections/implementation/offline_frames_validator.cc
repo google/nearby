@@ -73,8 +73,8 @@ inline bool WithinRange(int value, int min, int max) {
 
 Exception EnsureValidConnectionRequestFrame(
     const ConnectionRequestFrame& frame) {
-  if (!frame.has_endpoint_id()) return {Exception::kInvalidProtocolBuffer};
-  if (!frame.has_endpoint_name()) return {Exception::kInvalidProtocolBuffer};
+  if (frame.endpoint_id().empty()) return {Exception::kInvalidProtocolBuffer};
+  if (frame.endpoint_name().empty()) return {Exception::kInvalidProtocolBuffer};
 
   // For backwards compatibility reasons, no other fields should be
   // null-checked for this frame. Parameter checking (eg. must be within this

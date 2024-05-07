@@ -2400,6 +2400,56 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  v3::ConnectionListeningOptions options = {
+      .strategy = Strategy::kP2pCluster,
+      .enable_ble_listening = true,
+      .enable_bluetooth_listening = true,
+      .enable_wlan_listening = true,
+      .listening_endpoint_type = NearbyDevice::Type::kConnectionsDevice};
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+  EXPECT_TRUE(
+      pcp_handler
+          .StartListeningForIncomingConnections(&client, "service", options, {})
+          .first.Ok());
+  ASSERT_TRUE(client.IsListeningForIncomingConnections());
+  ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_id = "",
+              .local_endpoint_info = ByteArray("local endpoint"),
+          });
+  // At this point the connection request doesn't have an endpoint ID field set,
+  // so we do that here.
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");
+  ASSERT_TRUE(frame.v1().connection_request().has_endpoint_id());
+  // do a dummy write to get to the actual write.
+  channel_pair.first->Write(ByteArray());
+  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  EXPECT_EQ(pcp_handler
+                .OnIncomingConnection(&client, ByteArray("remote endpoint"),
+                                      std::move(channel_pair.second),
+                                      Medium::BLUETOOTH,
+                                      NearbyDevice::Type::kConnectionsDevice)
+                .value,
+            Exception::Value::kIo);
+  env_.Stop();
+}
+
 TEST_F(BasePcpHandlerTest, TestNeedsToTurnOffAdvertisingMedium) {
   Mediums m;
   EndpointChannelManager ecm;

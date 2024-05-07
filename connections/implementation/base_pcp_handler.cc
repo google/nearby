@@ -1756,8 +1756,7 @@ Exception BasePcpHandler::OnIncomingConnection(
           << "with error: " << wrapped_frame.exception();
       ProcessPreConnectionInitiationFailure(
           client, medium, "", channel.get(),
-          /* is_incoming= */ false, start_time, {Status::kError}, nullptr);
-      return {Exception::kSuccess};
+          /* is_incoming= */ true, start_time, {Status::kError}, nullptr);
     }
     return wrapped_frame.GetException();
   }

@@ -110,7 +110,24 @@ TEST_F(OfflineFramesConnectionRequestTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST_F(OfflineFramesConnectionRequestTest,
+       ValidatesAsFailWithEmptyEndpointIdInConnectionRequestFrame) {
+  connection_info_.local_endpoint_id = "";
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(bytes.AsStringView());
+  frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");
+  ASSERT_TRUE(frame.v1().connection_request().has_endpoint_id());
+
+  OfflineFrame offline_frame;
+  offline_frame.ParseFromString(frame.SerializeAsString());
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST_F(OfflineFramesConnectionRequestTest,
