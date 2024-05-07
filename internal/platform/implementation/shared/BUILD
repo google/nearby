@@ -23,6 +23,7 @@ cc_library(
         "@boringssl//:crypto",
         "@com_google_absl//absl/types:span",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
 )
 
 cc_library(
