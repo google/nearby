@@ -19,7 +19,12 @@
 #error "Use chromium headers when NEARBY_CHROMIUM is defined."
 #endif
 
+#if defined(NEARBY_SWIFTPM)
+// Redirect to nearby logging.
+#include "third_party/nearby/internal/platform/logging.h"
+#else
 // Redirect to absl logging.
 #include "absl/log/check.h"
+#endif
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_BASE_CHECK_H_
