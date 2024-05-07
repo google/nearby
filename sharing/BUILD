@@ -59,6 +59,7 @@ cc_library(
         ":connection_types",
         "//internal/crypto_cros",
         "//internal/network:url",
+        "//internal/platform:types",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/internal/base",

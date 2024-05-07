@@ -15,12 +15,11 @@
 #ifndef PLATFORM_API_CRYPTO_H_
 #define PLATFORM_API_CRYPTO_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "absl/strings/string_view.h"
-#ifdef NEARBY_CHROMIUM
-#include "crypto/random.h"
-#else
-#include "internal/crypto_cros/random.h"
-#endif
+#include "absl/types/span.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -36,12 +35,23 @@ class Crypto {
   static ByteArray Sha256(absl::string_view input);
 };
 
+// Fills the given buffer with |length| random bytes of cryptographically
+// secure random numbers.
+// |length| must be positive.
+//
+// TODO(crbug.com/40284755): Convert all callers in Nearby to use spans
+// and remove this RandBytes overload.
+void RandBytes(void *bytes, size_t length);
+
+// Fills |bytes| with cryptographically-secure random bits.
+void RandBytes(absl::Span<uint8_t> bytes);
+
 // Creates an object of type T initialized with random data.
 // This template should be used for simple data types: int, char, etc.
 template <typename T>
 T RandData() {
   T data;
-  ::crypto::RandBytes(&data, sizeof(data));
+  RandBytes(&data, sizeof(data));
   return data;
 }
 

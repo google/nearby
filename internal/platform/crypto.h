@@ -15,6 +15,6 @@
 #ifndef PLATFORM_PUBLIC_CRYPTO_H_
 #define PLATFORM_PUBLIC_CRYPTO_H_
 
-#include "internal/platform/implementation/crypto.h"
+#include "internal/platform/implementation/crypto.h"  // IWYU pragma: export
 
 #endif  // PLATFORM_PUBLIC_CRYPTO_H_

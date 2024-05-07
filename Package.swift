@@ -495,7 +495,6 @@ let package = Package(
         "internal/crypto_cros/ec_signature_creator_unittest.cc",
         "internal/crypto_cros/encryptor_unittest.cc",
         "internal/crypto_cros/hmac_unittest.cc",
-        "internal/crypto_cros/random_unittest.cc",
         "internal/crypto_cros/rsa_private_key_unittest.cc",
         "internal/crypto_cros/secure_hash_unittest.cc",
         "internal/crypto_cros/sha2_unittest.cc",
