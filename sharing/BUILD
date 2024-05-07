@@ -58,6 +58,7 @@ cc_library(
     deps = [
         ":connection_types",
         "//internal/crypto_cros",
+        "//internal/platform:types",
         "//internal/network:url",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",

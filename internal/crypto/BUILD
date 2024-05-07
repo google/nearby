@@ -29,6 +29,7 @@ cc_library(
     ],
     deps = [
         "//internal/crypto_cros",
+        "//internal/platform:types",
         "@boringssl//:crypto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

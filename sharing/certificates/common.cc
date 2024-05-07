@@ -27,8 +27,8 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/encryptor.h"
 #include "internal/crypto_cros/hkdf.h"
-#include "internal/crypto_cros/random.h"
 #include "internal/crypto_cros/symmetric_key.h"
+#include "internal/platform/crypto.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/internal/public/logging.h"
 
@@ -77,7 +77,7 @@ std::vector<uint8_t> ComputeAuthenticationTokenHash(
 
 std::vector<uint8_t> GenerateRandomBytes(size_t num_bytes) {
   std::vector<uint8_t> bytes(num_bytes);
-  crypto::RandBytes(absl::Span<uint8_t>(bytes));
+  RandBytes(absl::Span<uint8_t>(bytes));
   return bytes;
 }
 

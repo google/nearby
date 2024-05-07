@@ -75,6 +75,7 @@ cc_library(
     deps = [
         "//internal/crypto_cros",
         "//internal/platform:base",
+        "//internal/platform/implementation/shared:crypto",  # Non-chromium impl
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",

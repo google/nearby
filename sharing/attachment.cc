@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 
-#include "internal/crypto_cros/random.h"
+#include "internal/platform/crypto.h"
 
 namespace nearby {
 namespace sharing {
@@ -24,7 +24,7 @@ namespace {
 
 int64_t CreateRandomId() {
   int64_t id;
-  crypto::RandBytes(&id, sizeof(id));
+  RandBytes(&id, sizeof(id));
   return id;
 }
 
