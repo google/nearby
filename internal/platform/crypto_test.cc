@@ -14,6 +14,8 @@
 
 #include "internal/platform/crypto.h"
 
+#include <stddef.h>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"

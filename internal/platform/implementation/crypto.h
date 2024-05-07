@@ -15,6 +15,9 @@
 #ifndef PLATFORM_API_CRYPTO_H_
 #define PLATFORM_API_CRYPTO_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "internal/platform/byte_array.h"

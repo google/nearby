@@ -16,6 +16,8 @@
 // inside Chromium.
 #if !defined(NEARBY_CHROMIUM)
 
+#include <stddef.h>
+#include <stdint.h>
 #include <openssl/rand.h>
 
 #include "absl/types/span.h"
