@@ -16,7 +16,13 @@
 
 #include <stdint.h>
 
+#if NEARBY_CHROMIUM
+#include "base/containers/span.h"
+#include "crypto/random.h"
+#else
+#include "internal/base/containers/span.h"
 #include "internal/crypto_cros/random.h"
+#endif
 
 namespace nearby {
 namespace sharing {
@@ -24,7 +30,7 @@ namespace {
 
 int64_t CreateRandomId() {
   int64_t id;
-  crypto::RandBytes(&id, sizeof(id));
+  crypto::RandBytes(base::byte_span_from_ref(id));
   return id;
 }
 
