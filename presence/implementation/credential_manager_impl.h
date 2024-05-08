@@ -211,6 +211,23 @@ class CredentialManagerImpl : public CredentialManager {
           callback_for_local_credentials,
       std::optional<GetPublicCredentialsResultCallback>
           callback_for_shared_credentials);
+  void RefillRemainingValidCredentialsWithNewCredentials(
+      const CredentialSelector& credential_selector,
+      std::vector<nearby::internal::LocalCredential> valid_local_credentials,
+      std::vector<nearby::internal::SharedCredential> valid_shared_credentials,
+      int64_t start_time_to_generate_new_credentials_millis,
+      std::optional<GetLocalCredentialsResultCallback>
+          callback_for_local_credentials,
+      std::optional<GetPublicCredentialsResultCallback>
+          callback_for_shared_credentials);
+  void OnCredentialRefillComplete(
+      absl::Status save_credentials_status,
+      std::vector<nearby::internal::LocalCredential> valid_local_credentials,
+      std::vector<nearby::internal::SharedCredential> valid_shared_credentials,
+      std::optional<GetLocalCredentialsResultCallback>
+          callback_for_local_credentials,
+      std::optional<GetPublicCredentialsResultCallback>
+          callback_for_shared_credentials);
 
   void OnCredentialsChanged(absl::string_view manager_app_id,
                             absl::string_view account_name,

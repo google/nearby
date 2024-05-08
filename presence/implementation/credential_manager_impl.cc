@@ -370,20 +370,14 @@ void CredentialManagerImpl::GetLocalCredentials(
                   return;
                 }
 
-                RunOnServiceControllerThread(
-                    "GetLocalCredentials-CheckCredentialsAndRefillIfNeeded",
-                    [this, credential_selector, get_local_credentials_result,
-                     callback = std::move(callback)]()
-                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
-                          CheckCredentialsAndRefillIfNeeded(
-                              credential_selector,
-                              /* credentials_list_variant */
-                              &get_local_credentials_result.value(),
-                              /* callback_for_local_credentials */
-                              std::move(callback),
-                              /* callback_for_shared_credentials */
-                              std::nullopt);
-                        });
+                CheckCredentialsAndRefillIfNeeded(
+                    credential_selector,
+                    /* credentials_list_variant */
+                    &get_local_credentials_result.value(),
+                    /* callback_for_local_credentials */
+                    std::move(callback),
+                    /* callback_for_shared_credentials */
+                    std::nullopt);
               },
       });
 }
@@ -412,19 +406,13 @@ void CredentialManagerImpl::GetPublicCredentials(
                   return;
                 }
 
-                RunOnServiceControllerThread(
-                    "GetPublicCredentials-CheckCredentialsAndRefillIfNeeded",
-                    [this, credential_selector, get_shared_credentials_result,
-                     callback = std::move(callback)]()
-                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
-                          CheckCredentialsAndRefillIfNeeded(
-                              credential_selector,
-                              /* credentials_list_variant */
-                              &get_shared_credentials_result.value(),
-                              /* callback_for_local_credentials */ std::nullopt,
-                              /* callback_for_shared_credentials */
-                              std::move(callback));
-                        });
+                CheckCredentialsAndRefillIfNeeded(
+                    credential_selector,
+                    /* credentials_list_variant */
+                    &get_shared_credentials_result.value(),
+                    /* callback_for_local_credentials */ std::nullopt,
+                    /* callback_for_shared_credentials */
+                    std::move(callback));
               },
       });
 }
@@ -671,88 +659,115 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
     return;
   }
 
+  // Already got the valid credential list for either local or shared.
+  // Now get the other credentials list from storage, prune them, and begin
+  // the process of appending new credentials onto them.
+  if (invoked_for_local) {
+    credential_storage_ptr_->GetPublicCredentials(
+        credential_selector, PublicCredentialType::kLocalPublicCredential,
+        GetPublicCredentialsResultCallback{
+            .credentials_fetched_cb =
+                [this, current_time_millis, last_valid_end_time_millis,
+                 credential_selector,
+                 valid_local_credentials = std::move(valid_local_credentials),
+                 valid_shared_credentials = std::move(valid_shared_credentials),
+                 callback_for_local_credentials =
+                     std::move(callback_for_local_credentials),
+                 callback_for_shared_credentials =
+                     std::move(callback_for_shared_credentials)](
+                    absl::StatusOr<
+                        std::vector<nearby::internal::SharedCredential>>
+                        result) mutable {
+                  if (!result.ok()) {
+                    callback_for_local_credentials.value()
+                        .credentials_fetched_cb(result.status());
+                    return;
+                  }
+                  for (const auto& credential : result.value()) {
+                    if (credential.end_time_millis() >= current_time_millis) {
+                      valid_shared_credentials.push_back(credential);
+                    }
+                  }
+
+                  RefillRemainingValidCredentialsWithNewCredentials(
+                      credential_selector, valid_local_credentials,
+                      valid_shared_credentials,
+                      /*start_time_to_generate_new_credentials_millis=*/
+                      last_valid_end_time_millis,
+                      std::move(callback_for_local_credentials),
+                      std::move(callback_for_shared_credentials));
+                },
+        });
+  } else {
+    credential_storage_ptr_->GetLocalCredentials(
+        credential_selector,
+        GetLocalCredentialsResultCallback{
+            .credentials_fetched_cb =
+                [this, current_time_millis, last_valid_end_time_millis,
+                 credential_selector,
+                 valid_local_credentials = std::move(valid_local_credentials),
+                 valid_shared_credentials = std::move(valid_shared_credentials),
+                 callback_for_local_credentials =
+                     std::move(callback_for_local_credentials),
+                 callback_for_shared_credentials =
+                     std::move(callback_for_shared_credentials)](
+                    absl::StatusOr<
+                        std::vector<nearby::internal::LocalCredential>>
+                        result) mutable {
+                  if (!result.ok()) {
+                    callback_for_local_credentials.value()
+                        .credentials_fetched_cb(result.status());
+                    return;
+                  }
+                  for (const auto& credential : result.value()) {
+                    if (credential.end_time_millis() >= current_time_millis) {
+                      valid_local_credentials.push_back(
+                          credential);  // RESTORE TODO
+                    }
+                  }
+
+                  RefillRemainingValidCredentialsWithNewCredentials(
+                      credential_selector, valid_local_credentials,
+                      valid_shared_credentials,
+                      /*start_time_to_generate_new_credentials_millis=*/
+                      last_valid_end_time_millis,
+                      std::move(callback_for_local_credentials),
+                      std::move(callback_for_shared_credentials));
+                },
+        });
+  }
+}
+
+void CredentialManagerImpl::RefillRemainingValidCredentialsWithNewCredentials(
+    const CredentialSelector& credential_selector,
+    std::vector<LocalCredential> valid_local_credentials,
+    std::vector<SharedCredential> valid_shared_credentials,
+    int64_t start_time_to_generate_new_credentials_millis,
+    std::optional<GetLocalCredentialsResultCallback>
+        callback_for_local_credentials,
+    std::optional<GetPublicCredentialsResultCallback>
+        callback_for_shared_credentials) {
+  // The number of valid credentials has already been determined by pruning
+  // valid_local_credentials and valid_shared_credentials. They must match
+  // in size.
+  int valid_credentials_count = valid_local_credentials.size();
+  CHECK_EQ(valid_credentials_count, valid_shared_credentials.size());
+
   std::vector<LocalCredential> newly_generated_local_credentials;
   std::vector<SharedCredential> newly_generated_shared_credentials;
+
   // Generate more credential pairs to refill the expired ones.
-  auto start_time = absl::FromUnixMillis(last_valid_end_time_millis);
+  auto start_time =
+      absl::FromUnixMillis(start_time_to_generate_new_credentials_millis);
   auto gap = kCredentialLifeCycleDays * absl::Hours(24);
   for (int i = 0; i < kExpectedValidLocalCredtialSize - valid_credentials_count;
        i++) {
     auto pair = CreateLocalCredential(device_identity_metadata_,
                                       credential_selector.identity_type,
                                       start_time, start_time + gap);
-    newly_generated_local_credentials.push_back(pair.first);
-    newly_generated_shared_credentials.push_back(pair.second);
+    newly_generated_local_credentials.push_back(std::move(pair.first));
+    newly_generated_shared_credentials.push_back(std::move(pair.second));
     start_time += gap;
-  }
-
-  // Already got the merged valid credential list for either local or shared.
-  // Now get the other credentials list from storage.
-  CountDownLatch get_corresponding_credentials_latch(1);
-  if (invoked_for_local) {
-    absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
-        get_shared_result;
-    credential_storage_ptr_->GetPublicCredentials(
-        credential_selector, PublicCredentialType::kLocalPublicCredential,
-        GetPublicCredentialsResultCallback{
-            .credentials_fetched_cb =
-                [get_corresponding_credentials_latch, &get_shared_result](
-                    absl::StatusOr<
-                        std::vector<nearby::internal::SharedCredential>>
-                        result) mutable {
-                  get_shared_result = std::move(result);
-                  get_corresponding_credentials_latch.CountDown();
-                },
-        });
-    if (!WaitForLatch(
-            "CheckCredentialsAndRefillIfNeeded-GetCorrespondingShared",
-            &get_corresponding_credentials_latch)) {
-      callback_for_local_credentials.value().credentials_fetched_cb(
-          absl::DeadlineExceededError("Failed in GetLocalCredentials"));
-      return;
-    }
-    if (!get_shared_result.ok()) {
-      callback_for_local_credentials.value().credentials_fetched_cb(
-          get_shared_result.status());
-      return;
-    }
-    for (const auto& credential : get_shared_result.value()) {
-      if (credential.end_time_millis() >= current_time_millis) {
-        valid_shared_credentials.push_back(credential);
-      }
-    }
-  } else {
-    absl::StatusOr<std::vector<nearby::internal::LocalCredential>>
-        get_local_result;
-    credential_storage_ptr_->GetLocalCredentials(
-        credential_selector,
-        GetLocalCredentialsResultCallback{
-            .credentials_fetched_cb =
-                [get_corresponding_credentials_latch, &get_local_result](
-                    absl::StatusOr<
-                        std::vector<nearby::internal::LocalCredential>>
-                        result) mutable {
-                  get_local_result = std::move(result);
-                  get_corresponding_credentials_latch.CountDown();
-                },
-        });
-    if (!WaitForLatch("CheckCredentialsAndRefillIfNeeded-GetCorrespondingLocal",
-                      &get_corresponding_credentials_latch)) {
-      callback_for_shared_credentials.value().credentials_fetched_cb(
-          absl::DeadlineExceededError(
-              "Failed in awaiting corresponding GetSharedCredentials"));
-      return;
-    }
-    if (!get_local_result.ok()) {
-      callback_for_local_credentials.value().credentials_fetched_cb(
-          get_local_result.status());
-      return;
-    }
-    for (const auto& credential : get_local_result.value()) {
-      if (credential.end_time_millis() >= current_time_millis) {
-        valid_local_credentials.push_back(credential);
-      }
-    }
   }
 
   // Now merge newly generated credentials to already existing valid ones.
@@ -762,30 +777,41 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
   valid_shared_credentials.insert(valid_shared_credentials.end(),
                                   newly_generated_shared_credentials.begin(),
                                   newly_generated_shared_credentials.end());
+
   // Save merged local and shared credential lists to storage
-  CountDownLatch save_credentials_latch(1);
-  absl::Status save_credentials_status;
   credential_storage_ptr_->SaveCredentials(
       credential_selector.manager_app_id, credential_selector.account_name,
       valid_local_credentials, valid_shared_credentials,
       PublicCredentialType::kLocalPublicCredential,
       SaveCredentialsResultCallback{
           .credentials_saved_cb =
-              [save_credentials_latch,
-               &save_credentials_status](absl::Status status) mutable {
-                save_credentials_status = status;
-                save_credentials_latch.CountDown();
+              [this, valid_local_credentials, valid_shared_credentials,
+               callback_for_local_credentials =
+                   std::move(callback_for_local_credentials),
+               callback_for_shared_credentials =
+                   std::move(callback_for_shared_credentials)](
+                  absl::Status status) mutable {
+                OnCredentialRefillComplete(
+                    std::move(status), valid_local_credentials,
+                    valid_shared_credentials,
+                    std::move(callback_for_local_credentials),
+                    std::move(callback_for_shared_credentials));
               },
       });
-  if (!WaitForLatch("CheckCredentialsAndRefillIfNeeded-SaveCredentials",
-                    &save_credentials_latch)) {
-    save_credentials_status =
-        absl::DeadlineExceededError("Failed in awaiting SaveCredentials");
-  }
+}
+
+void CredentialManagerImpl::OnCredentialRefillComplete(
+    absl::Status save_credentials_status,
+    std::vector<LocalCredential> valid_local_credentials,
+    std::vector<SharedCredential> valid_shared_credentials,
+    std::optional<GetLocalCredentialsResultCallback>
+        callback_for_local_credentials,
+    std::optional<GetPublicCredentialsResultCallback>
+        callback_for_shared_credentials) {
   if (!save_credentials_status.ok()) {
     NEARBY_LOGS(ERROR) << "Save credentials failed with: "
                        << save_credentials_status;
-    if (invoked_for_local) {
+    if (callback_for_local_credentials.has_value()) {
       callback_for_local_credentials.value().credentials_fetched_cb(
           save_credentials_status);
     } else {
@@ -794,7 +820,8 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
     }
     return;
   }
-  if (invoked_for_local) {
+
+  if (callback_for_local_credentials.has_value()) {
     callback_for_local_credentials.value().credentials_fetched_cb(
         valid_local_credentials);
   } else {

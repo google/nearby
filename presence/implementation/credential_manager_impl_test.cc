@@ -15,6 +15,7 @@
 #include "presence/implementation/credential_manager_impl.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,6 +28,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
@@ -95,6 +97,52 @@ class CredentialManagerImplTest : public ::testing::Test {
          ::nearby::presence::PublicCredentialType public_credential_type,
          ::nearby::presence::GetPublicCredentialsResultCallback callback),
         (override));
+  };
+
+  class FakeCredentialStorage : public nearby::CredentialStorageImpl {
+   public:
+    // nearby::CredentialStorageImpl:
+    void SaveCredentials(
+        absl::string_view manager_app_id, absl::string_view account_name,
+        const std::vector<LocalCredential>& private_credentials,
+        const std::vector<SharedCredential>& public_credentials,
+        PublicCredentialType public_credential_type,
+        SaveCredentialsResultCallback callback) override {
+      // Capture the credentials before actually saving them, so that they
+      // can be manipulated later on.
+      private_credentials_ = private_credentials;
+      public_credentials_ = public_credentials;
+
+      nearby::CredentialStorageImpl::SaveCredentials(
+          manager_app_id, account_name, private_credentials, public_credentials,
+          public_credential_type, std::move(callback));
+    }
+    void GetLocalCredentials(
+        const CredentialSelector& credential_selector,
+        GetLocalCredentialsResultCallback callback) override {
+      if (private_credentials_.has_value()) {
+        callback.credentials_fetched_cb(private_credentials_.value());
+      } else {
+        nearby::CredentialStorageImpl::GetLocalCredentials(credential_selector,
+                                                           std::move(callback));
+      }
+    }
+    void GetPublicCredentials(
+        const CredentialSelector& credential_selector,
+        PublicCredentialType public_credential_type,
+        GetPublicCredentialsResultCallback callback) override {
+      if (public_credentials_.has_value()) {
+        callback.credentials_fetched_cb(public_credentials_.value());
+      } else {
+        nearby::CredentialStorageImpl::GetPublicCredentials(
+            credential_selector, public_credential_type, std::move(callback));
+      }
+    }
+
+    std::optional<std::vector<::nearby::internal::SharedCredential>>
+        public_credentials_;
+    std::optional<std::vector<::nearby::internal::LocalCredential>>
+        private_credentials_;
   };
 
   class MockCredentialManager : public CredentialManagerImpl {
@@ -623,6 +671,12 @@ TEST_F(CredentialManagerImplTest, RefillExpiredCredsInGetLocal) {
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE_GROUP};
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
+  auto credential_storage =
+      std::make_unique<CredentialManagerImplTest::FakeCredentialStorage>();
+  auto* credential_storage_ptr = credential_storage.get();
+  credential_manager_ =
+      CredentialManagerImpl(&executor_, std::move(credential_storage));
+
   auto public_credentials = GenerateCredentialsSync(
       device_identity_metadata, kManagerAppId, identity_types,
       kExpectedPresenceCredentialValidDays,
@@ -631,27 +685,18 @@ TEST_F(CredentialManagerImplTest, RefillExpiredCredsInGetLocal) {
   ASSERT_OK(public_credentials);
   EXPECT_EQ(public_credentials->size(), kExpectedPresenceCredentialListSize);
 
-  // Now generated kExpectedPresenceCredentialListSize valid creds, read out the
-  // local creds list, then manually update the first credential's end time to
-  // make it expired.
-  auto private_credentials = GetLocalCredentialsSync(credential_selector);
-  EXPECT_EQ(kExpectedPresenceCredentialListSize, private_credentials.size());
+  // Now that we have generated kExpectedPresenceCredentialListSize valid creds,
+  // tweak the first credential's end time, in both credential lists, to
+  // make them expired.
+  auto expiry_time = absl::ToUnixMillis(absl::Now() - absl::Hours(1));
+  credential_storage_ptr->private_credentials_.value()
+      .at(0)
+      .set_end_time_millis(expiry_time);
+  credential_storage_ptr->public_credentials_.value().at(0).set_end_time_millis(
+      expiry_time);
 
-  auto expiring_local_credential = private_credentials.at(0);
-  expiring_local_credential.set_end_time_millis(
-      absl::ToUnixMillis(absl::Now() - absl::Hours(1)));
-
-  CountDownLatch update_local_cred_latch(1);
-  credential_manager_.UpdateLocalCredential(
-      credential_selector, expiring_local_credential,
-      {
-          .credentials_saved_cb =
-              [&](absl::Status status) {
-                EXPECT_OK(status);
-                update_local_cred_latch.CountDown();
-              },
-      });
-  EXPECT_TRUE(update_local_cred_latch.Await().Ok());
+  auto old_private_credentials =
+      credential_storage_ptr->private_credentials_.value();
 
   auto refilled_private_credentials =
       GetLocalCredentialsSync(credential_selector);
@@ -660,12 +705,12 @@ TEST_F(CredentialManagerImplTest, RefillExpiredCredsInGetLocal) {
 
   // Verifying the expired one private_credentials->at(0) is pruned in the new
   // list.
-  EXPECT_EQ(private_credentials.at(1).secret_id(),
+  EXPECT_EQ(old_private_credentials.at(1).secret_id(),
             refilled_private_credentials.at(0).secret_id());
   // Verifying the new generated cred's start time is the same as previously
   // existing list's last cred's end time.
   EXPECT_EQ(
-      private_credentials.at(5).end_time_millis(),
+      old_private_credentials.at(5).end_time_millis(),
       refilled_private_credentials.at(kExpectedPresenceCredentialListSize - 1)
           .start_time_millis());
 }

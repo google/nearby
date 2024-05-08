@@ -70,7 +70,6 @@ void CredentialStorageImpl::SaveCredentials(
     NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
-    absl::MutexLock lock(&private_mutex_);
     SaveLocalCredentialsLocked(manager_app_id, account_name,
                                private_credentials);
   }
@@ -83,7 +82,6 @@ void CredentialStorageImpl::SaveCredentials(
     NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
-    absl::MutexLock lock(&public_mutex_);
     PublicCredentialKey key = CreatePublicCredentialKey(
         manager_app_id, account_name, public_credential_type);
     auto public_result =
@@ -116,7 +114,6 @@ void CredentialStorageImpl::UpdateLocalCredential(
   NEARBY_LOGS(INFO) << "G3 Update Private Credential for for account: ["
                     << account_name << "], manager app ID:[" << manager_app_id
                     << "]";
-  absl::MutexLock lock(&private_mutex_);
   absl::StatusOr<std::vector<LocalCredential>> credentials =
       GetLocalCredentialsLocked(CredentialSelector{
           .manager_app_id = std::string(manager_app_id),
@@ -142,7 +139,6 @@ void CredentialStorageImpl::GetLocalCredentials(
     const CredentialSelector& credential_selector,
     GetLocalCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Get Private Credentials for " << credential_selector;
-  absl::MutexLock lock(&private_mutex_);
   std::move(callback.credentials_fetched_cb)(
       GetLocalCredentialsLocked(credential_selector));
 }
@@ -173,7 +169,6 @@ void CredentialStorageImpl::GetPublicCredentials(
     PublicCredentialType public_credential_type,
     GetPublicCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Get Public Credentials for " << credential_selector;
-  absl::MutexLock lock(&public_mutex_);
   PublicCredentialKey key = CreatePublicCredentialKey(
       credential_selector.manager_app_id, credential_selector.account_name,
       public_credential_type);
