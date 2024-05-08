@@ -27,7 +27,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
-#include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/action_factory.h"
 #include "presence/implementation/advertisement_decoder.h"
