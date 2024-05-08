@@ -35,7 +35,6 @@ impl BleScanner for MockBleScanner {
     }
 }
 
-unsafe impl Send for MockBleScanner {}
 #[test]
 fn test_engine() {
     println!("test engine starts.");
