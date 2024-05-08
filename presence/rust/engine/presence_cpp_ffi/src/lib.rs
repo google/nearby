@@ -1,6 +1,6 @@
 include!(concat!(env!("OUT_DIR"), "/cpp_ffi.rs"));
 
-use log::info;
+use log::{debug, info};
 use tokio::sync::mpsc;
 
 use presence_core::ble_scan_provider::{BleScanProvider, BleScanner, PresenceBleScanResult};
@@ -9,7 +9,7 @@ use presence_core::client_provider::{DiscoveryCallback, PresenceClientProvider};
 use presence_core::{DiscoveryResult, PresenceEngine, ProviderEvent};
 pub use presence_core::{
     PresenceDiscoveryCondition, PresenceDiscoveryRequest, PresenceIdentityType,
-    PresenceMeasurementAccuracy,
+    PresenceMeasurementAccuracy, PresenceMedium,
 };
 
 pub struct PresenceDiscoveryRequestBuilder {
@@ -70,8 +70,7 @@ struct DiscoveryCallbackCpp {
 impl DiscoveryCallback for DiscoveryCallbackCpp {
     fn on_device_updated(&self, result: DiscoveryResult) {
         unsafe {
-            let presence_result =
-                presence_discovery_result_new(PresenceMedium_RRESENCE_MEDIUM_UNKNOWN);
+            let presence_result = presence_discovery_result_new(PresenceMedium::Unknown);
             for action in result.actions {
                 presence_discovery_result_add_action(presence_result, action);
             }
@@ -199,6 +198,11 @@ pub unsafe extern "C" fn presence_request_debug_print(request: *const PresenceDi
     println!("Rust FFI Lib: {:?}", *request);
 }
 
+#[no_mangle]
+pub extern "C" fn presence_enum_medium_debug_print(presence_medium: PresenceMedium) {
+    debug!("Medium type: {:?}", presence_medium)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -206,8 +210,6 @@ mod tests {
         presence_request_builder_new,
     };
     use presence_core::{PresenceIdentityType, PresenceMeasurementAccuracy};
-
-
 
     #[test]
     fn test_request_builder() {

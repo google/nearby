@@ -1,6 +1,6 @@
 # See https://github.com/mozilla/cbindgen/blob/master/docs.md#cbindgentoml
 
-language = "C"
+language = "C++"
 include_guard = "presence_bindings_h"
 
 ############## Options for Wrapping the Contents of the Header #################
@@ -78,7 +78,7 @@ derive_const_casts = false
 derive_mut_casts = false
 derive_tagged_enum_destructor = false
 derive_tagged_enum_copy_constructor = false
-enum_class = false
+enum_class = true
 private_default_tagged_enum_constructor = false
 
 [const]

@@ -39,6 +39,17 @@ pub struct PresenceDiscoveryRequest {
     pub conditions: Vec<PresenceDiscoveryCondition>,
 }
 
+// The enum is annotated by repr(C) to pass through FFI.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(C)]
+pub enum PresenceMedium {
+    Unknown = 0,
+    BLE,
+    WiFiRTT,
+    UWB,
+    MDNS,
+}
+
 pub struct DiscoveryResult {
     pub priority: i32,
     pub actions: Vec<i32>,

@@ -3,9 +3,10 @@
 #ifndef presence_data_h
 #define presence_data_h
 
-#include "presence_enums.h"
 #include <cstdint>
 #include <vector>
+
+enum class PresenceMedium;
 
 typedef struct {
   std::vector<int> actions;

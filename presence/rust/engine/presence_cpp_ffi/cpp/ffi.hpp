@@ -1,5 +1,8 @@
 // FFI the platform C APIs to Rust.
-#include "../presence_enums.h"
+
+// Forward declaration. The enum is already defined in Rust.
+/// <div rustbindgen hide></div>
+enum class PresenceMedium;
 
 extern "C" {
 struct PresenceBleScanRequest* presence_ble_scan_request_new(int priority);

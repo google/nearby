@@ -22,62 +22,73 @@
 #include "presence_data.h"
 
 
-typedef enum PresenceIdentityType {
+enum class PresenceIdentityType {
   Private = 0,
   Trusted,
   Public,
-} PresenceIdentityType;
+};
 
-typedef enum PresenceMeasurementAccuracy {
+enum class PresenceMeasurementAccuracy {
   Unknown = 0,
   CoarseAccuracy,
   BestAvailable,
-} PresenceMeasurementAccuracy;
+};
 
-typedef struct PresenceBleScanResult PresenceBleScanResult;
+enum class PresenceMedium {
+  Unknown = 0,
+  BLE,
+  WiFiRTT,
+  UWB,
+  MDNS,
+};
 
-typedef struct PresenceBleScanResultBuilder PresenceBleScanResultBuilder;
+struct PresenceBleScanResult;
 
-/**
- * Struct to send a discovery request to the Engine.
- */
-typedef struct PresenceDiscoveryRequest PresenceDiscoveryRequest;
+struct PresenceBleScanResultBuilder;
 
-typedef struct PresenceDiscoveryRequestBuilder PresenceDiscoveryRequestBuilder;
+/// Struct to send a discovery request to the Engine.
+struct PresenceDiscoveryRequest;
 
-typedef struct PresenceEngine PresenceEngine;
+struct PresenceDiscoveryRequestBuilder;
 
-typedef void (*PresenceDiscoveryCallback)(PresenceDiscoveryResult*);
+struct PresenceEngine;
 
-typedef void (*PresenceStartBleScan)(PresenceBleScanRequest*);
+using PresenceDiscoveryCallback = void(*)(PresenceDiscoveryResult*);
 
-struct PresenceEngine *presence_engine_new(PresenceDiscoveryCallback presence_discovery_callback,
-                                           PresenceStartBleScan presence_start_ble_scan);
+using PresenceStartBleScan = void(*)(PresenceBleScanRequest*);
 
-void presence_engine_run(struct PresenceEngine *engine);
 
-void presence_engine_set_request(struct PresenceEngine *engine,
-                                 struct PresenceDiscoveryRequest *request);
+extern "C" {
 
-void presence_ble_scan_callback(struct PresenceEngine *engine,
-                                struct PresenceBleScanResult *scan_result);
+PresenceEngine *presence_engine_new(PresenceDiscoveryCallback presence_discovery_callback,
+                                    PresenceStartBleScan presence_start_ble_scan);
 
-struct PresenceDiscoveryRequestBuilder *presence_request_builder_new(int32_t priority);
+void presence_engine_run(PresenceEngine *engine);
 
-void presence_request_builder_add_condition(struct PresenceDiscoveryRequestBuilder *builder,
+void presence_engine_set_request(PresenceEngine *engine, PresenceDiscoveryRequest *request);
+
+void presence_ble_scan_callback(PresenceEngine *engine, PresenceBleScanResult *scan_result);
+
+PresenceDiscoveryRequestBuilder *presence_request_builder_new(int32_t priority);
+
+void presence_request_builder_add_condition(PresenceDiscoveryRequestBuilder *builder,
                                             int32_t action,
-                                            enum PresenceIdentityType identity_type,
-                                            enum PresenceMeasurementAccuracy measurement_accuracy);
+                                            PresenceIdentityType identity_type,
+                                            PresenceMeasurementAccuracy measurement_accuracy);
 
-struct PresenceDiscoveryRequest *presence_request_builder_build(struct PresenceDiscoveryRequestBuilder *builder);
+PresenceDiscoveryRequest *presence_request_builder_build(PresenceDiscoveryRequestBuilder *builder);
 
-struct PresenceBleScanResultBuilder *presence_ble_scan_result_builder_new(int32_t priority);
+PresenceBleScanResultBuilder *presence_ble_scan_result_builder_new(int32_t priority);
 
-void presence_ble_scan_result_builder_add_action(struct PresenceBleScanResultBuilder *builder,
+void presence_ble_scan_result_builder_add_action(PresenceBleScanResultBuilder *builder,
                                                  int32_t action);
 
-struct PresenceBleScanResult *presence_ble_scan_result_builder_build(struct PresenceBleScanResultBuilder *builder);
+PresenceBleScanResult *presence_ble_scan_result_builder_build(PresenceBleScanResultBuilder *builder);
 
-void presence_request_debug_print(const struct PresenceDiscoveryRequest *request);
+void presence_request_debug_print(const PresenceDiscoveryRequest *request);
 
-#endif /* presence_bindings_h */
+void presence_enum_medium_debug_print(PresenceMedium presence_medium);
+
+} // extern "C"
+
+#endif // presence_bindings_h
