@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_RUST_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_DECODER_RUST_IMPL_H_
 
-#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -30,12 +29,13 @@ namespace presence {
 // Implements the Rust backed parsing and decrypting of advertisement bytes
 class AdvertisementDecoderImpl : public AdvertisementDecoder {
  public:
-  AdvertisementDecoderImpl() : cred_book_(InitializeCredentialBook(nullptr)) {};
+  AdvertisementDecoderImpl() : cred_book_(InitializeCredentialBook(nullptr)) {}
+
   explicit AdvertisementDecoderImpl(
       absl::flat_hash_map<nearby::internal::IdentityType,
                           std::vector<internal::SharedCredential>>*
           credentials_map)
-      : cred_book_(InitializeCredentialBook(credentials_map)) {};
+      : cred_book_(InitializeCredentialBook(credentials_map)) {}
 
   absl::StatusOr<Advertisement> DecodeAdvertisement(
       absl::string_view advertisement) override;
