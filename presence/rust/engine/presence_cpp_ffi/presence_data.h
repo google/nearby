@@ -22,9 +22,4 @@ struct PresenceBleScanRequest {
   std::vector<uint32_t> actions;
 };
 
-// Struct to hook system APIs from different platforms.
-struct PresencePlatform {
-  void (* start_ble_scan)(struct PresenceBleScanRequest*);
-};
-
 #endif // presence_data_h

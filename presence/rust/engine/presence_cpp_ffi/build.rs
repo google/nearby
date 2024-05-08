@@ -24,10 +24,10 @@ fn main() {
     // Generates bindings for Rust Engine to access C++ system APIs.
     let lib_dir_path = PathBuf::from(crate_dir.as_str())
         .join("cpp")
-        .join("ffi.hpp")
+        .join("rust_to_c.hpp")
         .canonicalize()
         .expect(&*format!(
-            "cannot canonicalize path: {}/cpp/ffi.hpp",
+            "cannot canonicalize path: {}/cpp/rust_to_c.hpp",
             crate_dir.as_str()
         ));
     let headers_path_str = lib_dir_path.to_str().expect("Path not valid");

@@ -1,1 +1,1 @@
-add_library(cpp_ffi ffi.cpp)
+add_library(cpp_ffi rust_to_c.cpp)
