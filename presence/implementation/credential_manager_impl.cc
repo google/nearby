@@ -114,7 +114,7 @@ int64_t GenerateIdFromByteArray(const ByteArray& input) {
   }
   if (id == std::numeric_limits<int64_t>::min())
     return std::numeric_limits<int64_t>::max();
-  return id;
+  return std::abs(id);
 }
 
 void CredentialManagerImpl::GenerateCredentials(
