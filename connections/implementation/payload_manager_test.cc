@@ -200,6 +200,21 @@ TEST_P(PayloadManagerTest, CanSendBytePayload) {
   env_.Stop();
 }
 
+TEST_P(PayloadManagerTest, PayloadId0IsError) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  user_a.ExpectPayload(payload_latch_);
+  user_b.SendPayload(Payload(0, ByteArray{std::string(kMessage)}));
+  EXPECT_FALSE(payload_latch_.Await(kDefaultTimeout).result());
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
 TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   env_.Start();
   PayloadSimulationUser user_a(kDeviceA, GetParam());

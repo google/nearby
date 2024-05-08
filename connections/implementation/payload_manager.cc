@@ -1224,6 +1224,16 @@ void PayloadManager::ProcessDataPacket(
                        << payload_header.id()
                        << " from endpoint_id=" << from_endpoint_id
                        << " at offset " << payload_chunk.offset();
+  // We explicitly deny payloads with ID 0.
+  if (payload_header.id() == 0) {
+    NEARBY_LOGS(WARNING) << "Denying payload with ID 0 for endpoint_id="
+                         << from_endpoint_id << ", aborting receipt.";
+    // Send the error to the remote endpoint.
+    SendControlMessage({from_endpoint_id}, payload_header,
+                       payload_chunk.offset(),
+                       PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
+    return;
+  }
   Payload::Id payload_id = payload_header.id();
   PendingPayloadHandle pending_payload;
   if (payload_chunk.offset() == 0) {
