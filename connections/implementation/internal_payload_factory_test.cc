@@ -20,13 +20,16 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/pipe.h"
 
 namespace nearby {
@@ -164,6 +167,7 @@ TEST(InternalPayloadFactoryTest,
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "12345");
 }
+
 TEST(InternalPayloadFactoryTest,
      CanCreateInternalPayloadFromFileMessageWithFileNameSet) {
   PayloadTransferFrame frame;
@@ -181,6 +185,99 @@ TEST(InternalPayloadFactoryTest,
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "test.file.name");
 }
+
+struct FileNameTestData {
+  std::string test_title;
+  std::string file_name;
+  std::string expected;
+};
+
+struct ParentFolderTestData {
+  std::string test_title;
+  std::string parent_folder;
+  std::string expected;
+};
+
+using FileNameValidationTest = testing::TestWithParam<FileNameTestData>;
+using ParentFolderNameValidationTest =
+    testing::TestWithParam<ParentFolderTestData>;
+
+TEST_P(FileNameValidationTest, CheckIllegalFileNameWithParam) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kCheckIllegalCharacters,
+      true);
+  PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(512);
+  header.set_file_name(GetParam().file_name);
+  std::unique_ptr<InternalPayload> internal_payload =
+      CreateIncomingInternalPayload(frame, path);
+  EXPECT_NE(internal_payload, nullptr);
+  Payload payload = internal_payload->ReleasePayload();
+  EXPECT_EQ(payload.GetFileName(), GetParam().expected);
+  NEARBY_LOG(INFO, "FileNameValidationTest: %s complete",
+             GetParam().test_title.c_str());
+}
+
+TEST_P(ParentFolderNameValidationTest, CheckIllegalParentFolderWithParam) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kCheckIllegalCharacters,
+      true);
+  PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(512);
+  std::string file_name = "test.file.name";
+  header.set_file_name(file_name);
+  header.set_parent_folder(GetParam().parent_folder);
+  std::unique_ptr<InternalPayload> internal_payload =
+      CreateIncomingInternalPayload(frame, path);
+  EXPECT_NE(internal_payload, nullptr);
+  Payload payload = internal_payload->ReleasePayload();
+  EXPECT_EQ(payload.GetParentFolder(), GetParam().expected);
+  NEARBY_LOG(INFO, "ParentFolderNameValidationTest: %s complete",
+             GetParam().test_title.c_str());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    FileNameTestInitiation,  // This name is only used for instantiation
+    FileNameValidationTest,  // This is the name of your parameterized test
+    testing::ValuesIn<FileNameTestData>({
+        {"CheckIllegalFileNameEmpty", "",
+         std::string(kSubstitutionForEmptyFileName)},
+        {"CheckIllegalFileNameBeginning", "..test.file.name",
+         "_test.file.name"},
+        {"CheckIllegalFileNameBeginningWithMultiplePrefixes",
+         "../../../../../test.file.name", "__________test.file.name"},
+        {"CheckIllegalFileNameUnderscore", "../|t\\est?*\".?file<>.*\nname",
+         "___t_est___._file__.__name"},
+        {"CheckIllegalFileNameEnding", "test.file.name\\", "test.file.name_"},
+        {"CheckFileNameStartingOneDot", ".test.file.name", ".test.file.name"},
+    }));
+
+INSTANTIATE_TEST_SUITE_P(
+    ParentFolderTestInitiation,      // This name is only used for instantiation
+    ParentFolderNameValidationTest,  // This is the name of your parameterized
+                                     // test
+    testing::ValuesIn<ParentFolderTestData>({
+        {"CheckIllegalParentFolderNameUnderScore",
+         "../../..parent?*\".\n\r\t\ffolder", "___parent___.____folder"},
+        {"CheckIllegalParentFolderNameEndingBackSlash", "parent.folder\\",
+         "parent.folder"},
+        {"CheckIllegalParentFolderNameEndingForwardSlash", "parent.folder/",
+         "parent.folder"},
+        {"CheckIllegalParentFolderNameForwardSlash",
+         "c:\\parent.folder\\folder..", "c_/parent.folder/folder_"},
+    }));
 
 void CreateFileWithContents(Payload::Id payload_id, const ByteArray& contents) {
   OutputFile file(payload_id);

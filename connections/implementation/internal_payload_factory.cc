@@ -16,15 +16,20 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <utility>
 
-#include "absl/strings/str_cat.h"
+#include "absl/strings/str_replace.h"
+#include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
@@ -304,6 +309,43 @@ class IncomingFileInternalPayload : public InternalPayload {
   const std::int64_t total_size_;
 };
 
+// Check and build the valid file name.
+// Doc: go/quickshare-illegal-characters
+std::string BuildValidFileName(std::string file_name) {
+  if (file_name.empty()) {
+    return std::string(kSubstitutionForEmptyFileName);
+  }
+  // Illegal file name patterns to substitute with underscore.
+  // The initializer_list consists of pairs of <illegal_pattern, substitution>
+  const std::initializer_list<std::pair<absl::string_view, absl::string_view>>
+      kIllegalFileNamePatternsForUnderscore{
+          {"..", "_"}, {"\\", "_"}, {"/", "_"},  {":", "_"},  {"*", "_"},
+          {"?", "_"},  {"\"", "_"}, {"<", "_"},  {">", "_"},  {"|", "_"},
+          {"\n", "_"}, {"\r", "_"}, {"\t", "_"}, {"\f", "_"}, {"\0", "_"}};
+  absl::StrReplaceAll(kIllegalFileNamePatternsForUnderscore, &file_name);
+
+  return file_name;
+}
+
+// Check and build the valid parent folder name.
+// Doc: go/quickshare-illegal-characters
+std::string BuildValidParentFolder(std::string parent_folder) {
+  // Illegal parent folder patterns to substitute with slash or underscore.
+  // The initializer_list consists of pairs of <illegal_pattern, substitution>
+  const std::initializer_list<std::pair<absl::string_view, absl::string_view>>
+      kIllegalParentFolderPatternsForUnderscore{
+          {"\\", "/"}, {"../", "_"}, {"..", "_"}, {":", "_"},  {"*", "_"},
+          {"?", "_"},  {"\"", "_"},  {"<", "_"},  {">", "_"},  {"|", "_"},
+          {"\n", "_"}, {"\r", "_"},  {"\t", "_"}, {"\f", "_"}, {"\0", "_"}};
+  absl::StrReplaceAll(kIllegalParentFolderPatternsForUnderscore,
+                      &parent_folder);
+
+  absl::string_view parent_folder_view(parent_folder);
+  while (absl::ConsumeSuffix(&parent_folder_view, "/")) {};
+
+  return std::string(parent_folder_view);
+}
+
 }  // namespace
 
 using ::nearby::api::ImplementationPlatform;
@@ -380,11 +422,24 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
       int64_t total_size = 0;
 
       if (frame.payload_header().has_parent_folder()) {
-        parent_folder = frame.payload_header().parent_folder();
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kCheckIllegalCharacters)) {
+          parent_folder =
+              BuildValidParentFolder(frame.payload_header().parent_folder());
+        } else {
+          parent_folder = frame.payload_header().parent_folder();
+        }
       }
 
       if (frame.payload_header().has_file_name()) {
-        file_name = frame.payload_header().file_name();
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kCheckIllegalCharacters)) {
+          file_name = BuildValidFileName(frame.payload_header().file_name());
+        } else {
+          file_name = frame.payload_header().file_name();
+        }
         // if custom_save_path is empty, default download path is used
         file_path = make_path(custom_save_path, parent_folder, file_name);
       } else {

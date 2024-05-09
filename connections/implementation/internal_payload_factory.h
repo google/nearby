@@ -17,13 +17,13 @@
 
 #include <string>
 
-#include <memory>
-
 #include "connections/implementation/internal_payload.h"
 #include "connections/payload.h"
 
 namespace nearby {
 namespace connections {
+
+inline absl::string_view kSubstitutionForEmptyFileName = "(invalid)";
 
 // Creates an InternalPayload representing an outgoing Payload.
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(Payload payload);
