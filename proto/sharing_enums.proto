@@ -100,7 +100,8 @@ enum EventType {
   RECEIVE_ATTACHMENTS_START = 17;
 
   // End of receiving attachments phase at receiver.
-  RECEIVE_ATTACHMENTS_END = 18;
+  RECEIVE_ATTACHMENTS_END = 18
+      /* stage = STAGE_QS_TRANSFER_END */;
 
   // Sender cancels sending attachments.
   CANCEL_SENDING_ATTACHMENTS = 19;
@@ -308,8 +309,7 @@ enum EstablishConnectionStatus {
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
 enum AttachmentTransmissionStatus {
-  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0
-      /* status_bucket = STATUS_UNKNOWN */;
+  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0;
   COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1
       /* status_bucket = STATUS_SUCCESSFUL */;
   CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2
