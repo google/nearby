@@ -122,7 +122,7 @@ bool BleV2::StartAdvertising(const std::string& service_id,
 
   if (!radio_.IsEnabled()) {
     NEARBY_LOGS(INFO)
-        << "Can't start BLE scanning because Bluetooth was never turned on";
+        << "Can't start BLE advertising because Bluetooth was never turned on";
     return false;
   }
 
