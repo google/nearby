@@ -18,9 +18,9 @@
 #include <string>
 #include <vector>
 
-#include "internal/crypto_cros/random.h"
 #include "internal/interop/device.h"
 #include "internal/platform/connection_info.h"
+#include "internal/platform/crypto.h"
 
 namespace nearby {
 namespace connections {
@@ -59,8 +59,8 @@ class ConnectionsDevice : public nearby::NearbyDevice {
  private:
   std::string GenerateRandomEndpointId() {
     std::string result(kEndpointIdLength, 0);
-    crypto::RandBytes(const_cast<std::string::value_type*>(result.data()),
-                      result.size());
+    RandBytes(const_cast<std::string::value_type*>(result.data()),
+              result.size());
     return result;
   }
 

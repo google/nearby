@@ -74,8 +74,7 @@ BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
       .action = action_};
 
   std::string bytes(kSaltSize, 0);
-  crypto::RandBytes(const_cast<std::string::value_type*>(bytes.data()),
-                    bytes.size());
+  RandBytes(const_cast<std::string::value_type*>(bytes.data()), bytes.size());
 
   BaseBroadcastRequest broadcast_request{
       .variant = presence,

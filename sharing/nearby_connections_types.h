@@ -27,8 +27,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/files.h"
-#include "internal/crypto_cros/random.h"
 #include "internal/interop/authentication_status.h"
+#include "internal/platform/crypto.h"
 #include "sharing/common/compatible_u8_string.h"
 
 namespace nearby {
@@ -472,7 +472,7 @@ struct Payload {
 
   int64_t GenerateId() {
     int64_t id;
-    crypto::RandBytes(&id, sizeof(id));
+    RandBytes(&id, sizeof(id));
     return id;
   }
 };

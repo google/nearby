@@ -21,6 +21,7 @@ cc_library(
         "//internal/base:files",
         "//internal/crypto_cros",
         "//internal/interop:authentication_status",
+        "//internal/platform:types",
         "//sharing/common:compatible_u8_string",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
@@ -59,6 +60,7 @@ cc_library(
         ":connection_types",
         "//internal/crypto_cros",
         "//internal/network:url",
+        "//internal/platform:types",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/internal/base",
@@ -255,7 +257,14 @@ cc_test(
         ":connection_types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(

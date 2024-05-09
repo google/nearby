@@ -35,10 +35,10 @@ cc_library(
     deps = [
         "//connections:core_types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
-        "//internal/crypto_cros",
         "//internal/interop:authentication_status",
         "//internal/interop:device",
         "//internal/platform:connection_info",
+        "//internal/platform:types",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",

@@ -141,6 +141,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/account:__subpackages__",
         "//internal/auth:__subpackages__",
+        "//internal/crypto:__subpackages__",
         "//internal/data:__subpackages__",
         "//internal/flags:__subpackages__",
         "//internal/interop:__subpackages__",

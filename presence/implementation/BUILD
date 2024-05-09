@@ -14,11 +14,10 @@
 
 licenses(["notice"])
 
-cc_library(
-    name = "internal",
+filegroup(
+    name = "presence_internal_common_srcs",
     srcs = [
         "action_factory.cc",
-        "advertisement_decoder_rust_impl.cc",
         "advertisement_factory.cc",
         "advertisement_filter.cc",
         "base_broadcast_request.cc",
@@ -29,10 +28,14 @@ cc_library(
         "scan_manager.cc",
         "service_controller_impl.cc",
     ],
-    hdrs = [
+)
+
+filegroup(
+    name = "presence_internal_common_hdrs",
+    srcs = [
         "action_factory.h",
         "advertisement_decoder.h",
-        "advertisement_decoder_rust_impl.h",
+        "advertisement_decoder_impl.h",
         "advertisement_factory.h",
         "advertisement_filter.h",
         "base_broadcast_request.h",
@@ -45,6 +48,18 @@ cc_library(
         "scan_manager.h",
         "service_controller.h",
         "service_controller_impl.h",
+    ],
+)
+
+cc_library(
+    name = "internal",
+    srcs = [
+        "advertisement_decoder_rust_impl.cc",
+        ":presence_internal_common_srcs",
+    ],
+    hdrs = [
+        "advertisement_decoder_rust_impl.h",
+        ":presence_internal_common_hdrs",
     ],
     defines = ["USE_RUST_DECODER=1"],
     visibility = [
@@ -82,6 +97,7 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
         "@com_google_absl//absl/types:variant",
     ],
 )
@@ -89,34 +105,12 @@ cc_library(
 cc_library(
     name = "internal_deprecated",
     srcs = [
-        "action_factory.cc",
         "advertisement_decoder_impl.cc",
-        "advertisement_factory.cc",
-        "advertisement_filter.cc",
-        "base_broadcast_request.cc",
-        "broadcast_manager.cc",
-        "connection_authenticator_impl.cc",
-        "credential_manager_impl.cc",
-        "ldt.cc",
-        "scan_manager.cc",
-        "service_controller_impl.cc",
+        ":presence_internal_common_srcs",
     ],
     hdrs = [
-        "action_factory.h",
-        "advertisement_decoder.h",
         "advertisement_decoder_impl.h",
-        "advertisement_factory.h",
-        "advertisement_filter.h",
-        "base_broadcast_request.h",
-        "broadcast_manager.h",
-        "connection_authenticator.h",
-        "connection_authenticator_impl.h",
-        "credential_manager.h",
-        "credential_manager_impl.h",
-        "ldt.h",
-        "scan_manager.h",
-        "service_controller.h",
-        "service_controller_impl.h",
+        ":presence_internal_common_hdrs",
     ],
     visibility = [
         "//presence:__subpackages__",
@@ -152,6 +146,7 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
         "@com_google_absl//absl/types:variant",
     ],
 )

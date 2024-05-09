@@ -328,6 +328,7 @@ cc_library(
         "//internal/auth:__subpackages__",
         "//internal/auth/credential_store:__subpackages__",
         "//internal/base:__subpackages__",
+        "//internal/crypto:__subpackages__",
         "//internal/data:__subpackages__",
         "//internal/flags:__subpackages__",
         "//internal/interop:__pkg__",
@@ -360,6 +361,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -467,6 +469,7 @@ cc_test(
         ":test_util",
         ":types",
         ":uuid",
+        "//internal/crypto_cros",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",

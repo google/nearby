@@ -22,7 +22,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "internal/crypto_cros/random.h"
+#include "internal/platform/crypto.h"
 #include <openssl/base.h>
 #include <openssl/evp.h>
 
@@ -98,7 +98,7 @@ absl::StatusOr<Ed25519KeyPair> Ed25519Signer::CreateNewKeyPair(
 
 absl::StatusOr<Ed25519KeyPair> Ed25519Signer::CreateNewKeyPair() {
   uint8_t key_seed[kEd25519KeySeedSize] = {0};
-  RandBytes(key_seed, kEd25519KeySeedSize);
+  nearby::RandBytes(key_seed, kEd25519KeySeedSize);
   return CreateNewKeyPair(
       std::string(reinterpret_cast<char *>(key_seed), kEd25519KeySeedSize));
 }

@@ -187,7 +187,9 @@ let package = Package(
       dependencies: [
         "protobuf",
         .product(name: "AbseilCXX17", package: "abseil-cpp-SwiftPM"),
-        .product(name: "openssl_grpc", package: "boringssl-SwiftPM", moduleAliases: ["NearbySSL": "openssl_grpc"]),
+        .product(
+          name: "openssl_grpc", package: "boringssl-SwiftPM",
+          moduleAliases: ["NearbySSL": "openssl_grpc"]),
       ],
       path: "third_party/ukey2",
       exclude: [
@@ -495,7 +497,6 @@ let package = Package(
         "internal/crypto_cros/ec_signature_creator_unittest.cc",
         "internal/crypto_cros/encryptor_unittest.cc",
         "internal/crypto_cros/hmac_unittest.cc",
-        "internal/crypto_cros/random_unittest.cc",
         "internal/crypto_cros/rsa_private_key_unittest.cc",
         "internal/crypto_cros/secure_hash_unittest.cc",
         "internal/crypto_cros/sha2_unittest.cc",
