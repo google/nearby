@@ -81,6 +81,7 @@ cc_library(
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/types:variant",
     ],
 )

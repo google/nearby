@@ -17,16 +17,17 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
 #include <variant>
 
+#include "absl/random/random.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace connections {
@@ -138,7 +139,11 @@ void Payload::SetOffset(size_t offset) {
 size_t Payload::GetOffset() { return offset_; }
 
 // Generate Payload Id; to be passed to outgoing file constructor.
-Payload::Id Payload::GenerateId() { return Prng().NextInt64(); }
+Payload::Id Payload::GenerateId() {
+  absl::BitGen bitgen;
+  return absl::Uniform<Payload::Id>(absl::IntervalOpenClosed, bitgen, 0,
+                                    std::numeric_limits<Payload::Id>::max());
+}
 
 PayloadType Payload::FindType() const {
   return static_cast<PayloadType>(content_.index());
