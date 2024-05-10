@@ -66,6 +66,10 @@ constexpr auto kSafeToDisconnectVersion =
 constexpr auto kProcessBwuFrameAfterPcpConnected =
     flags::Flag<bool>(kConfigPackage, "45627835", false);
 
+// When true, check illegal characters in the file name and parent folder.
+constexpr auto kCheckIllegalCharacters =
+    flags::Flag<bool>(kConfigPackage, "45632028", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
