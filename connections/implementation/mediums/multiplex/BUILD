@@ -18,10 +18,12 @@ cc_library(
     srcs = [
         "multiplex_frames.cc",
         "multiplex_output_stream.cc",
+        "multiplex_socket.cc",
     ],
     hdrs = [
         "multiplex_frames.h",
         "multiplex_output_stream.h",
+        "multiplex_socket.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
@@ -38,6 +40,7 @@ cc_library(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
+        "//proto:connections_enums_cc_proto",
         "//proto/mediums:multiplex_frames_cc_proto",
         "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/base:core_headers",
@@ -59,16 +62,21 @@ cc_test(
     srcs = [
         "multiplex_frames_test.cc",
         "multiplex_output_stream_test.cc",
+        "multiplex_socket_test.cc",
     ],
     deps = [
         ":multiplex",
+        "//connections/implementation:internal",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
+        "//proto:connections_enums_cc_proto",
         "//proto/mediums:multiplex_frames_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

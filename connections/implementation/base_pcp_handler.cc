@@ -1338,7 +1338,8 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
 
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kSuccess, client->GetLocalOsInfo()));
+                Status::kSuccess, client->GetLocalOsInfo(),
+                client->GetLocalMultiplexSocketBitmask()));
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO)
               << "AcceptConnection: failed to send response: endpoint_id="
@@ -1400,7 +1401,8 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kConnectionRejected, client->GetLocalOsInfo()));
+                Status::kConnectionRejected, client->GetLocalOsInfo(),
+                client->GetLocalMultiplexSocketBitmask()));
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO)
               << "RejectConnection: failed to send response: endpoint_id="

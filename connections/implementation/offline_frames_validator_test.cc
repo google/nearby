@@ -174,7 +174,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info);
+  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info,
+                                          /*multiplex_socket_bitmask=*/0);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -187,7 +188,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info);
+  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info,
+                                          /*multiplex_socket_bitmask=*/0);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -203,7 +205,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  ByteArray bytes = ForConnectionResponse(-1, os_info);
+  ByteArray bytes =
+      ForConnectionResponse(-1, os_info, /*multiplex_socket_bitmask=*/0);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);

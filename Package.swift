@@ -463,6 +463,7 @@ let package = Package(
         "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker_test.cc",
         "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement_test.cc",
         "connections/implementation/mediums/multiplex/multiplex_frames_test.cc",
+        "connections/implementation/mediums/multiplex/multiplex_socket_test.cc",
         "connections/implementation/mediums/multiplex/multiplex_output_stream_test.cc",
         "connections/implementation/mediums/webrtc_peer_id_test.cc",
         "connections/implementation/mediums/wifi_lan_test.cc",

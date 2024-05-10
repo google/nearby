@@ -171,8 +171,8 @@ ByteArray ForConnectionRequestPresence(
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForConnectionResponse(
-    std::int32_t status, const OsInfo& os_info) {
+ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info,
+                                std::int32_t multiplex_socket_bitmask) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -188,6 +188,7 @@ ByteArray ForConnectionResponse(
                               ? ConnectionResponseFrame::ACCEPT
                               : ConnectionResponseFrame::REJECT);
   *sub_frame->mutable_os_info() = os_info;
+  sub_frame->set_multiplex_socket_bitmask(multiplex_socket_bitmask);
   sub_frame->set_safe_to_disconnect_version(
       NearbyFlags::GetInstance().GetInt64Flag(
           config_package_nearby::nearby_connections_feature::

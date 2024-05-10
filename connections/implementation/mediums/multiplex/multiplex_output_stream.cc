@@ -161,18 +161,17 @@ bool MultiplexOutputStream::Close(const std::string& service_id) {
     return false;
   }
 
-  auto service_id_hash_salt = item->second->GetserviceIdHashSalt();
+  auto service_id_hash_salt = item->second->GetServiceIdHashSalt();
   item->second->Close();
   if (is_enabled_.Get()) {
     Future<bool> future;
     multiplex_writer_.EnqueueToSend(
         &future,
-        ForDisconnection(service_id, item->second->GetserviceIdHashSalt()),
+        ForDisconnection(service_id, item->second->GetServiceIdHashSalt()),
         "MultiplexFrame::DISCONNECTION");
     WaitForResult("MultiplexFrame::DISCONNECTION", &future);
   }
   virtual_output_streams_.erase(service_id);
-
   if (virtual_output_streams_.empty()) {
     physical_writer_->Close();
     multiplex_writer_.Close();
@@ -203,11 +202,11 @@ OutputStream* MultiplexOutputStream::CreateVirtualOutputStream(
       .first->second.get();
 }
 
-std::string MultiplexOutputStream::GetserviceIdHashSalt(
+std::string MultiplexOutputStream::GetServiceIdHashSalt(
     const std::string& service_id) {
   auto item = virtual_output_streams_.find(service_id);
   if (item != virtual_output_streams_.end()) {
-    return item->second->GetserviceIdHashSalt();
+    return item->second->GetServiceIdHashSalt();
   }
   return {};
 }
@@ -231,7 +230,7 @@ MultiplexOutputStream::MultiplexWriter::~MultiplexWriter() {
 void MultiplexOutputStream::MultiplexWriter::EnqueueToSend(
     Future<bool>* future, const ByteArray& data,
     const std::string& frame_name) {
-  MutexLock lock(&mutex_);
+  MutexLock lock(&writing_mutex_);
   data_queue_.Put(EnqueuedFrame(future, data));
 
   if (is_writing_) {
@@ -253,18 +252,20 @@ void MultiplexOutputStream::MultiplexWriter::StartWriting() {
       Write(enqueued_frame.value());
       continue;
     }
-
-    MutexLock lock(&mutex_);
-    if (data_queue_.Empty() && is_writing_) {
-      is_writing_ = false;
-      Exception wait_succeeded = is_writing_cond_.Wait();
-      if (!wait_succeeded.Ok()) {
-        NEARBY_LOGS(WARNING)
-            << TAG << __func__
-            << ": Failure waiting to wait: " << wait_succeeded.value;
-        return;
+    {
+      MutexLock lock(&writing_mutex_);
+      if (data_queue_.Empty() && is_writing_) {
+        is_writing_ = false;
+        NEARBY_LOGS(INFO) << TAG << "Waiting for data_queue_ has data.";
+        Exception wait_succeeded = is_writing_cond_.Wait();
+        if (!wait_succeeded.Ok()) {
+          NEARBY_LOGS(WARNING)
+              << TAG << __func__
+              << ": Failure waiting to wait: " << wait_succeeded.value;
+          return;
+        }
+        if (is_closed_) break;
       }
-      if (is_closed_) break;
     }
   }
   NEARBY_LOGS(INFO) << TAG << "Writing loop stopped.";
@@ -291,7 +292,7 @@ void MultiplexOutputStream::MultiplexWriter::Write(
 }
 
 void MultiplexOutputStream::MultiplexWriter::Close() {
-  MutexLock lock(&mutex_);
+  MutexLock lock(&writing_mutex_);
   is_closed_ = true;
   if (is_write_loop_running_) {
     NEARBY_LOGS(INFO) << TAG << "Stop writing loop and Shutdown writer thread.";

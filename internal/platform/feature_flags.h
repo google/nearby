@@ -107,6 +107,9 @@ class FeatureFlags {
     // The new outgoing frame with the middle priority will wait for space to
     // become available if the queue is full.'
     std::uint32_t multiplex_socket_middle_priority_queue_capacity = 50;
+    // The maximum size of frame we'll attempt to read, to avoid a remote device
+    // from triggering an OutOfMemory error.
+    std::uint32_t connection_max_frame_length = 1048576;
   };
 
   static const FeatureFlags& GetInstance() {

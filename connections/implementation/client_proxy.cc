@@ -30,13 +30,17 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "connections/advertising_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device_provider.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
@@ -1101,6 +1105,55 @@ OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
       return OsInfo::ANDROID;
   }
 }
+
+std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplex)) {
+    return kBtMultiplexEnabled;
+  }
+  return 0;
+}
+
+void ClientProxy::SetRemoteMultiplexSocketBitmask(
+    absl::string_view endpoint_id, int remote_multiplex_socket_bitmask) {
+  MutexLock lock(&mutex_);
+  ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->first.remote_multiplex_socket_bitmask =
+        remote_multiplex_socket_bitmask;
+  }
+}
+
+std::optional<std::int32_t> ClientProxy::GetRemoteMultiplexSocketBitmask(
+    absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
+  const ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->first.remote_multiplex_socket_bitmask;
+  }
+  return std::nullopt;
+}
+bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
+                                             Medium medium) {
+  MutexLock lock(&mutex_);
+  ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item == nullptr) {
+    return false;
+  }
+
+  int combined_result = GetLocalMultiplexSocketBitmask() &
+                       item->first.remote_multiplex_socket_bitmask;
+  switch (medium) {
+    case Medium::BLUETOOTH:
+      return (combined_result & kBtMultiplexEnabled) != 0;
+    case Medium::WIFI_LAN:
+      return (combined_result & kWifiLanMultiplexEnabled) != 0;
+    default:
+      return false;
+  }
+}
+
 
 std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
   switch (status) {

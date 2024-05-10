@@ -129,7 +129,7 @@ class MultiplexOutputStream {
       const std::string& service_id, const std::string& service_id_hash_salt);
 
   // Gets the service id hash salt.
-  std::string GetserviceIdHashSalt(const std::string& service_id);
+  std::string GetServiceIdHashSalt(const std::string& service_id);
 
   // Shuts down the multiplex output stream.
   void Shutdown();
@@ -169,10 +169,9 @@ class MultiplexOutputStream {
         FeatureFlags::GetInstance()
             .GetFlags()
             .multiplex_socket_middle_priority_queue_capacity};
-
-    mutable Mutex mutex_;
-    ConditionVariable is_writing_cond_{&mutex_};
-    bool is_writing_ = false;
+    mutable Mutex writing_mutex_;
+    ConditionVariable is_writing_cond_{&writing_mutex_};
+    bool is_writing_ ABSL_GUARDED_BY(writing_mutex_) = false;
     bool is_closed_ = false;
 
     // The single thread to write all enqueued frames.
@@ -198,7 +197,7 @@ class MultiplexOutputStream {
     }
 
     // Returns the service id hash salt.
-    std::string GetserviceIdHashSalt() { return service_id_hash_salt_; }
+    std::string GetServiceIdHashSalt() { return service_id_hash_salt_; }
 
     // Sets the service id hash salt.
     void SetserviceIdHashSalt(std::string service_id_hash_salt) {

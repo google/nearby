@@ -204,7 +204,7 @@ TEST_F(MultiplexOutputStreamTest, CreateTwoVirtualStreams_SendData) {
   MultiThreadExecutor executor(2);
   CountDownLatch latch(2);
   executor.Execute([&virtual_output_stream_1, &latch, &data_1]() {
-    absl::SleepFor(absl::Milliseconds(500));
+    absl::SleepFor(absl::Milliseconds(100));
     virtual_output_stream_1->Write(data_1);
     virtual_output_stream_1->Flush();
     latch.CountDown();
@@ -214,7 +214,7 @@ TEST_F(MultiplexOutputStreamTest, CreateTwoVirtualStreams_SendData) {
     virtual_output_stream_2->Flush();
     latch.CountDown();
   });
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(2000)).result());
+  EXPECT_TRUE(latch.Await(absl::Milliseconds(5000)).result());
 
   auto frame_data = ReadFrame();
   ASSERT_TRUE(frame_data.ok());

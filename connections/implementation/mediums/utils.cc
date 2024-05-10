@@ -14,14 +14,22 @@
 
 #include "connections/implementation/mediums/utils.h"
 
-#include <memory>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 
+#include "internal/platform/base64_utils.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/crypto.h" //NOLINT
 #include "internal/platform/prng.h"
-#include "internal/platform/crypto.h"
 
 namespace nearby {
 namespace connections {
+
+namespace {
+constexpr int kDefaultSaltLength = 16;
+}  // namespace
+
 using ::location::nearby::connections::LocationHint;
 using ::location::nearby::connections::LocationStandard;
 
@@ -68,6 +76,14 @@ LocationHint Utils::BuildLocationHint(const std::string& location) {
     }
   }
   return location_hint;
+}
+
+// Generates salts.
+std::string Utils::GenerateSalt() { return GenerateSalt(kDefaultSaltLength); }
+
+std::string Utils::GenerateSalt(size_t length) {
+  ByteArray salt = GenerateRandomBytes(length);
+  return Base64Utils::Encode(salt);
 }
 
 }  // namespace connections

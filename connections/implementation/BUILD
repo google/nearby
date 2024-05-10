@@ -109,6 +109,7 @@ cc_library(
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__pkg__",
         "//connections/implementation/fuzzers:__pkg__",
+        "//connections/implementation/mediums/multiplex:__pkg__",
         "//sharing:__subpackages__",
     ],
     deps = [

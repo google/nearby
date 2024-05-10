@@ -70,6 +70,10 @@ constexpr auto kProcessBwuFrameAfterPcpConnected =
 constexpr auto kCheckIllegalCharacters =
     flags::Flag<bool>(kConfigPackage, "45632028", false);
 
+// When true, allows to enable Multiplex feature.
+constexpr auto kEnableMultiplex =
+    flags::Flag<bool>(kConfigPackage, "45627836", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
