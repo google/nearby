@@ -184,7 +184,8 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           context_, context_->GetClock(), device_info_, preference_manager_,
           local_device_data_manager_.get(), event_logger)),
       service_extension_(std::make_unique<NearbySharingServiceExtension>(
-          context_, settings_.get())) {
+          context_, settings_.get())),
+      app_info_(sharing_platform.CreateAppInfo()) {
   NL_DCHECK(decoder_);
   NL_DCHECK(nearby_connections_manager_);
 
@@ -672,6 +673,8 @@ void NearbySharingServiceImpl::SendAttachments(
           std::move(status_codes_callback)(StatusCodes::kError);
           return;
         }
+        app_info_->SetActiveFlag();
+
         ShareTarget share_target = info->share_target();
         for (std::unique_ptr<Attachment>& attachment : attachments) {
           attachment->MoveToShareTarget(share_target);
@@ -1004,6 +1007,8 @@ void NearbySharingServiceImpl::OnIncomingConnection(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
     NearbyConnection* connection) {
   NL_DCHECK(connection);
+
+  app_info_->SetActiveFlag();
 
   // Sync down data from Nearby server when the receiving flow starts, making
   // our best effort to have fresh contact and certificate data. There is no

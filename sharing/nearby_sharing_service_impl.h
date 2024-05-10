@@ -52,6 +52,7 @@
 #include "sharing/common/nearby_share_profile_info_provider.h"
 #include "sharing/fast_initiation/nearby_fast_initiation.h"
 #include "sharing/incoming_share_target_info.h"
+#include "sharing/internal/api/app_info.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
@@ -669,6 +670,7 @@ class NearbySharingServiceImpl
 
   // Used to track the time when share sheet activity starts
   absl::Time share_foreground_send_surface_start_timestamp_;
+  std::unique_ptr<nearby::api::AppInfo> app_info_;
 };
 
 }  // namespace sharing

@@ -53,6 +53,9 @@ class AppInfo {
 
   // Sets whether the app install event has been logged.
   virtual bool SetFirstRunDone(bool value) = 0;
+
+  // Update flag to track active users.
+  virtual bool SetActiveFlag() = 0;
 };
 
 }  // namespace api

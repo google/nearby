@@ -42,6 +42,8 @@ class MockAppInfo : public nearby::api::AppInfo {
   MOCK_METHOD(bool, GetFirstRunDone, (), (override));
 
   MOCK_METHOD(bool, SetFirstRunDone, (bool value), (override));
+
+  MOCK_METHOD(bool, SetActiveFlag, (), (override));
 };
 
 }  // namespace nearby::sharing::api

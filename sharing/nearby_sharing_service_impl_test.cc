@@ -65,6 +65,7 @@
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
 #include "sharing/file_attachment.h"
 #include "sharing/flags/generated/nearby_sharing_feature_flags.h"
+#include "sharing/internal/api/mock_app_info.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -97,6 +98,7 @@ namespace {
 using ConnectionType = ::nearby::ConnectivityManager::ConnectionType;
 using SendSurfaceState =
     ::nearby::sharing::NearbySharingService::SendSurfaceState;
+using ::nearby::sharing::api::MockAppInfo;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
@@ -111,6 +113,7 @@ using ::nearby::sharing::service::proto::V1Frame;
 using ::testing::InSequence;
 using ::testing::NiceMock;
 using ::testing::ReturnRef;
+using ::testing::StrictMock;
 using ::testing::UnorderedElementsAre;
 
 class MockTransferUpdateCallback : public TransferUpdateCallback {
@@ -368,6 +371,10 @@ class NearbySharingServiceImplTest : public testing::Test {
         .WillByDefault(ReturnRef(preference_manager_));
     ON_CALL(mock_sharing_platform_, GetAccountManager)
         .WillByDefault(ReturnRef(fake_account_manager_));
+    auto mock_app_info = std::make_unique<StrictMock<MockAppInfo>>();
+    mock_app_info_ = mock_app_info.get();
+    EXPECT_CALL(mock_sharing_platform_, CreateAppInfo())
+        .WillOnce(Return(std::move(mock_app_info)));
     NearbyShareLocalDeviceDataManagerImpl::Factory::SetFactoryForTesting(
         &local_device_data_manager_factory_);
     NearbyShareContactManagerImpl::Factory::SetFactoryForTesting(
@@ -784,6 +791,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     } else {
       SetUpBackgroundReceiveSurface(callback);
     }
+    EXPECT_CALL(*mock_app_info_, SetActiveFlag());
     service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                    &connection_);
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -976,6 +984,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     absl::Notification send_notification;
     NearbySharingServiceImpl::StatusCodes send_result;
+    EXPECT_CALL(*mock_app_info_, SetActiveFlag());
     service_->SendAttachments(
         target.id, CreateTextAttachments({kTextPayload}),
         [&](NearbySharingServiceImpl::StatusCodes status_codes) {
@@ -1248,6 +1257,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   FakeNearbyConnection connection_;
   MockNearbySharingDecoder fake_decoder_;
+  StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;
@@ -2353,6 +2363,7 @@ TEST_F(NearbySharingServiceImplTest,
   SetUpKeyVerification(/*is_incoming=*/true,
                        service::proto::PairedKeyResultFrame::SUCCESS);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -2392,6 +2403,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionEmptyIntroductionFrame) {
   SetUpKeyVerification(/*is_incoming=*/true,
                        service::proto::PairedKeyResultFrame::SUCCESS);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -2440,6 +2452,7 @@ TEST_F(NearbySharingServiceImplTest,
   SetUpKeyVerification(/*is_incoming=*/true,
                        service::proto::PairedKeyResultFrame::SUCCESS);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -2553,6 +2566,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
   SetUpKeyVerification(
       /*is_incoming=*/true, PairedKeyResultFrame::SUCCESS);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -2632,6 +2646,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionFileSizeOverflow) {
   SetUpKeyVerification(
       /*is_incoming=*/true, PairedKeyResultFrame::SUCCESS);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -2676,6 +2691,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   SetUpKeyVerification(/*is_incoming=*/true, PairedKeyResultFrame::SUCCESS);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
@@ -3103,6 +3119,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   SetUpKeyVerification(/*is_incoming=*/true, PairedKeyResultFrame::UNABLE);
   SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
@@ -3159,6 +3176,7 @@ TEST_F(NearbySharingServiceImplTest,
       &callback, NearbySharingService::ReceiveSurfaceState::kBackground);
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
@@ -3196,6 +3214,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_CALL(fake_decoder_, DecodeFrame(testing::Eq(bytes))).Times(0);
   connection_.AppendReadableData(bytes);
   FlushTesting();
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
@@ -3230,6 +3249,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_CALL(fake_decoder_, DecodeFrame(testing::Eq(bytes))).Times(0);
   connection_.AppendReadableData(bytes);
   FlushTesting();
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  &connection_);
@@ -3296,6 +3316,7 @@ TEST_F(NearbySharingServiceImplTest, RegisterReceiveSurfaceWhileSending) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
@@ -3320,6 +3341,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextAlreadySending) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
@@ -3377,6 +3399,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedToConnect) {
       {TransferMetadata::Status::kConnecting,
        TransferMetadata::Status::kFailedToInitiateOutgoingConnection},
       [&]() { notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
@@ -3402,6 +3425,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedKeyVerification) {
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
   fake_nearby_connections_manager_->set_nearby_connection(&connection_);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
@@ -3427,6 +3451,8 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnableToVerifyKey) {
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
   fake_nearby_connections_manager_->set_nearby_connection(&connection_);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
@@ -3450,6 +3476,7 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendTextRemoteFailure) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
@@ -3489,6 +3516,7 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateFileAttachments({path})),
             NearbySharingServiceImpl::StatusCodes::kOk);
@@ -3528,6 +3556,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
@@ -3623,6 +3652,7 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { introduction_notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateFileAttachments({path})),
             NearbySharingServiceImpl::StatusCodes::kOk);
@@ -3688,6 +3718,7 @@ TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
                          TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { introduction_notification.Notify(); });
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target, CreateWifiCredentialAttachments(
                                         "GoogleGuest", "password")),
