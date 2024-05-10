@@ -228,7 +228,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shcreatedirectoryexw
     int result = SHCreateDirectoryExW(nullptr, folder_path.data(), nullptr);
   }
-
+  NEARBY_LOGS(WARNING) << __func__ << ": CreateOutputFile path=" << file_path;
   return windows::IOFile::CreateOutputFile(file_path);
 }
 
