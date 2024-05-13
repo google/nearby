@@ -51,9 +51,8 @@ class NearbySharingServiceExtension {
   Context* context_ = nullptr;
   NearbyShareSettings* settings_ = nullptr;
 
-  // The qr code url for the current session containing Advertising token,
-  // Connection token and Sender Public Key.
-  std::string qr_code_url_ = "http://near.by/launch_by_qrcode";
+  // The qr code url for the current session containing the Sender Public Key.
+  std::string qr_code_url_ = "https://near.by/qrcode";
 };
 
 }  // namespace sharing

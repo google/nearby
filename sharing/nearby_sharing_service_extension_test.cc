@@ -184,8 +184,7 @@ TEST_F(NearbySharingServiceExtensionTest,
 }
 
 TEST_F(NearbySharingServiceExtensionTest, GetQrCodeUrl) {
-  EXPECT_EQ(service_extension()->GetQrCodeUrl(),
-            "http://near.by/launch_by_qrcode");
+  EXPECT_EQ(service_extension()->GetQrCodeUrl(), "https://near.by/qrcode");
 }
 
 }  // namespace
