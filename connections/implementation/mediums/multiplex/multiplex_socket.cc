@@ -438,8 +438,8 @@ void MultiplexSocket::HandleControlFrame(
     const MultiplexControlFrame& frame) {
   switch (frame.control_frame_type()) {
     case MultiplexControlFrame::CONNECTION_REQUEST:
-      RunOffloadThread("CONNECTION_REQUEST", [this, &salted_service_id_hash,
-                                              &service_id_hash_salt] {
+      RunOffloadThread("CONNECTION_REQUEST", [this, salted_service_id_hash,
+                                              service_id_hash_salt] {
         HandleConnectionRequest(salted_service_id_hash, service_id_hash_salt);
       });
       break;
@@ -451,15 +451,15 @@ void MultiplexSocket::HandleControlFrame(
           << ", ConnectionResponseCode: "
           << frame.connection_response_frame().connection_response_code();
 
-      RunOffloadThread("CONNECTION_RESPONSE", [this, &salted_service_id_hash,
-                                               &service_id_hash_salt,
+      RunOffloadThread("CONNECTION_RESPONSE", [this, salted_service_id_hash,
+                                               service_id_hash_salt,
                                                frame = frame] {
         HandleConnectionResponse(salted_service_id_hash, service_id_hash_salt,
                                  frame.connection_response_frame());
       });
       break;
     case MultiplexControlFrame::DISCONNECTION:
-      RunOffloadThread("DISCONNECTION", [this, &salted_service_id_hash] {
+      RunOffloadThread("DISCONNECTION", [this, salted_service_id_hash] {
         HandleDisconnection(salted_service_id_hash);
       });
       break;
@@ -642,7 +642,7 @@ void MultiplexSocket::OnPhysicalSocketClosed() {
 }
 
 void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
-  RunOffloadThread("VirtualSocketClosed", [this, &service_id]() {
+  RunOffloadThread("VirtualSocketClosed", [this, service_id]() {
     {
       MutexLock lock(&virtual_socket_mutex_);
       MediumSocket* virtual_socket = GetVirtualSocket(service_id);

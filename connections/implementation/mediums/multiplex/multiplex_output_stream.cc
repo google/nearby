@@ -254,7 +254,7 @@ void MultiplexOutputStream::MultiplexWriter::StartWriting() {
     }
     {
       MutexLock lock(&writing_mutex_);
-      if (data_queue_.Empty() && is_writing_) {
+      if (data_queue_.Empty() && is_writing_ && !is_closed_) {
         is_writing_ = false;
         NEARBY_LOGS(INFO) << TAG << "Waiting for data_queue_ has data.";
         Exception wait_succeeded = is_writing_cond_.Wait();
@@ -264,8 +264,8 @@ void MultiplexOutputStream::MultiplexWriter::StartWriting() {
               << ": Failure waiting to wait: " << wait_succeeded.value;
           return;
         }
-        if (is_closed_) break;
       }
+      if (is_closed_) break;
     }
   }
   NEARBY_LOGS(INFO) << TAG << "Writing loop stopped.";
