@@ -85,6 +85,13 @@ message ConnectionRequestFrame {
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
+  // LINT.IfChange
+  enum ConnectionMode {
+    LEGACY = 0;
+    INSTANT = 1;
+  }
+  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
+
   optional string endpoint_id = 1;
   optional string endpoint_name = 2;
   optional bytes handshake_data = 3;
@@ -109,6 +116,7 @@ message ConnectionRequestFrame {
     ConnectionsDevice connections_device = 12;
     PresenceDevice presence_device = 13;
   }
+  optional ConnectionMode connection_mode = 14;
 }
 
 message ConnectionResponseFrame {

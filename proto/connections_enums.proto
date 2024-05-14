@@ -125,6 +125,16 @@ enum ConnectionBand {
   CONNECTION_BAND_CELLULAR_BAND_5G = 7;
 }
 
+// LINT.IfChange
+enum ConnectionMode {
+  LEGACY = 0;
+  INSTANT = 1;
+}
+// LINT.ThenChange(
+//     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/ConnectionMode.java,
+//     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto
+// )
+
 // The result of a ConnectionRequest.
 enum ConnectionRequestResponse {
   UNKNOWN_CONNECTION_REQUEST_RESPONSE = 0;
