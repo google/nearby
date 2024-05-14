@@ -134,6 +134,8 @@ class MockShareTargetDiscoveredCallback : public ShareTargetDiscoveredCallback {
               (override));
   MOCK_METHOD(void, OnShareTargetLost, (const ShareTarget& share_target),
               (override));
+  MOCK_METHOD(void, OnShareTargetUpdated, (const ShareTarget& share_target),
+              (override));
 };
 
 class MockNearbySharingDecoder : public NearbySharingDecoder {

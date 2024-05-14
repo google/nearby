@@ -26,6 +26,7 @@ class ShareTargetDiscoveredCallback {
   virtual ~ShareTargetDiscoveredCallback() = default;
   virtual void OnShareTargetDiscovered(const ShareTarget& share_target) = 0;
   virtual void OnShareTargetLost(const ShareTarget& share_target) = 0;
+  virtual void OnShareTargetUpdated(const ShareTarget& share_target) = 0;
 };
 
 }  // namespace sharing
