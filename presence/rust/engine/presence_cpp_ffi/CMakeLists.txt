@@ -3,6 +3,15 @@ project(presence)
 
 enable_testing()
 
+# For logging support.
+include(FetchContent)
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG         v1.14.1
+)
+FetchContent_MakeAvailable(spdlog)
+
 add_subdirectory(cpp)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -23,9 +32,13 @@ add_custom_target(presence ALL
 add_dependencies(presence cpp_ffi)
 set_target_properties(presence PROPERTIES BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME presence_engine_test
-    COMMAND cargo test
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# Tests in Rust can only be invoked here due to the dependencies on C codes.
+add_test(NAME presence_ffi_test
+    COMMAND cargo test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set_tests_properties(presence_ffi_test PROPERTIES DEPENDS presence)
+set_tests_properties(presence_ffi_test PROPERTIES
+        ENVIRONMENT CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR})
 
-#add_subdirectory(tests)
+add_subdirectory(tests)
+
 add_subdirectory(examples)

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Example to show Presence Engine C APIs.
+
 #undef NDEBUG
 
 #include <cassert>
@@ -19,9 +21,7 @@
 #include <mutex>
 #include <thread>
 #include "spdlog/spdlog.h"
-extern "C" {
 #include "presence.h"
-}
 
 using namespace std;
 
@@ -32,6 +32,7 @@ const int EXPECTED_ACTION_ONE = 101;
 
 struct PresenceEngine* engine;
 PresenceBleScanRequest scan_request;
+PresenceDiscoveryResult discovery_result;
 
 std::mutex scan_mutex;
 std::condition_variable scan_notification;
@@ -39,40 +40,47 @@ std::condition_variable scan_notification;
 std::mutex discovery_mutex;
 std::condition_variable discovery_notification;
 
-// BLE system API.
+// Function to hook the platform BLE system API to Presence Engine.
+// For a simple end-to-end demo, The implementation below returns a pre-defined
+// scan result directly.
+// Fo real cases, The BLE system API should be called inside this function.
 void start_ble_scan(PresenceBleScanRequest* request) {
   spdlog::info("Start BLE scan with Priority: {}", request->priority);
   for (auto action: request->actions) {
     spdlog::info("action: {}", action);
   }
-  assert(request->priority == EXPECTED_PRIORITY);
-
   {
     std::unique_lock<std::mutex> lock(scan_mutex);
     scan_request = *request;
   }
+  // Trigger ble_scan_callback in a separated thread.
   scan_notification.notify_all();
 }
 
-// Sends a BLE scan result in a separated thread.
+// Return a pre-defined BLE scan result to Engine.
+void ble_scan_callback() {
+  spdlog::info("Returns scan result.");
+  auto scan_result_builder =
+      presence_ble_scan_result_builder_new(PresenceMedium::BLE);
+  for (auto action: scan_request.actions) {
+    presence_ble_scan_result_builder_add_action(scan_result_builder, action);
+  }
+  auto scan_result =
+      presence_ble_scan_result_builder_build(scan_result_builder);
+  presence_on_scan_result(engine, scan_result);
+}
+
+// Call ble_scan_callback in a separated thread.
 thread platform_thread{[]() {
   while (true) {
     std::unique_lock<std::mutex> lock(scan_mutex);
     scan_notification.wait(lock);
-    spdlog::info("Returns scan result.");
-    auto scan_result_builder =
-        presence_ble_scan_result_builder_new(PresenceMedium::BLE);
-    for (auto action: scan_request.actions) {
-      presence_ble_scan_result_builder_add_action(scan_result_builder, action);
-    }
-    auto scan_result =
-        presence_ble_scan_result_builder_build(scan_result_builder);
-    presence_on_scan_result(engine, scan_result);
+    ble_scan_callback();
     break;
   }
 }};
 
-// Client callback to receive discovery results.
+// Callback for the Engine to return discovery results.
 void presence_discovery_callback(PresenceDiscoveryResult* result) {
   spdlog::info("Received discovery result with medium: {}, action: {}",
                (int) result->medium,
@@ -80,10 +88,10 @@ void presence_discovery_callback(PresenceDiscoveryResult* result) {
   for (auto action: result->device.actions) {
     spdlog::info("actions: {}", action);
   }
-  assert(result->medium == EXPECTED_MEDIUM);
-  assert(result->device.actions.size() == 2);
-  assert(result->device.actions[0] == EXPECTED_ACTION_ZERO);
-  assert(result->device.actions[1] == EXPECTED_ACTION_ONE);
+   {
+    unique_lock<std::mutex> lock(discovery_mutex);
+    discovery_result = *result;
+  }
   discovery_notification.notify_all();
 }
 
@@ -111,4 +119,14 @@ int main(int argc, char** argv) {
   presence_engine_stop(engine);
   engine_thread.join();
   platform_thread.join();
+
+  assert(scan_request.priority == EXPECTED_PRIORITY);
+  assert(scan_request.actions.size() == 2);
+  assert(scan_request.actions[0] == EXPECTED_ACTION_ZERO);
+  assert(scan_request.actions[1] == EXPECTED_ACTION_ONE);
+
+  assert(discovery_result.medium == EXPECTED_MEDIUM);
+  assert(discovery_result.device.actions.size() == 2);
+  assert(discovery_result.device.actions[0] == EXPECTED_ACTION_ZERO);
+  assert(discovery_result.device.actions[1] == EXPECTED_ACTION_ONE);
 }

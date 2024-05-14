@@ -22,8 +22,6 @@ impl DiscoveryCallback for MockDiscoveryCallback {
     }
 }
 
-unsafe impl Send for MockDiscoveryCallback {}
-
 struct MockBleScanner {
     pub scan_request_tx: mpsc::Sender<ScanRequest>,
 }
