@@ -15,8 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_SCAN_CALLBACK_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_SCAN_CALLBACK_H_
 
-#include <functional>
-#include <utility>
+#include <cstdint>
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/logging.h"

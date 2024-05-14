@@ -21,15 +21,20 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/implementation/mediums/mediums.h"
+#include "presence/power_mode.h"
 
 namespace nearby {
 namespace presence {
@@ -84,14 +89,14 @@ class BroadcastManager {
   void FetchCredentials(BroadcastSessionId id,
                         BaseBroadcastRequest broadcast_request)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
-  absl::optional<LocalCredential> SelectCredential(
+  absl::optional<LocalCredential> SelectCredential( //NOLINT
       BaseBroadcastRequest& broadcast_request,
       std::vector<LocalCredential> credentials);
 
   // Returns the private credential, if any, selected to generate the
   // advertisement. A salt used in the advertisement is added to the returned
   // private credential. The caller must save it in the storage.
-  absl::optional<LocalCredential> Advertise(
+  absl::optional<LocalCredential> Advertise( //NOLINT
       BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
       std::vector<LocalCredential> credentials)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);

@@ -16,7 +16,6 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_SERVICE_IMPL_H_
 
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include "absl/status/statusor.h"

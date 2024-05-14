@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 

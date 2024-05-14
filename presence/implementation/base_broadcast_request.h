@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <cstddef>
 #include <string>
 
 #include "absl/status/statusor.h"

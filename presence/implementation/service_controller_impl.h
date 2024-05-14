@@ -15,16 +15,21 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 
-#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/credential_callbacks.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/broadcast_request.h"
+#include "presence/data_types.h"
 #include "presence/implementation/broadcast_manager.h"
 #include "presence/implementation/credential_manager.h"
-#include "presence/implementation/mediums/mediums.h"
 #include "presence/implementation/scan_manager.h"
 #include "presence/implementation/service_controller.h"
 #include "presence/scan_request.h"

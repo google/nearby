@@ -15,18 +15,26 @@
 #include "presence/implementation/broadcast_manager.h"
 
 #include <algorithm>
-#include <limits>
+#include <cstdint>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/time/time.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
-#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "presence/broadcast_request.h"
+#include "presence/data_types.h"
 #include "presence/implementation/advertisement_factory.h"
+#include "presence/implementation/base_broadcast_request.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
 namespace presence {
@@ -146,11 +154,11 @@ void BroadcastManager::FetchCredentials(
               }});
 }
 
-absl::optional<LocalCredential> BroadcastManager::SelectCredential(
+absl::optional<LocalCredential> BroadcastManager::SelectCredential(  // NOLINT
     BaseBroadcastRequest& broadcast_request,
     std::vector<LocalCredential> credentials) {
   if (credentials.empty()) {
-    return absl::optional<LocalCredential>();
+    return absl::optional<LocalCredential>();  // NOLINT
   }
   auto credential =
       std::min_element(credentials.begin(), credentials.end(),
@@ -159,7 +167,7 @@ absl::optional<LocalCredential> BroadcastManager::SelectCredential(
                        });
   if (credential == credentials.end()) {
     NEARBY_LOGS(WARNING) << "No active credentials";
-    return absl::optional<LocalCredential>();
+    return absl::optional<LocalCredential>();  // NOLINT
   }
   std::string salt = SelectSalt(*credential, broadcast_request.salt);
   if (salt != broadcast_request.salt) {
@@ -169,15 +177,15 @@ absl::optional<LocalCredential> BroadcastManager::SelectCredential(
   return *credential;
 }
 
-absl::optional<LocalCredential> BroadcastManager::Advertise(
+absl::optional<LocalCredential> BroadcastManager::Advertise(  // NOLINT
     BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
     std::vector<LocalCredential> credentials) {
   auto it = sessions_.find(id);
   if (it == sessions_.end()) {
     NEARBY_LOGS(INFO) << "Broadcast session terminated, id: " << id;
-    return absl::optional<LocalCredential>();
+    return absl::optional<LocalCredential>();  // NOLINT
   }
-  absl::optional<LocalCredential> credential =
+  absl::optional<LocalCredential> credential =  // NOLINT
       SelectCredential(broadcast_request, std::move(credentials));
   absl::StatusOr<AdvertisementData> advertisement =
       AdvertisementFactory().CreateAdvertisement(broadcast_request, credential);
@@ -185,7 +193,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(
     NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
                          << advertisement.status();
     NotifyStartCallbackStatus(id, advertisement.status());
-    return absl::optional<LocalCredential>();
+    return absl::optional<LocalCredential>(); //NOLINT
   }
   std::unique_ptr<AdvertisingSession> session =
       mediums_->GetBle().StartAdvertising(
@@ -197,7 +205,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(
   if (!session) {
     NotifyStartCallbackStatus(id,
                               absl::InternalError("Can't start advertising"));
-    return absl::optional<LocalCredential>();
+    return absl::optional<LocalCredential>(); //NOLINT
   }
   it->second.SetAdvertisingSession(std::move(session));
   return credential;

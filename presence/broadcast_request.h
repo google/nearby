@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
