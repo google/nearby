@@ -78,6 +78,9 @@ fn test_engine() {
 
         let discovery_result = discovery_result_rx.recv().unwrap();
         println!("received discovery result {:?}", discovery_result);
+        assert_eq!(discovery_result.medium, PresenceMedium::BLE);
+        assert_eq!(discovery_result.device.actions.len(), 1);
+        assert_eq!(discovery_result.device.actions[0], EXPECTED_ACTION);
 
         presence_engine.client_provider.stop();
         engine_thread
