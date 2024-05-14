@@ -1473,6 +1473,11 @@ void BasePcpHandler::OnIncomingFrame(
           client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
         }
 
+        if (connection_response.has_multiplex_socket_bitmask()) {
+          client->SetRemoteMultiplexSocketBitmask(
+              endpoint_id, connection_response.multiplex_socket_bitmask());
+        }
+
         if (connection_response.has_safe_to_disconnect_version()) {
           NEARBY_LOGS(INFO)
               << "[safe-to-disconnect]: endpoint_id=" << endpoint_id
@@ -2080,8 +2085,8 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
                                               bool can_close_immediately) {
   // Short-circuit immediately if we're not in an actionable state yet. We will
   // be called again once the other side has made their decision.
-  if (!client->IsConnectionAccepted(endpoint_id) &&
-      !client->IsConnectionRejected(endpoint_id)) {
+  bool is_connection_accepted = client->IsConnectionAccepted(endpoint_id);
+  if (!is_connection_accepted && !client->IsConnectionRejected(endpoint_id)) {
     if (!client->HasLocalEndpointResponded(endpoint_id)) {
       NEARBY_LOGS(INFO)
           << "ConnectionResult: local client did not respond; endpoint_id="
@@ -2105,7 +2110,8 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
   auto pair = pending_connections_.extract(it);
   BasePcpHandler::PendingConnectionInfo& connection_info = pair.mapped();
-  bool is_connection_accepted = client->IsConnectionAccepted(endpoint_id);
+  Medium medium =
+      channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium();
 
   Status response_code;
   if (is_connection_accepted) {
@@ -2127,6 +2133,10 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     if (!channel_manager_->EncryptChannelForEndpoint(endpoint_id,
                                                      std::move(context))) {
       response_code = {Status::kEndpointUnknown};
+    }
+
+    if (client->IsMultiplexSocketSupported(endpoint_id, medium)) {
+      connection_info.channel->EnableMultiplexSocket();
     }
   } else {
     NEARBY_LOGS(INFO) << "Pending connection rejected; endpoint_id="
@@ -2157,8 +2167,6 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     return;
   }
 
-  Medium medium =
-      channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium();
   client->GetAnalyticsRecorder().OnConnectionEstablished(
       endpoint_id, medium, connection_info.connection_token);
 

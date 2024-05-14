@@ -121,6 +121,9 @@ class EndpointChannel {
   virtual void SetAnalyticsRecorder(
       analytics::AnalyticsRecorder* analytics_recorder,
       const std::string& endpoint_id) = 0;
+
+  // Enables the multiplex socket on the EndpointChannel.
+  virtual void EnableMultiplexSocket() {}
 };
 
 inline bool operator==(const EndpointChannel& lhs, const EndpointChannel& rhs) {

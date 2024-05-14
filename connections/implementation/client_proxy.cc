@@ -1117,7 +1117,6 @@ std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
 
 void ClientProxy::SetRemoteMultiplexSocketBitmask(
     absl::string_view endpoint_id, int remote_multiplex_socket_bitmask) {
-  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->first.remote_multiplex_socket_bitmask =
@@ -1125,9 +1124,20 @@ void ClientProxy::SetRemoteMultiplexSocketBitmask(
   }
 }
 
+bool ClientProxy::IsLocalMultiplexSocketSupported(Medium medium) {
+  int bitmask = GetLocalMultiplexSocketBitmask();
+  switch (medium) {
+    case Medium::BLUETOOTH:
+      return (bitmask & kBtMultiplexEnabled) != 0;
+    case Medium::WIFI_LAN:
+      return (bitmask & kWifiLanMultiplexEnabled) != 0;
+    default:
+      return false;
+  }
+}
+
 std::optional<std::int32_t> ClientProxy::GetRemoteMultiplexSocketBitmask(
     absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->first.remote_multiplex_socket_bitmask;
@@ -1136,14 +1146,15 @@ std::optional<std::int32_t> ClientProxy::GetRemoteMultiplexSocketBitmask(
 }
 bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
                                              Medium medium) {
-  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item == nullptr) {
     return false;
   }
-
   int combined_result = GetLocalMultiplexSocketBitmask() &
-                       item->first.remote_multiplex_socket_bitmask;
+                        item->first.remote_multiplex_socket_bitmask;
+  NEARBY_LOGS(INFO) << "ClientProxy remote_multiplex_socket_bitmask: "
+                    << item->first.remote_multiplex_socket_bitmask
+                    << " combined_result: " << combined_result;
   switch (medium) {
     case Medium::BLUETOOTH:
       return (combined_result & kBtMultiplexEnabled) != 0;

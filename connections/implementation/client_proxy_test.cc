@@ -29,9 +29,12 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/listeners.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/medium_selector.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/analytics/mock_event_logger.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
@@ -1177,6 +1180,45 @@ TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
   StartListeningForIncomingConnections(&client1_, {},
                                        {.auto_upgrade_bandwidth = true});
   EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
+}
+
+TEST_F(ClientProxyTest, TestMultiplexSocketBitmask) {
+  EXPECT_EQ(client1_.GetLocalMultiplexSocketBitmask(), 0);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  EXPECT_EQ(client1_.GetLocalMultiplexSocketBitmask(),
+            ClientProxy::kBtMultiplexEnabled);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      false);
+}
+
+TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
+  EXPECT_EQ(client1_.GetLocalMultiplexSocketBitmask(), 0);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint);
+  client1_.SetRemoteMultiplexSocketBitmask(
+      advertising_endpoint.id,
+      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  ASSERT_TRUE(client1_.GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
+                  .has_value());
+  EXPECT_EQ(
+      client1_.GetRemoteMultiplexSocketBitmask(advertising_endpoint.id).value(),
+      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  EXPECT_TRUE(client1_.IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::BLUETOOTH));
+  EXPECT_FALSE(client1_.IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::WIFI_LAN));
+  EXPECT_FALSE(client1_.IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::WIFI_AWARE));
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      false);
 }
 
 }  // namespace

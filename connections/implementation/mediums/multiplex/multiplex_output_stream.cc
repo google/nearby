@@ -21,6 +21,7 @@
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/multiplex/multiplex_frames.h"
+#include "internal/platform/array_blocking_queue.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
@@ -41,52 +42,6 @@ using ::location::nearby::mediums::ConnectionResponseFrame;
 constexpr absl::string_view TAG = "MultiplexOutputStream:";
 constexpr absl::string_view kFakeSalt = "RECEIVER_CONDIMENT";
 }  // namespace
-
-// Implementation for class ArrayBlockingQueue
-template <typename T>
-void ArrayBlockingQueue<T>::Put(const T& value) {
-  MutexLock lock(&queue_mutex_);
-  if (queue_.size() >= capacity_) {
-    has_space_.Wait();
-  }
-  queue_.push(value);
-  has_data_.Notify();
-}
-
-template <typename T>
-T ArrayBlockingQueue<T>::Take() {
-  MutexLock lock(&queue_mutex_);
-  if (queue_.empty()) {
-    has_data_.Wait();
-  }
-  T front = queue_.front();
-  queue_.pop();
-  has_space_.Notify();
-  return front;
-}
-
-template <typename T>
-bool ArrayBlockingQueue<T>::TryPut(const T& value) {
-  MutexLock lock(&queue_mutex_);
-  if (queue_.size() < capacity_) {
-    queue_.push(value);
-    has_data_.Notify();
-    return true;
-  }
-  return false;
-}
-
-template <typename T>
-std::optional<T> ArrayBlockingQueue<T>::TryTake() {
-  MutexLock lock(&queue_mutex_);
-  if (!queue_.empty()) {
-    T front = queue_.front();
-    queue_.pop();
-    has_space_.Notify();
-    return front;
-  }
-  return std::nullopt;
-}
 
 // Implementation for class MultiplexOutputStream
 MultiplexOutputStream::MultiplexOutputStream(OutputStream* physical_writer,

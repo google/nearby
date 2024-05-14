@@ -110,6 +110,7 @@ class FeatureFlags {
     // The maximum size of frame we'll attempt to read, to avoid a remote device
     // from triggering an OutOfMemory error.
     std::uint32_t connection_max_frame_length = 1048576;
+    std::uint32_t blocking_queue_stream_queue_capacity = 10;
   };
 
   static const FeatureFlags& GetInstance() {
