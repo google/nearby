@@ -29,6 +29,9 @@ namespace config_package_nearby {
 constexpr absl::string_view kConfigPackage = "nearby";
 
 namespace nearby_sharing_feature {
+// Time to delay the endpoint loss in milliseconds.
+constexpr auto kDelayEndpointLossMs =
+    flags::Flag<int64_t>(kConfigPackage, "45632386", 500);
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFile =
     flags::Flag<bool>(kConfigPackage, "45627826", false);
@@ -175,6 +178,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
 
 inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
   return {
+      {45632386, kDelayEndpointLossMs},
       {45401358, kLoggingLevel},
   };
 }
