@@ -38,29 +38,6 @@ bool CreateFile(std::filesystem::path file_path) {
   return true;
 }
 
-TEST(NearbyFileHandler, GetUniquePath) {
-  NearbyFileHandler nearby_file_handler;
-  std::filesystem::path unique_path;
-  absl::Notification notification;
-
-  std::filesystem::path test_file =
-      std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
-  std::filesystem::path expected_file =
-      std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
-
-  ASSERT_TRUE(CreateFile(test_file));
-  ASSERT_TRUE(RemoveFile(expected_file));
-
-  nearby_file_handler.GetUniquePath(
-      test_file, [&notification, &unique_path](std::filesystem::path path) {
-        unique_path = path;
-        notification.Notify();
-      });
-
-  notification.WaitForNotificationWithTimeout(absl::Seconds(1));
-  EXPECT_EQ(unique_path, expected_file);
-}
-
 TEST(NearbyFileHandler, OpenFiles) {
   NearbyFileHandler nearby_file_handler;
   absl::Notification notification;

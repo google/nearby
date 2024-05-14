@@ -74,9 +74,6 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void RegisterPayloadStatusListener(
       int64_t payload_id,
       std::weak_ptr<PayloadStatusListener> listener) override;
-  void RegisterPayloadPath(int64_t payload_id,
-                           const std::filesystem::path& file_path,
-                           ConnectionsCallback callback) override;
   Payload* GetIncomingPayload(int64_t payload_id) override;
   void Cancel(int64_t payload_id) override;
   void ClearIncomingPayloads() override;

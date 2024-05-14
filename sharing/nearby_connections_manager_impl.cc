@@ -526,16 +526,6 @@ void NearbyConnectionsManagerImpl::RegisterPayloadStatusListener(
   payload_status_listeners_.insert_or_assign(payload_id, listener);
 }
 
-void NearbyConnectionsManagerImpl::RegisterPayloadPath(
-    int64_t payload_id, const std::filesystem::path& file_path,
-    ConnectionsCallback callback) {
-  NL_DCHECK(!file_path.empty());
-
-  // Create file is put into Nearby Connections, don't need to create file in
-  // Nearby Sharing.
-  callback(Status::kSuccess);
-}
-
 Payload* NearbyConnectionsManagerImpl::GetIncomingPayload(int64_t payload_id) {
   MutexLock lock(&mutex_);
   auto it = incoming_payloads_.find(payload_id);

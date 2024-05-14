@@ -139,11 +139,6 @@ class NearbyConnectionsManager {
   virtual void RegisterPayloadStatusListener(
       int64_t payload_id, std::weak_ptr<PayloadStatusListener> listener) = 0;
 
-  // Register a `file_path` for receiving incoming payload with `payload_id`.
-  virtual void RegisterPayloadPath(int64_t payload_id,
-                                   const std::filesystem::path& file_path,
-                                   ConnectionsCallback callback) = 0;
-
   // Gets the payload associated with `payload_id` if available.
   virtual Payload* GetIncomingPayload(int64_t payload_id) = 0;
 

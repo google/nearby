@@ -307,12 +307,8 @@ class NearbySharingServiceImpl
       ShareTarget share_target,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
   StatusCodes SendPayloads(const ShareTarget& share_target);
-  void OnUniquePathFetched(int64_t attachment_id, int64_t payload_id,
-                           std::function<void(Status)> callback,
-                           std::filesystem::path path);
-  void OnPayloadPathRegistered(Status status);
   void OnPayloadPathsRegistered(
-      const ShareTarget& share_target, std::unique_ptr<bool> aggregated_success,
+      const ShareTarget& share_target,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
 
   void OnOutgoingConnection(const ShareTarget& share_target,
@@ -641,17 +637,6 @@ class NearbySharingServiceImpl
   // Shouldn't schedule new task after shutting down, and skip task if the
   // object is null.
   std::shared_ptr<bool> is_shutting_down_ = nullptr;
-
-  // Tracks the path registration.
-  struct PathRegistrationStatus {
-    ShareTarget share_target;
-    uint32_t expected_count;
-    uint32_t current_count;
-    std::function<void(StatusCodes status_codes)> status_codes_callback;
-    bool status;
-  };
-
-  PathRegistrationStatus path_registration_status_;
 
   // Used to identify current scanning session.
   int64_t scanning_session_id_ = 0;

@@ -2464,7 +2464,6 @@ void NearbySharingServiceImpl::ReceivePayloads(
       std::filesystem::u8path(settings_->GetCustomSavePath());
 
   // Register payload path for all valid file payloads.
-  absl::flat_hash_map<int64_t, std::filesystem::path> valid_file_payloads;
   for (auto& file : share_target.file_attachments) {
     std::optional<int64_t> payload_id = GetAttachmentPayloadId(file.id());
     if (!payload_id) {
@@ -2478,38 +2477,9 @@ void NearbySharingServiceImpl::ReceivePayloads(
     std::filesystem::path file_path =
         download_path / std::filesystem::u8path(file.file_name().cbegin(),
                                                 file.file_name().cend());
-    valid_file_payloads.emplace(file.id(), std::move(file_path));
+    attachment_info_map_[file.id()].file_path = std::move(file_path);
   }
-
-  auto aggregated_success = std::make_unique<bool>(true);
-
-  if (valid_file_payloads.empty()) {
-    OnPayloadPathsRegistered(share_target, std::move(aggregated_success),
-                             std::move(status_codes_callback));
-    return;
-  }
-
-  path_registration_status_.share_target = share_target;
-  path_registration_status_.expected_count = valid_file_payloads.size();
-  path_registration_status_.current_count = 0;
-  path_registration_status_.status_codes_callback =
-      std::move(status_codes_callback);
-  path_registration_status_.status = true;
-
-  for (const auto& payload : valid_file_payloads) {
-    std::optional<int64_t> payload_id = GetAttachmentPayloadId(payload.first);
-    NL_DCHECK(payload_id);
-
-    file_handler_.GetUniquePath(
-        payload.second,
-        [this, attachment_id = payload.first,
-         payload_id = *payload_id](std::filesystem::path unique_path) {
-          OnUniquePathFetched(
-              attachment_id, payload_id,
-              [this](Status status) { OnPayloadPathRegistered(status); },
-              unique_path);
-        });
-  }
+  OnPayloadPathsRegistered(share_target, std::move(status_codes_callback));
 }
 
 NearbySharingService::StatusCodes NearbySharingServiceImpl::SendPayloads(
@@ -2540,41 +2510,9 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::SendPayloads(
   return StatusCodes::kOk;
 }
 
-void NearbySharingServiceImpl::OnUniquePathFetched(
-    int64_t attachment_id, int64_t payload_id,
-    std::function<void(Status)> callback, std::filesystem::path file_path) {
-  attachment_info_map_[attachment_id].file_path = file_path;
-  nearby_connections_manager_->RegisterPayloadPath(payload_id, file_path,
-                                                   std::move(callback));
-}
-
-void NearbySharingServiceImpl::OnPayloadPathRegistered(Status status) {
-  if (status != Status::kSuccess) {
-    path_registration_status_.status = false;
-  }
-
-  path_registration_status_.current_count += 1;
-  if (path_registration_status_.current_count ==
-      path_registration_status_.expected_count) {
-    OnPayloadPathsRegistered(
-        path_registration_status_.share_target,
-        std::make_unique<bool>(path_registration_status_.status),
-        std::move(path_registration_status_.status_codes_callback));
-  }
-}
-
 void NearbySharingServiceImpl::OnPayloadPathsRegistered(
-    const ShareTarget& share_target, std::unique_ptr<bool> aggregated_success,
+    const ShareTarget& share_target,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
-  NL_DCHECK(aggregated_success);
-  if (!*aggregated_success) {
-    NL_LOG(WARNING)
-        << __func__
-        << ": Not all payload paths could be registered successfully.";
-    std::move(status_codes_callback)(StatusCodes::kError);
-    return;
-  }
-
   ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
   if (!info || !info->connection()) {
     NL_LOG(WARNING) << __func__ << ": Accept invoked for unknown share target";
@@ -2864,8 +2802,13 @@ void NearbySharingServiceImpl::CreatePayloads(
       [this, share_target = std::move(share_target),
        callback = std::move(callback)](
           std::vector<NearbyFileHandler::FileInfo> file_infos) {
-        OnOpenFiles(std::move(share_target), std::move(callback),
-                    std::move(file_infos));
+        RunOnNearbySharingServiceThread(
+            "open_files", [this, share_target = std::move(share_target),
+                           callback = std::move(callback),
+                           file_infos = std::move(file_infos)]() {
+              OnOpenFiles(std::move(share_target), std::move(callback),
+                          std::move(file_infos));
+            });
       });
 }
 

@@ -1083,11 +1083,6 @@ class NearbySharingServiceImplTest : public testing::Test {
   // This method sets up an incoming connection and performs the steps
   // required to simulate a successful incoming transfer.
   void SuccessfullyReceiveTransfer() {
-    for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-      fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                             Status::kSuccess);
-    }
-
     NiceMock<MockTransferUpdateCallback> callback;
     ShareTarget share_target = SetUpIncomingConnection(callback);
 
@@ -2717,49 +2712,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptInvalidShareTarget) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
-TEST_F(NearbySharingServiceImplTest,
-       AcceptValidShareTargetRegisterPayloadError) {
-  fake_nearby_connections_manager_->SetPayloadPathStatus(kFilePayloadId,
-                                                         Status::kError);
-  NiceMock<MockTransferUpdateCallback> callback;
-  ShareTarget share_target = SetUpIncomingConnection(callback);
-
-  absl::Notification notification;
-  service_->Accept(
-      share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-        EXPECT_EQ(NearbySharingServiceImpl::StatusCodes::kError, status_code);
-        notification.Notify();
-      });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-
-  EXPECT_TRUE(
-      fake_nearby_connections_manager_->DidUpgradeBandwidth(kEndpointId));
-
-  // Check data written to connection_.
-  EXPECT_TRUE(ExpectPairedKeyEncryptionFrame());
-  EXPECT_TRUE(ExpectPairedKeyResultFrame());
-
-  EXPECT_FALSE(connection_.IsClosed());
-
-  {
-    std::optional<std::filesystem::path> path =
-        fake_nearby_connections_manager_->GetRegisteredPayloadPath(
-            kFilePayloadId);
-    EXPECT_TRUE(path.has_value());
-    std::filesystem::remove(*path);
-  }
-
-  // To avoid UAF in OnIncomingTransferUpdate().
-  UnregisterReceiveSurface(&callback);
-}
-
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTarget) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
   NiceMock<MockTransferUpdateCallback> callback;
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
@@ -2801,11 +2754,6 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadSuccessful) {
 
 TEST_F(NearbySharingServiceImplTest,
        AcceptValidShareTargetPayloadSuccessfulIncomingPayloadNotFound) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
   NiceMock<MockTransferUpdateCallback> callback;
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
@@ -2905,11 +2853,6 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
   NiceMock<MockTransferUpdateCallback> callback;
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
@@ -2973,11 +2916,6 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
 }
 
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
   NiceMock<MockTransferUpdateCallback> callback;
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
@@ -4439,11 +4377,6 @@ TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
 }
 
 TEST_F(NearbySharingServiceImplTest, SelfShareAutoAccept) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
   // We create an incoming connection corresponding to a certificate where the
   // |for_self_share| field is set to 'true'. This value will be propagated to
   // the ShareTarget, which will be used as a signal for the service to
@@ -4476,11 +4409,6 @@ TEST_F(NearbySharingServiceImplTest, SelfShareAutoAccept) {
 }
 
 TEST_F(NearbySharingServiceImplTest, SelfShareNoAutoAcceptInForeground) {
-  for (int64_t payload_id : GetValidIntroductionFramePayloadIds()) {
-    fake_nearby_connections_manager_->SetPayloadPathStatus(payload_id,
-                                                           Status::kSuccess);
-  }
-
   NiceMock<MockTransferUpdateCallback> callback;
   ShareTarget share_target = SetUpIncomingConnection(
       callback, /*is_foreground=*/true, /*for_self_share=*/true);

@@ -37,7 +37,6 @@ class NearbyFileHandler {
   };
 
   using OpenFilesCallback = std::function<void(std::vector<FileInfo>)>;
-  using GetUniquePathCallback = std::function<void(std::filesystem::path)>;
   using DeleteFilesFromDiskCallback = std::function<void()>;
 
   NearbyFileHandler();
@@ -51,12 +50,8 @@ class NearbyFileHandler {
   void DeleteFilesFromDisk(std::vector<std::filesystem::path> file_paths,
                            DeleteFilesFromDiskCallback callback);
 
-  // Finds a unique path name for |file_path| and runs |callback| with the same.
-  void GetUniquePath(const std::filesystem::path& file_path,
-                     GetUniquePathCallback callback);
-
  private:
-  std::unique_ptr<TaskRunner> sequenced_task_runner_ = nullptr;
+  std::unique_ptr<TaskRunner> sequenced_task_runner_;
 };
 
 }  // namespace sharing

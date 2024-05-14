@@ -139,22 +139,6 @@ void FakeNearbyConnectionsManager::RegisterPayloadStatusListener(
   payload_status_listeners_[payload_id] = listener;
 }
 
-void FakeNearbyConnectionsManager::RegisterPayloadPath(
-    int64_t payload_id, const std::filesystem::path& file_path,
-    ConnectionsCallback callback) {
-  NL_DCHECK(!is_shutdown());
-
-  registered_payload_paths_[payload_id] = file_path;
-
-  auto it = payload_path_status_.find(payload_id);
-  if (it == payload_path_status_.end()) {
-    std::move(callback)(nearby::sharing::Status::kPayloadUnknown);
-    return;
-  }
-
-  std::move(callback)(it->second);
-}
-
 Payload* FakeNearbyConnectionsManager::GetIncomingPayload(int64_t payload_id) {
   NL_DCHECK(!is_shutdown());
   absl::MutexLock lock(&incoming_payloads_mutex_);
@@ -248,11 +232,6 @@ bool FakeNearbyConnectionsManager::DidUpgradeBandwidth(
          upgrade_bandwidth_endpoint_ids_.end();
 }
 
-void FakeNearbyConnectionsManager::SetPayloadPathStatus(
-    int64_t payload_id, ConnectionsStatus status) {
-  payload_path_status_[payload_id] = status;
-}
-
 std::weak_ptr<FakeNearbyConnectionsManager::PayloadStatusListener>
 FakeNearbyConnectionsManager::GetRegisteredPayloadStatusListener(
     int64_t payload_id) {
@@ -271,14 +250,6 @@ void FakeNearbyConnectionsManager::SetIncomingPayload(
 bool FakeNearbyConnectionsManager::WasPayloadCanceled(
     int64_t payload_id) const {
   return absl::c_linear_search(canceled_payload_ids_, payload_id);
-}
-
-std::optional<std::filesystem::path>
-FakeNearbyConnectionsManager::GetRegisteredPayloadPath(int64_t payload_id) {
-  auto it = registered_payload_paths_.find(payload_id);
-  if (it == registered_payload_paths_.end()) return std::nullopt;
-
-  return it->second;
 }
 
 void FakeNearbyConnectionsManager::CleanupForProcessStopped() {

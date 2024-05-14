@@ -50,14 +50,6 @@ std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
   return files;
 }
 
-std::filesystem::path GenerateUniquePath(const std::filesystem::path& path) {
-  NL_DCHECK(!path.empty());
-  // Nearby Share is not responsible for generating unique paths, any more.
-  // Nearby Connections contains the logic to ensure there is no conflict.
-  // Just return the original file path, here.
-  return path;
-}
-
 }  // namespace
 
 NearbyFileHandler::NearbyFileHandler() {
@@ -72,15 +64,6 @@ void NearbyFileHandler::OpenFiles(std::vector<std::filesystem::path> file_paths,
       [callback = std::move(callback), file_paths = std::move(file_paths)]() {
         auto opened_files = DoOpenFiles(file_paths);
         callback(opened_files);
-      });
-}
-
-void NearbyFileHandler::GetUniquePath(const std::filesystem::path& file_path,
-                                      GetUniquePathCallback callback) {
-  sequenced_task_runner_->PostTask(
-      [callback = std::move(callback), file_path]() {
-        std::filesystem::path unique_path = GenerateUniquePath(file_path);
-        callback(unique_path);
       });
 }
 
