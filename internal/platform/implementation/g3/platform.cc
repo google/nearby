@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "file/base/path.h"
 #include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -70,14 +69,12 @@ namespace api {
 
 std::string ImplementationPlatform::GetCustomSavePath(
     const std::string& parent_folder, const std::string& file_name) {
-  return file::JoinPath(parent_folder, file_name);
+  return absl::StrCat(parent_folder, file_name);
 }
 
 std::string ImplementationPlatform::GetDownloadPath(
     const std::string& parent_folder, const std::string& file_name) {
-  std::string fullPath("/tmp");
-
-  return file::JoinPath("/tmp", file_name);
+  return absl::StrCat("/tmp/",  file_name);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kLinux; }
