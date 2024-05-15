@@ -90,6 +90,15 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         ":types",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/shared:count_down_latch",
+        "//internal/proto:credential_cc_proto",
+        # TODO: Support WebRTC
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -100,17 +109,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
-        "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
-        "//internal/platform:test_util",
-        "//internal/platform:types",
-        "//internal/platform:uuid",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation/shared:count_down_latch",
-        "//internal/proto:credential_cc_proto",
-        # TODO: Support WebRTC
-        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
-        "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
     ],
 )
 
@@ -136,6 +134,7 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
