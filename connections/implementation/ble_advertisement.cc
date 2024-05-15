@@ -66,6 +66,11 @@ void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
   if (version != Version::kV1 || endpoint_id.empty() ||
       endpoint_id.length() != kEndpointIdLength ||
       endpoint_info.size() > max_endpoint_info_length) {
+    NEARBY_LOGS(WARNING) << "Invalid BleAdvertisement: version=" << (int)version
+                         << ", endpoint_id=" << endpoint_id
+                         << ", endpoint_info.size()=" << endpoint_info.size()
+                         << ", max_endpoint_info_length="
+                         << max_endpoint_info_length;
     return;
   }
 
@@ -219,6 +224,11 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
 
 BleAdvertisement::operator ByteArray() const {
   if (!IsValid()) {
+    NEARBY_LOGS(WARNING) << "Invalid BleAdvertisement: version="
+                         << (int)version_ << ", endpoint_id=" << endpoint_id_
+                         << ", endpoint_info.size()=" << endpoint_info_.size()
+                         << ", bluetooth_mac_address="
+                         << bluetooth_mac_address_;
     return ByteArray();
   }
 
@@ -277,7 +287,7 @@ BleAdvertisement::operator ByteArray() const {
                             kWebRtcConnectableFlagBitmask;
     absl::StrAppend(&out, std::string(1, extra_field_byte));
   }
-
+  NEARBY_LOGS(INFO) << "Bytearray size: " << out.size();
   return ByteArray(std::move(out));
 }
 

@@ -1760,7 +1760,9 @@ Medium P2pClusterPcpHandler::StartBleAdvertising(
   // well as advertising the Bluetooth MAC address to allow connecting over
   // Bluetooth Classic.
   NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
-                    << service_id << " : start";
+                    << service_id
+                    << ", endpoint_info_size: " << local_endpoint_info.size()
+                    << "fast_advertisement: " << fast_advertisement << " start";
   if (!ble_medium_.IsAcceptingConnections(service_id)) {
     if (!bluetooth_radio_.Enable() ||
         !ble_medium_.StartAcceptingConnections(
@@ -1971,7 +1973,10 @@ Medium P2pClusterPcpHandler::StartBleV2Advertising(
   // Bluetooth Classic.
   NEARBY_LOGS(INFO)
       << "P2pClusterPcpHandler::StartBleV2Advertising: service_id="
-      << service_id << " : start";
+      << service_id << ", endpoint_info_size: " << local_endpoint_info.size()
+      << "fast_advertisement: "
+      << !advertising_options.fast_advertisement_service_uuid.empty()
+      << " : start";
   if (!ble_v2_medium_.IsAcceptingConnections(service_id)) {
     if (!bluetooth_radio_.Enable() ||
         !ble_v2_medium_.StartAcceptingConnections(
