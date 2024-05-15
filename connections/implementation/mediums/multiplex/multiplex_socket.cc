@@ -683,7 +683,7 @@ MediumSocket* MultiplexSocket::ReMapAndGetVirtualSocket(
     MutexLock lock(&virtual_socket_mutex_);
     for (auto& [hash_key, virtual_socket] : virtual_sockets_) {
       auto output_stream =
-          dynamic_cast<MultiplexOutputStream::VirtualOutputStream*>(
+          reinterpret_cast<MultiplexOutputStream::VirtualOutputStream*>(
               &(virtual_socket->GetOutputStream()));
       if (output_stream == nullptr) {
         continue;
