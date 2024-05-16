@@ -258,9 +258,6 @@ analytics::proto::SharingLog::AttachmentsInfo* GenerateAllocatedAttachmentInfo(
               analytics::proto::SharingLog::WifiCredentialsAttachment::
                   default_instance()
                       .New();
-      wifi_credentials_attachment->set_security_type(
-          dynamic_cast<WifiCredentialsAttachment*>(attachment.get())
-              ->security_type());
       wifi_credentials_attachment->set_source_type(
           GetLoggerAttachmentSourceType(attachment->source_type()));
       wifi_credentials_attachment->set_batch_id(attachment->batch_id());
