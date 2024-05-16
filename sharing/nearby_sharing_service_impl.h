@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <filesystem>  // NOLINT(build/c++17)
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -588,19 +588,19 @@ class NearbySharingServiceImpl
   // advertising.
   PowerLevel advertising_power_level_ = PowerLevel::kUnknown;
   // True if we are currently scanning for remote devices.
-  bool is_scanning_ = false;
+  std::atomic_bool is_scanning_{false};
   // True if we're currently sending or receiving a file.
-  bool is_transferring_ = false;
+  std::atomic_bool is_transferring_{false};
   // True if we're currently receiving a file.
-  bool is_receiving_files_ = false;
+  std::atomic_bool is_receiving_files_{false};
   // True if we're currently sending a file.
-  bool is_sending_files_ = false;
+  std::atomic_bool is_sending_files_{false};
   // True if we're currently attempting to connect to a remote device.
-  bool is_connecting_ = false;
+  std::atomic_bool is_connecting_{false};
   // The time scanning began.
   absl::Time scanning_start_timestamp_;
   // True when we are advertising with a device name visible to everyone.
-  bool in_high_visibility_ = false;
+  std::atomic_bool in_high_visibility_{false};
   // The time attachments are sent after a share target is selected. This is
   // used to time the process from selecting a share target to writing the
   // introduction frame (last frame before receiver gets notified).
