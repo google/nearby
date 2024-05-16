@@ -1,5 +1,5 @@
 // Construct data structures passed from Rust to C.
-include!(concat!(env!("OUT_DIR"), "/cpp_ffi.rs"));
+include!(concat!(env!("OUT_DIR"), "/rust_to_c_autogen.rs"));
 
 use presence_core::ble_scan_provider::ScanRequest;
 use presence_core::client_provider::{DiscoveryResult, PresenceMedium};

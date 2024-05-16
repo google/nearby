@@ -9,7 +9,6 @@ edition = "2021"
 name = "presence"
 crate-type = ["staticlib"]
 
-
 [dependencies]
 presence_core = { path = "../presence_core" }
 tokio = { version = "1.36.0", features = ["sync"] }
@@ -20,4 +19,4 @@ libc = "^0.2"
 [build-dependencies]
 cbindgen = "0.24.0"
 bindgen = "0.65.1"
-
+cmake = "0.1"
