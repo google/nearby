@@ -208,16 +208,14 @@ class NearbyShareCertificateManagerImplTest
 
   void SetMockBluetoothAddress(absl::string_view bluetooth_mac_address) {
     FakeBluetoothAdapter& bluetooth_adapter =
-        dynamic_cast<FakeBluetoothAdapter&>(
-            fake_context_.GetBluetoothAdapter());
+        *fake_context_.fake_bluetooth_adapter();
     bluetooth_adapter.SetAddress(bluetooth_mac_address);
   }
 
   void SetBluetoothAdapterIsPresent(bool is_present) {
     if (!is_present) {
       FakeBluetoothAdapter& bluetooth_adapter =
-          dynamic_cast<FakeBluetoothAdapter&>(
-              fake_context_.GetBluetoothAdapter());
+          *fake_context_.fake_bluetooth_adapter();
       bluetooth_adapter.SetAddress("");
     }
   }

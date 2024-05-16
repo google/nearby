@@ -33,6 +33,11 @@
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
+#include "sharing/internal/test/fake_bluetooth_adapter.h"
+#include "sharing/internal/test/fake_connectivity_manager.h"
+#include "sharing/internal/test/fake_fast_initiation_manager.h"
+#include "sharing/internal/test/fake_shell.h"
+#include "sharing/internal/test/fake_wifi_adapter.h"
 
 namespace nearby {
 
@@ -58,14 +63,27 @@ class FakeContext : public Context {
   TaskRunner* GetTaskRunner() override;
 
   FakeClock* fake_clock() const { return fake_clock_.get(); }
+  FakeConnectivityManager* fake_connectivity_manager() const {
+    return fake_connectivity_manager_.get();
+  }
+  FakeBluetoothAdapter* fake_bluetooth_adapter() const {
+    return fake_bluetooth_adapter_.get();
+  }
+  FakeWifiAdapter* fake_wifi_adapter() const {
+    return fake_wifi_adapter_.get();
+  }
+  FakeFastInitiationManager* fake_fast_initiation_manager() const {
+    return fake_fast_initiation_manager_.get();
+  }
+  FakeShell* fake_shell() const { return fake_shell_.get(); }
 
  private:
   std::unique_ptr<FakeClock> fake_clock_;
-  std::unique_ptr<ConnectivityManager> connectivity_manager_;
-  std::unique_ptr<sharing::api::BluetoothAdapter> bluetooth_adapter_;
-  std::unique_ptr<sharing::api::WifiAdapter> wifi_adapter_;
-  std::unique_ptr<api::FastInitiationManager> fast_initiation_manager_;
-  std::unique_ptr<api::Shell> shell_;
+  std::unique_ptr<FakeConnectivityManager> fake_connectivity_manager_;
+  std::unique_ptr<FakeBluetoothAdapter> fake_bluetooth_adapter_;
+  std::unique_ptr<FakeWifiAdapter> fake_wifi_adapter_;
+  std::unique_ptr<FakeFastInitiationManager> fake_fast_initiation_manager_;
+  std::unique_ptr<FakeShell> fake_shell_;
   std::unique_ptr<TaskRunner> executor_;
 };
 

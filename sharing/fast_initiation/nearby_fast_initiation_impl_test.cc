@@ -16,7 +16,6 @@
 
 #include <functional>
 #include <memory>
-#include <string>
 
 #include "gtest/gtest.h"
 #include "sharing/fast_initiation/fake_nearby_fast_initiation_observer.h"
@@ -88,8 +87,7 @@ TEST(NearbyFastInitiationImpl, StartAdvertising) {
       NearbyFastInitiation::FastInitType::kNotify, success_callback,
       error_callback);
   FakeFastInitiationManager& fake_fast_initiation_manager =
-      dynamic_cast<FakeFastInitiationManager&>(
-          fake_context->GetFastInitiationManager());
+      *fake_context->fake_fast_initiation_manager();
   fake_fast_initiation_manager.SetAdvertisingStarted();
   EXPECT_TRUE(success_callback_called);
 }
@@ -113,8 +111,7 @@ TEST(NearbyFastInitiationImpl, StartAdvertisingAndGetHardwareError) {
       error_callback);
 
   FakeFastInitiationManager& fake_fast_initiation_manager =
-      dynamic_cast<FakeFastInitiationManager&>(
-          fake_context->GetFastInitiationManager());
+      *fake_context->fake_fast_initiation_manager();
 
   // Mocking OS hardware error event on Windows
   fake_fast_initiation_manager.SetAdvertisingError(
@@ -141,8 +138,7 @@ TEST(NearbyFastInitiationImpl, StopStartedAdvertising) {
   bool stop_callback_called = false;
   auto fake_context = std::make_unique<FakeContext>();
   FakeFastInitiationManager& fake_fast_initiation_manager =
-      dynamic_cast<FakeFastInitiationManager&>(
-          fake_context->GetFastInitiationManager());
+      *fake_context->fake_fast_initiation_manager();
 
   NearbyFastInitiationImpl nearby_fast_initiation_impl(fake_context.get());
   nearby_fast_initiation_impl.StartAdvertising(
@@ -172,8 +168,7 @@ TEST(NearbyFastInitiationImpl, StartScanningSucceed) {
                                             devices_not_discovered_callback,
                                             error_callback);
   FakeFastInitiationManager& fake_fast_initiation_manager =
-      dynamic_cast<FakeFastInitiationManager&>(
-          fake_context->GetFastInitiationManager());
+      *fake_context->fake_fast_initiation_manager();
   fake_fast_initiation_manager.SetScanningDiscovered();
   EXPECT_TRUE(devices_discovered);
 }
@@ -198,8 +193,7 @@ TEST(NearbyFastInitiationImpl, StartScanningAndGetHardwareError) {
                                             error_callback);
 
   FakeFastInitiationManager& fake_fast_initiation_manager =
-      dynamic_cast<FakeFastInitiationManager&>(
-          fake_context->GetFastInitiationManager());
+      *fake_context->fake_fast_initiation_manager();
 
   // Mocking OS hardware error event on Windows
   fake_fast_initiation_manager.SetScanningError(
@@ -226,8 +220,7 @@ TEST(NearbyFastInitiationImpl, StopStartedScanning) {
   auto fake_context = std::make_unique<FakeContext>();
   NearbyFastInitiationImpl nearby_fast_initiation_impl(fake_context.get());
   FakeFastInitiationManager& fake_fast_initiation_manager =
-      dynamic_cast<FakeFastInitiationManager&>(
-          fake_context->GetFastInitiationManager());
+      *fake_context->fake_fast_initiation_manager();
   nearby_fast_initiation_impl.StartScanning([]() {}, []() {}, []() {});
   nearby_fast_initiation_impl.StopScanning(
       [&]() { stop_callback_called = true; });

@@ -44,13 +44,13 @@ namespace nearby {
 
 FakeContext::FakeContext()
     : fake_clock_(std::make_unique<FakeClock>()),
-      connectivity_manager_(std::make_unique<FakeConnectivityManager>()),
-      bluetooth_adapter_(std::make_unique<FakeBluetoothAdapter>()),
-      wifi_adapter_(std::make_unique<FakeWifiAdapter>()),
-      fast_initiation_manager_(std::make_unique<FakeFastInitiationManager>()),
-      shell_(std::make_unique<FakeShell>()),
-      executor_(std::make_unique<FakeTaskRunner>(
-          dynamic_cast<FakeClock*>(GetClock()), 5)) {}
+      fake_connectivity_manager_(std::make_unique<FakeConnectivityManager>()),
+      fake_bluetooth_adapter_(std::make_unique<FakeBluetoothAdapter>()),
+      fake_wifi_adapter_(std::make_unique<FakeWifiAdapter>()),
+      fake_fast_initiation_manager_(
+          std::make_unique<FakeFastInitiationManager>()),
+      fake_shell_(std::make_unique<FakeShell>()),
+      executor_(std::make_unique<FakeTaskRunner>(fake_clock_.get(), 5)) {}
 
 Clock* FakeContext::GetClock() const { return fake_clock_.get(); }
 
@@ -73,35 +73,35 @@ void FakeContext::CopyText(const absl::string_view text,
 }
 
 ConnectivityManager* FakeContext::GetConnectivityManager() const {
-  return connectivity_manager_.get();
+  return fake_connectivity_manager_.get();
 }
 
 sharing::api::BluetoothAdapter& FakeContext::GetBluetoothAdapter() const {
-  return *bluetooth_adapter_;
+  return *fake_bluetooth_adapter_;
 }
 
 sharing::api::WifiAdapter& FakeContext::GetWifiAdapter() const {
-  return *wifi_adapter_;
+  return *fake_wifi_adapter_;
 }
 
 api::FastInitiationManager& FakeContext::GetFastInitiationManager() const {
-  return *fast_initiation_manager_;
+  return *fake_fast_initiation_manager_;
 }
 
 std::unique_ptr<TaskRunner> FakeContext::CreateSequencedTaskRunner() const {
   std::unique_ptr<TaskRunner> task_runner =
-      std::make_unique<FakeTaskRunner>(dynamic_cast<FakeClock*>(GetClock()), 1);
+      std::make_unique<FakeTaskRunner>(fake_clock_.get(), 1);
   return task_runner;
 }
 
 std::unique_ptr<TaskRunner> FakeContext::CreateConcurrentTaskRunner(
     uint32_t concurrent_count) const {
-  std::unique_ptr<TaskRunner> task_runner = std::make_unique<FakeTaskRunner>(
-      dynamic_cast<FakeClock*>(GetClock()), concurrent_count);
+  std::unique_ptr<TaskRunner> task_runner =
+      std::make_unique<FakeTaskRunner>(fake_clock_.get(), concurrent_count);
   return task_runner;
 }
 
-api::Shell& FakeContext::GetShell() const { return *shell_; }
+api::Shell& FakeContext::GetShell() const { return *fake_shell_; }
 
 TaskRunner* FakeContext::GetTaskRunner() { return executor_.get(); }
 

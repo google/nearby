@@ -156,7 +156,7 @@ TEST_F(NearbySharingServiceExtensionTest, OpenSharedTargetUseDownloadFolder) {
       FileAttachment(std::filesystem::temp_directory_path() / "test.g2")};
   StatusCodes status_codes = service_extension()->Open(share_target);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
-  auto& shell = dynamic_cast<FakeShell&>(context()->GetShell());
+  FakeShell& shell = *context()->fake_shell();
   shell.set_return_error(true);
   status_codes = service_extension()->Open(share_target);
   EXPECT_NE(status_codes, StatusCodes::kOk);

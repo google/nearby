@@ -138,12 +138,10 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);
-    std::unique_ptr<NearbyConnectionsService> nearby_connections_service =
+    auto nearby_connections_service =
         std::make_unique<testing::NiceMock<FakeNearbyConnectionsService>>();
     SetConnectionType(ConnectivityManager::ConnectionType::kWifi);
-    nearby_connections_ =
-        dynamic_cast<testing::NiceMock<FakeNearbyConnectionsService>*>(
-            nearby_connections_service.get());
+    nearby_connections_ = nearby_connections_service.get();
 
     nearby_connections_manager_ =
         std::make_unique<NearbyConnectionsManagerImpl>(

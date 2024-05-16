@@ -28,7 +28,6 @@
 #include "internal/test/fake_clock.h"
 #include "sharing/attachment_info.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -66,8 +65,7 @@ class PayloadTrackerTest : public ::testing::Test {
   float percentage() const { return current_percentage_; }
 
   void FastForward(absl::Duration duration) {
-    FakeClock* clock = dynamic_cast<FakeClock*>(context()->GetClock());
-    clock->FastForward(duration);
+    context()->fake_clock()->FastForward(duration);
   }
 
   void PayloadUpdate(int bytes_transferred) {
@@ -78,7 +76,7 @@ class PayloadTrackerTest : public ::testing::Test {
   }
 
  private:
-  Context* context() {
+  FakeContext* context() {
     static FakeContext* context = new FakeContext();
     return context;
   }
