@@ -1,6 +1,5 @@
-use crate::ble_scan_provider::BleScanner;
 use crate::ProviderEvent;
-use log::{debug, error, info};
+use log::{debug, error};
 use tokio::sync::mpsc;
 
 // Implemented by the client to receive discovery results.

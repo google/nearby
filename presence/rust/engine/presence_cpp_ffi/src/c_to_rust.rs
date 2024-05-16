@@ -121,6 +121,6 @@ impl PresenceBleScanResultBuilder {
 mod tests {
     #[test]
     fn test_request_builder() {
-       assert_eq!(1, 1);
+        assert_eq!(1, 1);
     }
 }

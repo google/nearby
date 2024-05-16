@@ -1,6 +1,6 @@
 use crate::client_provider::PresenceMedium;
 use crate::ProviderEvent;
-use log::{debug, error, info};
+use log::{debug, error};
 use tokio::sync::mpsc;
 
 #[derive(Debug)]

@@ -1,21 +1,18 @@
 pub mod ble_scan_provider;
 pub mod client_provider;
 
-use log::{debug, info, log};
+use log::{debug, info};
 
 use crate::ble_scan_provider::{BleScanCallback, BleScanner, PresenceScanResult, ScanRequest};
 use crate::client_provider::{ClientProvider, Device, DiscoveryCallback};
-use client_provider::{
-    DiscoveryResult, PresenceDiscoveryCondition, PresenceDiscoveryRequest, PresenceIdentityType,
-    PresenceMeasurementAccuracy,
-};
+use client_provider::{DiscoveryResult, PresenceDiscoveryRequest};
 
 use tokio::runtime::Builder;
 use tokio::sync::mpsc;
 
 const PROVIDER_EVENT_CHANNEL_BUF_SIZE: usize = 100;
 
-enum ProviderEvent {
+pub enum ProviderEvent {
     DiscoveryRequest(PresenceDiscoveryRequest),
     ScanResult(PresenceScanResult),
     Stop,

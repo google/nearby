@@ -4,9 +4,9 @@ mod c_to_rust;
 mod discovery_callback_cpp;
 mod rust_to_c;
 
-use presence_core::PresenceEngine;
 use presence_core::ble_scan_provider::PresenceScanResult;
 use presence_core::client_provider::PresenceDiscoveryRequest;
+use presence_core::PresenceEngine;
 
 use crate::ble_scanner_cpp::{BleScannerCpp, PresenceStartBleScan};
 use crate::discovery_callback_cpp::{DiscoveryCallbackCpp, PresenceDiscoveryCallback};
@@ -43,7 +43,9 @@ pub unsafe extern "C" fn presence_engine_set_discovery_request(
     presence_engine: *mut PresenceEngine,
     request: *mut PresenceDiscoveryRequest,
 ) {
-    (*presence_engine).client_provider.set_discovery_request(*Box::from_raw(request));
+    (*presence_engine)
+        .client_provider
+        .set_discovery_request(*Box::from_raw(request));
 }
 
 #[no_mangle]
@@ -51,5 +53,7 @@ pub unsafe extern "C" fn presence_on_scan_result(
     presence_engine: *mut PresenceEngine,
     scan_result: *mut PresenceScanResult,
 ) {
-    (*presence_engine).ble_scan_callback.on_scan_result(*(Box::from_raw(scan_result)));
+    (*presence_engine)
+        .ble_scan_callback
+        .on_scan_result(*(Box::from_raw(scan_result)));
 }
