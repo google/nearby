@@ -131,7 +131,6 @@ class MockPayloadStatusListener
 class NearbyConnectionsManagerImplTest : public testing::Test {
  public:
   void SetUp() override {
-    FakeTaskRunner::ResetPendingTasksCount();
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc,
         false);
@@ -145,8 +144,8 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
 
     nearby_connections_manager_ =
         std::make_unique<NearbyConnectionsManagerImpl>(
-            &fake_context_, fake_connectivity_manager_, fake_device_info_,
-            std::move(nearby_connections_service));
+            &fake_task_runner_, &fake_context_, fake_connectivity_manager_,
+            fake_device_info_, std::move(nearby_connections_service));
   }
 
   void TearDown() override {
@@ -157,7 +156,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);
 
-    FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Seconds(1));
+    fake_task_runner_.SyncWithTimeout(absl::Seconds(1));
   }
 
   void SetConnectionType(ConnectivityManager::ConnectionType connection_type) {
@@ -169,8 +168,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
   }
 
   void Sync() {
-    EXPECT_TRUE(
-        FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Seconds(1)));
+    EXPECT_TRUE(fake_task_runner_.SyncWithTimeout(absl::Seconds(1)));
   }
 
  protected:
@@ -289,6 +287,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         TransportType::kHighQuality,
         [&](NearbyConnection* connection, Status status) {
           nearby_connection = connection;
+          notification.Notify();
         });
 
     EXPECT_TRUE(request_connection_notification.WaitForNotificationWithTimeout(
@@ -304,7 +303,6 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
 
           payload_listener_remote = std::move(listener);
           std::move(callback)(Status::kSuccess);
-          notification.Notify();
         });
 
     ConnectionInfo connection_info;
@@ -440,6 +438,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
   }
 
   nearby::FakeContext fake_context_;
+  FakeTaskRunner fake_task_runner_{fake_context_.fake_clock(), 1};
   nearby::FakeDeviceInfo fake_device_info_;
   nearby::FakeConnectivityManager fake_connectivity_manager_;
   bool should_use_web_rtc_ = false;
@@ -741,7 +740,7 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectDisconnected) {
   NearbyConnection* nearby_connection =
       Connect(connection_listener_remote, payload_listener_remote,
               ConnectionResponse::kDisconnected);
-  EXPECT_TRUE(FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Seconds(1)));
+  EXPECT_TRUE(fake_task_runner_.SyncWithTimeout(absl::Seconds(1)));
   EXPECT_FALSE(nearby_connection);
   EXPECT_FALSE(nearby_connections_manager_->GetRawAuthenticationToken(
       kRemoteEndpointId));
@@ -837,6 +836,7 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectReadAfterAppend) {
 
   absl::Notification read_notification;
   nearby_connection->Read([&](std::optional<std::vector<uint8_t>> bytes) {
+    ASSERT_TRUE(bytes.has_value());
     EXPECT_EQ(bytes, byte_payload);
     read_notification.Notify();
   });

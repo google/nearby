@@ -24,7 +24,6 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_timer.h"
 
@@ -68,13 +67,9 @@ void FakeTaskRunner::Sync() {
 }
 
 bool FakeTaskRunner::SyncWithTimeout(absl::Duration timeout) {
-  CountDownLatch latch(count_);
-  for (int i = 0; i < count_; ++i) {
-    PostTask([&] { latch.CountDown(); });
-  }
-
-  auto result = latch.Await(timeout);
-  return result.ok() && result.result();
+  absl::Notification notification;
+  PostTask([&] { notification.Notify(); });
+  return notification.WaitForNotificationWithTimeout(timeout);
 }
 
 bool FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Duration timeout) {

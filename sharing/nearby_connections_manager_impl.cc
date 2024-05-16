@@ -35,6 +35,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/advertisement.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
@@ -136,10 +137,12 @@ std::string MediumSelectionToString(const MediumSelection& mediums) {
 }  // namespace
 
 NearbyConnectionsManagerImpl::NearbyConnectionsManagerImpl(
+    TaskRunner* connections_callback_task_runner,
     Context* context, ConnectivityManager& connectivity_manager,
     nearby::DeviceInfo& device_info,
     std::unique_ptr<NearbyConnectionsService> nearby_connections_service)
-    : context_(context),
+    : connections_callback_task_runner_(connections_callback_task_runner),
+      context_(context),
       connectivity_manager_(connectivity_manager),
       device_info_(device_info),
       nearby_connections_service_(std::move(nearby_connections_service)) {}
@@ -195,15 +198,21 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
           const ConnectionInfo& connection_info) {
         OnConnectionInitiated(endpoint_id, connection_info);
       };
-  connection_listener.accepted_cb = [&](absl::string_view endpoint_id) {
-    OnConnectionAccepted(endpoint_id);
+  connection_listener.accepted_cb = [this](absl::string_view endpoint_id) {
+    connections_callback_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id)]() {
+          OnConnectionAccepted(endpoint_id);
+        });
   };
   connection_listener.rejected_cb = [&](absl::string_view endpoint_id,
                                         Status status) {
     OnConnectionRejected(endpoint_id, status);
   };
-  connection_listener.disconnected_cb = [&](absl::string_view endpoint_id) {
-    OnDisconnected(endpoint_id);
+  connection_listener.disconnected_cb = [this](absl::string_view endpoint_id) {
+    connections_callback_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id)]() {
+          OnDisconnected(endpoint_id);
+        });
   };
   connection_listener.bandwidth_changed_cb = [&](absl::string_view endpoint_id,
                                                  Medium medium) {
@@ -377,15 +386,21 @@ void NearbyConnectionsManagerImpl::Connect(
           const ConnectionInfo& connection_info) {
         OnConnectionInitiated(endpoint_id, connection_info);
       };
-  connection_listener.accepted_cb = [&](absl::string_view endpoint_id) {
-    OnConnectionAccepted(endpoint_id);
+  connection_listener.accepted_cb = [this](absl::string_view endpoint_id) {
+    connections_callback_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id)]() {
+          OnConnectionAccepted(endpoint_id);
+        });
   };
   connection_listener.rejected_cb = [&](absl::string_view endpoint_id,
                                         Status status) {
     OnConnectionRejected(endpoint_id, status);
   };
-  connection_listener.disconnected_cb = [&](absl::string_view endpoint_id) {
-    OnDisconnected(endpoint_id);
+  connection_listener.disconnected_cb = [this](absl::string_view endpoint_id) {
+    connections_callback_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id)]() {
+          OnDisconnected(endpoint_id);
+        });
   };
   connection_listener.bandwidth_changed_cb = [&](absl::string_view endpoint_id,
                                                  Medium medium) {
@@ -467,7 +482,7 @@ void NearbyConnectionsManagerImpl::Disconnect(absl::string_view endpoint_id) {
                    << " attempted over Nearby Connections with result: "
                    << ConnectionsStatusToString(status);
 
-        context_->GetTaskRunner()->PostTask([&, endpoint_id]() {
+        connections_callback_task_runner_->PostTask([this, endpoint_id]() {
           OnDisconnected(endpoint_id);
           {
             MutexLock lock(&mutex_);
@@ -663,8 +678,12 @@ void NearbyConnectionsManagerImpl::OnConnectionInitiated(
   };
 
   payload_listener.payload_progress_cb =
-      [&](absl::string_view endpoint_id, const PayloadTransferUpdate& update) {
-        OnPayloadTransferUpdate(endpoint_id, update);
+      [this](absl::string_view endpoint_id,
+             const PayloadTransferUpdate& update) {
+        connections_callback_task_runner_->PostTask(
+            [this, endpoint_id = std::string(endpoint_id), update = update]() {
+              OnPayloadTransferUpdate(endpoint_id, update);
+            });
       };
 
   nearby_connections_service_->AcceptConnection(

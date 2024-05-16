@@ -29,6 +29,8 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/task_runner.h"
+#include "internal/platform/timer.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -45,7 +47,8 @@ namespace sharing {
 class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
  public:
   explicit NearbyConnectionsManagerImpl(
-      Context* context, nearby::ConnectivityManager& connectivity_manager,
+      nearby::TaskRunner* connections_callback_task_runner, Context* context,
+      nearby::ConnectivityManager& connectivity_manager,
       nearby::DeviceInfo& device_info,
       std::unique_ptr<NearbyConnectionsService> nearby_connections_service);
   ~NearbyConnectionsManagerImpl() override;
@@ -124,6 +127,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void SendWithoutDelay(absl::string_view endpoint_id,
                         std::unique_ptr<Payload> payload);
 
+  nearby::TaskRunner* const connections_callback_task_runner_;
   Context* const context_;
   nearby::ConnectivityManager& connectivity_manager_;
   nearby::DeviceInfo& device_info_;

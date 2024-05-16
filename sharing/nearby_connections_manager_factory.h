@@ -19,6 +19,7 @@
 
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/device_info.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_sharing_service_factory.h"
@@ -31,8 +32,12 @@ class NearbyConnectionsManagerFactory {
   using LinkType = NearbySharingServiceFactory::LinkType;
 
   // Return a singleton instance of NearbyConnectionsManagerFactory.
+  // |task_runner| is the thread when callbacks from NearbyConnection destined
+  // for NearSharingServiec need to be scheduled.  This is usually the thread
+  // that NearbySharingService is running on.
   static std::unique_ptr<NearbyConnectionsManager> CreateConnectionsManager(
-      NearbySharingServiceFactory::LinkType link_type, Context* context,
+      NearbySharingServiceFactory::LinkType link_type,
+      nearby::TaskRunner* connections_callback_task_runner, Context* context,
       nearby::DeviceInfo& device_info,
       nearby::analytics::EventLogger* event_logger = nullptr);
 

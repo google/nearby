@@ -110,6 +110,7 @@ class NearbySharingServiceImpl
 
  public:
   NearbySharingServiceImpl(
+      std::unique_ptr<nearby::TaskRunner> service_thread,
       Context* context, nearby::sharing::api::SharingPlatform& sharing_platform,
       NearbySharingDecoder* decoder,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
@@ -483,6 +484,8 @@ class NearbySharingServiceImpl
   // Update file path for the file attachment.
   void UpdateFilePath(ShareTarget& share_target);
 
+  // Used to run nearby sharing service APIs.
+  std::unique_ptr<TaskRunner> service_thread_;
   Context* const context_;
   nearby::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
@@ -630,9 +633,6 @@ class NearbySharingServiceImpl
 
   // Called when cleanup for ARC is needed as part of the transfer.
   std::function<void()> arc_transfer_cleanup_callback_;
-
-  // Used to run nearby sharing service APIs.
-  std::unique_ptr<TaskRunner> service_thread_ = nullptr;
 
   // Shouldn't schedule new task after shutting down, and skip task if the
   // object is null.

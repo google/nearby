@@ -47,6 +47,7 @@
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_information.h"
@@ -152,11 +153,13 @@ constexpr absl::string_view kProfileRelativePath = "Google/Nearby/Sharing";
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
+    std::unique_ptr<TaskRunner> service_thread,
     Context* context, SharingPlatform& sharing_platform,
     NearbySharingDecoder* decoder,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     nearby::analytics::EventLogger* event_logger)
-    : context_(context),
+    : service_thread_(std::move(service_thread)),
+      context_(context),
       device_info_(sharing_platform.GetDeviceInfo()),
       preference_manager_(sharing_platform.GetPreferenceManager()),
       account_manager_(sharing_platform.GetAccountManager()),
@@ -188,8 +191,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       app_info_(sharing_platform.CreateAppInfo()) {
   NL_DCHECK(decoder_);
   NL_DCHECK(nearby_connections_manager_);
-
-  service_thread_ = context_->CreateSequencedTaskRunner();
 
   certificate_download_during_discovery_timer_ = context_->CreateTimer();
   on_network_changed_delay_timer_ = context_->CreateTimer();
