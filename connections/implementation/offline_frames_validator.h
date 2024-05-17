@@ -28,7 +28,8 @@ namespace parser {
 
 constexpr absl::string_view kIllegalFileNamePatterns[] = {":", "/", "\\"};
 
-constexpr absl::string_view kIllegalParentFolderPatterns[] = {":", ".."};
+constexpr absl::string_view kIllegalParentFolderPatterns[] = {":", "../",
+                                                              "..\\"};
 
 const size_t kIllegalFileNamePatternsSize =
     sizeof(kIllegalFileNamePatterns) / sizeof(*kIllegalFileNamePatterns);

@@ -31,14 +31,16 @@ namespace windows {
 
 namespace {
 const wchar_t* kIllegalPathNames[] = {
-    L"CON",  L"PRN",  L"AUX",  L"NUL",  L"COM1", L"COM2", L"COM3", L"COM4",
-    L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"LPT1", L"LPT2", L"LPT3",
-    L"LPT4", L"LPT5", L"LPT6", L"LPT7", L"LPT8", L"LPT9"};
+    L"CON",  L"PRN",  L"AUX",  L"NUL",  L"COM1", L"COM2", L"COM3",
+    L"COM4", L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"COM¹",
+    L"COM²", L"COM³", L"LPT1", L"LPT2", L"LPT3", L"LPT4", L"LPT5",
+    L"LPT6", L"LPT7", L"LPT8", L"LPT9", L"LPT¹", L"LPT²", L"LPT³"};
 
 const wchar_t* kFileName(L"increment_file_test.txt");
 const wchar_t* kFirstIterationFileName(L"/increment_file_test (1).txt");
 const wchar_t* kSecondIterationFileName(L"/increment_file_test (2).txt");
 const wchar_t* kThirdIterationFileName(L"/increment_file_test (3).txt");
+const wchar_t* kFileNameWithNullReplaced(L"/increment_file_test.txt_.txt");
 const wchar_t* kNoDotsFileName(L"incrementfiletesttxt");
 const wchar_t* kOneIterationNoDotsFileName(L"/incrementfiletesttxt (1)");
 const wchar_t* kMultipleDotsFileName(L"increment.file.test.txt");
@@ -591,7 +593,7 @@ TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterColon\
 ReturnsFileNameWithUnderbarSubstituted) {
   // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
   // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test:Test");
+  auto illegal_character_sequence(L"Test\"Test");
 
   std::wstring parent_folder(L"");
 
@@ -622,6 +624,45 @@ TEST_F(FilePathTests, GetDownloadPath_FileExistsReturns\
 FileWithIncrementedName) {
   std::wstring file_name(kFileName);
   std::wstring renamed_file_name(kFirstIterationFileName);
+  std::wstring parent_folder(L"");
+
+  std::wstring output_file_path(default_download_path_);
+  output_file_path.append(L"/");
+  output_file_path.append(file_name);
+
+  std::wstring expected(default_download_path_);
+  expected += renamed_file_name;
+
+  std::wifstream input_file;
+  std::wofstream output_file;
+
+  output_file.open(output_file_path,
+                   std::ofstream::binary | std::ofstream::out);
+
+  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
+
+  output_file.close();
+
+  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+
+  EXPECT_EQ(actual, expected);
+
+  // Remove the file and check that it is removed
+  // File 1
+  _wremove(output_file_path.c_str());
+
+  input_file.open(output_file_path, std::ifstream::binary | std::ifstream::in);
+
+  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
+}
+
+TEST_F(FilePathTests, GetDownloadPath_FileExistsReturns\
+FileWithIncrementedNameWithNull) {
+  std::wstring file_name(kFileName);
+  int size = file_name.size();
+  file_name.append(L"1.txt");
+  file_name[size] = L'\x00';
+  std::wstring renamed_file_name(kFileNameWithNullReplaced);
   std::wstring parent_folder(L"");
 
   std::wstring output_file_path(default_download_path_);

@@ -406,6 +406,13 @@ Exception EnsureValidOfflineFrame(
                 .payload_transfer()
                 .payload_header()
                 .has_file_name()) {
+          if (offline_frame.v1()
+                  .payload_transfer()
+                  .payload_header()
+                  .file_name()
+                  .empty()) {
+            return {Exception::kIllegalCharacters};
+          }
           if (CheckForIllegalCharacters(offline_frame.v1()
                                             .payload_transfer()
                                             .payload_header()
@@ -414,6 +421,8 @@ Exception EnsureValidOfflineFrame(
                                         kIllegalFileNamePatternsSize)) {
             return {Exception::kIllegalCharacters};
           }
+        } else {  // Filename is empty.
+          return {Exception::kIllegalCharacters};
         }
         if (offline_frame.v1()
                 .payload_transfer()
