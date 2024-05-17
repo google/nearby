@@ -30,10 +30,10 @@ add_custom_target(presence ALL
 set_target_properties(presence PROPERTIES BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # Tests in Rust can only be invoked here due to the dependencies on C codes.
-add_test(NAME presence_ffi_test
+add_test(NAME presence_ffi_rust_test
     COMMAND cargo test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set_tests_properties(presence_ffi_test PROPERTIES DEPENDS presence)
-set_tests_properties(presence_ffi_test PROPERTIES
+set_tests_properties(presence_ffi_rust_test PROPERTIES DEPENDS presence)
+set_tests_properties(presence_ffi_rust_test PROPERTIES
         ENVIRONMENT CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(tests)

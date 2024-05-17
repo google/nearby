@@ -93,7 +93,7 @@ impl PresenceDiscoveryRequestBuilder {
 }
 
 pub struct PresenceBleScanResultBuilder {
-    pub medium: PresenceMedium,
+    medium: PresenceMedium,
     actions: Vec<i32>,
 }
 
@@ -109,7 +109,8 @@ impl PresenceBleScanResultBuilder {
         self.actions.push(action);
     }
 
-    pub fn build(&self) -> PresenceScanResult {
+    // Builder itself is consumed to the result.
+    pub fn build(self) -> PresenceScanResult {
         PresenceScanResult {
             medium: self.medium,
             actions: self.actions.to_vec(),
@@ -119,8 +120,47 @@ impl PresenceBleScanResultBuilder {
 
 #[cfg(test)]
 mod tests {
+    use crate::c_to_rust::{PresenceBleScanResultBuilder, PresenceDiscoveryRequestBuilder};
+    use presence_core::client_provider::{
+        PresenceDiscoveryCondition, PresenceIdentityType, PresenceMeasurementAccuracy,
+        PresenceMedium,
+    };
+
     #[test]
-    fn test_request_builder() {
-        assert_eq!(1, 1);
+    fn test_build_presence_discovery_request() {
+        let expected_priority = 99;
+        let expected_action = 100;
+        let expected_identity_type = PresenceIdentityType::Private;
+        let expected_accuracy = PresenceMeasurementAccuracy::CoarseAccuracy;
+        let mut builder = PresenceDiscoveryRequestBuilder::new(expected_priority);
+        builder.add_condition(PresenceDiscoveryCondition {
+            action: expected_action,
+            identity_type: expected_identity_type,
+            measurement_accuracy: expected_accuracy,
+        });
+        let request = builder.build();
+        assert_eq!(request.priority, expected_priority);
+        assert_eq!(request.conditions.len(), 1);
+        assert_eq!(request.conditions[0].action, expected_action);
+        assert_eq!(request.conditions[0].identity_type, expected_identity_type);
+        assert_eq!(
+            request.conditions[0].measurement_accuracy,
+            expected_accuracy
+        );
+    }
+
+    #[test]
+    fn test_build_presence_scan_result() {
+        let expected_medium = PresenceMedium::BLE;
+        let expected_action_zero = 100;
+        let expected_action_one = 101;
+        let mut builder = PresenceBleScanResultBuilder::new(expected_medium);
+        builder.add_action(expected_action_zero);
+        builder.add_action(expected_action_one);
+        let result = builder.build();
+        assert_eq!(result.medium, expected_medium);
+        assert_eq!(result.actions.len(), 2);
+        assert_eq!(result.actions[0], expected_action_zero);
+        assert_eq!(result.actions[1], expected_action_one);
     }
 }
