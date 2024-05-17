@@ -2501,7 +2501,10 @@ TEST_F(NearbySharingServiceImplTest,
                       TransferMetadata::Status::kUnexpectedDisconnection);
           }));
 
-  connection_.Close();
+  sharing_service_task_runner_->PostTask([this]() {
+    connection_.Close();
+  });
+  sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout);
 
   // To avoid UAF in OnIncomingTransferUpdate().
   UnregisterReceiveSurface(&callback);
@@ -3580,7 +3583,9 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccessClosedConnection) {
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
 
   // Call disconnect on the connection early before the timeout has passed.
-  connection_.Close();
+  sharing_service_task_runner_->PostTask([this]() {
+    connection_.Close();
+  });
 
   // Expect that we haven't called disconnect again as the endpoint is already
   // disconnected.
