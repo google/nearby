@@ -22,7 +22,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
@@ -247,7 +246,7 @@ TEST(OfflineFramesValidatorTest,
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
   header.set_total_size(3e10);
-  header.set_file_name("file_name.jpg");
+  header.set_file_name(std::string());
   header.set_parent_folder(std::string());
   chunk.set_body("payload data");
   chunk.set_offset(150);
@@ -288,6 +287,31 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalFilePath) {
   ASSERT_TRUE(ret_value.Ok());
 }
 
+TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithIllegalFilePath) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name(
+      std::string("earth_85MB_test (1): (3) (4) (8) (1) (2) (2) (1).jpg"));
+  header.set_parent_folder(std::string());
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+}
+
 TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::PayloadChunk chunk;
@@ -296,7 +320,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
   header.set_total_size(3e10);
-  header.set_file_name("test_file.txt");
+  header.set_file_name("");
   header.set_parent_folder(std::string(
       std::string("earth_85MB_test (1) (3) (4) (8) (1) (2) (2) (1).jpg")));
   chunk.set_body("payload data");
@@ -313,6 +337,31 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
   ASSERT_TRUE(ret_value.Ok());
 }
 
+TEST(OfflineFramesValidatorTest,
+     ValidatesAsFailedTypeFileWithIllegalParentFolder) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name("");
+  header.set_parent_folder(std::string(
+      std::string("earth_85MB_test (1): (3) (4) (8) (1) (2) (2) (1).jpg")));
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+}
 TEST(OfflineFramesValidatorTest, ValidatesAsFailWithNullPayloadTransferFrame) {
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::PayloadChunk chunk;
@@ -667,66 +716,6 @@ TEST(OfflineFramesValidatorTest,
   ASSERT_FALSE(ret_value.Ok());
 }
 
-struct FileNameParentFolderTestData {
-  std::string test_title;
-  std::string file_name;
-  std::string parent_folder;
-  std::string expected;
-};
-
-using FileNameParentFolderValidationTest =
-    testing::TestWithParam<FileNameParentFolderTestData>;
-
-TEST_P(FileNameParentFolderValidationTest, CheckIllegalFileNameWithParam) {
-  NEARBY_LOGS(INFO) << "Running FileNameParentFolderValidationTest_"
-                    << GetParam().test_title;
-  PayloadTransferFrame::PayloadHeader header;
-  PayloadTransferFrame::PayloadChunk chunk;
-  header.set_id(12345);
-  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
-  // Sending files larger than 2gb was previously broken (see cl/372382338).
-  // This tests a file larger than int max.
-  header.set_total_size(3e10);
-  header.set_file_name(GetParam().file_name);
-  header.set_parent_folder(GetParam().parent_folder);
-  chunk.set_body("payload data");
-  chunk.set_offset(150);
-  chunk.set_flags(1);
-
-  OfflineFrame offline_frame;
-
-  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
-  offline_frame.ParseFromString(std::string(bytes));
-
-  auto ret_value = EnsureValidOfflineFrame(offline_frame);
-
-  if (GetParam().expected == "exception") {
-    ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
-  } else {
-    ASSERT_TRUE(ret_value.Ok());
-  }
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    FileNameParentFolderTestInitiation,  // This name is only used for
-                                         // instantiation
-    FileNameParentFolderValidationTest,  // This is the name of your
-                                         // parameterized test
-    testing::ValuesIn<FileNameParentFolderTestData>({
-        {"CheckLegalFileName", "file_name.jpg", "", "no exception"},
-        {"CheckEmptyFileName", "", "", "exception"},
-        {"CheckIllegalFileNameColon", "file_name:.jpg", "", "exception"},
-        {"CheckIllegalFileNameSlash", "file_name/.jpg", "", "exception"},
-        {"CheckIllegalFileNameBackSlash", "file_name\\.jpg", "", "exception"},
-        {"CheckLegalParentFolder", "file_name.txt", "parent_/folder",
-         "no exception"},
-        {"CheckIllegalParentFolderColon", "file_name.jpg", "parent:/folder",
-         "exception"},
-        {"CheckIllegalParentFolderDoubleDotSlash", "file_name.txt",
-         "parent../folder", "exception"},
-        {"CheckIllegalParentFolderDoubleDotBackSlash", "file_name.txt",
-         "parent..\\folder", "exception"},
-    }));
 }  // namespace
 }  // namespace parser
 }  // namespace connections

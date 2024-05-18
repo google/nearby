@@ -37,19 +37,16 @@
 namespace nearby {
 namespace windows {
 
-const wchar_t* kUpOneLevel = L"../";
-constexpr wchar_t kEndDot = L'.';
+const wchar_t* kUpOneLevel = L"/..";
 constexpr wchar_t kPathDelimiter = L'/';
 constexpr wchar_t kReplacementChar = L'_';
 constexpr wchar_t kForwardSlash = L'/';
 constexpr wchar_t kBackSlash = L'\\';
-const wchar_t kIllegalFileCharacters[] = {L'*', L'?', L'\"', L'<', L'>', L'|'};
 
-const wchar_t* const kForbiddenPathNames[] = {
-    L"CON",  L"PRN",  L"AUX",  L"NUL",  L"COM1", L"COM2", L"COM3",
-    L"COM4", L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"COM¹",
-    L"COM²", L"COM³", L"LPT1", L"LPT2", L"LPT3", L"LPT4", L"LPT5",
-    L"LPT6", L"LPT7", L"LPT8", L"LPT9", L"LPT¹", L"LPT²", L"LPT³"};
+wchar_t const* kForbiddenPathNames[] = {
+    L"CON",  L"PRN",  L"AUX",  L"NUL",  L"COM1", L"COM2", L"COM3", L"COM4",
+    L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"LPT1", L"LPT2", L"LPT3",
+    L"LPT4", L"LPT5", L"LPT6", L"LPT7", L"LPT8", L"LPT9"};
 
 std::wstring FilePath::GetCustomSavePath(std::wstring parent_folder,
                                          std::wstring file_name) {
@@ -131,6 +128,7 @@ std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
   std::replace(sanitized_path.begin(), sanitized_path.end(), kBackSlash,
                kForwardSlash);
 
+  // Remove any /..'s
   SanitizePath(sanitized_path);
 
   auto last_delimiter = sanitized_path.find_last_of(kPathDelimiter);
@@ -236,21 +234,26 @@ void FilePath::SanitizePath(std::wstring& path) {
     // If found then erase it from string
     path.erase(pos, wcslen(kUpOneLevel));
   }
-  while (path[path.size() - 1] == kEndDot) {
-    // If found then erase it from string
-    path.erase(path.size() - 1, 1);
-  }
 
   path = MutateForbiddenPathElements(path);
 
   ReplaceInvalidCharacters(path);
 }
 
+char kIllegalFileCharacters[] = {'?', '*', '\'', '<', '>', '|', ':'};
+
 void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
   auto it = path.begin();
   it += 2;  // Skip the 'C:' or any other drive specifier
 
   for (; it != path.end(); it++) {
+    // If 0 < character < 32, it's illegal, replace it
+    if (*it > 0 && *it < 32) {
+      NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
+                        << " replaced \'" << std::string(1, *it) << "\' with \'"
+                        << std::string(1, kReplacementChar);
+      *it = kReplacementChar;
+    }
     for (auto illegal_character : kIllegalFileCharacters) {
       if (*it == illegal_character) {
         NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
@@ -258,19 +261,6 @@ void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
                           << "\' with \'" << std::string(1, kReplacementChar);
         *it = kReplacementChar;
       }
-    }
-    if (*it > 0 &&
-        *it < 32) {  // If 0 < character < 32, it's illegal, replace it
-      NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
-                        << " replaced \'" << std::string(1, *it) << "\' with \'"
-                        << std::string(1, kReplacementChar);
-      *it = kReplacementChar;
-    }
-    if (*it == 0) {  // character is null
-      NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
-                        << " replaced \'NULL\' with \'"
-                        << std::string(1, kReplacementChar);
-      *it = kReplacementChar;
     }
   }
 }
