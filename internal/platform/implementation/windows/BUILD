@@ -113,6 +113,8 @@ cc_library(
     copts = ["-DNO_INTEL_PIE"],
     visibility = ["//visibility:private"],
     deps = [
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:types",
@@ -214,6 +216,7 @@ cc_library(
         ":comm",
         ":crypto",  # build_cleaner: keep
         ":types",
+        "//connections/implementation/flags:connections_flags",
         "//internal/account",
         "//internal/base:files",
         "//internal/flags:nearby_flags",

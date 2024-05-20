@@ -25,6 +25,8 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 
 namespace nearby {
 namespace windows {
@@ -39,6 +41,7 @@ const wchar_t* kFileName(L"increment_file_test.txt");
 const wchar_t* kFirstIterationFileName(L"/increment_file_test (1).txt");
 const wchar_t* kSecondIterationFileName(L"/increment_file_test (2).txt");
 const wchar_t* kThirdIterationFileName(L"/increment_file_test (3).txt");
+const wchar_t* kFileNameWithNullReplaced(L"/increment_file_test.txt_.txt");
 const wchar_t* kNoDotsFileName(L"incrementfiletesttxt");
 const wchar_t* kOneIterationNoDotsFileName(L"/incrementfiletesttxt (1)");
 const wchar_t* kMultipleDotsFileName(L"increment.file.test.txt");
@@ -52,6 +55,8 @@ const wchar_t* kLongEscapeMixedSlash(L"../test\\..\\../test");
 const wchar_t* kLongEscapeEndingEscape(L"../test/../../test/..");
 const wchar_t* kLongEscapeEndingEscapeWithSlash(
     L"../test/../../test/../../../");
+const wchar_t* kFileNameWithThreeDots(L"...");
+const wchar_t* kFileNameWithFrontTwoDots(L"..file.name.txt");
 }  // namespace
 
 // Can't run on google 3, I presume the SHGetKnownFolderPath
@@ -851,6 +856,109 @@ AHoleBetweenRenamedFiles) {
   _wremove(output_file3_path.c_str());
   input_file.open(output_file3_path, std::ifstream::binary | std::ifstream::in);
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
+}
+
+void SetCheckIllegalCharactersFlag(bool value) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kCheckIllegalCharacters,
+      value);
+}
+
+TEST_F(FilePathTests, GetDownloadPathWithFileName\
+FileNameTwoDotsFrontShouldReturnBaseDownloadPathWithFileNameTwoDotsFront) {
+  std::wstring parent_folder(L"");
+  std::wstring file_name(kFileNameWithFrontTwoDots);
+
+  std::wstringstream path(L"");
+  path << default_download_path_ << L"/" << file_name;
+
+  std::wstring expected = path.str();
+
+  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+
+  EXPECT_NE(actual, expected);
+
+  SetCheckIllegalCharactersFlag(true);
+  actual = FilePath::GetDownloadPath(parent_folder, file_name);
+  SetCheckIllegalCharactersFlag(false);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST_F(FilePathTests, GetDownloadPathWithFileName\
+FileNameThreeDotsShouldReturnBaseDownloadPathWithUnderscore) {
+  SetCheckIllegalCharactersFlag(true);
+  std::wstring parent_folder(L"");
+  std::wstring file_name(kFileNameWithThreeDots);
+
+  std::wstringstream path(L"");
+  path << default_download_path_ << L"/.._";
+
+  std::wstring expected = path.str();
+
+  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+
+  SetCheckIllegalCharactersFlag(false);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST_F(FilePathTests, GetDownloadPath_FileExistsReturns\
+FileWithIncrementedNameWithNull) {
+  SetCheckIllegalCharactersFlag(true);
+
+  std::wstring file_name(kFileName);
+  int size = file_name.size();
+  file_name.append(L"1.txt");
+  file_name[size] = L'\x00';
+  std::wstring renamed_file_name(kFileNameWithNullReplaced);
+  std::wstring parent_folder(L"");
+
+  std::wstring output_file_path(default_download_path_);
+  output_file_path.append(L"/");
+  output_file_path.append(file_name);
+
+  std::wstring expected(default_download_path_);
+  expected += renamed_file_name;
+
+  std::wifstream input_file;
+  std::wofstream output_file;
+
+  output_file.open(output_file_path,
+                   std::ofstream::binary | std::ofstream::out);
+
+  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
+
+  output_file.close();
+
+  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+
+  EXPECT_EQ(actual, expected);
+
+  // Remove the file and check that it is removed
+  // File 1
+  _wremove(output_file_path.c_str());
+
+  input_file.open(output_file_path, std::ifstream::binary | std::ifstream::in);
+
+  SetCheckIllegalCharactersFlag(false);
+  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
+}
+
+TEST_F(FilePathTests, GetDownloadPathWithFileName\
+ParentFolderWithADotShouldBeReplaceedWithUnderscore) {
+  SetCheckIllegalCharactersFlag(true);
+  std::wstring parent_folder(L"test/./folder/");
+  std::wstring file_name(kFileName);
+
+  std::wstringstream path(L"");
+  path << default_download_path_ << L"/test/_/folder" << L"/" << kFileName;
+
+  std::wstring expected = path.str();
+
+  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+
+  SetCheckIllegalCharactersFlag(false);
+  EXPECT_EQ(actual, expected);
 }
 }  // namespace windows
 }  // namespace nearby

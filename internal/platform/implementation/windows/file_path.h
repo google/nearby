@@ -41,6 +41,7 @@ class FilePath {
   static std::wstring MutateForbiddenPathElements(std::wstring& str);
   static std::wstring GetDownloadPathInternal(std::wstring parent_folder,
                                               std::wstring file_name);
+  static void SanitizeFileName(std::wstring& file_name);
 };
 
 }  // namespace windows
