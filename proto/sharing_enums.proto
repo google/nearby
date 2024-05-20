@@ -71,7 +71,8 @@ enum EventType {
       /* stage = STAGE_QS_ADVERTISE_END */;
 
   // Sender sends a fast initialization to receiver.
-  SEND_FAST_INITIALIZATION = 9;
+  SEND_FAST_INITIALIZATION = 9
+      /* stage = STAGE_QS_DISCOVER_START */;
 
   // Receiver receives the fast initialization.
   RECEIVE_FAST_INITIALIZATION = 10;
