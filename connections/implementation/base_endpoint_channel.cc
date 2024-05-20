@@ -127,6 +127,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     PacketMetaData& packet_meta_data) {
   ByteArray result;
   {
+    NEARBY_LOGS(WARNING) << "BaseEndpointChannel::Read: reader_mutex_";
     MutexLock lock(&reader_mutex_);
 
     packet_meta_data.StartSocketIo();
@@ -148,6 +149,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     packet_meta_data.StopSocketIo();
     packet_meta_data.SetPacketSize(read_int.result() + sizeof(std::int32_t));
     result = std::move(read_bytes.result());
+    NEARBY_LOGS(WARNING) << "BaseEndpointChannel::Read: reader_mutex_ - done";
   }
 
   {
