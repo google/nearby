@@ -21,6 +21,7 @@
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <ios>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <ostream>
@@ -3492,14 +3493,14 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     SetAttachmentPayloadId(attachment, file.payload_id());
     share_target.file_attachments.push_back(std::move(attachment));
 
-    file_size_sum += file.size();
-    if (file_size_sum < 0) {
+    if (std::numeric_limits<int64_t>::max() - file.size() < file_size_sum) {
       Fail(share_target.id, TransferMetadata::Status::kNotEnoughSpace);
       NL_LOG(WARNING) << __func__
                       << ": Ignoring introduction, total file size overflowed "
                          "64 bit integer.";
       return;
     }
+    file_size_sum += file.size();
   }
 
   for (const auto& text : introduction_frame.text_metadata()) {
