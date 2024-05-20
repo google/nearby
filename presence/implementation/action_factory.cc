@@ -15,10 +15,12 @@
 #include "presence/implementation/action_factory.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "internal/platform/logging.h"
+#include "presence/data_element.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {

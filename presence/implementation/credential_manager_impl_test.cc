@@ -14,6 +14,7 @@
 
 #include "presence/implementation/credential_manager_impl.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -36,8 +37,10 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/implementation/base_broadcast_request.h"
+#include "presence/implementation/credential_manager.h"
 
 namespace nearby {
 namespace presence {
@@ -243,8 +246,8 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   EXPECT_EQ(private_credential.key_seed().size(),
             CredentialManagerImpl::kAuthenticityKeyByteSize);
   EXPECT_FALSE(private_credential.connection_signing_key().key().empty());
-  EXPECT_EQ(private_credential.metadata_encryption_key_v0().size(),
-            kBaseMetadataSize);
+  EXPECT_EQ(private_credential.identity_token_v0().size(),
+            kV0IdentityTokenSize);
 
   SharedCredential public_credential = credentials.second;
   // Verify the public credential.
@@ -259,15 +262,15 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   EXPECT_GE(public_credential.end_time_millis(), absl::ToUnixMillis(kEndTime));
   EXPECT_LE(public_credential.end_time_millis(),
             absl::ToUnixMillis(kEndTime + absl::Hours(3)));
-  EXPECT_EQ(Crypto::Sha256(private_credential.metadata_encryption_key_v0())
+  EXPECT_EQ(Crypto::Sha256(private_credential.identity_token_v0())
                 .AsStringView(),
-            public_credential.metadata_encryption_key_tag_v0());
+            public_credential.identity_token_tag_v0());
   EXPECT_FALSE(
       public_credential.connection_signature_verification_key().empty());
   EXPECT_FALSE(public_credential.encrypted_metadata_bytes_v0().empty());
 
   auto decrypted_metadata = credential_manager_.DecryptDeviceIdentityMetaData(
-      private_credential.metadata_encryption_key_v0(),
+      private_credential.identity_token_v0(),
       public_credential.key_seed(),
       public_credential.encrypted_metadata_bytes_v0());
 

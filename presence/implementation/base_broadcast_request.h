@@ -19,12 +19,13 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/variant.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "presence/broadcast_request.h"
+#include "presence/data_element.h"
 #include "presence/power_mode.h"
 
 namespace nearby {
@@ -32,8 +33,9 @@ namespace presence {
 
 constexpr int8_t kUnspecifiedTxPower = -128;
 constexpr size_t kSaltSize = 2;
+
 // The identity metadata size in the base advertisement
-constexpr size_t kBaseMetadataSize = 14;
+constexpr size_t kV0IdentityTokenSize = 14;
 
 /** Defines the action (intended actions) of base NP advertisement */
 struct Action {
@@ -47,24 +49,8 @@ struct BaseBroadcastRequest {
   static absl::StatusOr<BaseBroadcastRequest> Create(
       const BroadcastRequest& request);
 
-  struct BasePresence {
-    CredentialSelector credential_selector;
-    Action action;
-  };
-  struct BaseFastPair {
-    struct Discoverable {
-      std::string model_id;
-    };
-    struct Nondiscoverable {
-      std::string account_key_data;
-      std::string battery_info;
-    };
-    absl::variant<Discoverable, Nondiscoverable> advertisement;
-  };
-  struct BaseEddystone {
-    std::string ephemeral_id;
-  };
-  absl::variant<BasePresence, BaseFastPair, BaseEddystone> variant;
+  CredentialSelector credential_selector;
+  std::vector<DataElement> data_elements;
   std::string salt;
   int8_t tx_power;
   unsigned int interval_ms;
@@ -79,7 +65,8 @@ class BasePresenceRequestBuilder {
       : identity_(identity) {}
   BasePresenceRequestBuilder& SetSalt(absl::string_view salt);
   BasePresenceRequestBuilder& SetTxPower(int8_t tx_power);
-  BasePresenceRequestBuilder& SetAction(const Action& action);
+  BasePresenceRequestBuilder& SetActions(
+      std::vector<DataElement> data_elements);
   BasePresenceRequestBuilder& SetPowerMode(PowerMode power_mode);
   BasePresenceRequestBuilder& SetAccountName(absl::string_view account_name);
   BasePresenceRequestBuilder& SetManagerAppId(absl::string_view manager_app_id);
@@ -87,6 +74,7 @@ class BasePresenceRequestBuilder {
   explicit operator BaseBroadcastRequest() const;
 
  private:
+  std::vector<DataElement> data_elements_;
   nearby::internal::IdentityType identity_;
   std::string salt_;
   int8_t tx_power_ = kUnspecifiedTxPower;

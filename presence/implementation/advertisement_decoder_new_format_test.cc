@@ -87,7 +87,7 @@ TEST(AdvertisementDecoderImpl, DecodeEncryptedAdvertisement) {
                        0xB8, 0xEA, 0x67, 0xD1, 0x1C, 0x3E, 0x36, 0xFD});
   SharedCredential public_credential;
   public_credential.set_key_seed(seed.AsStringView());
-  public_credential.set_metadata_encryption_key_tag_v0(
+  public_credential.set_identity_token_tag_v0(
       known_mac.AsStringView());
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;

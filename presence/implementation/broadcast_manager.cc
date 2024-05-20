@@ -32,9 +32,14 @@
 #include "internal/platform/logging.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
-#include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/mediums/advertisement_data.h"
+
+#ifdef USE_RUST_DECODER
+#include "presence/implementation/advertisement_factory.h"
+#else
+#include "presence/implementation/advertisement_factory_deprecated.h"
+#endif
 
 namespace nearby {
 namespace presence {
@@ -136,8 +141,9 @@ void BroadcastManager::FetchCredentials(
                      credentials = std::move(*credentials),
                      selector = std::move(selector)]()
                         ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) mutable {
-                          absl::optional<LocalCredential> credential =
-                              Advertise(id, broadcast_request, credentials);
+                          absl::optional<LocalCredential>  // NOLINT
+                              credential =
+                                  Advertise(id, broadcast_request, credentials);
                           if (credential) {
                             credential_manager_->UpdateLocalCredential(
                                 selector, std::move(*credential),
@@ -193,7 +199,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(  // NOLINT
     NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
                          << advertisement.status();
     NotifyStartCallbackStatus(id, advertisement.status());
-    return absl::optional<LocalCredential>(); //NOLINT
+    return absl::optional<LocalCredential>();  // NOLINT
   }
   std::unique_ptr<AdvertisingSession> session =
       mediums_->GetBle().StartAdvertising(
@@ -205,7 +211,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(  // NOLINT
   if (!session) {
     NotifyStartCallbackStatus(id,
                               absl::InternalError("Can't start advertising"));
-    return absl::optional<LocalCredential>(); //NOLINT
+    return absl::optional<LocalCredential>();  // NOLINT
   }
   it->second.SetAdvertisingSession(std::move(session));
   return credential;

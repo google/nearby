@@ -14,15 +14,17 @@
 
 #include "presence/implementation/base_broadcast_request.h"
 
+#include <cstdint>
 #include <string>
-#include <variant>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "presence/broadcast_request.h"
-#include "presence/implementation/action_factory.h"
+#include "presence/data_element.h"
+#include "presence/power_mode.h"
 
 namespace nearby {
 namespace presence {
@@ -42,9 +44,9 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetTxPower(
   return *this;
 }
 
-BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetAction(
-    const Action& action) {
-  action_ = action;
+BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetActions(
+    std::vector<DataElement> data_elements) {
+  data_elements_ = data_elements;
   return *this;
 }
 
@@ -67,17 +69,17 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetManagerAppId(
 }
 
 BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
-  BaseBroadcastRequest::BasePresence presence{
-      .credential_selector = {.manager_app_id = manager_app_id_,
-                              .account_name = account_name_,
-                              .identity_type = identity_},
-      .action = action_};
-
   std::string bytes(kSaltSize, 0);
   RandBytes(const_cast<std::string::value_type*>(bytes.data()), bytes.size());
 
   BaseBroadcastRequest broadcast_request{
-      .variant = presence,
+      .credential_selector =
+          {
+              .manager_app_id = manager_app_id_,
+              .account_name = account_name_,
+              .identity_type = identity_,
+          },
+      .data_elements = data_elements_,
       .salt = salt_.size() == kSaltSize ? salt_ : bytes,
       .tx_power = tx_power_,
       .power_mode = power_mode_};
@@ -86,27 +88,19 @@ BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
 
 absl::StatusOr<BaseBroadcastRequest> BaseBroadcastRequest::Create(
     const BroadcastRequest& request) {
-  if (absl::holds_alternative<PresenceBroadcast>(request.variant)) {
-    const auto& presence_request =
-        absl::get<PresenceBroadcast>(request.variant);
-    if (presence_request.sections.empty()) {
-      return absl::InvalidArgumentError("Missing broadcast sections");
-    }
-    if (presence_request.sections.size() > 1) {
-      NEARBY_LOG(WARNING,
-                 "Only first section is used in BLE 4.2 advertisement");
-    }
-    const PresenceBroadcast::BroadcastSection& section =
-        presence_request.sections.front();
-    return BaseBroadcastRequest(
-        BasePresenceRequestBuilder(section.identity)
-            .SetTxPower(request.tx_power)
-            .SetAction(ActionFactory::CreateAction(section.extended_properties))
-            .SetPowerMode(request.power_mode)
-            .SetManagerAppId(section.manager_app_id)
-            .SetAccountName(section.account_name));
+  if (request.sections.empty()) {
+    return absl::InvalidArgumentError("Missing broadcast sections");
   }
-  return absl::UnimplementedError("Request not supported");
+  if (request.sections.size() > 1) {
+    NEARBY_LOG(WARNING, "Only first section is used in BLE 4.2 advertisement");
+  }
+  const BroadcastRequest::BroadcastSection& section = request.sections.front();
+  return BaseBroadcastRequest(BasePresenceRequestBuilder(section.identity)
+                                  .SetTxPower(request.tx_power)
+                                  .SetActions(section.extended_properties)
+                                  .SetPowerMode(request.power_mode)
+                                  .SetManagerAppId(section.manager_app_id)
+                                  .SetAccountName(section.account_name));
 }
 
 }  // namespace presence

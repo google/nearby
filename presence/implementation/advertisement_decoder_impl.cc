@@ -44,7 +44,7 @@ constexpr uint8_t kDataTypeMask =
 constexpr int kAdvertisementVersion = 0;
 
 constexpr int kEncryptedIdentityAdditionalLength =
-    kSaltSize + kBaseMetadataSize;
+    kSaltSize + kV0IdentityTokenSize;
 constexpr int kEddystoneAdditionalLength = 20;
 
 uint8_t GetDataElementType(uint8_t header) { return header & kDataTypeMask; }
@@ -181,15 +181,15 @@ absl::StatusOr<std::string> DecryptLdt(
   }
   for (const auto& credential : credentials) {
     absl::StatusOr<LdtEncryptor> encryptor = LdtEncryptor::Create(
-        credential.key_seed(), credential.metadata_encryption_key_tag_v0());
+        credential.key_seed(), credential.identity_token_tag_v0());
     if (encryptor.ok()) {
       absl::StatusOr<std::string> result =
           encryptor->DecryptAndVerify(encrypted_contents, salt);
-      if (result.ok() && result->size() > kBaseMetadataSize) {
+      if (result.ok() && result->size() > kV0IdentityTokenSize) {
         decoded_advertisement.public_credential = credential;
         decoded_advertisement.metadata_key =
-            result->substr(0, kBaseMetadataSize);
-        return result->substr(kBaseMetadataSize);
+            result->substr(0, kV0IdentityTokenSize);
+        return result->substr(kV0IdentityTokenSize);
       }
     }
   }
