@@ -1551,8 +1551,9 @@ NearbySharingServiceImpl::CreateEndpointInfo(
   ShareTargetType device_type =
       static_cast<ShareTargetType>(device_info_.GetDeviceType());
 
-  std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
-      std::move(salt), std::move(encrypted_key), device_type, device_name);
+  std::unique_ptr<Advertisement> advertisement =
+      Advertisement::NewInstance(std::move(salt), std::move(encrypted_key),
+                                 device_type, device_name, /*vendor_id=*/0);
   if (advertisement) {
     return advertisement->ToEndpointInfo();
   } else {

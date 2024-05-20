@@ -175,6 +175,7 @@ constexpr char kEndpointId[] = "test_endpoint_id";
 constexpr char kTextPayload[] = "Test text payload";
 constexpr char kFourDigitToken[] = "1953";
 constexpr absl::string_view kTestAccountId = "test_account";
+constexpr int32_t kVendorId = 0;
 
 constexpr int64_t kFreeDiskSpace = 10000;
 
@@ -709,7 +710,7 @@ class NearbySharingServiceImplTest : public testing::Test {
           return Advertisement::NewInstance(
               GetNearbyShareTestEncryptedMetadataKey().salt(),
               GetNearbyShareTestEncryptedMetadataKey().encrypted_key(),
-              kDeviceType, device_name);
+              kDeviceType, device_name, kVendorId);
         }));
   }
 
@@ -4367,7 +4368,7 @@ TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       GetNearbyShareTestEncryptedMetadataKey().salt(),
       GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
-      kDeviceName);
+      kDeviceName, kVendorId);
 
   // Flip |for_self_share| to true to ensure the resulting ShareTarget picks
   // this up.

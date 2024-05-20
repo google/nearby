@@ -100,7 +100,8 @@ bool ParseHasDeviceName(uint8_t b) {
 // static
 std::unique_ptr<Advertisement> Advertisement::NewInstance(
     std::vector<uint8_t> salt, std::vector<uint8_t> encrypted_metadata_key,
-    ShareTargetType device_type, std::optional<std::string> device_name) {
+    ShareTargetType device_type, std::optional<std::string> device_name,
+    int32_t vendor_id) {
   if (salt.size() != Advertisement::kSaltSize) {
     NL_LOG(ERROR) << "Failed to create advertisement because the salt did "
                      "not match the expected length "
@@ -127,7 +128,7 @@ std::unique_ptr<Advertisement> Advertisement::NewInstance(
   // Using `new` to access a non-public constructor.
   return std::make_unique<Advertisement>(
       /* version= */ 0, std::move(salt), std::move(encrypted_metadata_key),
-      device_type, std::move(device_name));
+      device_type, std::move(device_name), vendor_id);
 }
 
 std::vector<uint8_t> Advertisement::ToEndpointInfo() {
@@ -201,19 +202,21 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
 
   return Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_metadata_key), device_type,
-      std::move(optional_device_name));
+      std::move(optional_device_name), /*vendor_id=*/0);
 }
 
 // private
 Advertisement::Advertisement(int version, std::vector<uint8_t> salt,
                              std::vector<uint8_t> encrypted_metadata_key,
                              ShareTargetType device_type,
-                             std::optional<std::string> device_name)
+                             std::optional<std::string> device_name,
+                             int32_t vendor_id)
     : version_(version),
       salt_(std::move(salt)),
       encrypted_metadata_key_(std::move(encrypted_metadata_key)),
       device_type_(device_type),
-      device_name_(std::move(device_name)) {}
+      device_name_(std::move(device_name)),
+      vendor_id_(vendor_id) {}
 
 }  // namespace sharing
 }  // namespace nearby
