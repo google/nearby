@@ -3105,8 +3105,18 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
         /* referrer_package=*/std::nullopt);
 
     OnTransferComplete();
-    if (metadata.status() != TransferMetadata::Status::kComplete) {
-      // For any type of failure, lets make sure any pending files get cleaned
+    if (metadata.status() == TransferMetadata::Status::kComplete) {
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_sharing_feature::
+                  kDeleteUnexpectedReceivedFile)) {
+        // When transfer is complete, let's make sure to clean up the unknown
+        // file paths list.
+        nearby_connections_manager_->ClearUnknownFilePathsToDelete();
+        NL_VLOG(1) << __func__
+                   << ": Transfer complete, clear unknown file paths.";
+      }
+    } else {
+      // For any type of failure, let's make sure any pending files get cleaned
       // up.
       RemoveIncomingPayloads(share_target);
     }

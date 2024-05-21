@@ -841,11 +841,13 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             sharing::config_package_nearby::nearby_sharing_feature::
                 kDeleteUnexpectedReceivedFile)) {
-      // if we get kFile and have file_path, delete the file path.
+      // if we get a kFile type and have a file_path, delete the file path
+      // when transfer is failed. Add to the unknown file paths to delete list.
       if (payload_it->second.content.type == PayloadContent::Type::kFile) {
         auto file_path = payload_it->second.content.file_payload.file.path;
-        NL_LOG(WARNING) << __func__
-                        << ": Payload is Type::kFile type. Removing.";
+        NL_LOG(INFO) << __func__
+                     << ": Payload is Type::kFile type. Add the file path to "
+                        "the unknown file paths to delete list.";
         file_paths_to_delete_.insert(file_path);
       }
     }
