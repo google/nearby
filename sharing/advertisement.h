@@ -40,12 +40,14 @@ class Advertisement {
   static std::unique_ptr<Advertisement> NewInstance(
       std::vector<uint8_t> salt, std::vector<uint8_t> encrypted_metadata_key,
       ShareTargetType device_type, std::optional<std::string> device_name,
-      int32_t vendor_id);
+      uint8_t vendor_id);
 
+  // TODO: b/341967036 - Remove uses of std::optional for device name. Empty
+  // string should be enough.
   Advertisement(int version, std::vector<uint8_t> salt,
                 std::vector<uint8_t> encrypted_metadata_key,
                 ShareTargetType device_type,
-                std::optional<std::string> device_name, int32_t vendor_id);
+                std::optional<std::string> device_name, uint8_t vendor_id);
   ~Advertisement() = default;
   Advertisement(const Advertisement&) = default;
   Advertisement& operator=(const Advertisement&) = default;
@@ -63,7 +65,7 @@ class Advertisement {
   ShareTargetType device_type() const { return device_type_; }
   const std::optional<std::string>& device_name() const { return device_name_; }
   bool HasDeviceName() const { return device_name_.has_value(); }
-  int32_t vendor_id() const { return vendor_id_; }
+  uint8_t vendor_id() const { return vendor_id_; }
 
   static std::unique_ptr<Advertisement> FromEndpointInfo(
       absl::Span<const uint8_t> endpoint_info);
@@ -91,7 +93,7 @@ class Advertisement {
 
   // The vendor identifier of the remote device. Reference for vendor ID:
   // google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/sharing/SharingOptions.java
-  const int32_t vendor_id_;
+  const uint8_t vendor_id_;
 };
 
 }  // namespace sharing

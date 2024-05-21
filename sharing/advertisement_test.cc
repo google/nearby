@@ -68,6 +68,21 @@ INSTANTIATE_TEST_SUITE_P(
                        .target_name = std::nullopt,
                        .vendor_id = 0}));
 INSTANTIATE_TEST_SUITE_P(
+    VendorIds, AdvertisementTest,
+    testing::Values(
+        TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
+                       .encrypted_metadata_key = std::vector<uint8_t>(
+                           Advertisement::kMetadataEncryptionKeyHashByteSize),
+                       .target_type = ShareTargetType::kPhone,
+                       .target_name = std::nullopt,
+                       .vendor_id = 0},
+        TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
+                       .encrypted_metadata_key = std::vector<uint8_t>(
+                           Advertisement::kMetadataEncryptionKeyHashByteSize),
+                       .target_type = ShareTargetType::kPhone,
+                       .target_name = std::nullopt,
+                       .vendor_id = 1}));
+INSTANTIATE_TEST_SUITE_P(
     TargetNames, AdvertisementTest,
     testing::Values(
         TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
