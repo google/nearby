@@ -224,7 +224,7 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
-  return impl_->IsExtendedAdvertisementsAvailable();
+  return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
 }
 
 BleV2Peripheral BleV2Medium::GetRemotePeripheral(
