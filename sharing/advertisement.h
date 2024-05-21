@@ -51,6 +51,7 @@ class Advertisement {
   Advertisement& operator=(const Advertisement&) = default;
   Advertisement(Advertisement&&) = default;
   Advertisement& operator=(Advertisement&&) = default;
+  bool operator==(const Advertisement& other) const;
 
   std::vector<uint8_t> ToEndpointInfo();
 

@@ -205,6 +205,13 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
       std::move(optional_device_name), /*vendor_id=*/0);
 }
 
+bool Advertisement::operator==(const Advertisement& other) const {
+  return version_ == other.version_ && salt_ == other.salt_ &&
+         encrypted_metadata_key_ == other.encrypted_metadata_key_ &&
+         device_type_ == other.device_type_ &&
+         device_name_ == other.device_name_ && vendor_id_ == other.vendor_id_;
+}
+
 // private
 Advertisement::Advertisement(int version, std::vector<uint8_t> salt,
                              std::vector<uint8_t> encrypted_metadata_key,

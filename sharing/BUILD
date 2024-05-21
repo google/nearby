@@ -251,6 +251,24 @@ cc_library(
 )
 
 cc_test(
+    name = "advertisement_test",
+    srcs = ["advertisement_test.cc"],
+    deps = [
+        ":types",
+        "//sharing/common:enum",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
+cc_test(
     name = "nearby_connections_types_payload_test",
     srcs = ["nearby_connections_types_payload_test.cc"],
     deps = [
