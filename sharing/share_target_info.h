@@ -120,6 +120,17 @@ class ShareTargetInfo {
 
   ShareTarget share_target() const { return share_target_; }
 
+  // Sets the status to send in the TransferMetadataUpdate on connection
+  // disconnect. If |status| is kUnknown, then no TransferMetadataUpdate will be
+  // sent.  If |status| is set, it must be a final status.
+  void set_disconnect_status(TransferMetadata::Status disconnect_status);
+
+  TransferMetadata::Status disconnect_status() const {
+    return disconnect_status_;
+  }
+
+  void OnDisconnect();
+
  private:
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
@@ -137,6 +148,10 @@ class ShareTargetInfo {
   bool got_final_status_ = false;
   std::function<void(const ShareTarget&, const TransferMetadata&)>
       transfer_update_callback_;
+  // The status sent in the TransferMetadataUpdate on connection disconnect.
+  // If status is kUnknown, then no TransferMetadataUpdate will be sent.
+  TransferMetadata::Status disconnect_status_ =
+      TransferMetadata::Status::kUnknown;
 };
 
 }  // namespace sharing

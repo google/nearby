@@ -297,6 +297,10 @@ void NearbySharingServiceImpl::Shutdown(
       });
 }
 
+bool NearbySharingServiceImpl::IsShuttingDown() {
+  return (is_shutting_down_ == nullptr || *is_shutting_down_);
+}
+
 void NearbySharingServiceImpl::Cleanup() {
   SetInHighVisibility(false);
 
@@ -781,19 +785,13 @@ void NearbySharingServiceImpl::Reject(
           return;
         }
 
-        NearbyConnection* connection = info->connection();
-
         RunOnNearbySharingServiceThreadDelayed(
             "incoming_rejection_delay", kIncomingRejectionDelay,
             [this, share_target_id]() { CloseConnection(share_target_id); });
+        // kRejected status already sent below, no need to send on disconnect.
+        info->set_disconnect_status(TransferMetadata::Status::kUnknown);
 
-        connection->SetDisconnectionListener([this, share_target_id]() {
-          RunOnNearbySharingServiceThread(
-              "disconnection_listener", [this, share_target_id]() {
-                UnregisterShareTarget(share_target_id);
-              });
-        });
-
+        NearbyConnection* connection = info->connection();
         WriteResponseFrame(
             *connection,
             nearby::sharing::service::proto::ConnectionResponseFrame::REJECT);
@@ -883,16 +881,8 @@ void NearbySharingServiceImpl::DoCancel(
     NL_LOG(INFO) << "Disconnect fully established endpoint id:"
                  << info->endpoint_id();
     if (is_initiator_of_cancellation) {
-      info->connection()->SetDisconnectionListener(
-          [this, share_target_id, info]() {
-            info->set_connection(nullptr);
-            RunOnNearbySharingServiceThread(
-                "api_unregister_share_target", [this, share_target_id]() {
-                  NL_LOG(INFO)
-                      << "Unregister share target in disconnection listener.";
-                  UnregisterShareTarget(share_target_id);
-                });
-          });
+      // kCancelled status already sent above, no need to send on disconnect.
+      info->set_disconnect_status(TransferMetadata::Status::kUnknown);
 
       RunOnNearbySharingServiceThreadDelayed(
           "initiator_cancel_delay", kInitiatorCancelDelay,
@@ -1031,18 +1021,15 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   ShareTargetInfo& share_target_info =
       GetOrCreateShareTargetInfo(placeholder_share_target, endpoint_id);
   share_target_info.set_connection(connection);
+  share_target_info.set_disconnect_status(
+      TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
+  connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
+    OnConnectionDisconnected(placeholder_share_target_id);
+  });
 
   // Set receiving session id.
   receiving_session_id_ = analytics_recorder_->GenerateNextId();
 
-  connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
-    RunOnNearbySharingServiceThread(
-        "disconnection_listener", [this, placeholder_share_target_id]() {
-          OnConnectionDisconnected(
-              placeholder_share_target_id,
-              TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
-        });
-  });
 
   std::unique_ptr<Advertisement> advertisement =
       decoder_->DecodeAdvertisement(endpoint_info);
@@ -2382,6 +2369,7 @@ void NearbySharingServiceImpl::OnRotateBackgroundAdvertisementTimerFired() {
 
 void NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
     absl::string_view endpoint_id) {
+  disconnection_timeout_alarms_.erase(endpoint_id);
   auto it = outgoing_share_target_map_.find(endpoint_id);
   if (it == outgoing_share_target_map_.end()) {
     return;
@@ -2601,6 +2589,10 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
   }
 
   info->set_connection(connection);
+  info->set_disconnect_status(
+      TransferMetadata::Status::kUnexpectedDisconnection);
+  connection->SetDisconnectionListener(
+      [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
 
   // Log analytics event of establishing connection.
   analytics_recorder_->NewEstablishConnection(
@@ -2614,14 +2606,6 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
           : 0,
       std::nullopt);
 
-  connection->SetDisconnectionListener([this, share_target_id]() {
-    RunOnNearbySharingServiceThread(
-        "disconnection_listener", [this, share_target_id]() {
-          OnConnectionDisconnected(
-              share_target_id,
-              TransferMetadata::Status::kUnexpectedDisconnection);
-        });
-  });
 
   std::optional<std::string> four_digit_token = TokenToFourDigitString(
       nearby_connections_manager_->GetRawAuthenticationToken(
@@ -2999,12 +2983,7 @@ void NearbySharingServiceImpl::Fail(int64_t share_target_id,
       "incoming_rejection_delay", kIncomingRejectionDelay,
       [this, share_target_id]() { CloseConnection(share_target_id); });
 
-  connection->SetDisconnectionListener([this, share_target_id, status]() {
-    RunOnNearbySharingServiceThread(
-        "disconnection_listener", [this, share_target_id, status]() {
-          OnConnectionDisconnected(share_target_id, status);
-        });
-  });
+  info->set_disconnect_status(status);
 
   // Send response to remote device.
   nearby::sharing::service::proto::ConnectionResponseFrame::Status
@@ -3258,15 +3237,11 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   ShareTargetInfo* share_target_info = GetShareTargetInfo(share_target_id);
   NL_DCHECK(share_target_info);
   share_target_info->set_connection(connection);
-
-  connection->SetDisconnectionListener([this, share_target_id]() {
-    RunOnNearbySharingServiceThread(
-        "disconnection_listener", [this, share_target_id]() {
-          OnConnectionDisconnected(
-              share_target_id,
-              TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
-        });
-  });
+  share_target_info->set_disconnect_status(
+      TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
+  // Need to rebind the disconnect listener to the new share target id.
+  connection->SetDisconnectionListener(
+      [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
 
   std::optional<std::string> four_digit_token = TokenToFourDigitString(
       nearby_connections_manager_->GetRawAuthenticationToken(endpoint_id));
@@ -3746,7 +3721,6 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
                     << share_target_id;
     return;
   }
-  NearbyConnection* connection = info->connection();
 
   mutual_acceptance_timeout_alarm_->Stop();
   mutual_acceptance_timeout_alarm_->Start(
@@ -3781,14 +3755,8 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
     return;
   }
 
-  connection->SetDisconnectionListener([this, share_target_id]() {
-    RunOnNearbySharingServiceThread(
-        "disconnection_listener", [this, share_target_id]() {
-          OnConnectionDisconnected(
-              share_target_id,
-              TransferMetadata::Status::kUnexpectedDisconnection);
-        });
-  });
+  info->set_disconnect_status(
+      TransferMetadata::Status::kUnexpectedDisconnection);
 
   auto* frames_reader = info->frames_reader();
   if (!frames_reader) {
@@ -3888,11 +3856,13 @@ void NearbySharingServiceImpl::HandleProgressUpdateFrame(
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(
-    int64_t share_target_id, TransferMetadata::Status status) {
+    int64_t share_target_id) {
+  if (IsShuttingDown()) {
+    return;
+  }
   ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
-  if (info) {
-    info->UpdateTransferMetadata(
-        TransferMetadataBuilder().set_status(status).build());
+  if (info != nullptr) {
+    info->OnDisconnect();
   }
   UnregisterShareTarget(share_target_id);
 }
@@ -4051,6 +4021,11 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
                 .build()
           : metadata);
 
+  if (payload_incomplete ||
+      TransferMetadata::IsFinalStatus(metadata.status())) {
+    // final status already sent, no need to send again on disconnect.
+    info->set_disconnect_status(TransferMetadata::Status::kUnknown);
+  }
   // Cancellation has its own disconnection strategy, possibly adding a
   // delay before disconnection to provide the other party time to process
   // the cancellation.
@@ -4072,13 +4047,6 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
 
     return false;
   }
-  NearbyConnection* connection = info->connection();
-
-  connection->SetDisconnectionListener([this, share_target_id]() {
-    RunOnNearbySharingServiceThread(
-        "disconnection_listener",
-        [this, share_target_id]() { UnregisterShareTarget(share_target_id); });
-  });
 
   if (!update_file_paths_in_progress_) {
     UpdateFilePath(share_target);
@@ -4267,18 +4235,7 @@ void NearbySharingServiceImpl::Disconnect(int64_t share_target_id,
 
   disconnection_timeout_alarms_[endpoint_id] = std::move(timer);
 
-  // Stop the disconnection timeout if the connection has been closed already.
-  if (share_target_info->connection()) {
-    share_target_info->connection()->SetDisconnectionListener(
-        [this, share_target_id, share_target_info, endpoint_id]() {
-          share_target_info->set_connection(nullptr);
-          RunOnNearbySharingServiceThread(
-              "disconnection_listener", [this, share_target_id, endpoint_id]() {
-                OnDisconnectingConnectionDisconnected(share_target_id,
-                                                      endpoint_id);
-              });
-        });
-  }
+  share_target_info->set_disconnect_status(TransferMetadata::Status::kUnknown);
 }
 
 void NearbySharingServiceImpl::OnDisconnectingConnectionTimeout(
@@ -4289,12 +4246,6 @@ void NearbySharingServiceImpl::OnDisconnectingConnectionTimeout(
         disconnection_timeout_alarms_.erase(endpoint_id);
       });
   nearby_connections_manager_->Disconnect(endpoint_id);
-}
-
-void NearbySharingServiceImpl::OnDisconnectingConnectionDisconnected(
-    int64_t share_target_id, absl::string_view endpoint_id) {
-  disconnection_timeout_alarms_.erase(endpoint_id);
-  UnregisterShareTarget(share_target_id);
 }
 
 ShareTargetInfo& NearbySharingServiceImpl::GetOrCreateShareTargetInfo(
@@ -4540,17 +4491,8 @@ void NearbySharingServiceImpl::AbortAndCloseConnectionIfNecessary(
 
         // Close connection if necessary.
         if (info->connection()) {
-          // Ensure that the disconnect listener is set to UnregisterShareTarget
-          // because the other listeners also try to record a final status
-          // metric.
-          info->connection()->SetDisconnectionListener(
-              [this, share_target_id]() {
-                RunOnNearbySharingServiceThread(
-                    "disconnection_listener", [this, share_target_id]() {
-                      UnregisterShareTarget(share_target_id);
-                    });
-              });
-
+          // Final status already sent above.  No need to send it again.
+          info->set_disconnect_status(TransferMetadata::Status::kUnknown);
           info->connection()->Close();
         }
       });
@@ -4658,7 +4600,7 @@ bool NearbySharingServiceImpl::ReadyToAccept(
 
 void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(
     absl::string_view task_name, absl::AnyInvocable<void()> task) {
-  if (is_shutting_down_ == nullptr || *is_shutting_down_) {
+  if (IsShuttingDown()) {
     NL_LOG(WARNING) << __func__ << ": Skip the task " << task_name
                     << " due to service is shutting down.";
     return;
@@ -4689,7 +4631,7 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(
 void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
     absl::string_view task_name, absl::Duration delay,
     absl::AnyInvocable<void()> task) {
-  if (is_shutting_down_ == nullptr || *is_shutting_down_) {
+  if (IsShuttingDown()) {
     NL_LOG(WARNING) << __func__ << ": Skip the delayed task " << task_name
                     << " due to service is shutting down.";
     return;
@@ -4719,7 +4661,7 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
 
 void NearbySharingServiceImpl::RunOnAnyThread(absl::string_view task_name,
                                               absl::AnyInvocable<void()> task) {
-  if (is_shutting_down_ == nullptr || *is_shutting_down_) {
+  if (IsShuttingDown()) {
     NL_LOG(WARNING) << __func__ << ": Skip the task " << task_name
                     << " due to service is shutting down.";
     return;

@@ -597,3 +597,17 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "share_target_info_test",
+    srcs = ["share_target_info_test.cc"],
+    deps = [
+        ":nearby_sharing_service",
+        ":transfer_metadata",
+        ":types",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

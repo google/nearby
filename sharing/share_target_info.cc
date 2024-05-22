@@ -21,6 +21,7 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 
 namespace nearby {
 namespace sharing {
@@ -32,7 +33,7 @@ ShareTargetInfo::ShareTargetInfo(
     : endpoint_id_(std::move(endpoint_id)),
       self_share_(share_target.for_self_share),
       share_target_(share_target),
-      transfer_update_callback_(std::move(transfer_update_callback)){}
+      transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 ShareTargetInfo::ShareTargetInfo(ShareTargetInfo&&) = default;
 
@@ -62,6 +63,24 @@ void ShareTargetInfo::UpdateTransferMetadata(
     got_final_status_ = transfer_metadata.is_final_status();
     transfer_update_callback_(share_target_, transfer_metadata);
   }
+}
+
+void ShareTargetInfo::set_disconnect_status(
+    TransferMetadata::Status disconnect_status) {
+  disconnect_status_ = disconnect_status;
+  if (disconnect_status_ != TransferMetadata::Status::kUnknown &&
+      !TransferMetadata::IsFinalStatus(disconnect_status_)) {
+    NL_LOG(DFATAL) << "Disconnect status is not final: "
+                   << static_cast<int>(disconnect_status_);
+  }
+}
+
+void ShareTargetInfo::OnDisconnect() {
+  if (disconnect_status_ != TransferMetadata::Status::kUnknown) {
+    UpdateTransferMetadata(
+        TransferMetadataBuilder().set_status(disconnect_status_).build());
+  }
+  connection_ = nullptr;
 }
 
 }  // namespace sharing

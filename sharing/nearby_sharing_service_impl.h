@@ -386,8 +386,7 @@ class NearbySharingServiceImpl
       const nearby::sharing::service::proto::ProgressUpdateFrame&
           progress_update_frame);
 
-  void OnConnectionDisconnected(int64_t share_target_id,
-                                TransferMetadata::Status status);
+  void OnConnectionDisconnected(int64_t share_target_id);
 
   void OnIncomingMutualAcceptanceTimeout(int64_t share_target_id);
   void OnOutgoingMutualAcceptanceTimeout(int64_t share_target_id);
@@ -406,8 +405,6 @@ class NearbySharingServiceImpl
   void RemoveIncomingPayloads(ShareTarget share_target);
   void Disconnect(int64_t share_target_id, TransferMetadata metadata);
   void OnDisconnectingConnectionTimeout(absl::string_view endpoint_id);
-  void OnDisconnectingConnectionDisconnected(int64_t share_target_id,
-                                             absl::string_view endpoint_id);
 
   ShareTargetInfo& GetOrCreateShareTargetInfo(const ShareTarget& share_target,
                                               absl::string_view endpoint_id);
@@ -483,6 +480,8 @@ class NearbySharingServiceImpl
 
   // Update file path for the file attachment.
   void UpdateFilePath(ShareTarget& share_target);
+  // Returns true if Shutdown() has been called.
+  bool IsShuttingDown();
 
   // Used to run nearby sharing service APIs.
   std::unique_ptr<TaskRunner> service_thread_;

@@ -2355,6 +2355,62 @@ TEST_F(NearbySharingServiceImplTest, UnregisterReceiveSurfaceNeverRegistered) {
 }
 
 TEST_F(NearbySharingServiceImplTest,
+       IncomingConnectionClosedAfterShutdown) {
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
+                                                              GetToken());
+  SetUpAdvertisementDecoder(GetValidV1EndpointInfo(),
+                            /*return_empty_advertisement=*/false,
+                            /*return_empty_device_name=*/false,
+                            /*expected_number_of_calls=*/1u);
+
+  SetConnectionType(ConnectionType::kWifi);
+  NiceMock<MockTransferUpdateCallback> callback;
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_)).Times(0);
+
+  SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+  Shutdown();
+
+  service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
+                                 &connection_);
+
+  sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout);
+  service_.reset();
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       IncomingConnectionClosedBeforeCertDecryption) {
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
+                                                              GetToken());
+  SetUpAdvertisementDecoder(GetValidV1EndpointInfo(),
+                            /*return_empty_advertisement=*/false,
+                            /*return_empty_device_name=*/false,
+                            /*expected_number_of_calls=*/1u);
+
+  SetConnectionType(ConnectionType::kWifi);
+  NiceMock<MockTransferUpdateCallback> callback;
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+      .WillOnce(testing::Invoke(
+          [](const ShareTarget& share_target, TransferMetadata metadata) {
+            EXPECT_TRUE(metadata.is_final_status());
+            EXPECT_EQ(TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed,
+                      metadata.status());
+          }));
+
+  SetUpForegroundReceiveSurface(callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+  service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
+                                 &connection_);
+  sharing_service_task_runner_->PostTask([this]() {
+    connection_.Close();
+  });
+  sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout);
+
+  // To avoid UAF in OnIncomingTransferUpdate().
+  UnregisterReceiveSurface(&callback);
+}
+
+TEST_F(NearbySharingServiceImplTest,
        IncomingConnectionClosedReadingIntroduction) {
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
