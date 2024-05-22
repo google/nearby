@@ -55,7 +55,7 @@ class Advertisement {
   Advertisement& operator=(Advertisement&&) = default;
   bool operator==(const Advertisement& other) const;
 
-  std::vector<uint8_t> ToEndpointInfo();
+  std::vector<uint8_t> ToEndpointInfo() const;
 
   int version() const { return version_; }
   const std::vector<uint8_t>& salt() const { return salt_; }

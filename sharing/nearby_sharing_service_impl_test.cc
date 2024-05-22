@@ -179,12 +179,15 @@ constexpr int32_t kVendorId = 0;
 
 constexpr int64_t kFreeDiskSpace = 10000;
 
-const std::vector<uint8_t>& GetValidV1EndpointInfo() {
-  static std::vector<uint8_t>* valid_v1_endpoint_info =
-      new std::vector<uint8_t>({0,   0,   0,  0,   0,  0,  0,   0,  0,   0,
-                                0,   0,   0,  0,   0,  0,  0,   10, 100, 101,
-                                118, 105, 99, 101, 78, 97, 109, 101});
-  return *valid_v1_endpoint_info;
+std::vector<uint8_t> GetValidV1EndpointInfoWithVendor(uint8_t vendor_id) {
+  auto advertisement = Advertisement::NewInstance(
+      {0, 0}, std::vector<uint8_t>(14, 0), ShareTargetType::kPhone,
+      "deviceName", vendor_id);
+  return advertisement->ToEndpointInfo();
+}
+
+std::vector<uint8_t> GetValidV1EndpointInfo() {
+  return GetValidV1EndpointInfoWithVendor(kVendorId);
 }
 
 const std::vector<uint8_t>& GetToken() {

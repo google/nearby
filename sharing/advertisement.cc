@@ -157,7 +157,7 @@ std::unique_ptr<Advertisement> Advertisement::NewInstance(
       device_type, std::move(device_name), vendor_id);
 }
 
-std::vector<uint8_t> Advertisement::ToEndpointInfo() {
+std::vector<uint8_t> Advertisement::ToEndpointInfo() const {
   // We add 3 bytes for vendor ID because of type (1 byte), len (1 byte), and
   // the ID itself (1 byte).
   int size = kMinimumSize + (device_name_.has_value() ? 1 : 0) +
