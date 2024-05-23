@@ -3912,6 +3912,7 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
   target.device_name = std::move(*device_name);
   target.is_incoming = is_incoming;
   target.device_id = GetDeviceId(endpoint_id, certificate);
+  target.vendor_id = advertisement.vendor_id();
   if (certificate.has_value()) {
     target.for_self_share = certificate->for_self_share();
 
@@ -3927,6 +3928,10 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
       } else {
         target.image_url = std::nullopt;
       }
+    }
+    // Always prefer the certificate's vendor ID if available.
+    if (certificate->unencrypted_metadata().has_vendor_id()) {
+      target.vendor_id = certificate->unencrypted_metadata().vendor_id();
     }
     target.is_known = true;
   }

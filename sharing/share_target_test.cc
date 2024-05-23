@@ -56,13 +56,13 @@ std::vector<ShareTargetToStringTestData> GetTestData() {
            "ShareTarget<id: 1, device_name: , "
            "file_attachments_size: 0, text_attachments_size: 0, "
            "wifi_credentials_attachments_size: 0, is_known: 0, is_incoming: 0, "
-           "for_self_share: 0>"},
+           "for_self_share: 0, vendor_id: 0>"},
           {share_target2,
            "ShareTarget<id: 2, device_name: test_name, full_name: "
            "test_full_name, image_url: ://:0, device_id: test_device_id, "
            "file_attachments_size: 0, text_attachments_size: 0, "
            "wifi_credentials_attachments_size: 0, is_known: 0, is_incoming: 1, "
-           "for_self_share: 1>"},
+           "for_self_share: 1, vendor_id: 0>"},
       });
 
   return *kShareTargetToStringTestData;

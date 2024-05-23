@@ -70,6 +70,8 @@ struct ShareTarget {
   std::optional<std::string> device_id;
   // True if the remote device is also owned by the current user.
   bool for_self_share = false;
+  // Vendor ID of the target. This can change over the lifetime of the target.
+  uint8_t vendor_id = 0;
 };
 
 }  // namespace sharing

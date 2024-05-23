@@ -150,6 +150,7 @@ std::string ShareTarget::ToString() const {
   fmt.push_back(absl::StrFormat("is_known: %d", is_known));
   fmt.push_back(absl::StrFormat("is_incoming: %d", is_incoming));
   fmt.push_back(absl::StrFormat("for_self_share: %d", for_self_share));
+  fmt.push_back(absl::StrFormat("vendor_id: %d", vendor_id));
 
   return absl::StrCat("ShareTarget<", absl::StrJoin(fmt, ", "), ">");
 }

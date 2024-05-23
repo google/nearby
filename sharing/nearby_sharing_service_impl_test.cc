@@ -4457,6 +4457,7 @@ TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
   ASSERT_TRUE(share_target.has_value());
   EXPECT_EQ(kDeviceName, share_target->device_name);
   EXPECT_EQ(kDeviceType, share_target->type);
+  EXPECT_EQ(kVendorId, share_target->vendor_id);
   EXPECT_FALSE(share_target->for_self_share);
 }
 
