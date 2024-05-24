@@ -247,8 +247,8 @@ class NearbySharingServiceImpl
 
   void SetupBluetoothAdapter();
 
-  ObserverList<TransferUpdateCallback>& GetReceiveCallbacksFromState(
-      ReceiveSurfaceState state);
+  absl::flat_hash_map<TransferUpdateCallback*, uint8_t>&
+  GetReceiveCallbacksMapFromState(ReceiveSurfaceState state);
   bool IsVisibleInBackground(proto::DeviceVisibility visibility);
   std::optional<std::vector<uint8_t>> CreateEndpointInfo(
       proto::DeviceVisibility visibility,
@@ -519,10 +519,12 @@ class NearbySharingServiceImpl
 
   // A list of service observers.
   ObserverList<NearbySharingService::Observer> observers_;
-  // A list of foreground receivers.
-  ObserverList<TransferUpdateCallback> foreground_receive_callbacks_;
-  // A list of background receivers.
-  ObserverList<TransferUpdateCallback> background_receive_callbacks_;
+  // A map of foreground receiver callbacks -> vendor ID.
+  absl::flat_hash_map<TransferUpdateCallback*, uint8_t>
+      foreground_receive_callbacks_map_;
+  // A map of background receiver callbacks -> vendor ID.
+  absl::flat_hash_map<TransferUpdateCallback*, uint8_t>
+      background_receive_callbacks_map_;
   // A list of foreground receivers for transfer updates on the send surface.
   ObserverList<TransferUpdateCallback> foreground_send_transfer_callbacks_;
   // A list of foreground receivers for discovered device updates on the send

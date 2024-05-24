@@ -279,8 +279,8 @@ void NearbySharingServiceImpl::Shutdown(
 
         on_network_changed_delay_timer_->Stop();
 
-        foreground_receive_callbacks_.Clear();
-        background_receive_callbacks_.Clear();
+        foreground_receive_callbacks_map_.clear();
+        background_receive_callbacks_map_.clear();
 
         device_info_.UnregisterScreenLockedListener(kScreenStateListenerName);
 
@@ -498,7 +498,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
     uint8_t vendor_id, std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_receive_surface",
-      [this, transfer_callback, state,
+      [this, transfer_callback, state, vendor_id,
        status_codes_callback = std::move(status_codes_callback)]() {
         NL_DCHECK(transfer_callback);
         NL_DCHECK_NE(static_cast<int>(state),
@@ -521,15 +521,15 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
 
         // We specifically allow re-registering without error, so it is clear to
         // caller that the transfer_callback is currently registered.
-        if (GetReceiveCallbacksFromState(state).HasObserver(
+        if (GetReceiveCallbacksMapFromState(state).contains(
                 transfer_callback)) {
           NL_VLOG(1) << __func__
                      << ": transfer callback already registered, ignoring";
           std::move(status_codes_callback)(StatusCodes::kOk);
           return;
-        } else if (foreground_receive_callbacks_.HasObserver(
+        } else if (foreground_receive_callbacks_map_.contains(
                        transfer_callback) ||
-                   background_receive_callbacks_.HasObserver(
+                   background_receive_callbacks_map_.contains(
                        transfer_callback)) {
           NL_LOG(ERROR) << __func__
                         << ":  transfer callback already registered but for a "
@@ -546,7 +546,8 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                                               last_incoming_metadata_->second);
         }
 
-        GetReceiveCallbacksFromState(state).AddObserver(transfer_callback);
+        GetReceiveCallbacksMapFromState(state).insert(
+            {transfer_callback, vendor_id});
 
         NL_VLOG(1) << __func__ << ": A ReceiveSurface("
                    << ReceiveSurfaceStateToString(state)
@@ -565,9 +566,9 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
         }
 
         NL_VLOG(1) << "RegisterReceiveSurface: foreground_receive_callbacks_:"
-                   << foreground_receive_callbacks_.size()
+                   << foreground_receive_callbacks_map_.size()
                    << ", background_receive_callbacks_:"
-                   << background_receive_callbacks_.size();
+                   << background_receive_callbacks_map_.size();
 
         InvalidateReceiveSurfaceState();
         std::move(status_codes_callback)(StatusCodes::kOk);
@@ -584,9 +585,9 @@ void NearbySharingServiceImpl::UnregisterReceiveSurface(
         StatusCodes status_codes =
             InternalUnregisterReceiveSurface(transfer_callback);
         NL_VLOG(1) << "UnregisterReceiveSurface: foreground_receive_callbacks_:"
-                   << foreground_receive_callbacks_.size()
+                   << foreground_receive_callbacks_map_.size()
                    << ", background_receive_callbacks_:"
-                   << background_receive_callbacks_.size();
+                   << background_receive_callbacks_map_.size();
         std::move(status_codes_callback)(status_codes);
         return;
       });
@@ -598,8 +599,9 @@ void NearbySharingServiceImpl::ClearForegroundReceiveSurfaces(
       "api_clear_foreground_receive_surfaces",
       [this, status_codes_callback = std::move(status_codes_callback)]() {
         std::vector<TransferUpdateCallback*> fg_receivers;
-        for (auto& callback : foreground_receive_callbacks_.GetObservers())
-          fg_receivers.push_back(callback);
+        for (const auto& callback : foreground_receive_callbacks_map_) {
+          fg_receivers.push_back(callback.first);
+        }
 
         StatusCodes status = StatusCodes::kOk;
         for (TransferUpdateCallback* callback : fg_receivers) {
@@ -1098,9 +1100,9 @@ NearbySharingServiceImpl::InternalUnregisterReceiveSurface(
                << ", transfer_callback: " << transfer_callback;
 
   bool is_foreground =
-      foreground_receive_callbacks_.HasObserver(transfer_callback);
+      foreground_receive_callbacks_map_.contains(transfer_callback);
   bool is_background =
-      background_receive_callbacks_.HasObserver(transfer_callback);
+      background_receive_callbacks_map_.contains(transfer_callback);
   if (!is_foreground && !is_background) {
     NL_VLOG(1) << __func__
                << ": Unknown transfer callback was un-registered, ignoring.";
@@ -1109,7 +1111,7 @@ NearbySharingServiceImpl::InternalUnregisterReceiveSurface(
     return StatusCodes::kOk;
   }
 
-  if (!foreground_receive_callbacks_.empty() && last_incoming_metadata_ &&
+  if (!foreground_receive_callbacks_map_.empty() && last_incoming_metadata_ &&
       last_incoming_metadata_->second.is_final_status()) {
     // We already saw the final status in the foreground.
     // Nullify it so the next time the user opens sharing, it starts the UI from
@@ -1118,18 +1120,17 @@ NearbySharingServiceImpl::InternalUnregisterReceiveSurface(
   }
 
   if (is_foreground) {
-    foreground_receive_callbacks_.RemoveObserver(transfer_callback);
+    foreground_receive_callbacks_map_.erase(transfer_callback);
   } else {
-    background_receive_callbacks_.RemoveObserver(transfer_callback);
+    background_receive_callbacks_map_.erase(transfer_callback);
   }
 
   // Displays the most recent payload status processed by foreground surfaces on
   // background surface.
-  if (foreground_receive_callbacks_.empty() && last_incoming_metadata_) {
-    for (auto& background_callback :
-         background_receive_callbacks_.GetObservers()) {
-      background_callback->OnTransferUpdate(last_incoming_metadata_->first,
-                                            last_incoming_metadata_->second);
+  if (foreground_receive_callbacks_map_.empty() && last_incoming_metadata_) {
+    for (auto& background_callback : background_receive_callbacks_map_) {
+      background_callback.first->OnTransferUpdate(
+          last_incoming_metadata_->first, last_incoming_metadata_->second);
     }
   }
 
@@ -1485,16 +1486,16 @@ void NearbySharingServiceImpl::SetupBluetoothAdapter() {
   InvalidateSurfaceState();
 }
 
-ObserverList<TransferUpdateCallback>&
-NearbySharingServiceImpl::GetReceiveCallbacksFromState(
+absl::flat_hash_map<TransferUpdateCallback*, uint8_t>&
+NearbySharingServiceImpl::GetReceiveCallbacksMapFromState(
     ReceiveSurfaceState state) {
   switch (state) {
     case ReceiveSurfaceState::kForeground:
-      return foreground_receive_callbacks_;
+      return foreground_receive_callbacks_map_;
     case ReceiveSurfaceState::kBackground:
-      return background_receive_callbacks_;
+      return background_receive_callbacks_map_;
     case ReceiveSurfaceState::kUnknown:
-      return foreground_receive_callbacks_;
+      return foreground_receive_callbacks_map_;
   }
 }
 
@@ -2007,8 +2008,8 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
     return;
   }
 
-  if (foreground_receive_callbacks_.empty() &&
-      background_receive_callbacks_.empty()) {
+  if (foreground_receive_callbacks_map_.empty() &&
+      background_receive_callbacks_map_.empty()) {
     StopAdvertising();
     NL_VLOG(1)
         << __func__
@@ -2017,7 +2018,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   }
 
   if (!IsVisibleInBackground(settings_->GetVisibility()) &&
-      foreground_receive_callbacks_.empty()) {
+      foreground_receive_callbacks_map_.empty()) {
     StopAdvertising();
     NL_VLOG(1)
         << __func__
@@ -2027,7 +2028,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   }
 
   PowerLevel power_level;
-  if (!foreground_receive_callbacks_.empty()) {
+  if (!foreground_receive_callbacks_map_.empty()) {
     power_level = PowerLevel::kHighPower;
   } else {
     power_level = PowerLevel::kLowPower;
@@ -2357,7 +2358,7 @@ void NearbySharingServiceImpl::OnRotateBackgroundAdvertisementTimerFired() {
 
   RunOnNearbySharingServiceThread(
       "on-rotate-background-advertisement-timer-fired", [this]() {
-        if (!foreground_receive_callbacks_.empty()) {
+        if (!foreground_receive_callbacks_map_.empty()) {
           rotate_background_advertisement_timer_->Stop();
           ScheduleRotateBackgroundAdvertisementTimer();
         } else {
@@ -3094,12 +3095,13 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
     OnTransferStarted(/*is_incoming=*/true);
   }
 
-  ObserverList<TransferUpdateCallback>& transfer_callbacks =
-      foreground_receive_callbacks_.empty() ? background_receive_callbacks_
-                                            : foreground_receive_callbacks_;
+  auto callbacks = foreground_receive_callbacks_map_;
+  if (callbacks.empty()) {
+    callbacks = background_receive_callbacks_map_;
+  }
 
-  for (TransferUpdateCallback* callback : transfer_callbacks.GetObservers()) {
-    callback->OnTransferUpdate(share_target, metadata);
+  for (auto& callback : callbacks) {
+    callback.first->OnTransferUpdate(share_target, metadata);
   }
 }
 
