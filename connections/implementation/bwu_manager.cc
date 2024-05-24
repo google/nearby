@@ -718,6 +718,15 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kIgnoreUpgradePathAvailableFrameForAdvertiser) &&
+      client->IsIncomingConnection(endpoint_id)) {
+    NEARBY_LOGS(INFO)
+        << "ProcessBandwidthUpgradePathAvailableEvent ignored by Advertiser";
+    return;
+  }
+
   if (in_progress_upgrades_.contains(endpoint_id)) {
     NEARBY_LOGS(ERROR)
         << "BwuManager received a duplicate bandwidth upgrade for endpoint "

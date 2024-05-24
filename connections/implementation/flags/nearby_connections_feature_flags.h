@@ -74,6 +74,10 @@ constexpr auto kCheckIllegalCharacters =
 constexpr auto kEnableMultiplex =
     flags::Flag<bool>(kConfigPackage, "45627836", false);
 
+// When true, allows to ignore the upgrade path available frame for advertiser.
+constexpr auto kIgnoreUpgradePathAvailableFrameForAdvertiser =
+    flags::Flag<bool>(kConfigPackage, "45633895", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
