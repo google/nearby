@@ -139,9 +139,11 @@ class NearbySharingService {
       ShareTargetDiscoveredCallback* discovery_callback,
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
-  // Registers a receiver surface for handling payload transfer status.
+  // Registers a receiver surface for handling payload transfer status, and
+  // advertises the vendor ID specified by |vendor_id|.
   virtual void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
+      uint8_t vendor_id,
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current receive surface.

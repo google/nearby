@@ -495,7 +495,7 @@ void NearbySharingServiceImpl::UnregisterSendSurface(
 
 void NearbySharingServiceImpl::RegisterReceiveSurface(
     TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    uint8_t vendor_id, std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_receive_surface",
       [this, transfer_callback, state,

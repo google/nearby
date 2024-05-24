@@ -532,7 +532,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         NearbySharingService::StatusCodes::kError;
     absl::Notification notification;
     service_->RegisterReceiveSurface(
-        transfer_callback, state,
+        transfer_callback, state, kVendorId,
         [&](NearbySharingService::StatusCodes status_codes) {
           result = status_codes;
           notification.Notify();

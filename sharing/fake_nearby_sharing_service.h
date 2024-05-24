@@ -64,6 +64,7 @@ class FakeNearbySharingService : public NearbySharingService {
   // Registers a receiver surface for handling payload transfer status.
   void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
+      uint8_t vendor_id,
       std::function<void(StatusCodes)> status_codes_callback) override;
 
   // Unregisters the current receive surface.

@@ -87,7 +87,7 @@ void FakeNearbySharingService::UnregisterSendSurface(
 // Registers a receiver surface for handling payload transfer status.
 void FakeNearbySharingService::RegisterReceiveSurface(
     TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    uint8_t vendor_id, std::function<void(StatusCodes)> status_codes_callback) {
   if (state == ReceiveSurfaceState::kForeground) {
     foreground_receive_transfer_callbacks_.AddObserver(transfer_callback);
   } else {
