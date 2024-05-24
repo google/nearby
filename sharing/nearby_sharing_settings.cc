@@ -589,18 +589,6 @@ void NearbyShareSettings::SetIsAllContactsEnabled(
   }
 }
 
-bool NearbyShareSettings::GetAutoAppStartEnabled() const {
-  MutexLock lock(&mutex_);
-  return preference_manager_.GetBoolean(
-      prefs::kNearbySharingAutoAppStartEnabledName, true);
-}
-
-void NearbyShareSettings::SetAutoAppStartEnabled(bool is_auto_app_start) const {
-  MutexLock lock(&mutex_);
-  preference_manager_.SetBoolean(prefs::kNearbySharingAutoAppStartEnabledName,
-                                   is_auto_app_start);
-}
-
 void NearbyShareSettings::SendDesktopNotification(
     DesktopNotification event) const {
   analytics_recorder_->NewSendDesktopNotification(event);

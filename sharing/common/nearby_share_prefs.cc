@@ -100,8 +100,6 @@ ABSL_CONST_INIT const char kNearbySharingIsAnalyticsEnabledName[] =
     "nearby_sharing.is_analytics_enabled";
 ABSL_CONST_INIT const char kNearbySharingIsAllContactsEnabledName[] =
     "nearby_sharing.is_all_contacts_enabled";
-ABSL_CONST_INIT const char kNearbySharingAutoAppStartEnabledName[] =
-    "nearby_sharing.auto_app_start_enabled";
 
 void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
                                 bool skip_persistent_ones) {
@@ -169,7 +167,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
 
   preference_manager.SetBoolean(kNearbySharingIsAnalyticsEnabledName, false);
   preference_manager.SetBoolean(kNearbySharingIsAllContactsEnabledName, true);
-  preference_manager.SetBoolean(kNearbySharingAutoAppStartEnabledName, true);
 }
 
 void ResetSchedulers(PreferenceManager& preference_manager) {

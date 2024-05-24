@@ -520,16 +520,6 @@ TEST_F(NearbyShareSettingsTest, GetAndSetAllowedContacts) {
   EXPECT_EQ(allowed_contacts.size(), 0u);
 }
 
-TEST_F(NearbyShareSettingsTest, GetAndSetAutoAppStartEnabled) {
-  bool is_auto_app_start_enabled = settings()->GetAutoAppStartEnabled();
-  EXPECT_TRUE(is_auto_app_start_enabled);
-
-  settings()->SetAutoAppStartEnabled(false);
-  Flush();
-  is_auto_app_start_enabled = settings()->GetAutoAppStartEnabled();
-  EXPECT_FALSE(is_auto_app_start_enabled);
-}
-
 TEST_F(NearbyShareSettingsTest, SendDesktopNotification) {
   settings()->SendDesktopNotification(
       DesktopNotification::DESKTOP_NOTIFICATION_UNKNOWN);

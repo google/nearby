@@ -228,9 +228,6 @@ class NearbyShareSettings
   void SetCustomSavePathAsync(absl::string_view save_path,
                               const std::function<void()>& callback);
 
-  bool GetAutoAppStartEnabled() const;
-  void SetAutoAppStartEnabled(bool is_auto_app_start) const;
-
   // NearbyShareLocalDeviceDataManager::Observer:
   void OnLocalDeviceDataChanged(bool did_device_name_change,
                                 bool did_full_name_change,
