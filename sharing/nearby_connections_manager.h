@@ -158,13 +158,6 @@ class NearbyConnectionsManager {
   // Sets a custom save path.
   virtual void SetCustomSavePath(absl::string_view custom_save_path) = 0;
 
-  // Gets the file paths to delete.
-  virtual absl::flat_hash_set<std::filesystem::path>
-  GetUnknownFilePathsToDelete() = 0;
-
-  // Deletes the file paths to delete.
-  virtual void ClearUnknownFilePathsToDelete() = 0;
-
   // Gets the file paths to delete and clear the hash set.
   virtual absl::flat_hash_set<std::filesystem::path>
   GetAndClearUnknownFilePathsToDelete() = 0;

@@ -134,12 +134,24 @@ std::string MediumSelectionToString(const MediumSelection& mediums) {
   return ss.str();
 }
 
+std::string PayloadStatusToString(PayloadStatus status) {
+  switch (status) {
+    case PayloadStatus::kSuccess:
+      return "Success";
+    case PayloadStatus::kFailure:
+      return "Failure";
+    case PayloadStatus::kInProgress:
+      return "In Progress";
+    case PayloadStatus::kCanceled:
+      return "Canceled";
+  }
+}
+
 }  // namespace
 
 NearbyConnectionsManagerImpl::NearbyConnectionsManagerImpl(
-    TaskRunner* connections_callback_task_runner,
-    Context* context, ConnectivityManager& connectivity_manager,
-    nearby::DeviceInfo& device_info,
+    TaskRunner* connections_callback_task_runner, Context* context,
+    ConnectivityManager& connectivity_manager, nearby::DeviceInfo& device_info,
     std::unique_ptr<NearbyConnectionsService> nearby_connections_service)
     : connections_callback_task_runner_(connections_callback_task_runner),
       context_(context),
@@ -797,13 +809,31 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
   NL_DCHECK(result.second);
 }
 
+void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
+    PayloadStatus status, PayloadContent::Type type,
+    const std::filesystem::path& path) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          sharing::config_package_nearby::nearby_sharing_feature::
+              kDeleteUnexpectedReceivedFile)) {
+    // Unknown payload comes with kCanceled and kFile type from
+    // NearbyConnections. Delete it.
+    if (status == PayloadStatus::kCanceled &&
+        type == PayloadContent::Type::kFile) {
+      NL_LOG(WARNING) << __func__
+                      << ": Unknown payload has been canceled, removing.";
+      MutexLock lock(&mutex_);
+      file_paths_to_delete_.insert(path);
+    }
+  }
+}
+
 void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
     absl::string_view endpoint_id, const PayloadTransferUpdate& update) {
   MutexLock lock(&mutex_);
   NL_LOG(INFO) << "Received payload transfer update id=" << update.payload_id
-               << ",status=" << update.status << ",total=" << update.total_bytes
-               << ",bytes_transferred=" << update.bytes_transferred
-               << std::endl;
+               << ",status=" << PayloadStatusToString(update.status)
+               << ",total=" << update.total_bytes
+               << ",bytes_transferred=" << update.bytes_transferred;
 
   // If this is a payload we've registered for, then forward its status to
   // the PayloadStatusListener if it still exists. We don't need to do
@@ -838,19 +868,11 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 
   if (payload_it->second.content.type != PayloadContent::Type::kBytes) {
     NL_LOG(WARNING) << "Received unknown payload of file type. Cancelling.";
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            sharing::config_package_nearby::nearby_sharing_feature::
-                kDeleteUnexpectedReceivedFile)) {
-      // if we get kFile and have file_path, delete the file path.
-      if (payload_it->second.content.type == PayloadContent::Type::kFile) {
-        auto file_path = payload_it->second.content.file_payload.file.path;
-        NL_LOG(WARNING) << __func__
-                        << ": Payload is Type::kFile type. Removing.";
-        file_paths_to_delete_.insert(file_path);
-      }
-    }
     nearby_connections_service_->CancelPayload(kServiceId, payload_it->first,
                                                [](Status status) {});
+    ProcessUnknownFilePathsToDelete(
+        update.status, payload_it->second.content.type,
+        payload_it->second.content.file_payload.file.path);
     return;
   }
 
@@ -922,23 +944,34 @@ NearbyConnectionsManagerImpl::GetUnknownFilePathsToDelete() {
   return file_paths_to_delete_;
 }
 
-void NearbyConnectionsManagerImpl::ClearUnknownFilePathsToDelete() {
-  MutexLock lock(&mutex_);
-  file_paths_to_delete_.clear();
-}
-
 absl::flat_hash_set<std::filesystem::path>
 NearbyConnectionsManagerImpl::GetAndClearUnknownFilePathsToDelete() {
   MutexLock lock(&mutex_);
-  auto file_paths_to_delete = file_paths_to_delete_;
+  auto file_paths_to_delete = std::move(file_paths_to_delete_);
   file_paths_to_delete_.clear();
   return file_paths_to_delete;
+}
+
+absl::flat_hash_set<std::filesystem::path>
+NearbyConnectionsManagerImpl::GetUnknownFilePathsToDeleteForTesting() {
+  return GetUnknownFilePathsToDelete();
 }
 
 void NearbyConnectionsManagerImpl::AddUnknownFilePathsToDeleteForTesting(
     std::filesystem::path file_path) {
   MutexLock lock(&mutex_);
   file_paths_to_delete_.insert(file_path);
+}
+
+void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDeleteForTesting(
+    PayloadStatus status, PayloadContent::Type type,
+    const std::filesystem::path& path) {
+  ProcessUnknownFilePathsToDelete(status, type, path);
+}
+
+void NearbyConnectionsManagerImpl::OnPayloadTransferUpdateForTesting(
+    absl::string_view endpoint_id, const PayloadTransferUpdate& update) {
+  OnPayloadTransferUpdate(endpoint_id, update);
 }
 
 std::string NearbyConnectionsManagerImpl::Dump() const {

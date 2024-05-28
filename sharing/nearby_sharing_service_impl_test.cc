@@ -4835,7 +4835,7 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
       "test2.txt");
   auto unknown_file_paths_to_delete =
-      fake_nearby_connections_manager_->GetUnknownFilePathsToDelete();
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
   EXPECT_THAT(unknown_file_paths_to_delete,
               UnorderedElementsAre("test1.txt", "test2.txt"));
@@ -4843,7 +4843,8 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   share_target.is_incoming = true;
   service_->RemoveIncomingPayloads(share_target);
   EXPECT_EQ(
-      fake_nearby_connections_manager_->GetUnknownFilePathsToDelete().size(),
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .size(),
       0);
 
   // Test GetAndClearUnknownFilePathsToDelete
@@ -4855,7 +4856,8 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
       fake_nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
   EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
   EXPECT_EQ(
-      fake_nearby_connections_manager_->GetUnknownFilePathsToDelete().size(),
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .size(),
       0);
 }
 

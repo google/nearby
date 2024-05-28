@@ -306,25 +306,20 @@ void FakeNearbyConnectionsManager::SetCustomSavePath(
 }
 
 absl::flat_hash_set<std::filesystem::path>
-FakeNearbyConnectionsManager::GetUnknownFilePathsToDelete() {
-  return file_paths_to_delete_;
-}
-
-void FakeNearbyConnectionsManager::ClearUnknownFilePathsToDelete() {
-  file_paths_to_delete_.clear();
-}
-
-void FakeNearbyConnectionsManager::AddUnknownFilePathsToDeleteForTesting(
-    std::filesystem::path file_path) {
-  file_paths_to_delete_.insert(file_path);
-}
-
-absl::flat_hash_set<std::filesystem::path>
 FakeNearbyConnectionsManager::GetAndClearUnknownFilePathsToDelete() {
   absl::flat_hash_set<std::filesystem::path> file_paths_to_delete =
       file_paths_to_delete_;
   file_paths_to_delete_.clear();
   return file_paths_to_delete;
+}
+
+absl::flat_hash_set<std::filesystem::path>
+FakeNearbyConnectionsManager::GetUnknownFilePathsToDeleteForTesting() {
+  return file_paths_to_delete_;
+}
+void FakeNearbyConnectionsManager::AddUnknownFilePathsToDeleteForTesting(
+    std::filesystem::path file_path) {
+  file_paths_to_delete_.insert(file_path);
 }
 
 std::string FakeNearbyConnectionsManager::Dump() const { return ""; }

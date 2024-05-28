@@ -84,19 +84,22 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
       absl::string_view endpoint_id) override;
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
   void SetCustomSavePath(absl::string_view custom_save_path) override;
-  absl::flat_hash_set<std::filesystem::path> GetUnknownFilePathsToDelete()
-      override;
   absl::flat_hash_set<std::filesystem::path>
   GetAndClearUnknownFilePathsToDelete() override;
-  void ClearUnknownFilePathsToDelete() override;
-
   std::string Dump() const override;
 
   NearbyConnectionsService* GetNearbyConnectionsService() const {
     return nearby_connections_service_.get();
   }
 
+  absl::flat_hash_set<std::filesystem::path>
+  GetUnknownFilePathsToDeleteForTesting();
   void AddUnknownFilePathsToDeleteForTesting(std::filesystem::path file_path);
+  void ProcessUnknownFilePathsToDeleteForTesting(
+      PayloadStatus status, PayloadContent::Type type,
+      const std::filesystem::path& path);
+  void OnPayloadTransferUpdateForTesting(absl::string_view endpoint_id,
+                                         const PayloadTransferUpdate& update);
 
  private:
   // EndpointDiscoveryListener:
@@ -119,6 +122,10 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void OnConnectionTimedOut(absl::string_view endpoint_id);
   void OnConnectionRequested(absl::string_view endpoint_id,
                              ConnectionsStatus status);
+  void ProcessUnknownFilePathsToDelete(PayloadStatus status,
+                                       PayloadContent::Type type,
+                                       const std::filesystem::path& path);
+  absl::flat_hash_set<std::filesystem::path> GetUnknownFilePathsToDelete();
 
   void Reset();
 

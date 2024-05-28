@@ -3089,6 +3089,11 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
       // For any type of failure, lets make sure any pending files get cleaned
       // up.
       RemoveIncomingPayloads(share_target);
+    } else {
+      if (!nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete()
+               .empty()) {
+        NL_LOG(WARNING) << __func__ << ": Unknown file paths are not empty.";
+      }
     }
   } else if (metadata.status() ==
              TransferMetadata::Status::kAwaitingLocalConfirmation) {
