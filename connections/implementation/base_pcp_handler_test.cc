@@ -36,6 +36,8 @@
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
@@ -58,6 +60,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
@@ -181,6 +184,15 @@ class MockEndpointChannel : public BaseEndpointChannel {
   std::unique_ptr<OutputStream> output_stream_;
 };
 
+class MockEndpointManager : public EndpointManager {
+ public:
+  explicit MockEndpointManager(EndpointChannelManager* manager)
+      : EndpointManager(manager) {}
+
+  void RemoveEndpoint(ClientProxy* client, const std::string& endpoint_id,
+                      bool notify, DisconnectionReason reason) {}
+};
+
 class MockPcpHandler : public BasePcpHandler {
  public:
   using DiscoveredEndpoint = BasePcpHandler::DiscoveredEndpoint;
@@ -250,6 +262,37 @@ class MockPcpHandler : public BasePcpHandler {
         location::nearby::proto::connections::WEB_RTC,
         location::nearby::proto::connections::BLUETOOTH,
         location::nearby::proto::connections::BLE};
+  }
+
+  void ProcessPreConnectionInitiationFailure(
+      ClientProxy* client, Medium medium, const std::string& endpoint_id,
+      EndpointChannel* channel, bool is_incoming, absl::Time start_time,
+      Status status, Future<Status>* result) {
+    NEARBY_LOGS(INFO) << "ProcessPreConnectionInitiationFailure: mock called";
+  }
+
+  void RegisterDevice(const std::string& endpoint_id,
+                      const std::string& auth_token,
+                      const ByteArray& raw_auth_token,
+                      std::unique_ptr<EndpointChannel> channel,
+                      ClientProxy* client, ByteArray remote_endpoint_info,
+                      AuthenticationStatus authentication_status,
+                      ConnectionOptions connection_options, bool is_incoming,
+                      ConnectionListener listener,
+                      const std::string& connection_token) {
+    NEARBY_LOGS(INFO) << "RegisterDevice: " << endpoint_id;
+    endpoint_manager_->RegisterEndpoint(
+        client, endpoint_id,
+        {
+            .remote_endpoint_info = remote_endpoint_info,
+            .authentication_token = auth_token,
+            .raw_authentication_token = raw_auth_token,
+            .is_incoming_connection = is_incoming,
+            .authentication_status = authentication_status,
+        },
+        connection_options, std::move(channel),
+        listener, connection_token);
+    NEARBY_LOGS(INFO) << "RegisterDevice: " << endpoint_id << " done";
   }
 
   // Mock adapters for protected non-virtual methods of a base class.
@@ -2705,6 +2748,146 @@ TEST_F(BasePcpHandlerTest, TestUpdateDiscoveryOptionsFailsWithBadStatus) {
             old_options.is_out_of_band_connection);
   EXPECT_EQ(current_client_opts.fast_advertisement_service_uuid,
             old_options.fast_advertisement_service_uuid);
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, TestBreakTieDisconnectBoth) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  MockEndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  v3::ConnectionListeningOptions options = {
+      .strategy = Strategy::kP2pCluster,
+      .enable_ble_listening = false,
+      .enable_bluetooth_listening = true,
+      .enable_wlan_listening = false,
+      .listening_endpoint_type = NearbyDevice::Type::kConnectionsDevice};
+  ClientProxy client;
+  EXPECT_TRUE(
+      pcp_handler
+          .StartListeningForIncomingConnections(&client, "service", options, {})
+          .first.Ok());
+  ASSERT_TRUE(client.IsListeningForIncomingConnections());
+  ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_id = "ABCD",
+              .local_endpoint_info = ByteArray("local endpoint"),
+          });
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.mutable_v1()
+      ->mutable_connection_request()
+      ->mutable_connections_device()
+      ->set_endpoint_id("ABCD");
+  ASSERT_TRUE(frame.v1().connection_request().has_connections_device());
+  // do a dummy write to get to the actual write.
+  channel_pair.first->Write(ByteArray());
+  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(&client, ByteArray("remote endpoint"),
+                                        std::move(channel_pair.second),
+                                        Medium::BLUETOOTH,
+                                        NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+
+  // ConnectionOptions connection_options{
+  //     .remote_bluetooth_mac_address =
+  //         ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
+  //     .keep_alive_interval_millis =
+  //         FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+  //     .keep_alive_timeout_millis =
+  //         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
+  // };
+  // ConnectionListener connection_listener;
+  // auto [input_a, output_a] = CreatePipe();
+  // auto [input_b, output_b] = CreatePipe();
+  // auto channel_a = std::make_unique<MockEndpointChannel>(std::move(input_a),
+  //                                                        std::move(output_b));
+
+  // auto channel_pair3 = SetupConnection(Medium::BLUETOOTH);
+  // channel_pair3.first->Write(ByteArray());
+  // ByteArray serialized_frame3 = parser::ForConnectionRequestConnections(
+  //     {}, {
+  //             .local_endpoint_id = "ABCD",
+  //             .local_endpoint_info = ByteArray("local endpoint"),
+  //         });
+  // location::nearby::connections::OfflineFrame frame3;
+  // frame3.ParseFromString(serialized_frame3.AsStringView());
+  // frame3.mutable_v1()
+  //     ->mutable_connection_request()
+  //     ->mutable_connections_device()
+  //     ->set_endpoint_id("ABCD");
+  // channel_pair3.first->Write(ByteArray(frame3.SerializeAsString()));
+
+  // pcp_handler.RegisterDevice(
+  //     "ABCD", "auto_token", ByteArray("ABCD"),
+  //     std::move(channel_pair3.second), &client, ByteArray("ABCD"),
+  //     AuthenticationStatus::kSuccess, connection_options, true,
+  //     connection_listener, "token");
+  auto channel_pair2 = SetupConnection(Medium::BLUETOOTH);
+  ByteArray serialized_frame2 = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_id = "ABCD",
+              .local_endpoint_info = ByteArray("local endpoint"),
+          });
+  location::nearby::connections::OfflineFrame frame2;
+  frame2.ParseFromString(serialized_frame2.AsStringView());
+  frame2.mutable_v1()
+      ->mutable_connection_request()
+      ->mutable_connections_device()
+      ->set_endpoint_id("ABCD");
+  ASSERT_TRUE(frame2.v1().connection_request().has_connections_device());
+  // do a dummy write to get to the actual write.
+  channel_pair2.first->Write(ByteArray());
+  channel_pair2.first->Write(ByteArray(frame2.SerializeAsString()));
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(&client, ByteArray("remote endpoint"),
+                                        std::move(channel_pair2.second),
+                                        Medium::BLUETOOTH,
+                                        NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+
+  absl::SleepFor(absl::Seconds(2));
+  NEARBY_LOG(INFO, "TestBreakTieDisconnectBoth complete");
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, DISABLED_TestBreakTieDisconnectBoth2) {
+  env_.Start();
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnection("1234", std::move(channel_a), channel_b.get(), &client,
+                    &pcp_handler, connect_medium);
+  NEARBY_LOG(INFO, "RequestConnection complete");
+
+  pcp_handler.BreakTieForTesting(&client, "1234", 0, nullptr);
+
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
   env_.Stop();
 }
 

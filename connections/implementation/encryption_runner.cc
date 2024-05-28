@@ -104,6 +104,12 @@ class ServerRunnable final {
       return;
     }
 
+    if (!channel_) {
+      NEARBY_LOGS(INFO)
+        << "EncryptionRunner::StartServer() failed because channel is null";
+      return;
+    }
+
     // Message 1 (Client Init)
     ExceptionOr<ByteArray> client_init = channel_->Read();
     if (!client_init.ok()) {

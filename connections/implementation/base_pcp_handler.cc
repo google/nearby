@@ -510,6 +510,10 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
+                  if (!channel) {
+                    NEARBY_LOGS(INFO) << "channel is null";
+                    return;
+                  }
                   NEARBY_LOGS(ERROR)
                       << "Encryption failed for endpoint_id=" << endpoint_id
                       << " on medium="
@@ -576,16 +580,15 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   }
 
   BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
-  Medium medium = connection_info.channel->GetMedium();
 
   // TODO(b/300149127): Add test coverage.
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, medium, remote_device.GetEndpointId(),
-        connection_info.channel.get(), connection_info.is_incoming,
-        connection_info.start_time, {Status::kEndpointIoError},
-        connection_info.result.lock().get());
+        connection_info.client, connection_info.medium,
+        remote_device.GetEndpointId(), connection_info.channel.get(),
+        connection_info.is_incoming, connection_info.start_time,
+        {Status::kEndpointIoError}, connection_info.result.lock().get());
     return;
   }
 
@@ -640,12 +643,11 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
-  Medium medium = connection_info.channel->GetMedium();
 
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, medium, endpoint_id,
+        connection_info.client, connection_info.medium, endpoint_id,
         connection_info.channel.get(), connection_info.is_incoming,
         connection_info.start_time, {Status::kEndpointIoError},
         connection_info.result.lock().get());
@@ -709,6 +711,17 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& info = it->second;
+
+  if (endpoint_channel == nullptr) {
+    NEARBY_LOGS(INFO) << "endpoint_channel is null";
+    return;
+  }
+
+  if (info.channel == nullptr) {
+    NEARBY_LOGS(INFO) << "info.channel is null";
+    return;
+  }
+
   // We had a bug here, caused by a race with EncryptionRunner. We now verify
   // the EndpointChannel to avoid it. In a simultaneous connection, we clean
   // up one of the two EndpointChannels and then update our pendingConnections
@@ -724,7 +737,7 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   }
 
   ProcessPreConnectionInitiationFailure(
-      info.client, info.channel->GetMedium(), endpoint_id, info.channel.get(),
+      info.client, info.medium, endpoint_id, info.channel.get(),
       info.is_incoming, info.start_time, {Status::kEndpointIoError},
       info.result.lock().get());
 }
@@ -764,6 +777,7 @@ Status BasePcpHandler::RequestConnection(
     ClientProxy* client, const std::string& endpoint_id,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
+  NEARBY_LOGS(INFO) << "RequestConnection called";
   auto result = std::make_shared<Future<Status>>();
   RunOnPcpHandlerThread(
       "request-connection",
@@ -864,6 +878,7 @@ Status BasePcpHandler::RequestConnection(
         pendingConnectionInfo.listener = info.listener;
         pendingConnectionInfo.connection_options = connection_options;
         pendingConnectionInfo.result = result;
+        pendingConnectionInfo.medium = channel->GetMedium();
         pendingConnectionInfo.channel = std::move(channel);
 
         EndpointChannel* endpoint_channel =
@@ -892,6 +907,7 @@ Status BasePcpHandler::RequestConnectionV3(
     ClientProxy* client, const NearbyDevice& remote_device,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
+  NEARBY_LOGS(INFO) << "RequestConnectionV3 called";
   auto result = std::make_shared<Future<Status>>();
   std::string endpoint_id = remote_device.GetEndpointId();
   RunOnPcpHandlerThread(
@@ -1009,6 +1025,7 @@ Status BasePcpHandler::RequestConnectionV3(
         pendingConnectionInfo.listener = info.listener;
         pendingConnectionInfo.connection_options = connection_options;
         pendingConnectionInfo.result = result;
+        pendingConnectionInfo.medium = channel->GetMedium();
         pendingConnectionInfo.channel = std::move(channel);
 
         EndpointChannel* endpoint_channel =
@@ -1757,8 +1774,8 @@ Exception BasePcpHandler::OnIncomingConnection(
           << "; device=" << absl::BytesToHexString(remote_endpoint_info.data())
           << "with error: " << wrapped_frame.exception();
       ProcessPreConnectionInitiationFailure(
-          client, medium, "", channel.get(),
-          /* is_incoming= */ true, start_time, {Status::kError}, nullptr);
+          client, medium, /*endpoint_id=*/"", channel.get(),
+          /*is_incoming=*/true, start_time, {Status::kError}, nullptr);
     }
     return wrapped_frame.GetException();
   }
@@ -1880,6 +1897,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   pendingConnectionInfo.connection_options = connection_options;
   pendingConnectionInfo.supported_mediums =
       parser::ConnectionRequestMediumsToMediums(connection_request);
+  pendingConnectionInfo.medium = channel->GetMedium();
   pendingConnectionInfo.channel = std::move(channel);
 
   auto* owned_channel = pending_connections_
@@ -1897,8 +1915,18 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
                               const std::string& endpoint_id,
                               std::int32_t incoming_nonce,
                               EndpointChannel* endpoint_channel) {
+  NEARBY_LOGS(INFO) << "BreakTie called with endpoint_id=" << endpoint_id
+                    << ", incoming_nonce=" << incoming_nonce;
+  NEARBY_LOGS(INFO) << "pending_connections_ size="
+                    << pending_connections_.size() << ", first endpoint_id="
+                    << (pending_connections_.empty()
+                            ? ""
+                            : pending_connections_.begin()->first);
   auto it = pending_connections_.find(endpoint_id);
   if (it != pending_connections_.end()) {
+    if (it->second.channel == nullptr) {
+      NEARBY_LOGS(ERROR) << "pending_connections_ it is null";
+    }
     BasePcpHandler::PendingConnectionInfo& info = it->second;
 
     NEARBY_LOGS(INFO)
@@ -1939,7 +1967,6 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
       // Oh. Huh. We both lost. Well, that's awkward. We'll clean up both and
       // just force the devices to retry.
       endpoint_channel->Close();
-
       ProcessTieBreakLoss(client, endpoint_id, &info);
 
       NEARBY_LOGS(INFO)
@@ -1953,7 +1980,8 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
       return true;
     }
   }
-
+  NEARBY_LOGS(INFO) << "Can't find endpoint_id=" << endpoint_id
+                    << " in pending_connections_";
   return false;
 }
 
@@ -1987,13 +2015,13 @@ Status BasePcpHandler::VerifyConnectionRequest(const std::string& endpoint_id,
 void BasePcpHandler::ProcessTieBreakLoss(
     ClientProxy* client, const std::string& endpoint_id,
     BasePcpHandler::PendingConnectionInfo* info) {
-  ProcessPreConnectionInitiationFailure(
-      client, info->channel->GetMedium(), endpoint_id, info->channel.get(),
-      info->is_incoming, info->start_time, {Status::kEndpointIoError},
-      info->result.lock().get());
-  ProcessPreConnectionResultFailure(client, endpoint_id,
-                                    /* should_call_disconnect_endpoint= */ true,
-                                    DisconnectionReason::IO_ERROR);
+  // ProcessPreConnectionInitiationFailure(
+  //     client, info->medium, endpoint_id, info->channel.get(),
+  //     info->is_incoming, info->start_time, {Status::kEndpointIoError},
+  //     info->result.lock().get());
+  // ProcessPreConnectionResultFailure(client, endpoint_id,
+  //                                   /* should_call_disconnect_endpoint= */
+  //                                   true, DisconnectionReason::IO_ERROR);
 }
 
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
@@ -2270,8 +2298,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
   }
   if (connection_info.is_incoming) {
     connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
-        location::nearby::proto::connections::INITIAL,
-        connection_info.channel->GetMedium(),
+        location::nearby::proto::connections::INITIAL, connection_info.medium,
         location::nearby::proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token,
@@ -2279,7 +2306,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
   } else {
     connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
         endpoint_id, location::nearby::proto::connections::INITIAL,
-        connection_info.channel->GetMedium(),
+        connection_info.medium,
         location::nearby::proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token,
@@ -2329,6 +2356,13 @@ void BasePcpHandler::PendingConnectionInfo::LocalEndpointAcceptedConnection(
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
     const std::string& endpoint_id) {
   client->LocalEndpointRejectedConnection(endpoint_id);
+}
+
+bool BasePcpHandler::BreakTieForTesting(ClientProxy* client,
+                                        const std::string& endpoint_id,
+                                        std::int32_t incoming_nonce,
+                                        EndpointChannel* channel) {
+  return BreakTie(client, endpoint_id, incoming_nonce, channel);
 }
 
 }  // namespace connections

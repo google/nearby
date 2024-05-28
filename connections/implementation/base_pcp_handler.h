@@ -169,6 +169,9 @@ class BasePcpHandler : public PcpHandler,
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
   void DisconnectFromEndpointManager();
+  bool BreakTieForTesting(ClientProxy* client, const std::string& endpoint_id,
+                          std::int32_t incoming_nonce,
+                          EndpointChannel* channel);
 
  protected:
   // The result of a call to startAdvertisingImpl() or startDiscoveryImpl().
@@ -441,7 +444,10 @@ class BasePcpHandler : public PcpHandler,
     // Only (possibly) vector for incoming connections.
     std::vector<location::nearby::proto::connections::Medium> supported_mediums;
 
-    // Keep track of a channel before we pass it to EndpointChannelManager.
+    // Keep track of a channel before we pass it to EndpointChannelManager. This
+    // is owned until the call to OnEncryptionSuccessRunnableV3 or
+    // OnEncryptionSuccessRunnable when ownership is transfered to the
+    // EndpointManager.
     std::unique_ptr<EndpointChannel> channel;
 
     // Crypto context; initially empty; established first thing after channel
@@ -454,6 +460,9 @@ class BasePcpHandler : public PcpHandler,
 
     // Used in AnalyticsRecorder for devices connection tracking.
     std::string connection_token;
+
+    // The medium that the connection was established on.
+    location::nearby::proto::connections::Medium medium;
   };
 
   // @EncryptionRunnerThread
