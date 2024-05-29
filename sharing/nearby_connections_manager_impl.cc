@@ -815,9 +815,10 @@ void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
   if (NearbyFlags::GetInstance().GetBoolFlag(
           sharing::config_package_nearby::nearby_sharing_feature::
               kDeleteUnexpectedReceivedFile)) {
-    // Unknown payload comes with kCanceled and kFile type from
-    // NearbyConnections. Delete it.
-    if (status == PayloadStatus::kCanceled &&
+    // Unknown payload comes as kInProgress and kCanceled status with kFile type
+    // from NearbyConnections. Delete it.
+    if ((status == PayloadStatus::kCanceled ||
+         status == PayloadStatus::kInProgress) &&
         type == PayloadContent::Type::kFile) {
       NL_LOG(WARNING) << __func__
                       << ": Unknown payload has been canceled, removing.";
