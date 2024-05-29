@@ -2708,6 +2708,81 @@ TEST_F(BasePcpHandlerTest, TestUpdateDiscoveryOptionsFailsWithBadStatus) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest, TestBreakTieDisconnectBoth) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  EXPECT_CALL(pcp_handler, StartListeningForIncomingConnectionsImpl)
+      .WillOnce(Return(
+          MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  v3::ConnectionListeningOptions options = {
+      .strategy = Strategy::kP2pCluster,
+      .enable_ble_listening = false,
+      .enable_bluetooth_listening = true,
+      .enable_wlan_listening = false,
+      .listening_endpoint_type = NearbyDevice::Type::kConnectionsDevice};
+  ClientProxy client;
+  EXPECT_TRUE(
+      pcp_handler
+          .StartListeningForIncomingConnections(&client, "service", options, {})
+          .first.Ok());
+  ASSERT_TRUE(client.IsListeningForIncomingConnections());
+  ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(&client));
+  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_id = "ABCD",
+              .local_endpoint_info = ByteArray("local endpoint"),
+          });
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.mutable_v1()
+      ->mutable_connection_request()
+      ->mutable_connections_device()
+      ->set_endpoint_id("ABCD");
+  ASSERT_TRUE(frame.v1().connection_request().has_connections_device());
+  // do a dummy write to get to the actual write.
+  channel_pair.first->Write(ByteArray());
+  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(&client, ByteArray("remote endpoint"),
+                                        std::move(channel_pair.second),
+                                        Medium::BLUETOOTH,
+                                        NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+
+  auto channel_pair2 = SetupConnection(Medium::BLUETOOTH);
+  ByteArray serialized_frame2 = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_id = "ABCD",
+              .local_endpoint_info = ByteArray("local endpoint"),
+          });
+  location::nearby::connections::OfflineFrame frame2;
+  frame2.ParseFromString(serialized_frame2.AsStringView());
+  frame2.mutable_v1()
+      ->mutable_connection_request()
+      ->mutable_connections_device()
+      ->set_endpoint_id("ABCD");
+  ASSERT_TRUE(frame2.v1().connection_request().has_connections_device());
+  // do a dummy write to get to the actual write.
+  channel_pair2.first->Write(ByteArray());
+  channel_pair2.first->Write(ByteArray(frame2.SerializeAsString()));
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(&client, ByteArray("remote endpoint"),
+                                        std::move(channel_pair2.second),
+                                        Medium::BLUETOOTH,
+                                        NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+
+  NEARBY_LOG(INFO, "TestBreakTieDisconnectBoth complete");
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

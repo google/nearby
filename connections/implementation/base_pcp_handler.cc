@@ -576,16 +576,15 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   }
 
   BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
-  Medium medium = connection_info.channel->GetMedium();
 
   // TODO(b/300149127): Add test coverage.
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, medium, remote_device.GetEndpointId(),
-        connection_info.channel.get(), connection_info.is_incoming,
-        connection_info.start_time, {Status::kEndpointIoError},
-        connection_info.result.lock().get());
+        connection_info.client, connection_info.medium,
+        remote_device.GetEndpointId(), connection_info.channel.get(),
+        connection_info.is_incoming, connection_info.start_time,
+        {Status::kEndpointIoError}, connection_info.result.lock().get());
     return;
   }
 
@@ -640,12 +639,11 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
-  Medium medium = connection_info.channel->GetMedium();
 
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, medium, endpoint_id,
+        connection_info.client, connection_info.medium, endpoint_id,
         connection_info.channel.get(), connection_info.is_incoming,
         connection_info.start_time, {Status::kEndpointIoError},
         connection_info.result.lock().get());
@@ -724,7 +722,7 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   }
 
   ProcessPreConnectionInitiationFailure(
-      info.client, info.channel->GetMedium(), endpoint_id, info.channel.get(),
+      info.client, info.medium, endpoint_id, info.channel.get(),
       info.is_incoming, info.start_time, {Status::kEndpointIoError},
       info.result.lock().get());
 }
@@ -864,6 +862,7 @@ Status BasePcpHandler::RequestConnection(
         pendingConnectionInfo.listener = info.listener;
         pendingConnectionInfo.connection_options = connection_options;
         pendingConnectionInfo.result = result;
+        pendingConnectionInfo.medium = channel->GetMedium();
         pendingConnectionInfo.channel = std::move(channel);
 
         EndpointChannel* endpoint_channel =
@@ -1009,6 +1008,7 @@ Status BasePcpHandler::RequestConnectionV3(
         pendingConnectionInfo.listener = info.listener;
         pendingConnectionInfo.connection_options = connection_options;
         pendingConnectionInfo.result = result;
+        pendingConnectionInfo.medium = channel->GetMedium();
         pendingConnectionInfo.channel = std::move(channel);
 
         EndpointChannel* endpoint_channel =
@@ -1757,8 +1757,8 @@ Exception BasePcpHandler::OnIncomingConnection(
           << "; device=" << absl::BytesToHexString(remote_endpoint_info.data())
           << "with error: " << wrapped_frame.exception();
       ProcessPreConnectionInitiationFailure(
-          client, medium, "", channel.get(),
-          /* is_incoming= */ true, start_time, {Status::kError}, nullptr);
+          client, medium, /*endpoint_id=*/"", channel.get(),
+          /*is_incoming=*/true, start_time, {Status::kError}, nullptr);
     }
     return wrapped_frame.GetException();
   }
@@ -1880,6 +1880,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   pendingConnectionInfo.connection_options = connection_options;
   pendingConnectionInfo.supported_mediums =
       parser::ConnectionRequestMediumsToMediums(connection_request);
+  pendingConnectionInfo.medium = channel->GetMedium();
   pendingConnectionInfo.channel = std::move(channel);
 
   auto* owned_channel = pending_connections_
@@ -1939,7 +1940,6 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
       // Oh. Huh. We both lost. Well, that's awkward. We'll clean up both and
       // just force the devices to retry.
       endpoint_channel->Close();
-
       ProcessTieBreakLoss(client, endpoint_id, &info);
 
       NEARBY_LOGS(INFO)
@@ -1988,9 +1988,8 @@ void BasePcpHandler::ProcessTieBreakLoss(
     ClientProxy* client, const std::string& endpoint_id,
     BasePcpHandler::PendingConnectionInfo* info) {
   ProcessPreConnectionInitiationFailure(
-      client, info->channel->GetMedium(), endpoint_id, info->channel.get(),
-      info->is_incoming, info->start_time, {Status::kEndpointIoError},
-      info->result.lock().get());
+      client, info->medium, endpoint_id, info->channel.get(), info->is_incoming,
+      info->start_time, {Status::kEndpointIoError}, info->result.lock().get());
   ProcessPreConnectionResultFailure(client, endpoint_id,
                                     /* should_call_disconnect_endpoint= */ true,
                                     DisconnectionReason::IO_ERROR);
@@ -2271,7 +2270,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
   if (connection_info.is_incoming) {
     connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
         location::nearby::proto::connections::INITIAL,
-        connection_info.channel->GetMedium(),
+        connection_info.medium,
         location::nearby::proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token,
@@ -2279,7 +2278,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
   } else {
     connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
         endpoint_id, location::nearby::proto::connections::INITIAL,
-        connection_info.channel->GetMedium(),
+        connection_info.medium,
         location::nearby::proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token,
