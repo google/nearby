@@ -376,7 +376,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
               << __func__
               << ": RegisterSendSurface failed. Already registered for a "
                  "different state.";
-          std::move(status_codes_callback)(StatusCodes::kError);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
 
@@ -534,7 +534,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           NL_LOG(ERROR) << __func__
                         << ":  transfer callback already registered but for a "
                            "different state.";
-          std::move(status_codes_callback)(StatusCodes::kError);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
 
@@ -659,7 +659,7 @@ void NearbySharingServiceImpl::SendAttachments(
 
         if (attachments.empty()) {
           NL_LOG(WARNING) << __func__ << ": No attachments to send.";
-          std::move(status_codes_callback)(StatusCodes::kError);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
         // Outgoing connections always announces with contacts visibility.
@@ -673,20 +673,33 @@ void NearbySharingServiceImpl::SendAttachments(
           return;
         }
 
-        ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
+        OutgoingShareTargetInfo* info =
+            GetOutgoingShareTargetInfo(share_target_id);
         if (!info) {
           NL_LOG(WARNING)
               << __func__
               << ": Failed to send attachments. Unknown ShareTarget.";
-          std::move(status_codes_callback)(StatusCodes::kError);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
-        app_info_->SetActiveFlag();
 
         ShareTarget share_target = info->share_target();
         for (std::unique_ptr<Attachment>& attachment : attachments) {
           attachment->MoveToShareTarget(share_target);
         }
+        if (!share_target.has_attachments()) {
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
+        for (const FileAttachment& attachment : share_target.file_attachments) {
+          if (!attachment.file_path()) {
+            NL_LOG(WARNING) << __func__ << ": Got file attachment without path";
+            std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+            return;
+          }
+        }
+
+        app_info_->SetActiveFlag();
         // Set session ID.
         info->set_session_id(analytics_recorder_->GenerateNextId());
         info->set_share_target(share_target);
@@ -710,7 +723,7 @@ void NearbySharingServiceImpl::SendAttachments(
                 .set_status(TransferMetadata::Status::kConnecting)
                 .build());
 
-        CreatePayloads(std::move(share_target),
+        CreatePayloads(*info,
                        [this, endpoint_info = std::move(*endpoint_info)](
                            ShareTarget share_target, bool success) {
                          // Log analytics event of describing attachments.
@@ -737,9 +750,15 @@ void NearbySharingServiceImpl::Accept(
             ResponseToIntroduction::ACCEPT_INTRODUCTION, receiving_session_id_);
 
         ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
-        if (!info || !info->connection()) {
+        if (info == nullptr) {
           NL_LOG(WARNING) << __func__
                           << ": Accept invoked for unknown share target";
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
+        if (!info->connection()) {
+          NL_LOG(WARNING) << __func__
+                          << ": Accept invoked for unconnected share target";
           std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
@@ -780,9 +799,15 @@ void NearbySharingServiceImpl::Reject(
             ResponseToIntroduction::REJECT_INTRODUCTION, receiving_session_id_);
 
         ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
-        if (!info || !info->connection()) {
+        if (info == nullptr) {
           NL_LOG(WARNING) << __func__
                           << ": Reject invoked for unknown share target";
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
+        if (!info->connection()) {
+          NL_LOG(WARNING) << __func__
+                          << ": Reject invoked for unconnected share target";
           std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
@@ -835,11 +860,10 @@ void NearbySharingServiceImpl::DoCancel(
     std::function<void(StatusCodes status_codes)> status_codes_callback,
     bool is_initiator_of_cancellation) {
   ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
-  if (!info) {
-    NL_LOG(ERROR) << __func__
-                  << ": Cancel invoked for unknown share target, returning "
-                     "kOutOfOrderApiCall";
-    std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
+  if (info == nullptr) {
+    NL_LOG(WARNING) << __func__
+                    << ": Cancel invoked for unknown share target";
+    std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
     return;
   }
 
@@ -2752,23 +2776,19 @@ void NearbySharingServiceImpl::SendIntroduction(
 }
 
 void NearbySharingServiceImpl::CreatePayloads(
-    ShareTarget share_target, std::function<void(ShareTarget, bool)> callback) {
-  OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target.id);
-  if (!info || !share_target.has_attachments()) {
-    std::move(callback)(std::move(share_target), /*success=*/false);
-    return;
-  }
-
-  if (!info->file_payloads().empty() || !info->text_payloads().empty() ||
-      !info->wifi_credentials_payloads().empty()) {
+    OutgoingShareTargetInfo& info,
+    std::function<void(ShareTarget, bool)> callback) {
+  ShareTarget share_target = info.share_target();
+  if (!info.file_payloads().empty() || !info.text_payloads().empty() ||
+      !info.wifi_credentials_payloads().empty()) {
     // We may have already created the payloads in the case of retry, so we can
     // skip this step.
     std::move(callback)(std::move(share_target), /*success=*/false);
     return;
   }
 
-  info->set_text_payloads(CreateTextPayloads(share_target.text_attachments));
-  info->set_wifi_credentials_payloads(
+  info.set_text_payloads(CreateTextPayloads(share_target.text_attachments));
+  info.set_wifi_credentials_payloads(
       CreateWifiCredentialsPayloads(share_target.wifi_credentials_attachments));
   if (share_target.file_attachments.empty()) {
     std::move(callback)(std::move(share_target), /*success=*/true);
@@ -2776,12 +2796,8 @@ void NearbySharingServiceImpl::CreatePayloads(
   }
 
   std::vector<std::filesystem::path> file_paths;
+  file_paths.reserve(share_target.file_attachments.size());
   for (const FileAttachment& attachment : share_target.file_attachments) {
-    if (!attachment.file_path()) {
-      NL_LOG(WARNING) << __func__ << ": Got file attachment without path";
-      std::move(callback)(std::move(share_target), /*success=*/false);
-      return;
-    }
     file_paths.push_back(*attachment.file_path());
   }
 

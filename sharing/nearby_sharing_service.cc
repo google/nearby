@@ -14,7 +14,6 @@
 
 #include "sharing/nearby_sharing_service.h"
 
-#include <ostream>
 #include <string>
 
 #include "sharing/internal/public/logging.h"
@@ -46,6 +45,8 @@ std::string NearbySharingService::StatusCodeToString(StatusCodes status_code) {
       return "kNoAvailableConnectionMedium";
     case StatusCodes::kIrrecoverableHardwareError:
       return "kIrrecoverableHardwareError";
+    case StatusCodes::kInvalidArgument:
+      return "kInvalidArgument";
   }
   NL_LOG(ERROR) << "Unexpected value for StatusCodes: "
                 << static_cast<int>(status_code);

@@ -70,7 +70,11 @@ class NearbySharingService {
     // Bluetooth or WiFi hardware ran into an irrecoverable state. User PC needs
     // to be restarted.
     kIrrecoverableHardwareError = 6,
-    kMaxValue = kIrrecoverableHardwareError
+    // Method argument is invalid.
+    // TODO(b/341292610): update dart side to use kInvalidArgument.
+    // https://source.corp.google.com/piper///depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart;rcl=637648200;l=21
+    kInvalidArgument = 7,
+    kMaxValue = kInvalidArgument
   };
 
   enum class ReceiveSurfaceState {

@@ -319,7 +319,7 @@ class NearbySharingServiceImpl
   void SendIntroduction(const ShareTarget& share_target,
                         std::optional<std::string> four_digit_token);
 
-  void CreatePayloads(ShareTarget share_target,
+  void CreatePayloads(OutgoingShareTargetInfo& info,
                       std::function<void(ShareTarget, bool)> callback);
   void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
                         ShareTarget share_target, bool success);

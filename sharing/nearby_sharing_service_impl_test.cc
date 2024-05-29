@@ -1386,7 +1386,7 @@ TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertising) {
   // not called again.
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
                                 SendSurfaceState::kForeground),
-            NearbySharingService::StatusCodes::kError);
+            NearbySharingService::StatusCodes::kInvalidArgument);
   EXPECT_EQ(fast_initiation->StartAdvertisingCount(), 1);
 }
 
@@ -1627,7 +1627,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
                                 SendSurfaceState::kForeground),
-            NearbySharingService::StatusCodes::kError);
+            NearbySharingService::StatusCodes::kInvalidArgument);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
 }
 
@@ -1673,7 +1673,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
                                 SendSurfaceState::kBackground),
-            NearbySharingService::StatusCodes::kError);
+            NearbySharingService::StatusCodes::kInvalidArgument);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
 }
 
@@ -2779,7 +2779,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptInvalidShareTarget) {
   service_->Accept(
       share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code,
-                  NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
+                  NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
         notification.Notify();
       });
 
@@ -3065,7 +3065,7 @@ TEST_F(NearbySharingServiceImplTest, RejectInvalidShareTarget) {
   service_->Reject(
       share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
         EXPECT_EQ(status_code,
-                  NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
+                  NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
         notification.Notify();
       });
 
@@ -3319,7 +3319,7 @@ TEST_F(NearbySharingServiceImplTest, SendAttachmentsWithoutAttachments) {
       DiscoverShareTarget(transfer_callback, discovery_callback);
 
   EXPECT_EQ(SendAttachments(target, /*attachments=*/{}),
-            NearbySharingServiceImpl::StatusCodes::kError);
+            NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
 
   UnregisterSendSurface(&transfer_callback, &discovery_callback);
 }
@@ -3386,7 +3386,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnknownTarget) {
 
   ShareTarget target;
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
-            NearbySharingServiceImpl::StatusCodes::kError);
+            NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
   UnregisterSendSurface(&transfer_callback, &discovery_callback);
 }
 

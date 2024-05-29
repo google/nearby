@@ -44,9 +44,10 @@ std::vector<StatusCodeToStringData> GetTestData() {
            "kNoAvailableConnectionMedium"},
           {StatusCodes::kIrrecoverableHardwareError,
            "kIrrecoverableHardwareError"},
+          {StatusCodes::kInvalidArgument, "kInvalidArgument"},
           // If entries are added, kMaxValue and
           // NearbySharingService::StatusCodeToString should be updated.
-          {StatusCodes::kMaxValue, "kIrrecoverableHardwareError"},
+          {StatusCodes::kMaxValue, "kInvalidArgument"},
       });
 
   return *kStatusCodeToStringData;
