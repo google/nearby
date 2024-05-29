@@ -441,7 +441,10 @@ class BasePcpHandler : public PcpHandler,
     // Only (possibly) vector for incoming connections.
     std::vector<location::nearby::proto::connections::Medium> supported_mediums;
 
-    // Keep track of a channel before we pass it to EndpointChannelManager.
+    // Keep track of a channel before we pass it to EndpointChannelManager. This
+    // is owned until the call to OnEncryptionSuccessRunnableV3 or
+    // OnEncryptionSuccessRunnable when ownership is transferred to the
+    // EndpointManager.
     std::unique_ptr<EndpointChannel> channel;
 
     // Crypto context; initially empty; established first thing after channel
@@ -454,6 +457,9 @@ class BasePcpHandler : public PcpHandler,
 
     // Used in AnalyticsRecorder for devices connection tracking.
     std::string connection_token;
+
+    // The medium that the connection was established on.
+    location::nearby::proto::connections::Medium medium;
   };
 
   // @EncryptionRunnerThread
