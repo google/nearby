@@ -122,6 +122,7 @@ cc_library(
         "payload_tracker.cc",
         "share_target_info.cc",
         "transfer_manager.cc",
+        "wrapped_share_target_discovered_callback.cc",
     ],
     hdrs = [
         "connection_lifecycle_listener.h",
@@ -152,6 +153,7 @@ cc_library(
         "share_target_info.h",
         "transfer_manager.h",
         "transfer_update_callback.h",
+        "wrapped_share_target_discovered_callback.h",
     ],
     copts = [
         "-DNEARBY_SHARING_DLL",
@@ -608,6 +610,18 @@ cc_test(
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "wrapped_share_target_discovered_callback_test",
+    srcs = ["wrapped_share_target_discovered_callback_test.cc"],
+    deps = [
+        ":nearby_sharing_service",
+        ":types",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )
