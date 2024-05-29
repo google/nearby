@@ -28,6 +28,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
 namespace connections {

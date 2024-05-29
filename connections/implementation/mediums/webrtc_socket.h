@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 
+#include "internal/platform/exception.h"
 #ifndef NO_WEBRTC
 
 #include <memory>
@@ -38,7 +39,7 @@ class WebRtcSocketWrapper final {
 
   OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
 
-  void Close() { return impl_->Close(); }
+  Exception Close() { return impl_->Close(); }
 
   bool IsValid() const { return impl_ != nullptr; }
 

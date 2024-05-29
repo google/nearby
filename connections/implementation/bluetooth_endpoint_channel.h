@@ -15,10 +15,12 @@
 #ifndef CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
 
+#include <memory>
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
 namespace connections {
@@ -33,6 +35,7 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
   location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
+  void EnableMultiplexSocket() override;
 
  private:
   static constexpr int kDefaultBTMaxTransmitPacketSize = 1980;  // 990 * 2 Bytes

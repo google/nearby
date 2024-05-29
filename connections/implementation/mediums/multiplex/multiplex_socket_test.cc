@@ -90,11 +90,12 @@ class FakeSocket : public MediumSocket {
 
   InputStream& GetInputStream() override { return *reader_1_; }
   OutputStream& GetOutputStream() override { return *writer_2_; }
-  void Close() override {
+  Exception Close() override {
     reader_1_->Close();
     reader_2_->Close();
     writer_1_->Close();
     writer_2_->Close();
+    return {Exception::kSuccess};
   }
 
   MediumSocket* CreateVirtualSocket(

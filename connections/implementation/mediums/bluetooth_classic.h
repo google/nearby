@@ -15,18 +15,18 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
 #define CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
 
-#include <cstdint>
-#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
-#include "connections/listeners.h"
+#include "connections/implementation/mediums/multiplex/multiplex_socket.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
@@ -209,6 +209,15 @@ class BluetoothClassic {
   // and thus require pointer stability.
   absl::flat_hash_map<std::string, BluetoothServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
+
+  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplex);
+
+  // A map of Bluetooth MacAddress -> MultiplexSocket.
+  absl::flat_hash_map<std::string,
+                      mediums::multiplex::MultiplexSocket*>
+      multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

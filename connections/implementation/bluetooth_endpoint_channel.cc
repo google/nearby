@@ -62,5 +62,9 @@ void BluetoothEndpointChannel::CloseImpl() {
   }
 }
 
+void BluetoothEndpointChannel::EnableMultiplexSocket() {
+  bluetooth_socket_.EnableMultiplexSocket();
+}
+
 }  // namespace connections
 }  // namespace nearby

@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 
+#include "internal/platform/exception.h"
 #ifndef NO_WEBRTC
 
 #include <memory>
@@ -54,7 +55,7 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
   // Overrides for nearby::Socket:
   InputStream& GetInputStream() override;
   OutputStream& GetOutputStream() override;
-  void Close() override;
+  Exception Close() override;
 
   // webrtc::DataChannelObserver:
   void OnStateChange() override;

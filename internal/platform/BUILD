@@ -277,6 +277,7 @@ cc_test(
 cc_library(
     name = "types",
     srcs = [
+        "blocking_queue_stream.cc",
         "clock_impl.cc",
         "device_info_impl.cc",
         "monitored_runnable.cc",
@@ -286,8 +287,10 @@ cc_library(
         "timer_impl.cc",
     ],
     hdrs = [
+        "array_blocking_queue.h",
         "atomic_boolean.h",
         "atomic_reference.h",
+        "blocking_queue_stream.h",
         "borrowable.h",
         "cancelable.h",
         "cancelable_alarm.h",

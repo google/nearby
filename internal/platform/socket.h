@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "proto/connections_enums.pb.h"
@@ -38,7 +39,7 @@ class Socket {
 
   virtual InputStream& GetInputStream() = 0;
   virtual OutputStream& GetOutputStream() = 0;
-  virtual void Close() = 0;
+  virtual Exception Close() = 0;
 };
 
 class MediumSocket : public Socket {
@@ -50,6 +51,11 @@ class MediumSocket : public Socket {
   /** Returns the medium of the socket. */
   virtual location::nearby::proto::connections::Medium GetMedium() const {
     return medium_;
+  }
+
+  /** Creates a virtual socket only with outputstream. */
+  virtual MediumSocket* CreateVirtualSocket(OutputStream* outputstream) {
+    return this;
   }
 
   /** Creates a virtual socket. */
