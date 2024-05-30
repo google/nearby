@@ -14,18 +14,18 @@
 
 #include "sharing/attachment.h"
 
-#include <stdint.h>
+#include <cstdint>
+#include <limits>
 
-#include "internal/platform/crypto.h"
+#include "absl/random/random.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
 
 int64_t CreateRandomId() {
-  int64_t id;
-  RandBytes(&id, sizeof(id));
-  return id;
+  absl::BitGen gen;
+  return absl::Uniform<int64_t>(gen, 1, std::numeric_limits<int64_t>::max());
 }
 
 }  // namespace

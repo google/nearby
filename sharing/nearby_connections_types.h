@@ -19,16 +19,17 @@
 
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
+#include <limits>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/random/random.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/files.h"
 #include "internal/interop/authentication_status.h"
-#include "internal/platform/crypto.h"
 #include "sharing/common/compatible_u8_string.h"
 
 namespace nearby {
@@ -476,9 +477,9 @@ struct Payload {
       : Payload(GenerateId(), std::vector<uint8_t>(bytes, bytes + size)) {}
 
   int64_t GenerateId() {
-    int64_t id;
-    RandBytes(&id, sizeof(id));
-    return id;
+    absl::BitGen bitgen;
+    return absl::Uniform<int64_t>(absl::IntervalOpenClosed, bitgen, 0,
+                                  std::numeric_limits<int64_t>::max());
   }
 };
 
