@@ -270,21 +270,26 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
 
   CheckServiceId(service_id);
   CHECK(advertising_options.strategy.IsValid());
-  AdvertisingOptions old_advertising_options = {
-      {
-          advertising_options.strategy,
-          advertising_options.advertising_mediums,
-      },
-      advertising_options.auto_upgrade_bandwidth,
-      advertising_options.enforce_topology_constraints,
-      advertising_options.power_level == PowerLevel::kLowPower,  // low_power
-      advertising_options.enable_bluetooth_listening,
-      advertising_options.advertising_mediums.web_rtc,
-      false,  // is_out_of_band_connection
-      advertising_options.fast_advertisement_service_uuid,
-      ""  // device_info
-  };
   // TODO(b/291295755): Refactor deeper to use v3 options throughout.
+  AdvertisingOptions old_advertising_options = {
+      /*OptionsBase=*/
+      {
+          /*strategy=*/advertising_options.strategy,
+          /*allowed=*/advertising_options.advertising_mediums,
+      },
+      /*auto_upgrade_bandwidth=*/advertising_options.auto_upgrade_bandwidth,
+      /*enforce_topology_constraints=*/
+      advertising_options.enforce_topology_constraints,
+      /*low_power=*/advertising_options.power_level == PowerLevel::kLowPower,
+      /*enable_bluetooth_listening=*/
+      advertising_options.enable_bluetooth_listening,
+      /*enable_webrtc_listening=*/
+      advertising_options.advertising_mediums.web_rtc,
+      /*use_stable_endpoint_id=*/advertising_options.use_stable_endpoint_id,
+      /*is_out_of_band_connection=*/false,
+      /*fast_advertisement_service_uuid=*/
+      advertising_options.fast_advertisement_service_uuid,
+      /*device_info=*/""};
   router_->StartAdvertising(&client_, service_id, old_advertising_options,
                             old_info, std::move(callback));
 }
@@ -505,19 +510,24 @@ void Core::UpdateAdvertisingOptionsV3(
     ResultCallback result_cb) {
   // TODO(b/291295755): Deeper refactor to use new advertising options.
   AdvertisingOptions old_advertising_options = {
+      /*OptionsBase=*/
       {
-          advertising_options.strategy,
-          advertising_options.advertising_mediums,
+          /*strategy=*/advertising_options.strategy,
+          /*allowed=*/advertising_options.advertising_mediums,
       },
-      advertising_options.auto_upgrade_bandwidth,
+      /*auto_upgrade_bandwidth=*/advertising_options.auto_upgrade_bandwidth,
+      /*enforce_topology_constraints=*/
       advertising_options.enforce_topology_constraints,
-      advertising_options.power_level == PowerLevel::kLowPower,  // low_power
+      /*low_power=*/advertising_options.power_level == PowerLevel::kLowPower,
+      /*enable_bluetooth_listening=*/
       advertising_options.enable_bluetooth_listening,
+      /*enable_webrtc_listening=*/
       advertising_options.advertising_mediums.web_rtc,
-      false,  // is_out_of_band_connection
+      /*use_stable_endpoint_id=*/advertising_options.use_stable_endpoint_id,
+      /*is_out_of_band_connection=*/false,
+      /*fast_advertisement_service_uuid=*/
       advertising_options.fast_advertisement_service_uuid,
-      ""  // device_info
-  };
+      /*device_info=*/""};
   router_->UpdateAdvertisingOptionsV3(
       &client_, service_id, old_advertising_options, std::move(result_cb));
 }

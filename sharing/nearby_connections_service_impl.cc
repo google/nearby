@@ -75,6 +75,7 @@ void NearbyConnectionsServiceImpl::StartAdvertising(
   options.enable_bluetooth_listening =
       advertising_options.enable_bluetooth_listening;
   options.enable_webrtc_listening = advertising_options.enable_webrtc_listening;
+  options.use_stable_endpoint_id = advertising_options.use_stable_endpoint_id;
   options.fast_advertisement_service_uuid =
       advertising_options.fast_advertisement_service_uuid.uuid;
 

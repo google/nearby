@@ -205,6 +205,7 @@ struct AdvertisingOptions {
                      bool enforce_topology_constraints,
                      bool enable_bluetooth_listening,
                      bool enable_webrtc_listening,
+                     bool use_stable_endpoint_id,
                      Uuid fast_advertisement_service_uuid) {
     this->strategy = strategy;
     this->allowed_mediums = allowed_mediums;
@@ -212,6 +213,7 @@ struct AdvertisingOptions {
     this->enforce_topology_constraints = enforce_topology_constraints;
     this->enable_bluetooth_listening = enable_bluetooth_listening;
     this->enable_webrtc_listening = enable_webrtc_listening;
+    this->use_stable_endpoint_id = use_stable_endpoint_id;
     this->fast_advertisement_service_uuid = fast_advertisement_service_uuid;
   }
 
@@ -238,6 +240,9 @@ struct AdvertisingOptions {
   // By default, this option is false. If true, this allows listening on
   // incoming WebRTC connections while advertising.
   bool enable_webrtc_listening = false;
+  // Indicates whether the endpoint id should be stable. When visibility is
+  // everyone mode, we should set this to true to avoid duplicated endpoint ids.
+  bool use_stable_endpoint_id = false;
   // Optional. If set, BLE advertisements will be in their "fast advertisement"
   // form, use this UUID, and non-connectable; if empty, BLE advertisements
   // will otherwise be normal and connectable.

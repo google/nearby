@@ -277,6 +277,7 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
           /*enable_bluetooth_listening=*/use_ble,
           /*enable_webrtc_listening=*/
           ShouldEnableWebRtc(connectivity_manager_, data_usage, power_level),
+          /*use_stable_endpoint_id=*/false,
           /*fast_advertisement_service_uuid=*/
           fast_advertisement_service_uuid),
       std::move(connection_listener), std::move(callback));
