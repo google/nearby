@@ -133,7 +133,7 @@ class NearbySharingServiceImpl
       std::function<void(StatusCodes)> status_codes_callback) override;
   void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
-      uint8_t vendor_id,
+      Advertisement::BlockedVendorId vendor_id,
       std::function<void(StatusCodes)> status_codes_callback) override;
   void UnregisterReceiveSurface(
       TransferUpdateCallback* transfer_callback,
@@ -247,8 +247,12 @@ class NearbySharingServiceImpl
 
   void SetupBluetoothAdapter();
 
-  absl::flat_hash_map<TransferUpdateCallback*, uint8_t>&
+  absl::flat_hash_map<TransferUpdateCallback*, Advertisement::BlockedVendorId>&
   GetReceiveCallbacksMapFromState(ReceiveSurfaceState state);
+  // Retrieves the current vendor ID, defaulting to kNone if no surface has been
+  // registered with a different vendor ID. This function will always return one
+  // vendor ID, preferring a foreground surface vendor ID if available.
+  Advertisement::BlockedVendorId GetVendorId() const;
   bool IsVisibleInBackground(proto::DeviceVisibility visibility);
   std::optional<std::vector<uint8_t>> CreateEndpointInfo(
       proto::DeviceVisibility visibility,
@@ -520,10 +524,10 @@ class NearbySharingServiceImpl
   // A list of service observers.
   ObserverList<NearbySharingService::Observer> observers_;
   // A map of foreground receiver callbacks -> vendor ID.
-  absl::flat_hash_map<TransferUpdateCallback*, uint8_t>
+  absl::flat_hash_map<TransferUpdateCallback*, Advertisement::BlockedVendorId>
       foreground_receive_callbacks_map_;
   // A map of background receiver callbacks -> vendor ID.
-  absl::flat_hash_map<TransferUpdateCallback*, uint8_t>
+  absl::flat_hash_map<TransferUpdateCallback*, Advertisement::BlockedVendorId>
       background_receive_callbacks_map_;
   // A list of foreground receivers for transfer updates on the send surface.
   ObserverList<TransferUpdateCallback> foreground_send_transfer_callbacks_;

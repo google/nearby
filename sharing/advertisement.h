@@ -36,6 +36,13 @@ class Advertisement {
  public:
   static constexpr uint8_t kSaltSize = 2;
   static constexpr uint8_t kMetadataEncryptionKeyHashByteSize = 14;
+  // LINT.IfChange()
+  // Lists supported vendors for target blocking.
+  enum class BlockedVendorId : uint8_t {
+    kNone = 0,
+    kSamsung = 1,
+  };
+  // LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/sharing/SharingOptions.java:VendorId)
 
   static std::unique_ptr<Advertisement> NewInstance(
       std::vector<uint8_t> salt, std::vector<uint8_t> encrypted_metadata_key,

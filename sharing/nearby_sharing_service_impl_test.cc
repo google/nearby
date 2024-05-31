@@ -527,12 +527,14 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   NearbySharingService::StatusCodes RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback,
-      NearbySharingService::ReceiveSurfaceState state) {
+      NearbySharingService::ReceiveSurfaceState state,
+      uint8_t vendor_id = kVendorId) {
     NearbySharingService::StatusCodes result =
         NearbySharingService::StatusCodes::kError;
     absl::Notification notification;
     service_->RegisterReceiveSurface(
-        transfer_callback, state, kVendorId,
+        transfer_callback, state,
+        static_cast<Advertisement::BlockedVendorId>(vendor_id),
         [&](NearbySharingService::StatusCodes status_codes) {
           result = status_codes;
           notification.Notify();
@@ -2054,6 +2056,87 @@ TEST_F(
   std::move(start_advertising_callback)(ConnectionsStatus::kSuccess);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
   EXPECT_FALSE(service_->IsInHighVisibility());
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       RegisterReceiveSurfaceWithVendorId_StartAdvertisingVendorId) {
+  SetConnectionType(ConnectionType::kWifi);
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
+  FlushTesting();
+
+  // Register background receive surface with vendor ID 1.
+  MockTransferUpdateCallback background_transfer_callback;
+  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
+      &background_transfer_callback,
+      NearbySharingService::ReceiveSurfaceState::kBackground,
+      static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+  ASSERT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  ASSERT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+
+  auto endpoint_info =
+      fake_nearby_connections_manager_->advertising_endpoint_info();
+  auto advertisement = Advertisement::FromEndpointInfo(*endpoint_info);
+  EXPECT_EQ(advertisement->vendor_id(),
+            static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       RegisterReceiveSurfaceWithDifferentVendorIdIsBlocked) {
+  SetConnectionType(ConnectionType::kWifi);
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
+  FlushTesting();
+
+  // Register background receive surface with vendor ID 1.
+  MockTransferUpdateCallback background_transfer_callback;
+  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
+      &background_transfer_callback,
+      NearbySharingService::ReceiveSurfaceState::kBackground,
+      static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+  ASSERT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  ASSERT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+  // Register foreground receive surface with different vendor ID.
+  MockTransferUpdateCallback foreground_transfer_callback;
+  result = RegisterReceiveSurface(
+      &foreground_transfer_callback,
+      NearbySharingService::ReceiveSurfaceState::kForeground, /*vendor_id=*/2);
+  EXPECT_EQ(result, NearbySharingService::StatusCodes::kInvalidArgument);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       RegisterReceiveSurfaceWithVendorId_OkWithBgNoVendorId) {
+  SetConnectionType(ConnectionType::kWifi);
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
+  FlushTesting();
+
+  // Register background receive surface with vendor ID 0.
+  MockTransferUpdateCallback background_transfer_callback;
+  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
+      &background_transfer_callback,
+      NearbySharingService::ReceiveSurfaceState::kBackground,
+      static_cast<uint8_t>(Advertisement::BlockedVendorId::kNone));
+  ASSERT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  ASSERT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+  // Register foreground receive surface with vendor ID 1.
+  MockTransferUpdateCallback foreground_transfer_callback;
+  result = RegisterReceiveSurface(
+      &foreground_transfer_callback,
+      NearbySharingService::ReceiveSurfaceState::kForeground,
+      static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+  EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+  // Verify endpoint info is advertising the foreground surface.
+  auto endpoint_info =
+      fake_nearby_connections_manager_->advertising_endpoint_info();
+  auto advertisement = Advertisement::FromEndpointInfo(*endpoint_info);
+  EXPECT_EQ(advertisement->vendor_id(),
+            static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
 }
 
 TEST_F(NearbySharingServiceImplTest,

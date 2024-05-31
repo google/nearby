@@ -23,6 +23,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
+#include "sharing/advertisement.h"
 #include "sharing/attachment.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -147,7 +148,7 @@ class NearbySharingService {
   // advertises the vendor ID specified by |vendor_id|.
   virtual void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
-      uint8_t vendor_id,
+      Advertisement::BlockedVendorId vendor_id,
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current receive surface.

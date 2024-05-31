@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>  // NOLINT(build/c++17)
@@ -112,6 +113,7 @@ namespace nearby {
 namespace sharing {
 namespace {
 
+using BlockedVendorId = ::nearby::sharing::Advertisement::BlockedVendorId;
 using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
@@ -150,6 +152,13 @@ constexpr absl::Duration kCertificateDownloadDuringDiscoveryPeriod =
 constexpr absl::string_view kConnectionListenerName = "nearby-share-service";
 constexpr absl::string_view kScreenStateListenerName = "nearby-share-service";
 constexpr absl::string_view kProfileRelativePath = "Google/Nearby/Sharing";
+
+bool ShouldBlockSurfaceRegistration(BlockedVendorId registering_vendor_id,
+                                    BlockedVendorId blocked_vendor_id) {
+  return blocked_vendor_id != BlockedVendorId::kNone &&
+         registering_vendor_id != BlockedVendorId::kNone &&
+         registering_vendor_id != blocked_vendor_id;
+}
 
 }  // namespace
 
@@ -495,7 +504,8 @@ void NearbySharingServiceImpl::UnregisterSendSurface(
 
 void NearbySharingServiceImpl::RegisterReceiveSurface(
     TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
-    uint8_t vendor_id, std::function<void(StatusCodes)> status_codes_callback) {
+    BlockedVendorId vendor_id,
+    std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_receive_surface",
       [this, transfer_callback, state, vendor_id,
@@ -518,6 +528,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
               StatusCodes::kNoAvailableConnectionMedium);
           return;
         }
+        BlockedVendorId before_registration_vendor_id = GetVendorId();
 
         // We specifically allow re-registering without error, so it is clear to
         // caller that the transfer_callback is currently registered.
@@ -534,6 +545,17 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           NL_LOG(ERROR) << __func__
                         << ":  transfer callback already registered but for a "
                            "different state.";
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        } else if (ShouldBlockSurfaceRegistration(
+                       vendor_id, before_registration_vendor_id)) {
+          // Block alternate vendor ID registration.
+          NL_LOG(ERROR) << __func__
+                        << ":  disallowing registration of a receive surface "
+                           "that has vendor_id "
+                        << static_cast<uint32_t>(vendor_id)
+                        << " because the current vendor_id is "
+                        << static_cast<uint32_t>(GetVendorId());
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
@@ -1510,7 +1532,31 @@ void NearbySharingServiceImpl::SetupBluetoothAdapter() {
   InvalidateSurfaceState();
 }
 
-absl::flat_hash_map<TransferUpdateCallback*, uint8_t>&
+BlockedVendorId NearbySharingServiceImpl::GetVendorId() const {
+  // Prefer a vendor ID provided by a foreground surface.
+  auto fg_vendor_it =
+      std::find_if(foreground_receive_callbacks_map_.begin(),
+                   foreground_receive_callbacks_map_.end(),
+                   [](const auto& receive_callback) {
+                     return receive_callback.second != BlockedVendorId::kNone;
+                   });
+  if (fg_vendor_it != foreground_receive_callbacks_map_.end()) {
+    return fg_vendor_it->second;
+  }
+  // Look through background surfaces.
+  auto bg_vendor_it =
+      std::find_if(background_receive_callbacks_map_.begin(),
+                   background_receive_callbacks_map_.end(),
+                   [](const auto& receive_callback) {
+                     return receive_callback.second != BlockedVendorId::kNone;
+                   });
+  if (bg_vendor_it != foreground_receive_callbacks_map_.end()) {
+    return bg_vendor_it->second;
+  }
+  return BlockedVendorId::kNone;
+}
+
+absl::flat_hash_map<TransferUpdateCallback*, BlockedVendorId>&
 NearbySharingServiceImpl::GetReceiveCallbacksMapFromState(
     ReceiveSurfaceState state) {
   switch (state) {
@@ -1563,9 +1609,9 @@ NearbySharingServiceImpl::CreateEndpointInfo(
   ShareTargetType device_type =
       static_cast<ShareTargetType>(device_info_.GetDeviceType());
 
-  std::unique_ptr<Advertisement> advertisement =
-      Advertisement::NewInstance(std::move(salt), std::move(encrypted_key),
-                                 device_type, device_name, /*vendor_id=*/0);
+  std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
+      std::move(salt), std::move(encrypted_key), device_type, device_name,
+      static_cast<uint8_t>(GetVendorId()));
   if (advertisement) {
     return advertisement->ToEndpointInfo();
   } else {

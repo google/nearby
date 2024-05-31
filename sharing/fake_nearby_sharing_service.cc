@@ -22,6 +22,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
+#include "sharing/advertisement.h"
 #include "sharing/attachment.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -87,7 +88,8 @@ void FakeNearbySharingService::UnregisterSendSurface(
 // Registers a receiver surface for handling payload transfer status.
 void FakeNearbySharingService::RegisterReceiveSurface(
     TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
-    uint8_t vendor_id, std::function<void(StatusCodes)> status_codes_callback) {
+    Advertisement::BlockedVendorId vendor_id,
+    std::function<void(StatusCodes)> status_codes_callback) {
   if (state == ReceiveSurfaceState::kForeground) {
     foreground_receive_transfer_callbacks_.AddObserver(transfer_callback);
   } else {

@@ -58,11 +58,6 @@ enum class TlvTypes : uint8_t {
   kQrCode = 1,
   kVendorId = 2,
 };
-
-enum class VendorId : uint8_t {
-  kNone = 0,
-  kSamsung = 1,
-};
 // The length in bytes of the vendor ID in the TLV advertisement.
 constexpr uint8_t kVendorIdLength = 1;
 
@@ -162,7 +157,7 @@ std::vector<uint8_t> Advertisement::ToEndpointInfo() const {
   // the ID itself (1 byte).
   int size = kMinimumSize + (device_name_.has_value() ? 1 : 0) +
              (device_name_.has_value() ? device_name_->size() : 0) +
-             (vendor_id_ != static_cast<uint8_t>(VendorId::kNone)
+             (vendor_id_ != static_cast<uint8_t>(BlockedVendorId::kNone)
                   ? (kTlvMinimumLength + kVendorIdLength)
                   : 0);
 
@@ -183,7 +178,7 @@ std::vector<uint8_t> Advertisement::ToEndpointInfo() const {
   }
 
   // Add vendor ID if it is not the default |VendorId::kNone|.
-  if (vendor_id_ != static_cast<uint8_t>(VendorId::kNone)) {
+  if (vendor_id_ != static_cast<uint8_t>(BlockedVendorId::kNone)) {
     // Add vendor ID in TLV format.
     endpoint_info.push_back(static_cast<uint8_t>(TlvTypes::kVendorId));
     // Length is 1 byte.
@@ -241,7 +236,7 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
     iter += device_name_length;
   }
 
-  uint8_t vendor_id = static_cast<uint8_t>(VendorId::kNone);
+  uint8_t vendor_id = static_cast<uint8_t>(BlockedVendorId::kNone);
   while (endpoint_info.end() - iter >= kTlvMinimumLength) {
     // We will parse a TLV element now.
     TlvTypes type = static_cast<TlvTypes>(*iter++);
@@ -259,13 +254,15 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
         vendor_id = ConvertVendorId(*iter++);
         break;
       case TlvTypes::kQrCode:
+        NL_LOG(INFO) << "Found QR code data, skipping.";
         // TODO: b/341984671 - Implement handling for this TLV type.
+        iter += value_len;
         break;
       default:
         NL_LOG(ERROR) << "Unknown TLV type: " << static_cast<uint8_t>(type);
+        iter += value_len;
         break;
     }
-    iter += value_len;
   }
 
   return Advertisement::NewInstance(
