@@ -89,11 +89,6 @@ class FakeNearbyShareContactManager : public NearbyShareContactManager {
     return num_download_contacts_calls_;
   }
 
-  // Returns inputs of all SetAllowedContacts() calls.
-  const std::vector<std::set<std::string>>& set_allowed_contacts_calls() const {
-    return set_allowed_contacts_calls_;
-  }
-
   // Make protected methods from base class public in this fake class.
   using NearbyShareContactManager::NotifyContactsDownloaded;
   using NearbyShareContactManager::NotifyContactsUploaded;
@@ -101,13 +96,10 @@ class FakeNearbyShareContactManager : public NearbyShareContactManager {
  private:
   // NearbyShareContactsManager:
   void DownloadContacts() override;
-  void SetAllowedContacts(
-      const std::set<std::string>& allowed_contact_ids) override;
   void OnStart() override;
   void OnStop() override;
 
   size_t num_download_contacts_calls_ = 0;
-  std::vector<std::set<std::string>> set_allowed_contacts_calls_;
 };
 
 }  // namespace sharing

@@ -504,7 +504,6 @@ void NearbyShareCertificateManagerImpl::UpdatePrivateCertificateInStorage(
 }
 
 void NearbyShareCertificateManagerImpl::OnContactsDownloaded(
-    const std::set<std::string>& allowed_contact_ids,
     const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
     uint32_t num_unreachable_contacts_filtered_out) {
   NL_LOG(INFO) << __func__ << ": Contacts downloaded.";

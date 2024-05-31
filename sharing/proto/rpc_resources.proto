@@ -86,7 +86,9 @@ message Contact {
   Identifier identifier = 1;
 
   // Indicates if this contact is a selected contact.
-  bool is_selected = 2;
+  // This field is deprecated, but must still be set to true until the server
+  // side is fixed.
+  bool is_selected = 2 [deprecated = true];
 
   // Indicates if this contact is ourselves.
   bool is_self = 3;

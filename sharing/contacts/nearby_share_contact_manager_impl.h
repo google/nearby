@@ -125,13 +125,9 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
 
   // NearbyShareContactsManager:
   void DownloadContacts() override;
-  void SetAllowedContacts(
-      const std::set<std::string>& allowed_contact_ids) override;
   void OnStart() override;
   void OnStop() override;
 
-  std::set<std::string> GetAllowedContacts() const;
-  bool SetAllowlist(const std::set<std::string>& new_allowlist);
   void OnContactsDownloadCompleted(
       std::vector<nearby::sharing::proto::ContactRecord> contacts);
   void OnContactsDownloadSuccess(
@@ -145,7 +141,6 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
 
   // Notify the base-class and mojo observers that contacts were downloaded.
   void NotifyAllObserversContactsDownloaded(
-      const std::set<std::string>& allowed_contact_ids,
       const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
       uint32_t num_unreachable_contacts_filtered_out);
 

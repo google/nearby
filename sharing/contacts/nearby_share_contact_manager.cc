@@ -16,8 +16,6 @@
 
 #include <stdint.h>
 
-#include <set>
-#include <string>
 #include <vector>
 
 #include "sharing/proto/rpc_resources.pb.h"
@@ -52,11 +50,10 @@ void NearbyShareContactManager::Stop() {
 }
 
 void NearbyShareContactManager::NotifyContactsDownloaded(
-    const std::set<std::string>& allowed_contact_ids,
     const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
     uint32_t num_unreachable_contacts_filtered_out) {
   for (Observer* observer : observers_.GetObservers()) {
-    observer->OnContactsDownloaded(allowed_contact_ids, contacts,
+    observer->OnContactsDownloaded(contacts,
                                    num_unreachable_contacts_filtered_out);
   }
 }
