@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_TRANSFER_UPDATE_CALLBACK_H_
 #define THIRD_PARTY_NEARBY_SHARING_TRANSFER_UPDATE_CALLBACK_H_
 
+#include "sharing/attachment_container.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
@@ -27,6 +28,7 @@ class TransferUpdateCallback {
   virtual ~TransferUpdateCallback() = default;
 
   virtual void OnTransferUpdate(const ShareTarget& share_target,
+                                const AttachmentContainer& attachment_container,
                                 const TransferMetadata& transfer_metadata) = 0;
 };
 

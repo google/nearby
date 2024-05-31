@@ -121,6 +121,7 @@ class MockTransferUpdateCallback : public TransferUpdateCallback {
 
   MOCK_METHOD(void, OnTransferUpdate,
               (const ShareTarget& shareTarget,
+               const AttachmentContainer& attachmentContainer,
                const TransferMetadata& transferMetadata),
               (override));
 };
@@ -773,8 +774,9 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetConnectionType(ConnectionType::kWifi);
     absl::Notification notification;
 
-    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
         .WillOnce(testing::Invoke([&](const ShareTarget& incoming_share_target,
+                                      const AttachmentContainer& container,
                                       const TransferMetadata& metadata) {
           EXPECT_FALSE(metadata.is_final_status());
           TransferMetadata::Status expected_status;
@@ -963,6 +965,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     for (TransferMetadata::Status status : updates) {
       expectation.WillOnce(
           testing::Invoke([=](const ShareTarget& share_target,
+                              const AttachmentContainer& container,
                               const TransferMetadata& metadata) {
             EXPECT_EQ(share_target.id, target.id);
             EXPECT_EQ(metadata.status(), status);
@@ -1098,13 +1101,14 @@ class NearbySharingServiceImplTest : public testing::Test {
     ShareTarget share_target = SetUpIncomingConnection(callback);
 
     absl::Notification notification;
-    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
-        .WillOnce(testing::Invoke(
-            [](const ShareTarget& share_target, TransferMetadata metadata) {
-              EXPECT_FALSE(metadata.is_final_status());
-              EXPECT_EQ(metadata.status(),
-                        TransferMetadata::Status::kAwaitingRemoteAcceptance);
-            }));
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+        .WillOnce(testing::Invoke([](const ShareTarget& share_target,
+                                     const AttachmentContainer& container,
+                                     TransferMetadata metadata) {
+          EXPECT_FALSE(metadata.is_final_status());
+          EXPECT_EQ(metadata.status(),
+                    TransferMetadata::Status::kAwaitingRemoteAcceptance);
+        }));
 
     service_->Accept(share_target.id,
                      [&](NearbySharingServiceImpl::StatusCodes status_code) {
@@ -1139,8 +1143,10 @@ class NearbySharingServiceImplTest : public testing::Test {
 
       absl::Notification progress_notification;
 
-      EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+      EXPECT_CALL(callback,
+                  OnTransferUpdate(testing::_, testing::_, testing::_))
           .WillOnce(testing::Invoke([&](const ShareTarget& share_target,
+                                        const AttachmentContainer& container,
                                         TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kInProgress);
@@ -1166,30 +1172,28 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     std::filesystem::path file_path;
     absl::Notification success_notification;
-    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
-        .WillOnce(testing::Invoke(
-            [&](const ShareTarget& share_target, TransferMetadata metadata) {
-              EXPECT_TRUE(metadata.is_final_status());
-              EXPECT_EQ(metadata.status(), TransferMetadata::Status::kComplete);
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+        .WillOnce(testing::Invoke([&](const ShareTarget& share_target,
+                                      const AttachmentContainer& container,
+                                      TransferMetadata metadata) {
+          EXPECT_TRUE(metadata.is_final_status());
+          EXPECT_EQ(metadata.status(), TransferMetadata::Status::kComplete);
 
-              const AttachmentContainer& container =
-                  share_target.attachment_container;
-              ASSERT_TRUE(container.HasAttachments());
-              EXPECT_EQ(1u, container.GetFileAttachments().size());
-              for (const FileAttachment& file :
-                   container.GetFileAttachments()) {
-                EXPECT_TRUE(file.file_path());
-                file_path = *file.file_path();
-              }
+          ASSERT_TRUE(container.HasAttachments());
+          EXPECT_EQ(1u, container.GetFileAttachments().size());
+          for (const FileAttachment& file :
+                container.GetFileAttachments()) {
+            EXPECT_TRUE(file.file_path());
+            file_path = *file.file_path();
+          }
 
-              EXPECT_EQ(3u, container.GetTextAttachments().size());
-              for (const TextAttachment& text :
-                   container.GetTextAttachments()) {
-                EXPECT_EQ(text.text_body(), kTextPayload);
-              }
+          EXPECT_EQ(3u, container.GetTextAttachments().size());
+          for (const TextAttachment& text : container.GetTextAttachments()) {
+            EXPECT_EQ(text.text_body(), kTextPayload);
+          }
 
-              success_notification.Notify();
-            }));
+          success_notification.Notify();
+        }));
 
     sharing_service_task_runner_->PostTask([this]() {
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
@@ -2455,7 +2459,8 @@ TEST_F(NearbySharingServiceImplTest,
 
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_)).Times(0);
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .Times(0);
 
   SetUpForegroundReceiveSurface(callback);
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -2479,9 +2484,10 @@ TEST_F(NearbySharingServiceImplTest,
 
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed,
                       metadata.status());
@@ -2511,7 +2517,8 @@ TEST_F(NearbySharingServiceImplTest,
 
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_)).Times(0);
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .Times(0);
 
   SetUpKeyVerification(/*is_incoming=*/true,
                        service::proto::PairedKeyResultFrame::SUCCESS);
@@ -2537,15 +2544,16 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionEmptyIntroductionFrame) {
 
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kUnsupportedAttachmentType);
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_TRUE(share_target.is_known);
-            EXPECT_FALSE(share_target.attachment_container.HasAttachments());
+            EXPECT_FALSE(container.HasAttachments());
             EXPECT_EQ(share_target.device_name, kDeviceName);
             EXPECT_EQ(share_target.type, kDeviceType);
             EXPECT_TRUE(share_target.device_id);
@@ -2584,14 +2592,13 @@ TEST_F(NearbySharingServiceImplTest,
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
 
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(TransferMetadata::Status::kAwaitingLocalConfirmation,
                       metadata.status());
-            const AttachmentContainer& container =
-                share_target.attachment_container;
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_FALSE(share_target.is_known);
             EXPECT_TRUE(container.HasAttachments());
@@ -2623,12 +2630,13 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionTimedOut) {
   ShareTarget share_target = SetUpIncomingConnection(callback);
   EXPECT_FALSE(connection_.IsClosed());
 
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
-      .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
-            EXPECT_TRUE(metadata.is_final_status());
-            EXPECT_EQ(metadata.status(), TransferMetadata::Status::kTimedOut);
-          }));
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke([](const ShareTarget& share_target,
+                                   const AttachmentContainer& container,
+                                   TransferMetadata metadata) {
+        EXPECT_TRUE(metadata.is_final_status());
+        EXPECT_EQ(metadata.status(), TransferMetadata::Status::kTimedOut);
+      }));
 
   FastForward(kReadResponseFrameTimeout);
 
@@ -2642,9 +2650,10 @@ TEST_F(NearbySharingServiceImplTest,
   NiceMock<MockTransferUpdateCallback> callback;
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kUnexpectedDisconnection);
@@ -2705,11 +2714,10 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
 
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke([](const ShareTarget& share_target,
+                                   const AttachmentContainer& container,
                                    TransferMetadata metadata) {
-        const AttachmentContainer& container =
-            share_target.attachment_container;
         EXPECT_TRUE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
         EXPECT_TRUE(container.HasAttachments());
@@ -2790,8 +2798,9 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionFileSizeOverflow) {
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
 
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke([](const ShareTarget& share_target,
+                                   const AttachmentContainer& container,
                                    TransferMetadata metadata) {
         EXPECT_TRUE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
@@ -2828,14 +2837,14 @@ TEST_F(NearbySharingServiceImplTest,
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
-      .WillOnce(testing::Invoke([&notification](const ShareTarget& share_target,
-                                                TransferMetadata metadata) {
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke([&notification](
+                                    const ShareTarget& share_target,
+                                    const AttachmentContainer& container,
+                                    TransferMetadata metadata) {
         EXPECT_FALSE(metadata.is_final_status());
         EXPECT_EQ(TransferMetadata::Status::kAwaitingLocalConfirmation,
                   metadata.status());
-        const AttachmentContainer& container =
-            share_target.attachment_container;
         EXPECT_TRUE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
         EXPECT_TRUE(container.HasAttachments());
@@ -2884,13 +2893,14 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTarget) {
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
-      .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
-            EXPECT_FALSE(metadata.is_final_status());
-            EXPECT_EQ(metadata.status(),
-                      TransferMetadata::Status::kAwaitingRemoteAcceptance);
-          }));
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke([](const ShareTarget& share_target,
+                                   const AttachmentContainer& container,
+                                   TransferMetadata metadata) {
+        EXPECT_FALSE(metadata.is_final_status());
+        EXPECT_EQ(metadata.status(),
+                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
+      }));
 
   service_->Accept(
       share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
@@ -2925,9 +2935,10 @@ TEST_F(NearbySharingServiceImplTest,
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kAwaitingRemoteAcceptance);
@@ -2952,8 +2963,9 @@ TEST_F(NearbySharingServiceImplTest,
     // for failure condition.
 
     absl::Notification progress_notification;
-    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
         .WillOnce(testing::Invoke([&](const ShareTarget& share_target,
+                                      const AttachmentContainer& container,
                                       TransferMetadata metadata) {
           EXPECT_FALSE(metadata.is_final_status());
           EXPECT_EQ(metadata.status(), TransferMetadata::Status::kInProgress);
@@ -2980,14 +2992,13 @@ TEST_F(NearbySharingServiceImplTest,
   }
 
   absl::Notification success_notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kIncompletePayloads);
-            const AttachmentContainer& container =
-                share_target.attachment_container;
             ASSERT_TRUE(container.HasAttachments());
             EXPECT_EQ(container.GetFileAttachments().size(), 1u);
             const FileAttachment& file = container.GetFileAttachments()[0];
@@ -3030,9 +3041,10 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kAwaitingRemoteAcceptance);
@@ -3047,13 +3059,12 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
   absl::Notification failure_notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
-            const AttachmentContainer& container =
-                share_target.attachment_container;
             ASSERT_TRUE(container.HasAttachments());
             EXPECT_EQ(container.GetFileAttachments().size(), 1u);
             const FileAttachment& file = container.GetFileAttachments()[0];
@@ -3097,9 +3108,10 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kAwaitingRemoteAcceptance);
@@ -3114,13 +3126,12 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
   absl::Notification failure_notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
-            const AttachmentContainer& container =
-                share_target.attachment_container;
             ASSERT_TRUE(container.HasAttachments());
             EXPECT_EQ(container.GetFileAttachments().size(), 1u);
             const FileAttachment& file = container.GetFileAttachments()[0];
@@ -3176,9 +3187,10 @@ TEST_F(NearbySharingServiceImplTest, RejectValidShareTarget) {
   ShareTarget share_target = SetUpIncomingConnection(callback);
 
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [](const ShareTarget& share_target, TransferMetadata metadata) {
+          [](const ShareTarget& share_target,
+             const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kRejected);
           }));
@@ -3216,16 +3228,15 @@ TEST_F(NearbySharingServiceImplTest,
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kAwaitingLocalConfirmation);
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_TRUE(share_target.is_known);
-            const AttachmentContainer& container =
-                share_target.attachment_container;
             EXPECT_TRUE(container.HasAttachments());
             EXPECT_EQ(container.GetTextAttachments().size(), 3u);
             EXPECT_EQ(container.GetFileAttachments().size(), 1u);
@@ -3270,16 +3281,15 @@ TEST_F(NearbySharingServiceImplTest,
   SetConnectionType(ConnectionType::kWifi);
   NiceMock<MockTransferUpdateCallback> callback;
   absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(TransferMetadata::Status::kAwaitingLocalConfirmation,
                       metadata.status());
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_TRUE(share_target.is_known);
-            const AttachmentContainer& container =
-                share_target.attachment_container;
             EXPECT_TRUE(container.HasAttachments());
             EXPECT_EQ(container.GetTextAttachments().size(), 3u);
             EXPECT_EQ(container.GetFileAttachments().size(), 1u);
@@ -3917,9 +3927,11 @@ TEST_F(NearbySharingServiceImplTest, CancelSenderInitiator) {
   FastForward(kInvalidateDelay);
 
   absl::Notification notification;
-  EXPECT_CALL(transfer_callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(transfer_callback,
+              OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_EQ(share_target.id, target.id);
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
           }));
@@ -3961,9 +3973,11 @@ TEST_F(NearbySharingServiceImplTest, CancelSenderNoninitiator) {
   PayloadInfo info = AcceptAndSendPayload(transfer_callback, target);
 
   absl::Notification notification;
-  EXPECT_CALL(transfer_callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(transfer_callback,
+              OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_EQ(share_target.id, target.id);
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
             notification.Notify();
@@ -3988,12 +4002,14 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
   ASSERT_TRUE(ExpectPairedKeyResultFrame());
 
   absl::Notification notification;
-  EXPECT_CALL(transfer_callback, OnTransferUpdate(testing::_, testing::_))
-      .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
-            EXPECT_EQ(share_target.id, target.id);
-            EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
-          }));
+  EXPECT_CALL(transfer_callback,
+              OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke([&](const ShareTarget& share_target,
+                                    const AttachmentContainer& container,
+                                    TransferMetadata metadata) {
+        EXPECT_EQ(share_target.id, target.id);
+        EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
+      }));
   EXPECT_FALSE(
       fake_nearby_connections_manager_->WasPayloadCanceled(kFilePayloadId));
   // The initiator of the cancellation explicitly calls Cancel().
@@ -4026,9 +4042,11 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverNoninitiator) {
   ExpectPairedKeyResultFrame();
 
   absl::Notification notification;
-  EXPECT_CALL(transfer_callback, OnTransferUpdate(testing::_, testing::_))
+  EXPECT_CALL(transfer_callback,
+              OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const ShareTarget& share_target, TransferMetadata metadata) {
+          [&](const ShareTarget& share_target,
+              const AttachmentContainer& container, TransferMetadata metadata) {
             EXPECT_EQ(target.id, share_target.id);
             EXPECT_EQ(TransferMetadata::Status::kCancelled, metadata.status());
             notification.Notify();
@@ -4601,7 +4619,8 @@ TEST_F(NearbySharingServiceImplTest, SelfShareNoAutoAcceptInForeground) {
   ShareTarget share_target = SetUpIncomingConnection(
       callback, /*is_foreground=*/true, /*for_self_share=*/true);
 
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_)).Times(0);
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .Times(0);
 
   service_->Accept(
       share_target.id, [&](NearbySharingServiceImpl::StatusCodes status_code) {

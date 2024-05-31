@@ -425,8 +425,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           // the in-progress bar.
           discovery_callback->OnShareTargetDiscovered(
               last_outgoing_metadata_->first);
-          transfer_callback->OnTransferUpdate(last_outgoing_metadata_->first,
-                                              last_outgoing_metadata_->second);
+          transfer_callback->OnTransferUpdate(
+              last_outgoing_metadata_->first,
+              last_outgoing_metadata_->first.attachment_container,
+              last_outgoing_metadata_->second);
         }
 
         // Sync down data from Nearby server when the sending flow starts,
@@ -565,8 +567,10 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
         // it catch up with most recent transfer metadata immediately.
         if (state == ReceiveSurfaceState::kForeground &&
             last_incoming_metadata_) {
-          transfer_callback->OnTransferUpdate(last_incoming_metadata_->first,
-                                              last_incoming_metadata_->second);
+          transfer_callback->OnTransferUpdate(
+              last_incoming_metadata_->first,
+              last_incoming_metadata_->first.attachment_container,
+              last_incoming_metadata_->second);
         }
 
         GetReceiveCallbacksMapFromState(state).insert(
@@ -1131,7 +1135,9 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
     for (auto& background_transfer_callback :
          background_send_transfer_callbacks_.GetObservers()) {
       background_transfer_callback->OnTransferUpdate(
-          last_outgoing_metadata_->first, last_outgoing_metadata_->second);
+          last_outgoing_metadata_->first,
+          last_outgoing_metadata_->first.attachment_container,
+          last_outgoing_metadata_->second);
     }
   }
 
@@ -1180,7 +1186,9 @@ NearbySharingServiceImpl::InternalUnregisterReceiveSurface(
   if (foreground_receive_callbacks_map_.empty() && last_incoming_metadata_) {
     for (auto& background_callback : background_receive_callbacks_map_) {
       background_callback.first->OnTransferUpdate(
-          last_incoming_metadata_->first, last_incoming_metadata_->second);
+          last_incoming_metadata_->first,
+          last_incoming_metadata_->first.attachment_container,
+          last_incoming_metadata_->second);
     }
   }
 
@@ -3177,7 +3185,8 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
   }
 
   for (auto& callback : callbacks) {
-    callback.first->OnTransferUpdate(share_target, metadata);
+    callback.first->OnTransferUpdate(
+        share_target, share_target.attachment_container, metadata);
   }
 }
 
@@ -3236,7 +3245,9 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
     ShareTarget cached_share_target = info->share_target();
     // only call transfer update when having share target info.
     for (TransferUpdateCallback* callback : transfer_callbacks.GetObservers()) {
-      callback->OnTransferUpdate(cached_share_target, metadata);
+      callback->OnTransferUpdate(cached_share_target,
+                                 cached_share_target.attachment_container,
+                                 metadata);
     }
 
     // check whether need to send next payload.

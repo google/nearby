@@ -24,6 +24,7 @@
 #include "internal/base/observer_list.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_service.h"
@@ -262,33 +263,39 @@ void FakeNearbySharingService::FireShutdown() {
 }
 
 void FakeNearbySharingService::FireSendTransferUpdate(
-    SendSurfaceState state, ShareTarget share_target,
+    SendSurfaceState state, const ShareTarget& share_target,
+    const AttachmentContainer& attachment_container,
     TransferMetadata transfer_metadata) {
   if (state == SendSurfaceState::kForeground) {
     for (auto& transfer_callback :
          foreground_send_transfer_callbacks_.GetObservers()) {
-      transfer_callback->OnTransferUpdate(share_target, transfer_metadata);
+      transfer_callback->OnTransferUpdate(share_target, attachment_container,
+                                          transfer_metadata);
     }
   } else {
     for (auto& transfer_callback :
          background_send_transfer_callbacks_.GetObservers()) {
-      transfer_callback->OnTransferUpdate(share_target, transfer_metadata);
+      transfer_callback->OnTransferUpdate(share_target, attachment_container,
+                                          transfer_metadata);
     }
   }
 }
 
 void FakeNearbySharingService::FireReceiveTransferUpdate(
-    ReceiveSurfaceState state, ShareTarget share_target,
+    ReceiveSurfaceState state, const ShareTarget& share_target,
+    const AttachmentContainer& attachment_container,
     TransferMetadata transfer_metadata) {
   if (state == ReceiveSurfaceState::kForeground) {
     for (auto& transfer_callback :
          foreground_receive_transfer_callbacks_.GetObservers()) {
-      transfer_callback->OnTransferUpdate(share_target, transfer_metadata);
+      transfer_callback->OnTransferUpdate(share_target, attachment_container,
+                                          transfer_metadata);
     }
   } else {
     for (auto& transfer_callback :
          foreground_receive_transfer_callbacks_.GetObservers()) {
-      transfer_callback->OnTransferUpdate(share_target, transfer_metadata);
+      transfer_callback->OnTransferUpdate(share_target, attachment_container,
+                                          transfer_metadata);
     }
   }
 }

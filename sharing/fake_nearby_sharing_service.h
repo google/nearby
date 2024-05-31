@@ -24,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_service.h"
@@ -156,11 +157,14 @@ class FakeNearbySharingService : public NearbySharingService {
   void FireShutdown();
 
   // Fire transfer update events.
-  void FireSendTransferUpdate(SendSurfaceState state, ShareTarget share_target,
+  void FireSendTransferUpdate(SendSurfaceState state,
+                              const ShareTarget& share_target,
+                              const AttachmentContainer& attachment_container,
                               TransferMetadata transfer_metadata);
-  void FireReceiveTransferUpdate(ReceiveSurfaceState state,
-                                 ShareTarget share_target,
-                                 TransferMetadata transfer_metadata);
+  void FireReceiveTransferUpdate(
+      ReceiveSurfaceState state, const ShareTarget& share_target,
+      const AttachmentContainer& attachment_container,
+      TransferMetadata transfer_metadata);
 
   // Fire discovery events.
   void FireShareTargetDiscovered(SendSurfaceState state,
