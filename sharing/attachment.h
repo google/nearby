@@ -23,7 +23,7 @@
 namespace nearby {
 namespace sharing {
 
-struct ShareTarget;
+class AttachmentContainer;
 
 // A single attachment to be sent by / received from a ShareTarget, can be
 // either a file or text.
@@ -65,8 +65,8 @@ class Attachment {
   int32_t batch_id() const { return batch_id_; }
   SourceType source_type() const { return source_type_; }
 
-  // Move the attachment to share target.
-  virtual void MoveToShareTarget(ShareTarget& share_target) = 0;
+  // Move the attachment to a container
+  virtual void MoveToContainer(AttachmentContainer& container) = 0;
   virtual absl::string_view GetDescription() const = 0;
   virtual ShareType GetShareType() const = 0;
 

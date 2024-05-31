@@ -19,10 +19,10 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
+#include "sharing/attachment_container.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_settings.h"
-#include "sharing/share_target.h"
 
 namespace nearby {
 namespace sharing {
@@ -33,7 +33,7 @@ class NearbySharingServiceExtension {
       : context_(context), settings_(settings) {}
 
   // Opens attachments from the remote |share_target|.
-  NearbySharingService::StatusCodes Open(const ShareTarget& share_target);
+  NearbySharingService::StatusCodes Open(const AttachmentContainer& container);
 
   // Opens an url target on a browser instance.
   void OpenUrl(const ::nearby::network::Url& url);

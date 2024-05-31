@@ -1172,15 +1172,19 @@ class NearbySharingServiceImplTest : public testing::Test {
               EXPECT_TRUE(metadata.is_final_status());
               EXPECT_EQ(metadata.status(), TransferMetadata::Status::kComplete);
 
-              ASSERT_TRUE(share_target.has_attachments());
-              EXPECT_EQ(1u, share_target.file_attachments.size());
-              for (const FileAttachment& file : share_target.file_attachments) {
+              const AttachmentContainer& container =
+                  share_target.attachment_container;
+              ASSERT_TRUE(container.HasAttachments());
+              EXPECT_EQ(1u, container.GetFileAttachments().size());
+              for (const FileAttachment& file :
+                   container.GetFileAttachments()) {
                 EXPECT_TRUE(file.file_path());
                 file_path = *file.file_path();
               }
 
-              EXPECT_EQ(3u, share_target.text_attachments.size());
-              for (const TextAttachment& text : share_target.text_attachments) {
+              EXPECT_EQ(3u, container.GetTextAttachments().size());
+              for (const TextAttachment& text :
+                   container.GetTextAttachments()) {
                 EXPECT_EQ(text.text_body(), kTextPayload);
               }
 
@@ -1702,7 +1706,7 @@ TEST_F(NearbySharingServiceImplTest,
       .WillOnce([&](ShareTarget share_target) {
         EXPECT_FALSE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
-        EXPECT_FALSE(share_target.has_attachments());
+        EXPECT_FALSE(share_target.attachment_container.HasAttachments());
         EXPECT_EQ(share_target.device_name, kDeviceName);
         EXPECT_EQ(share_target.type, kDeviceType);
         EXPECT_TRUE(share_target.device_id);
@@ -1756,7 +1760,7 @@ TEST_F(NearbySharingServiceImplTest, RegisterSendSurfaceEmptyCertificate) {
       .WillOnce([](ShareTarget share_target) {
         EXPECT_FALSE(share_target.is_incoming);
         EXPECT_FALSE(share_target.is_known);
-        EXPECT_FALSE(share_target.has_attachments());
+        EXPECT_FALSE(share_target.attachment_container.HasAttachments());
         EXPECT_EQ(share_target.device_name, kDeviceName);
         EXPECT_FALSE(share_target.image_url);
         EXPECT_EQ(share_target.type, kDeviceType);
@@ -2541,7 +2545,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionEmptyIntroductionFrame) {
                       TransferMetadata::Status::kUnsupportedAttachmentType);
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_TRUE(share_target.is_known);
-            EXPECT_FALSE(share_target.has_attachments());
+            EXPECT_FALSE(share_target.attachment_container.HasAttachments());
             EXPECT_EQ(share_target.device_name, kDeviceName);
             EXPECT_EQ(share_target.type, kDeviceType);
             EXPECT_TRUE(share_target.device_id);
@@ -2586,11 +2590,13 @@ TEST_F(NearbySharingServiceImplTest,
             EXPECT_FALSE(metadata.is_final_status());
             EXPECT_EQ(TransferMetadata::Status::kAwaitingLocalConfirmation,
                       metadata.status());
+            const AttachmentContainer& container =
+                share_target.attachment_container;
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_FALSE(share_target.is_known);
-            EXPECT_TRUE(share_target.has_attachments());
-            EXPECT_EQ(share_target.text_attachments.size(), 3u);
-            EXPECT_EQ(share_target.file_attachments.size(), 1u);
+            EXPECT_TRUE(container.HasAttachments());
+            EXPECT_EQ(container.GetTextAttachments().size(), 3u);
+            EXPECT_EQ(container.GetFileAttachments().size(), 1u);
             EXPECT_EQ(share_target.device_name, kDeviceName);
             EXPECT_FALSE(share_target.image_url);
             EXPECT_EQ(share_target.type, kDeviceType);
@@ -2702,11 +2708,13 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_))
       .WillOnce(testing::Invoke([](const ShareTarget& share_target,
                                    TransferMetadata metadata) {
+        const AttachmentContainer& container =
+            share_target.attachment_container;
         EXPECT_TRUE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
-        EXPECT_TRUE(share_target.has_attachments());
-        EXPECT_EQ(share_target.text_attachments.size(), 0u);
-        EXPECT_EQ(share_target.file_attachments.size(), 1u);
+        EXPECT_TRUE(container.HasAttachments());
+        EXPECT_EQ(container.GetTextAttachments().size(), 0u);
+        EXPECT_EQ(container.GetFileAttachments().size(), 1u);
         EXPECT_EQ(share_target.device_name, kDeviceName);
         EXPECT_EQ(share_target.type, kDeviceType);
         EXPECT_TRUE(share_target.device_id);
@@ -2826,11 +2834,13 @@ TEST_F(NearbySharingServiceImplTest,
         EXPECT_FALSE(metadata.is_final_status());
         EXPECT_EQ(TransferMetadata::Status::kAwaitingLocalConfirmation,
                   metadata.status());
+        const AttachmentContainer& container =
+            share_target.attachment_container;
         EXPECT_TRUE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
-        EXPECT_TRUE(share_target.has_attachments());
-        EXPECT_EQ(share_target.text_attachments.size(), 3u);
-        EXPECT_EQ(share_target.file_attachments.size(), 1u);
+        EXPECT_TRUE(container.HasAttachments());
+        EXPECT_EQ(container.GetTextAttachments().size(), 3u);
+        EXPECT_EQ(container.GetFileAttachments().size(), 1u);
         EXPECT_EQ(share_target.device_name, kDeviceName);
         EXPECT_EQ(share_target.type, kDeviceType);
         EXPECT_TRUE(share_target.device_id);
@@ -2976,9 +2986,11 @@ TEST_F(NearbySharingServiceImplTest,
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(),
                       TransferMetadata::Status::kIncompletePayloads);
-            ASSERT_TRUE(share_target.has_attachments());
-            EXPECT_EQ(share_target.file_attachments.size(), 1u);
-            const FileAttachment& file = share_target.file_attachments[0];
+            const AttachmentContainer& container =
+                share_target.attachment_container;
+            ASSERT_TRUE(container.HasAttachments());
+            EXPECT_EQ(container.GetFileAttachments().size(), 1u);
+            const FileAttachment& file = container.GetFileAttachments()[0];
             EXPECT_FALSE(file.file_path());
             success_notification.Notify();
           }));
@@ -3040,9 +3052,11 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
           [&](const ShareTarget& share_target, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
-            ASSERT_TRUE(share_target.has_attachments());
-            EXPECT_EQ(share_target.file_attachments.size(), 1u);
-            const FileAttachment& file = share_target.file_attachments[0];
+            const AttachmentContainer& container =
+                share_target.attachment_container;
+            ASSERT_TRUE(container.HasAttachments());
+            EXPECT_EQ(container.GetFileAttachments().size(), 1u);
+            const FileAttachment& file = container.GetFileAttachments()[0];
             EXPECT_FALSE(file.file_path());
             failure_notification.Notify();
           }));
@@ -3105,9 +3119,11 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
           [&](const ShareTarget& share_target, TransferMetadata metadata) {
             EXPECT_TRUE(metadata.is_final_status());
             EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
-            ASSERT_TRUE(share_target.has_attachments());
-            EXPECT_EQ(share_target.file_attachments.size(), 1u);
-            const FileAttachment& file = share_target.file_attachments[0];
+            const AttachmentContainer& container =
+                share_target.attachment_container;
+            ASSERT_TRUE(container.HasAttachments());
+            EXPECT_EQ(container.GetFileAttachments().size(), 1u);
+            const FileAttachment& file = container.GetFileAttachments()[0];
             EXPECT_FALSE(file.file_path());
             failure_notification.Notify();
           }));
@@ -3208,9 +3224,11 @@ TEST_F(NearbySharingServiceImplTest,
                       TransferMetadata::Status::kAwaitingLocalConfirmation);
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_TRUE(share_target.is_known);
-            EXPECT_TRUE(share_target.has_attachments());
-            EXPECT_EQ(share_target.text_attachments.size(), 3u);
-            EXPECT_EQ(share_target.file_attachments.size(), 1u);
+            const AttachmentContainer& container =
+                share_target.attachment_container;
+            EXPECT_TRUE(container.HasAttachments());
+            EXPECT_EQ(container.GetTextAttachments().size(), 3u);
+            EXPECT_EQ(container.GetFileAttachments().size(), 1u);
             EXPECT_EQ(share_target.device_name, kDeviceName);
             EXPECT_EQ(share_target.type, kDeviceType);
             EXPECT_TRUE(share_target.device_id);
@@ -3260,9 +3278,11 @@ TEST_F(NearbySharingServiceImplTest,
                       metadata.status());
             EXPECT_TRUE(share_target.is_incoming);
             EXPECT_TRUE(share_target.is_known);
-            EXPECT_TRUE(share_target.has_attachments());
-            EXPECT_EQ(share_target.text_attachments.size(), 3u);
-            EXPECT_EQ(share_target.file_attachments.size(), 1u);
+            const AttachmentContainer& container =
+                share_target.attachment_container;
+            EXPECT_TRUE(container.HasAttachments());
+            EXPECT_EQ(container.GetTextAttachments().size(), 3u);
+            EXPECT_EQ(container.GetFileAttachments().size(), 1u);
             EXPECT_EQ(share_target.device_name, kDeviceName);
             EXPECT_EQ(share_target.type, kDeviceType);
             EXPECT_TRUE(share_target.device_id);
@@ -4447,8 +4467,8 @@ TEST_F(NearbySharingServiceImplTest, RetryDiscoveredEndpointsDownloadLimit) {
 
 TEST_F(NearbySharingServiceImplTest, OpenSharedTarget) {
   ShareTarget share_target;
-  share_target.text_attachments = {
-      TextAttachment(TextMetadata::TEXT, "body", "title", "mime")};
+  share_target.attachment_container.AddTextAttachment(
+      TextAttachment(TextMetadata::TEXT, "body", "title", "mime"));
   NearbySharingService::StatusCodes result;
   absl::Notification notification;
   service_->Open(share_target,

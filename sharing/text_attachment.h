@@ -15,8 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_TEXT_ATTACHMENT_H_
 #define THIRD_PARTY_NEARBY_SHARING_TEXT_ATTACHMENT_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -29,7 +28,7 @@ namespace nearby {
 namespace sharing {
 
 // Represents a text attachment.
-struct ShareTarget;
+class AttachmentContainer;
 
 class TextAttachment : public Attachment {
  public:
@@ -56,7 +55,7 @@ class TextAttachment : public Attachment {
   Type type() const { return type_; }
 
   // Attachment:
-  void MoveToShareTarget(ShareTarget& share_target) override;
+  void MoveToContainer(AttachmentContainer& container) override;
   absl::string_view GetDescription() const override;
   ShareType GetShareType() const override;
 

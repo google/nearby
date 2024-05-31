@@ -21,11 +21,11 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "internal/network/url.h"
+#include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/proto/wire_format.pb.h"
-#include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/wifi_credentials_attachment.h"
 
@@ -39,23 +39,21 @@ using StatusCodes = ::nearby::sharing::NearbySharingService::StatusCodes;
 }  // namespace
 
 NearbySharingService::StatusCodes NearbySharingServiceExtension::Open(
-    const ShareTarget& share_target) {
-  if (share_target.file_attachments.empty() &&
-      share_target.text_attachments.empty() &&
-      share_target.wifi_credentials_attachments.empty()) {
-    return StatusCodes::kOk;
+    const AttachmentContainer& container) {
+  if (!container.HasAttachments()) {
+    return StatusCodes::kInvalidArgument;
   }
 
-  if (!share_target.file_attachments.empty() &&
-      !share_target.text_attachments.empty()) {
+  if (!container.GetFileAttachments().empty() &&
+      !container.GetTextAttachments().empty()) {
     NL_LOG(ERROR)
         << __func__
         << ": Text attachments and file attachments can't come together.";
     return StatusCodes::kError;
   }
 
-  if (share_target.text_attachments.size() == 1) {
-    const TextAttachment& text_attachment = share_target.text_attachments[0];
+  if (container.GetTextAttachments().size() == 1) {
+    const TextAttachment& text_attachment = container.GetTextAttachments()[0];
 
     switch (text_attachment.type()) {
       case TextMetadata::TEXT: {
@@ -75,30 +73,30 @@ NearbySharingService::StatusCodes NearbySharingServiceExtension::Open(
     return StatusCodes::kOk;
   }
 
-  if (share_target.text_attachments.size() > 1) {
+  if (container.GetTextAttachments().size() > 1) {
     NL_LOG(ERROR) << __func__
                   << ": Multiple text attachments are not supported currently.";
     return StatusCodes::kError;
   }
 
-  if (share_target.wifi_credentials_attachments.size() == 1) {
+  if (container.GetWifiCredentialsAttachments().size() == 1) {
     const WifiCredentialsAttachment& wifi_credentials_attachment =
-        share_target.wifi_credentials_attachments[0];
+        container.GetWifiCredentialsAttachments()[0];
     JoinWifiNetwork(wifi_credentials_attachment.ssid(),
                     wifi_credentials_attachment.password());
     return StatusCodes::kOk;
   }
 
-  if (share_target.wifi_credentials_attachments.size() > 1) {
+  if (container.GetWifiCredentialsAttachments().size() > 1) {
     NL_LOG(ERROR) << __func__
                   << ": Multiple WiFi credentials attachments are not "
                      "supported currently.";
     return StatusCodes::kError;
   }
 
-  const FileAttachment& file_attachment = share_target.file_attachments[0];
+  const FileAttachment& file_attachment = container.GetFileAttachments()[0];
 
-  if ((share_target.file_attachments.size() > 1) ||
+  if ((container.GetFileAttachments().size() > 1) ||
       ((file_attachment.type() != FileMetadata::AUDIO) &&
        (file_attachment.type() != FileMetadata::VIDEO) &&
        (file_attachment.type() != FileMetadata::IMAGE))) {

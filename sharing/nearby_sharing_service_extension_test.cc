@@ -20,6 +20,7 @@
 
 #include "gtest/gtest.h"
 #include "internal/test/fake_device_info.h"
+#include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
@@ -28,7 +29,6 @@
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_settings.h"
 #include "sharing/proto/wire_format.pb.h"
-#include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/wifi_credentials_attachment.h"
 
@@ -66,120 +66,113 @@ class NearbySharingServiceExtensionTest : public ::testing::Test {
                                              &local_device_data_manager_};
 };
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenSharedTargetNoFileAndTextAttachment) {
-  ShareTarget share_target;
-  StatusCodes status_codes = service_extension()->Open(share_target);
-  EXPECT_EQ(status_codes, StatusCodes::kOk);
+TEST_F(NearbySharingServiceExtensionTest, OpenEmptyAttachments) {
+  StatusCodes status_codes = service_extension()->Open(AttachmentContainer());
+  EXPECT_EQ(status_codes, StatusCodes::kInvalidArgument);
 }
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenSharedTargetBothFileAndTextAttachments) {
-  ShareTarget share_target;
-  share_target.text_attachments = {
-      TextAttachment(TextMetadata::TEXT, "body", "title", "mime")};
-  share_target.file_attachments = {
-      FileAttachment(std::filesystem::temp_directory_path() / "test.g1")};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenBothFileAndTextAttachments) {
+  AttachmentContainer container;
+  container.AddTextAttachment(
+      TextAttachment(TextMetadata::TEXT, "body", "title", "mime"));
+  container.AddFileAttachment(
+      FileAttachment(std::filesystem::temp_directory_path() / "test.g1"));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kError);
 }
 
-TEST_F(NearbySharingServiceExtensionTest, OpenSharedTargetOneTextAttachment) {
-  ShareTarget share_target;
-  share_target.text_attachments = {
-      TextAttachment(TextMetadata::TEXT, "body", "title", "mime")};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenOneTextAttachment) {
+  AttachmentContainer container;
+  container.AddTextAttachment(
+      TextAttachment(TextMetadata::TEXT, "body", "title", "mime"));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenSharedMoreThanOneTextAttachments) {
-  ShareTarget share_target;
-  share_target.text_attachments = {
-      TextAttachment(TextMetadata::TEXT, "body", "title1", "mime"),
-      TextAttachment(TextMetadata::TEXT, "body", "title2", "mime")};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenMoreThanOneTextAttachments) {
+  AttachmentContainer container;
+  container.AddTextAttachment(
+      TextAttachment(TextMetadata::TEXT, "body", "title1", "mime"));
+  container.AddTextAttachment(
+      TextAttachment(TextMetadata::TEXT, "body", "title2", "mime"));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kError);
 }
 
-TEST_F(NearbySharingServiceExtensionTest, OpenShareTargetWithUrlAttacchment) {
-  ShareTarget share_target;
-  share_target.text_attachments = {TextAttachment(
-      TextMetadata::URL, "http://www.google.com", std::nullopt, std::nullopt)};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenUrlAttacchment) {
+  AttachmentContainer container;
+  container.AddTextAttachment(TextAttachment(
+      TextMetadata::URL, "http://www.google.com", std::nullopt, std::nullopt));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenShareTargetWithTextAddressAttacchment) {
-  ShareTarget share_target;
-  share_target.text_attachments = {TextAttachment(TextMetadata::ADDRESS, "body",
-                                                  std::nullopt, std::nullopt)};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenTextAddressAttacchment) {
+  AttachmentContainer container;
+  container.AddTextAttachment(TextAttachment(TextMetadata::ADDRESS, "body",
+                                             std::nullopt, std::nullopt));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 
-TEST_F(NearbySharingServiceExtensionTest, OpenShareTargetWithWifiAttacchment) {
-  ShareTarget share_target;
-  share_target.wifi_credentials_attachments = {WifiCredentialsAttachment(
-      "ssid", service::proto::WifiCredentialsMetadata::WPA_PSK)};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenWifiAttacchment) {
+  AttachmentContainer container;
+  container.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
+      "ssid", service::proto::WifiCredentialsMetadata::WPA_PSK));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenShareTargetWithMultipleWifiAttacchments) {
-  ShareTarget share_target;
-  share_target.wifi_credentials_attachments = {
-      WifiCredentialsAttachment(
-          "ssid1", service::proto::WifiCredentialsMetadata::WPA_PSK),
-      WifiCredentialsAttachment(
-          "ssid2", service::proto::WifiCredentialsMetadata::WPA_PSK)};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenMultipleWifiAttacchments) {
+  AttachmentContainer container;
+  container.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
+      "ssid1", service::proto::WifiCredentialsMetadata::WPA_PSK));
+  container.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
+      "ssid2", service::proto::WifiCredentialsMetadata::WPA_PSK));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kError);
 }
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenShareTargetWithOneFileAttacchment) {
-  ShareTarget share_target;
-  share_target.file_attachments = {FileAttachment(
+TEST_F(NearbySharingServiceExtensionTest, OpenOneFileAttacchment) {
+  AttachmentContainer container;
+  container.AddFileAttachment(FileAttachment(
       /*id=*/1234, /*size=*/1000, /*file_name=*/"test.png",
-      /*mime_type=*/"image", /*type=*/FileMetadata::IMAGE)};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+      /*mime_type=*/"image", /*type=*/FileMetadata::IMAGE));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 
-TEST_F(NearbySharingServiceExtensionTest, OpenSharedTargetUseDownloadFolder) {
-  ShareTarget share_target;
-  share_target.file_attachments = {
-      FileAttachment(std::filesystem::temp_directory_path() / "test.g1"),
-      FileAttachment(std::filesystem::temp_directory_path() / "test.g2")};
-  StatusCodes status_codes = service_extension()->Open(share_target);
+TEST_F(NearbySharingServiceExtensionTest, OpenUseDownloadFolder) {
+  AttachmentContainer container;
+  container.AddFileAttachment(
+      FileAttachment(std::filesystem::temp_directory_path() / "test.g1"));
+  container.AddFileAttachment(
+      FileAttachment(std::filesystem::temp_directory_path() / "test.g2"));
+  StatusCodes status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
   FakeShell& shell = *context()->fake_shell();
   shell.set_return_error(true);
-  status_codes = service_extension()->Open(share_target);
+  status_codes = service_extension()->Open(container);
   EXPECT_NE(status_codes, StatusCodes::kOk);
   shell.set_return_error(false);
-  status_codes = service_extension()->Open(share_target);
+  status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 
-TEST_F(NearbySharingServiceExtensionTest,
-       OpenSharedTargetUseDefaultApplication) {
-  ShareTarget share_target;
+TEST_F(NearbySharingServiceExtensionTest, OpenUseDefaultApplication) {
+  AttachmentContainer container;
   NearbySharingService::StatusCodes status_codes;
-  share_target.file_attachments = {
-      FileAttachment(std::filesystem::temp_directory_path() / "test.jpg")};
-  status_codes = service_extension()->Open(share_target);
+  container.AddFileAttachment(
+      FileAttachment(std::filesystem::temp_directory_path() / "test.jpg"));
+  status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
-  share_target.file_attachments = {
-      FileAttachment(std::filesystem::temp_directory_path() / "test.wav")};
-  status_codes = service_extension()->Open(share_target);
+  container.AddFileAttachment(
+      FileAttachment(std::filesystem::temp_directory_path() / "test.wav"));
+  status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
-  share_target.file_attachments = {
-      FileAttachment(std::filesystem::temp_directory_path() / "test.wmv")};
-  status_codes = service_extension()->Open(share_target);
+  container.AddFileAttachment(
+      FileAttachment(std::filesystem::temp_directory_path() / "test.wmv"));
+  status_codes = service_extension()->Open(container);
   EXPECT_EQ(status_codes, StatusCodes::kOk);
 }
 

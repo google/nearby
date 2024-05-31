@@ -25,13 +25,13 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "sharing/attachment_container.h"
 #include "sharing/attachment_info.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_metadata_builder.h"
@@ -41,16 +41,17 @@ namespace nearby {
 namespace sharing {
 
 PayloadTracker::PayloadTracker(
-    Context* context, const ShareTarget& share_target,
+    Context* context, int64_t share_target_id,
+    const AttachmentContainer& container,
     const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_info_map,
     std::function<void(int64_t, TransferMetadata)> update_callback)
     : context_(context),
-      share_target_id_(share_target.id),
+      share_target_id_(share_target_id),
       update_callback_(std::move(update_callback)) {
   total_transfer_size_ = 0;
   confirmed_transfer_size_ = 0;
 
-  for (const auto& file : share_target.file_attachments) {
+  for (const auto& file : container.GetFileAttachments()) {
     auto it = attachment_info_map.find(file.id());
     if (it == attachment_info_map.end() || !it->second.payload_id) {
       NL_LOG(WARNING)
@@ -66,7 +67,7 @@ PayloadTracker::PayloadTracker(
     total_transfer_size_ += file.size();
   }
 
-  for (const auto& text : share_target.text_attachments) {
+  for (const auto& text : container.GetTextAttachments()) {
     auto it = attachment_info_map.find(text.id());
     if (it == attachment_info_map.end() || !it->second.payload_id) {
       NL_LOG(WARNING)
@@ -83,7 +84,7 @@ PayloadTracker::PayloadTracker(
   }
 
   for (const auto& wifi_credentials :
-       share_target.wifi_credentials_attachments) {
+       container.GetWifiCredentialsAttachments()) {
     auto it = attachment_info_map.find(wifi_credentials.id());
     if (it == attachment_info_map.end() || !it->second.payload_id) {
       NL_LOG(WARNING) << __func__

@@ -28,6 +28,7 @@ cc_library(
     deps = [
         "//internal/analytics:event_logger",
         "//proto:sharing_enums_cc_proto",
+        "//sharing:attachments",
         "//sharing:types",
         "//sharing/common:enum",
         "//sharing/internal/public:logging",
@@ -48,6 +49,7 @@ cc_test(
         "//internal/analytics:mock_event_logger",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//proto:sharing_enums_cc_proto",
+        "//sharing:attachments",
         "//sharing:types",
         "//sharing/common:enum",
         "//sharing/proto:enums_cc_proto",

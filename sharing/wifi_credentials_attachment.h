@@ -15,8 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_WIFI_CREDENTIALS_ATTACHMENT_H_
 #define THIRD_PARTY_NEARBY_SHARING_WIFI_CREDENTIALS_ATTACHMENT_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -28,7 +27,7 @@ namespace nearby {
 namespace sharing {
 
 // Represents a WiFi credentials attachment.
-struct ShareTarget;
+class AttachmentContainer;
 
 class WifiCredentialsAttachment : public Attachment {
  public:
@@ -57,7 +56,7 @@ class WifiCredentialsAttachment : public Attachment {
   bool is_hidden() const { return is_hidden_; }
 
   // Attachment:
-  void MoveToShareTarget(ShareTarget& share_target) override;
+  void MoveToContainer(AttachmentContainer& container) override;
   absl::string_view GetDescription() const override;
   ShareType GetShareType() const override;
 

@@ -55,6 +55,7 @@
 #include "sharing/analytics/analytics_information.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/attachment_info.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -706,14 +707,16 @@ void NearbySharingServiceImpl::SendAttachments(
         }
 
         ShareTarget share_target = info->share_target();
+        AttachmentContainer& container = share_target.attachment_container;
         for (std::unique_ptr<Attachment>& attachment : attachments) {
-          attachment->MoveToShareTarget(share_target);
+          attachment->MoveToContainer(container);
         }
-        if (!share_target.has_attachments()) {
+        if (!container.HasAttachments()) {
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
-        for (const FileAttachment& attachment : share_target.file_attachments) {
+        for (const FileAttachment& attachment :
+             container.GetFileAttachments()) {
           if (!attachment.file_path()) {
             NL_LOG(WARNING) << __func__ << ": Got file attachment without path";
             std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
@@ -973,7 +976,8 @@ void NearbySharingServiceImpl::Open(
             share_target.GetAttachments(),
             info != nullptr ? info->session_id() : 0);
 
-        status_codes_callback(service_extension_->Open(share_target));
+        status_codes_callback(
+            service_extension_->Open(share_target.attachment_container));
       });
 }
 
@@ -2525,8 +2529,9 @@ void NearbySharingServiceImpl::ReceivePayloads(
   std::filesystem::path download_path =
       std::filesystem::u8path(settings_->GetCustomSavePath());
 
+  const AttachmentContainer& container = share_target.attachment_container;
   // Register payload path for all valid file payloads.
-  for (auto& file : share_target.file_attachments) {
+  for (const auto& file : container.GetFileAttachments()) {
     std::optional<int64_t> payload_id = GetAttachmentPayloadId(file.id());
     if (!payload_id) {
       NL_LOG(WARNING)
@@ -2588,7 +2593,8 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
       receiving_session_id_, share_target.GetAttachments());
 
   info->set_payload_tracker(std::make_shared<PayloadTracker>(
-      context_, share_target, attachment_info_map_,
+      context_, share_target.id, share_target.attachment_container,
+      attachment_info_map_,
       absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                        this)));
 
@@ -2624,7 +2630,7 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
           .build());
 
   std::string endpoint_id = info->endpoint_id();
-  if (share_target.GetTotalAttachmentsSize() >=
+  if (share_target.attachment_container.GetTotalAttachmentsSize() >=
       kAttachmentsSizeThresholdOverHighQualityMedium) {
     // Upgrade bandwidth regardless of advertising visibility because either
     // the system or the user has verified the sender's identity; the
@@ -2731,8 +2737,9 @@ void NearbySharingServiceImpl::SendIntroduction(
   introduction->set_start_transfer(true);
   NL_VLOG(1) << __func__ << ": Sending attachments to " << share_target.id;
 
+  const AttachmentContainer& container = share_target.attachment_container;
   // Write introduction of file payloads.
-  for (const auto& file : share_target.file_attachments) {
+  for (const auto& file : container.GetFileAttachments()) {
     std::optional<int64_t> payload_id = GetAttachmentPayloadId(file.id());
     if (!payload_id) {
       NL_VLOG(1) << __func__ << ": Skipping unknown file attachment";
@@ -2748,7 +2755,7 @@ void NearbySharingServiceImpl::SendIntroduction(
   }
 
   // Write introduction of text payloads.
-  for (const auto& text : share_target.text_attachments) {
+  for (const auto& text : container.GetTextAttachments()) {
     std::optional<int64_t> payload_id = GetAttachmentPayloadId(text.id());
     if (!payload_id) {
       NL_VLOG(1) << __func__ << ": Skipping unknown text attachment";
@@ -2764,7 +2771,7 @@ void NearbySharingServiceImpl::SendIntroduction(
 
   // Write introduction of Wi-Fi credentials payloads.
   for (const auto& wifi_credentials :
-       share_target.wifi_credentials_attachments) {
+       container.GetWifiCredentialsAttachments()) {
     std::optional<int64_t> payload_id =
         GetAttachmentPayloadId(wifi_credentials.id());
     if (!payload_id) {
@@ -2832,18 +2839,18 @@ void NearbySharingServiceImpl::CreatePayloads(
     std::move(callback)(std::move(share_target), /*success=*/false);
     return;
   }
-
-  info.set_text_payloads(CreateTextPayloads(share_target.text_attachments));
+  const AttachmentContainer& container = share_target.attachment_container;
+  info.set_text_payloads(CreateTextPayloads(container.GetTextAttachments()));
   info.set_wifi_credentials_payloads(
-      CreateWifiCredentialsPayloads(share_target.wifi_credentials_attachments));
-  if (share_target.file_attachments.empty()) {
+      CreateWifiCredentialsPayloads(container.GetWifiCredentialsAttachments()));
+  if (container.GetFileAttachments().empty()) {
     std::move(callback)(std::move(share_target), /*success=*/true);
     return;
   }
 
   std::vector<std::filesystem::path> file_paths;
-  file_paths.reserve(share_target.file_attachments.size());
-  for (const FileAttachment& attachment : share_target.file_attachments) {
+  file_paths.reserve(container.GetFileAttachments().size());
+  for (const FileAttachment& attachment : container.GetFileAttachments()) {
     file_paths.push_back(*attachment.file_path());
   }
 
@@ -2893,7 +2900,7 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   nearby_connections_manager_->Connect(
       std::move(endpoint_info), info->endpoint_id(),
       std::move(bluetooth_mac_address), settings_->GetDataUsage(),
-      GetTransportType(share_target),
+      GetTransportType(share_target.attachment_container),
       [this, share_target, info](NearbyConnection* connection, Status status) {
         // Log analytics event of new connection.
         info->set_connection_layer_status(status);
@@ -2920,7 +2927,8 @@ void NearbySharingServiceImpl::OnOpenFiles(
     ShareTarget share_target, std::function<void(ShareTarget, bool)> callback,
     std::vector<NearbyFileHandler::FileInfo> files) {
   OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target.id);
-  if (!info || files.size() != share_target.file_attachments.size()) {
+  AttachmentContainer& container = share_target.attachment_container;
+  if (!info || files.size() != container.GetFileAttachments().size()) {
     std::move(callback)(std::move(share_target), /*success=*/false);
     return;
   }
@@ -2929,7 +2937,7 @@ void NearbySharingServiceImpl::OnOpenFiles(
   payloads.reserve(files.size());
 
   for (size_t i = 0; i < files.size(); ++i) {
-    FileAttachment& attachment = share_target.file_attachments[i];
+    FileAttachment& attachment = container.GetMutableFileAttachment(i);
     attachment.set_size(files[i].size);
     InputFile input_file;
     input_file.path = files[i].file_path;
@@ -3138,7 +3146,8 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
   if (metadata.is_final_status()) {
     // Log analytics event of receiving attachment end.
     int64_t received_bytes =
-        share_target.GetTotalAttachmentsSize() * metadata.progress() / 100;
+        share_target.attachment_container.GetTotalAttachmentsSize() *
+        metadata.progress() / 100;
     AttachmentTransmissionStatus transmission_status =
         ConvertToTransmissionStatus(metadata.status());
 
@@ -3186,7 +3195,8 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
   if (metadata.is_final_status()) {
     // Log analytics event of sending attachment end.
     int64_t sent_bytes =
-        share_target.GetTotalAttachmentsSize() * metadata.progress() / 100;
+        share_target.attachment_container.GetTotalAttachmentsSize() *
+        metadata.progress() / 100;
     AttachmentTransmissionStatus transmission_status =
         ConvertToTransmissionStatus(metadata.status());
 
@@ -3517,6 +3527,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   nearby::sharing::service::proto::IntroductionFrame introduction_frame =
       std::move(frame->introduction());
 
+  AttachmentContainer& container = share_target.attachment_container;
   for (const auto& file : introduction_frame.file_metadata()) {
     if (file.size() <= 0) {
       Fail(share_target.id,
@@ -3536,7 +3547,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
                               file.mime_type(), file.type(),
                               file.parent_folder());
     SetAttachmentPayloadId(attachment, file.payload_id());
-    share_target.file_attachments.push_back(std::move(attachment));
+    container.AddFileAttachment(std::move(attachment));
 
     if (std::numeric_limits<int64_t>::max() - file.size() < file_size_sum) {
       Fail(share_target.id, TransferMetadata::Status::kNotEnoughSpace);
@@ -3564,7 +3575,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     TextAttachment attachment(text.id(), text.type(), text.text_title(),
                               text.size());
     SetAttachmentPayloadId(attachment, text.payload_id());
-    share_target.text_attachments.push_back(std::move(attachment));
+    container.AddTextAttachment(std::move(attachment));
   }
 
   if (kSupportReceivingWifiCredentials) {
@@ -3578,12 +3589,11 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
                                            wifi_credentials.ssid(),
                                            wifi_credentials.security_type());
       SetAttachmentPayloadId(attachment, wifi_credentials.payload_id());
-      share_target.wifi_credentials_attachments.push_back(
-          std::move(attachment));
+      container.AddWifiCredentialsAttachment(std::move(attachment));
     }
   }
 
-  if (!share_target.has_attachments()) {
+  if (!container.HasAttachments()) {
     NL_LOG(WARNING) << __func__
                     << ": No attachment is found for this share target. It can "
                        "be result of unrecognizable attachment type";
@@ -3616,7 +3626,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
               kUpgradeBandwidthAfterAccept)) {
     if (introduction_frame.has_start_transfer() &&
         introduction_frame.start_transfer()) {
-      if (share_target.GetTotalAttachmentsSize() >=
+      if (container.GetTotalAttachmentsSize() >=
           kAttachmentsSizeThresholdOverHighQualityMedium) {
         NL_LOG(INFO)
             << __func__
@@ -3697,7 +3707,8 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
               .build());
 
       info->set_payload_tracker(std::make_unique<PayloadTracker>(
-          context_, share_target, attachment_info_map_,
+          context_, share_target.id, share_target.attachment_container,
+          attachment_info_map_,
           absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                            this)));
 
@@ -3906,8 +3917,9 @@ void NearbySharingServiceImpl::HandleProgressUpdateFrame(
       progress_update_frame.start_transfer()) {
     ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
 
-    if (info != nullptr && share_target.GetTotalAttachmentsSize() >=
-                               kAttachmentsSizeThresholdOverHighQualityMedium) {
+    if (info != nullptr &&
+        share_target.attachment_container.GetTotalAttachmentsSize() >=
+            kAttachmentsSizeThresholdOverHighQualityMedium) {
       NL_LOG(INFO)
           << __func__
           << ": Upgrade bandwidth when receiving progress update frame "
@@ -4051,20 +4063,7 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
       if (!OnIncomingPayloadsComplete(share_target)) {
         payload_incomplete = true;
 
-        // Reset file paths for file attachments.
-        for (auto& file : share_target.file_attachments)
-          file.set_file_path(std::nullopt);
-
-        // Reset body of text attachments.
-        for (auto& text : share_target.text_attachments)
-          text.set_text_body(std::string());
-
-        // Reset password of Wi-Fi credentials attachments.
-        for (auto& wifi_credentials :
-             share_target.wifi_credentials_attachments) {
-          wifi_credentials.set_password(std::string());
-          wifi_credentials.set_is_hidden(false);
-        }
+        share_target.attachment_container.ClearAttachments();
       }
 
       if (IsBackgroundScanningFeatureEnabled()) {
@@ -4126,7 +4125,9 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
     UpdateFilePath(share_target);
   }
 
-  for (auto& text : share_target.text_attachments) {
+  AttachmentContainer& container = share_target.attachment_container;
+  for (int i = 0; i < container.GetTextAttachments().size(); ++i) {
+    TextAttachment& text = container.GetMutableTextAttachment(i);
     AttachmentInfo& attachment_info = attachment_info_map_[text.id()];
     std::optional<int64_t> payload_id = attachment_info.payload_id;
     if (!payload_id) {
@@ -4134,7 +4135,6 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
                       << text.id();
       return false;
     }
-
     Payload* incoming_payload =
         nearby_connections_manager_->GetIncomingPayload(*payload_id);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
@@ -4158,8 +4158,9 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
     attachment_info.text_body = std::move(text_body);
   }
 
-  for (auto& wifi_credentials_attachment :
-       share_target.wifi_credentials_attachments) {
+  for (int i = 0; i < container.GetWifiCredentialsAttachments().size(); ++i) {
+    WifiCredentialsAttachment& wifi_credentials_attachment =
+        container.GetMutableWifiCredentialsAttachment(i);
     AttachmentInfo& attachment_info =
         attachment_info_map_[wifi_credentials_attachment.id()];
     std::optional<int64_t> payload_id = attachment_info.payload_id;
@@ -4206,7 +4207,10 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
 }
 
 void NearbySharingServiceImpl::UpdateFilePath(ShareTarget& share_target) {
-  for (auto& file : share_target.file_attachments) {
+  for (int i = 0;
+       i < share_target.attachment_container.GetFileAttachments().size(); ++i) {
+    FileAttachment& file =
+        share_target.attachment_container.GetMutableFileAttachment(i);
     // Skip file if it already has file_path set.
     if (file.file_path().has_value()) {
       continue;
@@ -4254,7 +4258,8 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
       files_for_deletion.push_back(*it);
     }
   }
-  for (const auto& file : share_target.file_attachments) {
+  const AttachmentContainer& container = share_target.attachment_container;
+  for (const auto& file : container.GetFileAttachments()) {
     if (!file.file_path().has_value()) continue;
     auto file_path = *file.file_path();
     NL_VLOG(1) << __func__
@@ -4780,14 +4785,14 @@ NearbySharingServiceImpl::GetSenderUseCase() {
 }
 
 TransportType NearbySharingServiceImpl::GetTransportType(
-    const ShareTarget& share_target) const {
-  if (share_target.GetTotalAttachmentsSize() >
+    const AttachmentContainer& container) const {
+  if (container.GetTotalAttachmentsSize() >
       kAttachmentsSizeThresholdOverHighQualityMedium) {
     NL_LOG(INFO) << __func__ << ": Transport type is kHighQuality";
     return TransportType::kHighQuality;
   }
 
-  if (share_target.file_attachments.empty()) {
+  if (container.GetFileAttachments().empty()) {
     NL_LOG(INFO) << __func__ << ": Transport type is kNonDisruptive";
     return TransportType::kNonDisruptive;
   }

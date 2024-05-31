@@ -480,8 +480,8 @@ class NearbySharingServiceImpl
   // Returns use case of sender. It is used by group share feature.
   ::location::nearby::proto::sharing::SharingUseCase GetSenderUseCase();
 
-  // Calculates transport type on share target.
-  TransportType GetTransportType(const ShareTarget& share_target) const;
+  // Calculates transport type based on attachment size.
+  TransportType GetTransportType(const AttachmentContainer& container) const;
 
   // Update file path for the file attachment.
   void UpdateFilePath(ShareTarget& share_target);

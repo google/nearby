@@ -23,6 +23,7 @@
 
 #include "internal/network/url.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/file_attachment.h"
 #include "sharing/text_attachment.h"
@@ -48,7 +49,6 @@ struct ShareTarget {
   ShareTarget& operator=(ShareTarget&&);
   ~ShareTarget();
 
-  bool has_attachments() const;
   std::vector<int64_t> GetAttachmentIds() const;
   std::vector<std::unique_ptr<Attachment>> GetAttachments() const;
   int64_t GetTotalAttachmentsSize() const;
@@ -59,9 +59,7 @@ struct ShareTarget {
   // Uri that points to an image of the ShareTarget, if one exists.
   std::optional<::nearby::network::Url> image_url;
   ShareTargetType type = ShareTargetType::kUnknown;
-  std::vector<TextAttachment> text_attachments;
-  std::vector<FileAttachment> file_attachments;
-  std::vector<WifiCredentialsAttachment> wifi_credentials_attachments;
+  AttachmentContainer attachment_container;
   bool is_incoming = false;
   std::optional<std::string> full_name;
   // True if the local device has the PublicCertificate this target is

@@ -26,18 +26,19 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
+#include "sharing/attachment_container.h"
 #include "sharing/attachment_info.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/wire_format.pb.h"
-#include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
 
+constexpr int64_t kShareTargetId = 123456789L;
 constexpr int64_t kFileId = 1;
 constexpr int64_t kFileSize = 100 * 1024;  // 100KB
 constexpr absl::string_view kFileName = "test.jpg";
@@ -46,17 +47,16 @@ constexpr absl::string_view kMimeType = "image/jpg";
 class PayloadTrackerTest : public ::testing::Test {
  public:
   void SetUp() override {
-    share_target_.file_attachments.clear();
-    share_target_.file_attachments.push_back(FileAttachment(
+    container_.AddFileAttachment(FileAttachment(
         kFileId, kFileSize, std::string(kFileName), std::string(kMimeType),
         service::proto::FileMetadata::IMAGE));
     attachment_info_map_.clear();
     AttachmentInfo attachment_info;
     attachment_info.payload_id = kFileId;
-    attachment_info_map_.emplace(share_target_.file_attachments.at(0).id(),
+    attachment_info_map_.emplace(container_.GetFileAttachments()[0].id(),
                                  std::move(attachment_info));
     payload_tracker_ = std::make_unique<PayloadTracker>(
-        context(), share_target_, attachment_info_map_,
+        context(), kShareTargetId, container_, attachment_info_map_,
         [&](int64_t share_target_id, TransferMetadata transfer_metadata) {
           current_percentage_ = transfer_metadata.progress();
         });
@@ -83,7 +83,7 @@ class PayloadTrackerTest : public ::testing::Test {
 
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
   float current_percentage_ = 0.0;
-  ShareTarget share_target_;
+  AttachmentContainer container_;
   absl::flat_hash_map<int64_t, AttachmentInfo> attachment_info_map_;
 };
 
