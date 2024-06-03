@@ -118,6 +118,7 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
         kNearbySharingBackgroundFallbackVisibilityName,
         static_cast<int>(kDefaultFallbackVisibility));
     preference_manager.SetBoolean(kNearbySharingIsReceivingName, true);
+    preference_manager.SetBoolean(kNearbySharingIsAnalyticsEnabledName, false);
   }
 
   preference_manager.SetInteger(
@@ -165,7 +166,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
       kNearbySharingSchedulerUploadLocalDeviceCertificatesName);
   preference_manager.Remove(kNearbySharingUsersName);
 
-  preference_manager.SetBoolean(kNearbySharingIsAnalyticsEnabledName, false);
   preference_manager.SetBoolean(kNearbySharingIsAllContactsEnabledName, true);
 }
 

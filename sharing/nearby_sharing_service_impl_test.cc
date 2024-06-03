@@ -4700,7 +4700,8 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   });
   EXPECT_TRUE(logout_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   absl::SleepFor(absl::Milliseconds(100));
-  EXPECT_FALSE(service_->GetSettings()->GetIsAnalyticsEnabled());
+  // data collection flag is not reset on logout.
+  EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
   EXPECT_FALSE(service_->GetAccountManager()->GetCurrentAccount().has_value());
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
