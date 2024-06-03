@@ -23,7 +23,6 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "sharing/attachment.h"
-#include "sharing/attachment_container.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/base/mime.h"
@@ -77,10 +76,6 @@ FileAttachment::FileAttachment(int64_t id, int64_t size, std::string file_name,
       mime_type_(std::move(mime_type)),
       type_(type),
       parent_folder_(std::move(parent_folder)) {}
-
-void FileAttachment::MoveToContainer(AttachmentContainer& container) {
-  container.AddFileAttachment(std::move(*this));
-}
 
 absl::string_view FileAttachment::GetDescription() const { return file_name_; }
 

@@ -27,8 +27,6 @@ namespace nearby {
 namespace sharing {
 
 // Represents a WiFi credentials attachment.
-class AttachmentContainer;
-
 class WifiCredentialsAttachment : public Attachment {
  public:
   using SecurityType =
@@ -56,7 +54,6 @@ class WifiCredentialsAttachment : public Attachment {
   bool is_hidden() const { return is_hidden_; }
 
   // Attachment:
-  void MoveToContainer(AttachmentContainer& container) override;
   absl::string_view GetDescription() const override;
   ShareType GetShareType() const override;
 

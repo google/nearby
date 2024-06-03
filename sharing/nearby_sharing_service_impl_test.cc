@@ -46,7 +46,7 @@
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/advertisement.h"
-#include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -333,35 +333,35 @@ std::unique_ptr<Frame> GetCancelFrame() {
   return std::unique_ptr<Frame>(frame);
 }
 
-std::vector<std::unique_ptr<Attachment>> CreateTextAttachments(
+std::unique_ptr<AttachmentContainer> CreateTextAttachments(
     std::vector<std::string> texts) {
-  std::vector<std::unique_ptr<Attachment>> attachments;
+  auto attachment_container = std::make_unique<AttachmentContainer>();
   for (auto& text : texts) {
-    attachments.push_back(std::make_unique<TextAttachment>(
-        service::proto::TextMetadata::TEXT, std::move(text),
-        /*text_title=*/std::nullopt,
-        /*mime_type=*/std::nullopt));
+    attachment_container->AddTextAttachment(
+        TextAttachment(service::proto::TextMetadata::TEXT, std::move(text),
+                       /*text_title=*/std::nullopt,
+                       /*mime_type=*/std::nullopt));
   }
-  return attachments;
+  return attachment_container;
 }
 
-std::vector<std::unique_ptr<Attachment>> CreateFileAttachments(
+std::unique_ptr<AttachmentContainer> CreateFileAttachments(
     std::vector<std::filesystem::path> file_paths) {
-  std::vector<std::unique_ptr<Attachment>> attachments;
+  auto attachment_container = std::make_unique<AttachmentContainer>();
   for (auto& file_path : file_paths) {
-    attachments.push_back(
-        std::make_unique<FileAttachment>(std::move(file_path)));
+    attachment_container->AddFileAttachment(
+        FileAttachment(std::move(file_path)));
   }
-  return attachments;
+  return attachment_container;
 }
 
-std::vector<std::unique_ptr<Attachment>> CreateWifiCredentialAttachments(
+std::unique_ptr<AttachmentContainer> CreateWifiCredentialAttachments(
     std::string ssid, std::string password) {
-  std::vector<std::unique_ptr<Attachment>> attachments;
-  attachments.push_back(std::make_unique<WifiCredentialsAttachment>(
+  auto attachment_container = std::make_unique<AttachmentContainer>();
+  attachment_container->AddWifiCredentialsAttachment(WifiCredentialsAttachment(
       std::move(ssid), service::proto::WifiCredentialsMetadata::WPA_PSK,
       std::move(password)));
-  return attachments;
+  return attachment_container;
 }
 
 class NearbySharingServiceImplTest : public testing::Test {
@@ -562,12 +562,12 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   NearbySharingService::StatusCodes SendAttachments(
       const ShareTarget& share_target,
-      std::vector<std::unique_ptr<Attachment>> attachments) {
+      std::unique_ptr<AttachmentContainer> attachment_container) {
     NearbySharingService::StatusCodes result =
         NearbySharingService::StatusCodes::kError;
     absl::Notification notification;
     service_->SendAttachments(
-        share_target.id, std::move(attachments),
+        share_target.id, std::move(attachment_container),
         [&](NearbySharingService::StatusCodes status_codes) {
           result = status_codes;
           notification.Notify();
@@ -3431,7 +3431,7 @@ TEST_F(NearbySharingServiceImplTest, SendAttachmentsWithoutAttachments) {
   ShareTarget target =
       DiscoverShareTarget(transfer_callback, discovery_callback);
 
-  EXPECT_EQ(SendAttachments(target, /*attachments=*/{}),
+  EXPECT_EQ(SendAttachments(target, /*attachment_container=*/nullptr),
             NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
 
   UnregisterSendSurface(&transfer_callback, &discovery_callback);

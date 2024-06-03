@@ -19,11 +19,9 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
-#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -99,7 +97,7 @@ class FakeNearbySharingService : public NearbySharingService {
   // Sends |attachments| to the remote |share_target|.
   void SendAttachments(
       int64_t share_target_id,
-      std::vector<std::unique_ptr<Attachment>> attachments,
+      std::unique_ptr<AttachmentContainer> attachment_container,
       std::function<void(StatusCodes)> status_codes_callback) override;
 
   // Accepts incoming share from the remote |share_target|.

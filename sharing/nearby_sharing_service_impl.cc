@@ -665,11 +665,12 @@ std::string NearbySharingServiceImpl::GetQrCodeUrl() const {
 
 void NearbySharingServiceImpl::SendAttachments(
     int64_t share_target_id,
-    std::vector<std::unique_ptr<Attachment>> attachments,
+    std::unique_ptr<AttachmentContainer> attachment_container,
     std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_send_attachments",
-      [this, share_target_id, attachments = std::move(attachments),
+      [this, share_target_id,
+       attachment_container = std::move(attachment_container),
        status_codes_callback = std::move(status_codes_callback)]() mutable {
         if (!is_scanning_) {
           NL_LOG(WARNING) << __func__
@@ -684,10 +685,18 @@ void NearbySharingServiceImpl::SendAttachments(
         // |is_scanning_| and |is_transferring_| are mutually exclusive.
         NL_DCHECK(!is_transferring_);
 
-        if (attachments.empty()) {
+        if (!attachment_container || !attachment_container->HasAttachments()) {
           NL_LOG(WARNING) << __func__ << ": No attachments to send.";
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
+        }
+        for (const FileAttachment& attachment :
+             attachment_container->GetFileAttachments()) {
+          if (!attachment.file_path()) {
+            NL_LOG(WARNING) << __func__ << ": Got file attachment without path";
+            std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+            return;
+          }
         }
         // Outgoing connections always announces with contacts visibility.
         std::optional<std::vector<uint8_t>> endpoint_info =
@@ -711,22 +720,7 @@ void NearbySharingServiceImpl::SendAttachments(
         }
 
         ShareTarget share_target = info->share_target();
-        AttachmentContainer& container = share_target.attachment_container;
-        for (std::unique_ptr<Attachment>& attachment : attachments) {
-          attachment->MoveToContainer(container);
-        }
-        if (!container.HasAttachments()) {
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
-          return;
-        }
-        for (const FileAttachment& attachment :
-             container.GetFileAttachments()) {
-          if (!attachment.file_path()) {
-            NL_LOG(WARNING) << __func__ << ": Got file attachment without path";
-            std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
-            return;
-          }
-        }
+        share_target.attachment_container = std::move(*attachment_container);
 
         app_info_->SetActiveFlag();
         // Set session ID.

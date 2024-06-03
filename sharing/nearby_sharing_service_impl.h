@@ -44,6 +44,7 @@
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/attachment_info.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -155,7 +156,7 @@ class NearbySharingServiceImpl
   std::string GetQrCodeUrl() const override;
   void SendAttachments(
       int64_t share_target_id,
-      std::vector<std::unique_ptr<Attachment>> attachments,
+      std::unique_ptr<AttachmentContainer> attachment_container,
       std::function<void(StatusCodes)> status_codes_callback) override;
   void Accept(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>

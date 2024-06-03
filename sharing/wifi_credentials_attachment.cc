@@ -20,7 +20,6 @@
 
 #include "absl/strings/string_view.h"
 #include "sharing/attachment.h"
-#include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 
 namespace nearby {
@@ -46,11 +45,6 @@ WifiCredentialsAttachment::WifiCredentialsAttachment(
       security_type_(security_type),
       password_(std::move(password)),
       is_hidden_(is_hidden) {}
-
-void WifiCredentialsAttachment::MoveToContainer(
-    AttachmentContainer& container) {
-  container.AddWifiCredentialsAttachment(std::move(*this));
-}
 
 absl::string_view WifiCredentialsAttachment::GetDescription() const {
   return ssid_;

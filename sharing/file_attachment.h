@@ -31,8 +31,6 @@ namespace sharing {
 
 // A single attachment to be sent by / received from a |ShareTarget|, can be
 // either a file or text.
-class AttachmentContainer;
-
 class FileAttachment : public Attachment {
  public:
   using Type = nearby::sharing::service::proto::FileMetadata::Type;
@@ -59,7 +57,6 @@ class FileAttachment : public Attachment {
   }
 
   // Attachment:
-  void MoveToContainer(AttachmentContainer& container) override;
   absl::string_view GetDescription() const override;
   ShareType GetShareType() const override;
 

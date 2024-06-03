@@ -19,12 +19,11 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 #include "sharing/advertisement.h"
-#include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_settings.h"
@@ -203,7 +202,7 @@ class NearbySharingService {
   // Sends |attachments| to the remote |share_target|.
   virtual void SendAttachments(
       int64_t share_target_id,
-      std::vector<std::unique_ptr<Attachment>> attachments,
+      std::unique_ptr<AttachmentContainer> attachment_container,
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
   // Accepts incoming share from the remote |share_target|.

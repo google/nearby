@@ -28,8 +28,6 @@ namespace nearby {
 namespace sharing {
 
 // Represents a text attachment.
-class AttachmentContainer;
-
 class TextAttachment : public Attachment {
  public:
   using Type = nearby::sharing::service::proto::TextMetadata::Type;
@@ -55,7 +53,6 @@ class TextAttachment : public Attachment {
   Type type() const { return type_; }
 
   // Attachment:
-  void MoveToContainer(AttachmentContainer& container) override;
   absl::string_view GetDescription() const override;
   ShareType GetShareType() const override;
 
