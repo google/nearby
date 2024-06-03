@@ -16,10 +16,8 @@
 
 #include <stdint.h>
 
-#include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "google/protobuf/duration.pb.h"
 #include "gmock/gmock.h"
@@ -30,7 +28,7 @@
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
-#include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/file_attachment.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
@@ -38,7 +36,6 @@
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
-#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace sharing {
@@ -282,32 +279,27 @@ TEST_F(AnalyticsRecorderTest, NewDescribeAttachments) {
                   SharingLog::FileAttachment::DOCUMENT);
       });
 
-  std::vector<std::unique_ptr<Attachment>> attachments;
-  attachments.push_back(std::make_unique<FileAttachment>(
-      1, 2, std::string(kFileName), "", service::proto::FileMetadata::IMAGE));
-  attachments.push_back(std::make_unique<FileAttachment>(
-      2, 3, std::string(kFileDocumentName), std::string(kFileMimeType),
-      service::proto::FileMetadata::DOCUMENT));
-  attachments.push_back(std::make_unique<FileAttachment>(
-      3, 4, std::string(kFileName), "", service::proto::FileMetadata::AUDIO));
-  attachments.push_back(std::make_unique<FileAttachment>(
-      4, 5, std::string(kFileName), std::string(kTextMimeType),
-      service::proto::FileMetadata::DOCUMENT));
-  attachments.push_back(std::make_unique<TextAttachment>(
-      5, service::proto::TextMetadata::TEXT, std::string(kTextBody),
-      kTextBody.size()));
-  attachments.push_back(std::make_unique<TextAttachment>(
-      6, service::proto::TextMetadata::PHONE_NUMBER, std::string(kTextBody),
-      kTextBody.size()));
-  attachments.push_back(std::make_unique<TextAttachment>(
-      7, service::proto::TextMetadata::URL, std::string(kTextBody),
-      kTextBody.size()));
-  attachments.push_back(std::make_unique<TextAttachment>(
-      8, service::proto::TextMetadata::ADDRESS, std::string(kTextBody),
-      kTextBody.size()));
-  attachments.push_back(std::make_unique<TextAttachment>(
-      9, service::proto::TextMetadata::UNKNOWN, std::string(kTextBody),
-      kTextBody.size()));
+  AttachmentContainer attachments(
+      {TextAttachment(5, service::proto::TextMetadata::TEXT,
+                      std::string(kTextBody), kTextBody.size()),
+       TextAttachment(6, service::proto::TextMetadata::PHONE_NUMBER,
+                      std::string(kTextBody), kTextBody.size()),
+       TextAttachment(7, service::proto::TextMetadata::URL,
+                      std::string(kTextBody), kTextBody.size()),
+       TextAttachment(8, service::proto::TextMetadata::ADDRESS,
+                      std::string(kTextBody), kTextBody.size()),
+       TextAttachment(9, service::proto::TextMetadata::UNKNOWN,
+                      std::string(kTextBody), kTextBody.size())},
+      {FileAttachment(1, 2, std::string(kFileName), "",
+                      service::proto::FileMetadata::IMAGE),
+       FileAttachment(2, 3, std::string(kFileDocumentName),
+                      std::string(kFileMimeType),
+                      service::proto::FileMetadata::DOCUMENT),
+       FileAttachment(3, 4, std::string(kFileName), "",
+                      service::proto::FileMetadata::AUDIO),
+       FileAttachment(4, 5, std::string(kFileName), std::string(kTextMimeType),
+                      service::proto::FileMetadata::DOCUMENT)},
+      {});
 
   analytics_recoder().NewDescribeAttachments(attachments);
 }
@@ -327,8 +319,7 @@ TEST_F(AnalyticsRecorderTest, EmptyDescribeAttachments) {
                   0);
       });
 
-  std::vector<std::unique_ptr<Attachment>> attachments;
-  analytics_recoder().NewDescribeAttachments(attachments);
+  analytics_recoder().NewDescribeAttachments(AttachmentContainer());
 }
 
 TEST_F(AnalyticsRecorderTest, NewDiscoverShareTarget) {
@@ -397,8 +388,7 @@ TEST_F(AnalyticsRecorderTest, NewOpenReceivedAttachments) {
         EXPECT_EQ(log.open_received_attachments().session_id(), 1);
       });
 
-  analytics_recoder().NewOpenReceivedAttachments(
-      std::vector<std::unique_ptr<Attachment>>(), 1);
+  analytics_recoder().NewOpenReceivedAttachments(AttachmentContainer(), 1);
 }
 
 TEST_F(AnalyticsRecorderTest, NewProcessReceivedAttachmentsEnd) {
@@ -453,8 +443,7 @@ TEST_F(AnalyticsRecorderTest, NewReceiveAttachmentsStart) {
                   0);
       });
 
-  analytics_recoder().NewReceiveAttachmentsStart(
-      1, std::vector<std::unique_ptr<Attachment>>());
+  analytics_recoder().NewReceiveAttachmentsStart(1, AttachmentContainer());
 }
 
 TEST_F(AnalyticsRecorderTest, NewReceiveFastInitialization) {
@@ -628,8 +617,8 @@ TEST_F(AnalyticsRecorderTest, NewSendAttachmentsStart) {
         EXPECT_EQ(log.send_attachments_start().concurrent_connections(), 200);
       });
 
-  analytics_recoder().NewSendAttachmentsStart(
-      1, std::vector<std::unique_ptr<Attachment>>(), 100, 200);
+  analytics_recoder().NewSendAttachmentsStart(1, AttachmentContainer(), 100,
+                                              200);
 }
 
 TEST_F(AnalyticsRecorderTest, NewSendFastInitialization) {

@@ -16,13 +16,11 @@
 #define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_H_
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "internal/network/url.h"
-#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/file_attachment.h"
@@ -50,7 +48,6 @@ struct ShareTarget {
   ~ShareTarget();
 
   std::vector<int64_t> GetAttachmentIds() const;
-  std::vector<std::unique_ptr<Attachment>> GetAttachments() const;
   int64_t GetTotalAttachmentsSize() const;
   std::string ToString() const;
 

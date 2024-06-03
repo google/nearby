@@ -91,26 +91,6 @@ std::vector<int64_t> ShareTarget::GetAttachmentIds() const {
   return attachment_ids;
 }
 
-std::vector<std::unique_ptr<Attachment>> ShareTarget::GetAttachments() const {
-  std::vector<std::unique_ptr<Attachment>> attachments;
-  attachments.reserve(attachment_container.GetAttachmentCount());
-  for (const auto& file : attachment_container.GetFileAttachments()) {
-    attachments.push_back(std::make_unique<FileAttachment>(file));
-  }
-
-  for (const auto& text : attachment_container.GetTextAttachments()) {
-    attachments.push_back(std::make_unique<TextAttachment>(text));
-  }
-
-  for (const auto& wifi_credentials :
-       attachment_container.GetWifiCredentialsAttachments()) {
-    attachments.push_back(
-        std::make_unique<WifiCredentialsAttachment>(wifi_credentials));
-  }
-
-  return attachments;
-}
-
 int64_t ShareTarget::GetTotalAttachmentsSize() const {
   return attachment_container.GetTotalAttachmentsSize();
 }

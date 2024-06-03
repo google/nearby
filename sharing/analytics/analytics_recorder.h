@@ -19,13 +19,12 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "internal/analytics/event_logger.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
-#include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/enums.pb.h"
@@ -72,8 +71,7 @@ class AnalyticsRecorder {
       nearby::sharing::proto::DataUsage data_usage,
       std::optional<std::string> referrer_package);
 
-  void NewDescribeAttachments(
-      const std::vector<std::unique_ptr<Attachment>>& attachments);
+  void NewDescribeAttachments(const AttachmentContainer& attachments);
 
   void NewDiscoverShareTarget(
       ShareTarget share_target, int64_t session_id,
@@ -84,9 +82,8 @@ class AnalyticsRecorder {
   void NewEnableNearbySharing(
       location::nearby::proto::sharing::NearbySharingStatus status);
 
-  void NewOpenReceivedAttachments(
-      const std::vector<std::unique_ptr<Attachment>>& attachments,
-      int64_t session_id);
+  void NewOpenReceivedAttachments(const AttachmentContainer& attachments,
+                                  int64_t session_id);
 
   void NewProcessReceivedAttachmentsEnd(
       int64_t session_id,
@@ -98,9 +95,8 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::AttachmentTransmissionStatus status,
       std::optional<std::string> referrer_package);
 
-  void NewReceiveAttachmentsStart(
-      int64_t session_id,
-      const std::vector<std::unique_ptr<Attachment>>& attachments);
+  void NewReceiveAttachmentsStart(int64_t session_id,
+                                  const AttachmentContainer& attachments);
 
   void NewReceiveFastInitialization(int64_t timeElapseSinceScreenUnlockMillis);
 
@@ -138,10 +134,10 @@ class AnalyticsRecorder {
           connection_layer_status,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
-  void NewSendAttachmentsStart(
-      int64_t session_id,
-      const std::vector<std::unique_ptr<Attachment>>& attachments,
-      int transfer_position, int concurrent_connections);
+  void NewSendAttachmentsStart(int64_t session_id,
+                               const AttachmentContainer& attachments,
+                               int transfer_position,
+                               int concurrent_connections);
 
   void NewSendFastInitialization();
 

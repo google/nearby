@@ -18,18 +18,16 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "google/protobuf/duration.pb.h"
 #include "absl/random/random.h"
-#include "absl/strings/str_cat.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/public/logging.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_target.h"
@@ -172,116 +170,95 @@ analytics::proto::SharingLog::ShareTargetInfo* GetAllocatedShareTargetInfo(
 }
 
 analytics::proto::SharingLog::AttachmentsInfo* GenerateAllocatedAttachmentInfo(
-    const std::vector<std::unique_ptr<Attachment>>& attachments) {
+    const AttachmentContainer& attachments) {
   auto attachments_info =
       analytics::proto::SharingLog::AttachmentsInfo::default_instance().New();
 
-  for (auto& attachment : attachments) {
-    int64_t size = attachment->size();
-    if (attachment->family() == Attachment::Family::kText) {
-      analytics::proto::SharingLog::TextAttachment::Type type =
-          analytics::proto::SharingLog::TextAttachment::UNKNOWN_TEXT_TYPE;
-      switch (attachment->GetShareType()) {
-        case ShareType::kPhone:
-          type = analytics::proto::SharingLog::TextAttachment::PHONE_NUMBER;
-          break;
-        case ShareType::kUrl:
-          type = analytics::proto::SharingLog::TextAttachment::URL;
-          break;
-        case ShareType::kAddress:
-          type = analytics::proto::SharingLog::TextAttachment::ADDRESS;
-          break;
-        case ShareType::kText:
-          // Apply UNKNOWN_TEXT_TYPE for it based on analytics design.
-          break;
-        default:
-          break;
-      }
-
-      ::google::protobuf::RepeatedPtrField<analytics::proto::SharingLog_TextAttachment>*
-          text_attachments = attachments_info->mutable_text_attachment();
-      analytics::proto::SharingLog_TextAttachment* text_attachment =
-          analytics::proto::SharingLog::TextAttachment::default_instance()
-              .New();
-      text_attachment->set_type(type);
-      text_attachment->set_size_bytes(size);
-      text_attachment->set_source_type(
-          GetLoggerAttachmentSourceType(attachment->source_type()));
-      text_attachment->set_batch_id(attachment->batch_id());
-      text_attachments->AddAllocated(text_attachment);
-    } else if (attachment->family() == Attachment::Family::kFile) {
-      analytics::proto::SharingLog::FileAttachment::Type type =
-          analytics::proto::SharingLog::FileAttachment::UNKNOWN_FILE_TYPE;
-      switch (attachment->GetShareType()) {
-        case ShareType::kImageFile:
-          type = analytics::proto::SharingLog::FileAttachment::IMAGE;
-          break;
-        case ShareType::kVideoFile:
-          type = analytics::proto::SharingLog::FileAttachment::VIDEO;
-          break;
-        case ShareType::kAudioFile:
-          type = analytics::proto::SharingLog::FileAttachment::AUDIO;
-          break;
-        case ShareType::kPdfFile:
-        case ShareType::kTextFile:
-        case ShareType::kGoogleDocsFile:
-        case ShareType::kGoogleSheetsFile:
-        case ShareType::kGoogleSlidesFile:
-          type = analytics::proto::SharingLog::FileAttachment::DOCUMENT;
-          break;
-        case ShareType::kUnknownFile:
-          // The default type is set to type.
-          break;
-        default:
-          break;
-      }
-
-      ::google::protobuf::RepeatedPtrField<analytics::proto::SharingLog_FileAttachment>*
-          file_attachments = attachments_info->mutable_file_attachment();
-      analytics::proto::SharingLog_FileAttachment* file_attachment =
-          analytics::proto::SharingLog::FileAttachment::default_instance()
-              .New();
-      file_attachment->set_type(type);
-      file_attachment->set_size_bytes(size);
-      file_attachment->set_offset_bytes(0);
-      file_attachment->set_source_type(
-          GetLoggerAttachmentSourceType(attachment->source_type()));
-      file_attachment->set_batch_id(attachment->batch_id());
-      file_attachments->AddAllocated(file_attachment);
-    } else if (attachment->family() == Attachment::Family::kWifiCredentials) {
-      ::google::protobuf::RepeatedPtrField<
-          analytics::proto::SharingLog_WifiCredentialsAttachment>*
-          wifi_credentials_attachments =
-              attachments_info->mutable_wifi_credentials_attachment();
-      analytics::proto::SharingLog_WifiCredentialsAttachment*
-          wifi_credentials_attachment =
-              analytics::proto::SharingLog::WifiCredentialsAttachment::
-                  default_instance()
-                      .New();
-      wifi_credentials_attachment->set_source_type(
-          GetLoggerAttachmentSourceType(attachment->source_type()));
-      wifi_credentials_attachment->set_batch_id(attachment->batch_id());
-      wifi_credentials_attachments->AddAllocated(wifi_credentials_attachment);
-    } else {
-      NL_LOG(WARNING)
-          << __func__
-          << "Unable to create event for attachment info. Unknown attachment "
-          << attachment->id();
-      continue;
+  for (const auto& attachment : attachments.GetTextAttachments()) {
+    analytics::proto::SharingLog::TextAttachment::Type type =
+        analytics::proto::SharingLog::TextAttachment::UNKNOWN_TEXT_TYPE;
+    switch (attachment.GetShareType()) {
+      case ShareType::kPhone:
+        type = analytics::proto::SharingLog::TextAttachment::PHONE_NUMBER;
+        break;
+      case ShareType::kUrl:
+        type = analytics::proto::SharingLog::TextAttachment::URL;
+        break;
+      case ShareType::kAddress:
+        type = analytics::proto::SharingLog::TextAttachment::ADDRESS;
+        break;
+      case ShareType::kText:
+        // Apply UNKNOWN_TEXT_TYPE for it based on analytics design.
+        break;
+      default:
+        break;
     }
+    ::google::protobuf::RepeatedPtrField<analytics::proto::SharingLog_TextAttachment>*
+        text_attachments = attachments_info->mutable_text_attachment();
+    analytics::proto::SharingLog_TextAttachment* text_attachment =
+        analytics::proto::SharingLog::TextAttachment::default_instance().New();
+    text_attachment->set_type(type);
+    text_attachment->set_size_bytes(attachment.size());
+    text_attachment->set_source_type(
+        GetLoggerAttachmentSourceType(attachment.source_type()));
+    text_attachment->set_batch_id(attachment.batch_id());
+    text_attachments->AddAllocated(text_attachment);
   }
 
-  if (attachments_info->file_attachment_size() == 0 &&
-      attachments_info->text_attachment_size() == 0 &&
-      attachments_info->wifi_credentials_attachment_size() == 0) {
-    std::string type =
-        attachments.empty()
-            ? "NULL"
-            : absl::StrCat(static_cast<int>(attachments[0]->GetShareType()));
-    NL_LOG(WARNING) << __func__ << "attachmentInfo is empty, attachment size="
-                    << attachments.size() << ", type=" << type;
+  for (const auto& attachment : attachments.GetFileAttachments()) {
+    analytics::proto::SharingLog::FileAttachment::Type type =
+        analytics::proto::SharingLog::FileAttachment::UNKNOWN_FILE_TYPE;
+    switch (attachment.GetShareType()) {
+      case ShareType::kImageFile:
+        type = analytics::proto::SharingLog::FileAttachment::IMAGE;
+        break;
+      case ShareType::kVideoFile:
+        type = analytics::proto::SharingLog::FileAttachment::VIDEO;
+        break;
+      case ShareType::kAudioFile:
+        type = analytics::proto::SharingLog::FileAttachment::AUDIO;
+        break;
+      case ShareType::kPdfFile:
+      case ShareType::kTextFile:
+      case ShareType::kGoogleDocsFile:
+      case ShareType::kGoogleSheetsFile:
+      case ShareType::kGoogleSlidesFile:
+        type = analytics::proto::SharingLog::FileAttachment::DOCUMENT;
+        break;
+      case ShareType::kUnknownFile:
+        // The default type is set to type.
+        break;
+      default:
+        break;
+    }
+    ::google::protobuf::RepeatedPtrField<analytics::proto::SharingLog_FileAttachment>*
+        file_attachments = attachments_info->mutable_file_attachment();
+    analytics::proto::SharingLog_FileAttachment* file_attachment =
+        analytics::proto::SharingLog::FileAttachment::default_instance().New();
+    file_attachment->set_type(type);
+    file_attachment->set_size_bytes(attachment.size());
+    file_attachment->set_offset_bytes(0);
+    file_attachment->set_source_type(
+        GetLoggerAttachmentSourceType(attachment.source_type()));
+    file_attachment->set_batch_id(attachment.batch_id());
+    file_attachments->AddAllocated(file_attachment);
   }
 
+  for (const auto& attachment : attachments.GetWifiCredentialsAttachments()) {
+    ::google::protobuf::RepeatedPtrField<
+        analytics::proto::SharingLog_WifiCredentialsAttachment>*
+        wifi_credentials_attachments =
+            attachments_info->mutable_wifi_credentials_attachment();
+    analytics::proto::SharingLog_WifiCredentialsAttachment*
+        wifi_credentials_attachment =
+            analytics::proto::SharingLog::WifiCredentialsAttachment::
+                default_instance()
+                    .New();
+    wifi_credentials_attachment->set_source_type(
+        GetLoggerAttachmentSourceType(attachment.source_type()));
+    wifi_credentials_attachment->set_batch_id(attachment.batch_id());
+    wifi_credentials_attachments->AddAllocated(wifi_credentials_attachment);
+  }
   return attachments_info;
 }
 
@@ -437,7 +414,7 @@ void AnalyticsRecorder::NewAdvertiseDevicePresenceStart(
 }
 
 void AnalyticsRecorder::NewDescribeAttachments(
-    const std::vector<std::unique_ptr<Attachment>>& attachments) {
+    const AttachmentContainer& attachments) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
       EventCategory::SENDING_EVENT, EventType::DESCRIBE_ATTACHMENTS);
 
@@ -496,8 +473,7 @@ void AnalyticsRecorder::NewEnableNearbySharing(
 }
 
 void AnalyticsRecorder::NewOpenReceivedAttachments(
-    const std::vector<std::unique_ptr<Attachment>>& attachments,
-    int64_t session_id) {
+    const AttachmentContainer& attachments, int64_t session_id) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
       EventCategory::RECEIVING_EVENT, EventType::OPEN_RECEIVED_ATTACHMENTS);
 
@@ -555,8 +531,7 @@ void AnalyticsRecorder::NewReceiveAttachmentsEnd(
 }
 
 void AnalyticsRecorder::NewReceiveAttachmentsStart(
-    int64_t session_id,
-    const std::vector<std::unique_ptr<Attachment>>& attachments) {
+    int64_t session_id, const AttachmentContainer& attachments) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
       EventCategory::RECEIVING_EVENT, EventType::RECEIVE_ATTACHMENTS_START);
 
@@ -752,8 +727,7 @@ void AnalyticsRecorder::NewSendAttachmentsEnd(
 }
 
 void AnalyticsRecorder::NewSendAttachmentsStart(
-    int64_t session_id,
-    const std::vector<std::unique_ptr<Attachment>>& attachments,
+    int64_t session_id, const AttachmentContainer& attachments,
     int transfer_position, int concurrent_connections) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
       EventCategory::SENDING_EVENT, EventType::SEND_ATTACHMENTS_START);

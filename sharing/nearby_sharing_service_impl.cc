@@ -751,7 +751,7 @@ void NearbySharingServiceImpl::SendAttachments(
                            ShareTarget share_target, bool success) {
                          // Log analytics event of describing attachments.
                          analytics_recorder_->NewDescribeAttachments(
-                             share_target.GetAttachments());
+                             share_target.attachment_container);
 
                          OnCreatePayloads(std::move(endpoint_info),
                                           share_target, success);
@@ -971,7 +971,7 @@ void NearbySharingServiceImpl::Open(
         // Log analytics event of opening received attachments.
         ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
         analytics_recorder_->NewOpenReceivedAttachments(
-            share_target.GetAttachments(),
+            share_target.attachment_container,
             info != nullptr ? info->session_id() : 0);
 
         status_codes_callback(
@@ -2565,7 +2565,7 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::SendPayloads(
   ShareTarget cached_share_target = info->share_target();
   // Log analytics event of sending attachment start.
   analytics_recorder_->NewSendAttachmentsStart(
-      info->session_id(), cached_share_target.GetAttachments(),
+      info->session_id(), cached_share_target.attachment_container,
       /*transfer_position=*/GetConnectedShareTargetPos(share_target),
       /*concurrent_connections=*/GetConnectedShareTargetCount());
 
@@ -2592,7 +2592,7 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
 
   // Log analytics event of starting to receive payloads.
   analytics_recorder_->NewReceiveAttachmentsStart(
-      receiving_session_id_, share_target.GetAttachments());
+      receiving_session_id_, share_target.attachment_container);
 
   info->set_payload_tracker(std::make_shared<PayloadTracker>(
       context_, share_target.id, share_target.attachment_container,
