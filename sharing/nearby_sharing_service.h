@@ -252,10 +252,6 @@ class NearbySharingService {
   virtual void JoinWifiNetwork(absl::string_view ssid,
                                absl::string_view password) = 0;
 
-  // Sets a cleanup callback to be called once done with transfer for ARC.
-  virtual void SetArcTransferCleanupCallback(
-      std::function<void()> callback) = 0;
-
   virtual std::string Dump() const = 0;
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 

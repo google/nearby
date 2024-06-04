@@ -183,7 +183,6 @@ class NearbySharingServiceImpl
   void CopyText(absl::string_view text) override;
   void JoinWifiNetwork(absl::string_view ssid,
                        absl::string_view password) override;
-  void SetArcTransferCleanupCallback(std::function<void()> callback) override;
   NearbyShareSettings* GetSettings() override;
   nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() override;
   NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() override;
@@ -646,9 +645,6 @@ class NearbySharingServiceImpl
   // other events in the queue, or as soon as the previous event processing
   // finishes. When processing finishes, the event is removed from the queue.
   std::queue<std::function<void()>> endpoint_discovery_events_;
-
-  // Called when cleanup for ARC is needed as part of the transfer.
-  std::function<void()> arc_transfer_cleanup_callback_;
 
   // Shouldn't schedule new task after shutting down, and skip task if the
   // object is null.

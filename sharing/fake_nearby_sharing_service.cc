@@ -181,10 +181,6 @@ void FakeNearbySharingService::OpenUrl(const ::nearby::network::Url& url) {}
 // Copies text to cache/clipboard.
 void FakeNearbySharingService::CopyText(absl::string_view text) {}
 
-// Sets a cleanup callback to be called once done with transfer for ARC.
-void FakeNearbySharingService::SetArcTransferCleanupCallback(
-    std::function<void()> callback) {}
-
 std::string FakeNearbySharingService::Dump() const { return ""; }
 
 NearbyShareSettings* FakeNearbySharingService::GetSettings() { return nullptr; }

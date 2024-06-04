@@ -130,9 +130,6 @@ class FakeNearbySharingService : public NearbySharingService {
   // Copies text to cache/clipboard.
   void CopyText(absl::string_view text) override;
 
-  // Sets a cleanup callback to be called once done with transfer for ARC.
-  void SetArcTransferCleanupCallback(std::function<void()> callback) override;
-
   std::string Dump() const override;
 
   NearbyShareSettings* GetSettings() override;

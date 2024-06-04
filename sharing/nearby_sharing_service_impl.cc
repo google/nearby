@@ -1010,26 +1010,6 @@ void NearbySharingServiceImpl::JoinWifiNetwork(absl::string_view ssid,
   });
 }
 
-void NearbySharingServiceImpl::SetArcTransferCleanupCallback(
-    std::function<void()> callback) {
-  // In the case where multiple Nearby Share sessions are started, successive
-  // Nearby Share bubbles shown will prevent the user from sharing while the
-  // initial bubble is still active. For the successive bubble(s), we want to
-  // make sure only the original cleanup callback is valid.
-  // Also in the following case:
-  // 1. CrOS starts a receive transfer.
-  // 2. ARC starts a send transfer and |arc_transfer_cleanup_callback_| is set
-  //    erroneously if |is_transferring_| check is missing.
-  // As multiple transfers cannot occur at the same time, a "Can't Share" error
-  // will occur. When the transfer in [1] finishes and another ARC Nearby Share
-  // session starts, the |arc_transfer_cleanup_callback_| can't be set if a
-  // value is already set to ensure all clean up is performed. Hence, check if
-  // not |is_transferring_| before setting |arc_transfer_cleanup_callback_|.
-  if (!is_transferring_ && arc_transfer_cleanup_callback_ == nullptr) {
-    arc_transfer_cleanup_callback_ = std::move(callback);
-  }
-}
-
 NearbyShareSettings* NearbySharingServiceImpl::GetSettings() {
   return settings_.get();
 }
@@ -2511,13 +2491,6 @@ void NearbySharingServiceImpl::OnTransferComplete() {
   is_receiving_files_ = false;
   is_transferring_ = false;
   is_sending_files_ = false;
-
-  // Cleanup ARC after send transfer completes since reading from file
-  // descriptor(s) are done at this point even though there could be Nearby
-  // Connection frames cached that are not yet sent to the remote device.
-  if (was_sending_files && arc_transfer_cleanup_callback_) {
-    arc_transfer_cleanup_callback_();
-  }
 
   NL_VLOG(1) << __func__ << ": NearbySharing state change transfer finished";
   // Files transfer is done! Receivers can immediately cancel, but senders
