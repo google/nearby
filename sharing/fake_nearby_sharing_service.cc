@@ -31,6 +31,7 @@
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_update_callback.h"
+#include "sharing/wrapped_share_target_discovered_callback.h"
 
 namespace nearby {
 namespace sharing {
@@ -61,11 +62,15 @@ void FakeNearbySharingService::RegisterSendSurface(
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
     std::function<void(StatusCodes)> status_codes_callback) {
   if (state == SendSurfaceState::kForeground) {
-    foreground_send_transfer_callbacks_.AddObserver(transfer_callback);
-    foreground_send_discovered_callbacks_.AddObserver(discovery_callback);
+    foreground_send_surface_map_.insert(
+        {transfer_callback,
+         WrappedShareTargetDiscoveredCallback(
+             discovery_callback, Advertisement::BlockedVendorId::kNone)});
   } else {
-    background_send_transfer_callbacks_.AddObserver(transfer_callback);
-    background_send_discovered_callbacks_.AddObserver(discovery_callback);
+    background_send_surface_map_.insert(
+        {transfer_callback,
+         WrappedShareTargetDiscoveredCallback(
+             discovery_callback, Advertisement::BlockedVendorId::kNone)});
   }
 
   status_codes_callback(StatusCodes::kOk);
@@ -74,12 +79,9 @@ void FakeNearbySharingService::RegisterSendSurface(
 // Unregisters the current send surface.
 void FakeNearbySharingService::UnregisterSendSurface(
     TransferUpdateCallback* transfer_callback,
-    ShareTargetDiscoveredCallback* discovery_callback,
     std::function<void(StatusCodes)> status_codes_callback) {
-  foreground_send_transfer_callbacks_.RemoveObserver(transfer_callback);
-  foreground_send_discovered_callbacks_.RemoveObserver(discovery_callback);
-  background_send_transfer_callbacks_.RemoveObserver(transfer_callback);
-  background_send_discovered_callbacks_.RemoveObserver(discovery_callback);
+  foreground_send_surface_map_.erase(transfer_callback);
+  background_send_surface_map_.erase(transfer_callback);
 
   status_codes_callback(StatusCodes::kOk);
 }
@@ -261,16 +263,14 @@ void FakeNearbySharingService::FireSendTransferUpdate(
     const AttachmentContainer& attachment_container,
     TransferMetadata transfer_metadata) {
   if (state == SendSurfaceState::kForeground) {
-    for (auto& transfer_callback :
-         foreground_send_transfer_callbacks_.GetObservers()) {
-      transfer_callback->OnTransferUpdate(share_target, attachment_container,
-                                          transfer_metadata);
+    for (auto& entry : foreground_send_surface_map_) {
+      entry.first->OnTransferUpdate(share_target, attachment_container,
+                                    transfer_metadata);
     }
   } else {
-    for (auto& transfer_callback :
-         background_send_transfer_callbacks_.GetObservers()) {
-      transfer_callback->OnTransferUpdate(share_target, attachment_container,
-                                          transfer_metadata);
+    for (auto& entry : background_send_surface_map_) {
+      entry.first->OnTransferUpdate(share_target, attachment_container,
+                                    transfer_metadata);
     }
   }
 }
@@ -298,14 +298,12 @@ void FakeNearbySharingService::FireReceiveTransferUpdate(
 void FakeNearbySharingService::FireShareTargetDiscovered(
     SendSurfaceState state, ShareTarget share_target) {
   if (state == SendSurfaceState::kForeground) {
-    for (auto& discovered_callback :
-         foreground_send_discovered_callbacks_.GetObservers()) {
-      discovered_callback->OnShareTargetDiscovered(share_target);
+    for (auto& entry : foreground_send_surface_map_) {
+      entry.second.OnShareTargetDiscovered(share_target);
     }
   } else {
-    for (auto& discovered_callback :
-         background_send_discovered_callbacks_.GetObservers()) {
-      discovered_callback->OnShareTargetDiscovered(share_target);
+    for (auto& entry : background_send_surface_map_) {
+      entry.second.OnShareTargetDiscovered(share_target);
     }
   }
 }
@@ -313,14 +311,12 @@ void FakeNearbySharingService::FireShareTargetDiscovered(
 void FakeNearbySharingService::FireShareTargetLost(SendSurfaceState state,
                                                    ShareTarget share_target) {
   if (state == SendSurfaceState::kForeground) {
-    for (auto& discovered_callback :
-         foreground_send_discovered_callbacks_.GetObservers()) {
-      discovered_callback->OnShareTargetLost(share_target);
+    for (auto& entry : foreground_send_surface_map_) {
+      entry.second.OnShareTargetLost(share_target);
     }
   } else {
-    for (auto& discovered_callback :
-         background_send_discovered_callbacks_.GetObservers()) {
-      discovered_callback->OnShareTargetLost(share_target);
+    for (auto& entry : background_send_surface_map_) {
+      entry.second.OnShareTargetLost(share_target);
     }
   }
 }

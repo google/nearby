@@ -153,7 +153,6 @@ class NearbySharingService {
   // Unregisters the current send surface.
   virtual void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback,
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
   // Registers a receiver surface for handling payload transfer status, and

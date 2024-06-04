@@ -511,14 +511,12 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   NearbySharingService::StatusCodes UnregisterSendSurface(
-      TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback) {
+      TransferUpdateCallback* transfer_callback) {
     NearbySharingService::StatusCodes result =
         NearbySharingService::StatusCodes::kError;
     absl::Notification notification;
     service_->UnregisterSendSurface(
-        transfer_callback, discovery_callback,
-        [&](NearbySharingService::StatusCodes status_codes) {
+        transfer_callback, [&](NearbySharingService::StatusCodes status_codes) {
           result = status_codes;
           notification.Notify();
         });
@@ -1463,7 +1461,7 @@ TEST_F(NearbySharingServiceImplTest, StopFastInitiationAdvertising) {
                                 SendSurfaceState::kForeground),
             NearbySharingService::StatusCodes::kOk);
   EXPECT_EQ(fast_initiation->StartAdvertisingCount(), 1);
-  EXPECT_EQ(UnregisterSendSurface(&transfer_callback, &discovery_callback),
+  EXPECT_EQ(UnregisterSendSurface(&transfer_callback),
             NearbySharingService::StatusCodes::kOk);
   EXPECT_EQ(fast_initiation->StartAdvertisingCount(),
             fast_initiation->StopAdvertisingCount());
@@ -1859,7 +1857,7 @@ TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceStopsDiscovering) {
             NearbySharingService::StatusCodes::kOk);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
 
-  EXPECT_EQ(UnregisterSendSurface(&transfer_callback, &discovery_callback),
+  EXPECT_EQ(UnregisterSendSurface(&transfer_callback),
             NearbySharingService::StatusCodes::kOk);
   EXPECT_FALSE(fake_nearby_connections_manager_->IsDiscovering());
   EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
@@ -1877,7 +1875,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   MockTransferUpdateCallback transfer_callback2;
   MockShareTargetDiscoveredCallback discovery_callback2;
-  EXPECT_EQ(UnregisterSendSurface(&transfer_callback2, &discovery_callback2),
+  EXPECT_EQ(UnregisterSendSurface(&transfer_callback2),
             NearbySharingService::StatusCodes::kError);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
 }
@@ -1887,7 +1885,7 @@ TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceNeverRegistered) {
 
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
-  EXPECT_EQ(UnregisterSendSurface(&transfer_callback, &discovery_callback),
+  EXPECT_EQ(UnregisterSendSurface(&transfer_callback),
             NearbySharingService::StatusCodes::kError);
   EXPECT_FALSE(fake_nearby_connections_manager_->IsDiscovering());
 }
@@ -3441,7 +3439,7 @@ TEST_F(NearbySharingServiceImplTest, SendAttachmentsWithoutAttachments) {
   EXPECT_EQ(SendAttachments(target, /*attachment_container=*/nullptr),
             NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, RegisterReceiveSurfaceWhileSending) {
@@ -3466,7 +3464,7 @@ TEST_F(NearbySharingServiceImplTest, RegisterReceiveSurfaceWhileSending) {
       NearbySharingService::ReceiveSurfaceState::kForeground);
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextAlreadySending) {
@@ -3490,7 +3488,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextAlreadySending) {
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kError);
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextWithoutScanning) {
@@ -3507,7 +3505,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnknownTarget) {
   ShareTarget target;
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextFailedCreateEndpointInfo) {
@@ -3522,7 +3520,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedCreateEndpointInfo) {
   EXPECT_EQ(SendAttachments(target, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kError);
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextFailedToConnect) {
@@ -3545,7 +3543,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedToConnect) {
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextFailedKeyVerification) {
@@ -3571,7 +3569,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedKeyVerification) {
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextUnableToVerifyKey) {
@@ -3597,7 +3595,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnableToVerifyKey) {
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 INSTANTIATE_TEST_SUITE_P(NearbySharingServiceImplSendFailureTest,
@@ -3638,7 +3636,7 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendTextRemoteFailure) {
 
   EXPECT_TRUE(connection_.IsClosed());
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
@@ -3678,7 +3676,7 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
 
   EXPECT_TRUE(connection_.IsClosed());
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
@@ -3744,7 +3742,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
   EXPECT_FALSE(
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
   account_manager().SetAccount(std::nullopt);
 }
 
@@ -3775,7 +3773,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccessClosedConnection) {
   // Make sure the scheduled disconnect callback does nothing.
   FastForward(kOutgoingDisconnectionDelay);
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
@@ -3841,7 +3839,7 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
   EXPECT_TRUE(
       payload_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
@@ -3912,7 +3910,7 @@ TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
   EXPECT_TRUE(
       payload_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, CancelSenderInitiator) {
@@ -3956,7 +3954,7 @@ TEST_F(NearbySharingServiceImplTest, CancelSenderInitiator) {
 
   // After the TransferMetadata::Status::kCancelled update, we expect other
   // classes to unregister the send surface.
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
 
   // The initiator of the cancel should send a cancel frame to the other device,
   // then wait a few seconds before disconnecting to allow for processing on the
@@ -4370,7 +4368,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(0);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                            /*success=*/false);
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
   FastForward(kCertificateDownloadDuringDiscoveryPeriod);
   EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
             1u);
@@ -4471,7 +4469,7 @@ TEST_F(NearbySharingServiceImplTest, RetryDiscoveredEndpointsDownloadLimit) {
   FastForward(kCertificateDownloadDuringDiscoveryPeriod);
   EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
             1u + kMaxCertificateDownloadsDuringDiscovery);
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
   RegisterSendSurface(&transfer_callback, &discovery_callback,
                       SendSurfaceState::kForeground);
   // Note: Certificate downloads are also requested in RegisterSendSurface; this
@@ -4959,7 +4957,7 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
     logout_notification.Notify();
   });
   EXPECT_TRUE(logout_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  UnregisterSendSurface(&transfer_callback, &discovery_callback);
+  UnregisterSendSurface(&transfer_callback);
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 

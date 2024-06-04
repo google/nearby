@@ -499,11 +499,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
 
 void NearbySharingServiceImpl::UnregisterSendSurface(
     TransferUpdateCallback* transfer_callback,
-    ShareTargetDiscoveredCallback* discovery_callback,
     std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_unregister_send_surface",
-      [this, transfer_callback, discovery_callback,
+      [this, transfer_callback,
        status_codes_callback = std::move(status_codes_callback)]() {
         StatusCodes status_codes =
             InternalUnregisterSendSurface(transfer_callback);

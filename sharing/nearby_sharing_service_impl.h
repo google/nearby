@@ -138,7 +138,6 @@ class NearbySharingServiceImpl
       std::function<void(StatusCodes)> status_codes_callback) override;
   void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback,
       std::function<void(StatusCodes)> status_codes_callback) override;
   void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,

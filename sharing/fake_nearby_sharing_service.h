@@ -31,6 +31,7 @@
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_update_callback.h"
+#include "sharing/wrapped_share_target_discovered_callback.h"
 
 namespace nearby {
 namespace sharing {
@@ -57,7 +58,6 @@ class FakeNearbySharingService : public NearbySharingService {
   // Unregisters the current send surface.
   void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback,
       std::function<void(StatusCodes)> status_codes_callback) override;
 
   // Registers a receiver surface for handling payload transfer status.
@@ -169,12 +169,14 @@ class FakeNearbySharingService : public NearbySharingService {
  private:
   ObserverList<Observer> observers_;
   ObserverList<NearbyShareSettings::Observer> settings_observers_;
-  ObserverList<TransferUpdateCallback> foreground_send_transfer_callbacks_;
-  ObserverList<TransferUpdateCallback> background_send_transfer_callbacks_;
-  ObserverList<ShareTargetDiscoveredCallback>
-      foreground_send_discovered_callbacks_;
-  ObserverList<ShareTargetDiscoveredCallback>
-      background_send_discovered_callbacks_;
+  // A mapping of foreground transfer callbacks to foreground send surface data.
+  absl::flat_hash_map<TransferUpdateCallback*,
+                      WrappedShareTargetDiscoveredCallback>
+      foreground_send_surface_map_;
+  // A mapping of background transfer callbacks to background send surface data.
+  absl::flat_hash_map<TransferUpdateCallback*,
+                      WrappedShareTargetDiscoveredCallback>
+      background_send_surface_map_;
   ObserverList<TransferUpdateCallback> foreground_receive_transfer_callbacks_;
   ObserverList<TransferUpdateCallback> background_receive_transfer_callbacks_;
 };
