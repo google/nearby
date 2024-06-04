@@ -16,19 +16,17 @@
 
 #include <cstdint>
 
+#include "sharing/advertisement.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/share_target.h"
 
 namespace nearby {
 namespace sharing {
-namespace {
-constexpr uint8_t kNoVendorId = 0;
-}
 
 bool WrappedShareTargetDiscoveredCallback::ShouldBlockShareTarget(
     const ShareTarget& share_target) const {
-  return blocked_vendor_id_ != kNoVendorId &&
-         share_target.vendor_id == blocked_vendor_id_;
+  return blocked_vendor_id_ != Advertisement::BlockedVendorId::kNone &&
+         share_target.vendor_id == static_cast<uint8_t>(blocked_vendor_id_);
 }
 
 void WrappedShareTargetDiscoveredCallback::OnShareTargetDiscovered(

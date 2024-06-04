@@ -282,6 +282,7 @@ cc_test(
         ":types",
         "//sharing/common:enum",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@platforms//os:windows": [

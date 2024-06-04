@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "sharing/advertisement.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
 
@@ -27,6 +28,7 @@ namespace sharing {
 namespace {
 
 using ::testing::_;
+using BlockedVendorId = Advertisement::BlockedVendorId;
 
 class MockShareTargetDiscoveredCallback : public ShareTargetDiscoveredCallback {
  public:
@@ -44,7 +46,8 @@ ShareTarget GetShareTarget(uint8_t vendor_id) {
 TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksDiscoveryForSameVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/1);
-  WrappedShareTargetDiscoveredCallback wrapped(&callback, /*vendor_id=*/1);
+  WrappedShareTargetDiscoveredCallback wrapped(&callback,
+                                               BlockedVendorId::kSamsung);
   EXPECT_CALL(callback, OnShareTargetDiscovered(_)).Times(0);
   wrapped.OnShareTargetDiscovered(share_target);
 }
@@ -52,7 +55,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksDiscoveryForSameVendorId) {
 TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksUpdatedForSameVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/1);
-  WrappedShareTargetDiscoveredCallback wrapped(&callback, /*vendor_id=*/1);
+  WrappedShareTargetDiscoveredCallback wrapped(&callback,
+                                               BlockedVendorId::kSamsung);
   EXPECT_CALL(callback, OnShareTargetUpdated(_)).Times(0);
   wrapped.OnShareTargetUpdated(share_target);
 }
@@ -60,7 +64,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksUpdatedForSameVendorId) {
 TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksLostForSameVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/1);
-  WrappedShareTargetDiscoveredCallback wrapped(&callback, /*vendor_id=*/1);
+  WrappedShareTargetDiscoveredCallback wrapped(&callback,
+                                               BlockedVendorId::kSamsung);
   EXPECT_CALL(callback, OnShareTargetLost(_)).Times(0);
   wrapped.OnShareTargetLost(share_target);
 }
@@ -69,7 +74,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest,
      DoesNotBlockDiscoveryForDifferentVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/0);
-  WrappedShareTargetDiscoveredCallback wrapped(&callback, /*vendor_id=*/1);
+  WrappedShareTargetDiscoveredCallback wrapped(&callback,
+                                               BlockedVendorId::kSamsung);
   EXPECT_CALL(callback, OnShareTargetLost(_));
   wrapped.OnShareTargetLost(share_target);
 }
@@ -78,7 +84,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest,
      DoesNotBlockUpdatedForDifferentVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/0);
-  WrappedShareTargetDiscoveredCallback wrapped(&callback, /*vendor_id=*/1);
+  WrappedShareTargetDiscoveredCallback wrapped(&callback,
+                                               BlockedVendorId::kSamsung);
   EXPECT_CALL(callback, OnShareTargetLost(_));
   wrapped.OnShareTargetLost(share_target);
 }
@@ -87,7 +94,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest,
      DoesNotBlockLostForDifferentVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/0);
-  WrappedShareTargetDiscoveredCallback wrapped(&callback, /*vendor_id=*/1);
+  WrappedShareTargetDiscoveredCallback wrapped(&callback,
+                                               BlockedVendorId::kSamsung);
   EXPECT_CALL(callback, OnShareTargetLost(_));
   wrapped.OnShareTargetLost(share_target);
 }

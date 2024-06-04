@@ -109,6 +109,7 @@
 #include "sharing/transfer_metadata_builder.h"
 #include "sharing/transfer_update_callback.h"
 #include "sharing/wifi_credentials_attachment.h"
+#include "sharing/wrapped_share_target_discovered_callback.h"
 
 namespace nearby {
 namespace sharing {
@@ -321,10 +322,8 @@ void NearbySharingServiceImpl::Cleanup() {
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
-  foreground_send_transfer_callbacks_.Clear();
-  background_send_transfer_callbacks_.Clear();
-  foreground_send_discovery_callbacks_.Clear();
-  background_send_discovery_callbacks_.Clear();
+  foreground_send_surface_map_.clear();
+  background_send_surface_map_.clear();
 
   last_incoming_metadata_.reset();
   last_outgoing_metadata_.reset();
@@ -364,9 +363,17 @@ void NearbySharingServiceImpl::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
     std::function<void(StatusCodes)> status_codes_callback) {
+  RegisterSendSurface(transfer_callback, discovery_callback, state,
+                      BlockedVendorId::kNone, std::move(status_codes_callback));
+}
+void NearbySharingServiceImpl::RegisterSendSurface(
+    TransferUpdateCallback* transfer_callback,
+    ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
+    BlockedVendorId blocked_vendor_id,
+    std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_send_surface",
-      [this, transfer_callback, discovery_callback, state,
+      [this, transfer_callback, discovery_callback, state, blocked_vendor_id,
        status_codes_callback = std::move(status_codes_callback)]() {
         NL_DCHECK(transfer_callback);
         NL_DCHECK(discovery_callback);
@@ -378,10 +385,8 @@ void NearbySharingServiceImpl::RegisterSendSurface(
                                                                 : "Background")
                      << ", transfer_callback: " << transfer_callback;
 
-        if (foreground_send_transfer_callbacks_.HasObserver(
-                transfer_callback) ||
-            background_send_transfer_callbacks_.HasObserver(
-                transfer_callback)) {
+        if (foreground_send_surface_map_.contains(transfer_callback) ||
+            background_send_surface_map_.contains(transfer_callback)) {
           NL_VLOG(1)
               << __func__
               << ": RegisterSendSurface failed. Already registered for a "
@@ -389,6 +394,17 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
+        BlockedVendorId sending_id = GetSendingVendorId();
+        if (ShouldBlockSurfaceRegistration(blocked_vendor_id, sending_id)) {
+          NL_LOG(INFO) << __func__
+                     << ": RegisterSendSurface failed. Already registered to "
+                        "block a different vendor ID "
+                     << static_cast<uint32_t>(sending_id);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
+        WrappedShareTargetDiscoveredCallback wrapped_callback(
+            discovery_callback, blocked_vendor_id);
 
         if (state == SendSurfaceState::kForeground) {
           // Only check this error case for foreground senders
@@ -399,15 +415,15 @@ void NearbySharingServiceImpl::RegisterSendSurface(
             return;
           }
 
-          foreground_send_transfer_callbacks_.AddObserver(transfer_callback);
-          foreground_send_discovery_callbacks_.AddObserver(discovery_callback);
+          foreground_send_surface_map_.insert(
+              {transfer_callback, wrapped_callback});
         } else {
-          background_send_transfer_callbacks_.AddObserver(transfer_callback);
-          background_send_discovery_callbacks_.AddObserver(discovery_callback);
+          background_send_surface_map_.insert(
+              {transfer_callback, wrapped_callback});
         }
 
         if (is_receiving_files_) {
-          InternalUnregisterSendSurface(transfer_callback, discovery_callback);
+          InternalUnregisterSendSurface(transfer_callback);
           NL_VLOG(1)
               << __func__
               << ": Ignore registering (and unregistering if registered) send "
@@ -423,7 +439,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
             last_outgoing_metadata_.has_value()) {
           // When a new share sheet is registered, we want to immediately show
           // the in-progress bar.
-          discovery_callback->OnShareTargetDiscovered(
+          // TODO(b/341740930): Make sure we absolutely do not deliver updates
+          // to blocked targets, and block any interaction with them if the
+          // request comes from a surface with the blocked vendor ID.
+          wrapped_callback.OnShareTargetDiscovered(
               last_outgoing_metadata_->first);
           transfer_callback->OnTransferUpdate(
               last_outgoing_metadata_->first,
@@ -451,7 +470,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
         // targets from current scanning session.
         if (is_scanning_) {
           for (const auto& item : outgoing_share_target_map_) {
-            discovery_callback->OnShareTargetDiscovered(item.second);
+            NL_LOG(INFO) << "Reporting discovered target "
+                         << item.second.ToString()
+                         << " when registering send surface";
+            wrapped_callback.OnShareTargetDiscovered(item.second);
           }
         }
 
@@ -465,15 +487,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
                    << ": A SendSurface has been registered for state: "
                    << SendSurfaceStateToString(state);
 
-        NL_VLOG(1)
-            << "RegisterSendSurface: foreground_send_transfer_callbacks_:"
-            << foreground_send_transfer_callbacks_.size()
-            << ", foreground_send_discovery_callbacks_:"
-            << foreground_send_discovery_callbacks_.size()
-            << ", background_send_transfer_callbacks_:"
-            << background_send_transfer_callbacks_.size()
-            << ", background_send_discovery_callbacks_"
-            << background_send_discovery_callbacks_.size();
+        NL_VLOG(1) << "RegisterSendSurface: foreground_send_surface_map_:"
+                   << foreground_send_surface_map_.size()
+                   << ", background_send_surface_map_:"
+                   << background_send_surface_map_.size();
 
         InvalidateSendSurfaceState();
         std::move(status_codes_callback)(StatusCodes::kOk);
@@ -488,18 +505,13 @@ void NearbySharingServiceImpl::UnregisterSendSurface(
       "api_unregister_send_surface",
       [this, transfer_callback, discovery_callback,
        status_codes_callback = std::move(status_codes_callback)]() {
-        StatusCodes status_codes = InternalUnregisterSendSurface(
-            transfer_callback, discovery_callback);
+        StatusCodes status_codes =
+            InternalUnregisterSendSurface(transfer_callback);
 
-        NL_VLOG(1)
-            << "UnregisterSendSurface: foreground_send_transfer_callbacks_:"
-            << foreground_send_transfer_callbacks_.size()
-            << ", foreground_send_discovery_callbacks_:"
-            << foreground_send_discovery_callbacks_.size()
-            << ", background_send_transfer_callbacks_:"
-            << background_send_transfer_callbacks_.size()
-            << ", background_send_discovery_callbacks_"
-            << background_send_discovery_callbacks_.size();
+        NL_VLOG(1) << "UnregisterSendSurface: foreground_send_surface_map_:"
+                   << foreground_send_surface_map_.size()
+                   << ", background_send_surface_map_:"
+                   << background_send_surface_map_.size();
 
         std::move(status_codes_callback)(status_codes);
       });
@@ -531,7 +543,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
               StatusCodes::kNoAvailableConnectionMedium);
           return;
         }
-        BlockedVendorId before_registration_vendor_id = GetVendorId();
+        BlockedVendorId before_registration_vendor_id = GetReceivingVendorId();
 
         // We specifically allow re-registering without error, so it is clear to
         // caller that the transfer_callback is currently registered.
@@ -558,7 +570,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                            "that has vendor_id "
                         << static_cast<uint32_t>(vendor_id)
                         << " because the current vendor_id is "
-                        << static_cast<uint32_t>(GetVendorId());
+                        << static_cast<uint32_t>(GetReceivingVendorId());
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
@@ -680,8 +692,8 @@ void NearbySharingServiceImpl::SendAttachments(
         }
 
         // |is_scanning_| means at least one send transfer callback.
-        NL_DCHECK(!foreground_send_transfer_callbacks_.empty() ||
-                  !background_send_transfer_callbacks_.empty());
+        NL_DCHECK(!foreground_send_surface_map_.empty() ||
+                  !background_send_surface_map_.empty());
         // |is_scanning_| and |is_transferring_| are mutually exclusive.
         NL_DCHECK(!is_transferring_);
 
@@ -1089,22 +1101,20 @@ void NearbySharingServiceImpl::OnIncomingConnection(
 
 NearbySharingService::StatusCodes
 NearbySharingServiceImpl::InternalUnregisterSendSurface(
-    TransferUpdateCallback* transfer_callback,
-    ShareTargetDiscoveredCallback* discovery_callback) {
+    TransferUpdateCallback* transfer_callback) {
   NL_DCHECK(transfer_callback);
-  NL_DCHECK(discovery_callback);
   NL_LOG(INFO) << __func__ << ": UnregisterSendSurface is called"
                << ", transfer_callback: " << transfer_callback;
 
-  if (!foreground_send_transfer_callbacks_.HasObserver(transfer_callback) &&
-      !background_send_transfer_callbacks_.HasObserver(transfer_callback)) {
+  if (!foreground_send_surface_map_.contains(transfer_callback) &&
+      !background_send_surface_map_.contains(transfer_callback)) {
     NL_VLOG(1)
         << __func__
         << ": unregisterSendSurface failed. Unknown TransferUpdateCallback";
     return StatusCodes::kError;
   }
 
-  if (!foreground_send_transfer_callbacks_.empty() && last_outgoing_metadata_ &&
+  if (!foreground_send_surface_map_.empty() && last_outgoing_metadata_ &&
       last_outgoing_metadata_->second.is_final_status()) {
     // We already saw the final status in the foreground
     // Nullify it so the next time the user opens sharing, it starts the UI from
@@ -1113,22 +1123,19 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
   }
 
   SendSurfaceState state = SendSurfaceState::kUnknown;
-  if (foreground_send_transfer_callbacks_.HasObserver(transfer_callback)) {
-    foreground_send_transfer_callbacks_.RemoveObserver(transfer_callback);
-    foreground_send_discovery_callbacks_.RemoveObserver(discovery_callback);
+  if (foreground_send_surface_map_.contains(transfer_callback)) {
+    foreground_send_surface_map_.erase(transfer_callback);
     state = SendSurfaceState::kForeground;
   } else {
-    background_send_transfer_callbacks_.RemoveObserver(transfer_callback);
-    background_send_discovery_callbacks_.RemoveObserver(discovery_callback);
+    background_send_surface_map_.erase(transfer_callback);
     state = SendSurfaceState::kBackground;
   }
 
   // Displays the most recent payload status processed by foreground surfaces on
   // background surfaces.
-  if (foreground_send_transfer_callbacks_.empty() && last_outgoing_metadata_) {
-    for (auto& background_transfer_callback :
-         background_send_transfer_callbacks_.GetObservers()) {
-      background_transfer_callback->OnTransferUpdate(
+  if (foreground_send_surface_map_.empty() && last_outgoing_metadata_) {
+    for (auto& background_transfer_callback : background_send_surface_map_) {
+      background_transfer_callback.first->OnTransferUpdate(
           last_outgoing_metadata_->first,
           last_outgoing_metadata_->first.attachment_container,
           last_outgoing_metadata_->second);
@@ -1538,7 +1545,7 @@ void NearbySharingServiceImpl::SetupBluetoothAdapter() {
   InvalidateSurfaceState();
 }
 
-BlockedVendorId NearbySharingServiceImpl::GetVendorId() const {
+BlockedVendorId NearbySharingServiceImpl::GetReceivingVendorId() const {
   // Prefer a vendor ID provided by a foreground surface.
   auto fg_vendor_it =
       std::find_if(foreground_receive_callbacks_map_.begin(),
@@ -1558,6 +1565,28 @@ BlockedVendorId NearbySharingServiceImpl::GetVendorId() const {
                    });
   if (bg_vendor_it != foreground_receive_callbacks_map_.end()) {
     return bg_vendor_it->second;
+  }
+  return BlockedVendorId::kNone;
+}
+
+BlockedVendorId NearbySharingServiceImpl::GetSendingVendorId() const {
+  // Prefer a vendor ID provided by a foreground surface.
+  auto fg_vendor_it = std::find_if(
+      foreground_send_surface_map_.begin(), foreground_send_surface_map_.end(),
+      [](const auto& send_surface) {
+        return send_surface.second.BlockedVendorId() != BlockedVendorId::kNone;
+      });
+  if (fg_vendor_it != foreground_send_surface_map_.end()) {
+    return fg_vendor_it->second.BlockedVendorId();
+  }
+  // Look through background surfaces.
+  auto bg_vendor_it = std::find_if(
+      background_send_surface_map_.begin(), background_send_surface_map_.end(),
+      [](const auto& send_surface) {
+        return send_surface.second.BlockedVendorId() != BlockedVendorId::kNone;
+      });
+  if (bg_vendor_it != background_send_surface_map_.end()) {
+    return bg_vendor_it->second.BlockedVendorId();
   }
   return BlockedVendorId::kNone;
 }
@@ -1617,7 +1646,7 @@ NearbySharingServiceImpl::CreateEndpointInfo(
 
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_key), device_type, device_name,
-      static_cast<uint8_t>(GetVendorId()));
+      static_cast<uint8_t>(GetReceivingVendorId()));
   if (advertisement) {
     return advertisement->ToEndpointInfo();
   } else {
@@ -1763,6 +1792,7 @@ void NearbySharingServiceImpl::OnOutgoingAdvertisementDecoded(
        advertisement_copy =
            *advertisement](std::optional<NearbyShareDecryptedPublicCertificate>
                                decrypted_public_certificate) {
+        NL_LOG(INFO) << __func__ << ": Decrypted public certificate";
         OnOutgoingDecryptedCertificate(endpoint_id_copy, endpoint_info_copy,
                                        advertisement_copy,
                                        decrypted_public_certificate);
@@ -1825,17 +1855,15 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
 
   // Notifies the user that we discovered a device.
   NL_VLOG(1) << __func__ << ": There are "
-             << (foreground_send_discovery_callbacks_.size() +
-                 background_send_discovery_callbacks_.size())
+             << (foreground_send_surface_map_.size() +
+                 background_send_surface_map_.size())
              << " discovery callbacks be called.";
 
-  for (ShareTargetDiscoveredCallback* discovery_callback :
-       foreground_send_discovery_callbacks_.GetObservers()) {
-    discovery_callback->OnShareTargetDiscovered(*share_target);
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetDiscovered(*share_target);
   }
-  for (ShareTargetDiscoveredCallback* discovery_callback :
-       background_send_discovery_callbacks_.GetObservers()) {
-    discovery_callback->OnShareTargetDiscovered(*share_target);
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetDiscovered(*share_target);
   }
 
   NL_VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered "
@@ -1964,7 +1992,7 @@ void NearbySharingServiceImpl::InvalidateScanningState() {
     return;
   }
 
-  if (foreground_send_transfer_callbacks_.empty()) {
+  if (foreground_send_surface_map_.empty()) {
     StopScanning();
     NL_VLOG(1) << __func__
                << ": Stopping discovery because no scanning surface has been "
@@ -2013,11 +2041,12 @@ void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
     return;
   }
 
-  if (foreground_send_transfer_callbacks_.empty()) {
+  if (foreground_send_surface_map_.empty()) {
     StopFastInitiationAdvertising();
-    NL_VLOG(1) << __func__
-               << ": Stopping fast initiation advertising because no send "
-                  "surface is registered.";
+    NL_VLOG(1)
+        << __func__
+        << ": Stopping fast initiation advertising because no foreground send "
+           "surface is registered.";
     return;
   }
 
@@ -2205,7 +2234,7 @@ void NearbySharingServiceImpl::StartScanning() {
   NL_DCHECK(settings_->GetEnabled());
   NL_DCHECK(!is_screen_locked_);
   NL_DCHECK(HasAvailableConnectionMediums());
-  NL_DCHECK(!foreground_send_transfer_callbacks_.empty());
+  NL_DCHECK(!foreground_send_surface_map_.empty());
 
   if (is_scanning_) {
     NL_VLOG(1) << __func__ << ": We're currently scanning, ignoring.";
@@ -2228,7 +2257,7 @@ void NearbySharingServiceImpl::StartScanning() {
         // Log analytics event of starting discovery.
         analytics::AnalyticsInformation analytics_information;
         analytics_information.send_surface_state =
-            foreground_send_discovery_callbacks_.empty()
+            foreground_send_surface_map_.empty()
                 ? analytics::SendSurfaceState::kBackground
                 : analytics::SendSurfaceState::kForeground;
         analytics_recorder_->NewScanForShareTargetsStart(
@@ -2467,23 +2496,11 @@ void NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
     return;
   }
 
-  for (ShareTargetDiscoveredCallback* discovery_callback :
-       foreground_send_discovery_callbacks_.GetObservers()) {
-    if (discovery_callback != nullptr) {
-      discovery_callback->OnShareTargetLost(share_target);
-    } else {
-      NL_LOG(WARNING) << __func__
-                      << "Foreground Discovery Callback is not exist";
-    }
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetLost(share_target);
   }
-  for (ShareTargetDiscoveredCallback* discovery_callback :
-       background_send_discovery_callbacks_.GetObservers()) {
-    if (discovery_callback != nullptr) {
-      discovery_callback->OnShareTargetLost(share_target);
-    } else {
-      NL_LOG(WARNING) << __func__
-                      << "Background Discovery Callback is not exist";
-    }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetLost(share_target);
   }
 
   NL_VLOG(1) << __func__ << ": Reported OnShareTargetLost";
@@ -2726,8 +2743,8 @@ void NearbySharingServiceImpl::SendIntroduction(
 
   NearbyConnection* connection = info->connection();
 
-  if (foreground_send_transfer_callbacks_.empty() &&
-      background_send_transfer_callbacks_.empty()) {
+  if (foreground_send_surface_map_.empty() &&
+      background_send_surface_map_.empty()) {
     NL_LOG(WARNING) << __func__ << ": No transfer callbacks, disconnecting.";
     connection->Close();
     return;
@@ -3230,18 +3247,22 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
     OnTransferStarted(/*is_incoming=*/false);
   }
 
-  bool has_foreground_send_surface =
-      !foreground_send_transfer_callbacks_.empty();
-  ObserverList<TransferUpdateCallback>& transfer_callbacks =
-      has_foreground_send_surface ? foreground_send_transfer_callbacks_
-                                  : background_send_transfer_callbacks_;
+  bool has_foreground_send_surface = !foreground_send_surface_map_.empty();
   if (info) {
     ShareTarget cached_share_target = info->share_target();
     // only call transfer update when having share target info.
-    for (TransferUpdateCallback* callback : transfer_callbacks.GetObservers()) {
-      callback->OnTransferUpdate(cached_share_target,
-                                 cached_share_target.attachment_container,
-                                 metadata);
+    if (has_foreground_send_surface) {
+      for (auto& entry : foreground_send_surface_map_) {
+        entry.first->OnTransferUpdate(cached_share_target,
+                                      cached_share_target.attachment_container,
+                                      metadata);
+      }
+    } else {
+      for (auto& entry : background_send_surface_map_) {
+        entry.first->OnTransferUpdate(cached_share_target,
+                                      cached_share_target.attachment_container,
+                                      metadata);
+      }
     }
 
     // check whether need to send next payload.

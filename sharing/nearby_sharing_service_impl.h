@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -82,6 +83,7 @@
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_update_callback.h"
 #include "sharing/wifi_credentials_attachment.h"
+#include "sharing/wrapped_share_target_discovered_callback.h"
 
 namespace nearby {
 namespace sharing {
@@ -124,9 +126,15 @@ class NearbySharingServiceImpl
   bool HasObserver(NearbySharingService::Observer* observer) override;
   void Shutdown(
       std::function<void(StatusCodes)> status_codes_callback) override;
+  ABSL_DEPRECATED("Use the variant with vendor ID instead.")
   void RegisterSendSurface(
       TransferUpdateCallback* transfer_callback,
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
+      std::function<void(StatusCodes)> status_codes_callback) override;
+  void RegisterSendSurface(
+      TransferUpdateCallback* transfer_callback,
+      ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
+      Advertisement::BlockedVendorId blocked_vendor_id,
       std::function<void(StatusCodes)> status_codes_callback) override;
   void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
@@ -195,8 +203,7 @@ class NearbySharingServiceImpl
  private:
   // Internal implementation of methods to avoid using recursive mutex.
   StatusCodes InternalUnregisterSendSurface(
-      TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback);
+      TransferUpdateCallback* transfer_callback);
   StatusCodes InternalUnregisterReceiveSurface(
       TransferUpdateCallback* transfer_callback);
 
@@ -250,10 +257,16 @@ class NearbySharingServiceImpl
 
   absl::flat_hash_map<TransferUpdateCallback*, Advertisement::BlockedVendorId>&
   GetReceiveCallbacksMapFromState(ReceiveSurfaceState state);
-  // Retrieves the current vendor ID, defaulting to kNone if no surface has been
-  // registered with a different vendor ID. This function will always return one
-  // vendor ID, preferring a foreground surface vendor ID if available.
-  Advertisement::BlockedVendorId GetVendorId() const;
+  // Retrieves the current receiving vendor ID, defaulting to kNone if no
+  // surface has been registered with a different vendor ID. This function will
+  // always return one vendor ID, preferring a foreground surface vendor ID if
+  // available.
+  Advertisement::BlockedVendorId GetReceivingVendorId() const;
+  // Retrieves the current sending vendor ID, defaulting to kNone if no
+  // surface has been registered with a different vendor ID. This function will
+  // always return one vendor ID, preferring a foreground surface vendor ID if
+  // available.
+  Advertisement::BlockedVendorId GetSendingVendorId() const;
   bool IsVisibleInBackground(proto::DeviceVisibility visibility);
   std::optional<std::vector<uint8_t>> CreateEndpointInfo(
       proto::DeviceVisibility visibility,
@@ -530,18 +543,14 @@ class NearbySharingServiceImpl
   // A map of background receiver callbacks -> vendor ID.
   absl::flat_hash_map<TransferUpdateCallback*, Advertisement::BlockedVendorId>
       background_receive_callbacks_map_;
-  // A list of foreground receivers for transfer updates on the send surface.
-  ObserverList<TransferUpdateCallback> foreground_send_transfer_callbacks_;
-  // A list of foreground receivers for discovered device updates on the send
-  // surface.
-  ObserverList<ShareTargetDiscoveredCallback>
-      foreground_send_discovery_callbacks_;
-  // A list of background receivers for transfer updates on the send surface.
-  ObserverList<TransferUpdateCallback> background_send_transfer_callbacks_;
-  // A list of background receivers for discovered device updates on the send
-  // surface.
-  ObserverList<ShareTargetDiscoveredCallback>
-      background_send_discovery_callbacks_;
+  // A mapping of foreground transfer callbacks to foreground send surface data.
+  absl::flat_hash_map<TransferUpdateCallback*,
+                      WrappedShareTargetDiscoveredCallback>
+      foreground_send_surface_map_;
+  // A mapping of background transfer callbacks to background send surface data.
+  absl::flat_hash_map<TransferUpdateCallback*,
+                      WrappedShareTargetDiscoveredCallback>
+      background_send_surface_map_;
 
   // Registers the most recent TransferMetadata and ShareTarget used for
   // transitioning notifications between foreground surfaces and background

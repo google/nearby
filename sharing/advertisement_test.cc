@@ -20,11 +20,22 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/types/span.h"
 #include "sharing/common/nearby_share_enums.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
+
+constexpr uint8_t kQrCodeTlvData[]{
+    0x01,  // QrCode TLV type.
+    0x0f,  // QrCode data length.
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+    0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,  // QR Code data.
+};
+
+constexpr absl::Span<const uint8_t> kQrCodeTlvBytes =
+    absl::MakeConstSpan(kQrCodeTlvData);
 
 struct TestParameters {
   std::vector<uint8_t> salt;
@@ -42,6 +53,18 @@ TEST_P(AdvertisementTest, TestAdvertisementRoundTrip) {
       params.salt, params.encrypted_metadata_key, params.target_type,
       params.target_name, params.vendor_id);
   auto bytes = advertisement->ToEndpointInfo();
+  auto advertisement_from_bytes = Advertisement::FromEndpointInfo(bytes);
+  EXPECT_EQ(*advertisement_from_bytes, *advertisement);
+}
+
+TEST(BadAdvertisementTest, TestTlvParsingOnAdvertisement) {
+  auto advertisement = Advertisement::NewInstance(
+      std::vector<uint8_t>(Advertisement::kSaltSize),
+      std::vector<uint8_t>(Advertisement::kMetadataEncryptionKeyHashByteSize),
+      ShareTargetType::kLaptop, std::nullopt, /*vendor_id=*/1);
+  auto bytes = advertisement->ToEndpointInfo();
+  // Add a TLV field for QR code.
+  bytes.insert(bytes.end(), kQrCodeTlvBytes.begin(), kQrCodeTlvBytes.end());
   auto advertisement_from_bytes = Advertisement::FromEndpointInfo(bytes);
   EXPECT_EQ(*advertisement_from_bytes, *advertisement);
 }

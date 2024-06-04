@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "sharing/advertisement.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
 
@@ -28,17 +29,21 @@ class WrappedShareTargetDiscoveredCallback
     : public ShareTargetDiscoveredCallback {
  public:
   explicit WrappedShareTargetDiscoveredCallback(
-      ShareTargetDiscoveredCallback* callback, uint8_t blocked_vendor_id)
+      ShareTargetDiscoveredCallback* callback,
+      Advertisement::BlockedVendorId blocked_vendor_id)
       : callback_(callback), blocked_vendor_id_(blocked_vendor_id) {}
   void OnShareTargetDiscovered(const ShareTarget& target) override;
   void OnShareTargetUpdated(const ShareTarget& target) override;
   void OnShareTargetLost(const ShareTarget& target) override;
+  const Advertisement::BlockedVendorId& BlockedVendorId() const {
+    return blocked_vendor_id_;
+  }
 
  private:
   bool ShouldBlockShareTarget(const ShareTarget& target) const;
 
   ShareTargetDiscoveredCallback* callback_;
-  const uint8_t blocked_vendor_id_;
+  const Advertisement::BlockedVendorId blocked_vendor_id_;
 };
 }  // namespace sharing
 }  // namespace nearby
