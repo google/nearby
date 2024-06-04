@@ -236,9 +236,12 @@ class NearbySharingService {
   // |share_target|.
   virtual bool DidLocalUserCancelTransfer(int64_t share_target_id) = 0;
 
-  // Opens attachments from the remote |share_target|.
+  // Opens attachments in |attachment_container| from the remote |share_target|.
+  // If |attachment_container| is null, or the container is empty, the status
+  // code will be set to kInvalidArgument.
   virtual void Open(
-      const ShareTarget& share_target,
+      ShareTarget share_target,
+      std::unique_ptr<AttachmentContainer> attachment_container,
       std::function<void(StatusCodes status_codes)> status_codes_callback) = 0;
 
   // Opens an url target on a browser instance.

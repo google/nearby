@@ -4494,14 +4494,30 @@ TEST_F(NearbySharingServiceImplTest, OpenSharedTarget) {
       TextAttachment(TextMetadata::TEXT, "body", "title", "mime"));
   NearbySharingService::StatusCodes result;
   absl::Notification notification;
-  service_->Open(share_target,
+  service_->Open(
+      share_target,
+      std::make_unique<AttachmentContainer>(share_target.attachment_container),
+      [&](NearbySharingService::StatusCodes status_code) {
+        result = status_code;
+        notification.Notify();
+      });
+
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
+}
+
+TEST_F(NearbySharingServiceImplTest, OpenSharedTargetWithEmptyAttachments) {
+  ShareTarget share_target;
+  NearbySharingService::StatusCodes result;
+  absl::Notification notification;
+  service_->Open(share_target, std::make_unique<AttachmentContainer>(),
                  [&](NearbySharingService::StatusCodes status_code) {
                    result = status_code;
                    notification.Notify();
                  });
 
   ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  EXPECT_EQ(result, NearbySharingService::StatusCodes::kInvalidArgument);
 }
 
 TEST_F(NearbySharingServiceImplTest,

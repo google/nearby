@@ -971,22 +971,24 @@ bool NearbySharingServiceImpl::DidLocalUserCancelTransfer(
 }
 
 void NearbySharingServiceImpl::Open(
-    const ShareTarget& share_target,
+    ShareTarget share_target,
+    std::unique_ptr<AttachmentContainer> attachment_container,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
   RunOnAnyThread(
-      "api_open", [this, share_target,
+      "api_open", [this, share_target = std::move(share_target),
+                   attachment_container = std::move(attachment_container),
                    status_codes_callback = std::move(status_codes_callback)]() {
+        if (!attachment_container || !attachment_container->HasAttachments()) {
+          status_codes_callback(StatusCodes::kInvalidArgument);
+          return;
+        }
         NL_LOG(INFO) << __func__ << ": Open is called for share_target: "
                      << share_target.ToString();
-
         // Log analytics event of opening received attachments.
         ShareTargetInfo* info = GetShareTargetInfo(share_target.id);
         analytics_recorder_->NewOpenReceivedAttachments(
-            share_target.attachment_container,
-            info != nullptr ? info->session_id() : 0);
-
-        status_codes_callback(
-            service_extension_->Open(share_target.attachment_container));
+            *attachment_container, info != nullptr ? info->session_id() : 0);
+        status_codes_callback(service_extension_->Open(*attachment_container));
       });
 }
 

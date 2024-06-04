@@ -172,7 +172,8 @@ bool FakeNearbySharingService::DidLocalUserCancelTransfer(
 
 // Opens attachments from the remote |share_target|.
 void FakeNearbySharingService::Open(
-    const ShareTarget& share_target,
+    ShareTarget share_target,
+    std::unique_ptr<AttachmentContainer> attachment_container,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
   status_codes_callback(StatusCodes::kOk);
 }
