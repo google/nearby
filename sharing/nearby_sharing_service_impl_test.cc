@@ -64,6 +64,7 @@
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
 #include "sharing/file_attachment.h"
 #include "sharing/flags/generated/nearby_sharing_feature_flags.h"
+#include "sharing/incoming_share_target_info.h"
 #include "sharing/internal/api/mock_app_info.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -1715,7 +1716,6 @@ TEST_F(NearbySharingServiceImplTest,
       .WillOnce([&](ShareTarget share_target) {
         EXPECT_FALSE(share_target.is_incoming);
         EXPECT_TRUE(share_target.is_known);
-        EXPECT_FALSE(share_target.attachment_container.HasAttachments());
         EXPECT_EQ(share_target.device_name, kDeviceName);
         EXPECT_EQ(share_target.type, kDeviceType);
         EXPECT_TRUE(share_target.device_id);
@@ -1769,7 +1769,6 @@ TEST_F(NearbySharingServiceImplTest, RegisterSendSurfaceEmptyCertificate) {
       .WillOnce([](ShareTarget share_target) {
         EXPECT_FALSE(share_target.is_incoming);
         EXPECT_FALSE(share_target.is_known);
-        EXPECT_FALSE(share_target.attachment_container.HasAttachments());
         EXPECT_EQ(share_target.device_name, kDeviceName);
         EXPECT_FALSE(share_target.image_url);
         EXPECT_EQ(share_target.type, kDeviceType);
@@ -4490,17 +4489,16 @@ TEST_F(NearbySharingServiceImplTest, RetryDiscoveredEndpointsDownloadLimit) {
 
 TEST_F(NearbySharingServiceImplTest, OpenSharedTarget) {
   ShareTarget share_target;
-  share_target.attachment_container.AddTextAttachment(
+  auto container = std::make_unique<AttachmentContainer>();
+  container->AddTextAttachment(
       TextAttachment(TextMetadata::TEXT, "body", "title", "mime"));
   NearbySharingService::StatusCodes result;
   absl::Notification notification;
-  service_->Open(
-      share_target,
-      std::make_unique<AttachmentContainer>(share_target.attachment_container),
-      [&](NearbySharingService::StatusCodes status_code) {
-        result = status_code;
-        notification.Notify();
-      });
+  service_->Open(share_target, std::move(container),
+                 [&](NearbySharingService::StatusCodes status_code) {
+                   result = status_code;
+                   notification.Notify();
+                 });
 
   ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
@@ -5040,7 +5038,10 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
               UnorderedElementsAre("test1.txt", "test2.txt"));
   ShareTarget share_target;
   share_target.is_incoming = true;
-  service_->RemoveIncomingPayloads(share_target);
+  IncomingShareTargetInfo share_target_info(
+      "endpoint_id", share_target,
+      [](const IncomingShareTargetInfo&, const TransferMetadata&) {});
+  service_->RemoveIncomingPayloads(share_target_info);
   EXPECT_EQ(
       fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
           .size(),

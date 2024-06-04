@@ -24,7 +24,7 @@
 #include <optional>
 #include <queue>
 #include <string>
-#include <utility>
+#include <tuple>
 #include <vector>
 
 #include "absl/base/attributes.h"
@@ -323,25 +323,25 @@ class NearbySharingServiceImpl
   void OnTransferStarted(bool is_incoming);
 
   void ReceivePayloads(
-      ShareTarget share_target,
+      ShareTargetInfo& share_target_info,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
-  StatusCodes SendPayloads(const ShareTarget& share_target);
+  StatusCodes SendPayloads(ShareTargetInfo& info);
   void OnPayloadPathsRegistered(
-      const ShareTarget& share_target,
+      ShareTargetInfo& info,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
 
-  void OnOutgoingConnection(const ShareTarget& share_target,
+  void OnOutgoingConnection(OutgoingShareTargetInfo& info,
                             absl::Time connect_start_time,
                             NearbyConnection* connection);
-  void SendIntroduction(const ShareTarget& share_target,
+  void SendIntroduction(OutgoingShareTargetInfo& info,
                         std::optional<std::string> four_digit_token);
 
   void CreatePayloads(OutgoingShareTargetInfo& info,
-                      std::function<void(ShareTarget, bool)> callback);
+                      std::function<void(int64_t, bool)> callback);
   void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
-                        ShareTarget share_target, bool success);
-  void OnOpenFiles(ShareTarget share_target,
-                   std::function<void(ShareTarget, bool)> callback,
+                        int64_t share_target_id, bool success);
+  void OnOpenFiles(int64_t share_target_id,
+                   std::function<void(int64_t, bool)> callback,
                    std::vector<NearbyFileHandler::FileInfo> files);
   std::vector<Payload> CreateTextPayloads(
       const std::vector<TextAttachment>& attachments);
@@ -360,10 +360,12 @@ class NearbySharingServiceImpl
   void OnIncomingAdvertisementDecoded(
       absl::string_view endpoint_id, int64_t placeholder_share_target_id,
       std::unique_ptr<Advertisement> advertisement);
-  void OnIncomingTransferUpdate(const ShareTarget& share_target,
-                                const TransferMetadata& metadata);
-  void OnOutgoingTransferUpdate(const ShareTarget& share_target,
-                                const TransferMetadata& metadata);
+  void OnIncomingTransferUpdate(
+      const IncomingShareTargetInfo& share_target_info,
+      const TransferMetadata& metadata);
+  void OnOutgoingTransferUpdate(
+      OutgoingShareTargetInfo& share_target_info,
+      const TransferMetadata& metadata);
   void CloseConnection(int64_t share_target_id);
   void OnIncomingDecryptedCertificate(
       absl::string_view endpoint_id, const Advertisement& advertisement,
@@ -376,31 +378,31 @@ class NearbySharingServiceImpl
                ::location::nearby::proto::sharing::OSType)>
           callback);
   void OnIncomingConnectionKeyVerificationDone(
-      ShareTarget share_target, std::optional<std::string> four_digit_token,
+      int64_t share_target_id, std::optional<std::string> four_digit_token,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
   void OnOutgoingConnectionKeyVerificationDone(
-      const ShareTarget& share_target,
+      int64_t share_target_id,
       std::optional<std::string> four_digit_token,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
-  void ReceiveIntroduction(ShareTarget share_target,
+  void ReceiveIntroduction(const IncomingShareTargetInfo& info,
                            std::optional<std::string> four_digit_token);
   void OnReceivedIntroduction(
-      ShareTarget share_target, std::optional<std::string> four_digit_token,
+      int64_t share_target_id, std::optional<std::string> four_digit_token,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void ReceiveConnectionResponse(ShareTarget share_target);
+  void ReceiveConnectionResponse(ShareTargetInfo& info);
   void OnReceiveConnectionResponse(
-      ShareTarget share_target,
+      int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void OnStorageCheckCompleted(ShareTarget share_target,
+  void OnStorageCheckCompleted(int64_t share_target_id,
                                std::optional<std::string> four_digit_token,
                                bool is_out_of_storage);
   void OnFrameRead(
-      ShareTarget share_target,
+      int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void HandleProgressUpdateFrame(
-      const ShareTarget& share_target,
+      int64_t share_target_id,
       const nearby::sharing::service::proto::ProgressUpdateFrame&
           progress_update_frame);
 
@@ -419,8 +421,8 @@ class NearbySharingServiceImpl
 
   void OnPayloadTransferUpdate(int64_t share_target_id,
                                TransferMetadata metadata);
-  bool OnIncomingPayloadsComplete(ShareTarget& share_target);
-  void RemoveIncomingPayloads(ShareTarget share_target);
+  bool OnIncomingPayloadsComplete(int64_t share_target_id);
+  void RemoveIncomingPayloads(const IncomingShareTargetInfo& share_target_info);
   void Disconnect(int64_t share_target_id, TransferMetadata metadata);
   void OnDisconnectingConnectionTimeout(absl::string_view endpoint_id);
 
@@ -485,7 +487,7 @@ class NearbySharingServiceImpl
                       absl::AnyInvocable<void()> task);
 
   // Returns a 1-based position.It is used by group share feature.
-  int GetConnectedShareTargetPos(const ShareTarget& target);
+  int GetConnectedShareTargetPos();
 
   // Returns the share target count. It is used by group share feature.
   int GetConnectedShareTargetCount();
@@ -497,7 +499,7 @@ class NearbySharingServiceImpl
   TransportType GetTransportType(const AttachmentContainer& container) const;
 
   // Update file path for the file attachment.
-  void UpdateFilePath(ShareTarget& share_target);
+  void UpdateFilePath(AttachmentContainer& container);
   // Returns true if Shutdown() has been called.
   bool IsShuttingDown();
 
@@ -554,10 +556,10 @@ class NearbySharingServiceImpl
   // Registers the most recent TransferMetadata and ShareTarget used for
   // transitioning notifications between foreground surfaces and background
   // surfaces. Empty if no metadata is available.
-  std::optional<std::pair<ShareTarget, TransferMetadata>>
+  std::optional<std::tuple<ShareTarget, AttachmentContainer, TransferMetadata>>
       last_incoming_metadata_;
   // The most recent outgoing TransferMetadata and ShareTarget.
-  std::optional<std::pair<ShareTarget, TransferMetadata>>
+  std::optional<std::tuple<ShareTarget, AttachmentContainer, TransferMetadata>>
       last_outgoing_metadata_;
   // A map of ShareTarget id to IncomingShareTargetInfo. This lets us know which
   // Nearby Connections endpoint and public certificate are related to the
