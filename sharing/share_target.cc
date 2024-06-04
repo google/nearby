@@ -16,7 +16,6 @@
 
 #include <cinttypes>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -26,11 +25,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "internal/network/url.h"
-#include "sharing/attachment.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/file_attachment.h"
-#include "sharing/text_attachment.h"
-#include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby {
 namespace sharing {
@@ -45,17 +40,11 @@ ShareTarget::ShareTarget() { id = ++kLastGeneratedId; }
 
 ShareTarget::ShareTarget(
     std::string device_name, Url image_url, ShareTargetType type,
-    std::vector<TextAttachment> text_attachments,
-    std::vector<FileAttachment> file_attachments,
-    std::vector<WifiCredentialsAttachment> wifi_credentials_attachments,
     bool is_incoming, std::optional<std::string> full_name, bool is_known,
     std::optional<std::string> device_id, bool for_self_share)
     : device_name(std::move(device_name)),
       image_url(std::move(image_url)),
       type(type),
-      attachment_container(std::move(text_attachments),
-                           std::move(file_attachments),
-                           std::move(wifi_credentials_attachments)),
       is_incoming(is_incoming),
       full_name(std::move(full_name)),
       is_known(is_known),
@@ -74,27 +63,6 @@ ShareTarget& ShareTarget::operator=(ShareTarget&&) = default;
 
 ShareTarget::~ShareTarget() = default;
 
-std::vector<int64_t> ShareTarget::GetAttachmentIds() const {
-  std::vector<int64_t> attachment_ids;
-
-  attachment_ids.reserve(attachment_container.GetAttachmentCount());
-  for (const auto& file : attachment_container.GetFileAttachments())
-    attachment_ids.push_back(file.id());
-
-  for (const auto& text : attachment_container.GetTextAttachments())
-    attachment_ids.push_back(text.id());
-
-  for (const auto& wifi_credentials :
-       attachment_container.GetWifiCredentialsAttachments())
-    attachment_ids.push_back(wifi_credentials.id());
-
-  return attachment_ids;
-}
-
-int64_t ShareTarget::GetTotalAttachmentsSize() const {
-  return attachment_container.GetTotalAttachmentsSize();
-}
-
 std::string ShareTarget::ToString() const {
   std::vector<std::string> fmt;
 
@@ -109,6 +77,7 @@ std::string ShareTarget::ToString() const {
   if (device_id) {
     fmt.push_back(absl::StrFormat("device_id: %s", *device_id));
   }
+  /*
   fmt.push_back(
       absl::StrFormat("file_attachments_size: %d",
                       attachment_container.GetFileAttachments().size()));
@@ -118,6 +87,7 @@ std::string ShareTarget::ToString() const {
   fmt.push_back(absl::StrFormat(
       "wifi_credentials_attachments_size: %d",
       attachment_container.GetWifiCredentialsAttachments().size()));
+  */
   fmt.push_back(absl::StrFormat("is_known: %d", is_known));
   fmt.push_back(absl::StrFormat("is_incoming: %d", is_incoming));
   fmt.push_back(absl::StrFormat("for_self_share: %d", for_self_share));

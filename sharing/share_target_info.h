@@ -16,7 +16,6 @@
 #define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -24,6 +23,7 @@
 
 #include "absl/time/time.h"
 #include "proto/sharing_enums.pb.h"
+#include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/nearby_connection.h"
@@ -40,9 +40,7 @@ namespace sharing {
 class ShareTargetInfo {
  public:
   ShareTargetInfo(
-      std::string endpoint_id, const ShareTarget& share_target,
-      std::function<void(const ShareTarget&, const TransferMetadata&)>
-          transfer_update_callback);
+      std::string endpoint_id, const ShareTarget& share_target);
   ShareTargetInfo(ShareTargetInfo&&);
   ShareTargetInfo& operator=(ShareTargetInfo&&);
   virtual ~ShareTargetInfo();
@@ -87,7 +85,7 @@ class ShareTargetInfo {
   }
 
   std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
-  payload_tracker() {
+  payload_tracker() const {
     return payload_tracker_->GetWeakPtr();
   }
 
@@ -95,11 +93,11 @@ class ShareTargetInfo {
     payload_tracker_ = std::move(payload_tracker);
   }
 
-  int64_t session_id() { return session_id_; }
+  int64_t session_id() const { return session_id_; }
 
   void set_session_id(int64_t session_id) { session_id_ = session_id; }
 
-  std::optional<absl::Time> connection_start_time() {
+  std::optional<absl::Time> connection_start_time() const {
     return connection_start_time_;
   }
 
@@ -108,7 +106,9 @@ class ShareTargetInfo {
     connection_start_time_ = connection_start_time;
   }
 
-  ::location::nearby::proto::sharing::OSType os_type() { return os_type_; }
+  ::location::nearby::proto::sharing::OSType os_type() const {
+    return os_type_;
+  }
 
   void set_os_type(::location::nearby::proto::sharing::OSType os_type) {
     os_type_ = os_type;
@@ -116,9 +116,7 @@ class ShareTargetInfo {
 
   bool self_share() const { return self_share_; }
 
-  void set_share_target(const ShareTarget& share_target);
-
-  ShareTarget share_target() const { return share_target_; }
+  const ShareTarget& share_target() const { return share_target_; }
 
   // Sets the status to send in the TransferMetadataUpdate on connection
   // disconnect. If |status| is kUnknown, then no TransferMetadataUpdate will be
@@ -130,6 +128,20 @@ class ShareTargetInfo {
   }
 
   void OnDisconnect();
+  void SetAttachmentContainer(AttachmentContainer container) {
+    attachment_container_ = std::move(container);
+  }
+  const AttachmentContainer& attachment_container() const {
+    return attachment_container_;
+  }
+
+  AttachmentContainer& mutable_attachment_container() {
+    return attachment_container_;
+  }
+
+ protected:
+  virtual void InvokeTransferUpdateCallback(
+      const TransferMetadata& metadata) = 0;
 
  private:
   std::string endpoint_id_;
@@ -146,12 +158,11 @@ class ShareTargetInfo {
   bool self_share_ = false;
   ShareTarget share_target_;
   bool got_final_status_ = false;
-  std::function<void(const ShareTarget&, const TransferMetadata&)>
-      transfer_update_callback_;
   // The status sent in the TransferMetadataUpdate on connection disconnect.
   // If status is kUnknown, then no TransferMetadataUpdate will be sent.
   TransferMetadata::Status disconnect_status_ =
       TransferMetadata::Status::kUnknown;
+  AttachmentContainer attachment_container_;
 };
 
 }  // namespace sharing

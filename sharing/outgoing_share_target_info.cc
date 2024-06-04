@@ -30,10 +30,10 @@ namespace sharing {
 
 OutgoingShareTargetInfo::OutgoingShareTargetInfo(
     std::string endpoint_id, const ShareTarget& share_target,
-    std::function<void(const ShareTarget&, const TransferMetadata&)>
+    std::function<void(OutgoingShareTargetInfo&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareTargetInfo(std::move(endpoint_id), share_target,
-                      std::move(transfer_update_callback)) {}
+    : ShareTargetInfo(std::move(endpoint_id), share_target),
+      transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 OutgoingShareTargetInfo::OutgoingShareTargetInfo(OutgoingShareTargetInfo&&) =
     default;
@@ -42,6 +42,11 @@ OutgoingShareTargetInfo& OutgoingShareTargetInfo::operator=(
     OutgoingShareTargetInfo&&) = default;
 
 OutgoingShareTargetInfo::~OutgoingShareTargetInfo() = default;
+
+void OutgoingShareTargetInfo::InvokeTransferUpdateCallback(
+    const TransferMetadata& metadata) {
+  transfer_update_callback_(*this, metadata);
+}
 
 std::vector<Payload> OutgoingShareTargetInfo::ExtractTextPayloads() {
   return std::move(text_payloads_);

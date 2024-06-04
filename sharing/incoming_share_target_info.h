@@ -26,15 +26,23 @@ namespace sharing {
 
 class IncomingShareTargetInfo : public ShareTargetInfo {
  public:
-  IncomingShareTargetInfo(
-      std::string endpoint_id, const ShareTarget& share_target,
-      std::function<void(const ShareTarget&, const TransferMetadata&)>
-          transfer_update_callback);
+  IncomingShareTargetInfo(std::string endpoint_id,
+                          const ShareTarget& share_target,
+                          std::function<void(const IncomingShareTargetInfo&,
+                                             const TransferMetadata&)>
+                              transfer_update_callback);
   IncomingShareTargetInfo(IncomingShareTargetInfo&&);
   IncomingShareTargetInfo& operator=(IncomingShareTargetInfo&&);
   ~IncomingShareTargetInfo() override;
 
   bool IsIncoming() const override { return true; }
+
+ protected:
+  void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
+
+ private:
+  std::function<void(const IncomingShareTargetInfo&, const TransferMetadata&)>
+      transfer_update_callback_;
 };
 
 }  // namespace sharing

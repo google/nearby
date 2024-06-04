@@ -20,9 +20,6 @@
 #include "gtest/gtest.h"
 #include "internal/network/url.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/file_attachment.h"
-#include "sharing/text_attachment.h"
-#include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby {
 namespace sharing {
@@ -38,9 +35,6 @@ std::vector<ShareTargetToStringTestData> GetTestData() {
   ShareTarget share_target2{"test_name",
                             ::nearby::network::Url(),
                             ShareTargetType::kPhone,
-                            std::vector<TextAttachment>(),
-                            std::vector<FileAttachment>(),
-                            std::vector<WifiCredentialsAttachment>(),
                             /* is_incoming */ true,
                             "test_full_name",
                             /* is_known */ false,
@@ -53,16 +47,12 @@ std::vector<ShareTargetToStringTestData> GetTestData() {
       ShareTargetToStringTestData>* kShareTargetToStringTestData =
       new std::vector<ShareTargetToStringTestData>({
           {share_target1,
-           "ShareTarget<id: 1, device_name: , "
-           "file_attachments_size: 0, text_attachments_size: 0, "
-           "wifi_credentials_attachments_size: 0, is_known: 0, is_incoming: 0, "
+           "ShareTarget<id: 1, device_name: , is_known: 0, is_incoming: 0, "
            "for_self_share: 0, vendor_id: 0>"},
           {share_target2,
            "ShareTarget<id: 2, device_name: test_name, full_name: "
            "test_full_name, image_url: ://:0, device_id: test_device_id, "
-           "file_attachments_size: 0, text_attachments_size: 0, "
-           "wifi_credentials_attachments_size: 0, is_known: 0, is_incoming: 1, "
-           "for_self_share: 1, vendor_id: 0>"},
+           "is_known: 0, is_incoming: 1, for_self_share: 1, vendor_id: 0>"},
       });
 
   return *kShareTargetToStringTestData;

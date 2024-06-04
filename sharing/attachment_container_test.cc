@@ -14,7 +14,9 @@
 
 #include "sharing/attachment_container.h"
 
+#include <cstdint>
 #include <filesystem>  // NOLINT
+#include <optional>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -58,8 +60,10 @@ bool operator==(const WifiCredentialsAttachment& lhs,
 namespace {
 
 using testing::Eq;
+using testing::IsEmpty;
 using testing::IsFalse;
 using testing::IsTrue;
+using testing::SizeIs;
 using testing::UnorderedElementsAre;
 
 class AttachmentContainerTest : public ::testing::Test {
@@ -76,7 +80,7 @@ class AttachmentContainerTest : public ::testing::Test {
                "text/plain",
                /*batch_id=*/456547,
                nearby::sharing::Attachment::SourceType::kContextMenu),
-        file1_(/*id=*/436346, /*size=*/100000, "someFileName", "image/jpeg",
+        file1_(/*id=*/436346L, /*size=*/100000, "someFileName", "image/jpeg",
                nearby::sharing::service::proto::FileMetadata::IMAGE,
                "/usr/local/tmp", /*batch_id=*/66657L,
                nearby::sharing::Attachment::SourceType::kSelectFilesButton),
@@ -186,5 +190,38 @@ TEST_F(AttachmentContainerTest, HasAttachments) {
   EXPECT_THAT(container.HasAttachments(), IsTrue());
 }
 
+TEST_F(AttachmentContainerTest, ClearAttachments) {
+  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
+                                std::vector<FileAttachment>{file1_},
+                                std::vector<WifiCredentialsAttachment>{wifi1_});
+
+  container.ClearAttachments();
+
+  EXPECT_THAT(container.GetTextAttachments(), SizeIs(2));
+  EXPECT_THAT(container.GetTextAttachments()[0].text_body(), IsEmpty());
+  EXPECT_THAT(container.GetTextAttachments()[1].text_body(), IsEmpty());
+  EXPECT_THAT(container.GetFileAttachments(), SizeIs(1));
+  EXPECT_THAT(container.GetFileAttachments()[0].file_path(), Eq(std::nullopt));
+  EXPECT_THAT(container.GetWifiCredentialsAttachments(), SizeIs(1));
+  EXPECT_THAT(container.GetWifiCredentialsAttachments()[0].password(),
+              IsEmpty());
+  EXPECT_THAT(container.GetWifiCredentialsAttachments()[0].is_hidden(),
+              IsFalse());
+}
+
+TEST_F(AttachmentContainerTest, GetAttachmentIds) {
+  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
+                                std::vector<FileAttachment>{file1_},
+                                std::vector<WifiCredentialsAttachment>{wifi1_});
+
+  std::vector<int64_t> attachment_ids = container.GetAttachmentIds();
+
+  EXPECT_THAT(attachment_ids, SizeIs(4));
+  EXPECT_THAT(attachment_ids,
+              UnorderedElementsAre(text1_.id(), text2_.id(), file1_.id(),
+                                   wifi1_.id()));
+}
+
 }  // namespace
+
 }  // namespace nearby::sharing
