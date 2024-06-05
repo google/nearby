@@ -14,12 +14,10 @@
 
 #include "sharing/share_target_info.h"
 
-#include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "sharing/share_target.h"
@@ -28,38 +26,42 @@
 
 namespace nearby::sharing {
 namespace {
-using testing::_;
-using testing::Eq;
-using testing::Invoke;
-using testing::IsTrue;
-using testing::MockFunction;
 
 constexpr absl::string_view kEndpointId = "12345";
 
+// A test class which makes ShareTargetInfo testable since the class is
+// abstract.
 class TestShareTargetInfo : public ShareTargetInfo {
  public:
   TestShareTargetInfo(
-      std::string endpoint_id, const ShareTarget& share_target,
-      std::function<void(const ShareTarget&, const TransferMetadata&)>
-          transfer_update_callback)
-      : ShareTargetInfo(std::move(endpoint_id), share_target,
-                        std::move(transfer_update_callback)),
+      std::string endpoint_id, const ShareTarget& share_target)
+      : ShareTargetInfo(std::move(endpoint_id), share_target),
         is_incoming_(share_target.is_incoming) {}
 
   bool IsIncoming() const override { return is_incoming_; }
 
+  int TransferUpdateCount() { return transfer_update_count_; }
+
+  std::optional<TransferMetadata> LastTransferMetadata() {
+    return last_transfer_metadata_;
+  }
+
+ protected:
+  void InvokeTransferUpdateCallback(
+      const TransferMetadata& metadata) override {
+    ++transfer_update_count_;
+    last_transfer_metadata_ = metadata;
+  }
+
  private:
   const bool is_incoming_;
+  int transfer_update_count_ = 0;
+  std::optional<TransferMetadata> last_transfer_metadata_;
 };
 
 TEST(ShareTargetInfoTest, UpdateTransferMetadata) {
-  MockFunction<void(const ShareTarget&, const TransferMetadata&)>
-      update_callback;
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target,
-                           update_callback.AsStdFunction());
-
-  EXPECT_CALL(update_callback, Call(_, _)).Times(2);
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
 
   info.UpdateTransferMetadata(
       TransferMetadataBuilder()
@@ -69,16 +71,13 @@ TEST(ShareTargetInfoTest, UpdateTransferMetadata) {
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
+
+  EXPECT_EQ(info.TransferUpdateCount(), 2);
 }
 
 TEST(ShareTargetInfoTest, UpdateTransferMetadataAfterFinalStatus) {
-  MockFunction<void(const ShareTarget&, const TransferMetadata&)>
-      update_callback;
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target,
-                           update_callback.AsStdFunction());
-
-  EXPECT_CALL(update_callback, Call(_, _));
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
 
   info.UpdateTransferMetadata(
       TransferMetadataBuilder()
@@ -88,36 +87,31 @@ TEST(ShareTargetInfoTest, UpdateTransferMetadataAfterFinalStatus) {
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
+
+  EXPECT_EQ(info.TransferUpdateCount(), 1);
 }
 
 TEST(ShareTargetInfoTest, SetDisconnectStatus) {
-  MockFunction<void(const ShareTarget&, const TransferMetadata&)>
-      update_callback;
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target,
-                           update_callback.AsStdFunction());
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
 
   info.set_disconnect_status(TransferMetadata::Status::kCancelled);
   EXPECT_EQ(info.disconnect_status(), TransferMetadata::Status::kCancelled);
 }
 
 TEST(ShareTargetInfoTest, OnDisconnect) {
-  MockFunction<void(const ShareTarget&, const TransferMetadata&)>
-      update_callback;
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target,
-                           update_callback.AsStdFunction());
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
   info.set_disconnect_status(TransferMetadata::Status::kCancelled);
   EXPECT_EQ(info.disconnect_status(), TransferMetadata::Status::kCancelled);
-  EXPECT_CALL(update_callback, Call(_, _))
-      .WillOnce(Invoke([](const ShareTarget& share_target,
-                          const TransferMetadata& transfer_metadata) {
-        EXPECT_THAT(transfer_metadata.status(),
-                    Eq(TransferMetadata::Status::kCancelled));
-        EXPECT_THAT(transfer_metadata.is_final_status(), IsTrue());
-      }));
 
   info.OnDisconnect();
+
+  EXPECT_EQ(info.TransferUpdateCount(), 1);
+  ASSERT_TRUE(info.LastTransferMetadata().has_value());
+  EXPECT_EQ(info.LastTransferMetadata()->status(),
+            TransferMetadata::Status::kCancelled);
+  EXPECT_TRUE(info.LastTransferMetadata()->is_final_status());
 }
 
 }  // namespace

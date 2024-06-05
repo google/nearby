@@ -44,7 +44,7 @@ class AnalyticsRecorder {
       int64_t session_id,
       location::nearby::proto::sharing::EstablishConnectionStatus
           connection_status,
-      ShareTarget share_target, int transfer_position,
+      const ShareTarget& share_target, int transfer_position,
       int concurrent_connections, int64_t duration_millis,
       std::optional<std::string> referrer_package);
 
@@ -74,7 +74,7 @@ class AnalyticsRecorder {
   void NewDescribeAttachments(const AttachmentContainer& attachments);
 
   void NewDiscoverShareTarget(
-      ShareTarget share_target, int64_t session_id,
+      const ShareTarget& share_target, int64_t session_id,
       int64_t latency_since_scanning_start_millis, int64_t flow_id,
       std::optional<std::string> referrer_package,
       int64_t latency_since_send_surface_registered_millis);
@@ -105,7 +105,7 @@ class AnalyticsRecorder {
   void NewDismissFastInitialization();
 
   void NewReceiveIntroduction(
-      int64_t session_id, ShareTarget share_target,
+      int64_t session_id, const ShareTarget& share_target,
       std::optional<std::string> referrer_package,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
@@ -126,7 +126,7 @@ class AnalyticsRecorder {
       std::optional<std::string> referrer_package);
 
   void NewSendAttachmentsEnd(
-      int64_t session_id, int64_t sent_bytes, ShareTarget share_target,
+      int64_t session_id, int64_t sent_bytes, const ShareTarget& share_target,
       location::nearby::proto::sharing::AttachmentTransmissionStatus status,
       int transfer_position, int concurrent_connections,
       int64_t duration_millis, std::optional<std::string> referrer_package,
@@ -142,7 +142,8 @@ class AnalyticsRecorder {
   void NewSendFastInitialization();
 
   void NewSendStart(int64_t session_id, int transfer_position,
-                    int concurrent_connections, ShareTarget share_target);
+                    int concurrent_connections,
+                    const ShareTarget& share_target);
 
   void NewSendIntroduction(
       ShareTargetType target_type, int64_t session_id,
@@ -150,8 +151,8 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::OSType share_target_os_type);
 
   void NewSendIntroduction(
-      int64_t session_id, ShareTarget share_target, int transfer_position,
-      int concurrent_connections,
+      int64_t session_id, const ShareTarget& share_target,
+      int transfer_position, int concurrent_connections,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
   void NewSetVisibility(nearby::sharing::proto::DeviceVisibility src_visibility,

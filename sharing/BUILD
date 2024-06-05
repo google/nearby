@@ -85,7 +85,6 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
-        ":attachments",
         ":connection_types",
         "//internal/network:url",
         "//sharing/common:enum",
@@ -581,7 +580,6 @@ cc_test(
     name = "share_target_test",
     srcs = ["share_target_test.cc"],
     deps = [
-        ":attachments",
         ":types",
         "//internal/network:url",
         "//sharing/common:enum",

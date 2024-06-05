@@ -27,10 +27,10 @@ namespace sharing {
 
 IncomingShareTargetInfo::IncomingShareTargetInfo(
     std::string endpoint_id, const ShareTarget& share_target,
-    std::function<void(const ShareTarget&, const TransferMetadata&)>
+    std::function<void(const IncomingShareTargetInfo&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareTargetInfo(std::move(endpoint_id), share_target,
-                      std::move(transfer_update_callback)) {}
+    : ShareTargetInfo(std::move(endpoint_id), share_target),
+      transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 IncomingShareTargetInfo::IncomingShareTargetInfo(IncomingShareTargetInfo&&) =
     default;
@@ -39,6 +39,11 @@ IncomingShareTargetInfo& IncomingShareTargetInfo::operator=(
     IncomingShareTargetInfo&&) = default;
 
 IncomingShareTargetInfo::~IncomingShareTargetInfo() = default;
+
+void IncomingShareTargetInfo::InvokeTransferUpdateCallback(
+    const TransferMetadata& metadata) {
+  transfer_update_callback_(*this, metadata);
+}
 
 }  // namespace sharing
 }  // namespace nearby

@@ -18,14 +18,9 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "internal/network/url.h"
-#include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/file_attachment.h"
-#include "sharing/text_attachment.h"
-#include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby {
 namespace sharing {
@@ -36,9 +31,7 @@ struct ShareTarget {
   ShareTarget();
   ShareTarget(
       std::string device_name, ::nearby::network::Url image_url,
-      ShareTargetType type, std::vector<TextAttachment> text_attachments,
-      std::vector<FileAttachment> file_attachments,
-      std::vector<WifiCredentialsAttachment> wifi_credentials_attachments,
+      ShareTargetType type,
       bool is_incoming, std::optional<std::string> full_name, bool is_known,
       std::optional<std::string> device_id, bool for_self_share);
   ShareTarget(const ShareTarget&);
@@ -47,8 +40,6 @@ struct ShareTarget {
   ShareTarget& operator=(ShareTarget&&);
   ~ShareTarget();
 
-  std::vector<int64_t> GetAttachmentIds() const;
-  int64_t GetTotalAttachmentsSize() const;
   std::string ToString() const;
 
   int64_t id;
@@ -56,7 +47,6 @@ struct ShareTarget {
   // Uri that points to an image of the ShareTarget, if one exists.
   std::optional<::nearby::network::Url> image_url;
   ShareTargetType type = ShareTargetType::kUnknown;
-  AttachmentContainer attachment_container;
   bool is_incoming = false;
   std::optional<std::string> full_name;
   // True if the local device has the PublicCertificate this target is

@@ -268,8 +268,9 @@ void AnalyticsRecorder::NewEstablishConnection(
     int64_t session_id,
     ::location::nearby::proto::sharing::EstablishConnectionStatus
         connection_status,
-    ShareTarget share_target, int transfer_position, int concurrent_connections,
-    int64_t duration_millis, std::optional<std::string> referrer_package) {
+    const ShareTarget& share_target, int transfer_position,
+    int concurrent_connections, int64_t duration_millis,
+    std::optional<std::string> referrer_package) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
       EventCategory::SENDING_EVENT, EventType::ESTABLISH_CONNECTION);
 
@@ -429,7 +430,7 @@ void AnalyticsRecorder::NewDescribeAttachments(
 }
 
 void AnalyticsRecorder::NewDiscoverShareTarget(
-    ShareTarget share_target, int64_t session_id,
+    const ShareTarget& share_target, int64_t session_id,
     int64_t latency_since_scanning_start_millis, int64_t flow_id,
     std::optional<std::string> referrer_package,
     int64_t latency_since_send_surface_registered_millis) {
@@ -593,7 +594,7 @@ void AnalyticsRecorder::NewDismissFastInitialization() {
 }
 
 void AnalyticsRecorder::NewReceiveIntroduction(
-    int64_t session_id, ShareTarget share_target,
+    int64_t session_id, const ShareTarget& share_target,
     std::optional<std::string> referrer_package,
     ::location::nearby::proto::sharing::OSType share_target_os_type) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
@@ -696,7 +697,7 @@ void AnalyticsRecorder::NewScanForShareTargetsStart(
 }
 
 void AnalyticsRecorder::NewSendAttachmentsEnd(
-    int64_t session_id, int64_t sent_bytes, ShareTarget share_target,
+    int64_t session_id, int64_t sent_bytes, const ShareTarget& share_target,
     ::location::nearby::proto::sharing::AttachmentTransmissionStatus status,
     int transfer_position, int concurrent_connections, int64_t duration_millis,
     std::optional<std::string> referrer_package,
@@ -759,7 +760,7 @@ void AnalyticsRecorder::NewSendFastInitialization() {
 
 void AnalyticsRecorder::NewSendStart(int64_t session_id, int transfer_position,
                                      int concurrent_connections,
-                                     ShareTarget share_target) {
+                                     const ShareTarget& share_target) {
   std::unique_ptr<SharingLog> sharing_log =
       CreateSharingLog(EventCategory::SENDING_EVENT, EventType::SEND_START);
 
@@ -793,7 +794,7 @@ void AnalyticsRecorder::NewSendIntroduction(
 }
 
 void AnalyticsRecorder::NewSendIntroduction(
-    int64_t session_id, ShareTarget share_target, int transfer_position,
+    int64_t session_id, const ShareTarget& share_target, int transfer_position,
     int concurrent_connections,
     ::location::nearby::proto::sharing::OSType share_target_os_type) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(

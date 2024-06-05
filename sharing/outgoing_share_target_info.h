@@ -32,10 +32,11 @@ namespace sharing {
 // A description of the outgoing connection to a remote device.
 class OutgoingShareTargetInfo : public ShareTargetInfo {
  public:
-  OutgoingShareTargetInfo(
-      std::string endpoint_id, const ShareTarget& share_target,
-      std::function<void(const ShareTarget&, const TransferMetadata&)>
-          transfer_update_callback);
+  OutgoingShareTargetInfo(std::string endpoint_id,
+                          const ShareTarget& share_target,
+                          std::function<void(OutgoingShareTargetInfo&,
+                                             const TransferMetadata&)>
+                              transfer_update_callback);
   OutgoingShareTargetInfo(OutgoingShareTargetInfo&&);
   OutgoingShareTargetInfo& operator=(OutgoingShareTargetInfo&&);
   ~OutgoingShareTargetInfo() override;
@@ -81,12 +82,17 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
   std::vector<Payload> ExtractWifiCredentialsPayloads();
   std::optional<Payload> ExtractNextPayload();
 
+ protected:
+  void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
+
  private:
   std::optional<std::string> obfuscated_gaia_id_;
   std::vector<Payload> text_payloads_;
   std::vector<Payload> file_payloads_;
   std::vector<Payload> wifi_credentials_payloads_;
   Status connection_layer_status_;
+  std::function<void(OutgoingShareTargetInfo&, const TransferMetadata&)>
+      transfer_update_callback_;
 };
 
 }  // namespace sharing
