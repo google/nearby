@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/shared/file.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <ios>
 #include <memory>
@@ -37,7 +36,7 @@ IOFile::IOFile(const absl::string_view file_path, size_t size)
     : file_(std::string(file_path.data(), file_path.size()),
             std::ios::binary | std::ios::in | std::ios::ate),
       path_(file_path),
-      total_size_(file_.tellg()) {
+      total_size_(size) {
   file_.seekg(0);
 }
 
