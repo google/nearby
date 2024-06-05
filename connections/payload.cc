@@ -34,7 +34,7 @@ namespace connections {
 
 namespace {
 
-std::string getFileName(const std::string& s) {
+std::string FormatFileName(const std::string& s) {
   std::string s_copy(s);
   std::replace(s_copy.begin(), s_copy.end(), '\\',
                '/');  // replace all '\\' to '/'
@@ -66,13 +66,7 @@ Payload::Payload(const ByteArray& bytes)
 
 Payload::Payload(InputFile input_file)
     : id_(std::hash<std::string>()(input_file.GetFilePath())),
-      file_name_(getFileName(input_file.GetFilePath())),
-      type_(PayloadType::kFile),
-      content_(std::move(input_file)) {}
-
-Payload::Payload(Id id, InputFile input_file)
-    : id_(id),
-      file_name_(getFileName(input_file.GetFilePath())),
+      file_name_(FormatFileName(input_file.GetFilePath())),
       type_(PayloadType::kFile),
       content_(std::move(input_file)) {}
 
@@ -93,6 +87,12 @@ Payload::Payload(Id id, ByteArray&& bytes)
 
 Payload::Payload(Id id, const ByteArray& bytes)
     : id_(id), type_(PayloadType::kBytes), content_(bytes) {}
+
+Payload::Payload(Id id, InputFile input_file)
+    : id_(id),
+      file_name_(FormatFileName(input_file.GetFilePath())),
+      type_(PayloadType::kFile),
+      content_(std::move(input_file)) {}
 
 Payload::Payload(Id id, std::string parent_folder, std::string file_name,
                  InputFile input_file)

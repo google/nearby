@@ -34,6 +34,7 @@
 #include "connections/payload.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
+#include "internal/platform/logging.h"
 #include "sharing/nearby_connections_service.h"
 #include "sharing/nearby_connections_types.h"
 
