@@ -92,12 +92,15 @@ uint8_t ConvertHasDeviceName(bool hasDeviceName) {
 
 int ParseVersion(uint8_t b) { return (b >> 5) & kVersionBitmask; }
 
+// The values are in ShareTargetType.
 bool IsKnownDeviceValue(int32_t value) {
   switch (value) {
     case 0:
     case 1:
     case 2:
     case 3:
+    case 4:
+    case 5:
       return true;
     default:
       return false;

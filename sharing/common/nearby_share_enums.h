@@ -43,6 +43,7 @@ enum class DeviceNameValidationResult {
 // be kept in sync with Android implementation.
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused.
+// LINT.IfChange()
 enum class ShareTargetType {
   // Unknown device type.
   kUnknown = 0,
@@ -52,7 +53,18 @@ enum class ShareTargetType {
   kTablet = 2,
   // A laptop.
   kLaptop = 3,
+  // A car.
+  kCar = 4,
+  // A foldable.
+  kFoldable = 5,
 };
+// LINT.ThenChange(
+//  //depot/google3/location/nearby/cpp/sharing/clients/proto/share_target.proto:ShareTarget.ShareTargetType,
+//  //depot/google3/location/nearby/sharing/sdk/quick_share/protos/share_target.proto:ShareTarget,
+//  //depot/google3/third_party/nearby/sharing/advertisement.cc:IsKnownDeviceValue,
+//  //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/sharing/ShareTarget.java:Type,
+//  //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/share_target.dart:ShareTargetType
+//)
 
 // This enum combines both text and file share attachment types into a single
 // enum that more directly maps to what is shown to the user for preview.

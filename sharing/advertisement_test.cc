@@ -89,6 +89,18 @@ INSTANTIATE_TEST_SUITE_P(
                            Advertisement::kMetadataEncryptionKeyHashByteSize),
                        .target_type = ShareTargetType::kTablet,
                        .target_name = std::nullopt,
+                       .vendor_id = 0},
+        TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
+                       .encrypted_metadata_key = std::vector<uint8_t>(
+                           Advertisement::kMetadataEncryptionKeyHashByteSize),
+                       .target_type = ShareTargetType::kCar,
+                       .target_name = std::nullopt,
+                       .vendor_id = 0},
+        TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
+                       .encrypted_metadata_key = std::vector<uint8_t>(
+                           Advertisement::kMetadataEncryptionKeyHashByteSize),
+                       .target_type = ShareTargetType::kFoldable,
+                       .target_name = std::nullopt,
                        .vendor_id = 0}));
 INSTANTIATE_TEST_SUITE_P(
     VendorIds, AdvertisementTest,

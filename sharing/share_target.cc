@@ -67,6 +67,7 @@ std::string ShareTarget::ToString() const {
   std::vector<std::string> fmt;
 
   fmt.push_back(absl::StrFormat("id: %" PRId64, id));
+  fmt.push_back(absl::StrFormat("type: %d", type));
   fmt.push_back(absl::StrFormat("device_name: %s", device_name));
   if (full_name) {
     fmt.push_back(absl::StrFormat("full_name: %s", *full_name));
