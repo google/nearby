@@ -795,7 +795,8 @@ void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
         status == PayloadStatus::kInProgress) &&
       type == PayloadContent::Type::kFile) {
     NL_LOG(WARNING) << __func__
-                    << ": Unknown payload has been canceled, removing.";
+                    << ": Unknown payload has been canceled, removing "
+                    << " path=" << path;  // TODO(eidenkim): Remove this log.
     MutexLock lock(&mutex_);
     file_paths_to_delete_.insert(path);
   }
