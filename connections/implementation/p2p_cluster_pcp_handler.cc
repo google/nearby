@@ -14,7 +14,7 @@
 
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 
-#include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
@@ -22,25 +22,46 @@
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
+#include "connections/advertising_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/ble_endpoint_channel.h"
 #include "connections/implementation/ble_v2_endpoint_channel.h"
+#include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/pcp.h"
+#include "connections/implementation/pcp_handler.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
+#include "connections/implementation/wifi_lan_service_info.h"
 #include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
 #include "connections/power_level.h"
 #include "connections/status.h"
+#include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
+#include "internal/platform/ble.h"
+#include "internal/platform/ble_v2.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/types.h"
+#include "internal/platform/wifi_lan.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {

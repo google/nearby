@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -31,6 +32,7 @@
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
+#include "connections/implementation/mediums/lost_entity_tracker.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
@@ -39,6 +41,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/uuid.h"
 
 using ::nearby::api::ble_v2::BleAdvertisementData;
 
@@ -173,18 +176,27 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
             << ": Discarding OnLost advertisement for untracked service_id";
         return false;
       }
-      auto advertisements =
+
+      auto gatt_advertisements =
           gatt_advertisements_[it.second.advertisement_header];
-      for (const auto& advertisement : advertisements) {
-        if (advertisement.IsValid()) {
+
+      // Need to report OnLost for each gatt_advertisement.
+      for (const auto& gatt_advertisement : gatt_advertisements) {
+        BleV2Peripheral lost_peripheral = it.second.peripheral;
+        lost_peripheral.SetId(ByteArray(gatt_advertisement));
+        if (gatt_advertisement.IsValid()) {
           discovery_cb_it->second.discovered_peripheral_callback
-              .peripheral_lost_cb(peripheral, it.second.service_id,
-                                  advertisement.GetData(), false);
+              .peripheral_lost_cb(lost_peripheral, it.second.service_id,
+                                  gatt_advertisement.GetData(),
+                                  gatt_advertisement.IsFastAdvertisement());
           NEARBY_LOGS(INFO) << __func__ << ": OnLost triggered for service_id "
                             << it.second.service_id;
-          return true;
         }
+
+        ClearGattAdvertisement(gatt_advertisement);
       }
+
+      return true;
     }
   }
   return false;

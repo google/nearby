@@ -16,20 +16,31 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
+#include "connections/implementation/mediums/utils.h"
 #include "internal/platform/ble_v2.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace connections {
@@ -72,6 +83,19 @@ ByteArray CreateLegacyBleAdvertisement(const std::string& service_id,
       bleutils::GenerateServiceIdHash(service_id,
                                       BleAdvertisement::Version::kV1),
       data, device_token, BleAdvertisementHeader::kDefaultPsmValue));
+}
+
+BleAdvertisementHeader CreateFastBleAdvertisementHeader(
+    const ByteArray& advertisement_bytes) {
+  BloomFilter bloom_filter(
+      std::make_unique<BitSetImpl<
+          BleAdvertisementHeader::kServiceIdBloomFilterByteLength>>());
+
+  return BleAdvertisementHeader(
+      BleAdvertisementHeader::Version::kV2, /*extended_advertisement=*/false,
+      /*num_slots=*/1, ByteArray(bloom_filter),
+      bleutils::GenerateAdvertisementHash(advertisement_bytes),
+      /*psm=*/BleAdvertisementHeader::kDefaultPsmValue);
 }
 
 ByteArray CreateBleAdvertisementHeader(const ByteArray& advertisement_hash,
@@ -812,7 +836,7 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
 
   // Then, go through two cycles of onLost. The first cycle should include the
-  // recently discovered eripheral in its 'found' pool. The second one should
+  // recently discovered peripheral in its 'found' pool. The second one should
   // trigger the onLost callback.
   discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
   discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
@@ -1019,6 +1043,69 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForInstantOnLost) {
   // the instant on los advertisement, the lost call should trigger the onLost
   // client callback.
   discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+
+  // We should receive a client callback of a lost peripheral
+  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+}
+
+TEST_F(DiscoveredPeripheralTrackerTest,
+       LostPeripheralWithFastAdvertisementForInstantOnLost) {
+  ByteArray fast_advertisement_bytes = CreateFastBleAdvertisement(
+      ByteArray(std::string(kData)), ByteArray(std::string(kDeviceToken)));
+
+  // Used to get advertisement hash from fast advertisement bytes.
+  BleAdvertisementHeader ble_advertisement_header =
+      CreateFastBleAdvertisementHeader(fast_advertisement_bytes);
+
+  ByteArray advertisement_hash =
+      ble_advertisement_header.GetAdvertisementHash();
+
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+  CountDownLatch fetch_latch(1);
+
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+          .peripheral_lost_cb =
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  api::ble_v2::BleAdvertisementData advertisement_data{};
+  if (!fast_advertisement_bytes.Empty()) {
+    advertisement_data.service_data.insert(
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+  }
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
+
+  // We should receive a client callback of a peripheral discovery.
+  fetch_latch.Await(kWaitDuration);
+  ASSERT_TRUE(found_latch.Await(kWaitDuration).result());
+
+  auto advertisement = InstantOnLostAdvertisement::CreateFromHash(
+      advertisement_hash.AsStringView());
+  ASSERT_OK(advertisement);
+  api::ble_v2::BleAdvertisementData loss_advertisement_data{};
+  loss_advertisement_data.service_data.insert(
+      {bleutils::kCopresenceServiceUuid, ByteArray(advertisement->ToBytes())});
+
+  FindAdvertisement(loss_advertisement_data,
+                    {ByteArray(advertisement->ToBytes())}, fetch_latch);
+
 
   // We should receive a client callback of a lost peripheral
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
