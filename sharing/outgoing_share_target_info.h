@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
@@ -84,6 +85,8 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
+  bool OnNewConnection(NearbyConnection* connection) override;
+
 
  private:
   std::optional<std::string> obfuscated_gaia_id_;

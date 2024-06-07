@@ -16,18 +16,24 @@
 #define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/time/time.h"
+#include "internal/platform/implementation/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_container.h"
+#include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
+#include "sharing/internal/public/context.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
+#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/share_target.h"
@@ -59,10 +65,6 @@ class ShareTargetInfo {
 
   NearbyConnection* connection() const { return connection_; }
 
-  void set_connection(NearbyConnection* connection) {
-    connection_ = connection;
-  }
-
   void UpdateTransferMetadata(const TransferMetadata& transfer_metadata);
 
   const std::optional<std::string>& token() const { return token_; }
@@ -70,19 +72,6 @@ class ShareTargetInfo {
   void set_token(std::string token) { token_ = std::move(token); }
 
   IncomingFramesReader* frames_reader() const { return frames_reader_.get(); }
-
-  void set_frames_reader(std::shared_ptr<IncomingFramesReader> frames_reader) {
-    frames_reader_ = std::move(frames_reader);
-  }
-
-  PairedKeyVerificationRunner* key_verification_runner() {
-    return key_verification_runner_.get();
-  }
-
-  void set_key_verification_runner(
-      std::shared_ptr<PairedKeyVerificationRunner> key_verification_runner) {
-    key_verification_runner_ = std::move(key_verification_runner);
-  }
 
   std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
   payload_tracker() const {
@@ -99,11 +88,6 @@ class ShareTargetInfo {
 
   std::optional<absl::Time> connection_start_time() const {
     return connection_start_time_;
-  }
-
-  void set_connection_start_time(
-      std::optional<absl::Time> connection_start_time) {
-    connection_start_time_ = connection_start_time;
   }
 
   ::location::nearby::proto::sharing::OSType os_type() const {
@@ -126,6 +110,20 @@ class ShareTargetInfo {
   TransferMetadata::Status disconnect_status() const {
     return disconnect_status_;
   }
+  // Notifies the ShareTargetInfo that the connection has been established.
+  // Returns true if the connection was successfully established.
+  bool OnConnected(absl::Time connect_start_time, NearbyConnection* connection);
+
+  void RunPairedKeyVerification(
+      Context* context, NearbySharingDecoder* decoder,
+      nearby::api::DeviceInfo::OsType os_type,
+      const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
+      NearbyShareCertificateManager* certificate_manager,
+      std::optional<std::vector<uint8_t>> token,
+      std::function<
+          void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
+               location::nearby::proto::sharing::OSType)>
+          callback);
 
   void OnDisconnect();
   void SetAttachmentContainer(AttachmentContainer container) {
@@ -142,6 +140,7 @@ class ShareTargetInfo {
  protected:
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
+  virtual bool OnNewConnection(NearbyConnection* connection) = 0;
 
  private:
   std::string endpoint_id_;

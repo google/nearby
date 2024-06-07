@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 
+#include "sharing/nearby_connection.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
 #include "sharing/transfer_metadata.h"
@@ -43,6 +44,12 @@ IncomingShareTargetInfo::~IncomingShareTargetInfo() = default;
 void IncomingShareTargetInfo::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
   transfer_update_callback_(*this, metadata);
+}
+
+bool IncomingShareTargetInfo::OnNewConnection(NearbyConnection* connection) {
+  set_disconnect_status(
+      TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
+  return true;
 }
 
 }  // namespace sharing

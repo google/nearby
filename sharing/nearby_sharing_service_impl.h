@@ -358,7 +358,8 @@ class NearbySharingServiceImpl
                                 std::optional<float> progress);
   void Fail(int64_t share_target_id, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
-      absl::string_view endpoint_id, int64_t placeholder_share_target_id,
+      absl::string_view endpoint_id,
+      const IncomingShareTargetInfo& share_target_info,
       std::unique_ptr<Advertisement> advertisement);
   void OnIncomingTransferUpdate(
       const IncomingShareTargetInfo& share_target_info,
@@ -371,12 +372,6 @@ class NearbySharingServiceImpl
       absl::string_view endpoint_id, const Advertisement& advertisement,
       int64_t placeholder_share_target_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
-  void RunPairedKeyVerification(
-      int64_t share_target_id, absl::string_view endpoint_id,
-      std::function<
-          void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
-               ::location::nearby::proto::sharing::OSType)>
-          callback);
   void OnIncomingConnectionKeyVerificationDone(
       int64_t share_target_id, std::optional<std::string> four_digit_token,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
@@ -416,7 +411,7 @@ class NearbySharingServiceImpl
   std::optional<ShareTarget> CreateShareTarget(
       absl::string_view endpoint_id,
       const Advertisement& advertisement,
-      std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+      const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       bool is_incoming);
 
   void OnPayloadTransferUpdate(int64_t share_target_id,
@@ -426,8 +421,12 @@ class NearbySharingServiceImpl
   void Disconnect(int64_t share_target_id, TransferMetadata metadata);
   void OnDisconnectingConnectionTimeout(absl::string_view endpoint_id);
 
-  ShareTargetInfo& GetOrCreateShareTargetInfo(const ShareTarget& share_target,
-                                              absl::string_view endpoint_id);
+  IncomingShareTargetInfo& CreateIncomingShareTargetInfo(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+  OutgoingShareTargetInfo& CreateOutgoingShareTargetInfo(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   ShareTargetInfo* GetShareTargetInfo(int64_t share_target_id);
   IncomingShareTargetInfo* GetIncomingShareTargetInfo(int64_t share_target_id);

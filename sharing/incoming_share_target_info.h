@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <string>
+#include "sharing/nearby_connection.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
 #include "sharing/transfer_metadata.h"
@@ -39,6 +40,7 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
+  bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
   std::function<void(const IncomingShareTargetInfo&, const TransferMetadata&)>

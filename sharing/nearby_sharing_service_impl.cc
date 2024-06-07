@@ -1054,11 +1054,9 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   ShareTarget placeholder_share_target;
   placeholder_share_target.is_incoming = true;
   int64_t placeholder_share_target_id = placeholder_share_target.id;
-  ShareTargetInfo& share_target_info =
-      GetOrCreateShareTargetInfo(placeholder_share_target, endpoint_id);
-  share_target_info.set_connection(connection);
-  share_target_info.set_disconnect_status(
-      TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
+  IncomingShareTargetInfo& share_target_info = CreateIncomingShareTargetInfo(
+      placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
+  share_target_info.OnConnected(context_->GetClock()->Now(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
@@ -1069,7 +1067,7 @@ void NearbySharingServiceImpl::OnIncomingConnection(
 
   std::unique_ptr<Advertisement> advertisement =
       decoder_->DecodeAdvertisement(endpoint_info);
-  OnIncomingAdvertisementDecoded(endpoint_id, placeholder_share_target_id,
+  OnIncomingAdvertisementDecoded(endpoint_id, share_target_info,
                                  std::move(advertisement));
 }
 
@@ -1787,7 +1785,7 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
   // The certificate provides the device name, in order to create a ShareTarget
   // to represent this remote device.
   std::optional<ShareTarget> share_target =
-      CreateShareTarget(endpoint_id, advertisement, std::move(certificate),
+      CreateShareTarget(endpoint_id, advertisement, certificate,
                         /*is_incoming=*/false);
   if (!share_target.has_value()) {
     if (discovered_advertisements_retried_set_.contains(endpoint_id)) {
@@ -1809,6 +1807,8 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     FinishEndpointDiscoveryEvent();
     return;
   }
+  CreateOutgoingShareTargetInfo(*share_target, endpoint_id,
+                                std::move(certificate));
 
   // Update the endpoint id for the share target.
   NL_LOG(INFO) << __func__
@@ -2632,27 +2632,15 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
 void NearbySharingServiceImpl::OnOutgoingConnection(
     absl::Time connect_start_time, NearbyConnection* connection,
     OutgoingShareTargetInfo& info) {
-  if (!connection) {
-    NL_LOG(WARNING) << __func__
-                    << ": Failed to initiate connection to share target "
-                    << info.share_target().id;
-    TransferMetadata::Status transfer_status =
-        TransferMetadata::Status::kFailedToInitiateOutgoingConnection;
-    if (info.connection_layer_status() == Status::kTimeout) {
-      transfer_status = TransferMetadata::Status::kTimedOut;
-      info.set_connection_layer_status(Status::kUnknown);
-    }
-    AbortAndCloseConnectionIfNecessary(transfer_status, info.share_target().id);
+  int64_t share_target_id = info.share_target().id;
+  if (!info.OnConnected(connect_start_time, connection)) {
+    AbortAndCloseConnectionIfNecessary(info.disconnect_status(),
+                                       share_target_id);
     return;
   }
 
-  info.set_connection(connection);
-  info.set_disconnect_status(
-      TransferMetadata::Status::kUnexpectedDisconnection);
   connection->SetDisconnectionListener(
-      [this, share_target_id = info.share_target().id]() {
-        OnConnectionDisconnected(share_target_id);
-      });
+      [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
 
   // Log analytics event of establishing connection.
   analytics_recorder_->NewEstablishConnection(
@@ -2660,21 +2648,24 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
       info.share_target(),
       /*transfer_position=*/GetConnectedShareTargetPos(),
       /*concurrent_connections=*/GetConnectedShareTargetCount(),
-      info.connection_start_time().has_value()
-          ? absl::ToInt64Milliseconds((context_->GetClock()->Now() -
-                                       *(info.connection_start_time())))
-          : 0,
-      std::nullopt);
+      absl::ToInt64Milliseconds(
+          (context_->GetClock()->Now() - connect_start_time)),
+      /*referrer_package=*/std::nullopt);
 
-
-  std::optional<std::string> four_digit_token = TokenToFourDigitString(
+  std::optional<std::vector<uint8_t>> token =
       nearby_connections_manager_->GetRawAuthenticationToken(
-          info.endpoint_id()));
+          info.endpoint_id());
+  std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
-  RunPairedKeyVerification(
-      info.share_target().id, info.endpoint_id(),
-      [this, share_target_id = info.share_target().id,
-       four_digit_token = std::move(four_digit_token)](
+  info.RunPairedKeyVerification(
+      context_, decoder_, device_info_.GetOsType(),
+      {
+          .visibility = settings_->GetVisibility(),
+          .last_visibility = settings_->GetLastVisibility(),
+          .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
+      },
+      GetCertificateManager(), std::move(token),
+      [this, share_target_id, four_digit_token = std::move(four_digit_token)](
           PairedKeyVerificationRunner::PairedKeyVerificationResult result,
           OSType remote_os_type) {
         OnOutgoingConnectionKeyVerificationDone(
@@ -2879,8 +2870,6 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   // For metrics.
   all_cancelled_share_target_ids_.clear();
 
-  info->set_connection_start_time(context_->GetClock()->Now());
-
   nearby_connections_manager_->Connect(
       std::move(endpoint_info), info->endpoint_id(),
       std::move(bluetooth_mac_address), settings_->GetDataUsage(),
@@ -3080,9 +3069,11 @@ void NearbySharingServiceImpl::Fail(int64_t share_target_id,
 }
 
 void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
-    absl::string_view endpoint_id, int64_t placeholder_share_target_id,
+    absl::string_view endpoint_id,
+    const IncomingShareTargetInfo& share_target_info,
     std::unique_ptr<Advertisement> advertisement) {
-  NearbyConnection* connection = GetConnection(placeholder_share_target_id);
+  int64_t placeholder_share_target_id = share_target_info.share_target().id;
+  NearbyConnection* connection = share_target_info.connection();
   if (!connection) {
     NL_LOG(WARNING) << __func__ << ": Invalid connection for endpoint id - "
                     << endpoint_id;
@@ -3295,9 +3286,8 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   incoming_share_target_info_map_.erase(placeholder_share_target_id);
 
   std::optional<ShareTarget> share_target =
-      CreateShareTarget(endpoint_id, advertisement, std::move(certificate),
+      CreateShareTarget(endpoint_id, advertisement, certificate,
                         /*is_incoming=*/true);
-
   if (!share_target) {
     NL_LOG(WARNING) << __func__
                     << ": Failed to convert advertisement to share target for "
@@ -3307,26 +3297,30 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
         placeholder_share_target_id);
     return;
   }
-
   int64_t share_target_id = share_target->id;
   NL_VLOG(1) << __func__ << ": Received incoming connection from "
              << share_target_id;
 
-  IncomingShareTargetInfo* share_target_info =
-      GetIncomingShareTargetInfo(share_target_id);
-  NL_DCHECK(share_target_info);
-  share_target_info->set_connection(connection);
-  share_target_info->set_disconnect_status(
-      TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
+  IncomingShareTargetInfo& share_target_info = CreateIncomingShareTargetInfo(
+      *share_target, endpoint_id, std::move(certificate));
+  share_target_info.OnConnected(context_->GetClock()->Now(), connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
 
-  std::optional<std::string> four_digit_token = TokenToFourDigitString(
-      nearby_connections_manager_->GetRawAuthenticationToken(endpoint_id));
+  std::optional<std::vector<uint8_t>> token =
+      nearby_connections_manager_->GetRawAuthenticationToken(
+          share_target_info.endpoint_id());
+  std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
-  RunPairedKeyVerification(
-      share_target_id, endpoint_id,
+  share_target_info.RunPairedKeyVerification(
+      context_, decoder_, device_info_.GetOsType(),
+      {
+          .visibility = settings_->GetVisibility(),
+          .last_visibility = settings_->GetLastVisibility(),
+          .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
+      },
+      GetCertificateManager(), std::move(token),
       [this, share_target_id, four_digit_token = std::move(four_digit_token)](
           PairedKeyVerificationRunner::PairedKeyVerificationResult
               verification_result,
@@ -3335,42 +3329,6 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
             share_target_id, four_digit_token, verification_result,
             remote_os_type);
       });
-}
-
-void NearbySharingServiceImpl::RunPairedKeyVerification(
-    int64_t share_target_id, absl::string_view endpoint_id,
-    std::function<void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
-                       OSType)>
-        callback) {
-  std::optional<std::vector<uint8_t>> token =
-      nearby_connections_manager_->GetRawAuthenticationToken(endpoint_id);
-  if (!token) {
-    NL_VLOG(1) << __func__
-               << ": Failed to read authentication token from endpoint - "
-               << endpoint_id;
-    std::move(callback)(
-        PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
-        OSType::UNKNOWN_OS_TYPE);
-    return;
-  }
-
-  ShareTargetInfo* share_target_info = GetShareTargetInfo(share_target_id);
-  NL_DCHECK(share_target_info);
-
-  share_target_info->set_frames_reader(std::make_shared<IncomingFramesReader>(
-      context_, decoder_, share_target_info->connection()));
-
-  share_target_info->set_key_verification_runner(
-      std::make_shared<PairedKeyVerificationRunner>(
-          context_->GetClock(), device_info_.GetOsType(),
-          share_target_info->IsIncoming(),
-          PairedKeyVerificationRunner::VisibilityHistory{
-              settings_->GetVisibility(), settings_->GetLastVisibility(),
-              settings_->GetLastVisibilityTimestamp()},
-          *token, share_target_info->connection(),
-          share_target_info->certificate(), GetCertificateManager(),
-          share_target_info->frames_reader(), kReadFramesTimeout));
-  share_target_info->key_verification_runner()->Run(std::move(callback));
 }
 
 void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
@@ -3968,7 +3926,7 @@ void NearbySharingServiceImpl::OnOutgoingMutualAcceptanceTimeout(
 
 std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
     absl::string_view endpoint_id, const Advertisement& advertisement,
-    std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+    const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
     bool is_incoming) {
   if (!advertisement.device_name() && !certificate.has_value()) {
     NL_VLOG(1) << __func__
@@ -4012,10 +3970,6 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
       target.vendor_id = certificate->unencrypted_metadata().vendor_id();
     }
     target.is_known = true;
-  }
-  ShareTargetInfo& info = GetOrCreateShareTargetInfo(target, endpoint_id);
-  if (certificate.has_value()) {
-    info.set_certificate(std::move(*certificate));
   }
   return target;
 }
@@ -4316,36 +4270,52 @@ void NearbySharingServiceImpl::OnDisconnectingConnectionTimeout(
   nearby_connections_manager_->Disconnect(endpoint_id);
 }
 
-ShareTargetInfo& NearbySharingServiceImpl::GetOrCreateShareTargetInfo(
-    const ShareTarget& share_target, absl::string_view endpoint_id) {
-  if (share_target.is_incoming) {
-    auto [it, inserted] = incoming_share_target_info_map_.try_emplace(
-        share_target.id, std::string(endpoint_id), share_target,
-        absl::bind_front(&NearbySharingServiceImpl::OnIncomingTransferUpdate,
-                         this));
-    return it->second;
-  } else {
-    // We need to explicitly remove any previous share target for
-    // |endpoint_id| if one exists, notifying observers that a share target is
-    // lost.
-    const auto it = outgoing_share_target_map_.find(endpoint_id);
-    if (it != outgoing_share_target_map_.end() &&
-        it->second.id != share_target.id) {
-      RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
-    }
-
-    NL_VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
-               << ", share_target_id=" << share_target.id
-               << ") to outgoing share target map";
-    outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
-    auto [it_out, inserted] = outgoing_share_target_info_map_.try_emplace(
-        share_target.id, std::string(endpoint_id), share_target,
-        absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
-                         this));
-    auto& info = it_out->second;
-    info.set_connection_layer_status(Status::kUnknown);
-    return info;
+IncomingShareTargetInfo&
+NearbySharingServiceImpl::CreateIncomingShareTargetInfo(
+    const ShareTarget& share_target, absl::string_view endpoint_id,
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
+  NL_DCHECK(share_target.is_incoming);
+  auto [it, inserted] = incoming_share_target_info_map_.try_emplace(
+      share_target.id, std::string(endpoint_id), share_target,
+      absl::bind_front(&NearbySharingServiceImpl::OnIncomingTransferUpdate,
+                       this));
+  if (!inserted) {
+    NL_LOG(ERROR) << __func__ << ": Incoming share target id already exists "
+                  << share_target.id;
   }
+  if (certificate.has_value()) {
+    it->second.set_certificate(std::move(*certificate));
+  }
+  return it->second;
+}
+
+OutgoingShareTargetInfo&
+NearbySharingServiceImpl::CreateOutgoingShareTargetInfo(
+    const ShareTarget& share_target, absl::string_view endpoint_id,
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
+  // We need to explicitly remove any previous share target for
+  // |endpoint_id| if one exists, notifying observers that a share target is
+  // lost.
+  const auto it = outgoing_share_target_map_.find(endpoint_id);
+  if (it != outgoing_share_target_map_.end() &&
+      it->second.id != share_target.id) {
+    RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
+  }
+
+  NL_VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
+             << ", share_target_id=" << share_target.id
+             << ") to outgoing share target map";
+  outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
+  auto [it_out, inserted] = outgoing_share_target_info_map_.try_emplace(
+      share_target.id, std::string(endpoint_id), share_target,
+      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
+                       this));
+  auto& info = it_out->second;
+  info.set_connection_layer_status(Status::kUnknown);
+  if (certificate.has_value()) {
+    info.set_certificate(std::move(*certificate));
+  }
+  return info;
 }
 
 ShareTargetInfo* NearbySharingServiceImpl::GetShareTargetInfo(

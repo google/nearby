@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 
+#include "sharing/internal/public/logging.h"
+#include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
@@ -46,6 +48,24 @@ OutgoingShareTargetInfo::~OutgoingShareTargetInfo() = default;
 void OutgoingShareTargetInfo::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
   transfer_update_callback_(*this, metadata);
+}
+
+bool OutgoingShareTargetInfo::OnNewConnection(NearbyConnection* connection) {
+  if (!connection) {
+    NL_LOG(WARNING) << __func__
+                    << ": Failed to initiate connection to share target "
+                    << share_target().id;
+    if (connection_layer_status_ == Status::kTimeout) {
+      set_disconnect_status(TransferMetadata::Status::kTimedOut);
+      connection_layer_status_ = Status::kUnknown;
+    } else {
+      set_disconnect_status(
+          TransferMetadata::Status::kFailedToInitiateOutgoingConnection);
+    }
+    return false;
+  }
+  set_disconnect_status(TransferMetadata::Status::kUnexpectedDisconnection);
+  return true;
 }
 
 std::vector<Payload> OutgoingShareTargetInfo::ExtractTextPayloads() {
