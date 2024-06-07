@@ -287,14 +287,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
-    ] + select({
-        "@platforms//os:windows": [
-            "//internal/platform/implementation/windows",
-        ],
-        "//conditions:default": [
-            "//internal/platform/implementation/g3",
-        ],
-    }),
+    ],
 )
 
 cc_test(
@@ -304,14 +297,7 @@ cc_test(
         ":connection_types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ] + select({
-        "@platforms//os:windows": [
-            "//internal/platform/implementation/windows",
-        ],
-        "//conditions:default": [
-            "//internal/platform/implementation/g3",
-        ],
-    }),
+    ],
 )
 
 cc_test(
@@ -322,7 +308,7 @@ cc_test(
         ":nearby_sharing_service",
         ":test_support",
         ":types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:types",
         "//internal/test",
         "//proto:sharing_enums_cc_proto",
         "//sharing/certificates",
@@ -336,7 +322,14 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(

@@ -26,10 +26,8 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/common.h"
@@ -114,16 +112,16 @@ std::ostream& operator<<(
 }
 
 PairedKeyVerificationRunner::PairedKeyVerificationRunner(
-    Clock* clock, DeviceInfo& device_info, int64_t share_target_id,
-    bool share_target_is_incoming, DeviceVisibility visibility,
-    DeviceVisibility last_visibility, absl::Time last_visibility_time,
-    const std::vector<uint8_t>& token, NearbyConnection* connection,
+    Clock* clock, nearby::api::DeviceInfo::OsType os_type,
+    bool share_target_is_incoming,
+    const VisibilityHistory& visibility_history,
+    const std::vector<uint8_t>& token,
+    NearbyConnection* connection,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
     NearbyShareCertificateManager* certificate_manager,
     IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout)
     : clock_(clock),
-      device_info_(device_info),
-      share_target_id_(share_target_id),
+      os_type_(os_type),
       raw_token_(token),
       connection_(connection),
       certificate_(certificate),
@@ -138,16 +136,16 @@ PairedKeyVerificationRunner::PairedKeyVerificationRunner(
   if (share_target_is_incoming) {
     local_prefix_ = kNearbyShareReceiverVerificationPrefix;
     remote_prefix_ = kNearbyShareSenderVerificationPrefix;
-    visibility_ = visibility;
-    last_visibility_ = last_visibility;
-    last_visibility_time_ = last_visibility_time;
+    visibility_history_ = visibility_history;
   } else {
     remote_prefix_ = kNearbyShareReceiverVerificationPrefix;
     local_prefix_ = kNearbyShareSenderVerificationPrefix;
     // Sender always uses ALL_CONTACTS cert to sign and verify signature.
-    visibility_ = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
-    last_visibility_ = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
-    last_visibility_time_ = absl::UnixEpoch();
+    visibility_history_ = {
+        .visibility = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+        .last_visibility = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+        .last_visibility_time = absl::UnixEpoch(),
+    };
   }
 }
 
@@ -184,12 +182,13 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
   }
 
   PairedKeyVerificationResult auth_token_hash_result =
-      VerifyAuthTokenHashWithPrivateCertificate(visibility_, *frame);
+      VerifyAuthTokenHashWithPrivateCertificate(visibility_history_.visibility,
+                                                *frame);
 
   if (auth_token_hash_result != PairedKeyVerificationResult::kSuccess) {
     if (IsVisibilityRecentlyUpdated()) {
-      auth_token_hash_result =
-          VerifyAuthTokenHashWithPrivateCertificate(last_visibility_, *frame);
+      auth_token_hash_result = VerifyAuthTokenHashWithPrivateCertificate(
+          visibility_history_.last_visibility, *frame);
     }
   }
 
@@ -271,7 +270,7 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
   }
 
   // Set OS type to allow remote device knowns the paring device OS type.
-  result_frame->set_os_type(ToProtoOsType(device_info_.GetOsType()));
+  result_frame->set_os_type(ToProtoOsType(os_type_));
 
   std::vector<uint8_t> data(frame.ByteSizeLong());
   frame.SerializeToArray(data.data(), frame.ByteSizeLong());
@@ -281,8 +280,8 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
 
 void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
   std::optional<std::vector<uint8_t>> signature =
-      certificate_manager_->SignWithPrivateCertificate(visibility_,
-          PadPrefix(local_prefix_, raw_token_));
+      certificate_manager_->SignWithPrivateCertificate(
+          visibility_history_.visibility, PadPrefix(local_prefix_, raw_token_));
   if (!signature.has_value() || signature->empty()) {
     signature = GenerateRandomBytes(kNearbyShareNumBytesRandomSignature);
   }
@@ -308,7 +307,8 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
         << "Attempts to sign authentication token with a previous private key.";
     std::optional<std::vector<uint8_t>> optional_signature =
         certificate_manager_->SignWithPrivateCertificate(
-            last_visibility_, PadPrefix(local_prefix_, raw_token_));
+            visibility_history_.last_visibility,
+            PadPrefix(local_prefix_, raw_token_));
 
     if (optional_signature.has_value()) {
       encryption_frame->set_optional_signed_data(optional_signature->data(),
@@ -413,8 +413,9 @@ void PairedKeyVerificationRunner::ApplyResult(
 }
 
 bool PairedKeyVerificationRunner::IsVisibilityRecentlyUpdated() const {
-  return visibility_ != last_visibility_ &&
-         (clock_->Now() - last_visibility_time_ <
+  return visibility_history_.visibility !=
+             visibility_history_.last_visibility &&
+         (clock_->Now() - visibility_history_.last_visibility_time <
           kRelaxAfterSetVisibilityTimeout);
 }
 

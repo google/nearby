@@ -3362,13 +3362,14 @@ void NearbySharingServiceImpl::RunPairedKeyVerification(
 
   share_target_info->set_key_verification_runner(
       std::make_shared<PairedKeyVerificationRunner>(
-          context_->GetClock(), device_info_, share_target_id,
-          share_target_info->IsIncoming(), settings_->GetVisibility(),
-          settings_->GetLastVisibility(),
-          settings_->GetLastVisibilityTimestamp(), *token,
-          share_target_info->connection(), share_target_info->certificate(),
-          GetCertificateManager(), share_target_info->frames_reader(),
-          kReadFramesTimeout));
+          context_->GetClock(), device_info_.GetOsType(),
+          share_target_info->IsIncoming(),
+          PairedKeyVerificationRunner::VisibilityHistory{
+              settings_->GetVisibility(), settings_->GetLastVisibility(),
+              settings_->GetLastVisibilityTimestamp()},
+          *token, share_target_info->connection(),
+          share_target_info->certificate(), GetCertificateManager(),
+          share_target_info->frames_reader(), kReadFramesTimeout));
   share_target_info->key_verification_runner()->Run(std::move(callback));
 }
 
