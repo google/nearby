@@ -24,12 +24,14 @@ proto_library(
         "contact_rpc.proto",
         "device_rpc.proto",
         "encrypted_metadata.proto",
-        "field_mask.proto",
         "rpc_resources.proto",
         "settings_observer_data.proto",
         "timestamp.proto",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_protobuf//:field_mask_proto",
+    ],
 )
 
 cc_proto_library(
