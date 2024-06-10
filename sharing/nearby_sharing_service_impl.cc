@@ -1451,11 +1451,20 @@ void NearbySharingServiceImpl::OnLockStateChanged(bool locked) {
 void NearbySharingServiceImpl::AdapterPresentChanged(
     sharing::api::BluetoothAdapter* adapter, bool present) {
   RunOnNearbySharingServiceThread(
-      "bt_adapter_present_changed", [this, present]() {
+      "bt_adapter_present_changed", [this, adapter, present]() {
         NL_VLOG(1) << __func__ << ": Bluetooth adapter present state changed. ("
                    << present << ")";
+        NearbySharingService::Observer::AdapterState state =
+            NearbySharingService::Observer::AdapterState::NOT_PRESENT;
+        if (present) {
+          if (adapter->IsPowered()) {
+            state = NearbySharingService::Observer::AdapterState::ENABLED;
+          } else {
+            state = NearbySharingService::Observer::AdapterState::DISABLED;
+          }
+        }
         for (auto& observer : observers_.GetObservers()) {
-          observer->OnBluetoothStatusChanged();
+          observer->OnBluetoothStatusChanged(state);
         }
         InvalidateSurfaceState();
       });
@@ -1464,11 +1473,20 @@ void NearbySharingServiceImpl::AdapterPresentChanged(
 void NearbySharingServiceImpl::AdapterPoweredChanged(
     sharing::api::BluetoothAdapter* adapter, bool powered) {
   RunOnNearbySharingServiceThread(
-      "bt_adapter_power_changed", [this, powered]() {
+      "bt_adapter_power_changed", [this, adapter, powered]() {
         NL_VLOG(1) << __func__ << ": Bluetooth adapter power state changed. ("
                    << powered << ")";
+        NearbySharingService::Observer::AdapterState state =
+            NearbySharingService::Observer::AdapterState::NOT_PRESENT;
+        if (adapter->IsPresent()) {
+          if (powered) {
+            state = NearbySharingService::Observer::AdapterState::ENABLED;
+          } else {
+            state = NearbySharingService::Observer::AdapterState::DISABLED;
+          }
+        }
         for (auto& observer : observers_.GetObservers()) {
-          observer->OnBluetoothStatusChanged();
+          observer->OnBluetoothStatusChanged(state);
         }
         InvalidateSurfaceState();
       });
@@ -1477,11 +1495,20 @@ void NearbySharingServiceImpl::AdapterPoweredChanged(
 void NearbySharingServiceImpl::AdapterPresentChanged(
     sharing::api::WifiAdapter* adapter, bool present) {
   RunOnNearbySharingServiceThread(
-      "wifi_adapter_present_changed", [this, present]() {
+      "wifi_adapter_present_changed", [this, adapter, present]() {
         NL_VLOG(1) << __func__ << ": Wifi adapter present state changed. ("
                    << present << ")";
+        NearbySharingService::Observer::AdapterState state =
+            NearbySharingService::Observer::AdapterState::NOT_PRESENT;
+        if (present) {
+          if (adapter->IsPowered()) {
+            state = NearbySharingService::Observer::AdapterState::ENABLED;
+          } else {
+            state = NearbySharingService::Observer::AdapterState::DISABLED;
+          }
+        }
         for (auto& observer : observers_.GetObservers()) {
-          observer->OnWifiStatusChanged();
+          observer->OnWifiStatusChanged(state);
         }
         InvalidateSurfaceState();
       });
@@ -1490,11 +1517,20 @@ void NearbySharingServiceImpl::AdapterPresentChanged(
 void NearbySharingServiceImpl::AdapterPoweredChanged(
     sharing::api::WifiAdapter* adapter, bool powered) {
   RunOnNearbySharingServiceThread(
-      "wifi_adapter_power_changed", [this, powered]() {
+      "wifi_adapter_power_changed", [this, adapter, powered]() {
         NL_VLOG(1) << __func__ << ": Wifi adapter power state changed. ("
                    << powered << ")";
+        NearbySharingService::Observer::AdapterState state =
+            NearbySharingService::Observer::AdapterState::NOT_PRESENT;
+        if (adapter->IsPresent()) {
+          if (powered) {
+            state = NearbySharingService::Observer::AdapterState::ENABLED;
+          } else {
+            state = NearbySharingService::Observer::AdapterState::DISABLED;
+          }
+        }
         for (auto& observer : observers_.GetObservers()) {
-          observer->OnWifiStatusChanged();
+          observer->OnWifiStatusChanged(state);
         }
         InvalidateSurfaceState();
       });
@@ -4552,8 +4588,11 @@ void NearbySharingServiceImpl::OnLanConnectedChanged(bool connected) {
       "lan_connection_changed", [this, connected]() {
         NL_VLOG(1) << __func__ << ": LAN Connection state changed. (Connected: "
                    << connected << ")";
+        NearbySharingService::Observer::AdapterState state =
+            connected ? NearbySharingService::Observer::AdapterState::ENABLED
+                      : NearbySharingService::Observer::AdapterState::DISABLED;
         for (auto& observer : observers_.GetObservers()) {
-          observer->OnLanStatusChanged();
+          observer->OnLanStatusChanged(state);
         }
       });
 }
