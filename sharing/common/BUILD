@@ -59,5 +59,8 @@ cc_library(
 cc_library(
     name = "compatible_u8_string",
     hdrs = ["compatible_u8_string.h"],
-    visibility = ["//sharing:__subpackages__"],
+    visibility = [
+        "//location/nearby/sharing/sdk:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
 )
