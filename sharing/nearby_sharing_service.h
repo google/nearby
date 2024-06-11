@@ -97,6 +97,13 @@ class NearbySharingService {
 
   class Observer {
    public:
+    enum class AdapterState {
+      INVALID = 0,
+      NOT_PRESENT = 1,
+      DISABLED = 2,
+      ENABLED = 3,
+    };
+
     virtual ~Observer() = default;
     virtual void OnHighVisibilityChangeRequested() {}
     virtual void OnHighVisibilityChanged(bool in_high_visibility) = 0;
@@ -108,9 +115,9 @@ class NearbySharingService {
     virtual void OnFastInitiationDevicesNotDetected() {}
     virtual void OnFastInitiationScanningStopped() {}
 
-    virtual void OnBluetoothStatusChanged() {}
-    virtual void OnWifiStatusChanged() {}
-    virtual void OnLanStatusChanged() {}
+    virtual void OnBluetoothStatusChanged(AdapterState state) {}
+    virtual void OnWifiStatusChanged(AdapterState state) {}
+    virtual void OnLanStatusChanged(AdapterState state) {}
     virtual void OnIrrecoverableHardwareErrorReported() {}
 
     // Called during the |KeyedService| shutdown, but before everything has been
