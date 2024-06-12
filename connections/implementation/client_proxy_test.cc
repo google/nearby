@@ -15,28 +15,42 @@
 #include "connections/implementation/client_proxy.h"
 
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "base/casts.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "connections/advertising_options.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/payload.h"
+#include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connection_result.h"
+#include "connections/v3/connections_device_provider.h"
+#include "connections/v3/listeners.h"
 #include "internal/analytics/mock_event_logger.h"
+#include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -747,6 +761,216 @@ TEST_F(ClientProxyTest,
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
 
+// Test case for background ID rotation.
+TEST_F(ClientProxyTest,
+       EndpointIdRotateWhenLowVizAdvertisementAfterLowVizStableAdvertisement) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(&client1_, advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  StopAdvertising(&client1_);
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest,
+       NoRotateWhenLowVizAdvertisementAfterHighVizAndStableAdvertisement) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(&client1_, advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  StopAdvertising(&client1_);
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(
+    ClientProxyTest,
+    NoRotateWhenAdvertisementHasConnectionAfterStableAdvertisementForAWhile) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(&client1_, advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint_1);
+  StopAdvertising(&client1_);
+
+  // Wait to expire and then advertise.
+  absl::SleepFor(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
+                 absl::Milliseconds(100));
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest, NoRotateWhenAdvertisementAfterDisconnection) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(&client1_, advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint_1);
+  StopAdvertising(&client1_);
+  absl::SleepFor(absl::Seconds(2));
+  client1_.OnDisconnected(advertising_endpoint_1.id, true);
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest, RotateWhenAdvertisementAfterDisconnectionForAWhile) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(&client1_, advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint_1);
+  StopAdvertising(&client1_);
+  client1_.OnDisconnected(advertising_endpoint_1.id, true);
+
+  // Wait to expire and then advertise.
+  absl::SleepFor(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
+                 absl::Milliseconds(100));
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
 // Tests endpoint_id rotates when discover.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
   BooleanMediumSelector booleanMediumSelector;
@@ -772,6 +996,36 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
       &client1_, advertising_connection_listener_, advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest,
+       NoEndpointIdRotateWhenStartDiscoveryAfterStableAdvertising) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+
+  Endpoint advertising_endpoint_1 = StartAdvertising(
+      &client1_, advertising_connection_listener_, advertising_options);
+
+  StopAdvertising(&client1_);
+  StartDiscovery(&client1_, GetDiscoveryListener());
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
 
 // Tests the low visibility mode with bluetooth disabled advertisment.
@@ -801,7 +1055,6 @@ TEST_F(ClientProxyTest,
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
 
-// Tests the low visibility mode with low power advertisment.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = false;
@@ -814,6 +1067,35 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
       false,  // auto_upgrade_bandwidth
       false,  // enforce_topology_constraints
       true,   // low_power
+  };
+  Endpoint advertising_endpoint_1 = StartAdvertising(
+      &client1_, advertising_connection_listener_, advertising_options);
+
+  StopAdvertising(&client1_);
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      &client1_, advertising_connection_listener_, advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+// Tests the low visibility mode with low power advertisment.
+TEST_F(ClientProxyTest,
+       EndpointIdRotateWhenLowVizAdvertisementWithLowPowerAndStableEndpointId) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = false;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
   };
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -894,7 +1176,7 @@ TEST_F(ClientProxyTest,
 
   // Before
   EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
-  EXPECT_TRUE(client2_.IsDiscovering());   // Discoverying
+  EXPECT_TRUE(client2_.IsDiscovering());   // Discovering
   EXPECT_FALSE(client2_.HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // No Connections
 
