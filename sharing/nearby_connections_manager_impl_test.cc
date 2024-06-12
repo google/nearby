@@ -243,7 +243,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         };
     nearby_connections_manager_->StartAdvertising(
         local_endpoint_info, &incoming_connection_listener,
-        PowerLevel::kHighPower, DataUsage::ONLINE_DATA_USAGE,
+        PowerLevel::kHighPower, DataUsage::ONLINE_DATA_USAGE, false,
         std::move(callback));
     EXPECT_TRUE(
         notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
@@ -1621,7 +1621,7 @@ TEST_P(NearbyConnectionsManagerImplTestMediums, StartAdvertising_Options) {
 
   nearby_connections_manager_->StartAdvertising(
       local_endpoint_info, &incoming_connection_listener, power_level,
-      data_usage, std::move(callback));
+      data_usage, false, std::move(callback));
 
   EXPECT_TRUE(
       notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));

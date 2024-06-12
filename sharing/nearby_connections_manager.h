@@ -106,6 +106,7 @@ class NearbyConnectionsManager {
                                 IncomingConnectionListener* listener,
                                 PowerLevel power_level,
                                 proto::DataUsage data_usage,
+                                bool use_stable_endpoint_id,
                                 ConnectionsCallback callback) = 0;
 
   // Stops advertising through Nearby Connections.
