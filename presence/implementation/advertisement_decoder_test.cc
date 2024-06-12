@@ -76,8 +76,7 @@ SharedCredential GetPublicCredential() {
                        0xCA, 0x25, 0x4C, 0x35, 0x54, 0xDC, 0xE5, 0x0E});
   SharedCredential public_credential;
   public_credential.set_key_seed(seed.AsStringView());
-  public_credential.set_metadata_encryption_key_tag_v0(
-      known_mac.AsStringView());
+  public_credential.set_identity_token_tag_v0(known_mac.AsStringView());
   return public_credential;
 }
 

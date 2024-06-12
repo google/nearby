@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "presence/presence_action.h"
-
 #include "internal/platform/logging.h"
 
 namespace nearby {

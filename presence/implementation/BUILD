@@ -18,7 +18,6 @@ filegroup(
     name = "presence_internal_common_srcs",
     srcs = [
         "action_factory.cc",
-        "advertisement_factory.cc",
         "advertisement_filter.cc",
         "base_broadcast_request.cc",
         "broadcast_manager.cc",
@@ -36,7 +35,6 @@ filegroup(
         "action_factory.h",
         "advertisement_decoder.h",
         "advertisement_decoder_impl.h",
-        "advertisement_factory.h",
         "advertisement_filter.h",
         "base_broadcast_request.h",
         "broadcast_manager.h",
@@ -55,10 +53,12 @@ cc_library(
     name = "internal",
     srcs = [
         "advertisement_decoder_rust_impl.cc",
+        "advertisement_factory.cc",
         ":presence_internal_common_srcs",
     ],
     hdrs = [
         "advertisement_decoder_rust_impl.h",
+        "advertisement_factory.h",
         ":presence_internal_common_hdrs",
     ],
     defines = ["USE_RUST_DECODER=1"],
@@ -106,10 +106,12 @@ cc_library(
     name = "internal_deprecated",
     srcs = [
         "advertisement_decoder_impl.cc",
+        "advertisement_factory_deprecated.cc",
         ":presence_internal_common_srcs",
     ],
     hdrs = [
         "advertisement_decoder_impl.h",
+        "advertisement_factory_deprecated.h",
         ":presence_internal_common_hdrs",
     ],
     visibility = [
@@ -272,10 +274,10 @@ cc_test(
         "//internal/proto:credential_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
-        "@com_github_protobuf_matchers//protobuf-matchers",
+        "//testing/base/public:gunit_main_no_googleheapcheck",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
     ] + select({
         "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
@@ -296,9 +298,12 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/proto:credential_cc_proto",
+        "//presence:types",
         "//presence/implementation/mediums",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_googletest//:gtest_main",
+        "//testing/base/public:gunit_main_no_googleheapcheck",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
     ] + select({
         "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
@@ -338,6 +343,8 @@ cc_test(
         "//internal/proto:credential_cc_proto",
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ] + select({

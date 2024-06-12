@@ -14,17 +14,24 @@
 
 #include "presence/implementation/broadcast_manager.h"
 
-#include <memory>
+#include <cstdint>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
+#include "presence/broadcast_request.h"
+#include "presence/data_element.h"
+#include "presence/data_types.h"
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/mediums.h"
 
@@ -43,17 +50,16 @@ constexpr FeatureFlags kTestCases[] = {
 };
 
 constexpr absl::string_view kAccountName = "Test account";
-constexpr int8_t kTxPower = 30;
+constexpr int8_t kTxPower = 19;
 
 BroadcastRequest CreateBroadcastRequest(IdentityType identity) {
-  PresenceBroadcast::BroadcastSection section = {
+  BroadcastRequest::BroadcastSection section = {
       .identity = identity,
       .extended_properties = {DataElement(
           DataElement(ActionBit::kActiveUnlockAction))},
       .account_name = std::string(kAccountName)};
-  PresenceBroadcast presence_request = {.sections = {section}};
   BroadcastRequest request = {.tx_power = kTxPower,
-                              .variant = presence_request};
+                             .sections = {section}};
   return request;
 }
 
@@ -159,7 +165,6 @@ TEST_P(BroadcastManagerTest, StartBroadcastInvalidRequestFails) {
 }
 
 TEST_P(BroadcastManagerTest, StartBroadcastPrivateIdentityFails) {
-  // TODO(b/256249404): Support private identity.
   absl::StatusOr<BroadcastSessionId> session =
       broadcast_manager_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PRIVATE_GROUP),

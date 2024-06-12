@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_FACTORY_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_FACTORY_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ADVERTISEMENT_FACTORY_DEPRECATED_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ADVERTISEMENT_FACTORY_DEPRECATED_H_
+
+#include <string>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "presence/implementation/base_broadcast_request.h"
@@ -44,9 +47,17 @@ class AdvertisementFactory {
     return CreateAdvertisement(request,
                                absl::optional<LocalCredential>());  // NOLINT
   }
+
+ private:
+  absl::StatusOr<AdvertisementData> CreateBaseNpAdvertisement(
+      const BaseBroadcastRequest& request,
+      absl::optional<LocalCredential> credential) const;  // NOLINT
+  absl::StatusOr<std::string> EncryptDataElements(
+      const LocalCredential& credential, absl::string_view salt,
+      absl::string_view data_elements) const;
 };
 
 }  // namespace presence
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_FACTORY_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ADVERTISEMENT_FACTORY_DEPRECATED_H_

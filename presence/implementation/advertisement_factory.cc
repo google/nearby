@@ -14,27 +14,22 @@
 
 #include "presence/implementation/advertisement_factory.h"
 
-#include <cstddef>
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/status/status.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "absl/types/variant.h"
+#include "nearby_protocol.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/uuid.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/base_broadcast_request.h"
-#include "presence/implementation/ldt.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
@@ -43,194 +38,172 @@ namespace presence {
 namespace {
 using ::nearby::internal::IdentityType;
 constexpr uint8_t kBaseVersion = 0;
-constexpr size_t kMaxBaseNpAdvSize = 26;
 
-absl::StatusOr<uint8_t> CreateDataElementHeader(size_t length,
-                                                unsigned data_type) {
-  if (length > DataElement::kMaxDataElementLength) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("Unsupported Data Element length: %d", length));
-  }
-  if (data_type > DataElement::kMaxDataElementType) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("Unsupported Data Element type: %d", data_type));
-  }
-  return (length << DataElement::kDataElementLengthShift) | data_type;
-}
-
-absl::Status AppendDataElement(unsigned data_type,
-                               absl::string_view data_element,
-                               std::string& output) {
-  auto header = CreateDataElementHeader(data_element.size(), data_type);
-  if (!header.ok()) {
-    NEARBY_LOG(WARNING, "Can't add Data element type: %d, length: %d",
-               data_type, data_element.size());
-    return header.status();
-  }
-  output.push_back(*header);
-  output.insert(output.end(), data_element.begin(), data_element.end());
-  return absl::OkStatus();
-}
-
-uint8_t GetIdentityFieldType(IdentityType type) {
-  switch (type) {
-    case IdentityType::IDENTITY_TYPE_PRIVATE_GROUP:
-      return DataElement::kPrivateGroupIdentityFieldType;
-    case IdentityType::IDENTITY_TYPE_CONTACTS_GROUP:
-      return DataElement::kContactsGroupIdentityFieldType;
-    case IdentityType::IDENTITY_TYPE_PUBLIC:
-      ABSL_FALLTHROUGH_INTENDED;
-    default:
-      return DataElement::kPublicIdentityFieldType;
-  }
-}
-
-std::string SerializeAction(const Action& action) {
-  std::string output;
-  uint32_t input = action.action;
-  for (int i = 3; i >= 0; --i) {
-    if (input == 0) {
-      return output;
-    }
-    int shift = 8 * i;
-    output.push_back(static_cast<char>((input >> shift) & 0xFF));
-    input &= (1 << shift) - 1;
-  }
-  return output;
-}
-
-bool RequiresCredentials(IdentityType identity_type) {
+bool IsEncryptedAdvertisement(IdentityType identity_type) {
   return identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP ||
          identity_type == IdentityType::IDENTITY_TYPE_CONTACTS_GROUP;
 }
+
+absl::StatusOr<nearby_protocol::V0BroadcastCredential>
+CreateV0BroadcastCredential(std::string key_seed, std::string identity_token) {
+  std::array<uint8_t, 32> key_seed_bytes;
+  std::copy(key_seed.begin(), key_seed.end(), key_seed_bytes.data());
+
+  std::array<uint8_t, 14> identity_token_bytes;
+  std::copy(identity_token.begin(), identity_token.end(),
+            identity_token_bytes.data());
+
+  return nearby_protocol::V0BroadcastCredential(key_seed_bytes,
+                                                identity_token_bytes);
+}
+
+absl::StatusOr<nearby_protocol::ActionType> MapAction(const ActionBit action) {
+  switch (action) {
+    case ActionBit::kActiveUnlockAction:
+      return nearby_protocol::ActionType::ActiveUnlock;
+    case ActionBit::kNearbyShareAction:
+      return nearby_protocol::ActionType::NearbyShare;
+    case ActionBit::kInstantTetheringAction:
+      return nearby_protocol::ActionType::InstantTethering;
+    case ActionBit::kPhoneHubAction:
+      return nearby_protocol::ActionType::PhoneHub;
+    default:
+      return absl::InvalidArgumentError("Unsupported action type");
+  }
+}
+
+nearby_protocol::V0DataElement CreateActionsDataElement(
+    const std::vector<DataElement> data_elements,
+    nearby_protocol::AdvertisementBuilderKind kind) {
+  auto actions = nearby_protocol::V0Actions::BuildNewZeroed(kind);
+  for (const auto& data_element : data_elements) {
+    if (data_element.GetType() == data_element.kActionFieldType) {
+      auto action = static_cast<ActionBit>(data_element.GetValue()[0]);
+      auto action_type = MapAction(action);
+      if (!action_type.ok()) {
+        NEARBY_LOGS(WARNING)
+            << "Unsupported action type, is not being added to the broadcast: "
+            << (int)action;
+        continue;
+      }
+      auto result = actions.TrySetAction(*action_type, true);
+      if (!result.ok()) {
+        auto kind_string =
+            (kind == nearby_protocol::AdvertisementBuilderKind::Public)
+                ? "Plaintext"
+                : "Encrypted";
+        NEARBY_LOGS(WARNING) << "Provided action type is not supported for "
+                                "given advertisement type: "
+                             << kind_string << " action:" << (int)action;
+        continue;
+      }
+    }
+  }
+  return nearby_protocol::V0DataElement(actions);
+}
+
+absl::StatusOr<AdvertisementData> CreateEncryptedAdvertisement(
+    const BaseBroadcastRequest& request, internal::LocalCredential credential) {
+  if (request.salt.size() != kSaltSize) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("Unsupported salt size %d", request.salt.size()));
+  }
+  std::array<uint8_t, kSaltSize> salt;
+  std::copy(request.salt.begin(), request.salt.end(), salt.data());
+
+  auto broadcast_credential = CreateV0BroadcastCredential(
+      credential.key_seed(), credential.identity_token_v0());
+  if (!broadcast_credential.ok()) {
+    return broadcast_credential.status();
+  }
+
+  auto adv_builder = nearby_protocol::V0AdvertisementBuilder::CreateEncrypted(
+      *broadcast_credential, salt);
+
+  auto tx_power = nearby_protocol::TxPower::TryBuildFromI8(request.tx_power);
+  if (!tx_power.ok()) {
+    return tx_power.status();
+  }
+
+  auto tx_power_data_element = nearby_protocol::V0DataElement(tx_power.value());
+  auto result = adv_builder.TryAddDE(tx_power_data_element);
+  if (!result.ok()) {
+    return result;
+  }
+
+  if (!request.data_elements.empty()) {
+    auto actions_data_element = CreateActionsDataElement(
+        request.data_elements,
+        nearby_protocol::AdvertisementBuilderKind::Encrypted);
+    auto add_de_result = adv_builder.TryAddDE(actions_data_element);
+    if (!add_de_result.ok()) {
+      return add_de_result;
+    }
+  }
+
+  auto serialized_bytes = adv_builder.TrySerialize();
+  if (!serialized_bytes.ok()) {
+    return serialized_bytes.status();
+  }
+
+  return AdvertisementData{.is_extended_advertisement = false,
+                           .content = serialized_bytes->ToString()};
+}
+
+absl::StatusOr<AdvertisementData> CreateUnencryptedAdvertisement(
+    const BaseBroadcastRequest& request) {
+  auto adv_builder = nearby_protocol::V0AdvertisementBuilder::CreatePublic();
+
+  auto tx_power = nearby_protocol::TxPower::TryBuildFromI8(request.tx_power);
+  if (!tx_power.ok()) {
+    return tx_power.status();
+  }
+  auto de = nearby_protocol::V0DataElement(*tx_power);
+  auto add_de_result = adv_builder.TryAddDE(de);
+  if (!add_de_result.ok()) {
+    return add_de_result;
+  }
+
+  if (!request.data_elements.empty()) {
+    auto actions_data_element = CreateActionsDataElement(
+        request.data_elements,
+        nearby_protocol::AdvertisementBuilderKind::Public);
+    add_de_result = adv_builder.TryAddDE(actions_data_element);
+    if (!add_de_result.ok()) {
+      return add_de_result;
+    }
+  }
+
+  auto serialized_bytes = adv_builder.TrySerialize();
+  if (!serialized_bytes.ok()) {
+    return serialized_bytes.status();
+  }
+  return AdvertisementData{.is_extended_advertisement = false,
+                           .content = serialized_bytes->ToString()};
+}
+
 }  // namespace
 
 absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
     const BaseBroadcastRequest& request,
-    absl::optional<LocalCredential> credential) const {
-  AdvertisementData advert = {};
-  if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
-          request.variant)) {
-    return CreateBaseNpAdvertisement(request, std::move(credential));
-  }
-  return advert;
-}
-
-absl::StatusOr<AdvertisementData>
-AdvertisementFactory::CreateBaseNpAdvertisement(
-    const BaseBroadcastRequest& request,
-    absl::optional<LocalCredential> credential) const {
-  const auto& presence =
-      absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
-  std::string payload;
-  payload.reserve(kMaxBaseNpAdvSize);
-  payload.push_back(kBaseVersion);
-  absl::Status result;
-  std::string tx_power = {static_cast<char>(request.tx_power)};
-  std::string action = SerializeAction(presence.action);
-  uint8_t identity_type =
-      GetIdentityFieldType(presence.credential_selector.identity_type);
-  bool needs_encryption =
-      identity_type != DataElement::kPublicIdentityFieldType;
-  if (needs_encryption) {
-    if (request.salt.size() != kSaltSize) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("Unsupported salt size %d", request.salt.size()));
-    }
+    absl::optional<LocalCredential> credential) const {  // NOLINT
+  if (IsEncryptedAdvertisement(request.credential_selector.identity_type)) {
     if (!credential) {
       return absl::FailedPreconditionError("Missing credentials");
     }
-    std::string unencrypted;
-    result = AppendDataElement(DataElement::kTxPowerFieldType, tx_power,
-                               unencrypted);
-    if (!result.ok()) {
-      return result;
-    }
-    result =
-        AppendDataElement(DataElement::kActionFieldType, action, unencrypted);
-    if (!result.ok()) {
-      return result;
-    }
-    NEARBY_LOGS(VERBOSE) << "Unencrypted advertisement payload "
-                         << absl::BytesToHexString(unencrypted);
-    absl::StatusOr<std::string> encrypted =
-        EncryptDataElements(*credential, request.salt, unencrypted);
-    if (!encrypted.ok()) {
-      return encrypted.status();
-    }
-    if (encrypted->size() <= kBaseMetadataSize) {
-      return absl::OutOfRangeError(
-          absl::StrFormat("Encrypted identity DE is too short - %d bytes. "
-                          "Expected more than %d",
-                          encrypted->size(), kBaseMetadataSize));
-    }
-
-    // The Identity DE header does not include the length of salt nor metadata.
-    absl::StatusOr<uint8_t> identity_header = CreateDataElementHeader(
-        encrypted->size() - kBaseMetadataSize, identity_type);
-    if (!identity_header.ok()) {
-      return identity_header.status();
-    }
-    payload.push_back(*identity_header);
-    // In the encrypted format, salt is not a DE (thus no header)
-    payload.append(request.salt);
-    payload.append(*encrypted);
+    return CreateEncryptedAdvertisement(request, *credential);
   } else {
-    result = AppendDataElement(identity_type, "", payload);
-    if (!result.ok()) {
-      return result;
-    }
-    if (!request.salt.empty()) {
-      result =
-          AppendDataElement(DataElement::kSaltFieldType, request.salt, payload);
-      if (!result.ok()) {
-        return result;
-      }
-    }
-    result =
-        AppendDataElement(DataElement::kTxPowerFieldType, tx_power, payload);
-    if (!result.ok()) {
-      return result;
-    }
-    result = AppendDataElement(DataElement::kActionFieldType, action, payload);
-    if (!result.ok()) {
-      return result;
-    }
+    return CreateUnencryptedAdvertisement(request);
   }
-  return AdvertisementData{.is_extended_advertisement = false,
-                           .content = payload};
-}
-absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
-    const LocalCredential& credential, absl::string_view salt,
-    absl::string_view data_elements) const {
-  if (credential.metadata_encryption_key_v0().size() != kBaseMetadataSize) {
-    return absl::FailedPreconditionError(absl::StrFormat(
-        "Metadata key size %d, expected %d",
-        credential.metadata_encryption_key_v0().size(), kBaseMetadataSize));
-  }
-
-  // HMAC is not used during encryption, so we can pass an empty value.
-  absl::StatusOr<LdtEncryptor> encryptor =
-      LdtEncryptor::Create(credential.key_seed(), /*known_hmac=*/"");
-  if (!encryptor.ok()) {
-    return encryptor.status();
-  }
-  std::string plaintext =
-      absl::StrCat(credential.metadata_encryption_key_v0(), data_elements);
-  return encryptor->Encrypt(plaintext, salt);
 }
 
 absl::StatusOr<CredentialSelector> AdvertisementFactory::GetCredentialSelector(
     const BaseBroadcastRequest& request) {
-  if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
-          request.variant)) {
-    const auto& presence =
-        absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
-    if (RequiresCredentials(presence.credential_selector.identity_type)) {
-      return presence.credential_selector;
-    }
+  if (IsEncryptedAdvertisement(request.credential_selector.identity_type)) {
+    return request.credential_selector;
   }
   return absl::NotFoundError("credentials not required");
 }
+
 }  // namespace presence
 }  // namespace nearby

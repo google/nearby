@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/power_mode.h"
@@ -26,8 +25,8 @@
 namespace nearby {
 namespace presence {
 
-// Broadcast parameter for presence features.
-struct PresenceBroadcast {
+// Nearby Presence advertisement request options.
+struct BroadcastRequest {
   struct BroadcastSection {
     // Presence identity type.
     ::nearby::internal::IdentityType identity =
@@ -52,16 +51,6 @@ struct PresenceBroadcast {
     std::string manager_app_id;
   };
 
-  std::vector<BroadcastSection> sections;
-};
-
-// Broadcast request for legacy Android T, which needs to provide credential
-// and salt in the broadcast parameters.
-// TODO(b/243443813) - Support Legacy Broadcast Request
-struct LegacyPresenceBroadcast {};
-
-// Nearby Presence advertisement request options.
-struct BroadcastRequest {
   // Calibrated TX power. The broadcast recipient uses it to calculate the
   // distance between both devices.
   int tx_power;
@@ -69,7 +58,7 @@ struct BroadcastRequest {
   // The broadcast frequency hint.
   PowerMode power_mode;
 
-  absl::variant<PresenceBroadcast, LegacyPresenceBroadcast> variant;
+  std::vector<BroadcastSection> sections;
 };
 
 }  // namespace presence

@@ -49,9 +49,7 @@
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
 #include "internal/proto/local_credential.pb.h"
-#include "presence/data_types.h"
 #include "presence/implementation/base_broadcast_request.h"
-#include "presence/implementation/ldt.h"
 
 namespace nearby {
 namespace presence {
@@ -237,10 +235,10 @@ CredentialManagerImpl::CreateLocalCredential(
   private_credential.mutable_connection_signing_key()->set_key(
       std::string(private_key.begin(), private_key.end()));
   // Create an AES key to encrypt the device identity metadata.
-  std::string metadata_key(kBaseMetadataSize, 0);
+  std::string metadata_key(kV0IdentityTokenSize, 0);
   RandBytes(const_cast<std::string::value_type*>(metadata_key.data()),
             metadata_key.size());
-  private_credential.set_metadata_encryption_key_v0(metadata_key);
+  private_credential.set_identity_token_v0(metadata_key);
 
   // Generate the public credential
   std::vector<uint8_t> public_key;
@@ -278,12 +276,12 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
       std::string(public_key.begin(), public_key.end()));
 
   auto metadata_encryption_key_tag =
-      Crypto::Sha256(private_credential.metadata_encryption_key_v0());
-  public_credential.set_metadata_encryption_key_tag_v0(
+      Crypto::Sha256(private_credential.identity_token_v0());
+  public_credential.set_identity_token_tag_v0(
       std::string(metadata_encryption_key_tag.AsStringView()));
 
   auto encrypted_meta_data = EncryptDeviceIdentityMetaData(
-      private_credential.metadata_encryption_key_v0(),
+      private_credential.identity_token_v0(),
       private_credential.key_seed(),
       device_identity_metadata.SerializeAsString());
 

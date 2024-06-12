@@ -21,11 +21,12 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "internal/platform/byte_array.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
-#include "presence/implementation/action_factory.h"
+#include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
@@ -36,8 +37,6 @@ namespace {
 using ::nearby::ByteArray;  // NOLINT
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::LocalCredential;  // NOLINT
-using ::testing::NiceMock;
-using ::testing::Return;
 using ::testing::status::StatusIs;
 
 LocalCredential CreateLocalCredential(IdentityType identity_type) {
@@ -51,8 +50,7 @@ LocalCredential CreateLocalCredential(IdentityType identity_type) {
   LocalCredential private_credential;
   private_credential.set_identity_type(identity_type);
   private_credential.set_key_seed(seed.AsStringView());
-  private_credential.set_metadata_encryption_key_v0(
-      metadata_key.AsStringView());
+  private_credential.set_identity_token_v0(metadata_key.AsStringView());
   return private_credential;
 }
 
@@ -62,13 +60,13 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
-  Action action = ActionFactory::CreateAction(data_elements);
+
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
                                .SetAccountName(account_name)
                                .SetSalt(salt)
                                .SetTxPower(5)
-                               .SetAction(action));
+                               .SetActions(data_elements));
 
   absl::StatusOr<AdvertisementData> result =
       AdvertisementFactory().CreateAdvertisement(
@@ -77,7 +75,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c");
+            "044142b8412efb0bc657ba514baf4d1b50ddc842cd1c");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
@@ -87,13 +85,12 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   data_elements.emplace_back(ActionBit::kPresenceManagerAction);
-  Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
                                .SetAccountName(account_name)
                                .SetSalt(salt)
                                .SetTxPower(5)
-                               .SetAction(action));
+                               .SetActions(data_elements));
 
   absl::StatusOr<AdvertisementData> result =
       AdvertisementFactory().CreateAdvertisement(
@@ -102,7 +99,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "0052414257a35c020f1c547d7e169303196d75da7118ba");
+            "044142b8412efb0bc657ba514baf4d1b50ddc842cd1c");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
@@ -110,36 +107,78 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PUBLIC;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
-  Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
                                .SetSalt(salt)
                                .SetTxPower(5)
-                               .SetAction(action));
+                               .SetActions(data_elements));
 
   absl::StatusOr<AdvertisementData> result =
       AdvertisementFactory().CreateAdvertisement(request);
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
-  EXPECT_EQ(absl::BytesToHexString(result->content), "00032041421505260080");
+  EXPECT_EQ(absl::BytesToHexString(result->content), "0015051600");
 }
 
-TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
+TEST(AdvertisementFactory, V0PrivateIdentitySerializationSimpleCase) {
+  std::string salt = absl::HexStringToBytes("2222");
+  std::string identity_token =
+      absl::HexStringToBytes("3333333333333333333333333333");
+  std::string key_seed = absl::HexStringToBytes(
+      "1111111111111111111111111111111111111111111111111111111111111111");
+
+  LocalCredential private_credential;
+  private_credential.set_identity_type(
+      IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
+  private_credential.set_key_seed(key_seed);
+  private_credential.set_identity_token_v0(identity_token);
+
+  BaseBroadcastRequest request = BaseBroadcastRequest(
+      BasePresenceRequestBuilder(IdentityType::IDENTITY_TYPE_PRIVATE_GROUP)
+          .SetSalt(salt)
+          .SetTxPower(3));
+
+  absl::StatusOr<AdvertisementData> result =
+      AdvertisementFactory().CreateAdvertisement(request, private_credential);
+
+  ASSERT_OK(result);
+
+  // V0 encrypted advertisement data - ripped out of
+  // //third_party/beto_core/nearby/presence/np_adv/tests/examples_v0.rs
+  EXPECT_EQ(absl::BytesToHexString(result->content),
+            "042222d82212ef16dbf872f2a3a7c0fa5248ec");
+}
+
+TEST(AdvertisementFactory, CreateAdvertisementMissingCredentials) {
   std::string salt = "AB";
   constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE_GROUP;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
-  Action action = ActionFactory::CreateAction(data_elements);
   BaseBroadcastRequest request =
       BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
                                .SetSalt(salt)
                                .SetTxPower(5)
-                               .SetAction(action));
-  // Override the salt with invalid value
-  request.salt = "C";
+                               .SetActions(data_elements));
 
   EXPECT_THAT(AdvertisementFactory().CreateAdvertisement(request),
+              StatusIs(absl::StatusCode::kFailedPrecondition));
+}
+
+TEST(AdvertisementFactory, CreateAdvertisementInvalidSalt) {
+  std::string salt = "AB";
+  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE_GROUP;
+  std::vector<DataElement> data_elements;
+  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
+  BaseBroadcastRequest request =
+      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
+                               .SetSalt(salt)
+                               .SetTxPower(5)
+                               .SetActions(data_elements));
+  // Override the salt with invalid value
+  request.salt = "C";
+  auto credential = CreateLocalCredential(kIdentity);
+  EXPECT_THAT(AdvertisementFactory().CreateAdvertisement(request, credential),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 

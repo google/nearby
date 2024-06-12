@@ -202,7 +202,7 @@ AdvertisementDecoderImpl::InitializeCredentialBook(
     std::array<uint8_t, 32> key_seed_array;
     std::copy(key_seed.begin(), key_seed.end(), key_seed_array.data());
 
-    auto tag = credential.metadata_encryption_key_tag_v0();
+    auto tag = credential.identity_token_tag_v0();
     std::array<uint8_t, 32> tag_array;
     std::copy(tag.begin(), tag.end(), tag_array.data());
 
