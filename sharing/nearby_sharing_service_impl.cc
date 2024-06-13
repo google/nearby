@@ -1257,10 +1257,6 @@ void NearbySharingServiceImpl::OnSettingChanged(absl::string_view key,
   if (key == prefs::kNearbySharingEnabledName) {
     bool enabled = data.value.as_bool;
     OnEnabledChanged(enabled);
-  } else if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
-    FastInitiationNotificationState state =
-        static_cast<FastInitiationNotificationState>(data.value.as_int64);
-    OnFastInitiationNotificationStateChanged(state);
   } else if (key == prefs::kNearbySharingDataUsageName) {
     DataUsage data_usage = static_cast<DataUsage>(data.value.as_int64);
     OnDataUsageChanged(data_usage);
@@ -1300,25 +1296,6 @@ void NearbySharingServiceImpl::OnEnabledChanged(bool enabled) {
     InvalidateSurfaceState();
   });
 }
-
-void NearbySharingServiceImpl::OnFastInitiationNotificationStateChanged(
-    FastInitiationNotificationState state) {
-  RunOnNearbySharingServiceThread(
-      "on_fast_initiation_notification_state_changed", [this, state]() {
-        if (!IsBackgroundScanningFeatureEnabled()) {
-          return;
-        }
-
-        NL_VLOG(1) << __func__ << ": Fast initiation Notification state: "
-                   << static_cast<int>(state);
-        // Runs through a series of checks to determine if background scanning
-        // should be started or stopped.
-        InvalidateReceiveSurfaceState();
-      });
-}
-
-void NearbySharingServiceImpl::OnIsFastInitiationHardwareSupportedChanged(
-    bool is_supported) {}
 
 void NearbySharingServiceImpl::OnDataUsageChanged(DataUsage data_usage) {
   RunOnNearbySharingServiceThread(
@@ -2295,15 +2272,6 @@ void NearbySharingServiceImpl::InvalidateFastInitiationScanning() {
     NL_VLOG(1) << __func__
                << ": Stopping background scanning due to post-transfer "
                   "cooldown period";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  if (settings_->GetFastInitiationNotificationState() !=
-      FastInitiationNotificationState::ENABLED_FAST_INIT) {
-    NL_VLOG(1) << __func__
-               << ": Stopping background scanning; fast initiation "
-                  "notification is disabled";
     StopFastInitiationScanning();
     return;
   }

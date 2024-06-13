@@ -208,11 +208,9 @@ class NearbySharingServiceImpl
 
   // NearbyShareSettings::Observer:
   void OnSettingChanged(absl::string_view key, const Data& data) override;
-  void OnIsFastInitiationHardwareSupportedChanged(bool is_supported) override;
+  void OnIsFastInitiationHardwareSupportedChanged(bool is_supported) override {}
 
   void OnEnabledChanged(bool enabled);
-  void OnFastInitiationNotificationStateChanged(
-      proto::FastInitiationNotificationState state);
   void OnDeviceNameChanged(absl::string_view device_name);
   void OnDataUsageChanged(proto::DataUsage data_usage);
   void OnCustomSavePathChanged(absl::string_view custom_save_path);

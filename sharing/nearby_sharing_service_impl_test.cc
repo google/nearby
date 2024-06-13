@@ -1533,29 +1533,6 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
 }
 
-TEST_F(NearbySharingServiceImplTest,
-       FastInitiationScanning_OnFastInitiationNotificationStateChanged) {
-  FakeNearbyFastInitiation* fast_initiation =
-      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-
-  // Fast init notifications are enabled by default so a scanner is created on
-  // initialization of the service.
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 0);
-
-  // The existing scanner is destroyed when fast init notifications are turned
-  // off.
-  SetFastInitiationNotificationState(
-      FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-
-  SetFastInitiationNotificationState(
-      FastInitiationNotificationState::ENABLED_FAST_INIT);
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 2);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-}
-
 TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_NotifyObservers) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
@@ -1571,29 +1548,6 @@ TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_NotifyObservers) {
 
   // Remove the observer before it goes out of scope.
   service_->RemoveObserver(&observer);
-}
-
-TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_NoHardwareSupport) {
-  FakeNearbyFastInitiation* fast_initiation =
-      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kBluetooth);
-
-  // Hardware support is enabled by default in these tests, so we expect that a
-  // scanner has been created.
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 0);
-
-  SetFastInitiationNotificationState(
-      FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-  fast_initiation->SetScanOffloadSupported(false);
-  SetFastInitiationNotificationState(
-      FastInitiationNotificationState::ENABLED_FAST_INIT);
-
-  // Make sure we stopped scanning and didn't restart.
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
 }
 
 TEST_F(NearbySharingServiceImplTest,
