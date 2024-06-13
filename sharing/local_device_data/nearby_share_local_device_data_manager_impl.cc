@@ -24,7 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include "google/protobuf/field_mask.pb.h"
 #include "absl/memory/memory.h"
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
@@ -44,6 +43,7 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/device_rpc.pb.h"
+#include "sharing/proto/field_mask.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/scheduling/nearby_share_scheduler.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
