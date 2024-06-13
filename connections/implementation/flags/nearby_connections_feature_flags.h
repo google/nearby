@@ -82,6 +82,10 @@ constexpr auto kIgnoreUpgradePathAvailableFrameForAdvertiser =
 constexpr auto kUseMediumInConnectionInfo =
     flags::Flag<bool>(kConfigPackage, "45635058", false);
 
+// When true, use the medium in connection info.
+constexpr auto kUseStableEndpointId =
+    flags::Flag<bool>(kConfigPackage, "45639298", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
