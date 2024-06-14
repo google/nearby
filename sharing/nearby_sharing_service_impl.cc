@@ -163,6 +163,23 @@ bool ShouldBlockSurfaceRegistration(BlockedVendorId registering_vendor_id,
          registering_vendor_id != blocked_vendor_id;
 }
 
+OSType ToProtoOsType(::nearby::api::DeviceInfo::OsType os_type) {
+  switch (os_type) {
+    case ::nearby::api::DeviceInfo::OsType::kAndroid:
+      return OSType::ANDROID;
+    case ::nearby::api::DeviceInfo::OsType::kChromeOs:
+      return OSType::CHROME_OS;
+    case ::nearby::api::DeviceInfo::OsType::kWindows:
+      return OSType::WINDOWS;
+    case ::nearby::api::DeviceInfo::OsType::kIos:
+      return OSType::IOS;
+    case ::nearby::api::DeviceInfo::OsType::kMacOS:
+      return OSType::MACOS;
+    case ::nearby::api::DeviceInfo::OsType::kUnknown:
+      return OSType::UNKNOWN_OS_TYPE;
+  }
+}
+
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
@@ -2623,7 +2640,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
   std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
   info.RunPairedKeyVerification(
-      context_, decoder_, device_info_.GetOsType(),
+      context_, decoder_, ToProtoOsType(device_info_.GetOsType()),
       {
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),
@@ -3278,7 +3295,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
   share_target_info.RunPairedKeyVerification(
-      context_, decoder_, device_info_.GetOsType(),
+      context_, decoder_, ToProtoOsType(device_info_.GetOsType()),
       {
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),

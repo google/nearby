@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "absl/time/time.h"
-#include "internal/platform/implementation/device_info.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/constants.h"
 #include "sharing/incoming_frames_reader.h"
@@ -92,8 +91,7 @@ bool ShareTargetInfo::OnConnected(absl::Time connect_start_time,
 }
 
 void ShareTargetInfo::RunPairedKeyVerification(
-    Context* context, NearbySharingDecoder* decoder,
-    nearby::api::DeviceInfo::OsType os_type,
+    Context* context, NearbySharingDecoder* decoder, OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
     NearbyShareCertificateManager* certificate_manager,
     std::optional<std::vector<uint8_t>> token,

@@ -24,7 +24,6 @@
 
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/implementation/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -57,7 +56,7 @@ class PairedKeyVerificationRunner
   };
 
   PairedKeyVerificationRunner(
-      Clock* clock, nearby::api::DeviceInfo::OsType os_type,
+      Clock* clock, location::nearby::proto::sharing::OSType os_type,
       bool share_target_is_incoming,
       const VisibilityHistory& visibility_history,
       const std::vector<uint8_t>& token, NearbyConnection* connection,
@@ -95,7 +94,7 @@ class PairedKeyVerificationRunner
   bool IsVisibilityRecentlyUpdated() const;
 
   nearby::Clock* const clock_;
-  const nearby::api::DeviceInfo::OsType os_type_;
+  const location::nearby::proto::sharing::OSType os_type_;
   VisibilityHistory visibility_history_;
   std::vector<uint8_t> raw_token_;
   NearbyConnection* connection_;

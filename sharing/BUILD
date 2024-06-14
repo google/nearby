@@ -73,6 +73,7 @@ cc_library(
     hdrs = [
         "advertisement.h",
         "attachment_info.h",
+        "constants.h",
         "nearby_connection.h",
         "nearby_connections_manager.h",
         "nearby_sharing_decoder.h",
@@ -94,6 +95,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -121,9 +123,55 @@ cc_library(
 )
 
 cc_library(
+    name = "nearby_sharing_decoder_impl",
+    srcs = ["nearby_sharing_decoder_impl.cc"],
+    hdrs = ["nearby_sharing_decoder_impl.h"],
+    visibility = [
+        "//sharing/fuzzing:__pkg__",
+    ],
+    deps = [
+        ":types",
+        "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "incoming_frame_reader",
+    srcs = ["incoming_frames_reader.cc"],
+    hdrs = ["incoming_frames_reader.h"],
+    deps = [
+        ":types",
+        "//internal/platform:types",
+        "//sharing/internal/public:logging",
+        "//sharing/internal/public:types",
+        "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "paired_key_verification_runner",
+    srcs = ["paired_key_verification_runner.cc"],
+    hdrs = ["paired_key_verification_runner.h"],
+    deps = [
+        ":incoming_frame_reader",
+        ":types",
+        "//internal/platform:types",
+        "//proto:sharing_enums_cc_proto",
+        "//sharing/certificates",
+        "//sharing/internal/public:logging",
+        "//sharing/proto:enums_cc_proto",
+        "//sharing/proto:share_cc_proto",
+        "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "nearby_sharing_service",
     srcs = [
-        "incoming_frames_reader.cc",
         "incoming_share_target_info.cc",
         "nearby_connection_impl.cc",
         "nearby_connections_manager.cc",
@@ -134,7 +182,6 @@ cc_library(
         "nearby_connections_stream_buffer_manager.cc",
         "nearby_file_handler.cc",
         "nearby_share_profile_info_provider_impl.cc",
-        "nearby_sharing_decoder_impl.cc",
         "nearby_sharing_service.cc",
         "nearby_sharing_service_extension.cc",
         "nearby_sharing_service_factory.cc",
@@ -142,7 +189,6 @@ cc_library(
         "nearby_sharing_settings.cc",
         "nearby_sharing_util.cc",
         "outgoing_share_target_info.cc",
-        "paired_key_verification_runner.cc",
         "payload_tracker.cc",
         "share_target_info.cc",
         "transfer_manager.cc",
@@ -150,9 +196,7 @@ cc_library(
     ],
     hdrs = [
         "connection_lifecycle_listener.h",
-        "constants.h",
         "endpoint_discovery_listener.h",
-        "incoming_frames_reader.h",
         "incoming_share_target_info.h",
         "nearby_connection_impl.h",
         "nearby_connections_manager_factory.h",
@@ -162,7 +206,6 @@ cc_library(
         "nearby_connections_stream_buffer_manager.h",
         "nearby_file_handler.h",
         "nearby_share_profile_info_provider_impl.h",
-        "nearby_sharing_decoder_impl.h",
         "nearby_sharing_service.h",
         "nearby_sharing_service_extension.h",
         "nearby_sharing_service_factory.h",
@@ -170,7 +213,6 @@ cc_library(
         "nearby_sharing_settings.h",
         "nearby_sharing_util.h",
         "outgoing_share_target_info.h",
-        "paired_key_verification_runner.h",
         "payload_listener.h",
         "payload_tracker.h",
         "share_target_discovered_callback.h",
@@ -191,6 +233,9 @@ cc_library(
     deps = [
         ":attachments",
         ":connection_types",
+        ":incoming_frame_reader",
+        ":nearby_sharing_decoder_impl",
+        ":paired_key_verification_runner",
         ":transfer_metadata",
         ":types",
         "//connections:core",
@@ -305,10 +350,11 @@ cc_test(
     size = "small",
     srcs = ["paired_key_verification_runner_test.cc"],
     deps = [
-        ":nearby_sharing_service",
+        ":incoming_frame_reader",
+        ":nearby_sharing_decoder_impl",
+        ":paired_key_verification_runner",
         ":test_support",
         ":types",
-        "//internal/platform/implementation:types",
         "//internal/test",
         "//proto:sharing_enums_cc_proto",
         "//sharing/certificates",
@@ -349,7 +395,8 @@ cc_test(
     name = "incoming_frames_reader_test",
     srcs = ["incoming_frames_reader_test.cc"],
     deps = [
-        ":nearby_sharing_service",
+        ":incoming_frame_reader",
+        ":nearby_sharing_decoder_impl",
         ":test_support",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
@@ -367,6 +414,8 @@ cc_test(
     name = "nearby_connection_impl_test",
     srcs = ["nearby_connection_impl_test.cc"],
     deps = [
+        ":incoming_frame_reader",
+        ":nearby_sharing_decoder_impl",
         ":nearby_sharing_service",
         ":test_support",
         "//internal/platform/implementation/g3",  # fixdeps: keep
@@ -623,11 +672,12 @@ cc_test(
     name = "share_target_info_test",
     srcs = ["share_target_info_test.cc"],
     deps = [
+        ":nearby_sharing_decoder_impl",
         ":nearby_sharing_service",
+        ":paired_key_verification_runner",
         ":test_support",
         ":transfer_metadata",
         ":types",
-        "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//sharing/certificates:test_support",
         "//sharing/internal/test:nearby_test",

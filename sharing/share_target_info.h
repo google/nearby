@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/time/time.h"
-#include "internal/platform/implementation/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -116,7 +115,7 @@ class ShareTargetInfo {
 
   void RunPairedKeyVerification(
       Context* context, NearbySharingDecoder* decoder,
-      nearby::api::DeviceInfo::OsType os_type,
+      location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
       NearbyShareCertificateManager* certificate_manager,
       std::optional<std::vector<uint8_t>> token,

@@ -25,7 +25,6 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/implementation/device_info.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/internal/test/fake_context.h"
@@ -38,6 +37,8 @@
 
 namespace nearby::sharing {
 namespace {
+
+using ::location::nearby::proto::sharing::OSType;
 
 constexpr absl::string_view kEndpointId = "12345";
 
@@ -160,8 +161,7 @@ TEST(ShareTargetInfoTest, IncomingRunPairedKeyVerificationSuccess) {
   PairedKeyVerificationRunner::PairedKeyVerificationResult verification_result;
 
   info.RunPairedKeyVerification(
-      &context, &nearby_sharing_decoder,
-      nearby::api::DeviceInfo::OsType::kWindows,
+      &context, &nearby_sharing_decoder, OSType::WINDOWS,
       {
           .visibility = proto::DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
           .last_visibility =

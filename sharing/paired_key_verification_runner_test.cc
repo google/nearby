@@ -28,7 +28,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "internal/platform/implementation/device_info.h"
 #include "internal/test/fake_clock.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
@@ -204,10 +203,9 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
             : std::nullopt;
 
     auto runner = std::make_shared<PairedKeyVerificationRunner>(
-        context_.GetClock(), nearby::api::DeviceInfo::OsType::kWindows,
-        is_incoming, visibility_history, GetAuthToken(), &connection_,
-        std::move(public_certificate), &certificate_manager_, &frames_reader_,
-        kTimeout);
+        context_.GetClock(), OSType::WINDOWS, is_incoming, visibility_history,
+        GetAuthToken(), &connection_, std::move(public_certificate),
+        &certificate_manager_, &frames_reader_, kTimeout);
 
     runner->Run(
         [&, expected_result, expected_os_type](
