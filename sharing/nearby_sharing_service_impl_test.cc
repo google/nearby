@@ -73,6 +73,7 @@
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
+#include "sharing/internal/test/fake_wifi_adapter.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager_impl.h"
 #include "sharing/nearby_connections_manager.h"
@@ -479,6 +480,28 @@ class NearbySharingServiceImplTest : public testing::Test {
     FakeBluetoothAdapter& bluetooth_adapter =
         down_cast<FakeBluetoothAdapter&>(fake_context_.GetBluetoothAdapter());
     bluetooth_adapter.ReceivedAdapterPoweredChangedFromOs(powered);
+    FlushTesting();
+  }
+
+  void SetWifiIsPresent(bool present) {
+    FakeWifiAdapter& wifi_adapter =
+        down_cast<FakeWifiAdapter&>(fake_context_.GetWifiAdapter());
+    wifi_adapter.ReceivedAdapterPresentChangedFromOs(present);
+    FlushTesting();
+  }
+
+  void SetWifiIsPowered(bool powered) {
+    FakeWifiAdapter& wifi_adapter =
+        down_cast<FakeWifiAdapter&>(fake_context_.GetWifiAdapter());
+    wifi_adapter.ReceivedAdapterPoweredChangedFromOs(powered);
+    FlushTesting();
+  }
+
+  void SetLanIsConnected(bool connected) {
+    FakeConnectivityManager* connectivity_manager =
+        down_cast<FakeConnectivityManager*>(
+            fake_context_.GetConnectivityManager());
+    connectivity_manager->SetLanConnected(connected);
     FlushTesting();
   }
 
@@ -1366,6 +1389,18 @@ class TestObserver : public NearbySharingService::Observer {
     scanning_stopped_called_ = true;
   }
 
+  void OnBluetoothStatusChanged(AdapterState state) override {
+    bluetooth_state_ = state;
+  }
+
+  void OnWifiStatusChanged(AdapterState state) override {
+    wifi_state_ = state;
+  }
+
+  void OnLanStatusChanged(AdapterState state) override {
+    lan_state_ = state;
+  }
+
   void OnShutdown() override {
     shutdown_called_ = true;
     service_->RemoveObserver(this);
@@ -1378,6 +1413,9 @@ class TestObserver : public NearbySharingService::Observer {
   bool devices_not_detected_called_ = false;
   bool scanning_stopped_called_ = false;
   NearbySharingService* service_;
+  AdapterState bluetooth_state_ = AdapterState::INVALID;
+  AdapterState wifi_state_ = AdapterState::INVALID;
+  AdapterState lan_state_ = AdapterState::INVALID;
 };
 
 TEST_F(NearbySharingServiceImplTest, DisableNearbyShutdownConnections) {
@@ -1539,6 +1577,7 @@ TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_NotifyObservers) {
   SetConnectionType(ConnectionType::kBluetooth);
 
   TestObserver observer(service_.get());
+
   ASSERT_EQ(fast_initiation->StartScanningCount(), 1);
 
   fast_initiation->FireDevicesDetected();
@@ -1548,6 +1587,7 @@ TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_NotifyObservers) {
 
   // Remove the observer before it goes out of scope.
   service_->RemoveObserver(&observer);
+  FlushTesting();
 }
 
 TEST_F(NearbySharingServiceImplTest,
@@ -4051,6 +4091,77 @@ TEST_F(NearbySharingServiceImplTest,
             NearbySharingService::StatusCodes::kOk);
   EXPECT_FALSE(service_->IsInHighVisibility());
   EXPECT_FALSE(observer.in_high_visibility_);
+
+  // Remove the observer before it goes out of scope.
+  service_->RemoveObserver(&observer);
+  FlushTesting();
+}
+
+TEST_F(NearbySharingServiceImplTest, AddObserverSendsInitialAdapterState) {
+  SetBluetoothIsPresent(true);
+  SetBluetoothIsPowered(false);
+  SetWifiIsPresent(false);
+  SetWifiIsPowered(false);
+  SetLanIsConnected(true);
+
+  TestObserver observer(service_.get());
+  FlushTesting();
+
+  EXPECT_EQ(observer.bluetooth_state_,
+            NearbySharingService::Observer::AdapterState::DISABLED);
+  EXPECT_EQ(observer.lan_state_,
+            NearbySharingService::Observer::AdapterState::ENABLED);
+
+  // Remove the observer before it goes out of scope.
+  service_->RemoveObserver(&observer);
+}
+
+TEST_F(NearbySharingServiceImplTest, AddObserverBluetoothAdapterUpdate) {
+  SetBluetoothIsPresent(false);
+  SetBluetoothIsPowered(false);
+  SetWifiIsPresent(false);
+  SetWifiIsPowered(false);
+  SetLanIsConnected(false);
+
+  TestObserver observer(service_.get());
+  FlushTesting();
+  EXPECT_EQ(observer.bluetooth_state_,
+            NearbySharingService::Observer::AdapterState::NOT_PRESENT);
+
+  SetBluetoothIsPresent(true);
+  SetBluetoothIsPowered(false);
+  EXPECT_EQ(observer.bluetooth_state_,
+            NearbySharingService::Observer::AdapterState::DISABLED);
+
+  SetBluetoothIsPresent(true);
+  SetBluetoothIsPowered(true);
+  EXPECT_EQ(observer.bluetooth_state_,
+            NearbySharingService::Observer::AdapterState::ENABLED);
+
+  SetBluetoothIsPresent(false);
+  SetBluetoothIsPowered(true);
+  EXPECT_EQ(observer.bluetooth_state_,
+            NearbySharingService::Observer::AdapterState::NOT_PRESENT);
+
+  // Remove the observer before it goes out of scope.
+  service_->RemoveObserver(&observer);
+}
+
+TEST_F(NearbySharingServiceImplTest, AddObserverLanAdapterUpdate) {
+  SetBluetoothIsPresent(false);
+  SetBluetoothIsPowered(false);
+  SetWifiIsPresent(false);
+  SetWifiIsPowered(false);
+  SetLanIsConnected(false);
+
+  TestObserver observer(service_.get());
+  FlushTesting();
+  EXPECT_EQ(observer.lan_state_,
+            NearbySharingService::Observer::AdapterState::DISABLED);
+
+  SetLanIsConnected(true);
+  EXPECT_EQ(observer.lan_state_,
+            NearbySharingService::Observer::AdapterState::ENABLED);
 
   // Remove the observer before it goes out of scope.
   service_->RemoveObserver(&observer);

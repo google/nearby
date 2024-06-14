@@ -41,13 +41,18 @@ class FakeConnectivityManager : public ConnectivityManager {
   }
 
   // Mocks connectivity methods.
-  void SetLanConnected(bool connected) { is_lan_connected_ = connected; }
+  void SetLanConnected(bool connected) {
+    is_lan_connected_ = connected;
+    for (auto& listener : listeners_) {
+      listener.second(connection_type_, is_lan_connected_);
+    }
+  }
 
   // Mocks connectivity methods.
   void SetConnectionType(ConnectionType connection_type) {
     connection_type_ = connection_type;
     for (auto& listener : listeners_) {
-      listener.second(connection_type, is_lan_connected_);
+      listener.second(connection_type_, is_lan_connected_);
     }
   }
   int GetListenerCount() const { return listeners_.size(); }

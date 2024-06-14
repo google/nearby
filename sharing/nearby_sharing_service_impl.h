@@ -500,6 +500,9 @@ class NearbySharingServiceImpl
   // Returns true if Shutdown() has been called.
   bool IsShuttingDown();
 
+  // Send initial adapter state to observer for each supported adapter.
+  void SendInitialAdapterState(NearbySharingService::Observer* observer);
+
   // Used to run nearby sharing service APIs.
   std::unique_ptr<TaskRunner> service_thread_;
   Context* const context_;
