@@ -350,6 +350,9 @@ message ConnectionsLog {
 
     // The result code of this sent payload
     optional OperationResult operation_result = 8;
+
+    // The number of failed auto resume attempts.
+    optional int32 num_failed_auto_resume = 9;
   }
 
   // An attempt to upgrade an existing connection from one medium to another.
