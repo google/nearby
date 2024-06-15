@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include <sys/stat.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -144,7 +145,7 @@ NcContext* GetContext(NC_INSTANCE instance) {
 
         connection_request_info.initiated_callback(
             instance, convertStringToInt(endpoint_id),
-            connection_response_info);
+            &connection_response_info);
       };
 
   cpp_connection_listener.rejected_cb =
@@ -186,9 +187,9 @@ void NcCloseService(NC_INSTANCE instance) {
 }
 
 void NcStartAdvertising(
-    NC_INSTANCE instance, const NC_DATA& service_id,
-    const NC_ADVERTISING_OPTIONS& advertising_options,
-    const NC_CONNECTION_REQUEST_INFO& connection_request_info,
+    NC_INSTANCE instance, const NC_DATA* service_id,
+    const NC_ADVERTISING_OPTIONS* advertising_options,
+    const NC_CONNECTION_REQUEST_INFO* connection_request_info,
     NcCallbackResult result_callback) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
@@ -197,59 +198,60 @@ void NcStartAdvertising(
   }
 
   ::nearby::connections::ConnectionRequestInfo cpp_connection_request_info =
-      GetCppConnectionRequestInfo(instance, connection_request_info);
+      GetCppConnectionRequestInfo(instance, *connection_request_info);
 
   ::nearby::connections::AdvertisingOptions cpp_advertising_options;
   cpp_advertising_options.allowed.ble =
-      advertising_options.common_options.allowed_mediums[NC_MEDIUM_BLE];
+      advertising_options->common_options.allowed_mediums[NC_MEDIUM_BLE];
   cpp_advertising_options.allowed.bluetooth =
-      advertising_options.common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
+      advertising_options->common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
   cpp_advertising_options.allowed.wifi_lan =
-      advertising_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
+      advertising_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
   cpp_advertising_options.allowed.wifi_direct =
-      advertising_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_DIRECT];
+      advertising_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_DIRECT];
   cpp_advertising_options.allowed.wifi_hotspot =
-      advertising_options.common_options
+      advertising_options->common_options
           .allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];
   cpp_advertising_options.allowed.web_rtc =
-      advertising_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
+      advertising_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
   cpp_advertising_options.enable_bluetooth_listening =
-      advertising_options.enable_bluetooth_listening;
+      advertising_options->enable_bluetooth_listening;
   cpp_advertising_options.enable_webrtc_listening =
-      advertising_options.enable_webrtc_listening;
+      advertising_options->enable_webrtc_listening;
   cpp_advertising_options.auto_upgrade_bandwidth =
-      advertising_options.auto_upgrade_bandwidth;
+      advertising_options->auto_upgrade_bandwidth;
   cpp_advertising_options.enforce_topology_constraints =
-      advertising_options.enforce_topology_constraints;
-  if (advertising_options.fast_advertisement_service_uuid.size > 0) {
+      advertising_options->enforce_topology_constraints;
+  if (advertising_options->fast_advertisement_service_uuid.size > 0) {
     cpp_advertising_options.fast_advertisement_service_uuid =
-        std::string(advertising_options.fast_advertisement_service_uuid.data,
-                    advertising_options.fast_advertisement_service_uuid.size);
+        std::string(advertising_options->fast_advertisement_service_uuid.data,
+                    advertising_options->fast_advertisement_service_uuid.size);
   }
 
   cpp_advertising_options.is_out_of_band_connection =
-      advertising_options.is_out_of_band_connection;
-  cpp_advertising_options.low_power = advertising_options.low_power;
+      advertising_options->is_out_of_band_connection;
+  cpp_advertising_options.low_power = advertising_options->low_power;
 
-  if (advertising_options.common_options.strategy.type ==
+  if (advertising_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_NONE) {
     cpp_advertising_options.strategy = ::nearby::connections::Strategy::kNone;
   }
-  if (advertising_options.common_options.strategy.type ==
+  if (advertising_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_CLUSTER)
     cpp_advertising_options.strategy =
         ::nearby::connections::Strategy::kP2pCluster;
-  if (advertising_options.common_options.strategy.type ==
+  if (advertising_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_POINT_TO_POINT)
     cpp_advertising_options.strategy =
         ::nearby::connections::Strategy::kP2pPointToPoint;
-  if (advertising_options.common_options.strategy.type ==
+  if (advertising_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_STAR)
     cpp_advertising_options.strategy =
         ::nearby::connections::Strategy::kP2pStar;
 
   nc_context->core->StartAdvertising(
-      std::string(service_id.data, service_id.size),
+      std::string(service_id->data, service_id->size),
       std::move(cpp_advertising_options),
       std::move(cpp_connection_request_info),
       [=](::nearby::connections::Status status) {
@@ -269,9 +271,9 @@ void NcStopAdvertising(NC_INSTANCE instance, NcCallbackResult result_callback) {
   });
 }
 
-void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA& service_id,
-                      const NC_DISCOVERY_OPTIONS& discovery_options,
-                      const NC_DISCOVERY_LISTENER& discovery_listener,
+void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
+                      const NC_DISCOVERY_OPTIONS* discovery_options,
+                      const NC_DISCOVERY_LISTENER* discovery_listener,
                       NcCallbackResult result_callback) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
@@ -281,69 +283,71 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA& service_id,
 
   ::nearby::connections::DiscoveryOptions cpp_discovery_options;
 
-  if (discovery_options.common_options.strategy.type == NC_STRATEGY_TYPE_NONE)
+  if (discovery_options->common_options.strategy.type == NC_STRATEGY_TYPE_NONE)
     cpp_discovery_options.strategy = ::nearby::connections::Strategy::kNone;
-  if (discovery_options.common_options.strategy.type ==
+  if (discovery_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_CLUSTER)
     cpp_discovery_options.strategy =
         ::nearby::connections::Strategy::kP2pCluster;
-  if (discovery_options.common_options.strategy.type ==
+  if (discovery_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_POINT_TO_POINT)
     cpp_discovery_options.strategy =
         ::nearby::connections::Strategy::kP2pPointToPoint;
-  if (discovery_options.common_options.strategy.type ==
+  if (discovery_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_STAR)
     cpp_discovery_options.strategy = ::nearby::connections::Strategy::kP2pStar;
   cpp_discovery_options.auto_upgrade_bandwidth =
-      discovery_options.auto_upgrade_bandwidth;
+      discovery_options->auto_upgrade_bandwidth;
   cpp_discovery_options.enforce_topology_constraints =
-      discovery_options.enforce_topology_constraints;
+      discovery_options->enforce_topology_constraints;
   cpp_discovery_options.is_out_of_band_connection =
-      discovery_options.is_out_of_band_connection;
-  if (discovery_options.fast_advertisement_service_uuid.size > 0) {
+      discovery_options->is_out_of_band_connection;
+  if (discovery_options->fast_advertisement_service_uuid.size > 0) {
     cpp_discovery_options.fast_advertisement_service_uuid =
-        std::string(discovery_options.fast_advertisement_service_uuid.data,
-                    discovery_options.fast_advertisement_service_uuid.size);
+        std::string(discovery_options->fast_advertisement_service_uuid.data,
+                    discovery_options->fast_advertisement_service_uuid.size);
   }
   cpp_discovery_options.allowed.bluetooth =
-      discovery_options.common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
+      discovery_options->common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
   cpp_discovery_options.allowed.ble =
-      discovery_options.common_options.allowed_mediums[NC_MEDIUM_BLE];
+      discovery_options->common_options.allowed_mediums[NC_MEDIUM_BLE];
   cpp_discovery_options.allowed.wifi_lan =
-      discovery_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
+      discovery_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
   cpp_discovery_options.allowed.wifi_hotspot =
-      discovery_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];
+      discovery_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];
   cpp_discovery_options.allowed.web_rtc =
-      discovery_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
+      discovery_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
 
   ::nearby::connections::DiscoveryListener listener;
   listener.endpoint_distance_changed_cb =
       [=](const std::string& endpoint_id,
           ::nearby::connections::DistanceInfo info) {
-        discovery_listener.endpoint_distance_changed_callback(
+        discovery_listener->endpoint_distance_changed_callback(
             instance, convertStringToInt(endpoint_id),
             static_cast<NC_DISTANCE_INFO>(info));
       };
   listener.endpoint_found_cb = [=](const std::string& endpoint_id,
                                    const nearby::ByteArray& endpoint_info,
                                    const std::string& service_id) {
-    discovery_listener.endpoint_found_callback(
-        instance, convertStringToInt(endpoint_id),
-        NC_DATA{.size = static_cast<int64_t>(endpoint_info.size()),
-                .data = (char*)endpoint_info.data()},
-        NC_DATA{.size = static_cast<int64_t>(service_id.size()),
-                .data = (char*)service_id.data()});
+    NC_DATA endpoint_info_data = {
+        .size = static_cast<int64_t>(endpoint_info.size()),
+        .data = (char*)endpoint_info.data()};
+    NC_DATA service_id_data = {.size = static_cast<int64_t>(service_id.size()),
+                               .data = (char*)service_id.data()};
+    discovery_listener->endpoint_found_callback(
+        instance, convertStringToInt(endpoint_id), &endpoint_info_data,
+        &service_id_data);
   };
 
   listener.endpoint_lost_cb = [=](const std::string& endpoint_id) {
-    discovery_listener.endpoint_lost_callback(instance,
-                                              convertStringToInt(endpoint_id));
+    discovery_listener->endpoint_lost_callback(instance,
+                                               convertStringToInt(endpoint_id));
   };
-
   nc_context->core->StartDiscovery(
-      std::string(service_id.data, service_id.size),
+      std::string(service_id->data, service_id->size),
       std::move(cpp_discovery_options), std::move(listener),
-      [=](::nearby::connections::Status status) {
+      [result_callback =
+           std::move(result_callback)](::nearby::connections::Status status) {
         result_callback(static_cast<NC_STATUS>(status.value));
       });
 }
@@ -360,8 +364,8 @@ void NcStopDiscovery(NC_INSTANCE instance, NcCallbackResult result_callback) {
   });
 }
 
-void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA& service_id,
-                      const NC_OUT_OF_BAND_CONNECTION_METADATA& metadata,
+void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
+                      const NC_OUT_OF_BAND_CONNECTION_METADATA* metadata,
                       NcCallbackResult result_callback) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
@@ -371,18 +375,18 @@ void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA& service_id,
 
   ::nearby::connections::OutOfBandConnectionMetadata
       cpp_out_of_band_connection_metadata;
-  cpp_out_of_band_connection_metadata.endpoint_id = metadata.endpoint_id;
+  cpp_out_of_band_connection_metadata.endpoint_id = metadata->endpoint_id;
   cpp_out_of_band_connection_metadata.endpoint_info = {
-      metadata.endpoint_info.data,
-      static_cast<size_t>(metadata.endpoint_info.size)};
+      metadata->endpoint_info.data,
+      static_cast<size_t>(metadata->endpoint_info.size)};
   cpp_out_of_band_connection_metadata.medium =
-      static_cast<::nearby::connections::Medium>(metadata.medium);
+      static_cast<::nearby::connections::Medium>(metadata->medium);
   cpp_out_of_band_connection_metadata.remote_bluetooth_mac_address = {
-      metadata.remote_bluetooth_mac_address.data,
-      static_cast<size_t>(metadata.remote_bluetooth_mac_address.size)};
+      metadata->remote_bluetooth_mac_address.data,
+      static_cast<size_t>(metadata->remote_bluetooth_mac_address.size)};
 
   nc_context->core->InjectEndpoint(
-      std::string(service_id.data, service_id.size),
+      std::string(service_id->data, service_id->size),
       cpp_out_of_band_connection_metadata,
       [=](::nearby::connections::Status status) {
         result_callback(static_cast<NC_STATUS>(status.value));
@@ -391,8 +395,8 @@ void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA& service_id,
 
 void NcRequestConnection(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_CONNECTION_REQUEST_INFO& connection_request_info,
-    const NC_CONNECTION_OPTIONS& connection_options,
+    const NC_CONNECTION_REQUEST_INFO* connection_request_info,
+    const NC_CONNECTION_OPTIONS* connection_options,
     NcCallbackResult result_callback) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
@@ -401,50 +405,50 @@ void NcRequestConnection(
   }
 
   ::nearby::connections::ConnectionRequestInfo cpp_connection_request_info =
-      GetCppConnectionRequestInfo(instance, connection_request_info);
+      GetCppConnectionRequestInfo(instance, *connection_request_info);
 
   ::nearby::connections::ConnectionOptions cpp_connection_options;
   cpp_connection_options.allowed.ble =
-      connection_options.common_options.allowed_mediums[NC_MEDIUM_BLE];
+      connection_options->common_options.allowed_mediums[NC_MEDIUM_BLE];
   cpp_connection_options.allowed.bluetooth =
-      connection_options.common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
+      connection_options->common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
   cpp_connection_options.allowed.web_rtc =
-      connection_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
+      connection_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
   cpp_connection_options.allowed.wifi_lan =
-      connection_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
+      connection_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
   cpp_connection_options.auto_upgrade_bandwidth =
-      connection_options.auto_upgrade_bandwidth;
+      connection_options->auto_upgrade_bandwidth;
   cpp_connection_options.enforce_topology_constraints =
-      connection_options.enforce_topology_constraints;
-  if (connection_options.fast_advertisement_service_uuid.size > 0) {
+      connection_options->enforce_topology_constraints;
+  if (connection_options->fast_advertisement_service_uuid.size > 0) {
     cpp_connection_options.fast_advertisement_service_uuid =
-        std::string(connection_options.fast_advertisement_service_uuid.data,
-                    connection_options.fast_advertisement_service_uuid.size);
+        std::string(connection_options->fast_advertisement_service_uuid.data,
+                    connection_options->fast_advertisement_service_uuid.size);
   }
   cpp_connection_options.is_out_of_band_connection =
-      connection_options.is_out_of_band_connection;
+      connection_options->is_out_of_band_connection;
   cpp_connection_options.keep_alive_interval_millis =
-      connection_options.keep_alive_interval_millis;
+      connection_options->keep_alive_interval_millis;
   cpp_connection_options.keep_alive_timeout_millis =
-      connection_options.keep_alive_timeout_millis;
-  cpp_connection_options.low_power = connection_options.low_power;
-  if (connection_options.remote_bluetooth_mac_address.size > 0) {
+      connection_options->keep_alive_timeout_millis;
+  cpp_connection_options.low_power = connection_options->low_power;
+  if (connection_options->remote_bluetooth_mac_address.size > 0) {
     cpp_connection_options.remote_bluetooth_mac_address =
         nearby::BluetoothUtils::FromString(
-            std::string(connection_options.remote_bluetooth_mac_address.data,
-                        connection_options.remote_bluetooth_mac_address.size));
+            std::string(connection_options->remote_bluetooth_mac_address.data,
+                        connection_options->remote_bluetooth_mac_address.size));
   }
-  if (connection_options.common_options.strategy.type == NC_STRATEGY_TYPE_NONE)
+  if (connection_options->common_options.strategy.type == NC_STRATEGY_TYPE_NONE)
     cpp_connection_options.strategy = ::nearby::connections::Strategy::kNone;
-  if (connection_options.common_options.strategy.type ==
+  if (connection_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_CLUSTER)
     cpp_connection_options.strategy =
         ::nearby::connections::Strategy::kP2pCluster;
-  if (connection_options.common_options.strategy.type ==
+  if (connection_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_POINT_TO_POINT)
     cpp_connection_options.strategy =
         ::nearby::connections::Strategy::kP2pPointToPoint;
-  if (connection_options.common_options.strategy.type ==
+  if (connection_options->common_options.strategy.type ==
       NC_STRATEGY_TYPE_P2P_STAR)
     cpp_connection_options.strategy = ::nearby::connections::Strategy::kP2pStar;
 
@@ -488,7 +492,7 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
         }
 
         payload_listener.received_callback(
-            instance, convertStringToInt(endpoint_id), nc_payload);
+            instance, convertStringToInt(endpoint_id), &nc_payload);
       };
 
   cpp_payload_listener.payload_progress_cb =
@@ -502,7 +506,7 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
             static_cast<NC_PAYLOAD_PROGRESS_INFO_STATUS>(progress.status);
         payload_listener.progress_updated_callback(
             instance, convertStringToInt(endpoint_id),
-            nc_payload_progress_info);
+            &nc_payload_progress_info);
       };
 
   nc_context->core->AcceptConnection(
@@ -528,7 +532,7 @@ void NcRejectConnection(NC_INSTANCE instance, int endpoint_id,
 }
 
 void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
-                   const int* endpoint_ids, const NC_PAYLOAD& payload,
+                   const int* endpoint_ids, const NC_PAYLOAD* payload,
                    NcCallbackResult result_callback) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
@@ -544,25 +548,25 @@ void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
   absl::Span<const std::string> endpoint_ids_span(endpoint_ids_vector.data(),
                                                   endpoint_ids_size);
   ::nearby::connections::Payload cpp_payload;
-  if (payload.type == NC_PAYLOAD_TYPE_BYTES) {
+  if (payload->type == NC_PAYLOAD_TYPE_BYTES) {
     cpp_payload = ::nearby::connections::Payload(
-        payload.id, nearby::ByteArray(payload.content.bytes.content.data,
-                                      payload.content.bytes.content.size));
-  } else if (payload.type == NC_PAYLOAD_TYPE_FILE) {
+        payload->id, nearby::ByteArray(payload->content.bytes.content.data,
+                                       payload->content.bytes.content.size));
+  } else if (payload->type == NC_PAYLOAD_TYPE_FILE) {
     // get file size
     std::string full_file_name = "";
-    if (payload.content.file.parent_folder == nullptr) {
-      full_file_name = payload.content.file.file_name;
+    if (payload->content.file.parent_folder == nullptr) {
+      full_file_name = payload->content.file.file_name;
     } else {
-      full_file_name = absl::StrCat(payload.content.file.parent_folder, "/",
-                                    payload.content.file.file_name);
+      full_file_name = absl::StrCat(payload->content.file.parent_folder, "/",
+                                    payload->content.file.file_name);
     }
 
     nearby::InputFile input_file(full_file_name,
                                  getFileSize(full_file_name.c_str()));
     cpp_payload =
-        ::nearby::connections::Payload(payload.id, std::move(input_file));
-  } else if (payload.type == NC_PAYLOAD_TYPE_STREAM) {
+        ::nearby::connections::Payload(payload->id, std::move(input_file));
+  } else if (payload->type == NC_PAYLOAD_TYPE_STREAM) {
     // TODO(guogang): support stream later.
   }
 

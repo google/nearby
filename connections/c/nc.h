@@ -37,9 +37,9 @@ NC_API void NcCloseService(NC_INSTANCE instance);
 //   and listeners.
 // result_callback - The result of the API operation.
 NC_API void NcStartAdvertising(
-    NC_INSTANCE instance, const NC_DATA& service_id,
-    const NC_ADVERTISING_OPTIONS& advertising_options,
-    const NC_CONNECTION_REQUEST_INFO& connection_request_info,
+    NC_INSTANCE instance, const NC_DATA* service_id,
+    const NC_ADVERTISING_OPTIONS* advertising_options,
+    const NC_CONNECTION_REQUEST_INFO* connection_request_info,
     NcCallbackResult result_callback);
 
 // Stops advertising a local endpoint. It should be called after calling
@@ -58,9 +58,9 @@ NC_API void NcStopAdvertising(NC_INSTANCE instance,
 // discovery_listener - The callbacks notified when a remote endpoint is
 //   reported.
 // result_callback - The result of the API operation.
-NC_API void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA& service_id,
-                             const NC_DISCOVERY_OPTIONS& discovery_options,
-                             const NC_DISCOVERY_LISTENER& discovery_listener,
+NC_API void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
+                             const NC_DISCOVERY_OPTIONS* discovery_options,
+                             const NC_DISCOVERY_LISTENER* discovery_listener,
                              NcCallbackResult result_callback);
 
 // Stops discovering for a running discovery.
@@ -79,8 +79,8 @@ NC_API void NcStopDiscovery(NC_INSTANCE instance,
 //   corresponding call to NcStartDiscovery().
 // metadata - Metadata used in order to inject the endpoint.
 // result_callback - The result of the API operation.
-NC_API void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA& service_id,
-                             const NC_OUT_OF_BAND_CONNECTION_METADATA& metadata,
+NC_API void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
+                             const NC_OUT_OF_BAND_CONNECTION_METADATA* metadata,
                              NcCallbackResult result_callback);
 
 // Sends a request to connect to a remote endpoint.
@@ -93,8 +93,8 @@ NC_API void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA& service_id,
 // result_callback - The result of the API operation.
 NC_API void NcRequestConnection(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_CONNECTION_REQUEST_INFO& connection_request_info,
-    const NC_CONNECTION_OPTIONS& connection_options,
+    const NC_CONNECTION_REQUEST_INFO* connection_request_info,
+    const NC_CONNECTION_OPTIONS* connection_options,
     NcCallbackResult result_callback);
 
 // Accepts a connection to a remote endpoint.
@@ -124,7 +124,7 @@ NC_API void NcRejectConnection(NC_INSTANCE instance, int endpoint_id,
 // payload - the payload will be sent.
 // result_callback - The result of the API operation.
 NC_API void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
-                          const int* endpoint_ids, const NC_PAYLOAD& payload,
+                          const int* endpoint_ids, const NC_PAYLOAD* payload,
                           NcCallbackResult result_callback);
 
 // Cancels a Payload currently in-flight to or from remote endpoint(s).

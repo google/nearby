@@ -18,9 +18,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <cstddef>
-#include <cstdint>
-
 #ifdef __cplusplus
 extern "C" {
 #endif  // __cplusplus
@@ -152,23 +149,23 @@ typedef struct NC_ADVERTISING_OPTIONS {
 
 typedef struct NC_CONNECTION_OPTIONS {
   NC_COMMON_OPTIONS common_options;
-  bool auto_upgrade_bandwidth = true;
+  bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
   bool low_power;
-  bool is_out_of_band_connection = false;
+  bool is_out_of_band_connection;
   NC_DATA remote_bluetooth_mac_address;
   NC_DATA fast_advertisement_service_uuid;
-  int keep_alive_interval_millis = 0;
-  int keep_alive_timeout_millis = 0;
+  int keep_alive_interval_millis;
+  int keep_alive_timeout_millis;
 } NC_CONNECTION_OPTIONS, *PNC_CONNECTION_OPTIONS;
 
 typedef struct NC_DISCOVERY_OPTIONS {
   NC_COMMON_OPTIONS common_options;
-  bool auto_upgrade_bandwidth = true;
+  bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
-  bool is_out_of_band_connection = false;
+  bool is_out_of_band_connection;
   NC_DATA fast_advertisement_service_uuid;
 } NC_DISCOVERY_OPTIONS, *PNC_DISCOVERY_OPTIONS;
 
@@ -176,8 +173,8 @@ typedef struct NC_CONNECTION_RESPONSE_INFO {
   NC_DATA remote_endpoint_info;
   NC_DATA authentication_token;
   NC_DATA raw_authentication_token;
-  bool is_incoming_connection = false;
-  bool is_connection_verified = false;
+  bool is_incoming_connection;
+  bool is_connection_verified;
 } NC_CONNECTION_RESPONSE_INFO, *PNC_CONNECTION_RESPONSE_INFO;
 
 // Defines callbacks in Nearby Connections.
@@ -186,7 +183,7 @@ typedef void (*NcCallbackResult)(NC_STATUS status);
 
 typedef void (*NcCallbackConnectionInitiated)(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_CONNECTION_RESPONSE_INFO& info);
+    const NC_CONNECTION_RESPONSE_INFO* info);
 typedef void (*NcCallbackConnectionAccepted)(NC_INSTANCE instance,
                                              int endpoint_id);
 typedef void (*NcCallbackConnectionRejected)(NC_INSTANCE instance,
@@ -208,8 +205,8 @@ typedef struct NC_CONNECTION_REQUEST_INFO {
 
 typedef void (*NcCallbackDiscoveryEndpointFound)(NC_INSTANCE instance,
                                                  int endpoint_id,
-                                                 const NC_DATA& endpoint_info,
-                                                 const NC_DATA& service_id);
+                                                 const NC_DATA* endpoint_info,
+                                                 const NC_DATA* service_id);
 typedef void (*NcCallbackDiscoveryEndpointLost)(NC_INSTANCE instance,
                                                 int endpoint_id);
 typedef void (*NcCallbackDiscoveryEndpointDistanceChanged)(
@@ -271,10 +268,10 @@ typedef struct NC_PAYLOAD_PROGRESS_INFO {
 } NC_PAYLOAD_PROGRESS_INFO;
 
 typedef void (*NcCallbackPayloadReceived)(NC_INSTANCE instance, int endpoint_id,
-                                          const NC_PAYLOAD& payload);
+                                          const NC_PAYLOAD* payload);
 typedef void (*NcCallbackPayloadProgressUpdated)(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_PAYLOAD_PROGRESS_INFO& info);
+    const NC_PAYLOAD_PROGRESS_INFO* info);
 
 typedef struct NC_PAYLOAD_LISTENER {
   NcCallbackPayloadReceived received_callback;

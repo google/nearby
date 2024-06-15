@@ -93,7 +93,7 @@ std::string GetEndpointIdString(int endpoint_id) {
 
 void ListenerInitiatedCB(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_CONNECTION_RESPONSE_INFO &connection_response_info) {
+    const NC_CONNECTION_RESPONSE_INFO *connection_response_info) {
   NEARBY_LOG(INFO, "Advertising initiated: id=%s",
              GetEndpointIdString(endpoint_id).c_str());
 
@@ -106,9 +106,9 @@ void ListenerInitiatedCB(
       .value = {.as_typed_data{
           .type = Dart_TypedData_Type::Dart_TypedData_kUint8,
           .length =
-              (intptr_t)connection_response_info.remote_endpoint_info.size,
+              (intptr_t)connection_response_info->remote_endpoint_info.size,
           .values =
-              (uint8_t *)connection_response_info.remote_endpoint_info.data}}};
+              (uint8_t *)connection_response_info->remote_endpoint_info.data}}};
 
   Dart_CObject *elements[2];
   elements[0] = &dart_object_endpoint_id;
@@ -187,15 +187,15 @@ void ListenerBandwidthChangedCB(NC_INSTANCE instance, int endpoint_id,
 }
 
 void ListenerEndpointFoundCB(NC_INSTANCE instance, int endpoint_id,
-                             const NC_DATA &endpoint_info,
-                             const NC_DATA &service_id) {
+                             const NC_DATA *endpoint_info,
+                             const NC_DATA *service_id) {
   NEARBY_LOG(INFO, "Device discovered: id=%s",
              GetEndpointIdString(endpoint_id).c_str());
   NEARBY_LOG(INFO, "Device discovered: service_id=%s",
-             std::string(service_id.data, service_id.size).c_str());
+             std::string(service_id->data, service_id->size).c_str());
 
   std::string endpoint_info_str = absl::BytesToHexString(
-      absl::string_view(endpoint_info.data, endpoint_info.size));
+      absl::string_view(endpoint_info->data, endpoint_info->size));
   NEARBY_LOG(INFO, "Device discovered: info=%s", endpoint_info_str.c_str());
 
   Dart_CObject dart_object_endpoint_id = {
@@ -206,8 +206,8 @@ void ListenerEndpointFoundCB(NC_INSTANCE instance, int endpoint_id,
       .type = Dart_CObject_Type::Dart_CObject_kTypedData,
       .value = {
           .as_typed_data{.type = Dart_TypedData_Type::Dart_TypedData_kUint8,
-                         .length = (intptr_t)endpoint_info.size,
-                         .values = (uint8_t *)endpoint_info.data}}};
+                         .length = (intptr_t)endpoint_info->size,
+                         .values = (uint8_t *)endpoint_info->data}}};
 
   Dart_CObject *elements[2];
   elements[0] = &dart_object_endpoint_id;
@@ -256,12 +256,12 @@ void ListenerEndpointDistanceChangedCB(NC_INSTANCE instance, int endpoint_id,
 }
 
 void ListenerPayloadCB(NC_INSTANCE instance, int endpoint_id,
-                       const NC_PAYLOAD &payload) {
+                       const NC_PAYLOAD *payload) {
   NEARBY_LOG(INFO,
              "Payload callback called. id: %s, "
              "payload_id: %d, type: %d",
-             GetEndpointIdString(endpoint_id).c_str(), payload.id,
-             payload.type);
+             GetEndpointIdString(endpoint_id).c_str(), payload->id,
+             payload->type);
 
   Dart_CObject dart_object_endpoint_id;
   dart_object_endpoint_id.type = Dart_CObject_kInt32;
@@ -269,12 +269,12 @@ void ListenerPayloadCB(NC_INSTANCE instance, int endpoint_id,
 
   Dart_CObject dart_object_payload_id;
   dart_object_payload_id.type = Dart_CObject_kInt64;
-  dart_object_payload_id.value.as_int64 = payload.id;
+  dart_object_payload_id.value.as_int64 = payload->id;
 
-  switch (payload.type) {
+  switch (payload->type) {
     case NC_PAYLOAD_TYPE_BYTES: {
-      const char *bytes = payload.content.bytes.content.data;
-      size_t bytes_size = payload.content.bytes.content.size;
+      const char *bytes = payload->content.bytes.content.data;
+      size_t bytes_size = payload->content.bytes.content.size;
 
       if (bytes_size == 0) {
         NEARBY_LOG(INFO, "Failed to get the payload as bytes.");
@@ -326,9 +326,9 @@ void ListenerPayloadCB(NC_INSTANCE instance, int endpoint_id,
     case NC_PAYLOAD_TYPE_FILE: {
       Dart_CObject dart_object_offset;
       dart_object_offset.type = Dart_CObject_kInt64;
-      dart_object_offset.value.as_int64 = payload.content.file.offset;
+      dart_object_offset.value.as_int64 = payload->content.file.offset;
 
-      std::string path = payload.content.file.file_name;
+      std::string path = payload->content.file.file_name;
       Dart_CObject dart_object_path;
       dart_object_path.type = Dart_CObject_kString;
       dart_object_path.value.as_string = const_cast<char *>(path.c_str());
@@ -359,33 +359,34 @@ void ListenerPayloadCB(NC_INSTANCE instance, int endpoint_id,
 
 void ListenerPayloadProgressCB(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_PAYLOAD_PROGRESS_INFO &payload_progress_info) {
+    const NC_PAYLOAD_PROGRESS_INFO *payload_progress_info) {
   NEARBY_LOG(INFO,
              "Payload progress callback called. id: %s, "
              "payload_id: %d, bytes transferred: %d, total: %d, status: %d",
-             GetEndpointIdString(endpoint_id).c_str(), payload_progress_info.id,
-             payload_progress_info.bytes_transferred,
-             payload_progress_info.total_bytes, payload_progress_info.status);
+             GetEndpointIdString(endpoint_id).c_str(),
+             payload_progress_info->id,
+             payload_progress_info->bytes_transferred,
+             payload_progress_info->total_bytes, payload_progress_info->status);
   Dart_CObject dart_object_endpoint_id;
   dart_object_endpoint_id.type = Dart_CObject_kInt32;
   dart_object_endpoint_id.value.as_int32 = endpoint_id;
 
   Dart_CObject dart_object_payload_id;
   dart_object_payload_id.type = Dart_CObject_kInt64;
-  dart_object_payload_id.value.as_int64 = payload_progress_info.id;
+  dart_object_payload_id.value.as_int64 = payload_progress_info->id;
 
   Dart_CObject dart_object_bytes_transferred;
   dart_object_bytes_transferred.type = Dart_CObject_kInt64;
   dart_object_bytes_transferred.value.as_int64 =
-      payload_progress_info.bytes_transferred;
+      payload_progress_info->bytes_transferred;
 
   Dart_CObject dart_object_total_bytes;
   dart_object_total_bytes.type = Dart_CObject_kInt64;
-  dart_object_total_bytes.value.as_int64 = payload_progress_info.total_bytes;
+  dart_object_total_bytes.value.as_int64 = payload_progress_info->total_bytes;
 
   Dart_CObject dart_object_status;
   dart_object_status.type = Dart_CObject_kInt64;
-  dart_object_status.value.as_int64 = (int64_t)payload_progress_info.status;
+  dart_object_status.value.as_int64 = (int64_t)payload_progress_info->status;
 
   Dart_CObject *elements[5];
   elements[0] = &dart_object_endpoint_id;
@@ -492,15 +493,16 @@ void StartAdvertisingDart(NC_INSTANCE instance, DataDart service_id,
 
   request_info.endpoint_info.data = info_dart.endpoint_info.data;
   request_info.endpoint_info.size = info_dart.endpoint_info.size;
-  request_info.initiated_callback = ListenerInitiatedCB;
+  request_info.initiated_callback = &ListenerInitiatedCB;
   request_info.accepted_callback = ListenerAcceptedCB;
   request_info.rejected_callback = ListenerRejectedCB;
   request_info.disconnected_callback = ListenerDisconnectedCB;
   request_info.bandwidth_changed_callback = ListenerBandwidthChangedCB;
 
-  NcStartAdvertising(instance,
-                     NC_DATA{.size = service_id.size, .data = service_id.data},
-                     advertising_options, request_info, [](NC_STATUS status) {
+  NC_DATA service_id_data =
+      NC_DATA{.size = service_id.size, .data = service_id.data};
+  NcStartAdvertising(instance, &service_id_data, &advertising_options,
+                     &request_info, [](NC_STATUS status) {
                        ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                     NearbyConnectionsApi::kStartAdvertising),
                                 status);
@@ -565,12 +567,13 @@ void StartDiscoveryDart(NC_INSTANCE instance, DataDart service_id,
   NC_DISCOVERY_LISTENER listener{};
   listener.endpoint_distance_changed_callback =
       ListenerEndpointDistanceChangedCB;
-  listener.endpoint_found_callback = ListenerEndpointFoundCB;
-  listener.endpoint_lost_callback = ListenerEndpointLostCB;
+  listener.endpoint_found_callback = &ListenerEndpointFoundCB;
+  listener.endpoint_lost_callback = &ListenerEndpointLostCB;
 
-  NcStartDiscovery(instance,
-                   NC_DATA{.size = service_id.size, .data = service_id.data},
-                   discovery_options, listener, [](NC_STATUS status) {
+  NC_DATA service_id_data =
+      NC_DATA{.size = service_id.size, .data = service_id.data};
+  NcStartDiscovery(instance, &service_id_data, &discovery_options, &listener,
+                   [](NC_STATUS status) {
                      ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                   NearbyConnectionsApi::kStartDiscovery),
                               status);
@@ -645,7 +648,7 @@ void RequestConnectionDart(NC_INSTANCE instance, int endpoint_id,
   request_info.disconnected_callback = ListenerDisconnectedCB;
   request_info.bandwidth_changed_callback = ListenerBandwidthChangedCB;
 
-  NcRequestConnection(instance, endpoint_id, request_info, connection_options,
+  NcRequestConnection(instance, endpoint_id, &request_info, &connection_options,
                       [](NC_STATUS status) {
                         ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                      NearbyConnectionsApi::kRequestConnection),
@@ -667,8 +670,8 @@ void AcceptConnectionDart(NC_INSTANCE instance, int endpoint_id,
       std::make_unique<PayloadListenerDart>(listener_dart));
 
   NC_PAYLOAD_LISTENER listener{};
-  listener.received_callback = ListenerPayloadCB;
-  listener.progress_updated_callback = ListenerPayloadProgressCB;
+  listener.received_callback = &ListenerPayloadCB;
+  listener.progress_updated_callback = &ListenerPayloadProgressCB;
 
   NcAcceptConnection(instance, endpoint_id, listener, [](NC_STATUS status) {
     ResultCB(kClientState->PopNearbyConnectionsApiPort(
@@ -737,8 +740,9 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
       payload.content.bytes.content.data = payload_dart.data.data;
       payload.content.bytes.content.size = payload_dart.data.size;
 
-      NcSendPayload(instance, endpoint_ids.size(), endpoint_ids.data(),
-                    std::move(payload), [](NC_STATUS status) {
+      const int *endpoint_ids_ptr = endpoint_ids.data();
+      NcSendPayload(instance, endpoint_ids.size(), endpoint_ids_ptr, &payload,
+                    [](NC_STATUS status) {
                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                    NearbyConnectionsApi::kSendPayload),
                                status);
@@ -759,9 +763,10 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
       payload.content.file.file_name =
           const_cast<char *>(file_name_str.c_str());
       payload.content.file.parent_folder = nullptr;
-
-      NcSendPayload(instance, endpoint_ids.size(), endpoint_ids.data(),
-                    std::move(payload), [](NC_STATUS status) {
+      const int *endpoint_ids_ptr = endpoint_ids.data();
+      NC_PAYLOAD moved_payload = std::move(payload);
+      NcSendPayload(instance, endpoint_ids.size(), endpoint_ids_ptr,
+                    &moved_payload, [](NC_STATUS status) {
                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                    NearbyConnectionsApi::kSendPayload),
                                status);
