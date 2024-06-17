@@ -77,10 +77,12 @@ class NearbyConnectionsManager {
   class PayloadStatusListener
       : public std::enable_shared_from_this<PayloadStatusListener> {
    public:
-    PayloadStatusListener();
-    virtual ~PayloadStatusListener();
+    PayloadStatusListener() = default;
+    virtual ~PayloadStatusListener() = default;
 
-    std::weak_ptr<PayloadStatusListener> GetWeakPtr();
+    std::weak_ptr<PayloadStatusListener> GetWeakPtr() {
+      return weak_from_this();
+    }
 
     // Note: `upgraded_medium` is passed in for use in metrics, and it is
     // absl::nullopt if the bandwidth has not upgraded yet or if the upgrade

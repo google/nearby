@@ -112,15 +112,13 @@
 #include "sharing/wifi_credentials_attachment.h"
 #include "sharing/wrapped_share_target_discovered_callback.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using BlockedVendorId = ::nearby::sharing::Advertisement::BlockedVendorId;
 using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
-using ::nearby::sharing::proto::FastInitiationNotificationState;
 using Type = ::nearby::sharing::service::proto::TextMetadata;
 using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
 using ::location::nearby::proto::sharing::EstablishConnectionStatus;
@@ -794,7 +792,6 @@ void NearbySharingServiceImpl::SendAttachments(
             /*concurrent_connections=*/GetConnectedShareTargetCount(),
             info->share_target());
 
-        send_attachments_timestamp_ = context_->GetClock()->Now();
         OnTransferStarted(/*is_incoming=*/false);
         is_connecting_ = true;
         InvalidateSendSurfaceState();
@@ -807,8 +804,8 @@ void NearbySharingServiceImpl::SendAttachments(
                 .build());
 
         CreatePayloads(*info, [this, endpoint_info = std::move(*endpoint_info)](
-                                  int64_t share_target_id, bool success) {
-          OnCreatePayloads(std::move(endpoint_info), share_target_id, success);
+                                  OutgoingShareTargetInfo& info, bool success) {
+          OnCreatePayloads(std::move(endpoint_info), info, success);
         });
 
         std::move(status_codes_callback)(StatusCodes::kOk);
@@ -2829,75 +2826,67 @@ void NearbySharingServiceImpl::SendIntroduction(
 
 void NearbySharingServiceImpl::CreatePayloads(
     OutgoingShareTargetInfo& info,
-    std::function<void(int64_t, bool)> callback) {
+    std::function<void(OutgoingShareTargetInfo&, bool)> callback) {
   int64_t share_target_id = info.share_target().id;
   if (!info.file_payloads().empty() || !info.text_payloads().empty() ||
       !info.wifi_credentials_payloads().empty()) {
     // We may have already created the payloads in the case of retry, so we can
     // skip this step.
-    std::move(callback)(share_target_id, /*success=*/false);
+    std::move(callback)(info, /*success=*/false);
     return;
   }
-  const AttachmentContainer& container = info.attachment_container();
-  info.set_text_payloads(CreateTextPayloads(container.GetTextAttachments()));
-  info.set_wifi_credentials_payloads(
-      CreateWifiCredentialsPayloads(container.GetWifiCredentialsAttachments()));
-  if (container.GetFileAttachments().empty()) {
-    std::move(callback)(share_target_id, /*success=*/true);
-    return;
-  }
-
-  std::vector<std::filesystem::path> file_paths;
-  file_paths.reserve(container.GetFileAttachments().size());
-  for (const FileAttachment& attachment : container.GetFileAttachments()) {
-    file_paths.push_back(*attachment.file_path());
-  }
-
+  info.CreateTextPayloads();
+  info.CreateWifiCredentialsPayloads();
   file_handler_.OpenFiles(
-      std::move(file_paths),
+      info.GetFilePaths(),
       [this, share_target_id, callback = std::move(callback)](
           std::vector<NearbyFileHandler::FileInfo> file_infos) {
         RunOnNearbySharingServiceThread(
             "open_files",
             [this, share_target_id, callback = std::move(callback),
              file_infos = std::move(file_infos)]() {
-              OnOpenFiles(share_target_id, std::move(callback),
-                          std::move(file_infos));
+              OutgoingShareTargetInfo* info =
+                  GetOutgoingShareTargetInfo(share_target_id);
+              if (info == nullptr) {
+                return;
+              }
+              bool result = info->CreateFilePayloads(file_infos);
+              attachment_info_map_ = info->attachment_payload_map();
+              std::move(callback)(*info, result);
             });
       });
 }
 
 void NearbySharingServiceImpl::OnCreatePayloads(
-    std::vector<uint8_t> endpoint_info, int64_t share_target_id, bool success) {
-  OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target_id);
-  bool has_payloads = info && (!info->text_payloads().empty() ||
-                               !info->file_payloads().empty() ||
-                               !info->wifi_credentials_payloads().empty());
+    std::vector<uint8_t> endpoint_info, OutgoingShareTargetInfo& info,
+    bool success) {
+  bool has_payloads = !info.text_payloads().empty() ||
+                      !info.file_payloads().empty() ||
+                      !info.wifi_credentials_payloads().empty();
   if (!success || !has_payloads) {
     NL_LOG(WARNING) << __func__
                     << ": Failed to send file to remote ShareTarget. Failed to "
                        "create payloads.";
-    if (info) {
-      info->UpdateTransferMetadata(
-          TransferMetadataBuilder()
-              .set_status(TransferMetadata::Status::kMediaUnavailable)
-              .build());
-    }
+    info.UpdateTransferMetadata(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kMediaUnavailable)
+            .build());
     return;
   }
   // Log analytics event of describing attachments.
-  analytics_recorder_->NewDescribeAttachments(info->attachment_container());
+  analytics_recorder_->NewDescribeAttachments(info.attachment_container());
 
   std::optional<std::vector<uint8_t>> bluetooth_mac_address =
-      GetBluetoothMacAddressForShareTarget(share_target_id);
+      GetBluetoothMacAddressForShareTarget(info);
 
   // For metrics.
   all_cancelled_share_target_ids_.clear();
 
+  int64_t share_target_id = info.share_target().id;
   nearby_connections_manager_->Connect(
-      std::move(endpoint_info), info->endpoint_id(),
+      std::move(endpoint_info), info.endpoint_id(),
       std::move(bluetooth_mac_address), settings_->GetDataUsage(),
-      GetTransportType(info->attachment_container()),
+      GetTransportType(info.attachment_container()),
       [this, share_target_id](NearbyConnection* connection, Status status) {
         OutgoingShareTargetInfo* info =
             GetOutgoingShareTargetInfo(share_target_id);
@@ -2926,69 +2915,6 @@ void NearbySharingServiceImpl::OnCreatePayloads(
 
         OnOutgoingConnection(context_->GetClock()->Now(), connection, *info);
       });
-}
-
-void NearbySharingServiceImpl::OnOpenFiles(
-    int64_t share_target_id, std::function<void(int64_t, bool)> callback,
-    std::vector<NearbyFileHandler::FileInfo> files) {
-  OutgoingShareTargetInfo* info = GetOutgoingShareTargetInfo(share_target_id);
-  AttachmentContainer& container = info->mutable_attachment_container();
-  if (!info || files.size() != container.GetFileAttachments().size()) {
-    std::move(callback)(share_target_id, /*success=*/false);
-    return;
-  }
-
-  std::vector<Payload> payloads;
-  payloads.reserve(files.size());
-
-  for (size_t i = 0; i < files.size(); ++i) {
-    FileAttachment& attachment = container.GetMutableFileAttachment(i);
-    attachment.set_size(files[i].size);
-    InputFile input_file;
-    input_file.path = files[i].file_path;
-    Payload payload(input_file, attachment.parent_folder());
-    payload.content.file_payload.size = files[i].size;
-    SetAttachmentPayloadId(attachment, payload.id);
-    payloads.push_back(std::move(payload));
-  }
-
-  info->set_file_payloads(std::move(payloads));
-  std::move(callback)(share_target_id, /*success=*/true);
-}
-
-std::vector<Payload> NearbySharingServiceImpl::CreateTextPayloads(
-    const std::vector<TextAttachment>& attachments) {
-  std::vector<Payload> payloads;
-  payloads.reserve(attachments.size());
-  for (const TextAttachment& attachment : attachments) {
-    absl::string_view body = attachment.text_body();
-    std::vector<uint8_t> bytes(body.begin(), body.end());
-
-    Payload payload{bytes};
-    SetAttachmentPayloadId(attachment, payload.id);
-    payloads.push_back(std::move(payload));
-  }
-  return payloads;
-}
-
-std::vector<Payload> NearbySharingServiceImpl::CreateWifiCredentialsPayloads(
-    const std::vector<WifiCredentialsAttachment>& attachments) {
-  std::vector<Payload> payloads;
-  payloads.reserve(attachments.size());
-  for (const WifiCredentialsAttachment& attachment : attachments) {
-    nearby::sharing::service::proto::WifiCredentials wifi_credentials;
-    wifi_credentials.set_password(std::string(attachment.password()));
-    wifi_credentials.set_hidden_ssid(attachment.is_hidden());
-
-    std::vector<uint8_t> bytes(wifi_credentials.ByteSizeLong());
-    wifi_credentials.SerializeToArray(bytes.data(),
-                                      wifi_credentials.ByteSizeLong());
-
-    Payload payload{bytes};
-    SetAttachmentPayloadId(attachment, payload.id);
-    payloads.push_back(std::move(payload));
-  }
-  return payloads;
 }
 
 void NearbySharingServiceImpl::WriteResponseFrame(
@@ -4374,19 +4300,12 @@ NearbyConnection* NearbySharingServiceImpl::GetConnection(
 
 std::optional<std::vector<uint8_t>>
 NearbySharingServiceImpl::GetBluetoothMacAddressForShareTarget(
-    int64_t share_target_id) {
-  ShareTargetInfo* info = GetShareTargetInfo(share_target_id);
-  if (!info) {
-    NL_LOG(ERROR) << __func__ << ": No ShareTargetInfo found for "
-                  << "share target id: " << share_target_id;
-    return std::nullopt;
-  }
-
+    OutgoingShareTargetInfo& info) {
   const std::optional<NearbyShareDecryptedPublicCertificate>& certificate =
-      info->certificate();
+      info.certificate();
   if (!certificate) {
     NL_LOG(ERROR) << __func__ << ": No decrypted public certificate found for "
-                  << "share target id: " << share_target_id;
+                  << "share target id: " << info.share_target().id;
     return std::nullopt;
   }
 
@@ -4788,5 +4707,4 @@ void NearbySharingServiceImpl::UpdateFilePathsInProgress(
                << ": Update file paths in progress: " << update_file_paths;
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

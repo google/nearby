@@ -23,9 +23,11 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_container.h"
+#include "sharing/attachment_info.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
@@ -38,8 +40,7 @@
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // Additional information about the connection to a remote device.
 class ShareTargetInfo {
@@ -136,7 +137,14 @@ class ShareTargetInfo {
     return attachment_container_;
   }
 
+  const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_payload_map()
+      const {
+    return attachment_payload_map_;
+  }
+
  protected:
+  void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id);
+
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
   virtual bool OnNewConnection(NearbyConnection* connection) = 0;
@@ -161,9 +169,9 @@ class ShareTargetInfo {
   TransferMetadata::Status disconnect_status_ =
       TransferMetadata::Status::kUnknown;
   AttachmentContainer attachment_container_;
+  absl::flat_hash_map<int64_t, AttachmentInfo> attachment_payload_map_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_

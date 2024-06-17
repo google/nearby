@@ -126,4 +126,9 @@ void ShareTargetInfo::OnDisconnect() {
   connection_ = nullptr;
 }
 
+void ShareTargetInfo::SetAttachmentPayloadId(int64_t attachment_id,
+                                             int64_t payload_id) {
+  attachment_payload_map_[attachment_id].payload_id = payload_id;
+}
+
 }  // namespace nearby::sharing

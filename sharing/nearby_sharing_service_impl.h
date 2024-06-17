@@ -79,14 +79,11 @@
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/share_target_info.h"
-#include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_update_callback.h"
-#include "sharing/wifi_credentials_attachment.h"
 #include "sharing/wrapped_share_target_discovered_callback.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class NearbyShareContactManager;
 
@@ -334,17 +331,11 @@ class NearbySharingServiceImpl
   void SendIntroduction(OutgoingShareTargetInfo& info,
                         std::optional<std::string> four_digit_token);
 
-  void CreatePayloads(OutgoingShareTargetInfo& info,
-                      std::function<void(int64_t, bool)> callback);
+  void CreatePayloads(
+      OutgoingShareTargetInfo& info,
+      std::function<void(OutgoingShareTargetInfo&, bool)> callback);
   void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
-                        int64_t share_target_id, bool success);
-  void OnOpenFiles(int64_t share_target_id,
-                   std::function<void(int64_t, bool)> callback,
-                   std::vector<NearbyFileHandler::FileInfo> files);
-  std::vector<Payload> CreateTextPayloads(
-      const std::vector<TextAttachment>& attachments);
-  std::vector<Payload> CreateWifiCredentialsPayloads(
-      const std::vector<WifiCredentialsAttachment>& attachments);
+                        OutgoingShareTargetInfo& info, bool success);
 
   void WriteResponseFrame(
       NearbyConnection& connection,
@@ -432,7 +423,7 @@ class NearbySharingServiceImpl
 
   NearbyConnection* GetConnection(int64_t share_target_id);
   std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
-      int64_t share_target_id);
+      OutgoingShareTargetInfo& info);
 
   void ClearOutgoingShareTargetInfoMap();
   void SetAttachmentPayloadId(const Attachment& attachment, int64_t payload_id);
@@ -621,10 +612,6 @@ class NearbySharingServiceImpl
   absl::Time scanning_start_timestamp_;
   // True when we are advertising with a device name visible to everyone.
   std::atomic_bool in_high_visibility_{false};
-  // The time attachments are sent after a share target is selected. This is
-  // used to time the process from selecting a share target to writing the
-  // introduction frame (last frame before receiver gets notified).
-  absl::Time send_attachments_timestamp_;
   // Whether an incoming share has been accepted, and we are waiting to log the
   // time from acceptance to the start of payload transfer.
   bool is_waiting_to_record_accept_to_transfer_start_metric_ = false;
@@ -672,7 +659,6 @@ class NearbySharingServiceImpl
   std::unique_ptr<nearby::api::AppInfo> app_info_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SERVICE_IMPL_H_

@@ -14,16 +14,14 @@
 
 #include "sharing/attachment_info.h"
 
-#include <stdint.h>
-
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 AttachmentInfo::AttachmentInfo() = default;
 AttachmentInfo::~AttachmentInfo() = default;
 
+AttachmentInfo::AttachmentInfo(const AttachmentInfo&) = default;
+AttachmentInfo& AttachmentInfo::operator=(const AttachmentInfo&) = default;
 AttachmentInfo::AttachmentInfo(AttachmentInfo&&) = default;
 AttachmentInfo& AttachmentInfo::operator=(AttachmentInfo&&) = default;
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

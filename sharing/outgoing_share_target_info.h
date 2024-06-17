@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
 #define THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
 
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -23,12 +24,12 @@
 
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_types.h"
+#include "sharing/nearby_file_handler.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
 #include "sharing/transfer_metadata.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // A description of the outgoing connection to a remote device.
 class OutgoingShareTargetInfo : public ShareTargetInfo {
@@ -54,29 +55,28 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
 
   const std::vector<Payload>& text_payloads() const { return text_payloads_; }
 
-  void set_text_payloads(std::vector<Payload> payloads) {
-    text_payloads_ = std::move(payloads);
-  }
-
   const std::vector<Payload>& wifi_credentials_payloads() const {
     return wifi_credentials_payloads_;
   }
 
-  void set_wifi_credentials_payloads(std::vector<Payload> payloads) {
-    wifi_credentials_payloads_ = std::move(payloads);
-  }
-
   const std::vector<Payload>& file_payloads() const { return file_payloads_; }
-
-  void set_file_payloads(std::vector<Payload> payloads) {
-    file_payloads_ = std::move(payloads);
-  }
 
   Status connection_layer_status() const { return connection_layer_status_; }
 
   void set_connection_layer_status(Status status) {
     connection_layer_status_ = status;
   }
+
+  std::vector<std::filesystem::path> GetFilePaths() const;
+
+  void CreateTextPayloads();
+  void CreateWifiCredentialsPayloads();
+  // Create file payloads and update the file size of all file attachments.
+  // The list of file infos must be sorted in the same order as the file
+  // attachments in the share target.
+  // Returns true if all file payloads are created successfully.
+  bool CreateFilePayloads(
+      const std::vector<NearbyFileHandler::FileInfo>& files);
 
   std::vector<Payload> ExtractTextPayloads();
   std::vector<Payload> ExtractFilePayloads();
@@ -90,6 +90,7 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
 
  private:
   std::optional<std::string> obfuscated_gaia_id_;
+  // All payloads are in the same order as the attachments in the share target.
   std::vector<Payload> text_payloads_;
   std::vector<Payload> file_payloads_;
   std::vector<Payload> wifi_credentials_payloads_;
@@ -98,7 +99,6 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
       transfer_update_callback_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_

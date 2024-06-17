@@ -21,14 +21,15 @@
 #include <optional>
 #include <string>
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // Ties associated information to an Attachment.
 struct AttachmentInfo {
   AttachmentInfo();
   ~AttachmentInfo();
 
+  AttachmentInfo(const AttachmentInfo&);
+  AttachmentInfo& operator=(const AttachmentInfo&);
   AttachmentInfo(AttachmentInfo&&);
   AttachmentInfo& operator=(AttachmentInfo&&);
 
@@ -37,7 +38,6 @@ struct AttachmentInfo {
   std::filesystem::path file_path;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_ATTACHMENT_INFO_H_

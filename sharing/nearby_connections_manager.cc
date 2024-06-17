@@ -71,16 +71,5 @@ std::string NearbyConnectionsManager::ConnectionsStatusToString(
 }
 // LINT.ThenChange()
 
-NearbyConnectionsManager::PayloadStatusListener::PayloadStatusListener() =
-    default;
-
-NearbyConnectionsManager::PayloadStatusListener::~PayloadStatusListener() =
-    default;
-
-std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
-NearbyConnectionsManager::PayloadStatusListener::GetWeakPtr() {
-  return this->weak_from_this();
-}
-
 }  // namespace sharing
 }  // namespace nearby
