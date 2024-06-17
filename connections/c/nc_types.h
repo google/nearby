@@ -179,7 +179,7 @@ typedef struct NC_CONNECTION_RESPONSE_INFO {
 
 // Defines callbacks in Nearby Connections.
 
-typedef void (*NcCallbackResult)(NC_STATUS status);
+typedef void (*NcCallbackResult)(NC_INSTANCE instance, NC_STATUS status);
 
 typedef void (*NcCallbackConnectionInitiated)(
     NC_INSTANCE instance, int endpoint_id,

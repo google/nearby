@@ -441,7 +441,7 @@ void EnableBleV2Dart(NC_INSTANCE instance, int64_t enable,
                      Dart_Port result_cb) {
   kClientState->PushNearbyConnectionsApiPort(NearbyConnectionsApi::kEnableBleV2,
                                              result_cb);
-  NcEnableBleV2(instance, enable, [](NC_STATUS status) {
+  NcEnableBleV2(instance, enable, [](NC_INSTANCE instance, NC_STATUS status) {
     ResultCB(kClientState->PopNearbyConnectionsApiPort(
                  NearbyConnectionsApi::kEnableBleV2),
              status);
@@ -502,7 +502,7 @@ void StartAdvertisingDart(NC_INSTANCE instance, DataDart service_id,
   NC_DATA service_id_data =
       NC_DATA{.size = service_id.size, .data = service_id.data};
   NcStartAdvertising(instance, &service_id_data, &advertising_options,
-                     &request_info, [](NC_STATUS status) {
+                     &request_info, [](NC_INSTANCE instance, NC_STATUS status) {
                        ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                     NearbyConnectionsApi::kStartAdvertising),
                                 status);
@@ -518,7 +518,7 @@ void StopAdvertisingDart(NC_INSTANCE instance, Dart_Port result_cb) {
   kClientState->PushNearbyConnectionsApiPort(
       NearbyConnectionsApi::kStopAdvertising, result_cb);
 
-  NcStopAdvertising(instance, [](NC_STATUS status) {
+  NcStopAdvertising(instance, [](NC_INSTANCE instance, NC_STATUS status) {
     kClientState->SetConnectionListenerDart(nullptr);
     ResultCB(kClientState->PopNearbyConnectionsApiPort(
                  NearbyConnectionsApi::kStopAdvertising),
@@ -573,7 +573,7 @@ void StartDiscoveryDart(NC_INSTANCE instance, DataDart service_id,
   NC_DATA service_id_data =
       NC_DATA{.size = service_id.size, .data = service_id.data};
   NcStartDiscovery(instance, &service_id_data, &discovery_options, &listener,
-                   [](NC_STATUS status) {
+                   [](NC_INSTANCE instance, NC_STATUS status) {
                      ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                   NearbyConnectionsApi::kStartDiscovery),
                               status);
@@ -589,7 +589,7 @@ void StopDiscoveryDart(NC_INSTANCE instance, Dart_Port result_cb) {
   kClientState->PushNearbyConnectionsApiPort(
       NearbyConnectionsApi::kStopDiscovery, result_cb);
 
-  NcStopDiscovery(instance, [](NC_STATUS status) {
+  NcStopDiscovery(instance, [](NC_INSTANCE instance, NC_STATUS status) {
     kClientState->SetDiscoveryListenerDart(nullptr);
     ResultCB(kClientState->PopNearbyConnectionsApiPort(
                  NearbyConnectionsApi::kStopDiscovery),
@@ -649,7 +649,7 @@ void RequestConnectionDart(NC_INSTANCE instance, int endpoint_id,
   request_info.bandwidth_changed_callback = ListenerBandwidthChangedCB;
 
   NcRequestConnection(instance, endpoint_id, &request_info, &connection_options,
-                      [](NC_STATUS status) {
+                      [](NC_INSTANCE instance, NC_STATUS status) {
                         ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                      NearbyConnectionsApi::kRequestConnection),
                                  status);
@@ -673,11 +673,12 @@ void AcceptConnectionDart(NC_INSTANCE instance, int endpoint_id,
   listener.received_callback = &ListenerPayloadCB;
   listener.progress_updated_callback = &ListenerPayloadProgressCB;
 
-  NcAcceptConnection(instance, endpoint_id, listener, [](NC_STATUS status) {
-    ResultCB(kClientState->PopNearbyConnectionsApiPort(
-                 NearbyConnectionsApi::kAcceptConnection),
-             status);
-  });
+  NcAcceptConnection(instance, endpoint_id, listener,
+                     [](NC_INSTANCE instance, NC_STATUS status) {
+                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                    NearbyConnectionsApi::kAcceptConnection),
+                                status);
+                     });
 }
 
 void RejectConnectionDart(NC_INSTANCE instance, int endpoint_id,
@@ -690,11 +691,12 @@ void RejectConnectionDart(NC_INSTANCE instance, int endpoint_id,
   kClientState->PushNearbyConnectionsApiPort(
       NearbyConnectionsApi::kRejectConnection, result_cb);
 
-  NcRejectConnection(instance, endpoint_id, [](NC_STATUS status) {
-    ResultCB(kClientState->PopNearbyConnectionsApiPort(
-                 NearbyConnectionsApi::kRejectConnection),
-             status);
-  });
+  NcRejectConnection(instance, endpoint_id,
+                     [](NC_INSTANCE instance, NC_STATUS status) {
+                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                                    NearbyConnectionsApi::kRejectConnection),
+                                status);
+                     });
 }
 
 void DisconnectFromEndpointDart(NC_INSTANCE instance, int endpoint_id,
@@ -707,11 +709,12 @@ void DisconnectFromEndpointDart(NC_INSTANCE instance, int endpoint_id,
   kClientState->PushNearbyConnectionsApiPort(
       NearbyConnectionsApi::kDisconnectFromEndpoint, result_cb);
 
-  NcDisconnectFromEndpoint(instance, endpoint_id, [](NC_STATUS status) {
-    ResultCB(kClientState->PopNearbyConnectionsApiPort(
-                 NearbyConnectionsApi::kDisconnectFromEndpoint),
-             status);
-  });
+  NcDisconnectFromEndpoint(
+      instance, endpoint_id, [](NC_INSTANCE instance, NC_STATUS status) {
+        ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                     NearbyConnectionsApi::kDisconnectFromEndpoint),
+                 status);
+      });
 }
 
 void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
@@ -742,7 +745,7 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
 
       const int *endpoint_ids_ptr = endpoint_ids.data();
       NcSendPayload(instance, endpoint_ids.size(), endpoint_ids_ptr, &payload,
-                    [](NC_STATUS status) {
+                    [](NC_INSTANCE instance, NC_STATUS status) {
                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                    NearbyConnectionsApi::kSendPayload),
                                status);
@@ -766,7 +769,7 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
       const int *endpoint_ids_ptr = endpoint_ids.data();
       NC_PAYLOAD moved_payload = std::move(payload);
       NcSendPayload(instance, endpoint_ids.size(), endpoint_ids_ptr,
-                    &moved_payload, [](NC_STATUS status) {
+                    &moved_payload, [](NC_INSTANCE instance, NC_STATUS status) {
                       ResultCB(kClientState->PopNearbyConnectionsApiPort(
                                    NearbyConnectionsApi::kSendPayload),
                                status);
