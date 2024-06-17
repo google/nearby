@@ -1090,6 +1090,10 @@ bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,
                       });
                 });
               },
+          .advertisement_lost_cb =
+              [](api::ble_v2::BlePeripheral& peripheral) {
+                // TODO(b/345514862): Implement.
+              },
       });
   service_ids_to_scanning_sessions_.insert(
       {std::string(service_id), std::move(scanning_session)});

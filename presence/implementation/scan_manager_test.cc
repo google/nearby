@@ -56,7 +56,6 @@ using AdvertisingCallback =
 using ::nearby::SingleThreadExecutor;
 
 using CountDownLatch = ::nearby::CountDownLatch;
-// using ::testing::UnorderedElementsAre;
 using ::testing::Contains;
 
 class ScanManagerTest : public testing::Test {
@@ -104,7 +103,11 @@ class ScanManagerTest : public testing::Test {
                   }
                 },
             .on_discovered_cb =
-                [this](PresenceDevice pd) { found_latch_.CountDown(); }};
+                [this](PresenceDevice pd) { found_latch_.CountDown(); },
+            .on_updated_cb =
+                [this](PresenceDevice pd) { updated_latch_.CountDown(); },
+            .on_lost_cb =
+                [this](PresenceDevice pd) { lost_latch_.CountDown(); }};
   }
 
   std::vector<nearby::internal::IdentityType> MakeDefaultIdentityTypes() {
@@ -120,6 +123,8 @@ class ScanManagerTest : public testing::Test {
   nearby::MediumEnvironment& env_ = {nearby::MediumEnvironment::Instance()};
   CountDownLatch start_latch_{1};
   CountDownLatch found_latch_{1};
+  CountDownLatch updated_latch_{1};
+  CountDownLatch lost_latch_{1};
 };
 
 TEST_F(ScanManagerTest, CanStartThenStopScanning) {
@@ -213,6 +218,21 @@ TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
 
               found_latch_.CountDown();
             }
+          },
+      .on_updated_cb =
+          [this, &address](PresenceDevice pd) {
+            if (pd.GetDeviceIdentityMetadata().bluetooth_mac_address() ==
+                address) {
+              EXPECT_THAT(pd.GetExtendedProperties(),
+                          Contains(DataElement(ActionBit::kNearbyShareAction))
+                              .Times(1));
+              EXPECT_THAT(
+                  pd.GetActions(),
+                  Contains(PresenceAction{(int)ActionBit::kNearbyShareAction})
+                      .Times(1));
+
+              updated_latch_.CountDown();
+            }
           }};
   // Start scanning
   ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
@@ -224,6 +244,37 @@ TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
+
+  // Advertise again to trigger `on_updated_cb`
+  advertising_session = StartAdvertisingOn(ble2);
+
+  EXPECT_TRUE(updated_latch_.Await().Ok());
+  manager.StopScan(scan_session);
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
+}
+
+TEST_F(ScanManagerTest, DiscoverThenLoseAdvertisement) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_, executor_);
+  // Set up advertiser
+  nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      StartAdvertisingOn(ble2);
+
+  // Start scanning
+  ScanSessionId scan_session =
+      manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
+
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+  EXPECT_TRUE(start_latch_.Await().Ok());
+  EXPECT_TRUE(found_latch_.Await().Ok());
+
+  // Stop advertising to trigger `on_lost_cb`
+  EXPECT_OK(advertising_session->stop_advertising());
+  env_.Sync();
+
+  EXPECT_TRUE(lost_latch_.Await().Ok());
   manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }

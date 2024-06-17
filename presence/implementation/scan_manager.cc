@@ -74,6 +74,15 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                           ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                             NotifyFoundBle(id, data, address);
                           });
+                },
+            .advertisement_lost_cb =
+                [this, id](BlePeripheral& peripheral) {
+                  RunOnServiceControllerThread(
+                      "notify-lost-ble",
+                      [this, id, address = peripheral.GetAddress()]()
+                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                            NotifyLostBle(id, address);
+                          });
                 }};
         FetchCredentials(id, scan_request);
         scan_sessions_.insert(
@@ -107,12 +116,14 @@ void ScanManager::StopScan(ScanSessionId id) {
 
 void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
                                  absl::string_view remote_address) {
-  auto advertisement_data =
-      data.service_data[kPresenceServiceUuid].AsStringView();
   auto it = scan_sessions_.find(id);
   if (it == scan_sessions_.end()) {
     return;
   }
+
+  auto advertisement_data =
+      data.service_data[kPresenceServiceUuid].AsStringView();
+
   auto advert = it->second.decoder.DecodeAdvertisement(advertisement_data);
   if (!advert.ok()) {
     // This advertisement is not relevant to the current element, skip.
@@ -123,20 +134,65 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     internal::DeviceIdentityMetaData device_identity_metadata;
     device_identity_metadata.set_bluetooth_mac_address(
         std::string(remote_address));
-    PresenceDevice device(DeviceMotion(), device_identity_metadata,
-                          advert->identity_type);
-    // Ok if the advertisement is for trusted/private identity.
-    if (advert->public_credential.ok()) {
-      device.SetDecryptSharedCredential(*(advert->public_credential));
-    }
-    device.AddExtendedProperties(advert->data_elements);
-    for (const auto& data_element : advert->data_elements) {
-      if (data_element.GetType() == DataElement::kActionFieldType) {
-        device.AddAction(PresenceAction(static_cast<int>(
-            static_cast<uint8_t>(data_element.GetValue()[0]))));
+
+    if (!device_address_to_endpoint_id_map_.contains(remote_address)) {
+      PresenceDevice device(DeviceMotion(), device_identity_metadata,
+                            advert->identity_type);
+      // Ok if the advertisement is for trusted/private identity.
+      if (advert->public_credential.ok()) {
+        device.SetDecryptSharedCredential(*(advert->public_credential));
       }
+      device.AddExtendedProperties(advert->data_elements);
+      for (const auto& data_element : advert->data_elements) {
+        if (data_element.GetType() == DataElement::kActionFieldType) {
+          device.AddAction(PresenceAction(static_cast<int>(
+              static_cast<uint8_t>(data_element.GetValue()[0]))));
+        }
+      }
+
+      device_address_to_endpoint_id_map_.emplace(remote_address,
+                                                 device.GetEndpointId());
+
+      it->second.callback.on_discovered_cb(std::move(device));
+    } else {
+      PresenceDevice device(
+          device_address_to_endpoint_id_map_.at(remote_address));
+      device.SetDeviceIdentityMetaData(device_identity_metadata);
+      // Ok if the advertisement is for trusted/private identity.
+      if (advert->public_credential.ok()) {
+        device.SetDecryptSharedCredential(*(advert->public_credential));
+      }
+      device.AddExtendedProperties(advert->data_elements);
+      for (const auto& data_element : advert->data_elements) {
+        if (data_element.GetType() == DataElement::kActionFieldType) {
+          device.AddAction(PresenceAction(static_cast<int>(
+              static_cast<uint8_t>(data_element.GetValue()[0]))));
+        }
+      }
+
+      it->second.callback.on_updated_cb(std::move(device));
     }
-    it->second.callback.on_discovered_cb(std::move(device));
+  }
+}
+
+void ScanManager::NotifyLostBle(ScanSessionId id,
+                                absl::string_view remote_address) {
+  auto it = scan_sessions_.find(id);
+  if (it == scan_sessions_.end()) {
+    return;
+  }
+
+  if (device_address_to_endpoint_id_map_.contains(remote_address)) {
+    internal::DeviceIdentityMetaData device_identity_metadata;
+    device_identity_metadata.set_bluetooth_mac_address(
+        std::string(remote_address));
+    PresenceDevice device(
+        device_address_to_endpoint_id_map_.at(remote_address));
+    device.SetDeviceIdentityMetaData(device_identity_metadata);
+
+    device_address_to_endpoint_id_map_.erase(remote_address);
+
+    it->second.callback.on_lost_cb(std::move(device));
   }
 }
 

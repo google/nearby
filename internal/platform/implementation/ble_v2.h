@@ -460,6 +460,8 @@ class BleMedium {
     absl::AnyInvocable<void(BlePeripheral& peripheral,
                             BleAdvertisementData advertisement_data)>
         advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
+    absl::AnyInvocable<void(BlePeripheral& peripheral)>
+        advertisement_lost_cb = [](BlePeripheral&) {};
   };
 
   // Async interface for StartScanning.

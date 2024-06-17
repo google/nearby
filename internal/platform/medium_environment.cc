@@ -315,11 +315,15 @@ void MediumEnvironment::OnBleV2PeripheralStateChanged(
   NEARBY_LOGS(INFO) << "G3 [Run] OnBleServiceStateChanged [peripheral impl="
                     << &peripheral << "]; context=" << &context
                     << "; notify=" << enabled;
-  if (enabled) {
-    for (auto& element : context.scan_callback_map) {
-      if (element.first.first == service_id)
+
+  for (auto& element : context.scan_callback_map) {
+    if (element.first.first == service_id) {
+      if (enabled) {
         element.second.advertisement_found_cb(peripheral,
                                               ble_advertisement_data);
+      } else {
+        element.second.advertisement_lost_cb(peripheral);
+      }
     }
   }
 }
@@ -610,39 +614,48 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
         auto& context = it->second;
         context.ble_peripheral = &peripheral;
         context.advertising = enabled;
-        if (enabled) {
-          context.advertisement_data = advertisement_data;
-          NEARBY_LOGS(INFO)
-              << "G3 UpdateBleV2MediumForAdvertising: this=" << this
-              << ", medium=" << &medium << ", medium_context=" << &context
-              << ", peripheral=" << &peripheral << ", enabled=" << enabled;
-          for (auto& medium_info : ble_v2_mediums_) {
-            const api::ble_v2::BleMedium* remote_medium = medium_info.first;
-            BleV2MediumContext& remote_context = medium_info.second;
-            // Do not send notification to the same medium.
-            if (remote_medium == &medium) continue;
-            // Do not send notification to the medium that is not scanning.
-            if (!remote_context.scanning) continue;
-            absl::flat_hash_set<Uuid> remote_scanning_service_uuids;
-            for (auto& element : remote_context.scan_callback_map) {
-              remote_scanning_service_uuids.insert(element.first.first);
-            }
-            for (auto& remote_scanning_service_uuid :
-                 remote_scanning_service_uuids) {
-              auto const it = context.advertisement_data.service_data.find(
-                  remote_scanning_service_uuid);
-              if (it == context.advertisement_data.service_data.end()) continue;
-              NEARBY_LOGS(INFO)
-                  << "G3 UpdateBleV2MediumForAdvertising, found other medium="
-                  << remote_medium
-                  << ", remote_medium_context=" << &remote_context
-                  << ", remote_context.peripheral="
-                  << remote_context.ble_peripheral
-                  << ". Ready to call OnBleV2PeripheralStateChanged.";
-              OnBleV2PeripheralStateChanged(
-                  enabled, remote_context, remote_scanning_service_uuid,
-                  context.advertisement_data, *context.ble_peripheral);
-            }
+        context.advertisement_data = advertisement_data;
+
+        NEARBY_LOGS(INFO)
+            << "G3 UpdateBleV2MediumForAdvertising: this=" << this
+            << ", medium=" << &medium << ", medium_context=" << &context
+            << ", peripheral=" << &peripheral << ", enabled=" << enabled;
+
+        for (auto& medium_info : ble_v2_mediums_) {
+          const api::ble_v2::BleMedium* remote_medium = medium_info.first;
+          BleV2MediumContext& remote_context = medium_info.second;
+
+          // Do not send notification to the same medium.
+          if (remote_medium == &medium) continue;
+          // Do not send notification to the medium that is not scanning.
+          if (!remote_context.scanning) continue;
+
+          absl::flat_hash_set<Uuid> remote_scanning_service_uuids;
+          for (auto& element : remote_context.scan_callback_map) {
+            remote_scanning_service_uuids.insert(element.first.first);
+          }
+
+          for (auto& remote_scanning_service_uuid :
+                remote_scanning_service_uuids) {
+            auto const it = context.advertisement_data.service_data.find(
+                remote_scanning_service_uuid);
+
+            // Only skip when service data is not found and the medium is
+            // enabled. Mediums that stop advertising (disabled) pass in empty
+            // advertisement data but should still be processed.
+            if (it == context.advertisement_data.service_data.end()
+                && enabled) continue;
+
+            NEARBY_LOGS(INFO)
+                << "G3 UpdateBleV2MediumForAdvertising, found other medium="
+                << remote_medium
+                << ", remote_medium_context=" << &remote_context
+                << ", remote_context.peripheral="
+                << remote_context.ble_peripheral
+                << ". Ready to call OnBleV2PeripheralStateChanged.";
+            OnBleV2PeripheralStateChanged(
+                enabled, remote_context, remote_scanning_service_uuid,
+                context.advertisement_data, *context.ble_peripheral);
           }
         }
       });
