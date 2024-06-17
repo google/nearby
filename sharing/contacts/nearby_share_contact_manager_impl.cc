@@ -174,21 +174,25 @@ NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
 NearbyShareContactManagerImpl::~NearbyShareContactManagerImpl() = default;
 
 void NearbyShareContactManagerImpl::OnContactsDownloadCompleted(
-    std::vector<ContactRecord> contacts) {
+    absl::StatusOr<std::vector<ContactRecord>> contacts) {
+  if (!contacts.ok()) {
+    OnContactsDownloadFailure();
+    return;
+  }
   NL_LOG(INFO) << __func__ << ": Completed to download contacts from backend";
-  size_t initial_num_contacts = contacts.size();
-  contacts.erase(
-      std::remove_if(contacts.begin(), contacts.end(),
+  size_t initial_num_contacts = contacts->size();
+  contacts->erase(
+      std::remove_if(contacts->begin(), contacts->end(),
                      [](const nearby::sharing::proto::ContactRecord& contact) {
                        return !contact.is_reachable();
                      }),
-      contacts.end());
+      contacts->end());
   uint32_t num_unreachable_contacts_filtered_out =
-      initial_num_contacts - contacts.size();
+      initial_num_contacts - contacts->size();
   NL_VLOG(1) << __func__ << ": Removed "
              << num_unreachable_contacts_filtered_out
              << " unreachable contacts.";
-  OnContactsDownloadSuccess(std::move(contacts),
+  OnContactsDownloadSuccess(std::move(*contacts),
                             num_unreachable_contacts_filtered_out);
 }
 
@@ -204,7 +208,7 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
           const absl::StatusOr<ListContactPeopleResponse>& response) mutable {
         if (!response.ok()) {
           NL_LOG(ERROR) << __func__ << ": Failed to download contacts.";
-          std::move(download_failure_callback_)();
+          std::move(download_callback_)(response.status());
           return;
         }
 
@@ -212,7 +216,7 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
                         response->contact_records().end());
 
         if (response->next_page_token().empty()) {
-          std::move(download_success_callback_)(std::move(contacts_));
+          std::move(download_callback_)(std::move(contacts_));
           return;
         }
         // Continue with next page.
@@ -244,8 +248,6 @@ void NearbyShareContactManagerImpl::DownloadContacts() {
     // FetchNextPage() returns.
     auto context = std::make_unique<ContactDownloadContext>(
         nearby_share_client_.get(),
-        absl::bind_front(
-            &NearbyShareContactManagerImpl::OnContactsDownloadFailure, this),
         absl::bind_front(
             &NearbyShareContactManagerImpl::OnContactsDownloadCompleted, this));
     context->FetchNextPage();
