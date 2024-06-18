@@ -318,11 +318,12 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
   cpp_discovery_options.allowed.web_rtc =
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
 
+  NC_DISCOVERY_LISTENER discovery_listener_copy = *discovery_listener;
   ::nearby::connections::DiscoveryListener listener;
   listener.endpoint_distance_changed_cb =
       [=](const std::string& endpoint_id,
           ::nearby::connections::DistanceInfo info) {
-        discovery_listener->endpoint_distance_changed_callback(
+        discovery_listener_copy.endpoint_distance_changed_callback(
             instance, convertStringToInt(endpoint_id),
             static_cast<NC_DISTANCE_INFO>(info));
       };
@@ -334,14 +335,14 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
         .data = (char*)endpoint_info.data()};
     NC_DATA service_id_data = {.size = static_cast<int64_t>(service_id.size()),
                                .data = (char*)service_id.data()};
-    discovery_listener->endpoint_found_callback(
+    discovery_listener_copy.endpoint_found_callback(
         instance, convertStringToInt(endpoint_id), &endpoint_info_data,
         &service_id_data);
   };
 
   listener.endpoint_lost_cb = [=](const std::string& endpoint_id) {
-    discovery_listener->endpoint_lost_callback(instance,
-                                               convertStringToInt(endpoint_id));
+    discovery_listener_copy.endpoint_lost_callback(
+        instance, convertStringToInt(endpoint_id));
   };
   nc_context->core->StartDiscovery(
       std::string(service_id->data, service_id->size),
