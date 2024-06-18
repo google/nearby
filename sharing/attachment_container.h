@@ -83,6 +83,9 @@ class AttachmentContainer {
   // Returns the total size of all attachments.
   int64_t GetTotalAttachmentsSize() const;
 
+  // Returns the total size of all attachments on disk.
+  int64_t GetStorageSize() const;
+
   // Returns true if there are any attachments.
   bool HasAttachments() const {
     return !text_attachments_.empty() || !file_attachments_.empty() ||
@@ -92,6 +95,9 @@ class AttachmentContainer {
   // Clear the contents of all attachments, but leaving the attachments in
   // place.
   void ClearAttachments();
+
+  // Delete all attachments.
+  void Clear();
 
   // Returns the list of attachment IDs of attachments in this container.
   std::vector<int64_t> GetAttachmentIds() const;

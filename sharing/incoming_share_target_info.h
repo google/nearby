@@ -16,14 +16,15 @@
 #define THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_TARGET_INFO_H_
 
 #include <functional>
+#include <optional>
 #include <string>
 #include "sharing/nearby_connection.h"
+#include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
 #include "sharing/transfer_metadata.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class IncomingShareTargetInfo : public ShareTargetInfo {
  public:
@@ -38,6 +39,13 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
 
   bool IsIncoming() const override { return true; }
 
+  // Returns nullopt on success.
+  // On failure, returns the status that should be used to terminate the
+  // connection.
+  std::optional<TransferMetadata::Status> ProcessIntroduction(
+      const nearby::sharing::service::proto::IntroductionFrame&
+          introduction_frame);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   bool OnNewConnection(NearbyConnection* connection) override;
@@ -47,7 +55,6 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
       transfer_update_callback_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_TARGET_INFO_H_

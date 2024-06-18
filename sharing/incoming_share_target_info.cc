@@ -14,17 +14,31 @@
 
 #include "sharing/incoming_share_target_info.h"
 
+#include <cstdint>
 #include <functional>
+#include <limits>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "sharing/attachment_container.h"
+#include "sharing/constants.h"
+#include "sharing/file_attachment.h"
+#include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
+#include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/wifi_credentials_attachment.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
+namespace {
+
+using ::nearby::sharing::service::proto::IntroductionFrame;
+
+}  // namespace
 
 IncomingShareTargetInfo::IncomingShareTargetInfo(
     std::string endpoint_id, const ShareTarget& share_target,
@@ -52,5 +66,77 @@ bool IncomingShareTargetInfo::OnNewConnection(NearbyConnection* connection) {
   return true;
 }
 
-}  // namespace sharing
-}  // namespace nearby
+std::optional<TransferMetadata::Status>
+IncomingShareTargetInfo::ProcessIntroduction(
+    const IntroductionFrame& introduction_frame) {
+  int64_t file_size_sum = 0;
+  AttachmentContainer& container = mutable_attachment_container();
+  for (const auto& file : introduction_frame.file_metadata()) {
+    if (file.size() <= 0) {
+      NL_LOG(WARNING)
+          << __func__
+          << ": Ignore introduction, due to invalid attachment size";
+      return TransferMetadata::Status::kUnsupportedAttachmentType;
+    }
+
+    NL_VLOG(1) << __func__ << ": Found file attachment: id=" << file.id()
+               << ", type= " << file.type() << ", size=" << file.size()
+               << ", payload_id=" << file.payload_id()
+               << ", parent_folder=" << file.parent_folder()
+               << ", mime_type=" << file.mime_type();
+    container.AddFileAttachment(
+        FileAttachment(file.id(), file.size(), file.name(), file.mime_type(),
+                       file.type(), file.parent_folder()));
+    SetAttachmentPayloadId(file.id(), file.payload_id());
+
+    if (std::numeric_limits<int64_t>::max() - file.size() < file_size_sum) {
+      NL_LOG(WARNING) << __func__
+                      << ": Ignoring introduction, total file size overflowed "
+                         "64 bit integer.";
+      container.Clear();
+      return TransferMetadata::Status::kNotEnoughSpace;
+    }
+    file_size_sum += file.size();
+  }
+
+  for (const auto& text : introduction_frame.text_metadata()) {
+    if (text.size() <= 0) {
+      NL_LOG(WARNING)
+          << __func__
+          << ": Ignore introduction, due to invalid attachment size";
+      return TransferMetadata::Status::kUnsupportedAttachmentType;
+    }
+
+    NL_VLOG(1) << __func__ << ": Found text attachment: id=" << text.id()
+               << ", type= " << text.type() << ", size=" << text.size()
+               << ", payload_id=" << text.payload_id();
+    container.AddTextAttachment(
+        TextAttachment(text.id(), text.type(), text.text_title(), text.size()));
+    SetAttachmentPayloadId(text.id(), text.payload_id());
+  }
+
+  if (kSupportReceivingWifiCredentials) {
+    for (const auto& wifi_credentials :
+         introduction_frame.wifi_credentials_metadata()) {
+      NL_VLOG(1) << __func__ << ": Found WiFi credentials attachment: id="
+                 << wifi_credentials.id()
+                 << ", ssid= " << wifi_credentials.ssid()
+                 << ", payload_id=" << wifi_credentials.payload_id();
+      container.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
+          wifi_credentials.id(), wifi_credentials.ssid(),
+          wifi_credentials.security_type()));
+      SetAttachmentPayloadId(wifi_credentials.id(),
+                             wifi_credentials.payload_id());
+    }
+  }
+
+  if (!container.HasAttachments()) {
+    NL_LOG(WARNING) << __func__
+                    << ": No attachment is found for this share target. It can "
+                       "be result of unrecognizable attachment type";
+    return TransferMetadata::Status::kUnsupportedAttachmentType;
+  }
+  return std::nullopt;
+}
+
+}  // namespace nearby::sharing

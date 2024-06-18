@@ -50,6 +50,17 @@ int64_t AttachmentContainer::GetTotalAttachmentsSize() const {
   return size_in_bytes;
 }
 
+int64_t AttachmentContainer::GetStorageSize() const {
+  int64_t size_in_bytes = 0;
+
+  // Only files require disk storage.
+  for (const auto& file : file_attachments_) {
+    size_in_bytes += file.size();
+  }
+
+  return size_in_bytes;
+}
+
 void AttachmentContainer::ClearAttachments() {
   // Reset file paths for file attachments.
   for (auto& file : file_attachments_)
@@ -64,6 +75,12 @@ void AttachmentContainer::ClearAttachments() {
     wifi_credentials.set_password(std::string());
     wifi_credentials.set_is_hidden(false);
   }
+}
+
+void AttachmentContainer::Clear() {
+  file_attachments_.clear();
+  text_attachments_.clear();
+  wifi_credentials_attachments_.clear();
 }
 
 std::vector<int64_t> AttachmentContainer::GetAttachmentIds() const {

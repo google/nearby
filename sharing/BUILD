@@ -199,7 +199,9 @@ cc_library(
         "//sharing/common:compatible_u8_string",
         "//sharing/internal/public:logging",
         "//sharing/internal/public:types",
+        "//sharing/proto:wire_format_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
@@ -347,6 +349,17 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "attachment_compare",
+    testonly = True,
+    srcs = ["attachment_compare.cc"],
+    hdrs = ["attachment_compare.h"],
+    deps = [
+        ":attachments",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -721,6 +734,7 @@ cc_test(
     name = "attachment_container_test",
     srcs = ["attachment_container_test.cc"],
     deps = [
+        ":attachment_compare",
         ":attachments",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
@@ -750,6 +764,25 @@ cc_test(
         ":types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//sharing/proto:wire_format_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "incoming_share_target_info_test",
+    srcs = ["incoming_share_target_info_test.cc"],
+    deps = [
+        ":attachment_compare",
+        ":attachments",
+        ":share_target_info",
+        ":transfer_metadata",
+        ":types",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//sharing/internal/public:logging",
+        "//sharing/proto:wire_format_cc_proto",
+        "//third_party/protobuf",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",

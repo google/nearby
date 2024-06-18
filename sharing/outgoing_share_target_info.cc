@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <filesystem>  // NOLINT
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -151,6 +152,64 @@ bool OutgoingShareTargetInfo::CreateFilePayloads(
     SetAttachmentPayloadId(attachment.id(), file_payloads_.back().id);
   }
   return true;
+}
+
+std::unique_ptr<nearby::sharing::service::proto::IntroductionFrame>
+OutgoingShareTargetInfo::CreateIntroductionFrame() const {
+  const AttachmentContainer& container = attachment_container();
+  if (!container.HasAttachments()) {
+    return nullptr;
+  }
+  if (file_payloads_.size() != container.GetFileAttachments().size() ||
+      text_payloads_.size() != container.GetTextAttachments().size() ||
+      wifi_credentials_payloads_.size() !=
+          container.GetWifiCredentialsAttachments().size()) {
+    return nullptr;
+  }
+  auto introduction =
+      std::make_unique<nearby::sharing::service::proto::IntroductionFrame>();
+  // Write introduction of file payloads.
+  const std::vector<FileAttachment>& file_attachments =
+      container.GetFileAttachments();
+  for (int i = 0; i < file_attachments.size(); ++i) {
+    const FileAttachment& file = file_attachments[i];
+    auto* file_metadata = introduction->add_file_metadata();
+    file_metadata->set_id(file.id());
+    file_metadata->set_name(std::string(file.file_name()));
+    file_metadata->set_payload_id(file_payloads_[i].id);
+    file_metadata->set_type(file.type());
+    file_metadata->set_mime_type(std::string(file.mime_type()));
+    file_metadata->set_size(file.size());
+  }
+
+  // Write introduction of text payloads.
+  const std::vector<TextAttachment>& text_attachments =
+      container.GetTextAttachments();
+  for (int i = 0; i < text_attachments.size(); ++i) {
+    const TextAttachment& text = text_attachments[i];
+    auto* text_metadata = introduction->add_text_metadata();
+    text_metadata->set_id(text.id());
+    text_metadata->set_text_title(std::string(text.text_title()));
+    text_metadata->set_type(text.type());
+    text_metadata->set_size(text.size());
+    text_metadata->set_payload_id(text_payloads_[i].id);
+  }
+
+  // Write introduction of Wi-Fi credentials payloads.
+  const std::vector<WifiCredentialsAttachment>& wifi_credentials_attachments =
+      container.GetWifiCredentialsAttachments();
+  for (int i = 0; i < wifi_credentials_attachments.size(); ++i) {
+    const WifiCredentialsAttachment& wifi_credentials =
+        wifi_credentials_attachments[i];
+    auto* wifi_credentials_metadata =
+        introduction->add_wifi_credentials_metadata();
+    wifi_credentials_metadata->set_id(wifi_credentials.id());
+    wifi_credentials_metadata->set_ssid(std::string(wifi_credentials.ssid()));
+    wifi_credentials_metadata->set_security_type(
+        wifi_credentials.security_type());
+    wifi_credentials_metadata->set_payload_id(wifi_credentials_payloads_[i].id);
+  }
+  return introduction;
 }
 
 std::vector<Payload> OutgoingShareTargetInfo::ExtractTextPayloads() {

@@ -22,7 +22,6 @@
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <ios>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <ostream>
@@ -38,7 +37,6 @@
 #include "absl/functional/bind_front.h"
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -55,7 +53,6 @@
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_information.h"
 #include "sharing/analytics/analytics_recorder.h"
-#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/attachment_info.h"
 #include "sharing/certificates/common.h"
@@ -2728,72 +2725,18 @@ void NearbySharingServiceImpl::SendIntroduction(
   }
 
   // Build the introduction.
-  auto introduction =
-      std::make_unique<nearby::sharing::service::proto::IntroductionFrame>();
-  introduction->set_start_transfer(true);
-  NL_VLOG(1) << __func__ << ": Sending attachments to "
-             << info.share_target().id;
-
-  const AttachmentContainer& container = info.attachment_container();
-  // Write introduction of file payloads.
-  for (const auto& file : container.GetFileAttachments()) {
-    std::optional<int64_t> payload_id = GetAttachmentPayloadId(file.id());
-    if (!payload_id) {
-      NL_VLOG(1) << __func__ << ": Skipping unknown file attachment";
-      continue;
-    }
-    auto* file_metadata = introduction->add_file_metadata();
-    file_metadata->set_id(file.id());
-    file_metadata->set_name(absl::StrCat(file.file_name()));
-    file_metadata->set_payload_id(*payload_id);
-    file_metadata->set_type(file.type());
-    file_metadata->set_mime_type(absl::StrCat(file.mime_type()));
-    file_metadata->set_size(file.size());
-  }
-
-  // Write introduction of text payloads.
-  for (const auto& text : container.GetTextAttachments()) {
-    std::optional<int64_t> payload_id = GetAttachmentPayloadId(text.id());
-    if (!payload_id) {
-      NL_VLOG(1) << __func__ << ": Skipping unknown text attachment";
-      continue;
-    }
-    auto* text_metadata = introduction->add_text_metadata();
-    text_metadata->set_id(text.id());
-    text_metadata->set_text_title(std::string(text.text_title()));
-    text_metadata->set_type(text.type());
-    text_metadata->set_size(text.size());
-    text_metadata->set_payload_id(*payload_id);
-  }
-
-  // Write introduction of Wi-Fi credentials payloads.
-  for (const auto& wifi_credentials :
-       container.GetWifiCredentialsAttachments()) {
-    std::optional<int64_t> payload_id =
-        GetAttachmentPayloadId(wifi_credentials.id());
-    if (!payload_id) {
-      NL_VLOG(1) << __func__
-                 << ": Skipping unknown WiFi credentials attachment";
-      continue;
-    }
-    auto* wifi_credentials_metadata =
-        introduction->add_wifi_credentials_metadata();
-    wifi_credentials_metadata->set_id(wifi_credentials.id());
-    wifi_credentials_metadata->set_ssid(std::string(wifi_credentials.ssid()));
-    wifi_credentials_metadata->set_security_type(
-        wifi_credentials.security_type());
-    wifi_credentials_metadata->set_payload_id(*payload_id);
-  }
-
-  if (introduction->file_metadata_size() == 0 &&
-      introduction->text_metadata_size() == 0 &&
-      introduction->wifi_credentials_metadata_size() == 0) {
+  std::unique_ptr<nearby::sharing::service::proto::IntroductionFrame>
+      introduction = info.CreateIntroductionFrame();
+  if (!introduction) {
     NL_LOG(WARNING) << __func__
                     << ": No payloads tied to transfer, disconnecting.";
     AbortAndCloseConnectionIfNecessary(
         TransferMetadata::Status::kMissingPayloads, info.share_target().id);
     return;
   }
+  introduction->set_start_transfer(true);
+  NL_VLOG(1) << __func__ << ": Sending attachments to "
+             << info.share_target().id;
 
   // Write the introduction to the remote device.
   nearby::sharing::service::proto::Frame frame;
@@ -3429,109 +3372,27 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
 
   NL_LOG(INFO) << __func__ << ": Successfully read the introduction frame.";
 
-  int64_t file_size_sum = 0;
-
-  nearby::sharing::service::proto::IntroductionFrame introduction_frame =
-      std::move(frame->introduction());
-
-  AttachmentContainer& container = info->mutable_attachment_container();
-  for (const auto& file : introduction_frame.file_metadata()) {
-    if (file.size() <= 0) {
-      Fail(share_target_id,
-           TransferMetadata::Status::kUnsupportedAttachmentType);
-      NL_LOG(WARNING)
-          << __func__
-          << ": Ignore introduction, due to invalid attachment size";
-      return;
-    }
-
-    NL_VLOG(1) << __func__ << ": Found file attachment: id=" << file.id()
-               << ", type= " << file.type() << ", size=" << file.size()
-               << ", payload_id=" << file.payload_id()
-               << ", parent_folder=" << file.parent_folder()
-               << ", mime_type=" << file.mime_type();
-    FileAttachment attachment(file.id(), file.size(), file.name(),
-                              file.mime_type(), file.type(),
-                              file.parent_folder());
-    SetAttachmentPayloadId(attachment, file.payload_id());
-    container.AddFileAttachment(std::move(attachment));
-
-    if (std::numeric_limits<int64_t>::max() - file.size() < file_size_sum) {
-      Fail(share_target_id, TransferMetadata::Status::kNotEnoughSpace);
-      NL_LOG(WARNING) << __func__
-                      << ": Ignoring introduction, total file size overflowed "
-                         "64 bit integer.";
-      return;
-    }
-    file_size_sum += file.size();
-  }
-
-  for (const auto& text : introduction_frame.text_metadata()) {
-    if (text.size() <= 0) {
-      Fail(share_target_id,
-           TransferMetadata::Status::kUnsupportedAttachmentType);
-      NL_LOG(WARNING)
-          << __func__
-          << ": Ignore introduction, due to invalid attachment size";
-      return;
-    }
-
-    NL_VLOG(1) << __func__ << ": Found text attachment: id=" << text.id()
-               << ", type= " << text.type() << ", size=" << text.size()
-               << ", payload_id=" << text.payload_id();
-    TextAttachment attachment(text.id(), text.type(), text.text_title(),
-                              text.size());
-    SetAttachmentPayloadId(attachment, text.payload_id());
-    container.AddTextAttachment(std::move(attachment));
-  }
-
-  if (kSupportReceivingWifiCredentials) {
-    for (const auto& wifi_credentials :
-         introduction_frame.wifi_credentials_metadata()) {
-      NL_VLOG(1) << __func__ << ": Found WiFi credentials attachment: id="
-                 << wifi_credentials.id()
-                 << ", ssid= " << wifi_credentials.ssid()
-                 << ", payload_id=" << wifi_credentials.payload_id();
-      WifiCredentialsAttachment attachment(wifi_credentials.id(),
-                                           wifi_credentials.ssid(),
-                                           wifi_credentials.security_type());
-      SetAttachmentPayloadId(attachment, wifi_credentials.payload_id());
-      container.AddWifiCredentialsAttachment(std::move(attachment));
-    }
-  }
-
-  if (!container.HasAttachments()) {
-    NL_LOG(WARNING) << __func__
-                    << ": No attachment is found for this share target. It can "
-                       "be result of unrecognizable attachment type";
-    Fail(share_target_id, TransferMetadata::Status::kUnsupportedAttachmentType);
-
-    NL_VLOG(1) << __func__
-               << ": We don't support the attachments sent by the sender. "
-                  "We have informed "
-               << share_target_id;
+  std::optional<TransferMetadata::Status> status =
+      info->ProcessIntroduction(frame->introduction());
+  if (status.has_value()) {
+    Fail(share_target_id, *status);
     return;
   }
+  attachment_info_map_ = info->attachment_payload_map();
 
   // Log analytics event of receiving introduction.
   analytics_recorder_->NewReceiveIntroduction(
       receiving_session_id_, info->share_target(),
       /*referrer_package=*/std::nullopt, info->os_type());
 
-  if (file_size_sum == 0) {
-    OnStorageCheckCompleted(share_target_id, std::move(four_digit_token),
-                            /*is_out_of_storage=*/false);
-    return;
-  }
-
   // Controls BWU using a flag when receiving an introduction frame, since it
   // could be a problem before accepted by a user.
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           sharing::config_package_nearby::nearby_sharing_feature::
               kUpgradeBandwidthAfterAccept)) {
-    if (introduction_frame.has_start_transfer() &&
-        introduction_frame.start_transfer()) {
-      if (container.GetTotalAttachmentsSize() >=
+    if (frame->introduction().has_start_transfer() &&
+        frame->introduction().start_transfer()) {
+      if (info->attachment_container().GetTotalAttachmentsSize() >=
           kAttachmentsSizeThresholdOverHighQualityMedium) {
         NL_LOG(INFO)
             << __func__
@@ -3545,7 +3406,8 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
       std::filesystem::u8path(settings_->GetCustomSavePath());
 
   bool is_out_of_storage =
-      IsOutOfStorage(device_info_, download_path, file_size_sum);
+      IsOutOfStorage(device_info_, download_path,
+                     info->attachment_container().GetStorageSize());
 
   OnStorageCheckCompleted(share_target_id, std::move(four_digit_token),
                           is_out_of_storage);
@@ -4320,11 +4182,6 @@ void NearbySharingServiceImpl::ClearOutgoingShareTargetInfoMap() {
   }
   NL_DCHECK(outgoing_share_target_map_.empty());
   NL_DCHECK(outgoing_share_target_info_map_.empty());
-}
-
-void NearbySharingServiceImpl::SetAttachmentPayloadId(
-    const Attachment& attachment, int64_t payload_id) {
-  attachment_info_map_[attachment.id()].payload_id = payload_id;
 }
 
 std::optional<int64_t> NearbySharingServiceImpl::GetAttachmentPayloadId(

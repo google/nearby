@@ -15,6 +15,7 @@
 #include "sharing/outgoing_share_target_info.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -35,6 +36,7 @@
 
 namespace nearby::sharing {
 namespace {
+using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::testing::Eq;
 using ::testing::IsEmpty;
@@ -213,5 +215,55 @@ TEST_F(OutgoingShareTargetInfoTest, CreateWifiCredentialsPayloads) {
   EXPECT_THAT(attachment_payload_map.at(wifi1_.id()).payload_id.value(),
               Eq(payloads[0].id));
 }
+
+TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameWithoutPayloads) {
+  EXPECT_THAT(info_.CreateIntroductionFrame(), Eq(nullptr));
+}
+
+TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameSuccess) {
+  std::vector<NearbyFileHandler::FileInfo> file_infos;
+  file_infos.push_back({
+    .size = 12355L,
+    .file_path = file1_.file_path().value(),
+  });
+  info_.CreateFilePayloads(file_infos);
+  info_.CreateTextPayloads();
+  info_.CreateWifiCredentialsPayloads();
+  std::unique_ptr<IntroductionFrame> frame = info_.CreateIntroductionFrame();
+
+  const std::vector<Payload>& text_payloads = info_.text_payloads();
+  ASSERT_THAT(frame->text_metadata_size(), Eq(2));
+  EXPECT_THAT(frame->text_metadata(0).id(), Eq(text1_.id()));
+  EXPECT_THAT(frame->text_metadata(0).text_title(), Eq(text1_.text_title()));
+  EXPECT_THAT(frame->text_metadata(0).type(), Eq(text1_.type()));
+  EXPECT_THAT(frame->text_metadata(0).size(), Eq(text1_.size()));
+  EXPECT_THAT(frame->text_metadata(0).payload_id(), Eq(text_payloads[0].id));
+
+  EXPECT_THAT(frame->text_metadata(1).id(), Eq(text2_.id()));
+  EXPECT_THAT(frame->text_metadata(1).text_title(), Eq(text2_.text_title()));
+  EXPECT_THAT(frame->text_metadata(1).type(), Eq(text2_.type()));
+  EXPECT_THAT(frame->text_metadata(1).size(), Eq(text2_.size()));
+  EXPECT_THAT(frame->text_metadata(1).payload_id(), Eq(text_payloads[1].id));
+
+  const std::vector<Payload>& file_payloads = info_.file_payloads();
+  ASSERT_THAT(frame->file_metadata_size(), Eq(1));
+  EXPECT_THAT(frame->file_metadata(0).id(), Eq(file1_.id()));
+  // File attachment size has been updated by CreateFilePayloads().
+  EXPECT_THAT(frame->file_metadata(0).size(), Eq(file_infos[0].size));
+  EXPECT_THAT(frame->file_metadata(0).name(), Eq(file1_.file_name()));
+  EXPECT_THAT(frame->file_metadata(0).payload_id(), Eq(file_payloads[0].id));
+  EXPECT_THAT(frame->file_metadata(0).type(), Eq(file1_.type()));
+  EXPECT_THAT(frame->file_metadata(0).mime_type(), Eq(file1_.mime_type()));
+
+  const std::vector<Payload>& wifi_payloads = info_.wifi_credentials_payloads();
+  ASSERT_THAT(frame->wifi_credentials_metadata_size(), Eq(1));
+  EXPECT_THAT(frame->wifi_credentials_metadata(0).id(), Eq(wifi1_.id()));
+  EXPECT_THAT(frame->wifi_credentials_metadata(0).ssid(), Eq(wifi1_.ssid()));
+  EXPECT_THAT(frame->wifi_credentials_metadata(0).security_type(),
+              Eq(wifi1_.security_type()));
+  EXPECT_THAT(frame->wifi_credentials_metadata(0).payload_id(),
+              Eq(wifi_payloads[0].id));
+}
+
 }  // namespace
 }  // namespace nearby::sharing

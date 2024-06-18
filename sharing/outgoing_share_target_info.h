@@ -17,6 +17,7 @@
 
 #include <filesystem>  // NOLINT
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -77,6 +78,9 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
   // Returns true if all file payloads are created successfully.
   bool CreateFilePayloads(
       const std::vector<NearbyFileHandler::FileInfo>& files);
+
+  std::unique_ptr<nearby::sharing::service::proto::IntroductionFrame>
+  CreateIntroductionFrame() const;
 
   std::vector<Payload> ExtractTextPayloads();
   std::vector<Payload> ExtractFilePayloads();

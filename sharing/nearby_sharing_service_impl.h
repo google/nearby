@@ -44,7 +44,6 @@
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_recorder.h"
-#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/attachment_info.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -426,7 +425,6 @@ class NearbySharingServiceImpl
       OutgoingShareTargetInfo& info);
 
   void ClearOutgoingShareTargetInfoMap();
-  void SetAttachmentPayloadId(const Attachment& attachment, int64_t payload_id);
   std::optional<int64_t> GetAttachmentPayloadId(int64_t attachment_id);
   void UnregisterShareTarget(int64_t share_target_id);
 

@@ -23,40 +23,12 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "sharing/attachment.h"
+#include "sharing/attachment_compare.h"  // IWYU pragma: keep
 #include "sharing/file_attachment.h"
 #include "sharing/text_attachment.h"
 #include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby::sharing {
-
-bool operator==(const TextAttachment& lhs, const TextAttachment& rhs) {
-  return lhs.id() == rhs.id() && lhs.family() == rhs.family() &&
-         lhs.size() == rhs.size() && lhs.batch_id() == rhs.batch_id() &&
-         lhs.source_type() == rhs.source_type() && lhs.type() == rhs.type() &&
-         lhs.text_title() == rhs.text_title() &&
-         lhs.text_body() == rhs.text_body() &&
-         lhs.mime_type() == rhs.mime_type();
-}
-
-bool operator==(const FileAttachment& lhs, const FileAttachment& rhs) {
-  return lhs.id() == rhs.id() && lhs.family() == rhs.family() &&
-         lhs.size() == rhs.size() && lhs.batch_id() == rhs.batch_id() &&
-         lhs.source_type() == rhs.source_type() &&
-         lhs.file_name() == rhs.file_name() &&
-         lhs.mime_type() == rhs.mime_type() && lhs.type() == rhs.type() &&
-         lhs.file_path() == rhs.file_path() &&
-         lhs.parent_folder() == rhs.parent_folder();
-}
-
-bool operator==(const WifiCredentialsAttachment& lhs,
-                const WifiCredentialsAttachment& rhs) {
-  return lhs.id() == rhs.id() && lhs.family() == rhs.family() &&
-         lhs.size() == rhs.size() && lhs.batch_id() == rhs.batch_id() &&
-         lhs.ssid() == rhs.ssid() &&
-         lhs.security_type() == rhs.security_type() &&
-         lhs.password() == rhs.password() && lhs.is_hidden() == rhs.is_hidden();
-}
-
 namespace {
 
 using testing::Eq;
@@ -209,6 +181,17 @@ TEST_F(AttachmentContainerTest, ClearAttachments) {
               IsFalse());
 }
 
+TEST_F(AttachmentContainerTest, Clear) {
+  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
+                                std::vector<FileAttachment>{file1_},
+                                std::vector<WifiCredentialsAttachment>{wifi1_});
+  EXPECT_THAT(container.HasAttachments(), IsTrue());
+
+  container.Clear();
+
+  EXPECT_THAT(container.HasAttachments(), IsFalse());
+}
+
 TEST_F(AttachmentContainerTest, GetAttachmentIds) {
   AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
                                 std::vector<FileAttachment>{file1_},
@@ -220,6 +203,16 @@ TEST_F(AttachmentContainerTest, GetAttachmentIds) {
   EXPECT_THAT(attachment_ids,
               UnorderedElementsAre(text1_.id(), text2_.id(), file1_.id(),
                                    wifi1_.id()));
+}
+
+TEST_F(AttachmentContainerTest, GetStorageSize) {
+  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
+                                std::vector<FileAttachment>{file1_},
+                                std::vector<WifiCredentialsAttachment>{wifi1_});
+
+  int64_t storage_size = container.GetStorageSize();
+
+  EXPECT_THAT(storage_size, Eq(file1_.size()));
 }
 
 }  // namespace
