@@ -237,6 +237,7 @@ cc_test(
     deps = [
         ":internal",
         ":internal_test",
+        "//base:casts",
         "//connections:core_types",
         "//connections/implementation/analytics",
         "//connections/implementation/flags:connections_flags",
@@ -249,6 +250,7 @@ cc_test(
         "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
@@ -260,6 +262,7 @@ cc_test(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",

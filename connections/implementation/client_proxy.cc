@@ -15,32 +15,46 @@
 #include "connections/implementation/client_proxy.h"
 
 #include <cstdint>
-#include <cstdlib>
 #include <functional>
 #include <ios>
-#include <limits>
 #include <memory>
 #include <optional>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "connections/advertising_options.h"
+#include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/payload.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connection_result.h"
+#include "connections/v3/connections_device.h"
 #include "connections/v3/connections_device_provider.h"
+#include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/device.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
@@ -52,17 +66,25 @@
 
 namespace nearby {
 namespace connections {
-
+namespace {
 using ::location::nearby::connections::OsInfo;
-
-// The definition is necessary before C++17.
-constexpr absl::Duration
-    ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout;
 
 constexpr char kEndpointIdChars[] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
     'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
+
+bool IsFeatureUseStableEndpointIdEnabled() {
+  return NearbyFlags::GetInstance().GetBoolFlag(
+      connections::config_package_nearby::nearby_connections_feature::
+          kUseStableEndpointId);
+}
+
+}  // namespace
+
+// The definition is necessary before C++17.
+constexpr absl::Duration
+    ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout;
 
 ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
     : client_id_(Prng().NextInt64()) {
@@ -96,18 +118,19 @@ std::string ClientProxy::GetLocalEndpointId() {
   MutexLock lock(&mutex_);
   if (!local_endpoint_id_.empty()) {
     NEARBY_LOGS(INFO) << __func__
-                      << "Reusing cached endpoint id: " << local_endpoint_id_;
+                      << ": Reusing cached endpoint id: " << local_endpoint_id_;
     return local_endpoint_id_;
   }
   if (external_device_provider_ == nullptr) {
     local_endpoint_id_ = GenerateLocalEndpointId();
-    NEARBY_LOGS(INFO) << __func__ << "Locally generating endpoint id: "
+    NEARBY_LOGS(INFO) << __func__ << ": Locally generating endpoint id: "
                       << local_endpoint_id_;
   } else {
     local_endpoint_id_ =
         external_device_provider_->GetLocalDevice()->GetEndpointId();
     NEARBY_LOGS(INFO)
-        << __func__ << "From external device provider, populating endpoint id: "
+        << __func__
+        << ": From external device provider, populating endpoint id: "
         << local_endpoint_id_;
   }
   return local_endpoint_id_;
@@ -146,13 +169,26 @@ void ClientProxy::SetBluetoothMacAddress(
 }
 
 std::string ClientProxy::GenerateLocalEndpointId() {
-  if (high_vis_mode_) {
-    if (!local_high_vis_mode_cache_endpoint_id_.empty()) {
-      NEARBY_LOGS(INFO)
-          << "ClientProxy [Local Endpoint Re-using cached endpoint id]: client="
-          << GetClientId() << "; local_high_vis_mode_cache_endpoint_id_="
-          << local_high_vis_mode_cache_endpoint_id_;
-      return local_high_vis_mode_cache_endpoint_id_;
+  if (IsFeatureUseStableEndpointIdEnabled()) {
+    if (!cached_endpoint_id_.empty()) {
+      if (stable_endpoint_id_mode_) {
+        NEARBY_LOGS(INFO) << "ClientProxy [Local Endpoint Re-using cached "
+                             "endpoint id due to in stable endpoint id mode]: "
+                             "client="
+                          << GetClientId()
+                          << "; cached_endpoint_id_=" << cached_endpoint_id_;
+        return cached_endpoint_id_;
+      }
+    }
+  } else {
+    if (high_vis_mode_) {
+      if (!cached_endpoint_id_.empty()) {
+        NEARBY_LOGS(INFO) << "ClientProxy [Local Endpoint Re-using cached "
+                             "endpoint id]: client="
+                          << GetClientId()
+                          << "; cached_endpoint_id_=" << cached_endpoint_id_;
+        return cached_endpoint_id_;
+      }
     }
   }
   std::string id;
@@ -169,7 +205,11 @@ void ClientProxy::Reset() {
   StoppedAdvertising();
   StoppedDiscovery();
   RemoveAllEndpoints();
-  ExitHighVisibilityMode();
+  if (IsFeatureUseStableEndpointIdEnabled()) {
+    ExitStableEndpointIdMode();
+  } else {
+    ExitHighVisibilityMode();
+  }
 }
 
 void ClientProxy::StartedAdvertising(
@@ -181,13 +221,22 @@ void ClientProxy::StartedAdvertising(
   NEARBY_LOGS(INFO) << "ClientProxy [StartedAdvertising]: client="
                     << GetClientId();
 
-  if (high_vis_mode_) {
-    local_high_vis_mode_cache_endpoint_id_ = local_endpoint_id_;
-    NEARBY_LOGS(INFO)
-        << "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: client="
-        << GetClientId() << "; local_high_vis_mode_cache_endpoint_id_="
-        << local_high_vis_mode_cache_endpoint_id_;
-    CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+  if (IsFeatureUseStableEndpointIdEnabled()) {
+    if (stable_endpoint_id_mode_) {
+      cached_endpoint_id_ = local_endpoint_id_;
+    } else {
+      cached_endpoint_id_.clear();
+    }
+
+    CancelClearCachedEndpointIdAlarm();
+  } else {
+    if (high_vis_mode_) {
+      cached_endpoint_id_ = local_endpoint_id_;
+      NEARBY_LOGS(INFO)
+          << "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: client="
+          << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
+      CancelClearCachedEndpointIdAlarm();
+    }
   }
 
   advertising_info_ = {service_id, listener};
@@ -211,7 +260,11 @@ void ClientProxy::StoppedAdvertising() {
   // advertising_options_ is purposefully not cleared here.
   OnSessionComplete();
 
-  ExitHighVisibilityMode();
+  if (IsFeatureUseStableEndpointIdEnabled()) {
+    ExitStableEndpointIdMode();
+  } else {
+    ExitHighVisibilityMode();
+  }
 }
 
 bool ClientProxy::IsAdvertising() const {
@@ -529,6 +582,12 @@ void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
   }
 
   CancelEndpoint(endpoint_id);
+
+  if (IsFeatureUseStableEndpointIdEnabled()) {
+    if (!stable_endpoint_id_mode_ && !HasOngoingConnection()) {
+      ScheduleClearCachedEndpointIdAlarm();
+    }
+  }
 }
 
 bool ClientProxy::ConnectionStatusMatches(const std::string& endpoint_id,
@@ -623,6 +682,11 @@ std::vector<std::string> ClientProxy::GetConnectedEndpoints() const {
   return GetMatchingEndpoints([](const Connection& connection) {
     return connection.status == Connection::kConnected;
   });
+}
+
+bool ClientProxy::HasOngoingConnection() const {
+  return !GetPendingConnectedEndpoints().empty() ||
+         !GetConnectedEndpoints().empty();
 }
 
 std::int32_t ClientProxy::GetNumOutgoingConnections() const {
@@ -1047,15 +1111,39 @@ void ClientProxy::ExitHighVisibilityMode() {
                     << GetClientId();
 
   high_vis_mode_ = false;
-  ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
+  ScheduleClearCachedEndpointIdAlarm();
 }
 
-void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
-  CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+void ClientProxy::EnterStableEndpointIdMode() {
+  MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "ClientProxy [EnterStableEndpointIdMode]: client="
+                    << GetClientId();
 
-  if (local_high_vis_mode_cache_endpoint_id_.empty()) {
+  stable_endpoint_id_mode_ = true;
+}
+
+void ClientProxy::ExitStableEndpointIdMode() {
+  MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "ClientProxy [ExitStableEndpointIdMode]: client="
+                    << GetClientId();
+
+  stable_endpoint_id_mode_ = false;
+  ScheduleClearCachedEndpointIdAlarm();
+}
+
+void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
+  CancelClearCachedEndpointIdAlarm();
+
+  if (cached_endpoint_id_.empty()) {
     NEARBY_LOGS(VERBOSE) << "ClientProxy [There is no cached local high power "
                             "advertising endpoint Id]: client="
+                         << GetClientId();
+    return;
+  }
+
+  if (IsFeatureUseStableEndpointIdEnabled() && HasOngoingConnection()) {
+    NEARBY_LOGS(VERBOSE) << "ClientProxy [Handle clearing cached endpoint ID "
+                            "during disconnection]: client="
                          << GetClientId();
     return;
   }
@@ -1065,9 +1153,8 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
   NEARBY_LOGS(INFO) << "ClientProxy [High Visibility Mode Adv, Schedule to "
                        "Clear Cache EndpointId]: client="
                     << GetClientId()
-                    << "; local_high_vis_mode_cache_endpoint_id_="
-                    << local_high_vis_mode_cache_endpoint_id_;
-  clear_local_high_vis_mode_cache_endpoint_id_alarm_ =
+                    << "; cached_endpoint_id_=" << cached_endpoint_id_;
+  cached_endpoint_id_alarm_ =
       std::make_unique<CancelableAlarm>(
           "clear_high_power_endpoint_id_cache",
           [this]() {
@@ -1075,19 +1162,18 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
             NEARBY_LOGS(INFO)
                 << "ClientProxy [Cleared cached local high power advertising "
                    "endpoint Id.]: client="
-                << GetClientId() << "; local_high_vis_mode_cache_endpoint_id_="
-                << local_high_vis_mode_cache_endpoint_id_;
-            local_high_vis_mode_cache_endpoint_id_.clear();
+                << GetClientId()
+                << "; cached_endpoint_id_=" << cached_endpoint_id_;
+            cached_endpoint_id_.clear();
           },
           kHighPowerAdvertisementEndpointIdCacheTimeout,
           &single_thread_executor_);
 }
 
-void ClientProxy::CancelClearLocalHighVisModeCacheEndpointIdAlarm() {
-  if (clear_local_high_vis_mode_cache_endpoint_id_alarm_ &&
-      clear_local_high_vis_mode_cache_endpoint_id_alarm_->IsValid()) {
-    clear_local_high_vis_mode_cache_endpoint_id_alarm_->Cancel();
-    clear_local_high_vis_mode_cache_endpoint_id_alarm_.reset();
+void ClientProxy::CancelClearCachedEndpointIdAlarm() {
+  if (cached_endpoint_id_alarm_ && cached_endpoint_id_alarm_->IsValid()) {
+    cached_endpoint_id_alarm_->Cancel();
+    cached_endpoint_id_alarm_.reset();
   }
 }
 
@@ -1143,7 +1229,7 @@ bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
   }
 
   int combined_result = GetLocalMultiplexSocketBitmask() &
-                       item->first.remote_multiplex_socket_bitmask;
+                        item->first.remote_multiplex_socket_bitmask;
   switch (medium) {
     case Medium::BLUETOOTH:
       return (combined_result & kBtMultiplexEnabled) != 0;
@@ -1153,7 +1239,6 @@ bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
       return false;
   }
 }
-
 
 std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
   switch (status) {

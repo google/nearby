@@ -227,20 +227,34 @@ Status BasePcpHandler::StartAdvertising(
       "start-advertising",
       [this, client, &service_id, &info, &compatible_advertising_options,
        &response]() RUN_ON_PCP_HANDLER_THREAD() {
-        // The endpoint id inside of the advertisement is different to high
-        // visibility and low visibility mode. In order to decide if client
-        // should grab the high visibility or low visibility id, it needs to
-        // tell client which one right now, before
-        // client#StartedAdvertising.
-        if (ShouldEnterHighVisibilityMode(compatible_advertising_options)) {
-          client->EnterHighVisibilityMode();
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                connections::config_package_nearby::nearby_connections_feature::
+                    kUseStableEndpointId)) {
+          if (ShouldEnterStableEndpointIdMode(compatible_advertising_options)) {
+            client->EnterStableEndpointIdMode();
+          }
+        } else {
+          // The endpoint id inside of the advertisement is different to high
+          // visibility and low visibility mode. In order to decide if client
+          // should grab the high visibility or low visibility id, it needs to
+          // tell client which one right now, before
+          // client#StartedAdvertising.
+          if (ShouldEnterHighVisibilityMode(compatible_advertising_options)) {
+            client->EnterHighVisibilityMode();
+          }
         }
 
         auto result = StartAdvertisingImpl(
             client, service_id, client->GetLocalEndpointId(),
             info.endpoint_info, compatible_advertising_options);
         if (!result.status.Ok()) {
-          client->ExitHighVisibilityMode();
+          if (NearbyFlags::GetInstance().GetBoolFlag(
+                  connections::config_package_nearby::
+                      nearby_connections_feature::kUseStableEndpointId)) {
+            client->ExitStableEndpointIdMode();
+          } else {
+            client->ExitHighVisibilityMode();
+          }
           response.Set(result.status);
           return;
         }
@@ -331,6 +345,17 @@ bool BasePcpHandler::ShouldEnterHighVisibilityMode(
     const AdvertisingOptions& advertising_options) {
   return !advertising_options.low_power &&
          advertising_options.allowed.bluetooth;
+}
+
+bool BasePcpHandler::ShouldEnterStableEndpointIdMode(
+    const AdvertisingOptions& advertising_options) {
+  if (advertising_options.use_stable_endpoint_id) {
+    return true;
+  } else if (advertising_options.low_power) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(

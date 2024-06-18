@@ -24,6 +24,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
@@ -31,6 +32,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
@@ -49,6 +51,8 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
+#include "internal/platform/os_name.h"
+#include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -191,6 +195,9 @@ class ClientProxy final {
   std::vector<std::string> GetConnectedEndpoints() const;
   // Returns all endpoints that are still awaiting acceptance.
   std::vector<std::string> GetPendingConnectedEndpoints() const;
+  // Returns true if there is at least one connected connection or one pending
+  // connection.
+  bool HasOngoingConnection() const;
   // Returns the number of endpoints that are connected and outgoing.
   std::int32_t GetNumOutgoingConnections() const;
   // Returns the number of endpoints that are connected and incoming.
@@ -260,6 +267,12 @@ class ClientProxy final {
   // rotates.
   void ExitHighVisibilityMode();
 
+  // Enters stable endpoint ID mode.
+  void EnterStableEndpointIdMode();
+  // Cleans up any modifications in stable endpoint ID mode. The endpoint id
+  // always rotates.
+  void ExitStableEndpointIdMode();
+
   std::string Dump();
 
   const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
@@ -282,9 +295,7 @@ class ClientProxy final {
     return supports_safe_to_disconnect_;
   }
 
-  bool IsSupportAutoReconnect() const {
-    return support_auto_reconnect_;
-  }
+  bool IsSupportAutoReconnect() const { return support_auto_reconnect_; }
 
   const std::int32_t& GetLocalSafeToDisconnectVersion() const {
     return local_safe_to_disconnect_version_;
@@ -385,8 +396,8 @@ class ClientProxy final {
       absl::AnyInvocable<bool(const Connection&)> pred) const;
   std::string GenerateLocalEndpointId();
 
-  void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
-  void CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+  void ScheduleClearCachedEndpointIdAlarm();
+  void CancelClearCachedEndpointIdAlarm();
 
   location::nearby::connections::OsInfo::OsType OSNameToOsInfoType(
       api::OSName osName);
@@ -402,18 +413,17 @@ class ClientProxy final {
   // id is stable for 30s. When high_visibility_mode_ is false, the endpoint id
   // always rotates.
   bool high_vis_mode_ = false;
-  // Caches the endpoint id when it is in high visibility mode advertisement for
-  // 30s. Currently, Nearby Connections keeps rotating endpoint id. The client
-  // (Nearby Share) treats different endpoints as different receivers, duplicate
-  // share targets for same devices occur on share sheet in this case.
-  // Therefore, we remember the high visibility mode advertisement  endpoint id
-  // here. empty if 1) There is no high power advertisement before 2) The
-  // endpoint id cached here in previous high visibility mode advertisement
-  // expires.
-  std::string local_high_vis_mode_cache_endpoint_id_;
+
+  // If advertising is in stable endpoint ID mode, the endpoint ID is stable
+  // for 30s after advertising or disconnection. When stable_endpoint_id_mode_
+  // is false, the endpoint id always rotates.
+  bool stable_endpoint_id_mode_ = false;
+
+  // Caches the endpoint id for stable endpoint ID mode.
+  std::string cached_endpoint_id_;
+
   ScheduledExecutor single_thread_executor_;
-  std::unique_ptr<CancelableAlarm>
-      clear_local_high_vis_mode_cache_endpoint_id_alarm_;
+  std::unique_ptr<CancelableAlarm> cached_endpoint_id_alarm_;
 
   // If not empty, we are currently advertising and accepting connection
   // requests for the given service_id.
