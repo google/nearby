@@ -226,9 +226,11 @@ class NearbyShareContactManagerImplTest
     client()->SetListContactPeopleResponses(responses);
   }
 
-  void DownloadContacts(
-      bool download_success, bool expect_upload, bool upload_success,
-      std::optional<std::vector<ContactRecord>> contacts) {
+  void DownloadContacts(bool download_success, bool expect_upload,
+                        bool upload_success,
+                        std::optional<std::vector<ContactRecord>> contacts,
+                        std::optional<std::vector<ContactRecord>>
+                            expected_contacts = std::nullopt) {
     // Track for download contacts.
     size_t num_handled_results =
         download_and_upload_scheduler()->handled_results().size();
@@ -248,7 +250,7 @@ class NearbyShareContactManagerImplTest
     if (download_success) {
       VerifyDownloadNotificationSent(
           /*initial_num_notifications=*/num_download_notifications,
-          *contacts);
+          expected_contacts.has_value() ? *expected_contacts : *contacts);
 
       // Verify that contacts start uploading if needed.
       EXPECT_EQ(local_device_data_manager_.upload_contacts_calls().size(),
@@ -267,8 +269,8 @@ class NearbyShareContactManagerImplTest
       FakeNearbyShareLocalDeviceDataManager::UploadContactsCall& call =
           local_device_data_manager_.upload_contacts_calls().back();
 
-      std::vector<Contact> expected_upload_contacts =
-          BuildContactListToUpload(*contacts);
+      std::vector<Contact> expected_upload_contacts = BuildContactListToUpload(
+          expected_contacts.has_value() ? *expected_contacts : *contacts);
       // Ordering doesn't matter. Otherwise, because of internal sorting,
       // comparison would be difficult.
       ASSERT_EQ(expected_upload_contacts.size(), call.contacts.size());
@@ -321,6 +323,11 @@ class NearbyShareContactManagerImplTest
 
   PreferenceManager& preference_manager() { return preference_manager_; }
 
+  std::vector<ContactsDownloadedNotification>&
+  contacts_downloaded_notifications() {
+    return contacts_downloaded_notifications_;
+  }
+
  private:
   // NearbyShareContactManager::Observer:
   void OnContactsDownloaded(
@@ -328,6 +335,8 @@ class NearbyShareContactManagerImplTest
       uint32_t num_unreachable_contacts_filtered_out) override {
     ContactsDownloadedNotification notification;
     notification.contacts = contacts;
+    notification.num_unreachable_contacts_filtered_out =
+        num_unreachable_contacts_filtered_out;
     contacts_downloaded_notifications_.push_back(notification);
   }
   void OnContactsUploaded(bool did_contacts_change_since_last_upload) override {
@@ -520,6 +529,36 @@ TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_RetryFailedUpload) {
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
                    /*contacts=*/contact_records);
+}
+
+TEST_F(NearbyShareContactManagerImplTest,
+       DownloadContacts_ListIsFilteredByReachable) {
+  std::vector<ContactRecord> contact_records =
+      TestContactRecordList(/*num_contacts=*/3u);
+
+  contact_records[0].set_is_reachable(false);
+
+  SetDownloadSuccessResult(contact_records);
+  SetUploadResult(true);
+
+  // Because contacts have never been uploaded, a subsequent upload is
+  // requested, which succeeds.
+  std::vector<ContactRecord> expected_contacts = contact_records;
+  expected_contacts.erase(expected_contacts.begin());
+  DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
+                   /*upload_success=*/true,
+                   /*contacts=*/contact_records,
+                   /*expected_contacts=*/expected_contacts);
+
+  ASSERT_EQ(contacts_downloaded_notifications().size(), 1);
+  // We should have 1 filtered contact since we only marked one as unreachable.
+  EXPECT_EQ(contacts_downloaded_notifications()
+                .front()
+                .num_unreachable_contacts_filtered_out,
+            1);
+  // We should have 2 contacts in the notification since we only marked one as
+  // unreachable, out of 3.
+  EXPECT_EQ(contacts_downloaded_notifications().front().contacts.size(), 2);
 }
 
 TEST_F(NearbyShareContactManagerImplTest, ContactUploadHash) {

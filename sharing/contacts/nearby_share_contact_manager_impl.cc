@@ -113,6 +113,15 @@ std::string ComputeHash(const std::vector<Contact>& contacts) {
   return nearby::utils::HexEncode(hash);
 }
 
+void FilterOutUnreachableContacts(std::vector<ContactRecord>& contacts) {
+  contacts.erase(
+      std::remove_if(contacts.begin(), contacts.end(),
+                     [](const nearby::sharing::proto::ContactRecord& contact) {
+                       return !contact.is_reachable();
+                     }),
+      contacts.end());
+}
+
 }  // namespace
 
 // static
@@ -174,21 +183,13 @@ NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
 NearbyShareContactManagerImpl::~NearbyShareContactManagerImpl() = default;
 
 void NearbyShareContactManagerImpl::OnContactsDownloadCompleted(
-    absl::StatusOr<std::vector<ContactRecord>> contacts) {
+    absl::StatusOr<std::vector<ContactRecord>> contacts,
+    uint32_t num_unreachable_contacts_filtered_out) {
   if (!contacts.ok()) {
     OnContactsDownloadFailure();
     return;
   }
   NL_LOG(INFO) << __func__ << ": Completed to download contacts from backend";
-  size_t initial_num_contacts = contacts->size();
-  contacts->erase(
-      std::remove_if(contacts->begin(), contacts->end(),
-                     [](const nearby::sharing::proto::ContactRecord& contact) {
-                       return !contact.is_reachable();
-                     }),
-      contacts->end());
-  uint32_t num_unreachable_contacts_filtered_out =
-      initial_num_contacts - contacts->size();
   NL_VLOG(1) << __func__ << ": Removed "
              << num_unreachable_contacts_filtered_out
              << " unreachable contacts.";
@@ -208,7 +209,8 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
           const absl::StatusOr<ListContactPeopleResponse>& response) mutable {
         if (!response.ok()) {
           NL_LOG(ERROR) << __func__ << ": Failed to download contacts.";
-          std::move(download_callback_)(response.status());
+          std::move(download_callback_)(
+              response.status(), /*num_unreachable_contacts_filtered_out=*/0);
           return;
         }
 
@@ -216,7 +218,14 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
                         response->contact_records().end());
 
         if (response->next_page_token().empty()) {
-          std::move(download_callback_)(std::move(contacts_));
+          // We should filter here because we only care about contacts that we
+          // can share with.
+          uint32_t contacts_size = contacts_.size();
+          FilterOutUnreachableContacts(contacts_);
+          uint32_t num_unreachable_contacts_filtered_out =
+              contacts_size - contacts_.size();
+          std::move(download_callback_)(std::move(contacts_),
+                                        num_unreachable_contacts_filtered_out);
           return;
         }
         // Continue with next page.

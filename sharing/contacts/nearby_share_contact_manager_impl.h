@@ -91,9 +91,11 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
    public:
     ContactDownloadContext(
         nearby::sharing::api::SharingRpcClient* nearby_share_client,
-        absl::AnyInvocable<void(absl::StatusOr<std::vector<
-                                    nearby::sharing::proto::ContactRecord>>
-                                    contacts) &&>
+        absl::AnyInvocable<
+            void(absl::StatusOr<
+                     std::vector<nearby::sharing::proto::ContactRecord>>
+                     contacts,
+                 uint32_t num_unreachable_contacts_filtered_out) &&>
             download_callback)
         : nearby_share_client_(nearby_share_client),
           download_callback_(std::move(download_callback)) {}
@@ -111,7 +113,8 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
     std::vector<nearby::sharing::proto::ContactRecord> contacts_;
     absl::AnyInvocable<
         void(absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>
-                 contacts) &&>
+                 contacts,
+             uint32_t num_unreachable_contacts_filtered_out) &&>
         download_callback_;
   };
 
@@ -129,7 +132,8 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
 
   void OnContactsDownloadCompleted(
       absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>
-          contacts);
+          contacts,
+      uint32_t num_unreachable_contacts_filtered_out);
   void OnContactsDownloadSuccess(
       std::vector<::nearby::sharing::proto::ContactRecord> contacts,
       uint32_t num_unreachable_contacts_filtered_out);
