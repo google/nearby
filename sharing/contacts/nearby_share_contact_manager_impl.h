@@ -91,12 +91,7 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
    public:
     ContactDownloadContext(
         nearby::sharing::api::SharingRpcClient* nearby_share_client,
-        absl::AnyInvocable<
-            void(absl::StatusOr<
-                     std::vector<nearby::sharing::proto::ContactRecord>>
-                     contacts,
-                 uint32_t num_unreachable_contacts_filtered_out) &&>
-            download_callback)
+        ContactsCallback download_callback)
         : nearby_share_client_(nearby_share_client),
           download_callback_(std::move(download_callback)) {}
 
@@ -111,11 +106,7 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
     std::optional<std::string> next_page_token_;
     int page_number_ = 1;
     std::vector<nearby::sharing::proto::ContactRecord> contacts_;
-    absl::AnyInvocable<
-        void(absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>
-                 contacts,
-             uint32_t num_unreachable_contacts_filtered_out) &&>
-        download_callback_;
+    ContactsCallback download_callback_;
   };
 
   NearbyShareContactManagerImpl(
@@ -127,6 +118,7 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
 
   // NearbyShareContactsManager:
   void DownloadContacts() override;
+  void GetContacts(ContactsCallback callback) override;
   void OnStart() override;
   void OnStop() override;
 

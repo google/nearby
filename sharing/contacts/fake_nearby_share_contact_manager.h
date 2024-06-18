@@ -98,6 +98,7 @@ class FakeNearbyShareContactManager : public NearbyShareContactManager {
   void DownloadContacts() override;
   void OnStart() override;
   void OnStop() override;
+  void GetContacts(ContactsCallback callback) override;
 
   size_t num_download_contacts_calls_ = 0;
 };

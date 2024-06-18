@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
 #include "internal/base/observer_list.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
@@ -42,6 +44,10 @@ namespace sharing {
 // the manager does not return data directly from function calls.
 class NearbyShareContactManager {
  public:
+  using ContactsCallback = absl::AnyInvocable<
+      void(absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>,
+           uint32_t num_unreachable_contacts_filtered_out) &&>;
+
   class Observer {
    public:
     virtual ~Observer() = default;
@@ -74,6 +80,9 @@ class NearbyShareContactManager {
   // OnContactsDownloaded(), and if an upload occurs, observers are notified via
   // OnContactsUploaded().
   virtual void DownloadContacts() = 0;
+
+  // Retrieves the user's contact list from the server.
+  virtual void GetContacts(ContactsCallback callback) = 0;
 
  protected:
   virtual void OnStart() = 0;

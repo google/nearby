@@ -60,5 +60,7 @@ void FakeNearbyShareContactManager::OnStart() {}
 
 void FakeNearbyShareContactManager::OnStop() {}
 
+void FakeNearbyShareContactManager::GetContacts(ContactsCallback callback) {}
+
 }  // namespace sharing
 }  // namespace nearby

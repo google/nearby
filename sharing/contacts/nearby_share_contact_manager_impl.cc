@@ -263,6 +263,34 @@ void NearbyShareContactManagerImpl::DownloadContacts() {
   });
 }
 
+void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
+  executor_->PostTask([this, callback = std::move(callback)]() mutable {
+    NL_LOG(INFO) << __func__ << ": Start to download contacts";
+    if (!is_running()) {
+      NL_LOG(WARNING) << __func__
+                      << ": Ignore to download contacts due to manager is not "
+                         "running.";
+      return;
+    }
+
+    std::vector<ContactRecord> contacts;
+    if (!account_manager_.GetCurrentAccount().has_value()) {
+      NL_LOG(WARNING)
+          << __func__
+          << ": Ignore to download certificates due to no login account.";
+      std::move(callback)(contacts,
+                          /*num_unreachable_contacts_filtered_out=*/0);
+      return;
+    }
+
+    // Currently Contacts download is synchronous.  It completes after
+    // FetchNextPage() returns.
+    auto context = std::make_unique<ContactDownloadContext>(
+        nearby_share_client_.get(), std::move(callback));
+    context->FetchNextPage();
+  });
+}
+
 void NearbyShareContactManagerImpl::OnStart() {
   periodic_contact_upload_scheduler_->Start();
   contact_download_and_upload_scheduler_->Start();
