@@ -26,7 +26,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "sharing/attachment_container.h"
-#include "sharing/attachment_info.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
@@ -42,7 +41,7 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
   PayloadTracker(
       Context* context, int64_t share_target_id,
       const AttachmentContainer& container,
-      const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_info_map,
+      const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map,
       std::function<void(int64_t, TransferMetadata)> update_callback);
   ~PayloadTracker() override;
 

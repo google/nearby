@@ -554,9 +554,10 @@ void NearbyConnectionsManagerImpl::RegisterPayloadStatusListener(
   payload_status_listeners_.insert_or_assign(payload_id, listener);
 }
 
-Payload* NearbyConnectionsManagerImpl::GetIncomingPayload(int64_t payload_id) {
+const Payload* NearbyConnectionsManagerImpl::GetIncomingPayload(
+    int64_t payload_id) const {
   MutexLock lock(&mutex_);
-  auto it = incoming_payloads_.find(payload_id);
+  const auto it = incoming_payloads_.find(payload_id);
   if (it == incoming_payloads_.end()) return nullptr;
 
   return &it->second;

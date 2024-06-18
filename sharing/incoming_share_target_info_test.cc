@@ -180,17 +180,17 @@ TEST_F(IncomingShareTargetInfoTest, ProcessIntroductionSuccess) {
               UnorderedElementsAre(text1, text2));
   EXPECT_THAT(info_.attachment_container().GetWifiCredentialsAttachments(),
               UnorderedElementsAre(wifi1, wifi2));
-  EXPECT_THAT(info_.attachment_payload_map().at(filemeta1.id()).payload_id,
+  EXPECT_THAT(info_.attachment_payload_map().at(filemeta1.id()),
               Eq(filemeta1.payload_id()));
-  EXPECT_THAT(info_.attachment_payload_map().at(filemeta2.id()).payload_id,
+  EXPECT_THAT(info_.attachment_payload_map().at(filemeta2.id()),
               Eq(filemeta2.payload_id()));
-  EXPECT_THAT(info_.attachment_payload_map().at(textmeta1.id()).payload_id,
+  EXPECT_THAT(info_.attachment_payload_map().at(textmeta1.id()),
               Eq(textmeta1.payload_id()));
-  EXPECT_THAT(info_.attachment_payload_map().at(textmeta2.id()).payload_id,
+  EXPECT_THAT(info_.attachment_payload_map().at(textmeta2.id()),
               Eq(textmeta2.payload_id()));
-  EXPECT_THAT(info_.attachment_payload_map().at(wifimeta1.id()).payload_id,
+  EXPECT_THAT(info_.attachment_payload_map().at(wifimeta1.id()),
               Eq(wifimeta1.payload_id()));
-  EXPECT_THAT(info_.attachment_payload_map().at(wifimeta2.id()).payload_id,
+  EXPECT_THAT(info_.attachment_payload_map().at(wifimeta2.id()),
               Eq(wifimeta2.payload_id()));
 }
 }  // namespace

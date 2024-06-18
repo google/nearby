@@ -1427,7 +1427,7 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingBytesPayload) {
   EXPECT_TRUE(payload_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
 
-  Payload* payload =
+  const Payload* payload =
       nearby_connections_manager_->GetIncomingPayload(kPayloadId);
   ASSERT_NE(payload, nullptr);
   ASSERT_TRUE(payload->content.is_bytes());
@@ -1472,7 +1472,7 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
   EXPECT_TRUE(payload_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
 
-  Payload* payload =
+  const Payload* payload =
       nearby_connections_manager_->GetIncomingPayload(kPayloadId);
   ASSERT_NE(payload, nullptr);
   ASSERT_TRUE(payload->content.is_file());

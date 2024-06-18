@@ -420,9 +420,9 @@ struct PayloadContent {
   FilePayload file_payload;
   enum class Type { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
   Type type;
-  bool is_bytes() { return type == Type::kBytes; }
-  bool is_file() { return type == Type::kFile; }
-  bool is_stream() { return type == Type::kStream; }
+  bool is_bytes() const { return type == Type::kBytes; }
+  bool is_file() const { return type == Type::kFile; }
+  bool is_stream() const { return type == Type::kStream; }
 };
 
 // A Payload sent between devices. Payloads sent with a particular content type

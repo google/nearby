@@ -66,7 +66,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   void RegisterPayloadStatusListener(
       int64_t payload_id,
       std::weak_ptr<PayloadStatusListener> listener) override;
-  Payload* GetIncomingPayload(int64_t payload_id) override;
+  const Payload* GetIncomingPayload(int64_t payload_id) const override;
   void Cancel(int64_t payload_id) override;
   void ClearIncomingPayloads() override;
   std::optional<std::vector<uint8_t>> GetRawAuthenticationToken(
@@ -171,7 +171,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
 
   std::map<int64_t, std::weak_ptr<PayloadStatusListener>>
       payload_status_listeners_;
-  absl::Mutex incoming_payloads_mutex_;
+  mutable absl::Mutex incoming_payloads_mutex_;
   std::map<int64_t, std::unique_ptr<Payload>> incoming_payloads_
       ABSL_GUARDED_BY(incoming_payloads_mutex_);
   absl::flat_hash_set<std::filesystem::path> file_paths_to_delete_;

@@ -45,7 +45,6 @@
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
-#include "sharing/attachment_info.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
@@ -580,9 +579,8 @@ class NearbySharingServiceImpl
   // unnecessary backend API call.
   absl::flat_hash_set<std::string> discovered_advertisements_retried_set_;
 
-  // A mapping of Attachment ID to additional AttachmentInfo related to the
-  // Attachment.
-  absl::flat_hash_map<int64_t, AttachmentInfo> attachment_info_map_;
+  // A mapping of Attachment ID to payload ID .
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
 
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.

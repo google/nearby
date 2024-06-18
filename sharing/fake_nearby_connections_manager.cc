@@ -139,7 +139,8 @@ void FakeNearbyConnectionsManager::RegisterPayloadStatusListener(
   payload_status_listeners_[payload_id] = listener;
 }
 
-Payload* FakeNearbyConnectionsManager::GetIncomingPayload(int64_t payload_id) {
+const Payload* FakeNearbyConnectionsManager::GetIncomingPayload(
+    int64_t payload_id) const {
   NL_DCHECK(!is_shutdown());
   absl::MutexLock lock(&incoming_payloads_mutex_);
   auto it = incoming_payloads_.find(payload_id);

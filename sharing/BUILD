@@ -67,12 +67,10 @@ cc_library(
     name = "types",
     srcs = [
         "advertisement.cc",
-        "attachment_info.cc",
         "share_target.cc",
     ],
     hdrs = [
         "advertisement.h",
-        "attachment_info.h",
         "constants.h",
         "nearby_connection.h",
         "nearby_connections_manager.h",

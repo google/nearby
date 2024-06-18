@@ -78,7 +78,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void RegisterPayloadStatusListener(
       int64_t payload_id,
       std::weak_ptr<PayloadStatusListener> listener) override;
-  Payload* GetIncomingPayload(int64_t payload_id) override;
+  const Payload* GetIncomingPayload(int64_t payload_id) const override;
   void Cancel(int64_t payload_id) override;
   void ClearIncomingPayloads() override;
   std::optional<std::vector<uint8_t>> GetRawAuthenticationToken(

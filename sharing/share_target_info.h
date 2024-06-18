@@ -27,7 +27,6 @@
 #include "absl/time/time.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_container.h"
-#include "sharing/attachment_info.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
@@ -137,7 +136,7 @@ class ShareTargetInfo {
     return attachment_container_;
   }
 
-  const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_payload_map()
+  const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map()
       const {
     return attachment_payload_map_;
   }
@@ -169,7 +168,7 @@ class ShareTargetInfo {
   TransferMetadata::Status disconnect_status_ =
       TransferMetadata::Status::kUnknown;
   AttachmentContainer attachment_container_;
-  absl::flat_hash_map<int64_t, AttachmentInfo> attachment_payload_map_;
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
 };
 
 }  // namespace nearby::sharing

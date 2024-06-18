@@ -143,7 +143,7 @@ class NearbyConnectionsManager {
       int64_t payload_id, std::weak_ptr<PayloadStatusListener> listener) = 0;
 
   // Gets the payload associated with `payload_id` if available.
-  virtual Payload* GetIncomingPayload(int64_t payload_id) = 0;
+  virtual const Payload* GetIncomingPayload(int64_t payload_id) const = 0;
 
   // Cancels a Payload currently in-flight to or from remote endpoints.
   virtual void Cancel(int64_t payload_id) = 0;

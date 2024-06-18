@@ -27,7 +27,6 @@
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
 #include "sharing/attachment_container.h"
-#include "sharing/attachment_info.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connections_types.h"
@@ -50,13 +49,11 @@ class PayloadTrackerTest : public ::testing::Test {
     container_.AddFileAttachment(FileAttachment(
         kFileId, kFileSize, std::string(kFileName), std::string(kMimeType),
         service::proto::FileMetadata::IMAGE));
-    attachment_info_map_.clear();
-    AttachmentInfo attachment_info;
-    attachment_info.payload_id = kFileId;
-    attachment_info_map_.emplace(container_.GetFileAttachments()[0].id(),
-                                 std::move(attachment_info));
+    attachment_payload_map_.clear();
+    attachment_payload_map_.emplace(container_.GetFileAttachments()[0].id(),
+                                 kFileId);
     payload_tracker_ = std::make_unique<PayloadTracker>(
-        context(), kShareTargetId, container_, attachment_info_map_,
+        context(), kShareTargetId, container_, attachment_payload_map_,
         [&](int64_t share_target_id, TransferMetadata transfer_metadata) {
           current_percentage_ = transfer_metadata.progress();
         });
@@ -84,7 +81,7 @@ class PayloadTrackerTest : public ::testing::Test {
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
   float current_percentage_ = 0.0;
   AttachmentContainer container_;
-  absl::flat_hash_map<int64_t, AttachmentInfo> attachment_info_map_;
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
 };
 
 TEST_F(PayloadTrackerTest, StatusUpdateWithoutTimeUpdate) {

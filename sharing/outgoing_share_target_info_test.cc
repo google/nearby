@@ -121,15 +121,9 @@ TEST_F(OutgoingShareTargetInfoTest, CreateTextPayloads) {
 
   ASSERT_THAT(attachment_payload_map, SizeIs(2));
   ASSERT_THAT(attachment_payload_map.contains(text1_.id()), IsTrue());
-  ASSERT_THAT(attachment_payload_map.at(text1_.id()).payload_id.has_value(),
-              IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(text1_.id()).payload_id.value(),
-              Eq(payloads[0].id));
+  EXPECT_THAT(attachment_payload_map.at(text1_.id()), Eq(payloads[0].id));
   ASSERT_THAT(attachment_payload_map.contains(text2_.id()), IsTrue());
-  ASSERT_THAT(attachment_payload_map.at(text2_.id()).payload_id.has_value(),
-              IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(text2_.id()).payload_id.value(),
-              Eq(payloads[1].id));
+  EXPECT_THAT(attachment_payload_map.at(text2_.id()), Eq(payloads[1].id));
 }
 
 TEST_F(OutgoingShareTargetInfoTest, CreateFilePayloadsWithNoFileAttachments) {
@@ -157,8 +151,8 @@ TEST_F(OutgoingShareTargetInfoTest, CreateFilePayloadsWithWrongFileInfo) {
 TEST_F(OutgoingShareTargetInfoTest, CreateFilePayloads) {
   std::vector<NearbyFileHandler::FileInfo> file_infos;
   file_infos.push_back({
-    .size = 12355L,
-    .file_path = file1_.file_path().value(),
+      .size = 12355L,
+      .file_path = file1_.file_path().value(),
   });
   info_.CreateFilePayloads(file_infos);
   const std::vector<Payload>& payloads = info_.file_payloads();
@@ -174,10 +168,7 @@ TEST_F(OutgoingShareTargetInfoTest, CreateFilePayloads) {
 
   EXPECT_THAT(attachment_payload_map, SizeIs(1));
   ASSERT_THAT(attachment_payload_map.contains(file1_.id()), IsTrue());
-  ASSERT_THAT(attachment_payload_map.at(file1_.id()).payload_id.has_value(),
-              IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(file1_.id()).payload_id.value(),
-              Eq(payloads[0].id));
+  EXPECT_THAT(attachment_payload_map.at(file1_.id()), Eq(payloads[0].id));
 
   EXPECT_THAT(info_.attachment_container().GetFileAttachments()[0].size(),
               Eq(12355L));
@@ -210,10 +201,7 @@ TEST_F(OutgoingShareTargetInfoTest, CreateWifiCredentialsPayloads) {
 
   ASSERT_THAT(attachment_payload_map, SizeIs(1));
   ASSERT_THAT(attachment_payload_map.contains(wifi1_.id()), IsTrue());
-  ASSERT_THAT(attachment_payload_map.at(wifi1_.id()).payload_id.has_value(),
-              IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(wifi1_.id()).payload_id.value(),
-              Eq(payloads[0].id));
+  EXPECT_THAT(attachment_payload_map.at(wifi1_.id()), Eq(payloads[0].id));
 }
 
 TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameWithoutPayloads) {
@@ -223,8 +211,8 @@ TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameWithoutPayloads) {
 TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameSuccess) {
   std::vector<NearbyFileHandler::FileInfo> file_infos;
   file_infos.push_back({
-    .size = 12355L,
-    .file_path = file1_.file_path().value(),
+      .size = 12355L,
+      .file_path = file1_.file_path().value(),
   });
   info_.CreateFilePayloads(file_infos);
   info_.CreateTextPayloads();

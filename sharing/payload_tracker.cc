@@ -26,7 +26,6 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "sharing/attachment_container.h"
-#include "sharing/attachment_info.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/context.h"
@@ -43,7 +42,7 @@ namespace sharing {
 PayloadTracker::PayloadTracker(
     Context* context, int64_t share_target_id,
     const AttachmentContainer& container,
-    const absl::flat_hash_map<int64_t, AttachmentInfo>& attachment_info_map,
+    const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map,
     std::function<void(int64_t, TransferMetadata)> update_callback)
     : context_(context),
       share_target_id_(share_target_id),
@@ -52,8 +51,8 @@ PayloadTracker::PayloadTracker(
   confirmed_transfer_size_ = 0;
 
   for (const auto& file : container.GetFileAttachments()) {
-    auto it = attachment_info_map.find(file.id());
-    if (it == attachment_info_map.end() || !it->second.payload_id) {
+    auto it = attachment_payload_map.find(file.id());
+    if (it == attachment_payload_map.end()) {
       NL_LOG(WARNING)
           << __func__
           << ": Failed to retrieve payload for file attachment id - "
@@ -61,15 +60,14 @@ PayloadTracker::PayloadTracker(
       continue;
     }
 
-    payload_state_.emplace(*it->second.payload_id,
-                           State(file.id(), file.size()));
+    payload_state_.emplace(it->second, State(file.id(), file.size()));
     ++num_file_attachments_;
     total_transfer_size_ += file.size();
   }
 
   for (const auto& text : container.GetTextAttachments()) {
-    auto it = attachment_info_map.find(text.id());
-    if (it == attachment_info_map.end() || !it->second.payload_id) {
+    auto it = attachment_payload_map.find(text.id());
+    if (it == attachment_payload_map.end()) {
       NL_LOG(WARNING)
           << __func__
           << ": Failed to retrieve payload for text attachment id - "
@@ -77,16 +75,15 @@ PayloadTracker::PayloadTracker(
       continue;
     }
 
-    payload_state_.emplace(*it->second.payload_id,
-                           State(text.id(), text.size()));
+    payload_state_.emplace(it->second, State(text.id(), text.size()));
     ++num_text_attachments_;
     total_transfer_size_ += text.size();
   }
 
   for (const auto& wifi_credentials :
        container.GetWifiCredentialsAttachments()) {
-    auto it = attachment_info_map.find(wifi_credentials.id());
-    if (it == attachment_info_map.end() || !it->second.payload_id) {
+    auto it = attachment_payload_map.find(wifi_credentials.id());
+    if (it == attachment_payload_map.end()) {
       NL_LOG(WARNING) << __func__
                       << ": Failed to retrieve payload for WiFi credentials "
                          "attachment id - "
@@ -95,8 +92,7 @@ PayloadTracker::PayloadTracker(
     }
 
     payload_state_.emplace(
-        *it->second.payload_id,
-        State(wifi_credentials.id(), wifi_credentials.size()));
+        it->second, State(wifi_credentials.id(), wifi_credentials.size()));
     ++num_wifi_credentials_attachments_;
     total_transfer_size_ += wifi_credentials.size();
   }

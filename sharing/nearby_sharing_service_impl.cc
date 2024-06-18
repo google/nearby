@@ -54,7 +54,6 @@
 #include "sharing/analytics/analytics_information.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
-#include "sharing/attachment_info.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
@@ -353,7 +352,7 @@ void NearbySharingServiceImpl::Cleanup() {
 
   last_incoming_metadata_.reset();
   last_outgoing_metadata_.reset();
-  attachment_info_map_.clear();
+  attachment_payload_map_.clear();
   locally_cancelled_share_target_ids_.clear();
 
   mutual_acceptance_timeout_alarm_->Stop();
@@ -2547,11 +2546,6 @@ void NearbySharingServiceImpl::ReceivePayloads(
           << file.id();
       continue;
     }
-
-    std::filesystem::path file_path =
-        download_path / std::filesystem::u8path(file.file_name().cbegin(),
-                                                file.file_name().cend());
-    attachment_info_map_[file.id()].file_path = std::move(file_path);
   }
   OnPayloadPathsRegistered(share_target_info, std::move(status_codes_callback));
 }
@@ -2599,7 +2593,7 @@ void NearbySharingServiceImpl::OnPayloadPathsRegistered(
   int64_t share_target_id = info.share_target().id;
   info.set_payload_tracker(std::make_shared<PayloadTracker>(
       context_, share_target_id, info.attachment_container(),
-      attachment_info_map_,
+      attachment_payload_map_,
       absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                        this)));
 
@@ -2794,7 +2788,7 @@ void NearbySharingServiceImpl::CreatePayloads(
                 return;
               }
               bool result = info->CreateFilePayloads(file_infos);
-              attachment_info_map_ = info->attachment_payload_map();
+              attachment_payload_map_ = info->attachment_payload_map();
               std::move(callback)(*info, result);
             });
       });
@@ -3378,7 +3372,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     Fail(share_target_id, *status);
     return;
   }
-  attachment_info_map_ = info->attachment_payload_map();
+  attachment_payload_map_ = info->attachment_payload_map();
 
   // Log analytics event of receiving introduction.
   analytics_recorder_->NewReceiveIntroduction(
@@ -3474,7 +3468,7 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
 
       info->set_payload_tracker(std::make_unique<PayloadTracker>(
           context_, share_target_id, info->attachment_container(),
-          attachment_info_map_,
+          attachment_payload_map_,
           absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                            this)));
 
@@ -3883,15 +3877,14 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
   AttachmentContainer& container = info->mutable_attachment_container();
   for (int i = 0; i < container.GetTextAttachments().size(); ++i) {
     TextAttachment& text = container.GetMutableTextAttachment(i);
-    AttachmentInfo& attachment_info = attachment_info_map_[text.id()];
-    std::optional<int64_t> payload_id = attachment_info.payload_id;
-    if (!payload_id) {
+    const auto it = attachment_payload_map_.find(text.id());
+    if (it == attachment_payload_map_.end()) {
       NL_LOG(WARNING) << __func__ << ": No payload id found for text - "
                       << text.id();
       return false;
     }
-    Payload* incoming_payload =
-        nearby_connections_manager_->GetIncomingPayload(*payload_id);
+    const Payload* incoming_payload =
+        nearby_connections_manager_->GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
       NL_LOG(WARNING) << __func__ << ": No payload found for text - "
                       << text.id();
@@ -3903,31 +3896,28 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
       NL_LOG(WARNING)
           << __func__
           << ": Incoming bytes is empty for text payload with payload_id - "
-          << *payload_id;
+          << it->second;
       return false;
     }
 
     std::string text_body(bytes.begin(), bytes.end());
     text.set_text_body(text_body);
-
-    attachment_info.text_body = std::move(text_body);
   }
 
   for (int i = 0; i < container.GetWifiCredentialsAttachments().size(); ++i) {
     WifiCredentialsAttachment& wifi_credentials_attachment =
         container.GetMutableWifiCredentialsAttachment(i);
-    AttachmentInfo& attachment_info =
-        attachment_info_map_[wifi_credentials_attachment.id()];
-    std::optional<int64_t> payload_id = attachment_info.payload_id;
-    if (!payload_id) {
+    const auto it =
+        attachment_payload_map_.find(wifi_credentials_attachment.id());
+    if (it == attachment_payload_map_.end()) {
       NL_LOG(WARNING) << __func__
                       << ": No payload id found for WiFi credentials - "
                       << wifi_credentials_attachment.id();
       return false;
     }
 
-    Payload* incoming_payload =
-        nearby_connections_manager_->GetIncomingPayload(*payload_id);
+    const Payload* incoming_payload =
+        nearby_connections_manager_->GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
       NL_LOG(WARNING) << __func__
                       << ": No payload found for WiFi credentials - "
@@ -3940,7 +3930,7 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
       NL_LOG(WARNING) << __func__
                       << ": Incoming bytes is empty for WiFi credentials "
                          "payload with payload_id - "
-                      << *payload_id;
+                      << it->second;
       return false;
     }
 
@@ -3950,7 +3940,7 @@ bool NearbySharingServiceImpl::OnIncomingPayloadsComplete(
       NL_LOG(WARNING) << __func__
                       << ": Incoming bytes is invalid for WiFi credentials "
                          "payload with payload_id - "
-                      << *payload_id;
+                      << it->second;
       return false;
     }
 
@@ -3969,16 +3959,15 @@ void NearbySharingServiceImpl::UpdateFilePath(
     if (file.file_path().has_value()) {
       continue;
     }
-    AttachmentInfo& attachment_info = attachment_info_map_[file.id()];
-    std::optional<int64_t> payload_id = attachment_info.payload_id;
-    if (!payload_id) {
+    const auto it = attachment_payload_map_.find(file.id());
+    if (it == attachment_payload_map_.end()) {
       NL_LOG(WARNING) << __func__ << ": No payload id found for file - "
                       << file.id();
       continue;
     }
 
-    Payload* incoming_payload =
-        nearby_connections_manager_->GetIncomingPayload(*payload_id);
+    const Payload* incoming_payload =
+        nearby_connections_manager_->GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_file()) {
       NL_LOG(WARNING) << __func__ << ": No payload found for file - "
                       << file.id();
@@ -4015,7 +4004,8 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
     auto file_path = *file.file_path();
     NL_VLOG(1) << __func__
                << ": file_path=" << GetCompatibleU8String(file_path.u8string());
-    if (attachment_info_map_.find(file.id()) == attachment_info_map_.end()) {
+    if (attachment_payload_map_.find(file.id()) ==
+        attachment_payload_map_.end()) {
       continue;
     }
     files_for_deletion.push_back(file_path);
@@ -4186,10 +4176,10 @@ void NearbySharingServiceImpl::ClearOutgoingShareTargetInfoMap() {
 
 std::optional<int64_t> NearbySharingServiceImpl::GetAttachmentPayloadId(
     int64_t attachment_id) {
-  auto it = attachment_info_map_.find(attachment_id);
-  if (it == attachment_info_map_.end()) return std::nullopt;
+  const auto it = attachment_payload_map_.find(attachment_id);
+  if (it == attachment_payload_map_.end()) return std::nullopt;
 
-  return it->second.payload_id;
+  return it->second;
 }
 
 void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
