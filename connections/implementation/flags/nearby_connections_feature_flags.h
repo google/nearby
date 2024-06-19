@@ -86,6 +86,10 @@ constexpr auto kUseMediumInConnectionInfo =
 constexpr auto kUseStableEndpointId =
     flags::Flag<bool>(kConfigPackage, "45639298", false);
 
+// When true, use the medium in connection info.
+constexpr auto kDisableBluetoothClassicScanning =
+    flags::Flag<bool>(kConfigPackage, "45639961", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
