@@ -57,5 +57,5 @@ enum DeviceVisibility {
   DEVICE_VISIBILITY_EVERYONE = 4;
   // TODO(b/251499089): Combine kAllContacts and kSelectedContacts to kContacts
   // The user is only visible to selected contacts.
-  DEVICE_VISIBILITY_SELECTED_CONTACTS = 5;
+  DEVICE_VISIBILITY_SELECTED_CONTACTS = 5 [deprecated = true];
 }

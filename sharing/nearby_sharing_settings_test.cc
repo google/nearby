@@ -68,8 +68,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
       visibility_ = static_cast<DeviceVisibility>(data.value.as_int64);
     } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
       is_onboarding_complete_ = data.value.as_bool;
-    } else if (key == prefs::kNearbySharingIsReceivingName) {
-      is_receiving_ = data.value.as_bool;
     } else if (key == prefs::kNearbySharingAllowedContactsName) {
       allowed_contacts_.clear();
       for (auto& allowed_contact : data.value.as_string_array) {
@@ -145,7 +143,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
   bool is_fast_initiation_notification_hardware_supported_
       ABSL_GUARDED_BY(mutex_) = false;
   bool is_onboarding_complete_ ABSL_GUARDED_BY(mutex_) = false;
-  bool is_receiving_ ABSL_GUARDED_BY(mutex_) = false;
   std::string device_name_ ABSL_GUARDED_BY(mutex_) = "uncalled";
   std::string custom_save_path_ ABSL_GUARDED_BY(mutex_);
   DataUsage data_usage_ ABSL_GUARDED_BY(mutex_) = DataUsage::UNKNOWN_DATA_USAGE;

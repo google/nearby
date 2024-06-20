@@ -212,7 +212,6 @@ class NearbySharingServiceImpl
   void OnVisibilityChanged(proto::DeviceVisibility visibility);
   void OnAllowedContactsChanged(absl::Span<const std::string> allowed_contacts);
   void OnIsOnboardingCompleteChanged(bool is_complete);
-  void OnIsReceivingChanged(bool is_receiving);
 
   // NearbyShareCertificateManager::Observer:
   void OnPublicCertificatesDownloaded() override;

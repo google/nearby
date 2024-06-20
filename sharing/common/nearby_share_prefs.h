@@ -63,7 +63,6 @@ ABSL_CONST_INIT extern const char kNearbySharingSchedulerUploadDeviceNameName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingSchedulerUploadLocalDeviceCertificatesName[];
 ABSL_CONST_INIT extern const char kNearbySharingUsersName[];
-ABSL_CONST_INIT extern const char kNearbySharingIsReceivingName[];
 ABSL_CONST_INIT extern const char kNearbySharingIsAnalyticsEnabledName[];
 ABSL_CONST_INIT extern const char kNearbySharingIsAllContactsEnabledName[];
 ABSL_CONST_INIT extern const char kNearbySharingAutoAppStartEnabledName[];

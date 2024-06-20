@@ -475,8 +475,6 @@ void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
     NotifyAllObservers(key, Observer::Data(GetAllowedContacts()));
   } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
     NotifyAllObservers(key, Observer::Data(IsOnboardingComplete()));
-  } else if (key == prefs::kNearbySharingIsReceivingName) {
-    NotifyAllObservers(key, Observer::Data(GetIsReceiving()));
   } else if (key == prefs::kNearbySharingCustomSavePath) {
     NotifyAllObservers(key, Observer::Data(GetCustomSavePath()));
   } else {
@@ -520,18 +518,6 @@ void NearbyShareSettings::ProcessFastInitiationNotificationParentPrefChanged(
   SetFastInitiationNotificationState(
       enabled ? FastInitiationNotificationState::ENABLED_FAST_INIT
               : FastInitiationNotificationState::DISABLED_BY_FEATURE_FAST_INIT);
-}
-
-bool NearbyShareSettings::GetIsReceiving() {
-  MutexLock lock(&mutex_);
-  return preference_manager_.GetBoolean(prefs::kNearbySharingIsReceivingName,
-                                          true);
-}
-
-void NearbyShareSettings::SetIsReceiving(bool is_receiving) const {
-  MutexLock lock(&mutex_);
-  preference_manager_.SetBoolean(prefs::kNearbySharingIsReceivingName,
-                                   is_receiving);
 }
 
 bool NearbyShareSettings::GetIsAnalyticsEnabled() {

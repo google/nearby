@@ -94,8 +94,6 @@ ABSL_CONST_INIT const char
     kNearbySharingSchedulerUploadLocalDeviceCertificatesName[] =
         "nearby_sharing.scheduler.upload_local_device_certificates";
 ABSL_CONST_INIT const char kNearbySharingUsersName[] = "nearby_sharing.users";
-ABSL_CONST_INIT const char kNearbySharingIsReceivingName[] =
-    "nearby_sharing.is_receiving";
 ABSL_CONST_INIT const char kNearbySharingIsAnalyticsEnabledName[] =
     "nearby_sharing.is_analytics_enabled";
 ABSL_CONST_INIT const char kNearbySharingIsAllContactsEnabledName[] =
@@ -117,7 +115,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
     preference_manager.SetInteger(
         kNearbySharingBackgroundFallbackVisibilityName,
         static_cast<int>(kDefaultFallbackVisibility));
-    preference_manager.SetBoolean(kNearbySharingIsReceivingName, true);
     preference_manager.SetBoolean(kNearbySharingIsAnalyticsEnabledName, false);
   }
 

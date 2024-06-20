@@ -1936,9 +1936,7 @@ TEST_F(NearbySharingServiceImplTest,
   ::nearby::AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
-  preference_manager().SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kBackground);
@@ -1961,6 +1959,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceTwiceSameCallbackKeepAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -1976,6 +1975,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceTwiceKeepAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -1992,6 +1992,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        DataUsageChangedRegisterReceiveSurfaceRestartsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   preference_manager().SetInteger(
       prefs::kNearbySharingDataUsageName,
       static_cast<int>(DataUsage::OFFLINE_DATA_USAGE));
@@ -2142,6 +2143,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        NoNetworkRegisterReceiveSurfaceIsAdvertising) {
   MockTransferUpdateCallback callback;
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
@@ -2178,6 +2180,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest, WifiRegisterReceiveSurfaceIsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2188,6 +2191,7 @@ TEST_F(NearbySharingServiceImplTest, WifiRegisterReceiveSurfaceIsAdvertising) {
 TEST_F(NearbySharingServiceImplTest,
        EthernetRegisterReceiveSurfaceIsAdvertising) {
   SetConnectionType(ConnectionType::kEthernet);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2198,6 +2202,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        ThreeGRegisterReceiveSurfaceIsAdvertising) {
   SetConnectionType(ConnectionType::k3G);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2210,6 +2215,7 @@ TEST_F(NearbySharingServiceImplTest,
        NoBluetoothWifiReceiveSurfaceIsAdvertising) {
   SetBluetoothIsPresent(false);
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2222,6 +2228,7 @@ TEST_F(NearbySharingServiceImplTest,
        NoBluetoothEthernetReceiveSurfaceIsAdvertising) {
   SetBluetoothIsPresent(false);
   SetConnectionType(ConnectionType::kEthernet);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2259,6 +2266,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        DisableFeatureReceiveSurfaceStopsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2288,6 +2296,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceNoOneVisibilityNotAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
@@ -2303,9 +2312,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceVisibilityToNoOneStopsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
   FlushTesting();
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2315,18 +2322,16 @@ TEST_F(NearbySharingServiceImplTest,
 
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_HIDDEN));
   FlushTesting();
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
   EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
 }
 
 TEST_F(NearbySharingServiceImplTest,
-       BackgroundReceiveSurfaceVisibilityToSelectedStartsAdvertising) {
+       BackgroundReceiveSurfaceVisibilityToAllContactsStartsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
   FlushTesting();
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2335,9 +2340,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
   EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
 
-  preference_manager().SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   FlushTesting();
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
 }
@@ -2400,6 +2403,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest, UnregisterReceiveSurfaceStopsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2416,6 +2420,7 @@ TEST_F(NearbySharingServiceImplTest, UnregisterReceiveSurfaceStopsAdvertising) {
 TEST_F(NearbySharingServiceImplTest,
        UnregisterReceiveSurfaceDifferentCallbackKeepAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -2454,6 +2459,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .Times(0);
 
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   SetUpForegroundReceiveSurface(callback);
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   Shutdown();
@@ -2475,6 +2481,7 @@ TEST_F(NearbySharingServiceImplTest,
                             /*expected_number_of_calls=*/1u);
 
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   NiceMock<MockTransferUpdateCallback> callback;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
@@ -3362,6 +3369,7 @@ TEST_F(NearbySharingServiceImplTest,
                             /*expected_number_of_calls=*/1u);
 
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
   NiceMock<MockTransferUpdateCallback> callback;
 
   SetUpForegroundReceiveSurface(callback);
@@ -4638,6 +4646,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest, ScreenLocksDuringAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -4945,7 +4954,6 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
   // Set visibility.
-  service_->GetSettings()->SetIsReceiving(true);
   service_->GetSettings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
 
@@ -4957,7 +4965,8 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   });
   EXPECT_TRUE(logout_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_FALSE(service_->GetSettings()->GetIsReceiving());
+  EXPECT_EQ(service_->GetSettings()->GetVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
 
   // Login user.
   absl::Notification login2_notification;
@@ -4972,7 +4981,6 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
   // Set visibility.
-  service_->GetSettings()->SetIsReceiving(true);
   service_->GetSettings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
 
@@ -4985,7 +4993,6 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   EXPECT_TRUE(
       logout2_notification.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_TRUE(service_->GetSettings()->GetIsReceiving());
   EXPECT_EQ(service_->GetSettings()->GetVisibility(),
             DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
@@ -5028,8 +5035,8 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
 
 TEST_F(NearbySharingServiceImplTest,
        IsReceivingEnabledWithRegisterReceiveSurfaceForeground) {
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
-  service_->GetSettings()->SetIsReceiving(true);
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
@@ -5040,7 +5047,6 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        IsReceivingDisabledWithRegisterReceiveSurfaceForeground) {
   MockTransferUpdateCallback callback;
-  service_->GetSettings()->SetIsReceiving(false);
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
@@ -5053,7 +5059,6 @@ TEST_F(NearbySharingServiceImplTest,
   MockTransferUpdateCallback callback;
   service_->GetSettings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
-  service_->GetSettings()->SetIsReceiving(true);
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kBackground);
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
@@ -5065,9 +5070,18 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        IsReceivingDisabledWithRegisterReceiveSurfaceBackground) {
   MockTransferUpdateCallback callback;
-  service_->GetSettings()->SetIsReceiving(false);
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kBackground);
+  EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
+  UnregisterReceiveSurface(&callback);
+}
+
+TEST_F(NearbySharingServiceImplTest, NoAdvertisingWhenHidden) {
+  MockTransferUpdateCallback callback;
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
+  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
+      &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
   UnregisterReceiveSurface(&callback);

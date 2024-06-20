@@ -1315,9 +1315,6 @@ void NearbySharingServiceImpl::OnSettingChanged(absl::string_view key,
   } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
     bool is_complete = data.value.as_bool;
     OnIsOnboardingCompleteChanged(is_complete);
-  } else if (key == prefs::kNearbySharingIsReceivingName) {
-    bool is_receiving = data.value.as_bool;
-    OnIsReceivingChanged(is_receiving);
   }
 }
 
@@ -1378,15 +1375,6 @@ void NearbySharingServiceImpl::OnIsOnboardingCompleteChanged(bool is_complete) {
   if (is_complete) {
     analytics_recorder_->NewAcceptAgreements();
   }
-}
-
-void NearbySharingServiceImpl::OnIsReceivingChanged(bool is_receiving) {
-  RunOnNearbySharingServiceThread(
-      "on_is_receiving_changed", [this, is_receiving]() {
-        NL_LOG(INFO) << __func__ << ": Nearby sharing receiving changed to "
-                     << is_receiving;
-        InvalidateSurfaceState();
-      });
 }
 
 // NearbyShareCertificateManager::Observer:
@@ -1605,10 +1593,8 @@ NearbySharingServiceImpl::GetReceiveCallbacksMapFromState(
 
 bool NearbySharingServiceImpl::IsVisibleInBackground(
     DeviceVisibility visibility) {
-  return visibility == DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS ||
-         visibility == DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS ||
-         visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE ||
-         visibility == DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE;
+  return visibility != DeviceVisibility::DEVICE_VISIBILITY_HIDDEN &&
+         visibility != DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
 }
 
 std::optional<std::vector<uint8_t>>
@@ -2062,13 +2048,6 @@ void NearbySharingServiceImpl::InvalidateReceiveSurfaceState() {
 }
 
 void NearbySharingServiceImpl::InvalidateAdvertisingState() {
-  if (!settings_->GetIsReceiving()) {
-    StopAdvertising();
-    NL_VLOG(1) << __func__
-               << ": Stopping advertising because receiving is disabled.";
-    return;
-  }
-
   // Do not advertise on lock screen unless Self Share is enabled.
   if (is_screen_locked_ &&
       !NearbyFlags::GetInstance().GetBoolFlag(
@@ -2123,13 +2102,12 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
     return;
   }
 
-  if (!IsVisibleInBackground(settings_->GetVisibility()) &&
-      foreground_receive_callbacks_map_.empty()) {
+  // We should only advertise if the user has set the visibility to something
+  // other than HIDDEN or UNSPECIFIED.
+  if (!IsVisibleInBackground(settings_->GetVisibility())) {
     StopAdvertising();
-    NL_VLOG(1)
-        << __func__
-        << ": Stopping advertising because no high power receive surface "
-           "is registered and device is visible to NO_ONE.";
+    NL_VLOG(1) << __func__
+               << ": Stopping advertising because device is visible to NO_ONE.";
     return;
   }
 
@@ -4366,11 +4344,8 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
     bool is_temporarily_visible = settings_->GetIsTemporarilyVisible();
     // When logged out the visibility can either be "everyone" or "hidden". If
     // the visibility wasn't already "always everyone", change it to "hidden".
-    if (visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE &&
-        !is_temporarily_visible) {
-      settings_->SetIsReceiving(true);
-    } else {
-      settings_->SetIsReceiving(false);
+    if (visibility != DeviceVisibility::DEVICE_VISIBILITY_EVERYONE ||
+        is_temporarily_visible) {
       settings_->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
     }
 
