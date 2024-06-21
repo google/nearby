@@ -96,9 +96,6 @@ constexpr auto kEnableSelfShareUi =
 // Enable/disable sending desktop events
 constexpr auto kEnableSendingDesktopEvents =
     flags::Flag<bool>(kConfigPackage, "45459748", false);
-// Disable/Enable tips carousel UI in Nearby Share app.
-constexpr auto kEnableTipsCarouselUi =
-    flags::Flag<bool>(kConfigPackage, "45411567", false);
 // Enable/disable optimization for transfer cancellation.
 constexpr auto kEnableTransferCancellationOptimization =
     flags::Flag<bool>(kConfigPackage, "45429881", false);
@@ -162,7 +159,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45418907, kEnableSelfShare},
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
-      {45411567, kEnableTipsCarouselUi},
       {45429881, kEnableTransferCancellationOptimization},
       {45411620, kEnableWebrtcMedium},
       {45411353, kSenderSkipsConfirmation},
