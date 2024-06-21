@@ -746,7 +746,7 @@ void NearbySharingServiceImpl::SendAttachments(
         }
         for (const FileAttachment& attachment :
              attachment_container->GetFileAttachments()) {
-          if (!attachment.file_path()) {
+          if (!attachment.file_path() || attachment.file_path()->empty()) {
             NL_LOG(WARNING) << __func__ << ": Got file attachment without path";
             std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
             return;

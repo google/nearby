@@ -3621,6 +3621,18 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendTextRemoteFailure) {
   UnregisterSendSurface(&transfer_callback);
 }
 
+TEST_F(NearbySharingServiceImplTest, SendFileWithEmptyPath) {
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  int64_t target_id =
+      DiscoverShareTarget(transfer_callback, discovery_callback);
+
+  EXPECT_EQ(SendAttachments(target_id, CreateFileAttachments({""})),
+            NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
+
+  UnregisterSendSurface(&transfer_callback);
+}
+
 TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
