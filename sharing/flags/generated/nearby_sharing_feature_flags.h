@@ -38,9 +38,6 @@ constexpr auto kDeleteUnexpectedReceivedFile =
 // Enable/disable the use of BLE as a connection medium.
 constexpr auto kEnableBleForTransfer =
     flags::Flag<bool>(kConfigPackage, "45427466", false);
-// Disable/Enable BLE v2 in Nearby Sharing SDK.
-constexpr auto kEnableBleV2 =
-    flags::Flag<bool>(kConfigPackage, "45401516", false);
 // Enable/disable certificates dump
 constexpr auto kEnableCertificatesDump =
     flags::Flag<bool>(kConfigPackage, "45409184", false);
@@ -116,7 +113,7 @@ constexpr auto kShowAdminModeWarning =
     flags::Flag<bool>(kConfigPackage, "45410558", false);
 // Show/hide auto app start setting.
 constexpr auto kShowAutoAppStartSetting =
-    flags::Flag<bool>(kConfigPackage, "45411601", false);
+    flags::Flag<bool>(kConfigPackage, "45411601", true);
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
@@ -137,7 +134,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
       {45627826, kDeleteUnexpectedReceivedFile},
       {45427466, kEnableBleForTransfer},
-      {45401516, kEnableBleV2},
       {45409184, kEnableCertificatesDump},
       {45412090, kEnableComponentsRefactor},
       {45415713, kEnableDumpingFeatureFlags},

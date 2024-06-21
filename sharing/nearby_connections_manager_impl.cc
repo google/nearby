@@ -231,42 +231,16 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
     OnBandwidthChanged(endpoint_id, medium);
   };
 
-  // Check if BLE hardware supports Extended Advertising
-  bool extended_advertising_supported =
-      context_->GetBluetoothAdapter().IsExtendedAdvertisingSupported();
-
   Uuid fast_advertisement_service_uuid;
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableBleV2)) {
-    NL_LOG(INFO) << __func__
-                 << ": Nearby Sharing flag kEnableBleV2 is enabled.";
-    // Uses fast advertisement when advertisement data size is less than
-    // kMinimumAdvertisementSize. Nearby Connections will decide whether to use
-    // GATT server with this information.
-    if (endpoint_info.size() > kMinimumAdvertisementSize) {
-      fast_advertisement_service_uuid = Uuid("");
-    } else {
-      fast_advertisement_service_uuid = Uuid(kFastAdvertisementServiceUuid);
-    }
+  NL_LOG(INFO) << __func__ << ": Nearby Sharing flag kEnableBleV2 is enabled.";
+  // Uses fast advertisement when advertisement data size is less than
+  // kMinimumAdvertisementSize. Nearby Connections will decide whether to use
+  // GATT server with this information.
+  if (endpoint_info.size() > kMinimumAdvertisementSize) {
+    fast_advertisement_service_uuid = Uuid("");
   } else {
-    NL_LOG(INFO) << __func__
-                 << ": Nearby Sharing flag kEnableBleV2 is disabled.";
-    // Only use Fast Advertisement if Extended Advertising is not supported
-    if (extended_advertising_supported) {
-      // Empty string to instruct Nearby Connection BLE not to use Fast
-      // Advertisement
-      fast_advertisement_service_uuid = Uuid("");
-    } else {
-      // Handle advertisement on device without BLE advertisement extension.
-      if (endpoint_info.size() > kMinimumAdvertisementSize) {
-        // cannot use Fast Advertisement, because the endpoint info size exceeds
-        // the limitation of Fast Advertisement.
-        fast_advertisement_service_uuid = Uuid("");
-      } else {
-        fast_advertisement_service_uuid = Uuid(kFastAdvertisementServiceUuid);
-      }
-    }
+    fast_advertisement_service_uuid = Uuid(kFastAdvertisementServiceUuid);
   }
 
   nearby_connections_service_->StartAdvertising(
