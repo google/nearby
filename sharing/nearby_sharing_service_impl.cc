@@ -297,9 +297,7 @@ void NearbySharingServiceImpl::Shutdown(
         observers_.Clear();
 
         StopAdvertising();
-        if (IsBackgroundScanningFeatureEnabled()) {
-          StopFastInitiationScanning();
-        }
+        StopFastInitiationScanning();
         StopFastInitiationAdvertising();
         StopScanning();
         nearby_connections_manager_->Shutdown();
@@ -2042,9 +2040,7 @@ void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
 
 void NearbySharingServiceImpl::InvalidateReceiveSurfaceState() {
   InvalidateAdvertisingState();
-  if (IsBackgroundScanningFeatureEnabled()) {
-    InvalidateFastInitiationScanning();
-  }
+  InvalidateFastInitiationScanning();
 }
 
 void NearbySharingServiceImpl::InvalidateAdvertisingState() {
@@ -2287,8 +2283,6 @@ void NearbySharingServiceImpl::StopAdvertisingAndInvalidateSurfaceState() {
 }
 
 void NearbySharingServiceImpl::InvalidateFastInitiationScanning() {
-  if (!IsBackgroundScanningFeatureEnabled()) return;
-
   bool is_hardware_offloading_supported =
       IsBluetoothPresent() && nearby_fast_initiation_->IsScanOffloadSupported();
 
@@ -3797,15 +3791,13 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
         info->mutable_attachment_container().ClearAttachments();
       }
 
-      if (IsBackgroundScanningFeatureEnabled()) {
-        fast_initiation_scanner_cooldown_timer_->Stop();
-        fast_initiation_scanner_cooldown_timer_->Start(
-            absl::ToInt64Milliseconds(kFastInitiationScannerCooldown), 0,
-            [this]() {
-              fast_initiation_scanner_cooldown_timer_->Stop();
-              InvalidateFastInitiationScanning();
-            });
-      }
+      fast_initiation_scanner_cooldown_timer_->Stop();
+      fast_initiation_scanner_cooldown_timer_->Start(
+          absl::ToInt64Milliseconds(kFastInitiationScannerCooldown), 0,
+          [this]() {
+            fast_initiation_scanner_cooldown_timer_->Stop();
+            InvalidateFastInitiationScanning();
+          });
     } else if (metadata.status() == TransferMetadata::Status::kCancelled) {
       NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
       if (!update_file_paths_in_progress_) {

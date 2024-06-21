@@ -394,11 +394,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         std::make_unique<FakeNearbyFastInitiation::Factory>();
     NearbyFastInitiationImpl::Factory::SetFactoryForTesting(
         nearby_fast_initiation_factory_.get());
-
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::
-            kEnableBackgroundScanning,
-        true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);
@@ -417,11 +412,6 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void TearDown() override {
     if (service_) Shutdown();
-
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::
-            kEnableBackgroundScanning,
-        true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);

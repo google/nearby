@@ -35,9 +35,6 @@ constexpr auto kDelayEndpointLossMs =
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFile =
     flags::Flag<bool>(kConfigPackage, "45627826", false);
-// Enable/disable background scanning
-constexpr auto kEnableBackgroundScanning =
-    flags::Flag<bool>(kConfigPackage, "45418904", true);
 // Enable/disable the use of BLE as a connection medium.
 constexpr auto kEnableBleForTransfer =
     flags::Flag<bool>(kConfigPackage, "45427466", false);
@@ -139,7 +136,6 @@ constexpr auto kUseGrpcClient =
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
       {45627826, kDeleteUnexpectedReceivedFile},
-      {45418904, kEnableBackgroundScanning},
       {45427466, kEnableBleForTransfer},
       {45401516, kEnableBleV2},
       {45409184, kEnableCertificatesDump},

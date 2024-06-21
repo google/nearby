@@ -51,12 +51,6 @@ constexpr int kHashModulo = 9973;
 constexpr int kHashBaseMultiplier = 31;
 }  // namespace
 
-bool IsBackgroundScanningFeatureEnabled() {
-  return NearbyFlags::GetInstance().GetBoolFlag(
-      sharing::config_package_nearby::nearby_sharing_feature::
-          kEnableBackgroundScanning);
-}
-
 std::string ReceiveSurfaceStateToString(
     NearbySharingService::ReceiveSurfaceState state) {
   switch (state) {

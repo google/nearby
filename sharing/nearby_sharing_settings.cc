@@ -456,12 +456,7 @@ void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
   MutexLock lock(&mutex_);
   if (key == prefs::kNearbySharingEnabledName) {
     NotifyAllObservers(key, Observer::Data(GetEnabled()));
-
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_sharing_feature::
-                kEnableBackgroundScanning)) {
-      ProcessFastInitiationNotificationParentPrefChanged(GetEnabled());
-    }
+    ProcessFastInitiationNotificationParentPrefChanged(GetEnabled());
   } else if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
     NotifyAllObservers(key, Observer::Data(static_cast<int64_t>(
                                 GetFastInitiationNotificationState())));

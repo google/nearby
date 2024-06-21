@@ -34,9 +34,6 @@
 namespace nearby {
 namespace sharing {
 
-// Checks whether the background scanning feature is enabled or not.
-bool IsBackgroundScanningFeatureEnabled();
-
 // Checks whether having enough disk space for required storage.
 //
 // device_info - Nearby Share DeviceInfo
