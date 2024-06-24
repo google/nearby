@@ -40,19 +40,17 @@ namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
-using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
+using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::V1Frame;
 
 constexpr absl::string_view kEndpointId = "12345";
 
-// A test class which makes ShareTargetInfo testable since the class is
-// abstract.
-class TestShareTargetInfo : public ShareTargetInfo {
+// A test class which makes ShareSession testable since the class is abstract.
+class TestShareSession : public ShareSession {
  public:
-  TestShareTargetInfo(
-      std::string endpoint_id, const ShareTarget& share_target)
-      : ShareTargetInfo(std::move(endpoint_id), share_target),
+  TestShareSession(std::string endpoint_id, const ShareTarget& share_target)
+      : ShareSession(std::move(endpoint_id), share_target),
         is_incoming_(share_target.is_incoming) {}
 
   bool IsIncoming() const override { return is_incoming_; }
@@ -68,12 +66,11 @@ class TestShareTargetInfo : public ShareTargetInfo {
   }
 
   void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id) {
-    ShareTargetInfo::SetAttachmentPayloadId(attachment_id, payload_id);
+    ShareSession::SetAttachmentPayloadId(attachment_id, payload_id);
   }
 
  protected:
-  void InvokeTransferUpdateCallback(
-      const TransferMetadata& metadata) override {
+  void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override {
     ++transfer_update_count_;
     last_transfer_metadata_ = metadata;
   }
@@ -91,68 +88,68 @@ class TestShareTargetInfo : public ShareTargetInfo {
   bool on_new_connection_result_ = true;
 };
 
-TEST(ShareTargetInfoTest, UpdateTransferMetadata) {
+TEST(ShareSessionTest, UpdateTransferMetadata) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  TestShareSession session(std::string(kEndpointId), share_target);
 
-  info.UpdateTransferMetadata(
+  session.UpdateTransferMetadata(
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
-  info.UpdateTransferMetadata(
+  session.UpdateTransferMetadata(
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
 
-  EXPECT_EQ(info.TransferUpdateCount(), 2);
+  EXPECT_EQ(session.TransferUpdateCount(), 2);
 }
 
-TEST(ShareTargetInfoTest, UpdateTransferMetadataAfterFinalStatus) {
+TEST(ShareSessionTest, UpdateTransferMetadataAfterFinalStatus) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  TestShareSession session(std::string(kEndpointId), share_target);
 
-  info.UpdateTransferMetadata(
+  session.UpdateTransferMetadata(
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kComplete)
           .build());
-  info.UpdateTransferMetadata(
+  session.UpdateTransferMetadata(
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
 
-  EXPECT_EQ(info.TransferUpdateCount(), 1);
+  EXPECT_EQ(session.TransferUpdateCount(), 1);
 }
 
-TEST(ShareTargetInfoTest, SetDisconnectStatus) {
+TEST(ShareSessionTest, SetDisconnectStatus) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  TestShareSession session(std::string(kEndpointId), share_target);
 
-  info.set_disconnect_status(TransferMetadata::Status::kCancelled);
-  EXPECT_EQ(info.disconnect_status(), TransferMetadata::Status::kCancelled);
+  session.set_disconnect_status(TransferMetadata::Status::kCancelled);
+  EXPECT_EQ(session.disconnect_status(), TransferMetadata::Status::kCancelled);
 }
 
-TEST(ShareTargetInfoTest, OnConnectedFails) {
+TEST(ShareSessionTest, OnConnectedFails) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
-  info.SetOnNewConnectionResult(false);
+  TestShareSession session(std::string(kEndpointId), share_target);
+  session.SetOnNewConnectionResult(false);
 
-  EXPECT_FALSE(info.OnConnected(absl::Now(), nullptr));
+  EXPECT_FALSE(session.OnConnected(absl::Now(), nullptr));
 }
 
-TEST(ShareTargetInfoTest, OnConnectedSucceeds) {
+TEST(ShareSessionTest, OnConnectedSucceeds) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  TestShareSession session(std::string(kEndpointId), share_target);
   FakeNearbyConnection connection;
-  info.SetOnNewConnectionResult(true);
+  session.SetOnNewConnectionResult(true);
   absl::Time connect_start_time = absl::Now();
   FakeContext context;
 
-  EXPECT_TRUE(info.OnConnected(connect_start_time, &connection));
-  EXPECT_EQ(info.connection_start_time(), connect_start_time);
-  EXPECT_EQ(info.connection(), &connection);
+  EXPECT_TRUE(session.OnConnected(connect_start_time, &connection));
+  EXPECT_EQ(session.connection_start_time(), connect_start_time);
+  EXPECT_EQ(session.connection(), &connection);
 }
 
-TEST(ShareTargetInfoTest, IncomingRunPairedKeyVerificationSuccess) {
+TEST(ShareSessionTest, IncomingRunPairedKeyVerificationSuccess) {
   FakeContext context;
   NearbySharingDecoderImpl nearby_sharing_decoder;
   FakeNearbyShareCertificateManager certificate_manager;
@@ -161,14 +158,14 @@ TEST(ShareTargetInfoTest, IncomingRunPairedKeyVerificationSuccess) {
       std::vector<uint8_t>{0, 1, 2, 3, 4, 5};
   ShareTarget share_target;
   share_target.is_incoming = true;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
-  info.SetOnNewConnectionResult(true);
+  TestShareSession session(std::string(kEndpointId), share_target);
+  session.SetOnNewConnectionResult(true);
   absl::Time connect_start_time = absl::Now();
-  EXPECT_TRUE(info.OnConnected(connect_start_time, &connection));
+  EXPECT_TRUE(session.OnConnected(connect_start_time, &connection));
   absl::Notification notification;
   PairedKeyVerificationRunner::PairedKeyVerificationResult verification_result;
 
-  info.RunPairedKeyVerification(
+  session.RunPairedKeyVerification(
       &context, &nearby_sharing_decoder, OSType::WINDOWS,
       {
           .visibility = proto::DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
@@ -193,9 +190,8 @@ TEST(ShareTargetInfoTest, IncomingRunPairedKeyVerificationSuccess) {
       ->mutable_paired_key_encryption()
       ->set_signed_data("signed_data");
   std::string in_encryption_buffer = in_encryption_frame.SerializeAsString();
-  connection.AppendReadableData(
-      std::vector<uint8_t>(in_encryption_buffer.begin(),
-                           in_encryption_buffer.end()));
+  connection.AppendReadableData(std::vector<uint8_t>(
+      in_encryption_buffer.begin(), in_encryption_buffer.end()));
   // Receive PairedKeyResultFrame from remote device.
   nearby::sharing::service::proto::Frame in_result_frame;
   in_result_frame.set_version(nearby::sharing::service::proto::Frame::V1);
@@ -220,41 +216,41 @@ TEST(ShareTargetInfoTest, IncomingRunPairedKeyVerificationSuccess) {
             PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable);
 }
 
-TEST(ShareTargetInfoTest, OnDisconnect) {
+TEST(ShareSessionTest, OnDisconnect) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
-  info.set_disconnect_status(TransferMetadata::Status::kCancelled);
-  EXPECT_EQ(info.disconnect_status(), TransferMetadata::Status::kCancelled);
+  TestShareSession session(std::string(kEndpointId), share_target);
+  session.set_disconnect_status(TransferMetadata::Status::kCancelled);
+  EXPECT_EQ(session.disconnect_status(), TransferMetadata::Status::kCancelled);
 
-  info.OnDisconnect();
+  session.OnDisconnect();
 
-  EXPECT_EQ(info.TransferUpdateCount(), 1);
-  ASSERT_TRUE(info.LastTransferMetadata().has_value());
-  EXPECT_EQ(info.LastTransferMetadata()->status(),
+  EXPECT_EQ(session.TransferUpdateCount(), 1);
+  ASSERT_TRUE(session.LastTransferMetadata().has_value());
+  EXPECT_EQ(session.LastTransferMetadata()->status(),
             TransferMetadata::Status::kCancelled);
-  EXPECT_TRUE(info.LastTransferMetadata()->is_final_status());
+  EXPECT_TRUE(session.LastTransferMetadata()->is_final_status());
 }
 
-TEST(ShareTargetInfoTest, CancelPayloads) {
+TEST(ShareSessionTest, CancelPayloads) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
-  info.SetAttachmentPayloadId(1, 2);
-  info.SetAttachmentPayloadId(3, 4);
+  TestShareSession session(std::string(kEndpointId), share_target);
+  session.SetAttachmentPayloadId(1, 2);
+  session.SetAttachmentPayloadId(3, 4);
 
   FakeNearbyConnectionsManager connections_manager;
-  info.CancelPayloads(connections_manager);
+  session.CancelPayloads(connections_manager);
 
   EXPECT_TRUE(connections_manager.WasPayloadCanceled(2));
   EXPECT_TRUE(connections_manager.WasPayloadCanceled(4));
 }
 
-TEST(ShareTargetInfoTest, WriteResponseFrame) {
+TEST(ShareSessionTest, WriteResponseFrame) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  TestShareSession session(std::string(kEndpointId), share_target);
   FakeNearbyConnection connection;
-  EXPECT_TRUE(info.OnConnected(absl::Now(), &connection));
+  EXPECT_TRUE(session.OnConnected(absl::Now(), &connection));
 
-  info.WriteResponseFrame(ConnectionResponseFrame::REJECT);
+  session.WriteResponseFrame(ConnectionResponseFrame::REJECT);
 
   std::vector<uint8_t> frame_data = connection.GetWrittenData();
   Frame frame;
@@ -265,13 +261,13 @@ TEST(ShareTargetInfoTest, WriteResponseFrame) {
             ConnectionResponseFrame::REJECT);
 }
 
-TEST(ShareTargetInfoTest, WriteCancelFrame) {
+TEST(ShareSessionTest, WriteCancelFrame) {
   ShareTarget share_target;
-  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  TestShareSession session(std::string(kEndpointId), share_target);
   FakeNearbyConnection connection;
-  EXPECT_TRUE(info.OnConnected(absl::Now(), &connection));
+  EXPECT_TRUE(session.OnConnected(absl::Now(), &connection));
 
-  info.WriteCancelFrame();
+  session.WriteCancelFrame();
 
   std::vector<uint8_t> frame_data = connection.GetWrittenData();
   Frame frame;

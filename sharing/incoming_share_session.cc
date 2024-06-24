@@ -50,34 +50,33 @@ using ::nearby::sharing::service::proto::WifiCredentials;
 
 }  // namespace
 
-IncomingShareTargetInfo::IncomingShareTargetInfo(
+IncomingShareSession::IncomingShareSession(
     std::string endpoint_id, const ShareTarget& share_target,
-    std::function<void(const IncomingShareTargetInfo&, const TransferMetadata&)>
+    std::function<void(const IncomingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareTargetInfo(std::move(endpoint_id), share_target),
+    : ShareSession(std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
-IncomingShareTargetInfo::IncomingShareTargetInfo(IncomingShareTargetInfo&&) =
+IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;
+
+IncomingShareSession& IncomingShareSession::operator=(IncomingShareSession&&) =
     default;
 
-IncomingShareTargetInfo& IncomingShareTargetInfo::operator=(
-    IncomingShareTargetInfo&&) = default;
+IncomingShareSession::~IncomingShareSession() = default;
 
-IncomingShareTargetInfo::~IncomingShareTargetInfo() = default;
-
-void IncomingShareTargetInfo::InvokeTransferUpdateCallback(
+void IncomingShareSession::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
   transfer_update_callback_(*this, metadata);
 }
 
-bool IncomingShareTargetInfo::OnNewConnection(NearbyConnection* connection) {
+bool IncomingShareSession::OnNewConnection(NearbyConnection* connection) {
   set_disconnect_status(
       TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
   return true;
 }
 
 std::optional<TransferMetadata::Status>
-IncomingShareTargetInfo::ProcessIntroduction(
+IncomingShareSession::ProcessIntroduction(
     const IntroductionFrame& introduction_frame) {
   int64_t file_size_sum = 0;
   AttachmentContainer& container = mutable_attachment_container();
@@ -149,20 +148,20 @@ IncomingShareTargetInfo::ProcessIntroduction(
   return std::nullopt;
 }
 
-void IncomingShareTargetInfo::RegisterPayloadListener(
-    Context* context,
-    NearbyConnectionsManager& connections_manager,
+void IncomingShareSession::RegisterPayloadListener(
+    Context* context, NearbyConnectionsManager& connections_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
   set_payload_tracker(std::make_shared<PayloadTracker>(
-      context, share_target().id, attachment_container(),
-      payload_map, std::move(update_callback)));
+      context, share_target().id, attachment_container(), payload_map,
+      std::move(update_callback)));
 
   // Register status listener for all payloads.
   for (auto it = payload_map.begin(); it != payload_map.end(); ++it) {
-    NL_VLOG(1) << __func__ << ": Started listening for progress on payload: "
-               << it->second << " for attachment: " << it->first;
+    NL_VLOG(1) << __func__
+               << ": Started listening for progress on payload: " << it->second
+               << " for attachment: " << it->first;
 
     connections_manager.RegisterPayloadStatusListener(it->second,
                                                       payload_tracker());
@@ -172,7 +171,7 @@ void IncomingShareTargetInfo::RegisterPayloadListener(
   }
 }
 
-bool IncomingShareTargetInfo::UpdateFilePayloadPaths(
+bool IncomingShareSession::UpdateFilePayloadPaths(
     const NearbyConnectionsManager& connections_manager) {
   AttachmentContainer& container = mutable_attachment_container();
   bool result = true;
@@ -207,7 +206,7 @@ bool IncomingShareTargetInfo::UpdateFilePayloadPaths(
   return result;
 }
 
-bool IncomingShareTargetInfo::UpdatePayloadContents(
+bool IncomingShareSession::UpdatePayloadContents(
     const NearbyConnectionsManager& connections_manager) {
   if (!UpdateFilePayloadPaths(connections_manager)) {
     return false;
@@ -291,7 +290,7 @@ bool IncomingShareTargetInfo::UpdatePayloadContents(
   return true;
 }
 
-bool IncomingShareTargetInfo::FinalizePayloads(
+bool IncomingShareSession::FinalizePayloads(
     const NearbyConnectionsManager& connections_manager) {
   if (!UpdatePayloadContents(connections_manager)) {
     mutable_attachment_container().ClearAttachments();
@@ -300,8 +299,8 @@ bool IncomingShareTargetInfo::FinalizePayloads(
   return true;
 }
 
-std::vector<std::filesystem::path>
-IncomingShareTargetInfo::GetPayloadFilePaths() const {
+std::vector<std::filesystem::path> IncomingShareSession::GetPayloadFilePaths()
+    const {
   std::vector<std::filesystem::path> file_paths;
   const AttachmentContainer& container = attachment_container();
   const absl::flat_hash_map<int64_t, int64_t>& attachment_paylod_map =

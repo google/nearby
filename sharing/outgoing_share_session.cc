@@ -47,27 +47,27 @@ using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
-OutgoingShareTargetInfo::OutgoingShareTargetInfo(
+OutgoingShareSession::OutgoingShareSession(
     std::string endpoint_id, const ShareTarget& share_target,
-    std::function<void(OutgoingShareTargetInfo&, const TransferMetadata&)>
+    std::function<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareTargetInfo(std::move(endpoint_id), share_target),
+    : ShareSession(std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
-OutgoingShareTargetInfo::OutgoingShareTargetInfo(OutgoingShareTargetInfo&&) =
+OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) =
     default;
 
-OutgoingShareTargetInfo& OutgoingShareTargetInfo::operator=(
-    OutgoingShareTargetInfo&&) = default;
+OutgoingShareSession& OutgoingShareSession::operator=(
+    OutgoingShareSession&&) = default;
 
-OutgoingShareTargetInfo::~OutgoingShareTargetInfo() = default;
+OutgoingShareSession::~OutgoingShareSession() = default;
 
-void OutgoingShareTargetInfo::InvokeTransferUpdateCallback(
+void OutgoingShareSession::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
   transfer_update_callback_(*this, metadata);
 }
 
-bool OutgoingShareTargetInfo::OnNewConnection(NearbyConnection* connection) {
+bool OutgoingShareSession::OnNewConnection(NearbyConnection* connection) {
   if (!connection) {
     NL_LOG(WARNING) << __func__
                     << ": Failed to initiate connection to share target "
@@ -85,7 +85,7 @@ bool OutgoingShareTargetInfo::OnNewConnection(NearbyConnection* connection) {
   return true;
 }
 
-std::vector<std::filesystem::path> OutgoingShareTargetInfo::GetFilePaths()
+std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths()
     const {
   std::vector<std::filesystem::path> file_paths;
   file_paths.reserve(attachment_container().GetFileAttachments().size());
@@ -98,7 +98,7 @@ std::vector<std::filesystem::path> OutgoingShareTargetInfo::GetFilePaths()
   return file_paths;
 }
 
-void OutgoingShareTargetInfo::CreateTextPayloads() {
+void OutgoingShareSession::CreateTextPayloads() {
   const std::vector<TextAttachment> attachments =
       attachment_container().GetTextAttachments();
   if (attachments.empty()) {
@@ -114,7 +114,7 @@ void OutgoingShareTargetInfo::CreateTextPayloads() {
   }
 }
 
-void OutgoingShareTargetInfo::CreateWifiCredentialsPayloads() {
+void OutgoingShareSession::CreateWifiCredentialsPayloads() {
   const std::vector<WifiCredentialsAttachment> attachments =
       attachment_container().GetWifiCredentialsAttachments();
   if (attachments.empty()) {
@@ -136,7 +136,7 @@ void OutgoingShareTargetInfo::CreateWifiCredentialsPayloads() {
   }
 }
 
-bool OutgoingShareTargetInfo::CreateFilePayloads(
+bool OutgoingShareSession::CreateFilePayloads(
     const std::vector<NearbyFileHandler::FileInfo>& files) {
   AttachmentContainer& container = mutable_attachment_container();
   if (files.size() != container.GetFileAttachments().size()) {
@@ -162,7 +162,7 @@ bool OutgoingShareTargetInfo::CreateFilePayloads(
   return true;
 }
 
-bool OutgoingShareTargetInfo::FillIntroductionFrame(
+bool OutgoingShareSession::FillIntroductionFrame(
     IntroductionFrame* introduction) const {
   const AttachmentContainer& container = attachment_container();
   if (!container.HasAttachments()) {
@@ -218,7 +218,7 @@ bool OutgoingShareTargetInfo::FillIntroductionFrame(
   return true;
 }
 
-void OutgoingShareTargetInfo::SendAllPayloads(
+void OutgoingShareSession::SendAllPayloads(
     Context* context, NearbyConnectionsManager& connection_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
@@ -234,7 +234,7 @@ void OutgoingShareTargetInfo::SendAllPayloads(
   }
 }
 
-void OutgoingShareTargetInfo::InitSendPayload(
+void OutgoingShareSession::InitSendPayload(
     Context* context, NearbyConnectionsManager& connection_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
@@ -242,7 +242,7 @@ void OutgoingShareTargetInfo::InitSendPayload(
       attachment_payload_map(), std::move(update_callback)));
 }
 
-void OutgoingShareTargetInfo::SendNextPayload(
+void OutgoingShareSession::SendNextPayload(
     NearbyConnectionsManager& connection_manager) {
   std::optional<Payload> payload = ExtractNextPayload();
   if (payload.has_value()) {
@@ -254,7 +254,7 @@ void OutgoingShareTargetInfo::SendNextPayload(
   }
 }
 
-void OutgoingShareTargetInfo::WriteProgressUpdateFrame(
+void OutgoingShareSession::WriteProgressUpdateFrame(
     std::optional<bool> start_transfer, std::optional<float> progress) {
   NL_LOG(INFO) << __func__ << ": Writing progress update frame. start_transfer="
                << (start_transfer.has_value() ? *start_transfer : false)
@@ -274,7 +274,7 @@ void OutgoingShareTargetInfo::WriteProgressUpdateFrame(
   WriteFrame(frame);
 }
 
-bool OutgoingShareTargetInfo::WriteIntroductionFrame() {
+bool OutgoingShareSession::WriteIntroductionFrame() {
   Frame frame;
   frame.set_version(Frame::V1);
   V1Frame* v1_frame = frame.mutable_v1();
@@ -289,15 +289,15 @@ bool OutgoingShareTargetInfo::WriteIntroductionFrame() {
   return true;
 }
 
-std::vector<Payload> OutgoingShareTargetInfo::ExtractTextPayloads() {
+std::vector<Payload> OutgoingShareSession::ExtractTextPayloads() {
   return std::move(text_payloads_);
 }
 
-std::vector<Payload> OutgoingShareTargetInfo::ExtractFilePayloads() {
+std::vector<Payload> OutgoingShareSession::ExtractFilePayloads() {
   return std::move(file_payloads_);
 }
 
-std::optional<Payload> OutgoingShareTargetInfo::ExtractNextPayload() {
+std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {
   if (!text_payloads_.empty()) {
     Payload payload = text_payloads_.back();
     text_payloads_.pop_back();

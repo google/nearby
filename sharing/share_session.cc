@@ -47,35 +47,34 @@ using ::nearby::sharing::service::proto::V1Frame;
 
 }  // namespace
 
-ShareTargetInfo::ShareTargetInfo(
-    std::string endpoint_id, const ShareTarget& share_target)
+ShareSession::ShareSession(std::string endpoint_id,
+                           const ShareTarget& share_target)
     : endpoint_id_(std::move(endpoint_id)),
       self_share_(share_target.for_self_share),
       share_target_(share_target) {}
 
-ShareTargetInfo::ShareTargetInfo(ShareTargetInfo&&) = default;
+ShareSession::ShareSession(ShareSession&&) = default;
 
-ShareTargetInfo& ShareTargetInfo::operator=(ShareTargetInfo&&) = default;
+ShareSession& ShareSession::operator=(ShareSession&&) = default;
 
-ShareTargetInfo::~ShareTargetInfo() = default;
+ShareSession::~ShareSession() = default;
 
-void ShareTargetInfo::UpdateTransferMetadata(
+void ShareSession::UpdateTransferMetadata(
     const TransferMetadata& transfer_metadata) {
   if (got_final_status_) {
     // If we already got a final status, we can ignore any subsequent final
     // statuses caused by race conditions.
-    NL_VLOG(1)
-        << __func__ << ": Transfer update decorator swallowed "
-        << "status update because a final status was already received: "
-        << share_target_.id << ": "
-        << TransferMetadata::StatusToString(transfer_metadata.status());
+    NL_VLOG(1) << __func__ << ": Transfer update decorator swallowed "
+               << "status update because a final status was already received: "
+               << share_target_.id << ": "
+               << TransferMetadata::StatusToString(transfer_metadata.status());
     return;
   }
   got_final_status_ = transfer_metadata.is_final_status();
   InvokeTransferUpdateCallback(transfer_metadata);
 }
 
-void ShareTargetInfo::set_disconnect_status(
+void ShareSession::set_disconnect_status(
     TransferMetadata::Status disconnect_status) {
   disconnect_status_ = disconnect_status;
   if (disconnect_status_ != TransferMetadata::Status::kUnknown &&
@@ -85,8 +84,8 @@ void ShareTargetInfo::set_disconnect_status(
   }
 }
 
-bool ShareTargetInfo::OnConnected(absl::Time connect_start_time,
-                                  NearbyConnection* connection) {
+bool ShareSession::OnConnected(absl::Time connect_start_time,
+                               NearbyConnection* connection) {
   if (!OnNewConnection(connection)) {
     return false;
   }
@@ -95,7 +94,7 @@ bool ShareTargetInfo::OnConnected(absl::Time connect_start_time,
   return true;
 }
 
-void ShareTargetInfo::RunPairedKeyVerification(
+void ShareSession::RunPairedKeyVerification(
     Context* context, NearbySharingDecoder* decoder, OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
     NearbyShareCertificateManager* certificate_manager,
@@ -123,7 +122,7 @@ void ShareTargetInfo::RunPairedKeyVerification(
   key_verification_runner_->Run(std::move(callback));
 }
 
-void ShareTargetInfo::OnDisconnect() {
+void ShareSession::OnDisconnect() {
   if (disconnect_status_ != TransferMetadata::Status::kUnknown) {
     UpdateTransferMetadata(
         TransferMetadataBuilder().set_status(disconnect_status_).build());
@@ -131,21 +130,22 @@ void ShareTargetInfo::OnDisconnect() {
   connection_ = nullptr;
 }
 
-void ShareTargetInfo::SetAttachmentPayloadId(int64_t attachment_id,
-                                             int64_t payload_id) {
+void ShareSession::SetAttachmentPayloadId(int64_t attachment_id,
+                                          int64_t payload_id) {
   attachment_payload_map_[attachment_id] = payload_id;
 }
 
-void ShareTargetInfo::CancelPayloads(
+void ShareSession::CancelPayloads(
     NearbyConnectionsManager& connections_manager) {
   for (const auto& [attachment_id, payload_id] : attachment_payload_map_) {
     connections_manager.Cancel(payload_id);
   }
 }
 
-void ShareTargetInfo::WriteFrame(const Frame& frame) {
+void ShareSession::WriteFrame(const Frame& frame) {
   if (connection_ == nullptr) {
-    NL_LOG(WARNING) << __func__ << ": Failed to write response frame, due to "
+    NL_LOG(WARNING) << __func__
+                    << ": Failed to write response frame, due to "
                        "no connection established.";
     return;
   }
@@ -155,7 +155,7 @@ void ShareTargetInfo::WriteFrame(const Frame& frame) {
   connection_->Write(std::move(data));
 }
 
-void ShareTargetInfo::WriteResponseFrame(
+void ShareSession::WriteResponseFrame(
     ConnectionResponseFrame::Status response_status) {
   Frame frame;
   frame.set_version(Frame::V1);
@@ -166,7 +166,7 @@ void ShareTargetInfo::WriteResponseFrame(
   WriteFrame(frame);
 }
 
-void ShareTargetInfo::WriteCancelFrame() {
+void ShareSession::WriteCancelFrame() {
   NL_LOG(INFO) << __func__ << ": Writing cancel frame.";
 
   Frame frame;

@@ -42,14 +42,14 @@
 
 namespace nearby::sharing {
 
-// Additional information about the connection to a remote device.
-class ShareTargetInfo {
+// Class that represents a single share session.
+// This class is thread-compatible.
+class ShareSession {
  public:
-  ShareTargetInfo(
-      std::string endpoint_id, const ShareTarget& share_target);
-  ShareTargetInfo(ShareTargetInfo&&);
-  ShareTargetInfo& operator=(ShareTargetInfo&&);
-  virtual ~ShareTargetInfo();
+  ShareSession(std::string endpoint_id, const ShareTarget& share_target);
+  ShareSession(ShareSession&&);
+  ShareSession& operator=(ShareSession&&);
+  virtual ~ShareSession();
 
   virtual bool IsIncoming() const = 0;
   std::string endpoint_id() const { return endpoint_id_; }
@@ -132,8 +132,7 @@ class ShareTargetInfo {
 
   void CancelPayloads(NearbyConnectionsManager& connections_manager);
 
-  const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map()
-      const {
+  const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map() const {
     return attachment_payload_map_;
   }
 

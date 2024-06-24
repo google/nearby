@@ -26,22 +26,23 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/proto/wire_format.pb.h"
-#include "sharing/share_target.h"
 #include "sharing/share_session.h"
+#include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby::sharing {
 
-class IncomingShareTargetInfo : public ShareTargetInfo {
+// Class that represents a single incoming share session.
+// This class is thread-compatible.
+class IncomingShareSession : public ShareSession {
  public:
-  IncomingShareTargetInfo(std::string endpoint_id,
-                          const ShareTarget& share_target,
-                          std::function<void(const IncomingShareTargetInfo&,
-                                             const TransferMetadata&)>
-                              transfer_update_callback);
-  IncomingShareTargetInfo(IncomingShareTargetInfo&&);
-  IncomingShareTargetInfo& operator=(IncomingShareTargetInfo&&);
-  ~IncomingShareTargetInfo() override;
+  IncomingShareSession(
+      std::string endpoint_id, const ShareTarget& share_target,
+      std::function<void(const IncomingShareSession&, const TransferMetadata&)>
+          transfer_update_callback);
+  IncomingShareSession(IncomingShareSession&&);
+  IncomingShareSession& operator=(IncomingShareSession&&);
+  ~IncomingShareSession() override;
 
   bool IsIncoming() const override { return true; }
 
@@ -57,8 +58,7 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
       const NearbyConnectionsManager& connections_manager);
 
   void RegisterPayloadListener(
-      Context* context,
-      NearbyConnectionsManager& connections_manager,
+      Context* context, NearbyConnectionsManager& connections_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Once transfer has completed, make payload content available in the
@@ -78,7 +78,7 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
   bool UpdatePayloadContents(
       const NearbyConnectionsManager& connections_manager);
 
-  std::function<void(const IncomingShareTargetInfo&, const TransferMetadata&)>
+  std::function<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
 };
 

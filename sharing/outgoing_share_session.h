@@ -34,17 +34,17 @@
 
 namespace nearby::sharing {
 
-// A description of the outgoing connection to a remote device.
-class OutgoingShareTargetInfo : public ShareTargetInfo {
+// Class that represents a single outgoing share session.
+// This class is thread-compatible.
+class OutgoingShareSession : public ShareSession {
  public:
-  OutgoingShareTargetInfo(std::string endpoint_id,
-                          const ShareTarget& share_target,
-                          std::function<void(OutgoingShareTargetInfo&,
-                                             const TransferMetadata&)>
-                              transfer_update_callback);
-  OutgoingShareTargetInfo(OutgoingShareTargetInfo&&);
-  OutgoingShareTargetInfo& operator=(OutgoingShareTargetInfo&&);
-  ~OutgoingShareTargetInfo() override;
+  OutgoingShareSession(
+      std::string endpoint_id, const ShareTarget& share_target,
+      std::function<void(OutgoingShareSession&, const TransferMetadata&)>
+          transfer_update_callback);
+  OutgoingShareSession(OutgoingShareSession&&);
+  OutgoingShareSession& operator=(OutgoingShareSession&&);
+  ~OutgoingShareSession() override;
 
   bool IsIncoming() const override { return false; }
 
@@ -90,8 +90,8 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
   // Create a payload status listener to send status change to
   // |update_callback|.
   void InitSendPayload(
-    Context* context, NearbyConnectionsManager& connection_manager,
-    std::function<void(int64_t, TransferMetadata)> update_callback);
+      Context* context, NearbyConnectionsManager& connection_manager,
+      std::function<void(int64_t, TransferMetadata)> update_callback);
   //  Send the next payload to NearbyConnectionManager.
   void SendNextPayload(NearbyConnectionsManager& connection_manager);
 
@@ -103,7 +103,6 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   bool OnNewConnection(NearbyConnection* connection) override;
-
 
  private:
   std::vector<Payload> ExtractTextPayloads();
@@ -119,7 +118,7 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
   std::vector<Payload> file_payloads_;
   std::vector<Payload> wifi_credentials_payloads_;
   Status connection_layer_status_;
-  std::function<void(OutgoingShareTargetInfo&, const TransferMetadata&)>
+  std::function<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
 };
 
