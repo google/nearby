@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
-#define THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
+#ifndef THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_SESSION_H_
+#define THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_SESSION_H_
 
 #include <cstdint>
 #include <filesystem>  // NOLINT
@@ -28,8 +28,8 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
+#include "sharing/share_session.h"
 #include "sharing/share_target.h"
-#include "sharing/share_target_info.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby::sharing {
@@ -125,4 +125,4 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
 
 }  // namespace nearby::sharing
 
-#endif  // THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
+#endif  // THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_SESSION_H_

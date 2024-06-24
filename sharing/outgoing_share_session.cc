@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "sharing/outgoing_share_target_info.h"
+#include "sharing/outgoing_share_session.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -34,8 +34,8 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/payload_tracker.h"
+#include "sharing/share_session.h"
 #include "sharing/share_target.h"
-#include "sharing/share_target_info.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/wifi_credentials_attachment.h"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "sharing/share_target_info.h"
+#include "sharing/share_session.h"
 
 #include <cstdint>
 #include <optional>

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_
-#define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_
+#ifndef THIRD_PARTY_NEARBY_SHARING_SHARE_SESSION_H_
+#define THIRD_PARTY_NEARBY_SHARING_SHARE_SESSION_H_
 
 #include <cstdint>
 #include <functional>
@@ -183,4 +183,4 @@ class ShareTargetInfo {
 
 }  // namespace nearby::sharing
 
-#endif  // THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_INFO_H_
+#endif  // THIRD_PARTY_NEARBY_SHARING_SHARE_SESSION_H_

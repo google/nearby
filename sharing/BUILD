@@ -168,20 +168,20 @@ cc_library(
 )
 
 cc_library(
-    name = "share_target_info",
+    name = "share_session",
     srcs = [
-        "incoming_share_target_info.cc",
+        "incoming_share_session.cc",
         "nearby_file_handler.cc",
-        "outgoing_share_target_info.cc",
+        "outgoing_share_session.cc",
         "payload_tracker.cc",
-        "share_target_info.cc",
+        "share_session.cc",
     ],
     hdrs = [
-        "incoming_share_target_info.h",
+        "incoming_share_session.h",
         "nearby_file_handler.h",
-        "outgoing_share_target_info.h",
+        "outgoing_share_session.h",
         "payload_tracker.h",
-        "share_target_info.h",
+        "share_session.h",
     ],
     deps = [
         ":attachments",
@@ -262,7 +262,7 @@ cc_library(
         ":incoming_frame_reader",
         ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
-        ":share_target_info",
+        ":share_session",
         ":transfer_metadata",
         ":types",
         "//connections:core",
@@ -502,7 +502,7 @@ cc_test(
         ":attachments",
         ":connection_types",
         ":nearby_sharing_service",
-        ":share_target_info",
+        ":share_session",
         ":test_support",
         ":transfer_metadata",
         ":types",
@@ -572,7 +572,7 @@ cc_test(
     name = "nearby_file_handler_test",
     srcs = ["nearby_file_handler_test.cc"],
     deps = [
-        ":share_target_info",
+        ":share_session",
         "//internal/base:files",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -641,7 +641,7 @@ cc_test(
     deps = [
         ":attachments",
         ":connection_types",
-        ":share_target_info",
+        ":share_session",
         ":transfer_metadata",
         ":types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
@@ -707,12 +707,12 @@ cc_test(
 )
 
 cc_test(
-    name = "share_target_info_test",
-    srcs = ["share_target_info_test.cc"],
+    name = "share_session_test",
+    srcs = ["share_session_test.cc"],
     deps = [
         ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
-        ":share_target_info",
+        ":share_session",
         ":test_support",
         ":transfer_metadata",
         ":types",
@@ -751,12 +751,12 @@ cc_test(
 )
 
 cc_test(
-    name = "outgoing_share_target_info_test",
-    srcs = ["outgoing_share_target_info_test.cc"],
+    name = "outgoing_share_session_test",
+    srcs = ["outgoing_share_session_test.cc"],
     deps = [
         ":attachments",
         ":connection_types",
-        ":share_target_info",
+        ":share_session",
         ":test_support",
         ":transfer_metadata",
         ":types",
@@ -771,13 +771,13 @@ cc_test(
 )
 
 cc_test(
-    name = "incoming_share_target_info_test",
-    srcs = ["incoming_share_target_info_test.cc"],
+    name = "incoming_share_session_test",
+    srcs = ["incoming_share_session_test.cc"],
     deps = [
         ":attachment_compare",
         ":attachments",
         ":connection_types",
-        ":share_target_info",
+        ":share_session",
         ":test_support",
         ":transfer_metadata",
         ":types",
