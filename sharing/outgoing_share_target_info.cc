@@ -27,10 +27,13 @@
 #include "absl/strings/string_view.h"
 #include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
+#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
+#include "sharing/payload_tracker.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
 #include "sharing/text_attachment.h"
@@ -38,6 +41,11 @@
 #include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby::sharing {
+
+using ::nearby::sharing::service::proto::Frame;
+using ::nearby::sharing::service::proto::IntroductionFrame;
+using ::nearby::sharing::service::proto::ProgressUpdateFrame;
+using ::nearby::sharing::service::proto::V1Frame;
 
 OutgoingShareTargetInfo::OutgoingShareTargetInfo(
     std::string endpoint_id, const ShareTarget& share_target,
@@ -154,20 +162,18 @@ bool OutgoingShareTargetInfo::CreateFilePayloads(
   return true;
 }
 
-std::unique_ptr<nearby::sharing::service::proto::IntroductionFrame>
-OutgoingShareTargetInfo::CreateIntroductionFrame() const {
+bool OutgoingShareTargetInfo::FillIntroductionFrame(
+    IntroductionFrame* introduction) const {
   const AttachmentContainer& container = attachment_container();
   if (!container.HasAttachments()) {
-    return nullptr;
+    return false;
   }
   if (file_payloads_.size() != container.GetFileAttachments().size() ||
       text_payloads_.size() != container.GetTextAttachments().size() ||
       wifi_credentials_payloads_.size() !=
           container.GetWifiCredentialsAttachments().size()) {
-    return nullptr;
+    return false;
   }
-  auto introduction =
-      std::make_unique<nearby::sharing::service::proto::IntroductionFrame>();
   // Write introduction of file payloads.
   const std::vector<FileAttachment>& file_attachments =
       container.GetFileAttachments();
@@ -209,7 +215,78 @@ OutgoingShareTargetInfo::CreateIntroductionFrame() const {
         wifi_credentials.security_type());
     wifi_credentials_metadata->set_payload_id(wifi_credentials_payloads_[i].id);
   }
-  return introduction;
+  return true;
+}
+
+void OutgoingShareTargetInfo::SendAllPayloads(
+    Context* context, NearbyConnectionsManager& connection_manager,
+    std::function<void(int64_t, TransferMetadata)> update_callback) {
+  set_payload_tracker(std::make_unique<PayloadTracker>(
+      context, share_target().id, attachment_container(),
+      attachment_payload_map(), std::move(update_callback)));
+  for (auto& payload : ExtractTextPayloads()) {
+    connection_manager.Send(endpoint_id(), std::make_unique<Payload>(payload),
+                            payload_tracker());
+  }
+  for (auto& payload : ExtractFilePayloads()) {
+    connection_manager.Send(endpoint_id(), std::make_unique<Payload>(payload),
+                            payload_tracker());
+  }
+}
+
+void OutgoingShareTargetInfo::InitSendPayload(
+    Context* context, NearbyConnectionsManager& connection_manager,
+    std::function<void(int64_t, TransferMetadata)> update_callback) {
+  set_payload_tracker(std::make_unique<PayloadTracker>(
+      context, share_target().id, attachment_container(),
+      attachment_payload_map(), std::move(update_callback)));
+}
+
+void OutgoingShareTargetInfo::SendNextPayload(
+    NearbyConnectionsManager& connection_manager) {
+  std::optional<Payload> payload = ExtractNextPayload();
+  if (payload.has_value()) {
+    NL_LOG(INFO) << __func__ << ": Send  payload " << payload->id;
+    connection_manager.Send(endpoint_id(), std::make_unique<Payload>(*payload),
+                            payload_tracker());
+  } else {
+    NL_LOG(WARNING) << __func__ << ": There is no paylaods to send.";
+  }
+}
+
+void OutgoingShareTargetInfo::WriteProgressUpdateFrame(
+    std::optional<bool> start_transfer, std::optional<float> progress) {
+  NL_LOG(INFO) << __func__ << ": Writing progress update frame. start_transfer="
+               << (start_transfer.has_value() ? *start_transfer : false)
+               << ", progress=" << (progress.has_value() ? *progress : 0.0);
+  Frame frame;
+  frame.set_version(Frame::V1);
+  V1Frame* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::PROGRESS_UPDATE);
+  ProgressUpdateFrame* progress_frame = v1_frame->mutable_progress_update();
+  if (start_transfer.has_value()) {
+    progress_frame->set_start_transfer(*start_transfer);
+  }
+  if (progress.has_value()) {
+    progress_frame->set_progress(*progress);
+  }
+
+  WriteFrame(frame);
+}
+
+bool OutgoingShareTargetInfo::WriteIntroductionFrame() {
+  Frame frame;
+  frame.set_version(Frame::V1);
+  V1Frame* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::INTRODUCTION);
+  IntroductionFrame* introduction_frame = v1_frame->mutable_introduction();
+  introduction_frame->set_start_transfer(true);
+  if (!FillIntroductionFrame(introduction_frame)) {
+    return false;
+  }
+
+  WriteFrame(frame);
+  return true;
 }
 
 std::vector<Payload> OutgoingShareTargetInfo::ExtractTextPayloads() {

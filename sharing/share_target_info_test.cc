@@ -27,6 +27,7 @@
 #include "absl/time/time.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/fake_nearby_connection.h"
+#include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
@@ -39,6 +40,9 @@ namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
+using ::nearby::sharing::service::proto::Frame;
+using ::nearby::sharing::service::proto::ConnectionResponseFrame;
+using ::nearby::sharing::service::proto::V1Frame;
 
 constexpr absl::string_view kEndpointId = "12345";
 
@@ -61,6 +65,10 @@ class TestShareTargetInfo : public ShareTargetInfo {
 
   void SetOnNewConnectionResult(bool result) {
     on_new_connection_result_ = result;
+  }
+
+  void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id) {
+    ShareTargetInfo::SetAttachmentPayloadId(attachment_id, payload_id);
   }
 
  protected:
@@ -225,6 +233,51 @@ TEST(ShareTargetInfoTest, OnDisconnect) {
   EXPECT_EQ(info.LastTransferMetadata()->status(),
             TransferMetadata::Status::kCancelled);
   EXPECT_TRUE(info.LastTransferMetadata()->is_final_status());
+}
+
+TEST(ShareTargetInfoTest, CancelPayloads) {
+  ShareTarget share_target;
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  info.SetAttachmentPayloadId(1, 2);
+  info.SetAttachmentPayloadId(3, 4);
+
+  FakeNearbyConnectionsManager connections_manager;
+  info.CancelPayloads(connections_manager);
+
+  EXPECT_TRUE(connections_manager.WasPayloadCanceled(2));
+  EXPECT_TRUE(connections_manager.WasPayloadCanceled(4));
+}
+
+TEST(ShareTargetInfoTest, WriteResponseFrame) {
+  ShareTarget share_target;
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  FakeNearbyConnection connection;
+  EXPECT_TRUE(info.OnConnected(absl::Now(), &connection));
+
+  info.WriteResponseFrame(ConnectionResponseFrame::REJECT);
+
+  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  Frame frame;
+  ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
+  ASSERT_EQ(frame.version(), Frame::V1);
+  ASSERT_EQ(frame.v1().type(), V1Frame::RESPONSE);
+  EXPECT_EQ(frame.v1().connection_response().status(),
+            ConnectionResponseFrame::REJECT);
+}
+
+TEST(ShareTargetInfoTest, WriteCancelFrame) {
+  ShareTarget share_target;
+  TestShareTargetInfo info(std::string(kEndpointId), share_target);
+  FakeNearbyConnection connection;
+  EXPECT_TRUE(info.OnConnected(absl::Now(), &connection));
+
+  info.WriteCancelFrame();
+
+  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  Frame frame;
+  ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
+  ASSERT_EQ(frame.version(), Frame::V1);
+  EXPECT_EQ(frame.v1().type(), V1Frame::CANCEL);
 }
 
 }  // namespace

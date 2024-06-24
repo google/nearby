@@ -192,19 +192,6 @@ TEST_F(AttachmentContainerTest, Clear) {
   EXPECT_THAT(container.HasAttachments(), IsFalse());
 }
 
-TEST_F(AttachmentContainerTest, GetAttachmentIds) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{wifi1_});
-
-  std::vector<int64_t> attachment_ids = container.GetAttachmentIds();
-
-  EXPECT_THAT(attachment_ids, SizeIs(4));
-  EXPECT_THAT(attachment_ids,
-              UnorderedElementsAre(text1_.id(), text2_.id(), file1_.id(),
-                                   wifi1_.id()));
-}
-
 TEST_F(AttachmentContainerTest, GetStorageSize) {
   AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
                                 std::vector<FileAttachment>{file1_},

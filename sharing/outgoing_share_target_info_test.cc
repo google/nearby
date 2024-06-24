@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,8 +25,13 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "sharing/attachment_container.h"
+#include "sharing/fake_nearby_connection.h"
+#include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
+#include "sharing/internal/test/fake_context.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -36,13 +42,19 @@
 
 namespace nearby::sharing {
 namespace {
+using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
+using ::nearby::sharing::service::proto::ProgressUpdateFrame;
+using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::testing::Eq;
+using ::testing::Invoke;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
+using ::testing::MockFunction;
 using ::testing::SizeIs;
+using ::testing::_;
 
 constexpr absl::string_view kEndpointId = "ABCD";
 
@@ -204,11 +216,13 @@ TEST_F(OutgoingShareTargetInfoTest, CreateWifiCredentialsPayloads) {
   EXPECT_THAT(attachment_payload_map.at(wifi1_.id()), Eq(payloads[0].id));
 }
 
-TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameWithoutPayloads) {
-  EXPECT_THAT(info_.CreateIntroductionFrame(), Eq(nullptr));
+TEST_F(OutgoingShareTargetInfoTest, WriteIntroductionFrameWithoutPayloads) {
+  EXPECT_THAT(info_.WriteIntroductionFrame(), IsFalse());
 }
 
-TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameSuccess) {
+TEST_F(OutgoingShareTargetInfoTest, WriteIntroductionFrameSuccess) {
+  FakeNearbyConnection connection;
+  info_.OnConnected(absl::Now(), &connection);
   std::vector<NearbyFileHandler::FileInfo> file_infos;
   file_infos.push_back({
       .size = 12355L,
@@ -217,40 +231,187 @@ TEST_F(OutgoingShareTargetInfoTest, CreateIntroductionFrameSuccess) {
   info_.CreateFilePayloads(file_infos);
   info_.CreateTextPayloads();
   info_.CreateWifiCredentialsPayloads();
-  std::unique_ptr<IntroductionFrame> frame = info_.CreateIntroductionFrame();
 
+  EXPECT_THAT(info_.WriteIntroductionFrame(), IsTrue());
+
+  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  ASSERT_THAT(frame.version(), Eq(Frame::V1));
+  ASSERT_THAT(frame.v1().type(), Eq(V1Frame::INTRODUCTION));
+  const IntroductionFrame& intro_frame = frame.v1().introduction();
+  EXPECT_THAT(intro_frame.start_transfer(), IsTrue());
   const std::vector<Payload>& text_payloads = info_.text_payloads();
-  ASSERT_THAT(frame->text_metadata_size(), Eq(2));
-  EXPECT_THAT(frame->text_metadata(0).id(), Eq(text1_.id()));
-  EXPECT_THAT(frame->text_metadata(0).text_title(), Eq(text1_.text_title()));
-  EXPECT_THAT(frame->text_metadata(0).type(), Eq(text1_.type()));
-  EXPECT_THAT(frame->text_metadata(0).size(), Eq(text1_.size()));
-  EXPECT_THAT(frame->text_metadata(0).payload_id(), Eq(text_payloads[0].id));
+  ASSERT_THAT(intro_frame.text_metadata_size(), Eq(2));
+  EXPECT_THAT(intro_frame.text_metadata(0).id(), Eq(text1_.id()));
+  EXPECT_THAT(intro_frame.text_metadata(0).text_title(),
+              Eq(text1_.text_title()));
+  EXPECT_THAT(intro_frame.text_metadata(0).type(), Eq(text1_.type()));
+  EXPECT_THAT(intro_frame.text_metadata(0).size(), Eq(text1_.size()));
+  EXPECT_THAT(intro_frame.text_metadata(0).payload_id(),
+              Eq(text_payloads[0].id));
 
-  EXPECT_THAT(frame->text_metadata(1).id(), Eq(text2_.id()));
-  EXPECT_THAT(frame->text_metadata(1).text_title(), Eq(text2_.text_title()));
-  EXPECT_THAT(frame->text_metadata(1).type(), Eq(text2_.type()));
-  EXPECT_THAT(frame->text_metadata(1).size(), Eq(text2_.size()));
-  EXPECT_THAT(frame->text_metadata(1).payload_id(), Eq(text_payloads[1].id));
+  EXPECT_THAT(intro_frame.text_metadata(1).id(), Eq(text2_.id()));
+  EXPECT_THAT(intro_frame.text_metadata(1).text_title(),
+              Eq(text2_.text_title()));
+  EXPECT_THAT(intro_frame.text_metadata(1).type(), Eq(text2_.type()));
+  EXPECT_THAT(intro_frame.text_metadata(1).size(), Eq(text2_.size()));
+  EXPECT_THAT(intro_frame.text_metadata(1).payload_id(),
+              Eq(text_payloads[1].id));
 
   const std::vector<Payload>& file_payloads = info_.file_payloads();
-  ASSERT_THAT(frame->file_metadata_size(), Eq(1));
-  EXPECT_THAT(frame->file_metadata(0).id(), Eq(file1_.id()));
+  ASSERT_THAT(intro_frame.file_metadata_size(), Eq(1));
+  EXPECT_THAT(intro_frame.file_metadata(0).id(), Eq(file1_.id()));
   // File attachment size has been updated by CreateFilePayloads().
-  EXPECT_THAT(frame->file_metadata(0).size(), Eq(file_infos[0].size));
-  EXPECT_THAT(frame->file_metadata(0).name(), Eq(file1_.file_name()));
-  EXPECT_THAT(frame->file_metadata(0).payload_id(), Eq(file_payloads[0].id));
-  EXPECT_THAT(frame->file_metadata(0).type(), Eq(file1_.type()));
-  EXPECT_THAT(frame->file_metadata(0).mime_type(), Eq(file1_.mime_type()));
+  EXPECT_THAT(intro_frame.file_metadata(0).size(), Eq(file_infos[0].size));
+  EXPECT_THAT(intro_frame.file_metadata(0).name(), Eq(file1_.file_name()));
+  EXPECT_THAT(intro_frame.file_metadata(0).payload_id(),
+              Eq(file_payloads[0].id));
+  EXPECT_THAT(intro_frame.file_metadata(0).type(), Eq(file1_.type()));
+  EXPECT_THAT(intro_frame.file_metadata(0).mime_type(), Eq(file1_.mime_type()));
 
   const std::vector<Payload>& wifi_payloads = info_.wifi_credentials_payloads();
-  ASSERT_THAT(frame->wifi_credentials_metadata_size(), Eq(1));
-  EXPECT_THAT(frame->wifi_credentials_metadata(0).id(), Eq(wifi1_.id()));
-  EXPECT_THAT(frame->wifi_credentials_metadata(0).ssid(), Eq(wifi1_.ssid()));
-  EXPECT_THAT(frame->wifi_credentials_metadata(0).security_type(),
+  ASSERT_THAT(intro_frame.wifi_credentials_metadata_size(), Eq(1));
+  EXPECT_THAT(intro_frame.wifi_credentials_metadata(0).id(), Eq(wifi1_.id()));
+  EXPECT_THAT(intro_frame.wifi_credentials_metadata(0).ssid(),
+              Eq(wifi1_.ssid()));
+  EXPECT_THAT(intro_frame.wifi_credentials_metadata(0).security_type(),
               Eq(wifi1_.security_type()));
-  EXPECT_THAT(frame->wifi_credentials_metadata(0).payload_id(),
+  EXPECT_THAT(intro_frame.wifi_credentials_metadata(0).payload_id(),
               Eq(wifi_payloads[0].id));
+}
+
+TEST_F(OutgoingShareTargetInfoTest, SendAllPayloads) {
+  std::vector<NearbyFileHandler::FileInfo> file_infos;
+  file_infos.push_back({
+      .size = 12355L,
+      .file_path = file1_.file_path().value(),
+  });
+  info_.CreateFilePayloads(file_infos);
+  info_.CreateTextPayloads();
+  info_.CreateWifiCredentialsPayloads();
+  MockFunction<void(int64_t, TransferMetadata)> transfer_metadata_callback;
+  MockFunction<void(
+      std::unique_ptr<Payload>,
+      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>
+      send_payload_callback;
+  FakeNearbyConnectionsManager connections_manager;
+  FakeContext context;
+  connections_manager.set_send_payload_callback(
+      send_payload_callback.AsStdFunction());
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(Invoke(
+          [this](std::unique_ptr<Payload> payload,
+             std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = info_.attachment_payload_map().at(file1_.id());
+          }))
+      .WillOnce(Invoke(
+          [this](std::unique_ptr<Payload> payload,
+             std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = info_.attachment_payload_map().at(text1_.id());
+          }))
+      .WillOnce(Invoke(
+          [this](std::unique_ptr<Payload> payload,
+             std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = info_.attachment_payload_map().at(text2_.id());
+          }));
+
+  info_.SendAllPayloads(&context, connections_manager,
+                        transfer_metadata_callback.AsStdFunction());
+
+  auto payload_listener = info_.payload_tracker().lock();
+  EXPECT_THAT(payload_listener, IsTrue());
+}
+
+TEST_F(OutgoingShareTargetInfoTest, InitSendPayload) {
+  std::vector<NearbyFileHandler::FileInfo> file_infos;
+  file_infos.push_back({
+      .size = 12355L,
+      .file_path = file1_.file_path().value(),
+  });
+  info_.CreateFilePayloads(file_infos);
+  info_.CreateTextPayloads();
+  info_.CreateWifiCredentialsPayloads();
+  MockFunction<void(int64_t, TransferMetadata)> transfer_metadata_callback;
+  MockFunction<void(
+      std::unique_ptr<Payload>,
+      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>
+      send_payload_callback;
+  FakeNearbyConnectionsManager connections_manager;
+  FakeContext context;
+  connections_manager.set_send_payload_callback(
+      send_payload_callback.AsStdFunction());
+
+  info_.InitSendPayload(&context, connections_manager,
+                        transfer_metadata_callback.AsStdFunction());
+
+  auto payload_listener = info_.payload_tracker().lock();
+  EXPECT_THAT(payload_listener, IsTrue());
+}
+
+TEST_F(OutgoingShareTargetInfoTest, SendNextPayload) {
+  std::vector<NearbyFileHandler::FileInfo> file_infos;
+  file_infos.push_back({
+      .size = 12355L,
+      .file_path = file1_.file_path().value(),
+  });
+  info_.CreateFilePayloads(file_infos);
+  info_.CreateTextPayloads();
+  info_.CreateWifiCredentialsPayloads();
+  MockFunction<void(int64_t, TransferMetadata)> transfer_metadata_callback;
+  MockFunction<void(
+      std::unique_ptr<Payload>,
+      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>
+      send_payload_callback;
+  FakeNearbyConnectionsManager connections_manager;
+  FakeContext context;
+  connections_manager.set_send_payload_callback(
+      send_payload_callback.AsStdFunction());
+
+  info_.InitSendPayload(&context, connections_manager,
+                        transfer_metadata_callback.AsStdFunction());
+
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(Invoke(
+          [this](std::unique_ptr<Payload> payload,
+             std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = info_.attachment_payload_map().at(file1_.id());
+          }));
+  info_.SendNextPayload(connections_manager);
+
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(Invoke(
+          [this](std::unique_ptr<Payload> payload,
+             std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = info_.attachment_payload_map().at(text1_.id());
+          }));
+  info_.SendNextPayload(connections_manager);
+
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(Invoke(
+          [this](std::unique_ptr<Payload> payload,
+             std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = info_.attachment_payload_map().at(text2_.id());
+          }));
+  info_.SendNextPayload(connections_manager);
+}
+
+TEST_F(OutgoingShareTargetInfoTest, WriteInProgressUpdateFrameSuccess) {
+  FakeNearbyConnection connection;
+  info_.OnConnected(absl::Now(), &connection);
+
+  info_.WriteProgressUpdateFrame(true, 0.5);
+
+  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  ASSERT_THAT(frame.version(), Eq(Frame::V1));
+  ASSERT_THAT(frame.v1().type(), Eq(V1Frame::PROGRESS_UPDATE));
+  const ProgressUpdateFrame& progress_frame = frame.v1().progress_update();
+  EXPECT_THAT(progress_frame.start_transfer(), IsTrue());
+  EXPECT_THAT(progress_frame.progress(), Eq(0.5));
 }
 
 }  // namespace

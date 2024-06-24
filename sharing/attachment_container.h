@@ -99,9 +99,6 @@ class AttachmentContainer {
   // Delete all attachments.
   void Clear();
 
-  // Returns the list of attachment IDs of attachments in this container.
-  std::vector<int64_t> GetAttachmentIds() const;
-
  private:
   std::vector<TextAttachment> text_attachments_;
   std::vector<FileAttachment> file_attachments_;

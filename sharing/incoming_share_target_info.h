@@ -15,10 +15,16 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_TARGET_INFO_H_
 #define THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_TARGET_INFO_H_
 
+#include <cstdint>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
+
+#include "sharing/internal/public/context.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_info.h"
@@ -46,11 +52,32 @@ class IncomingShareTargetInfo : public ShareTargetInfo {
       const nearby::sharing::service::proto::IntroductionFrame&
           introduction_frame);
 
+  // Update file attachment paths with payload paths.
+  bool UpdateFilePayloadPaths(
+      const NearbyConnectionsManager& connections_manager);
+
+  void RegisterPayloadListener(
+      Context* context,
+      NearbyConnectionsManager& connections_manager,
+      std::function<void(int64_t, TransferMetadata)> update_callback);
+
+  // Once transfer has completed, make payload content available in the
+  // corresponding Attachment.
+  // Returns true if all payloads were successfully finalized.
+  bool FinalizePayloads(const NearbyConnectionsManager& connections_manager);
+
+  // Returns the file paths of all file payloads.
+  std::vector<std::filesystem::path> GetPayloadFilePaths() const;
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
+  // Copy payload contents from the NearbyConnection to the Attachment.
+  bool UpdatePayloadContents(
+      const NearbyConnectionsManager& connections_manager);
+
   std::function<void(const IncomingShareTargetInfo&, const TransferMetadata&)>
       transfer_update_callback_;
 };

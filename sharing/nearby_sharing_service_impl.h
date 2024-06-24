@@ -315,12 +315,9 @@ class NearbySharingServiceImpl
   void OnTransferStarted(bool is_incoming);
 
   void ReceivePayloads(
-      ShareTargetInfo& share_target_info,
+      IncomingShareTargetInfo& share_target_info,
       std::function<void(StatusCodes status_codes)> status_codes_callback);
   StatusCodes SendPayloads(ShareTargetInfo& info);
-  void OnPayloadPathsRegistered(
-      ShareTargetInfo& info,
-      std::function<void(StatusCodes status_codes)> status_codes_callback);
 
   void OnOutgoingConnection(absl::Time connect_start_time,
                             NearbyConnection* connection,
@@ -334,14 +331,6 @@ class NearbySharingServiceImpl
   void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
                         OutgoingShareTargetInfo& info, bool success);
 
-  void WriteResponseFrame(
-      NearbyConnection& connection,
-      nearby::sharing::service::proto::ConnectionResponseFrame::Status
-          response_status);
-  void WriteCancelFrame(NearbyConnection& connection);
-  void WriteProgressUpdateFrame(NearbyConnection& connection,
-                                std::optional<bool> start_transfer,
-                                std::optional<float> progress);
   void Fail(int64_t share_target_id, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
       absl::string_view endpoint_id,
@@ -402,7 +391,6 @@ class NearbySharingServiceImpl
 
   void OnPayloadTransferUpdate(int64_t share_target_id,
                                TransferMetadata metadata);
-  bool OnIncomingPayloadsComplete(int64_t share_target_id);
   void RemoveIncomingPayloads(const IncomingShareTargetInfo& share_target_info);
   void Disconnect(int64_t share_target_id, TransferMetadata metadata);
   void OnDisconnectingConnectionTimeout(absl::string_view endpoint_id);
@@ -418,12 +406,10 @@ class NearbySharingServiceImpl
   IncomingShareTargetInfo* GetIncomingShareTargetInfo(int64_t share_target_id);
   OutgoingShareTargetInfo* GetOutgoingShareTargetInfo(int64_t share_target_id);
 
-  NearbyConnection* GetConnection(int64_t share_target_id);
   std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
       OutgoingShareTargetInfo& info);
 
   void ClearOutgoingShareTargetInfoMap();
-  std::optional<int64_t> GetAttachmentPayloadId(int64_t attachment_id);
   void UnregisterShareTarget(int64_t share_target_id);
 
   void OnStartAdvertisingResult(bool used_device_name, Status status);
@@ -577,9 +563,6 @@ class NearbySharingServiceImpl
   // cause new download of public certificates. The purpose is to reduce the
   // unnecessary backend API call.
   absl::flat_hash_set<std::string> discovered_advertisements_retried_set_;
-
-  // A mapping of Attachment ID to payload ID .
-  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
 
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.

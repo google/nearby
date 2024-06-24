@@ -15,15 +15,17 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
 #define THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_TARGET_INFO_H_
 
+#include <cstdint>
 #include <filesystem>  // NOLINT
 #include <functional>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "sharing/internal/public/context.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/share_target.h"
@@ -79,13 +81,24 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
   bool CreateFilePayloads(
       const std::vector<NearbyFileHandler::FileInfo>& files);
 
-  std::unique_ptr<nearby::sharing::service::proto::IntroductionFrame>
-  CreateIntroductionFrame() const;
+  // Create a payload status listener to send status change to
+  // |update_callback|.  Send all payloads to NearbyConnectionManager.
+  void SendAllPayloads(
+      Context* context, NearbyConnectionsManager& connection_manager,
+      std::function<void(int64_t, TransferMetadata)> update_callback);
 
-  std::vector<Payload> ExtractTextPayloads();
-  std::vector<Payload> ExtractFilePayloads();
-  std::vector<Payload> ExtractWifiCredentialsPayloads();
-  std::optional<Payload> ExtractNextPayload();
+  // Create a payload status listener to send status change to
+  // |update_callback|.
+  void InitSendPayload(
+    Context* context, NearbyConnectionsManager& connection_manager,
+    std::function<void(int64_t, TransferMetadata)> update_callback);
+  //  Send the next payload to NearbyConnectionManager.
+  void SendNextPayload(NearbyConnectionsManager& connection_manager);
+
+  void WriteProgressUpdateFrame(std::optional<bool> start_transfer,
+                                std::optional<float> progress);
+  // Returns true if the introduction frame is written successfully.
+  bool WriteIntroductionFrame();
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
@@ -93,6 +106,13 @@ class OutgoingShareTargetInfo : public ShareTargetInfo {
 
 
  private:
+  std::vector<Payload> ExtractTextPayloads();
+  std::vector<Payload> ExtractFilePayloads();
+  std::vector<Payload> ExtractWifiCredentialsPayloads();
+  std::optional<Payload> ExtractNextPayload();
+  bool FillIntroductionFrame(
+      nearby::sharing::service::proto::IntroductionFrame* introduction) const;
+
   std::optional<std::string> obfuscated_gaia_id_;
   // All payloads are in the same order as the attachments in the share target.
   std::vector<Payload> text_payloads_;

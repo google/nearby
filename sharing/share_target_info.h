@@ -36,6 +36,7 @@
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
+#include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
@@ -63,6 +64,7 @@ class ShareTargetInfo {
   }
 
   NearbyConnection* connection() const { return connection_; }
+  bool IsConnected() const { return connection_ != nullptr; }
 
   void UpdateTransferMetadata(const TransferMetadata& transfer_metadata);
 
@@ -75,10 +77,6 @@ class ShareTargetInfo {
   std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
   payload_tracker() const {
     return payload_tracker_->GetWeakPtr();
-  }
-
-  void set_payload_tracker(std::shared_ptr<PayloadTracker> payload_tracker) {
-    payload_tracker_ = std::move(payload_tracker);
   }
 
   int64_t session_id() const { return session_id_; }
@@ -132,21 +130,33 @@ class ShareTargetInfo {
     return attachment_container_;
   }
 
-  AttachmentContainer& mutable_attachment_container() {
-    return attachment_container_;
-  }
+  void CancelPayloads(NearbyConnectionsManager& connections_manager);
 
   const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map()
       const {
     return attachment_payload_map_;
   }
 
- protected:
-  void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id);
+  void WriteResponseFrame(
+      nearby::sharing::service::proto::ConnectionResponseFrame::Status
+          response_status);
+  void WriteCancelFrame();
 
+ protected:
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
   virtual bool OnNewConnection(NearbyConnection* connection) = 0;
+
+  void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id);
+
+  void set_payload_tracker(std::shared_ptr<PayloadTracker> payload_tracker) {
+    payload_tracker_ = std::move(payload_tracker);
+  }
+
+  AttachmentContainer& mutable_attachment_container() {
+    return attachment_container_;
+  }
+  void WriteFrame(const nearby::sharing::service::proto::Frame& frame);
 
  private:
   std::string endpoint_id_;

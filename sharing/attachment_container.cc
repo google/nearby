@@ -83,20 +83,4 @@ void AttachmentContainer::Clear() {
   wifi_credentials_attachments_.clear();
 }
 
-std::vector<int64_t> AttachmentContainer::GetAttachmentIds() const {
-  std::vector<int64_t> attachment_ids;
-
-  attachment_ids.reserve(GetAttachmentCount());
-  for (const auto& file : file_attachments_)
-    attachment_ids.push_back(file.id());
-
-  for (const auto& text : text_attachments_)
-    attachment_ids.push_back(text.id());
-
-  for (const auto& wifi_credentials : wifi_credentials_attachments_)
-    attachment_ids.push_back(wifi_credentials.id());
-
-  return attachment_ids;
-}
-
 }  // namespace nearby::sharing

@@ -29,8 +29,10 @@
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/paired_key_verification_runner.h"
+#include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_metadata_builder.h"
@@ -39,6 +41,9 @@ namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
+using ::nearby::sharing::service::proto::ConnectionResponseFrame;
+using ::nearby::sharing::service::proto::Frame;
+using ::nearby::sharing::service::proto::V1Frame;
 
 }  // namespace
 
@@ -129,6 +134,47 @@ void ShareTargetInfo::OnDisconnect() {
 void ShareTargetInfo::SetAttachmentPayloadId(int64_t attachment_id,
                                              int64_t payload_id) {
   attachment_payload_map_[attachment_id] = payload_id;
+}
+
+void ShareTargetInfo::CancelPayloads(
+    NearbyConnectionsManager& connections_manager) {
+  for (const auto& [attachment_id, payload_id] : attachment_payload_map_) {
+    connections_manager.Cancel(payload_id);
+  }
+}
+
+void ShareTargetInfo::WriteFrame(const Frame& frame) {
+  if (connection_ == nullptr) {
+    NL_LOG(WARNING) << __func__ << ": Failed to write response frame, due to "
+                       "no connection established.";
+    return;
+  }
+  std::vector<uint8_t> data(frame.ByteSizeLong());
+  frame.SerializeToArray(data.data(), frame.ByteSizeLong());
+
+  connection_->Write(std::move(data));
+}
+
+void ShareTargetInfo::WriteResponseFrame(
+    ConnectionResponseFrame::Status response_status) {
+  Frame frame;
+  frame.set_version(Frame::V1);
+  V1Frame* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::RESPONSE);
+  v1_frame->mutable_connection_response()->set_status(response_status);
+
+  WriteFrame(frame);
+}
+
+void ShareTargetInfo::WriteCancelFrame() {
+  NL_LOG(INFO) << __func__ << ": Writing cancel frame.";
+
+  Frame frame;
+  frame.set_version(Frame::V1);
+  V1Frame* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::CANCEL);
+
+  WriteFrame(frame);
 }
 
 }  // namespace nearby::sharing

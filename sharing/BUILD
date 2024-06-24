@@ -199,7 +199,6 @@ cc_library(
         "//sharing/internal/public:types",
         "//sharing/proto:wire_format_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
@@ -758,12 +757,15 @@ cc_test(
         ":attachments",
         ":connection_types",
         ":share_target_info",
+        ":test_support",
         ":transfer_metadata",
         ":types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//sharing/internal/test:nearby_test",
         "//sharing/proto:wire_format_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -774,11 +776,14 @@ cc_test(
     deps = [
         ":attachment_compare",
         ":attachments",
+        ":connection_types",
         ":share_target_info",
+        ":test_support",
         ":transfer_metadata",
         ":types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//sharing/internal/public:logging",
+        "//sharing/internal/test:nearby_test",
         "//sharing/proto:wire_format_cc_proto",
         "//third_party/protobuf",
         "@com_github_protobuf_matchers//protobuf-matchers",
