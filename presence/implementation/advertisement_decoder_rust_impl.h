@@ -29,13 +29,19 @@ namespace presence {
 // Implements the Rust backed parsing and decrypting of advertisement bytes
 class AdvertisementDecoderImpl : public AdvertisementDecoder {
  public:
-  AdvertisementDecoderImpl() : cred_book_(InitializeCredentialBook(nullptr)) {}
+  AdvertisementDecoderImpl()
+      : cred_book_(InitializeCredentialBook(nullptr)),
+        private_credentials_(
+            std::vector<::nearby::internal::SharedCredential>()) {}
 
   explicit AdvertisementDecoderImpl(
       absl::flat_hash_map<nearby::internal::IdentityType,
                           std::vector<internal::SharedCredential>>*
           credentials_map)
-      : cred_book_(InitializeCredentialBook(credentials_map)) {}
+      : cred_book_(InitializeCredentialBook(credentials_map)),
+        private_credentials_(
+            (*credentials_map)
+                [internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP]) {}
 
   absl::StatusOr<Advertisement> DecodeAdvertisement(
       absl::string_view advertisement) override;
@@ -46,6 +52,7 @@ class AdvertisementDecoderImpl : public AdvertisementDecoder {
                           std::vector<::nearby::internal::SharedCredential>>*
           credentials_map);
   nearby_protocol::CredentialBook cred_book_;
+  std::vector<::nearby::internal::SharedCredential> private_credentials_;
 };
 
 }  // namespace presence

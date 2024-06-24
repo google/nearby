@@ -92,8 +92,22 @@ internal::IdentityType GetIdentityType(
   }
 }
 
+absl::StatusOr<::nearby::internal::SharedCredential> FindById(
+    std::vector<::nearby::internal::SharedCredential> private_credentials,
+    uint64_t id) {
+  auto cred =
+      std::find_if(private_credentials.begin(), private_credentials.end(),
+                   [&id](const auto& x) { return x.id() == id; });
+  if (cred == private_credentials.end()) {
+    return absl::NotFoundError("No credential found with id: " +
+                               std::to_string(id));
+  }
+  return *cred;
+}
+
 absl::Status ProcessLegibleV0Adv(
     nearby_protocol::LegibleDeserializedV0Advertisement legible_adv,
+    std::vector<::nearby::internal::SharedCredential> private_credentials,
     Advertisement& advertisement) {
   advertisement.identity_type = GetIdentityType(legible_adv.GetIdentityKind());
 
@@ -108,6 +122,10 @@ absl::Status ProcessLegibleV0Adv(
     if (!cred_details.ok()) {
       return cred_details.status();
     }
+
+    advertisement.public_credential =
+        FindById(private_credentials, cred_details->cred_id);
+
     // TODO(b/333126765): update salt to use unsigned char * to remove cast
     std::string salt(reinterpret_cast<char const*>(cred_details->salt), 2);
     advertisement.data_elements.push_back(DataElement(0x00, salt));
@@ -128,10 +146,13 @@ absl::Status ProcessLegibleV0Adv(
 }
 
 absl::Status ProcessV0Advertisement(
-    nearby_protocol::DeserializedV0Advertisement result, Advertisement& adv) {
+    nearby_protocol::DeserializedV0Advertisement result,
+    std::vector<::nearby::internal::SharedCredential> private_credentials,
+    Advertisement& adv) {
   switch (result.GetKind()) {
     case nearby_protocol::DeserializedV0AdvertisementKind::Legible:
-      return ProcessLegibleV0Adv(result.IntoLegible(), adv);
+      return ProcessLegibleV0Adv(result.IntoLegible(), private_credentials,
+                                 adv);
       break;
     case nearby_protocol::DeserializedV0AdvertisementKind::
         NoMatchingCredentials: {
@@ -167,8 +188,9 @@ absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
     }
     case np_ffi::internal::DeserializeAdvertisementResultKind::V0: {
       decoded_advertisement.version = 0;
-      auto result = ProcessV0Advertisement(deserialize_result.IntoV0(),
-                                           decoded_advertisement);
+      auto result =
+          ProcessV0Advertisement(deserialize_result.IntoV0(),
+                                 private_credentials_, decoded_advertisement);
       if (!result.ok()) {
         return result;
       }
@@ -196,7 +218,8 @@ AdvertisementDecoderImpl::InitializeCredentialBook(
     std::vector<uint8_t> metadata_bytes(
         credential.encrypted_metadata_bytes_v0().begin(),
         credential.encrypted_metadata_bytes_v0().end());
-    nearby_protocol::MatchedCredentialData matched_cred(0, metadata_bytes);
+    nearby_protocol::MatchedCredentialData matched_cred(credential.id(),
+                                                        metadata_bytes);
 
     auto key_seed = credential.key_seed();
     std::array<uint8_t, 32> key_seed_array;

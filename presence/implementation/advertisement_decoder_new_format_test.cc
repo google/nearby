@@ -89,6 +89,7 @@ TEST(AdvertisementDecoderImpl, DecodeEncryptedAdvertisement) {
   public_credential.set_key_seed(seed.AsStringView());
   public_credential.set_metadata_encryption_key_tag_v0(
       known_mac.AsStringView());
+  public_credential.set_id(12345678);
   absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>
       credentials;
   credentials[IdentityType::IDENTITY_TYPE_PRIVATE_GROUP].push_back(
@@ -98,6 +99,9 @@ TEST(AdvertisementDecoderImpl, DecodeEncryptedAdvertisement) {
   absl::StatusOr<Advertisement> result =
       decoder.DecodeAdvertisement(absl::HexStringToBytes(V0AdvEncryptedBytes));
   ASSERT_OK(result);
+  EXPECT_EQ(result->public_credential.value().id(), public_credential.id());
+  EXPECT_EQ(result->public_credential.value().key_seed(),
+            public_credential.key_seed());
   EXPECT_EQ(result->identity_type, IdentityType::IDENTITY_TYPE_PRIVATE_GROUP);
   EXPECT_EQ(result->version, 0);
   EXPECT_THAT(result->data_elements,
