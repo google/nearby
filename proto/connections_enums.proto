@@ -611,6 +611,12 @@ enum OperationResultCode {
   MEDIUM_UNAVAILABLE_STA_DISRUPTIVE_FALSE = 1539;
   // Sta connection failure due to user restriction
   MEDIUM_UNAVAILABLE_STA_USER_NOT_ALLOW = 1540;
+  // Duplicate FastAdvertisement request
+  MEDIUM_UNAVAILABLE_DUPLICATE_FAST_ADVERTISING = 1541;
+  // Wifi LAN NsdManager is unavailable
+  MEDIUM_UNAVAILABLE_NSD_NOT_AVAILABLE = 1542;
+  // Wifi LAN MDNS is unavailable
+  MEDIUM_UNAVAILABLE_MDNS_NOT_AVAILABLE = 1543;
 
   // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
   // NC already hosting a WFD group for this client (same service id)
@@ -649,6 +655,28 @@ enum OperationResultCode {
   CLIENT_UNSUPPORTED_USB_TO_BE_UPGRADE_MEDIUM = 2016;
   // Log the tie break loss symptom
   CLIENT_PROCESS_TIE_BREAK_LOSS = 2017;
+  // Duplicated requesting to start advertising
+  CLIENT_BLE_DUPLICATE_ADVERTISING = 2018;
+  // Duplicated requesting to start advertising
+  CLIENT_BLUETOOTH_DUPLICATE_ADVERTISING = 2019;
+  // Duplicated requesting to start advertising
+  CLIENT_NFC_DUPLICATE_ADVERTISING = 2020;
+  // Duplicated requesting to start advertising
+  CLIENT_WIFI_LAN_DUPLICATE_ADVERTISING = 2021;
+  // Duplicated requesting to start advertising
+  CLIENT_USB_DUPLICATE_ADVERTISING = 2022;
+  // Duplicated requesting to start discovery
+  CLIENT_BLE_DUPLICATE_DISCOVERING = 2023;
+  // Duplicated requesting to start discovery
+  CLIENT_BLUETOOTH_DUPLICATE_DISCOVERING = 2024;
+  // Duplicated requesting to start discovery
+  CLIENT_NFC_DUPLICATE_DISCOVERING = 2025;
+  // Duplicated requesting to start discovery
+  CLIENT_WIFI_LAN_DUPLICATE_DISCOVERING = 2026;
+  // Duplicated requesting to start discovery
+  CLIENT_USB_DUPLICATE_DISCOVERING = 2027;
+  // Client not allowed to advertise or discover
+  CLIENT_PERMISSION_FAILURE = 2028;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -679,6 +707,8 @@ enum OperationResultCode {
   MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL = 2512;
   // Failed to receive message
   MISCELLEANEOUS_WEB_RTC_FAILED_TO_RECEIVE_MESSAGE = 2513;
+  // Failed to change the device name for advertising
+  MISCELLEANEOUS_BLUETOOTH_CHANGE_DEVICE_NAME_FAILURE = 2514;
 
   // Section of CATEGORY_IO_ERROR, from 3000 to 3499
   // Incoming payloads failure due to file opening error
@@ -917,6 +947,40 @@ enum OperationResultCode {
   CONNECTIVITY_WIFI_HOTSPOT_SPECIFIER_FAILURE = 3580;
   // Connect to Wifi Hotspot failure
   CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE = 3581;
+  // Connect to Wifi LAN socket timeout
+  CONNECTIVITY_WIFI_LAN_SOCKET_CONNECT_TIMEOUT = 3582;
+  // IOException on bluetooth socket connection
+  CONNECTIVITY_WIFI_LAN_SOCKET_CONNECT_IO_EXCEPTION = 3583;
+  // Failed to start GATT server
+  CONNECTIVITY_BLE_START_GATT_SERVER_FAILURE = 3584;
+  // Failed to add GATT advertisement
+  CONNECTIVITY_BLE_ADD_GATT_ADVERTISEMENT_FAILURE = 3585;
+  // Failed to start BLE advertisement
+  CONNECTIVITY_BLE_START_ADVERTISING_FAILURE = 3586;
+  // Failed to start BT advertisement
+  CONNECTIVITY_BLUETOOTH_START_ADVERTISING_FAILURE = 3587;
+  // Failed to start WLAN advertisement
+  CONNECTIVITY_WIFI_LAN_START_ADVERTISING_FAILURE = 3588;
+  // Failed to start Wifi Aware advertisement
+  CONNECTIVITY_WIFI_AWARE_START_ADVERTISING_FAILURE = 3589;
+  // Failed to start Bluetooth scan
+  CONNECTIVITY_BLUETOOTH_SCAN_FAILURE = 3590;
+  // Failed to start BLE scan
+  CONNECTIVITY_BLE_SCAN_FAILURE = 3591;
+  // Failed to start MDNS scan
+  CONNECTIVITY_MDNS_SCAN_FAILURE = 3592;
+  // Failed to start NFC discovery
+  CONNECTIVITY_NFC_START_DISCOVERY_FAILURE = 3593;
+  // Failed to start WLAN discovery
+  CONNECTIVITY_WIFI_LAN_START_DISCOVERY_FAILURE = 3594;
+  // Failed to start Wifi Aware discovery
+  CONNECTIVITY_WIFI_AWARE_START_DISCOVERY_FAILURE = 3595;
+  // Failed to start UWB discovery
+  CONNECTIVITY_UWB_START_DISCOVERY_FAILURE = 3596;
+  // Failed to register MDNS listening
+  CONNECTIVITY_LAN_MDNS_REGISTER_FAILURE = 3597;
+  // Failed to change BT scan mode
+  CONNECTIVITY_BLUETOOTH_CHANGE_SCAN_MODE_FAILURE = 3598;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -1068,6 +1132,40 @@ enum OperationResultCode {
   NEARBY_ENCRYPTION_FAILURE = 4567;
   // Log the authentication failure case
   NEARBY_AUTHENTICATION_FAILURE = 4568;
+  // Failed to create multiple LAN socket
+  NEARBY_LAN_VIRTUAL_SOCKET_NULL = 4569;
+  // Failed to get new bluetooth name for advertising
+  NEARBY_BLUETOOTH_ADVERTISE_TO_BYTES_FAILURE = 4570;
+  // Failed to transform advertising info into bytes
+  NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE = 4571;
+  // Failed to transform advertising info into bytes
+  NEARBY_BLE_FAST_ADVERTISE_TO_BYTES_FAILURE = 4572;
+  // Failed to transform advertising info into bytes
+  NEARBY_NFC_ADVERTISE_TO_BYTES_FAILURE = 4573;
+  // Failed to transform advertising info into bytes
+  NEARBY_WIFI_LAN_ADVERTISE_TO_BYTES_FAILURE = 4574;
+  // Failed to transform advertising info into bytes
+  NEARBY_WIFI_AWARE_ADVERTISE_TO_BYTES_FAILURE = 4575;
+  // Failed to get new USB name for advertising
+  NEARBY_USB_ADVERTISE_TO_BYTES_FAILURE = 4576;
+  // AdvertisingPcpOptions is invalid for NFC
+  NEARBY_NFC_INVALID_PCP_OPTIONS = 4577;
+  // AdvertisingPcpOptions is invalid for Bluetooth
+  NEARBY_BLUETOOTH_INVALID_PCP_OPTIONS = 4578;
+  // AdvertisingPcpOptions is invalid for BLE
+  NEARBY_BLE_INVALID_PCP_OPTIONS = 4579;
+  // AdvertisingPcpOptions is invalid for Wifi LAN
+  NEARBY_WIFI_LAN_INVALID_PCP_OPTIONS = 4580;
+  // AdvertisingPcpOptions is invalid for Wifi Aware
+  NEARBY_WIFI_AWARE_INVALID_PCP_OPTIONS = 4581;
+  // AdvertisingPcpOptions is invalid for USB
+  NEARBY_USB_INVALID_PCP_OPTIONS = 4582;
+  // AdvertisingPcpOptions is invalid for UWB
+  NEARBY_UWB_INVALID_PCP_OPTIONS = 4583;
+  // AdvertisingPcpOptions is invalid for Web RTC
+  NEARBY_WEB_RTC_INVALID_PCP_OPTIONS = 4584;
+  // Bluetooth starts scanning without any client existed.
+  NEARBY_BLUETOOTH_NO_CLIENT_REGISTER_FOR_SCAN = 4585;
 }
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
