@@ -1219,11 +1219,6 @@ std::string NearbySharingServiceImpl::Dump() const {
   sstream << "  IsBluetoothPowered: " << IsBluetoothPowered() << std::endl;
   sstream << "  IsExtendedAdvertisingSupported: "
           << IsExtendedAdvertisingSupported() << std::endl;
-  sstream << "  UpdateTrack: "
-          << NearbyFlags::GetInstance().GetStringFlag(
-                 sharing::config_package_nearby::nearby_sharing_feature::
-                     kUpdateTrack)
-          << std::endl;
   sstream << std::noboolalpha;
   sstream << std::endl;
 

@@ -75,9 +75,6 @@ constexpr auto kEnableNearbySharing =
 // Replace std::async with platform thread
 constexpr auto kEnablePlatformThreadToNearbyClient =
     flags::Flag<bool>(kConfigPackage, "45411213", true);
-// Enable/disable QR Code UI
-constexpr auto kEnableQrCodeUi =
-    flags::Flag<bool>(kConfigPackage, "45417647", false);
 // Enable/disable retry/resume transfer for partial files.
 constexpr auto kEnableRetryResumeTransfer =
     flags::Flag<bool>(kConfigPackage, "45411589", false);
@@ -108,21 +105,12 @@ constexpr auto kSenderSkipsConfirmation =
 // Rasta metrics
 constexpr auto kShareZwiebackBtwPhenotypeAndClearcut =
     flags::Flag<bool>(kConfigPackage, "45419546", false);
-// Show Admin mode warning message in the app
-constexpr auto kShowAdminModeWarning =
-    flags::Flag<bool>(kConfigPackage, "45410558", false);
-// Show/hide auto app start setting.
-constexpr auto kShowAutoAppStartSetting =
-    flags::Flag<bool>(kConfigPackage, "45411601", true);
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
 // Suppress Fast Initiation HUN by switching from kNotify to kSilent
 constexpr auto kSuppressFastInitHun =
     flags::Flag<bool>(kConfigPackage, "45409586", true);
-// Update track
-constexpr auto kUpdateTrack =
-    flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
 // When true, we only upgrade the bandwidth after accepting a connection.
 constexpr auto kUpgradeBandwidthAfterAccept =
     flags::Flag<bool>(kConfigPackage, "45627824", false);
@@ -146,7 +134,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45418906, kEnableMediumWifiLan},
       {45418903, kEnableNearbySharing},
       {45411213, kEnablePlatformThreadToNearbyClient},
-      {45417647, kEnableQrCodeUi},
       {45411589, kEnableRetryResumeTransfer},
       {45418907, kEnableSelfShare},
       {45418908, kEnableSelfShareUi},
@@ -155,8 +142,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45411620, kEnableWebrtcMedium},
       {45411353, kSenderSkipsConfirmation},
       {45419546, kShareZwiebackBtwPhenotypeAndClearcut},
-      {45410558, kShowAdminModeWarning},
-      {45411601, kShowAutoAppStartSetting},
       {45409033, kShowAutoUpdateSetting},
       {45409586, kSuppressFastInitHun},
       {45627824, kUpgradeBandwidthAfterAccept},
@@ -178,7 +163,6 @@ inline absl::btree_map<int, const flags::Flag<double>&> GetDoubleFlags() {
 inline absl::btree_map<int, const flags::Flag<absl::string_view>&>
 GetStringFlags() {
   return {
-      {45409861, kUpdateTrack},
   };
 }
 
