@@ -24,6 +24,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
@@ -31,6 +32,7 @@
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
 #include "connections/implementation/mediums/utils.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -133,6 +135,10 @@ ByteArray GenerateRandomAdvertisementHash() {
 class DiscoveredPeripheralTrackerTest : public testing::Test {
  public:
   void SetUp() override {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDisableBluetoothClassicScanning,
+        false);
     MediumEnvironment::Instance().Start();
     adapter_peripheral_ = std::make_unique<BluetoothAdapter>();
     adapter_central_ = std::make_unique<BluetoothAdapter>();
@@ -174,6 +180,13 @@ class DiscoveredPeripheralTrackerTest : public testing::Test {
   int GetFetchAdvertisementCallbackCount() const {
     MutexLock lock(&mutex_);
     return fetch_count_;
+  }
+
+  void DisableBluetoothScanning() {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDisableBluetoothClassicScanning,
+        true);
   }
 
  protected:
@@ -241,6 +254,48 @@ TEST_F(DiscoveredPeripheralTrackerTest,
   fetch_latch.Await(kWaitDuration);
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 0);
+}
+
+TEST_F(DiscoveredPeripheralTrackerTest,
+       ReportFoundLegacyDeviceWhenFoundBleAdvertisementPeripheralDiscovered) {
+  DisableBluetoothScanning();
+  std::vector<std::string> service_ids = {std::string(kServiceIdA)};
+  ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
+      GenerateRandomAdvertisementHash(), service_ids);
+  ByteArray advertisement_bytes = CreateBleAdvertisement(
+      std::string(kServiceIdA), ByteArray(std::string(kData)),
+      ByteArray(std::string(kDeviceToken)));
+  CountDownLatch found_latch(1);
+  CountDownLatch legacy_found_latch(1);
+  CountDownLatch fetch_latch(1);
+
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {.peripheral_discovered_cb =
+           [&found_latch](
+               BleV2Peripheral peripheral, const std::string& service_id,
+               const ByteArray& advertisement_bytes, bool fast_advertisement) {
+             EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+             EXPECT_FALSE(fast_advertisement);
+             found_latch.CountDown();
+           },
+       .legacy_device_discovered_cb =
+           [&legacy_found_latch]() { legacy_found_latch.CountDown(); }},
+      {});
+
+  api::ble_v2::BleAdvertisementData advertisement_data{};
+  if (!advertisement_header_bytes.Empty()) {
+    advertisement_data.service_data.insert(
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
+  }
+
+  FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
+
+  // We should receive a client callback of a peripheral discovery.
+  fetch_latch.Await(kWaitDuration);
+  EXPECT_TRUE(legacy_found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
 }
 
 TEST_F(DiscoveredPeripheralTrackerTest,
@@ -1106,7 +1161,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
   FindAdvertisement(loss_advertisement_data,
                     {ByteArray(advertisement->ToBytes())}, fetch_latch);
 
-
   // We should receive a client callback of a lost peripheral
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
 }
@@ -1129,10 +1183,9 @@ TEST_F(DiscoveredPeripheralTrackerTest, HandleDummyAdvertisement) {
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [](BleV2Peripheral peripheral,
-                             const std::string& service_id,
-                             const ByteArray& advertisement_bytes,
-                             bool fast_advertisement) {
+              [](BleV2Peripheral peripheral, const std::string& service_id,
+                 const ByteArray& advertisement_bytes,
+                 bool fast_advertisement) {
                 FAIL() << "Should NOT report found for dummy advertisement";
               },
           .legacy_device_discovered_cb =
@@ -1166,10 +1219,9 @@ TEST_F(DiscoveredPeripheralTrackerTest, SkipDummyAdvertisement) {
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [](BleV2Peripheral peripheral,
-                             const std::string& service_id,
-                             const ByteArray& advertisement_bytes,
-                             bool fast_advertisement) {
+              [](BleV2Peripheral peripheral, const std::string& service_id,
+                 const ByteArray& advertisement_bytes,
+                 bool fast_advertisement) {
                 FAIL() << "Should NOT report found for dummy advertisement";
               },
           .legacy_device_discovered_cb =

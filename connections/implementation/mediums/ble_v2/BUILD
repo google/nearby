@@ -80,7 +80,9 @@ cc_test(
     ],
     deps = [
         ":ble_v2",
+        "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums:utils",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
