@@ -22,21 +22,16 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_connections_manager.h"
-#include "sharing/nearby_sharing_service_factory.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class NearbyConnectionsManagerFactory {
  public:
-  using LinkType = NearbySharingServiceFactory::LinkType;
-
   // Return a singleton instance of NearbyConnectionsManagerFactory.
   // |task_runner| is the thread when callbacks from NearbyConnection destined
   // for NearSharingServiec need to be scheduled.  This is usually the thread
   // that NearbySharingService is running on.
   static std::unique_ptr<NearbyConnectionsManager> CreateConnectionsManager(
-      NearbySharingServiceFactory::LinkType link_type,
       nearby::TaskRunner* connections_callback_task_runner, Context* context,
       nearby::DeviceInfo& device_info,
       nearby::analytics::EventLogger* event_logger = nullptr);
@@ -45,7 +40,6 @@ class NearbyConnectionsManagerFactory {
   NearbyConnectionsManagerFactory() = default;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_CONNECTIONS_MANAGER_FACTORY_H_

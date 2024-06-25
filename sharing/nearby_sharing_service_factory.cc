@@ -26,8 +26,7 @@
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_service_impl.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 using ::nearby::sharing::api::SharingPlatform;
 
@@ -38,7 +37,6 @@ NearbySharingServiceFactory* NearbySharingServiceFactory::GetInstance() {
 }
 
 NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
-    LinkType link_type,
     SharingPlatform& sharing_platform,
     ::nearby::analytics::EventLogger* event_logger) {
   if (nearby_sharing_service_ != nullptr) {
@@ -53,7 +51,7 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
       context_->CreateSequencedTaskRunner();
   auto nearby_connections_manager =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
-          link_type, service_thread.get(), context_.get(),
+          service_thread.get(), context_.get(),
           sharing_platform.GetDeviceInfo(), event_logger_);
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
@@ -64,5 +62,4 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
   return nearby_sharing_service_.get();
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

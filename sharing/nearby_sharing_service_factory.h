@@ -23,18 +23,14 @@
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/nearby_sharing_service.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class NearbySharingServiceFactory {
  public:
-  enum class LinkType { kStatic, kDynamic };
-
   // Return a singleton instance of NearbySharingServiceFactory.
   static NearbySharingServiceFactory* GetInstance();
 
   NearbySharingService* CreateSharingService(
-      LinkType link_type,
       nearby::sharing::api::SharingPlatform& sharing_platform,
       ::nearby::analytics::EventLogger* event_logger);
 
@@ -47,7 +43,6 @@ class NearbySharingServiceFactory {
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SERVICE_FACTORY_H_
