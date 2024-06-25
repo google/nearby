@@ -16,15 +16,16 @@
 #define PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/borrowable.h"
@@ -32,6 +33,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/uuid.h"
 #include "internal/test/fake_clock.h"
 #ifndef NO_WEBRTC
@@ -91,6 +93,8 @@ class MediumEnvironment {
     bool is_scanning;
   };
 
+  MediumEnvironment(MediumEnvironment&&) = delete;
+  MediumEnvironment& operator=(MediumEnvironment&&) = delete;
   MediumEnvironment(const MediumEnvironment&) = delete;
   MediumEnvironment& operator=(const MediumEnvironment&) = delete;
 
@@ -262,8 +266,8 @@ class MediumEnvironment {
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
 
   // Collects the status for the given BleMedium. Mainly used in unit tests
-  // to verify if the BleMedum is in expected status after opeartions.
-  absl::optional<BleV2MediumStatus> GetBleV2MediumStatus(
+  // to verify if the BleMedum is in expected status after operations.
+  std::optional<BleV2MediumStatus> GetBleV2MediumStatus(
       const api::ble_v2::BleMedium& medium);
 
   // Adds medium-related info to allow for discovery/advertising to work.
@@ -343,7 +347,7 @@ class MediumEnvironment {
 
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
-  absl::optional<FakeClock*> GetSimulatedClock();
+  std::optional<FakeClock*> GetSimulatedClock();
 
   api::ble_v2::BleMedium* FindBleV2Medium(absl::string_view address);
   api::ble_v2::BleMedium* FindBleV2Medium(uint64_t id);
@@ -387,6 +391,11 @@ class MediumEnvironment {
 
   void AddObserver(api::BluetoothClassicMedium::Observer* observer);
   void RemoveObserver(api::BluetoothClassicMedium::Observer* observer);
+
+  // Sets the availability of BLE extended advertisements. It is false by
+  // default.
+  void SetBleExtendedAdvertisementsAvailable(bool enabled);
+  bool IsBleExtendedAdvertisementsAvailable() const;
 
  private:
   struct BluetoothMediumContext {
@@ -519,6 +528,7 @@ class MediumEnvironment {
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
   std::unique_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
   ObserverList<api::BluetoothClassicMedium::Observer> observers_;
+  bool ble_extended_advertisements_available_ = false;
 };
 
 }  // namespace nearby

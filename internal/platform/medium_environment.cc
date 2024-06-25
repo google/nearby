@@ -14,27 +14,36 @@
 
 #include "internal/platform/medium_environment.h"
 
-#include <algorithm>
 #include <atomic>
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
-#include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/prng.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/uuid.h"
+#include "internal/platform/wifi_credential.h"
+#include "internal/test/fake_clock.h"
 
 namespace nearby {
 
@@ -126,8 +135,9 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
                                 name = std::move(name), enabled, mode,
                                 &latch]() {
     NEARBY_LOGS(INFO) << "[adapter=" << &adapter
-                      << ", device=" << &adapter_device << "] update: name="
-                      << ", enabled=" << enabled << ", mode=" << int32_t(mode);
+                      << ", device=" << &adapter_device
+                      << "] update: name=" << ", enabled=" << enabled
+                      << ", mode=" << int32_t(mode);
     for (auto& medium_info : bluetooth_mediums_) {
       auto& info = medium_info.second;
       // Do not send notification to medium that owns this adapter.
@@ -616,10 +626,11 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
         context.advertising = enabled;
         context.advertisement_data = advertisement_data;
 
-        NEARBY_LOGS(INFO)
-            << "G3 UpdateBleV2MediumForAdvertising: this=" << this
-            << ", medium=" << &medium << ", medium_context=" << &context
-            << ", peripheral=" << &peripheral << ", enabled=" << enabled;
+        NEARBY_LOGS(INFO) << "G3 UpdateBleV2MediumForAdvertising: this=" << this
+                          << ", medium=" << &medium
+                          << ", medium_context=" << &context
+                          << ", peripheral=" << &peripheral
+                          << ", enabled=" << enabled;
 
         for (auto& medium_info : ble_v2_mediums_) {
           const api::ble_v2::BleMedium* remote_medium = medium_info.first;
@@ -636,15 +647,15 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
           }
 
           for (auto& remote_scanning_service_uuid :
-                remote_scanning_service_uuids) {
+               remote_scanning_service_uuids) {
             auto const it = context.advertisement_data.service_data.find(
                 remote_scanning_service_uuid);
 
             // Only skip when service data is not found and the medium is
             // enabled. Mediums that stop advertising (disabled) pass in empty
             // advertisement data but should still be processed.
-            if (it == context.advertisement_data.service_data.end()
-                && enabled) continue;
+            if (it == context.advertisement_data.service_data.end() && enabled)
+              continue;
 
             NEARBY_LOGS(INFO)
                 << "G3 UpdateBleV2MediumForAdvertising, found other medium="
@@ -732,17 +743,17 @@ void MediumEnvironment::UnregisterBleV2Medium(api::ble_v2::BleMedium& medium) {
     NEARBY_LOGS(INFO) << "G3 Unregistered Ble medium";
   });
 }
-absl::optional<MediumEnvironment::BleV2MediumStatus>
+std::optional<MediumEnvironment::BleV2MediumStatus>
 MediumEnvironment::GetBleV2MediumStatus(const api::ble_v2::BleMedium& medium) {
-  if (!enabled_) return absl::nullopt;
+  if (!enabled_) return std::nullopt;
 
-  absl::optional<MediumEnvironment::BleV2MediumStatus> result;
+  std::optional<MediumEnvironment::BleV2MediumStatus> result;
   CountDownLatch latch(1);
 
   RunOnMediumEnvironmentThread([this, &medium, &latch, &result]() {
     auto it = ble_v2_mediums_.find(&medium);
     if (it == ble_v2_mediums_.end()) {
-      result = absl::nullopt;
+      result = std::nullopt;
       latch.CountDown();
       return;
     }
@@ -1137,10 +1148,10 @@ void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
   const_cast<FeatureFlags&>(FeatureFlags::GetInstance()).SetFlags(flags);
 }
 
-absl::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
+std::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
   MutexLock lock(&mutex_);
   if (simulated_clock_) {
-    return absl::optional<FakeClock*>(simulated_clock_.get());
+    return std::optional<FakeClock*>(simulated_clock_.get());
   }
   return absl::nullopt;
 }
@@ -1370,6 +1381,14 @@ void MediumEnvironment::RemoveObserver(
     api::BluetoothClassicMedium::Observer* observer) {
   if (!enabled_) return;
   observers_.RemoveObserver(observer);
+}
+
+void MediumEnvironment::SetBleExtendedAdvertisementsAvailable(bool enabled) {
+  ble_extended_advertisements_available_ = enabled;
+}
+
+bool MediumEnvironment::IsBleExtendedAdvertisementsAvailable() const {
+  return ble_extended_advertisements_available_;
 }
 
 }  // namespace nearby

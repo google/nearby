@@ -180,7 +180,7 @@ bool BleV2Medium::StartAdvertising(
       << TxPowerLevelToName(advertise_parameters.tx_power_level)
       << ", is_connectable=" << advertise_parameters.is_connectable;
   if (advertising_data.is_extended_advertisement &&
-      !is_support_extended_advertisement_) {
+      !IsExtendedAdvertisementsAvailable()) {
     NEARBY_LOGS(INFO)
         << "G3 Ble StartAdvertising does not support extended advertisement";
     return false;
@@ -215,7 +215,7 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
       << TxPowerLevelToName(advertise_parameters.tx_power_level)
       << ", is_connectable=" << advertise_parameters.is_connectable;
   if (advertising_data.is_extended_advertisement &&
-      !is_support_extended_advertisement_) {
+      !IsExtendedAdvertisementsAvailable()) {
     NEARBY_LOGS(INFO)
         << "G3 Ble StartAdvertising does not support extended advertisement";
     return nullptr;
@@ -326,7 +326,7 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
-  return is_support_extended_advertisement_;
+  return MediumEnvironment::Instance().IsBleExtendedAdvertisementsAvailable();
 }
 
 bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
