@@ -415,10 +415,15 @@ void NearbySharingServiceImpl::RegisterSendSurface(
       "api_register_send_surface",
       [this, transfer_callback, discovery_callback, state, blocked_vendor_id,
        status_codes_callback = std::move(status_codes_callback)]() {
+        if (state != SendSurfaceState::kForeground &&
+            state != SendSurfaceState::kBackground) {
+          NL_LOG(ERROR) << __func__ << ": Invalid SendSurfaceState: "
+                        << static_cast<int>(state);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
         NL_DCHECK(transfer_callback);
         NL_DCHECK(discovery_callback);
-        NL_DCHECK_NE(static_cast<int>(state),
-                     static_cast<int>(SendSurfaceState::kUnknown));
         NL_LOG(INFO) << __func__
                      << ": RegisterSendSurface is called with state: "
                      << (state == SendSurfaceState::kForeground ? "Foreground"
@@ -563,9 +568,14 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
       "api_register_receive_surface",
       [this, transfer_callback, state, vendor_id,
        status_codes_callback = std::move(status_codes_callback)]() {
+        if (state != ReceiveSurfaceState::kForeground &&
+            state != ReceiveSurfaceState::kBackground) {
+          NL_LOG(ERROR) << __func__ << ": Invalid ReceiveSurfaceState: "
+                        << static_cast<int>(state);
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
         NL_DCHECK(transfer_callback);
-        NL_DCHECK_NE(static_cast<int>(state),
-                     static_cast<int>(ReceiveSurfaceState::kUnknown));
 
         NL_LOG(INFO) << __func__
                      << ": RegisterReceiveSurface is called with state: "
@@ -591,7 +601,8 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                      << ": transfer callback already registered, ignoring";
           std::move(status_codes_callback)(StatusCodes::kOk);
           return;
-        } else if (foreground_receive_callbacks_map_.contains(
+        }
+        if (foreground_receive_callbacks_map_.contains(
                        transfer_callback) ||
                    background_receive_callbacks_map_.contains(
                        transfer_callback)) {
@@ -600,7 +611,8 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                            "different state.";
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
-        } else if (ShouldBlockSurfaceRegistration(
+        }
+        if (ShouldBlockSurfaceRegistration(
                        vendor_id, before_registration_vendor_id)) {
           // Block alternate vendor ID registration.
           NL_LOG(ERROR) << __func__
