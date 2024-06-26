@@ -36,8 +36,9 @@ namespace analytics {
 
 class AnalyticsRecorder {
  public:
-  explicit AnalyticsRecorder(::nearby::analytics::EventLogger* event_logger)
-      : event_logger_(event_logger) {}
+  explicit AnalyticsRecorder(int32_t vendor_id,
+                             nearby::analytics::EventLogger* event_logger)
+      : vendor_id_(vendor_id), event_logger_(event_logger) {}
   ~AnalyticsRecorder() = default;
 
   void NewEstablishConnection(
@@ -209,6 +210,7 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::EventType event_type);
   void LogEvent(const nearby::sharing::analytics::proto::SharingLog& message);
 
+  const int32_t vendor_id_;
   nearby::analytics::EventLogger* event_logger_ = nullptr;
 };
 

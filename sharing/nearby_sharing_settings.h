@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SETTINGS_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -26,11 +27,11 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/timer.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -136,7 +137,7 @@ class NearbyShareSettings
             }
             break;
           default:
-            LOG(FATAL) << "Invalid tag: " << this->tag;
+            NL_LOG(FATAL) << "Invalid tag: " << this->tag;
             break;
         }
         return result;
@@ -161,7 +162,7 @@ class NearbyShareSettings
       nearby::DeviceInfo& device_info,
       nearby::sharing::api::PreferenceManager& preference_manager,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
-      nearby::analytics::EventLogger* event_logger = nullptr);
+      analytics::AnalyticsRecorder* analytics_recorder = nullptr);
   ~NearbyShareSettings() override;
 
   // Internal synchronous getters for C++ clients
@@ -274,7 +275,7 @@ class NearbyShareSettings
   nearby::sharing::api::PreferenceManager& preference_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
   // Used to create analytics events.
-  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
+  analytics::AnalyticsRecorder* const analytics_recorder_;
 
   std::shared_ptr<bool> is_desctructing_ = nullptr;
   bool is_fast_initiation_hardware_supported_ ABSL_GUARDED_BY(mutex_) = false;

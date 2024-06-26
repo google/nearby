@@ -32,7 +32,6 @@
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/wifi_credentials_attachment.h"
-#include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
@@ -1027,6 +1026,7 @@ std::unique_ptr<SharingLog> AnalyticsRecorder::CreateSharingLog(
   auto sharing_log = std::make_unique<SharingLog>();
   sharing_log->set_event_category(event_category);
   sharing_log->set_event_type(event_type);
+  sharing_log->mutable_event_metadata()->set_vendor_id(vendor_id_);
   return sharing_log;
 }
 

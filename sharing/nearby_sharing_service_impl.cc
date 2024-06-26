@@ -186,8 +186,9 @@ OSType ToProtoOsType(::nearby::api::DeviceInfo::OsType os_type) {
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
-    std::unique_ptr<TaskRunner> service_thread, Context* context,
-    SharingPlatform& sharing_platform, NearbySharingDecoder* decoder,
+    int32_t vendor_id, std::unique_ptr<TaskRunner> service_thread,
+    Context* context, SharingPlatform& sharing_platform,
+    NearbySharingDecoder* decoder,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     nearby::analytics::EventLogger* event_logger)
     : service_thread_(std::move(service_thread)),
@@ -197,8 +198,11 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       account_manager_(sharing_platform.GetAccountManager()),
       decoder_(decoder),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
+      analytics_recorder_(std::make_unique<analytics::AnalyticsRecorder>(
+          vendor_id, event_logger)),
       nearby_share_client_factory_(
-          sharing_platform.CreateSharingRpcClientFactory(event_logger)),
+          sharing_platform.CreateSharingRpcClientFactory(
+              analytics_recorder_.get())),
       profile_info_provider_(
           std::make_unique<NearbyShareProfileInfoProviderImpl>(
               device_info_, account_manager_)),
@@ -213,11 +217,9 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           local_device_data_manager_.get())),
       nearby_fast_initiation_(
           NearbyFastInitiationImpl::Factory::Create(context_)),
-      analytics_recorder_(
-          std::make_unique<analytics::AnalyticsRecorder>(event_logger)),
       settings_(std::make_unique<NearbyShareSettings>(
           context_, context_->GetClock(), device_info_, preference_manager_,
-          local_device_data_manager_.get(), event_logger)),
+          local_device_data_manager_.get(), analytics_recorder_.get())),
       service_extension_(std::make_unique<NearbySharingServiceExtension>(
           context_, settings_.get())),
       app_info_(sharing_platform.CreateAppInfo()) {

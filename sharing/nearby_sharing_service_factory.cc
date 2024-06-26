@@ -14,6 +14,7 @@
 
 #include "sharing/nearby_sharing_service_factory.h"
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -37,7 +38,7 @@ NearbySharingServiceFactory* NearbySharingServiceFactory::GetInstance() {
 }
 
 NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
-    SharingPlatform& sharing_platform,
+    int32_t vendor_id, SharingPlatform& sharing_platform,
     ::nearby::analytics::EventLogger* event_logger) {
   if (nearby_sharing_service_ != nullptr) {
     return nullptr;
@@ -55,6 +56,7 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
           sharing_platform.GetDeviceInfo(), event_logger_);
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
+      vendor_id,
       std::move(service_thread),
       context_.get(), sharing_platform, decoder_.get(),
       std::move(nearby_connections_manager), event_logger_);

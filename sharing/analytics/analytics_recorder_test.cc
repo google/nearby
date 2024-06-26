@@ -69,7 +69,7 @@ class AnalyticsRecorderTest : public ::testing::Test {
 
  private:
   MockEventLogger event_logger_;
-  AnalyticsRecorder analytics_recorder_{&event_logger_};
+  AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0, &event_logger_};
 };
 
 TEST_F(AnalyticsRecorderTest, NewEstablishConnection) {

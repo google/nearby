@@ -29,8 +29,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/analytics/event_logger.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex_lock.h"
@@ -39,7 +37,6 @@
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
-#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
@@ -83,13 +80,12 @@ NearbyShareSettings::NearbyShareSettings(
     nearby::DeviceInfo& device_info,
     PreferenceManager& preference_manager,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
-    nearby::analytics::EventLogger* event_logger)
+    analytics::AnalyticsRecorder* analytics_recorder)
     : clock_(clock),
       device_info_(device_info),
       preference_manager_(preference_manager),
       local_device_data_manager_(local_device_data_manager),
-      analytics_recorder_(
-          std::make_unique<analytics::AnalyticsRecorder>(event_logger)) {
+      analytics_recorder_(analytics_recorder) {
   is_desctructing_ = std::make_shared<bool>(false);
   visibility_expiration_timer_ = context->CreateTimer();
   RestoreFallbackVisibility();
@@ -268,9 +264,11 @@ void NearbyShareSettings::SetEnabled(bool enabled) {
 void NearbyShareSettings::SetFastInitiationNotificationState(
     FastInitiationNotificationState state) {
   MutexLock lock(&mutex_);
-  analytics_recorder_->NewToggleShowNotification(
-      GetNotificationStatus(GetFastInitiationNotificationState()),
-      GetNotificationStatus(state));
+  if (analytics_recorder_ != nullptr) {
+    analytics_recorder_->NewToggleShowNotification(
+        GetNotificationStatus(GetFastInitiationNotificationState()),
+        GetNotificationStatus(state));
+  }
 
   preference_manager_.SetInteger(
       prefs::kNearbySharingFastInitiationNotificationStateName,
@@ -305,7 +303,9 @@ void NearbyShareSettings::ValidateDeviceName(
 void NearbyShareSettings::SetDeviceName(
     absl::string_view device_name,
     std::function<void(DeviceNameValidationResult)> callback) {
-  analytics_recorder_->NewSetDeviceName(device_name.size());
+  if (analytics_recorder_ != nullptr) {
+    analytics_recorder_->NewSetDeviceName(device_name.size());
+  }
   std::move(callback)(local_device_data_manager_->SetDeviceName(device_name));
 }
 
@@ -316,7 +316,9 @@ void NearbyShareSettings::GetDataUsage(
 
 void NearbyShareSettings::SetDataUsage(DataUsage data_usage) {
   MutexLock lock(&mutex_);
-  analytics_recorder_->NewSetDataUsage(GetDataUsage(), data_usage);
+  if (analytics_recorder_ != nullptr) {
+    analytics_recorder_->NewSetDataUsage(GetDataUsage(), data_usage);
+  }
   preference_manager_.SetInteger(prefs::kNearbySharingDataUsageName,
                                    static_cast<int>(data_usage));
 }
@@ -348,8 +350,10 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
       static_cast<DeviceVisibility>(preference_manager_.GetInteger(
           prefs::kNearbySharingBackgroundVisibilityName,
           static_cast<int>(prefs::kDefaultVisibility)));
-  analytics_recorder_->NewSetVisibility(last_visibility, visibility,
-                                        expiration / absl::Milliseconds(1));
+  if (analytics_recorder_ != nullptr) {
+    analytics_recorder_->NewSetVisibility(last_visibility, visibility,
+                                          expiration / absl::Milliseconds(1));
+  }
 
   NL_VLOG(1) << __func__
              << ": set visibility. visibility=" << static_cast<int>(visibility)
@@ -572,12 +576,16 @@ void NearbyShareSettings::SetIsAllContactsEnabled(
 
 void NearbyShareSettings::SendDesktopNotification(
     DesktopNotification event) const {
-  analytics_recorder_->NewSendDesktopNotification(event);
+  if (analytics_recorder_ != nullptr) {
+    analytics_recorder_->NewSendDesktopNotification(event);
+  }
 }
 
 void NearbyShareSettings::SendDesktopTransferEvent(
     DesktopTransferEventType event) const {
-  analytics_recorder_->NewSendDesktopTransferEvent(event);
+  if (analytics_recorder_ != nullptr) {
+    analytics_recorder_->NewSendDesktopTransferEvent(event);
+  }
 }
 
 bool NearbyShareSettings::is_fast_initiation_hardware_supported() {

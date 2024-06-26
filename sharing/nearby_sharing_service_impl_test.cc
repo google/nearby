@@ -436,8 +436,9 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     return std::make_unique<NearbySharingServiceImpl>(
-        std::move(task_runner), &fake_context_, mock_sharing_platform_,
-        &fake_decoder_, absl::WrapUnique(fake_nearby_connections_manager_));
+        /*vendor_id=*/0, std::move(task_runner), &fake_context_,
+        mock_sharing_platform_, &fake_decoder_,
+        absl::WrapUnique(fake_nearby_connections_manager_));
   }
 
   void SetVisibility(DeviceVisibility visibility) {

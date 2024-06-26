@@ -39,9 +39,9 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
-        "//internal/analytics:event_logger",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
+        "//sharing/analytics",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
@@ -74,9 +74,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":platform",
-        "//internal/analytics:event_logger",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
+        "//sharing/analytics",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",

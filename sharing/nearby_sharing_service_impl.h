@@ -108,8 +108,8 @@ class NearbySharingServiceImpl
 
  public:
   NearbySharingServiceImpl(
-      std::unique_ptr<nearby::TaskRunner> service_thread, Context* context,
-      nearby::sharing::api::SharingPlatform& sharing_platform,
+      int32_t vendor_id, std::unique_ptr<nearby::TaskRunner> service_thread,
+      Context* context, nearby::sharing::api::SharingPlatform& sharing_platform,
       NearbySharingDecoder* decoder,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
       nearby::analytics::EventLogger* event_logger = nullptr);
@@ -480,8 +480,8 @@ class NearbySharingServiceImpl
   NearbySharingDecoder* const decoder_;
 
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
-  // Scanner which is non-null when we are performing a background scan for
-  // remote devices that are attempting to share.
+  // Used to create analytics events.
+  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
       nearby_share_client_factory_;
   std::unique_ptr<NearbyShareProfileInfoProvider> profile_info_provider_;
@@ -489,9 +489,6 @@ class NearbySharingServiceImpl
   std::unique_ptr<NearbyShareContactManager> contact_manager_;
   std::unique_ptr<NearbyShareCertificateManager> certificate_manager_;
   std::unique_ptr<NearbyFastInitiation> nearby_fast_initiation_;
-
-  // Used to create analytics events.
-  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
 
   // Used to maintain the settings of nearby sharing.
   std::unique_ptr<NearbyShareSettings> settings_;
