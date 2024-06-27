@@ -574,20 +574,6 @@ void NearbyShareSettings::SetIsAllContactsEnabled(
   }
 }
 
-void NearbyShareSettings::SendDesktopNotification(
-    DesktopNotification event) const {
-  if (analytics_recorder_ != nullptr) {
-    analytics_recorder_->NewSendDesktopNotification(event);
-  }
-}
-
-void NearbyShareSettings::SendDesktopTransferEvent(
-    DesktopTransferEventType event) const {
-  if (analytics_recorder_ != nullptr) {
-    analytics_recorder_->NewSendDesktopTransferEvent(event);
-  }
-}
-
 bool NearbyShareSettings::is_fast_initiation_hardware_supported() {
   MutexLock lock(&mutex_);
   return is_fast_initiation_hardware_supported_;

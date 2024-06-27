@@ -517,48 +517,6 @@ TEST_F(NearbyShareSettingsTest, GetAndSetAllowedContacts) {
   EXPECT_EQ(allowed_contacts.size(), 0u);
 }
 
-TEST_F(NearbyShareSettingsTest, SendDesktopNotification) {
-  settings()->SendDesktopNotification(
-      DesktopNotification::DESKTOP_NOTIFICATION_UNKNOWN);
-  settings()->SendDesktopNotification(
-      DesktopNotification::DESKTOP_NOTIFICATION_CONNECTING);
-  settings()->SendDesktopNotification(
-      DesktopNotification::DESKTOP_NOTIFICATION_PROGRESS);
-  settings()->SendDesktopNotification(
-      DesktopNotification::DESKTOP_NOTIFICATION_ACCEPT);
-  settings()->SendDesktopNotification(
-      DesktopNotification::DESKTOP_NOTIFICATION_RECEIVED);
-  settings()->SendDesktopNotification(
-      DesktopNotification::DESKTOP_NOTIFICATION_ERROR);
-}
-
-TEST_F(NearbyShareSettingsTest, ReceiveDesktopTransferEvent) {
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_TYPE_UNKNOWN);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ACCEPT);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_PROGRESS);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_RECEIVED);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_RECEIVE_TYPE_ERROR);
-}
-
-TEST_F(NearbyShareSettingsTest, SendDesktopTransferEvent) {
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_TYPE_UNKNOWN);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_SEND_TYPE_START);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::
-          DESKTOP_TRANSFER_EVENT_SEND_TYPE_SELECT_A_DEVICE);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_SEND_TYPE_PROGRESS);
-  settings()->SendDesktopTransferEvent(
-      DesktopTransferEventType::DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT);
-}
-
 }  // namespace
 }  // namespace sharing
 }  // namespace nearby

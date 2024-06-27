@@ -194,12 +194,6 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::VerifyAPKStatus status,
       location::nearby::proto::sharing::ApkSource source);
 
-  void NewSendDesktopNotification(
-      location::nearby::proto::sharing::DesktopNotification event);
-
-  void NewSendDesktopTransferEvent(
-      location::nearby::proto::sharing::DesktopTransferEventType event);
-
   // Generates a random number for session ID or flow ID.
   int64_t GenerateNextId();
 

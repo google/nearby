@@ -990,35 +990,6 @@ void AnalyticsRecorder::NewVerifyAPKStatus(
   LogEvent(*sharing_log);
 }
 
-void AnalyticsRecorder::NewSendDesktopNotification(DesktopNotification event) {
-  std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
-      EventCategory::SETTINGS_EVENT, EventType::SEND_DESKTOP_NOTIFICATION);
-
-  auto send_desktop_notification =
-      analytics::proto::SharingLog::SendDesktopNotification::default_instance()
-          .New();
-  send_desktop_notification->set_event(event);
-
-  sharing_log->set_allocated_send_desktop_notification(
-      send_desktop_notification);
-  LogEvent(*sharing_log);
-}
-
-void AnalyticsRecorder::NewSendDesktopTransferEvent(
-    DesktopTransferEventType event) {
-  std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
-      EventCategory::SETTINGS_EVENT, EventType::SEND_DESKTOP_TRANSFER_EVENT);
-
-  auto send_desktop_transfer_event =
-      analytics::proto::SharingLog::SendDesktopTransferEvent::default_instance()
-          .New();
-  send_desktop_transfer_event->set_event(event);
-
-  sharing_log->set_allocated_send_desktop_transfer_event(
-      send_desktop_transfer_event);
-  LogEvent(*sharing_log);
-}
-
 // Start private methods.
 
 std::unique_ptr<SharingLog> AnalyticsRecorder::CreateSharingLog(

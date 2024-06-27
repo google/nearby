@@ -234,12 +234,6 @@ class NearbyShareSettings
                                 bool did_full_name_change,
                                 bool did_icon_url_change) override;
 
-  void SendDesktopNotification(
-      ::location::nearby::proto::sharing::DesktopNotification event) const;
-
-  void SendDesktopTransferEvent(
-      ::location::nearby::proto::sharing::DesktopTransferEventType event) const;
-
   std::string Dump() const;
 
  private:
