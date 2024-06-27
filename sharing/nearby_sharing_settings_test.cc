@@ -68,11 +68,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
       visibility_ = static_cast<DeviceVisibility>(data.value.as_int64);
     } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
       is_onboarding_complete_ = data.value.as_bool;
-    } else if (key == prefs::kNearbySharingAllowedContactsName) {
-      allowed_contacts_.clear();
-      for (auto& allowed_contact : data.value.as_string_array) {
-        allowed_contacts_.push_back(allowed_contact);
-      }
     } else if (key == prefs::kNearbySharingDeviceNameName) {
       device_name_ = data.value.as_string;
     }
@@ -472,49 +467,6 @@ TEST_F(NearbyShareSettingsTest, GetFallbackVisibility) {
       [&visibility](DeviceVisibility result) { visibility = result; });
   EXPECT_EQ(visibility, DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   Flush();
-}
-
-TEST_F(NearbyShareSettingsTest, GetAndSetAllowedContacts) {
-  const std::string id1("1");
-
-  std::vector<std::string> allowed_contacts;
-
-  settings()->GetAllowedContacts(
-      [&allowed_contacts](absl::Span<const std::string> result) {
-        allowed_contacts.clear();
-        for (auto& contact : result) {
-          allowed_contacts.push_back(contact);
-        }
-      });
-  EXPECT_EQ(allowed_contacts.size(), 0u);
-
-  settings()->SetAllowedContacts({id1});
-  Flush();
-  EXPECT_EQ(observer_.allowed_contacts().size(), 1u);
-  EXPECT_TRUE(Contains(observer_.allowed_contacts(), id1));
-
-  settings()->GetAllowedContacts(
-      [&allowed_contacts](absl::Span<const std::string> result) {
-        allowed_contacts.clear();
-        for (auto& contact : result) {
-          allowed_contacts.push_back(contact);
-        }
-      });
-  EXPECT_EQ(allowed_contacts.size(), 1u);
-  EXPECT_TRUE(Contains(observer_.allowed_contacts(), id1));
-
-  settings()->SetAllowedContacts({});
-  Flush();
-  EXPECT_EQ(observer_.allowed_contacts().size(), 0u);
-
-  settings()->GetAllowedContacts(
-      [&allowed_contacts](absl::Span<const std::string> result) {
-        allowed_contacts.clear();
-        for (auto& contact : result) {
-          allowed_contacts.push_back(contact);
-        }
-      });
-  EXPECT_EQ(allowed_contacts.size(), 0u);
 }
 
 }  // namespace

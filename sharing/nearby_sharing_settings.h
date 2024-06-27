@@ -182,7 +182,6 @@ class NearbyShareSettings
   proto::DeviceVisibility GetFallbackVisibility() const;
   bool GetIsTemporarilyVisible() const;
   void SetIsTemporarilyVisible(bool is_temporarily_visible) const;
-  std::vector<std::string> GetAllowedContacts() const;
   bool IsOnboardingComplete() const;
   std::string GetCustomSavePath() const;
 
@@ -217,12 +216,6 @@ class NearbyShareSettings
   void SetIsReceiving(bool is_receiving) const;
   bool GetIsAnalyticsEnabled();
   void SetIsAnalyticsEnabled(bool is_analytics_enabled) const;
-  bool GetIsAllContactsEnabled();
-  void SetIsAllContactsEnabled(bool is_all_contacts_enabled) const;
-
-  void GetAllowedContacts(
-      std::function<void(absl::Span<const std::string>)> callback);
-  void SetAllowedContacts(absl::Span<const std::string> allowed_contacts);
 
   void GetCustomSavePathAsync(
       const std::function<void(absl::string_view)>& callback) const;

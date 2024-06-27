@@ -201,14 +201,6 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
   }
 }
 
-std::vector<std::string> NearbyShareSettings::GetAllowedContacts() const {
-  MutexLock lock(&mutex_);
-  std::vector<std::string> allowed_contacts =
-      preference_manager_.GetStringArray(
-          prefs::kNearbySharingAllowedContactsName, {});
-  return allowed_contacts;
-}
-
 bool NearbyShareSettings::IsOnboardingComplete() const {
   MutexLock lock(&mutex_);
   return preference_manager_.GetBoolean(
@@ -431,18 +423,6 @@ void NearbyShareSettings::SetIsTemporarilyVisible(
       is_temporarily_visible);
 }
 
-void NearbyShareSettings::GetAllowedContacts(
-    std::function<void(absl::Span<const std::string>)> callback) {
-  std::move(callback)(GetAllowedContacts());
-}
-
-void NearbyShareSettings::SetAllowedContacts(
-    absl::Span<const std::string> allowed_contacts) {
-  MutexLock lock(&mutex_);
-  preference_manager_.SetStringArray(prefs::kNearbySharingAllowedContactsName,
-                                       allowed_contacts);
-}
-
 void NearbyShareSettings::GetCustomSavePathAsync(
     const std::function<void(absl::string_view)>& callback) const {
   callback(GetCustomSavePath());
@@ -470,8 +450,6 @@ void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
   } else if (key == prefs::kNearbySharingDataUsageName) {
     NotifyAllObservers(key,
                        Observer::Data(static_cast<int64_t>(GetDataUsage())));
-  } else if (key == prefs::kNearbySharingAllowedContactsName) {
-    NotifyAllObservers(key, Observer::Data(GetAllowedContacts()));
   } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
     NotifyAllObservers(key, Observer::Data(IsOnboardingComplete()));
   } else if (key == prefs::kNearbySharingCustomSavePath) {
@@ -548,30 +526,6 @@ std::string NearbyShareSettings::Dump() const {
   sstream << "  Last Visibility: " << DeviceVisibility_Name(GetLastVisibility())
           << std::endl;
   return sstream.str();
-}
-
-bool NearbyShareSettings::GetIsAllContactsEnabled() {
-  MutexLock lock(&mutex_);
-  return preference_manager_.GetBoolean(
-      prefs::kNearbySharingIsAllContactsEnabledName, true);
-}
-
-void NearbyShareSettings::SetIsAllContactsEnabled(
-    bool is_all_contacts_enabled) const {
-  MutexLock lock(&mutex_);
-  preference_manager_.SetBoolean(
-      prefs::kNearbySharingIsAllContactsEnabledName, is_all_contacts_enabled);
-
-  if (is_all_contacts_enabled) {
-    if (GetVisibility() ==
-        DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS) {
-      SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-    }
-  } else {
-    if (GetVisibility() == DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS) {
-      SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
-    }
-  }
 }
 
 bool NearbyShareSettings::is_fast_initiation_hardware_supported() {

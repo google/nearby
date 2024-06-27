@@ -23,7 +23,6 @@ namespace nearby {
 namespace sharing {
 namespace prefs {
 
-ABSL_CONST_INIT extern const char kNearbySharingAllowedContactsName[];
 ABSL_CONST_INIT extern const char kNearbySharingBackgroundVisibilityName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingBackgroundTemporarilyVisibleName[];
@@ -64,7 +63,6 @@ ABSL_CONST_INIT extern const char
     kNearbySharingSchedulerUploadLocalDeviceCertificatesName[];
 ABSL_CONST_INIT extern const char kNearbySharingUsersName[];
 ABSL_CONST_INIT extern const char kNearbySharingIsAnalyticsEnabledName[];
-ABSL_CONST_INIT extern const char kNearbySharingIsAllContactsEnabledName[];
 ABSL_CONST_INIT extern const char kNearbySharingAutoAppStartEnabledName[];
 
 ABSL_CONST_INIT const proto::DeviceVisibility kDefaultVisibility =
