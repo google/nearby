@@ -617,6 +617,10 @@ enum OperationResultCode {
   MEDIUM_UNAVAILABLE_NSD_NOT_AVAILABLE = 1542;
   // Wifi LAN MDNS is unavailable
   MEDIUM_UNAVAILABLE_MDNS_NOT_AVAILABLE = 1543;
+  // LAN is unavailable due to AP in deny list
+  MEDIUM_UNAVAILABLE_LAN_BLOCKED = 1544;
+  // LAN is unavailable due to signal weak
+  MEDIUM_UNAVAILABLE_POOR_SIGNAL = 1545;
 
   // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
   // NC already hosting a WFD group for this client (same service id)
