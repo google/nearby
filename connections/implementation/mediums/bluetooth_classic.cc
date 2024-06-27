@@ -18,7 +18,10 @@
 #include <string>
 #include <utility>
 
+#include "connections/implementation/mediums/bluetooth_radio.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/uuid.h"
@@ -208,7 +211,7 @@ bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
     return false;
   }
 
-  if (IsDiscovering()) {
+  if (IsDiscoveringLocked()) {
     NEARBY_LOGS(INFO)
         << "Refusing to start discovery of BT devices because another "
            "discovery is already in-progress.";
@@ -229,7 +232,7 @@ bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
 bool BluetoothClassic::StopDiscovery() {
   MutexLock lock(&mutex_);
 
-  if (!IsDiscovering()) {
+  if (!IsDiscoveringLocked()) {
     NEARBY_LOGS(INFO)
         << "Can't stop discovery of BT devices because it never started.";
     return false;
@@ -244,7 +247,7 @@ bool BluetoothClassic::StopDiscovery() {
   return true;
 }
 
-bool BluetoothClassic::IsDiscovering() const { return scan_info_.valid; }
+bool BluetoothClassic::IsDiscoveringLocked() const { return scan_info_.valid; }
 
 bool BluetoothClassic::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
@@ -443,6 +446,12 @@ BluetoothDevice BluetoothClassic::GetRemoteDevice(
   }
 
   return medium_->GetRemoteDevice(mac_address);
+}
+
+bool BluetoothClassic::IsDiscovering() const {
+  MutexLock lock(&mutex_);
+  return IsDiscoveringLocked();
+  ;
 }
 
 std::string BluetoothClassic::GetMacAddress() const {

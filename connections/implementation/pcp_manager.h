@@ -15,9 +15,16 @@
 #ifndef CORE_INTERNAL_PCP_MANAGER_H_
 #define CORE_INTERNAL_PCP_MANAGER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
@@ -25,9 +32,16 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/pcp.h"
+#include "connections/implementation/pcp_handler.h"
 #include "connections/listeners.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/params.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
+#include "internal/interop/device.h"
 #include "internal/platform/atomic_boolean.h"
 
 namespace nearby {
@@ -47,12 +61,12 @@ class PcpManager {
              InjectedBluetoothDeviceStore& injected_bluetooth_device_store);
   ~PcpManager();
 
-  Status StartAdvertising(ClientProxy* client, const string& service_id,
+  Status StartAdvertising(ClientProxy* client, const std::string& service_id,
                           const AdvertisingOptions& advertising_options,
                           const ConnectionRequestInfo& info);
   void StopAdvertising(ClientProxy* client);
 
-  Status StartDiscovery(ClientProxy* client, const string& service_id,
+  Status StartDiscovery(ClientProxy* client, const std::string& service_id,
                         const DiscoveryOptions& discovery_options,
                         DiscoveryListener listener);
   void StopDiscovery(ClientProxy* client);
@@ -68,7 +82,7 @@ class PcpManager {
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata);
 
-  Status RequestConnection(ClientProxy* client, const string& endpoint_id,
+  Status RequestConnection(ClientProxy* client, const std::string& endpoint_id,
                            const ConnectionRequestInfo& info,
                            const ConnectionOptions& connection_options);
 
@@ -76,9 +90,9 @@ class PcpManager {
                              const NearbyDevice& remote_device,
                              const ConnectionRequestInfo& info,
                              const ConnectionOptions& connection_options);
-  Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
+  Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
                           PayloadListener payload_listener);
-  Status RejectConnection(ClientProxy* client, const string& endpoint_id);
+  Status RejectConnection(ClientProxy* client, const std::string& endpoint_id);
 
   Status UpdateAdvertisingOptions(
       ClientProxy* client, absl::string_view service_id,

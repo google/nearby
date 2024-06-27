@@ -160,6 +160,8 @@ Exception BleV2ServerSocket::DoClose() {
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {
   adapter_->SetBleV2Medium(this);
+  is_extended_advertisements_available_ =
+      MediumEnvironment::Instance().IsBleExtendedAdvertisementsAvailable();
 
   MediumEnvironment::Instance().RegisterBleV2Medium(*this, &peripheral_);
 }
@@ -326,7 +328,7 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
-  return MediumEnvironment::Instance().IsBleExtendedAdvertisementsAvailable();
+  return is_extended_advertisements_available_;
 }
 
 bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,

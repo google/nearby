@@ -332,6 +332,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>
       scanning_internal_session_ids_ ABSL_GUARDED_BY(mutex_);
+  bool is_extended_advertisements_available_ = false;
 };
 
 }  // namespace g3

@@ -24,9 +24,11 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
@@ -35,6 +37,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -1153,7 +1156,7 @@ std::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
   if (simulated_clock_) {
     return std::optional<FakeClock*>(simulated_clock_.get());
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void MediumEnvironment::RegisterGattServer(

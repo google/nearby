@@ -20,11 +20,15 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/power_level.h"
@@ -32,9 +36,12 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -138,6 +145,12 @@ class BleV2 final {
     MutexLock lock(&mutex_);
     return medium_.IsValid();
   }
+
+  // Returns true if the BLE device support extended advertisement.
+  bool IsExtendedAdvertisementsAvailable() ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    return medium_.IsExtendedAdvertisementsAvailable();
+  };
 
  private:
   struct AdvertisingInfo {

@@ -15,18 +15,16 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
 #define CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
 
-#include <cstdint>
-#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
-#include "connections/listeners.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
@@ -121,6 +119,8 @@ class BluetoothClassic {
   BluetoothDevice GetRemoteDevice(const std::string& mac_address)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  bool IsDiscovering() const ABSL_LOCKS_EXCLUDED(mutex_);
+
  protected:
   // Use for unit tests only to inject a BluetoothClassicMedium.
   BluetoothClassic(BluetoothRadio& radio,
@@ -171,7 +171,7 @@ class BluetoothClassic {
   bool RestoreDeviceName() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns true if device is currently in discovery mode.
-  bool IsDiscovering() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsDiscoveringLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Establishes connection to BT service that was might be started on another
   // device with StartAcceptingConnections() using the same service_id.
