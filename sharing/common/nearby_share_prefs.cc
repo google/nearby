@@ -37,8 +37,6 @@ ABSL_CONST_INIT const char kNearbySharingAllowedContactsName[] =
     "nearby_sharing.allowed_contacts";
 ABSL_CONST_INIT const char kNearbySharingBackgroundVisibilityName[] =
     "nearby_sharing.background_visibility";
-ABSL_CONST_INIT const char kNearbySharingBackgroundTemporarilyVisibleName[] =
-    "nearby_sharing.background_temporarily_visible";
 ABSL_CONST_INIT const char kNearbySharingBackgroundFallbackVisibilityName[] =
     "nearby_sharing.background_fallback_visibility";
 ABSL_CONST_INIT const char

@@ -25,8 +25,6 @@ namespace prefs {
 
 ABSL_CONST_INIT extern const char kNearbySharingBackgroundVisibilityName[];
 ABSL_CONST_INIT extern const char
-    kNearbySharingBackgroundTemporarilyVisibleName[];
-ABSL_CONST_INIT extern const char
     kNearbySharingBackgroundFallbackVisibilityName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingBackgroundVisibilityExpirationSeconds[];

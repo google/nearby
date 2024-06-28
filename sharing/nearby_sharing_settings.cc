@@ -414,16 +414,7 @@ void NearbyShareSettings::SetFallbackVisibility(
 
 bool NearbyShareSettings::GetIsTemporarilyVisible() const {
   MutexLock lock(&mutex_);
-  return preference_manager_.GetBoolean(
-      prefs::kNearbySharingBackgroundTemporarilyVisibleName, false);
-}
-
-void NearbyShareSettings::SetIsTemporarilyVisible(
-    bool is_temporarily_visible) const {
-  MutexLock lock(&mutex_);
-  preference_manager_.SetBoolean(
-      prefs::kNearbySharingBackgroundTemporarilyVisibleName,
-      is_temporarily_visible);
+  return visibility_expiration_timer_->IsRunning();
 }
 
 void NearbyShareSettings::GetCustomSavePathAsync(

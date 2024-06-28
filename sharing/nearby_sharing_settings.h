@@ -180,7 +180,6 @@ class NearbyShareSettings
   proto::DeviceVisibility GetLastVisibility() const;
 
   bool GetIsTemporarilyVisible() const;
-  void SetIsTemporarilyVisible(bool is_temporarily_visible) const;
   bool IsOnboardingComplete() const;
   std::string GetCustomSavePath() const;
 
