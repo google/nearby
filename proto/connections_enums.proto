@@ -621,6 +621,8 @@ enum OperationResultCode {
   MEDIUM_UNAVAILABLE_LAN_BLOCKED = 1544;
   // LAN is unavailable due to signal weak
   MEDIUM_UNAVAILABLE_POOR_SIGNAL = 1545;
+  // Second outgoing BT connection is not available due to multiplex disabled.
+  MEDIUM_UNAVAILABLE_BT_MULTIPLEX_DISABLED = 1546;
 
   // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
   // NC already hosting a WFD group for this client (same service id)
@@ -1058,7 +1060,7 @@ enum OperationResultCode {
   // Methods calling with null password
   NEARBY_WIFI_DIRECT_NULL_PASSWORD = 4529;
   // Multiple BT socket is disabled
-  NEARBY_BT_MULTIPLEX_SOCKET_DISABLED = 4530;
+  NEARBY_BT_MULTIPLEX_SOCKET_DISABLED = 4530 [deprecated = true];
   // Multiple LAN socket is disabled
   NEARBY_LAN_MULTIPLEX_SOCKET_DISABLED = 4531;
   // Channel of the new upgraded medium is null
