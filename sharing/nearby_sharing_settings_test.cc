@@ -41,9 +41,6 @@
 namespace nearby {
 namespace sharing {
 namespace {
-
-using ::location::nearby::proto::sharing::DesktopNotification;
-using ::location::nearby::proto::sharing::DesktopTransferEventType;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::FastInitiationNotificationState;
@@ -123,11 +120,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
     return visibility_;
   }
 
-  const std::vector<std::string>& allowed_contacts() {
-    absl::MutexLock lock(&mutex_);
-    return allowed_contacts_;
-  }
-
  private:
   mutable absl::Mutex mutex_;
 
@@ -143,7 +135,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
   DataUsage data_usage_ ABSL_GUARDED_BY(mutex_) = DataUsage::UNKNOWN_DATA_USAGE;
   DeviceVisibility visibility_ ABSL_GUARDED_BY(mutex_) =
       DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
-  std::vector<std::string> allowed_contacts_ ABSL_GUARDED_BY(mutex_);
 };
 
 class NearbyShareSettingsTest : public ::testing::Test {
@@ -425,48 +416,119 @@ TEST_F(NearbyShareSettingsTest, GetAndSetVisibility) {
   EXPECT_EQ(visibility, DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
 }
 
-TEST_F(NearbyShareSettingsTest, GetAndSetVisibilityWithSelectedContacts) {
-  EXPECT_EQ(observer_.visibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+TEST_F(NearbyShareSettingsTest,
+       SetTemporaryVisibilityExpiresAndRestoresOriginal) {
+  // Set our initial visibility to self share.
+  settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  // Set everyone mode temporarily.
   settings()->SetVisibility(
-      DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
+      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+      absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
+  // Fast forward to the expiration time.
+  FastForward(absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
+  // Verify that the visibility has expired and we are back to self share.
   EXPECT_EQ(settings()->GetVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
-  Flush();
-  EXPECT_EQ(observer_.visibility(),
             DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
 }
 
-TEST_F(NearbyShareSettingsTest, GetFallbackVisibility) {
-  EXPECT_EQ(observer_.visibility(),
+TEST_F(NearbyShareSettingsTest,
+       GetFallbackVisibilityReturnsUnspecifiedIfPermanent) {
+  // Set our initial visibility to self share.
+  settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+
+  // Since this is permanent, we shouldn't have a fallback.
+  EXPECT_EQ(settings()->GetFallbackVisibility(),
             DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
-  DeviceVisibility visibility = settings()->GetFallbackVisibility();
-  EXPECT_EQ(visibility, DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
-  settings()->SetFallbackVisibility(
-      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+}
+
+TEST_F(NearbyShareSettingsTest,
+       TransitionToPermanentNonEveryoneClearsFallback) {
+  // Set our initial visibility to self share.
+  settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  // Set everyone mode temporarily.
+  settings()->SetVisibility(
+      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+      absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
+  // Verify that the fallback visibility is valid and set to self share.
+  EXPECT_EQ(settings()->GetFallbackVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  // Transition to permanent self share.
+  settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  // Verify that the fallback visibility is unset.
+  EXPECT_EQ(settings()->GetFallbackVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+}
+
+TEST_F(NearbyShareSettingsTest,
+       TransitionToPermanentEveryoneDoesNotClearFallback) {
+  // Set our initial visibility to self share.
+  settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  // Transition to temporary everyone mode.
+  settings()->SetVisibility(
+      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+      absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
+  // Transition to permanent everyone mode.
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
-  EXPECT_EQ(settings()->GetVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
+  // Verify that the fallback visibility is intact, since we can go back to
+  // temporary.
   EXPECT_EQ(settings()->GetFallbackVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+}
 
-  settings()->SetFallbackVisibility(
-      DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  Flush();
-  EXPECT_EQ(observer_.visibility(),
+TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
+  // Create Nearby Share settings dependencies.
+  FakeContext context;
+  FakeDeviceInfo fake_device_info;
+  FakePreferenceManager preference_manager;
+  FakeNearbyShareLocalDeviceDataManager local_device_data_manager(
+      kDefaultDeviceName);
+  // Set everyone mode temporarily.
+  preference_manager.SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
+  // Set expiration to 10 seconds ago.
+  preference_manager.SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
+      absl::ToUnixSeconds(context.GetClock()->Now() - absl::Seconds(10)));
+  // Set fallback visibility to self share.
+  preference_manager.SetInteger(
+      prefs::kNearbySharingBackgroundFallbackVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
+  // Create a Nearby Share settings instance.
+  NearbyShareSettings settings(&context, context.GetClock(), fake_device_info,
+                               preference_manager, &local_device_data_manager);
+
+  // Make sure we restore the correct visibility.
+  EXPECT_EQ(settings.GetVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+}
+
+TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_FutureTimer) {
+  // Create Nearby Share settings dependencies.
+  FakeContext context;
+  FakeDeviceInfo fake_device_info;
+  FakePreferenceManager preference_manager;
+  FakeNearbyShareLocalDeviceDataManager local_device_data_manager(
+      kDefaultDeviceName);
+  // Set everyone mode temporarily.
+  preference_manager.SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
+  // Set expiration to 10 seconds in the future.
+  preference_manager.SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
+      absl::ToUnixSeconds(context.GetClock()->Now() + absl::Seconds(10)));
+  // Set fallback visibility to self share.
+  preference_manager.SetInteger(
+      prefs::kNearbySharingBackgroundFallbackVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
+  // Create a Nearby Share settings instance.
+  NearbyShareSettings settings(&context, context.GetClock(), fake_device_info,
+                               preference_manager, &local_device_data_manager);
+
+  // Make sure we restore the correct visibility.
+  EXPECT_EQ(settings.GetVisibility(),
             DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
-
-  settings()->SetVisibility(settings()->GetVisibility(), absl::Seconds(1));
-  Flush();
-  FastForward(absl::Seconds(1));
-  Flush();
-  visibility = DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
-  settings()->GetVisibility(
-      [&visibility](DeviceVisibility result) { visibility = result; });
-  EXPECT_EQ(visibility, DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  Flush();
 }
 
 }  // namespace

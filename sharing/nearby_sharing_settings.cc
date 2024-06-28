@@ -47,8 +47,6 @@ namespace nearby {
 namespace sharing {
 namespace {
 
-using ::location::nearby::proto::sharing::DesktopNotification;
-using ::location::nearby::proto::sharing::DesktopTransferEventType;
 using ::location::nearby::proto::sharing::ShowNotificationStatus;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::proto::DataUsage;
@@ -159,17 +157,15 @@ void NearbyShareSettings::StartVisibilityTimer(
   NL_LOG(INFO) << __func__
                << ": start visibility timer. expiration=" << expiration;
   visibility_expiration_timer_->Start(
-      expiration / absl::Milliseconds(1), 0, [this]() {
+      absl::ToInt64Milliseconds(expiration), 0, [this]() {
         NL_LOG(INFO) << __func__ << ": visibility timer expired.";
-        int visibility;
+        proto::DeviceVisibility visibility;
         {
           MutexLock lock(&mutex_);
           visibility_expiration_timer_->Stop();
-          visibility = preference_manager_.GetInteger(
-              prefs::kNearbySharingBackgroundFallbackVisibilityName,
-              static_cast<int>(prefs::kDefaultFallbackVisibility));
+          visibility = GetFallbackVisibility();
         }
-        SetVisibility(DeviceVisibility(visibility));
+        SetVisibility(visibility);
       });
 }
 
@@ -363,8 +359,16 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
     preference_manager_.SetInteger(
         prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
         absl::ToUnixSeconds(fallback_visibility_timestamp));
+    SetFallbackVisibility(last_visibility);
     StartVisibilityTimer(expiration);
   } else {
+    // Since our UI provides the option to go back to temporary everyone mode,
+    // we should only clear the fallback visibility when we are not in everyone
+    // mode. Once we fall back to a non-everyone mode visibility, we should
+    // clear the fallback visibility.
+    if (visibility != DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
+      SetFallbackVisibility(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+    }
     preference_manager_.SetInteger(
         prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0);
   }
@@ -389,8 +393,7 @@ proto::DeviceVisibility NearbyShareSettings::GetLastVisibility() const {
 DeviceVisibility NearbyShareSettings::GetFallbackVisibility() const {
   MutexLock lock(&mutex_);
   NL_VLOG(1) << __func__ << ": get fallback visibility called.";
-  return fallback_visibility_.has_value() ? *fallback_visibility_
-                                          : prefs::kDefaultFallbackVisibility;
+  return fallback_visibility_.value_or(prefs::kDefaultFallbackVisibility);
 }
 
 void NearbyShareSettings::SetFallbackVisibility(

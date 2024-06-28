@@ -4036,11 +4036,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
         is_temporarily_visible) {
       settings_->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
     }
-
-    // There is no valid fallback visibility when logged out until we support
-    // "off" as an option.
-    settings_->SetFallbackVisibility(
-        DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
     prefs::RegisterNearbySharingPrefs(preference_manager_,
                                       /*skip_persistent_ones=*/true);
 

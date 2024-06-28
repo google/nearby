@@ -179,7 +179,6 @@ class NearbyShareSettings
   absl::Time GetLastVisibilityTimestamp() const;
   proto::DeviceVisibility GetLastVisibility() const;
 
-  proto::DeviceVisibility GetFallbackVisibility() const;
   bool GetIsTemporarilyVisible() const;
   void SetIsTemporarilyVisible(bool is_temporarily_visible) const;
   bool IsOnboardingComplete() const;
@@ -208,10 +207,17 @@ class NearbyShareSettings
                      std::function<void(DeviceNameValidationResult)> callback);
   void GetDataUsage(std::function<void(proto::DataUsage)> callback);
   void SetDataUsage(proto::DataUsage data_usage);
+  proto::DeviceVisibility GetFallbackVisibility() const;
   void GetVisibility(std::function<void(proto::DeviceVisibility)> callback);
+  // Sets the visibility for the Nearby Sharing service. If the expiration is
+  // not zero, the visibility will be set temporarily and a fallback will be
+  // set. If the expiration is zero, the visibility will be set permanently.
+  // Note: When transitioning between temporary and permanent everyone mode
+  // visibility, the fallback visibility will not be cleared. However, when the
+  // temporary timer expires, the fallback visibility will be restored and
+  // cleared.
   void SetVisibility(proto::DeviceVisibility visibility,
                      absl::Duration expiration = absl::ZeroDuration()) const;
-  void SetFallbackVisibility(proto::DeviceVisibility visibility) const;
   bool GetIsReceiving();
   void SetIsReceiving(bool is_receiving) const;
   bool GetIsAnalyticsEnabled();
@@ -230,6 +236,7 @@ class NearbyShareSettings
   std::string Dump() const;
 
  private:
+  void SetFallbackVisibility(proto::DeviceVisibility visibility) const;
   void OnEnabledPrefChanged();
   void OnFastInitiationNotificationStatePrefChanged();
   void OnDataUsagePrefChanged();
