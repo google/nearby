@@ -447,9 +447,6 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void SetIsEnabled(bool is_enabled) {
-    if (is_enabled) {
-      service_->GetSettings()->SetIsOnboardingComplete(is_enabled, []() {});
-    }
     service_->GetSettings()->SetEnabled(is_enabled);
     FlushTesting();
   }
@@ -4827,100 +4824,6 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   // data collection flag is not reset on logout.
   EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
   EXPECT_FALSE(service_->GetAccountManager()->GetCurrentAccount().has_value());
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       VisibilityShouldSetAsAllContactsAfterLoginSuccessDuringOnBoarding) {
-  SetConnectionType(ConnectionType::kWifi);
-
-  service_->GetSettings()->SetIsOnboardingComplete(false, []() {});
-  service_->GetSettings()->SetVisibility(
-      DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
-
-  EXPECT_EQ(service_->GetSettings()->GetVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
-
-  // Create account.
-  ::nearby::AccountManager::Account account;
-  account.id = kTestAccountId;
-
-  // Login user.
-  absl::Notification login_notification;
-  account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-
-  EXPECT_EQ(service_->GetSettings()->GetVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-}
-
-TEST_F(NearbySharingServiceImplTest, LogoutShouldNotResetOnboarding) {
-  SetConnectionType(ConnectionType::kWifi);
-
-  // Used to check whether the setting is cleared after login.
-  service_->GetSettings()->SetIsOnboardingComplete(false, []() {});
-
-  // Create account.
-  ::nearby::AccountManager::Account account;
-  account.id = kTestAccountId;
-
-  // Login user.
-  absl::Notification login_notification;
-  account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_FALSE(service_->GetSettings()->IsOnboardingComplete());
-
-  // Logout user.
-  absl::Notification logout_notification;
-  service_->GetAccountManager()->Logout([&](absl::Status status) {
-    EXPECT_TRUE(status.ok());
-    logout_notification.Notify();
-  });
-  EXPECT_TRUE(logout_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_FALSE(service_->GetSettings()->IsOnboardingComplete());
-
-  // Complete onboarding.
-  service_->GetSettings()->SetIsOnboardingComplete(true, []() {});
-
-  // Login user.
-  absl::Notification login2_notification;
-  account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login2_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login2_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_TRUE(service_->GetSettings()->IsOnboardingComplete());
-
-  // Logout user.
-  absl::Notification logout2_notification;
-  service_->GetAccountManager()->Logout([&](absl::Status status) {
-    EXPECT_TRUE(status.ok());
-    logout2_notification.Notify();
-  });
-  EXPECT_TRUE(
-      logout2_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_TRUE(service_->GetSettings()->IsOnboardingComplete());
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
