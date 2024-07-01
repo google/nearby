@@ -179,7 +179,6 @@ class NearbyShareSettings
   absl::Time GetLastVisibilityTimestamp() const;
   proto::DeviceVisibility GetLastVisibility() const;
 
-  bool GetIsTemporarilyVisible() const;
   bool IsOnboardingComplete() const;
   std::string GetCustomSavePath() const;
 
@@ -237,6 +236,7 @@ class NearbyShareSettings
   std::string Dump() const;
 
  private:
+  bool GetIsTemporarilyVisible() const;
   void SetFallbackVisibility(proto::DeviceVisibility visibility) const;
   void OnEnabledPrefChanged();
   void OnFastInitiationNotificationStatePrefChanged();

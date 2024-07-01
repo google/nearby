@@ -483,14 +483,18 @@ TEST_F(NearbyShareSettingsTest,
 TEST_F(NearbyShareSettingsTest, TemporaryVisibilityIsCorrect) {
   // Set our initial visibility to self share.
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
-  // Verify that the visibility is not temporary.
-  EXPECT_FALSE(settings()->GetIsTemporarilyVisible());
+  // Verify that the visibility is not temporary via absence of fallback
+  // visibility.
+  EXPECT_EQ(settings()->GetFallbackVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
   // Transition to temporary everyone mode.
   settings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
-  // Verify that the visibility is temporary.
-  EXPECT_TRUE(settings()->GetIsTemporarilyVisible());
+  // Verify that the visibility is temporary via fallback visibility being
+  // present.
+  EXPECT_EQ(settings()->GetFallbackVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
 }
 
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
