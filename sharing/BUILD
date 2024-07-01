@@ -168,6 +168,19 @@ cc_library(
 )
 
 cc_library(
+    name = "thread_timer",
+    srcs = ["thread_timer.cc"],
+    hdrs = ["thread_timer.h"],
+    deps = [
+        "//internal/platform:types",
+        "//sharing/internal/public:logging",
+        "@com_google_absl//absl/debugging:leak_check",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "share_session",
     srcs = [
         "incoming_share_session.cc",
@@ -263,6 +276,7 @@ cc_library(
         ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
         ":share_session",
+        ":thread_timer",
         ":transfer_metadata",
         ":types",
         "//connections:core",
@@ -336,6 +350,7 @@ cc_library(
         ":transfer_metadata",
         ":types",
         "//internal/base",
+        "//internal/platform:types",
         "//sharing/common:enum",
         "//sharing/internal/api:platform",
         "//sharing/internal/public:logging",
@@ -788,6 +803,20 @@ cc_test(
         "//third_party/protobuf",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "thread_timer_test",
+    srcs = ["thread_timer_test.cc"],
+    deps = [
+        ":thread_timer",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/test",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

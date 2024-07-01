@@ -84,7 +84,7 @@ class FakeBluetoothAdapter : public sharing::api::BluetoothAdapter {
 
   std::optional<std::array<uint8_t, 6>> GetAddress() const override {
     std::array<uint8_t, 6> output;
-    if (device::ParseBluetoothAddress(
+    if (mac_address_.has_value() && device::ParseBluetoothAddress(
             mac_address_.value(),
             absl::MakeSpan(output.data(), output.size()))) {
       return output;
