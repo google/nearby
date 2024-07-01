@@ -425,7 +425,7 @@ TEST_F(NearbyShareSettingsTest,
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
   // Fast forward to the expiration time.
-  FastForward(absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
+  FastForward(absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds + 1));
   // Verify that the visibility has expired and we are back to self share.
   EXPECT_EQ(settings()->GetVisibility(),
             DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
@@ -469,10 +469,15 @@ TEST_F(NearbyShareSettingsTest,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
   // Transition to permanent everyone mode.
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
-  // Verify that the fallback visibility is intact, since we can go back to
-  // temporary.
+  // Verify that the saved fallback visibility is intact, since we can go back
+  // to temporary.
+  EXPECT_EQ(preference_manager_.GetInteger(
+                prefs::kNearbySharingBackgroundFallbackVisibilityName,
+                prefs::kDefaultFallbackVisibility),
+            static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
+  // Verify that the fallback visibility is unspecified.
   EXPECT_EQ(settings()->GetFallbackVisibility(),
-            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+            DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
 }
 
 TEST_F(NearbyShareSettingsTest, TemporaryVisibilityIsCorrect) {

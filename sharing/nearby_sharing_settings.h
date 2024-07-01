@@ -206,6 +206,8 @@ class NearbyShareSettings
                      std::function<void(DeviceNameValidationResult)> callback);
   void GetDataUsage(std::function<void(proto::DataUsage)> callback);
   void SetDataUsage(proto::DataUsage data_usage);
+  // Returns the fallback visibility if the current visibility is temporary,
+  // otherwise returning |DEVICE_VISIBILITY_UNSPECIFIED|.
   proto::DeviceVisibility GetFallbackVisibility() const;
   void GetVisibility(std::function<void(proto::DeviceVisibility)> callback);
   // Sets the visibility for the Nearby Sharing service. If the expiration is

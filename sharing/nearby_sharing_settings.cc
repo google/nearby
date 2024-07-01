@@ -162,8 +162,11 @@ void NearbyShareSettings::StartVisibilityTimer(
         proto::DeviceVisibility visibility;
         {
           MutexLock lock(&mutex_);
-          visibility_expiration_timer_->Stop();
+          // We stop the timer after reading the fallback visibility, so
+          // GetFallbackVisibility() will return the persisted fallback
+          // visibility value instead of UNSPECIFIED.
           visibility = GetFallbackVisibility();
+          visibility_expiration_timer_->Stop();
         }
         SetVisibility(visibility);
       });
@@ -393,7 +396,10 @@ proto::DeviceVisibility NearbyShareSettings::GetLastVisibility() const {
 DeviceVisibility NearbyShareSettings::GetFallbackVisibility() const {
   MutexLock lock(&mutex_);
   NL_VLOG(1) << __func__ << ": get fallback visibility called.";
-  return fallback_visibility_.value_or(prefs::kDefaultFallbackVisibility);
+  if (GetIsTemporarilyVisible()) {
+    return fallback_visibility_.value_or(prefs::kDefaultFallbackVisibility);
+  }
+  return DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
 }
 
 void NearbyShareSettings::SetFallbackVisibility(
