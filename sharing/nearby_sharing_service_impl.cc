@@ -4053,14 +4053,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
     settings_->OnLocalDeviceDataChanged(/*did_device_name_change=*/true,
                                         /*did_full_name_change=*/false,
                                         /*did_icon_url_change=*/false);
-    // Set default visibility to kAllContacts if logged-in and onboarding.
-    if (!settings_->IsOnboardingComplete()) {
-      NL_LOG(INFO) << __func__
-                   << ": Set visibility to kAllContacts since user is "
-                      "logged-in during onboarding";
-      settings_->SetVisibility(
-          DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-    }
   }
 
   // Start services again.
