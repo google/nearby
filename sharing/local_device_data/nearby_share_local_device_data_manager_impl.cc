@@ -249,7 +249,8 @@ void NearbyShareLocalDeviceDataManagerImpl::DownloadDeviceData() {
             HandleUpdateDeviceResponse(*response);
           } else {
             NL_LOG(WARNING)
-                << "DownloadDeviceData: Failed to get response from backend.";
+                << "DownloadDeviceData: Failed to get response from backend: "
+                << response.status();
           }
 
           download_device_data_scheduler_->HandleResult(
@@ -289,6 +290,11 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
         nearby_share_client_->UpdateDevice(
             request, [callback = std::move(callback)](
                          const absl::StatusOr<UpdateDeviceResponse>& response) {
+              if (!response.ok()) {
+                NL_LOG(WARNING)
+                    << "UploadContacts: Failed to get response from backend: "
+                    << response.status();
+              }
               callback(/*success=*/response.ok());
             });
       });
@@ -334,7 +340,11 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
             callback(false);
             return;
           }
-
+          if (!response.ok()) {
+            NL_LOG(WARNING)
+                << "UploadCertificates: Failed to get response from backend: "
+                << response.status();
+          }
           callback(/*success=*/response.ok());
         });
   });

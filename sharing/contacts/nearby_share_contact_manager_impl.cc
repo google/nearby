@@ -17,7 +17,6 @@
 #include <stdint.h>
 
 #include <algorithm>
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <set>
@@ -208,7 +207,8 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
       [this](
           const absl::StatusOr<ListContactPeopleResponse>& response) mutable {
         if (!response.ok()) {
-          NL_LOG(ERROR) << __func__ << ": Failed to download contacts.";
+          NL_LOG(WARNING) << __func__ << ": Failed to download contacts: "
+                          << response.status();
           std::move(download_callback_)(
               response.status(), /*num_unreachable_contacts_filtered_out=*/0);
           return;
