@@ -56,7 +56,7 @@ BluetoothClassic::BluetoothClassic(
 
 BluetoothClassic::~BluetoothClassic() {
   // Destructor is not taking locks, but methods it is calling are.
-  StopDiscovery();
+  StopAllDiscovery();
   while (!server_sockets_.empty()) {
     StopAcceptingConnections(server_sockets_.begin()->first);
   }
@@ -197,8 +197,14 @@ bool BluetoothClassic::RestoreDeviceName() {
   return true;
 }
 
-bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
+bool BluetoothClassic::StartDiscovery(const std::string& serviceId,
+                                      DiscoveredDeviceCallback callback) {
   MutexLock lock(&mutex_);
+
+  if (serviceId.empty()) {
+    NEARBY_LOGS(INFO) << "Refusing to start discovery; service ID is empty.";
+    return false;
+  }
 
   if (!radio_.IsEnabled()) {
     NEARBY_LOGS(INFO) << "Can't discover BT devices because BT isn't enabled.";
@@ -211,17 +217,51 @@ bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
     return false;
   }
 
-  if (IsDiscoveringLocked()) {
+  if (IsDiscoveringLocked(serviceId)) {
     NEARBY_LOGS(INFO)
         << "Refusing to start discovery of BT devices because another "
-           "discovery is already in-progress.";
+           "discovery is already in-progress for service_id="
+        << serviceId;
     return false;
   }
 
-  if (!medium_->StartDiscovery(std::move(callback))) {
-    NEARBY_LOGS(INFO) << "Failed to start discovery of BT devices.";
-    return false;
+  if (!HasDiscoveryCallbacks()) {
+    BluetoothClassicMedium::DiscoveryCallback medium_callback{
+        .device_discovered_cb =
+            [this](BluetoothDevice& device) {
+              MutexLock lock(&discovery_callbacks_mutex_);
+              for (auto& [service_id, callback] : discovery_callbacks_) {
+                if (callback.device_discovered_cb) {
+                  callback.device_discovered_cb(device);
+                }
+              }
+            },
+        .device_name_changed_cb =
+            [this](BluetoothDevice& device) {
+              MutexLock lock(&discovery_callbacks_mutex_);
+              for (auto& [service_id, callback] : discovery_callbacks_) {
+                if (callback.device_name_changed_cb) {
+                  callback.device_name_changed_cb(device);
+                }
+              }
+            },
+        .device_lost_cb =
+            [this](BluetoothDevice& device) {
+              MutexLock lock(&discovery_callbacks_mutex_);
+              for (auto& [service_id, callback] : discovery_callbacks_) {
+                if (callback.device_lost_cb) {
+                  callback.device_lost_cb(device);
+                }
+              }
+            }};
+
+    if (!medium_->StartDiscovery(std::move(medium_callback))) {
+      NEARBY_LOGS(INFO) << "Failed to start discovery of BT devices.";
+      return false;
+    }
   }
+
+  AddDiscoveryCallback(serviceId, std::move(callback));
 
   // Mark the fact that we're currently performing a Bluetooth scan.
   scan_info_.valid = true;
@@ -229,25 +269,42 @@ bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
   return true;
 }
 
-bool BluetoothClassic::StopDiscovery() {
+bool BluetoothClassic::StopDiscovery(const std::string& serviceId) {
   MutexLock lock(&mutex_);
 
-  if (!IsDiscoveringLocked()) {
+  if (!IsDiscoveringLocked(serviceId)) {
     NEARBY_LOGS(INFO)
         << "Can't stop discovery of BT devices because it never started.";
     return false;
   }
 
-  if (!medium_->StopDiscovery()) {
-    NEARBY_LOGS(INFO) << "Failed to stop discovery of Bluetooth devices.";
-    return false;
-  }
+  RemoveDiscoveryCallback(serviceId);
 
-  scan_info_.valid = false;
+  if (!HasDiscoveryCallbacks()) {
+    if (!medium_->StopDiscovery()) {
+      NEARBY_LOGS(INFO) << "Failed to stop discovery of Bluetooth devices.";
+      return false;
+    }
+
+    scan_info_.valid = false;
+  }
   return true;
 }
 
-bool BluetoothClassic::IsDiscoveringLocked() const { return scan_info_.valid; }
+bool BluetoothClassic::IsDiscoveringLocked(const std::string& serviceId) const {
+  MutexLock lock(&discovery_callbacks_mutex_);
+  return scan_info_.valid && discovery_callbacks_.contains(serviceId);
+}
+
+void BluetoothClassic::StopAllDiscovery() {
+  MutexLock lock(&mutex_);
+  if (!medium_->StopDiscovery()) {
+    NEARBY_LOGS(INFO) << "Failed to stop discovery of Bluetooth devices.";
+  }
+
+  RemoveAllDiscoveryCallbacks();
+  scan_info_.valid = false;
+}
 
 bool BluetoothClassic::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
@@ -292,8 +349,8 @@ bool BluetoothClassic::StartAcceptingConnections(
       server_sockets_.emplace(service_id, std::move(socket)).first->second;
 
   // Start the accept loop on a dedicated thread - this stays alive and
-  // listening for new incoming connections until StopAcceptingConnections() is
-  // invoked.
+  // listening for new incoming connections until StopAcceptingConnections()
+  // is invoked.
   accept_loops_runner_.Execute(
       "bt-accept",
       [callback = std::move(callback), server_socket = std::move(owned_socket),
@@ -341,9 +398,9 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
   }
 
   // Closing the BluetoothServerSocket will kick off the suicide of the thread
-  // in accept_loops_thread_pool_ that blocks on BluetoothServerSocket.accept().
-  // That may take some time to complete, but there's no particular reason to
-  // wait around for it.
+  // in accept_loops_thread_pool_ that blocks on
+  // BluetoothServerSocket.accept(). That may take some time to complete, but
+  // there's no particular reason to wait around for it.
   auto item = server_sockets_.extract(it);
 
   // Store a handle to the BluetoothServerSocket, so we can use it after
@@ -401,7 +458,8 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "BluetoothClassic::Connect: service_id=" << service_id
                     << ", device=" << &bluetooth_device;
-  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  // Socket to return. To allow for NRVO to work, it has to be a single
+  // object.
   BluetoothSocket socket;
 
   if (service_id.empty()) {
@@ -437,6 +495,28 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   return socket;
 }
 
+bool BluetoothClassic::HasDiscoveryCallbacks() const {
+  MutexLock lock(&discovery_callbacks_mutex_);
+  return !discovery_callbacks_.empty();
+}
+
+void BluetoothClassic::RemoveDiscoveryCallback(const std::string& service_id) {
+  MutexLock lock(&discovery_callbacks_mutex_);
+  if (discovery_callbacks_.contains(service_id)) {
+    discovery_callbacks_.erase(service_id);
+  }
+}
+void BluetoothClassic::AddDiscoveryCallback(const std::string& service_id,
+                                            DiscoveredDeviceCallback callback) {
+  MutexLock lock(&discovery_callbacks_mutex_);
+  discovery_callbacks_.insert({service_id, std::move(callback)});
+}
+
+void BluetoothClassic::RemoveAllDiscoveryCallbacks() {
+  MutexLock lock(&discovery_callbacks_mutex_);
+  discovery_callbacks_.clear();
+}
+
 BluetoothDevice BluetoothClassic::GetRemoteDevice(
     const std::string& mac_address) {
   MutexLock lock(&mutex_);
@@ -448,9 +528,9 @@ BluetoothDevice BluetoothClassic::GetRemoteDevice(
   return medium_->GetRemoteDevice(mac_address);
 }
 
-bool BluetoothClassic::IsDiscovering() const {
+bool BluetoothClassic::IsDiscovering(const std::string& serviceId) const {
   MutexLock lock(&mutex_);
-  return IsDiscoveringLocked();
+  return IsDiscoveringLocked(serviceId);
   ;
 }
 

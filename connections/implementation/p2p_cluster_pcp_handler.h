@@ -300,7 +300,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   WifiDirect& wifi_direct_medium_;
   mediums::WebRtc& webrtc_medium_;
   InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
-  std::int64_t bluetooth_classic_discoverer_client_id_{0};
+  // Maintains a map of client_id to service_id for bluetooth classic
+  // discoverer.
+  absl::flat_hash_map<std::int64_t, std::string>
+      bluetooth_classic_client_id_to_service_id_map_;
   std::int64_t bluetooth_classic_advertiser_client_id_{0};
 
   // Maps a BlePeripheral to its corresponding BleEndpointState.

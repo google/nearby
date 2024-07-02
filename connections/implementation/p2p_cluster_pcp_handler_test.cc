@@ -483,7 +483,7 @@ TEST_P(P2pClusterPcpHandlerTest, PauseBluetoothClassicDiscovery) {
       Status{Status::kSuccess});
 
   EXPECT_TRUE(mediums_a.GetBleV2().IsScanning(service_id_));
-  EXPECT_FALSE(mediums_a.GetBluetoothClassic().IsDiscovering());
+  EXPECT_FALSE(mediums_a.GetBluetoothClassic().IsDiscovering(service_id_));
   // Before we finish the test, we have to stop discovery for other mediums that
   // may be still ongoing.
   handler_a.StopDiscovery(&client_a_);
@@ -535,7 +535,7 @@ TEST_P(P2pClusterPcpHandlerTest, ResumeBluetoothClassicDiscovery) {
             Status{Status::kSuccess});
 
   EXPECT_TRUE(mediums_a.GetBleV2().IsScanning(service_id_));
-  EXPECT_FALSE(mediums_a.GetBluetoothClassic().IsDiscovering());
+  EXPECT_FALSE(mediums_a.GetBluetoothClassic().IsDiscovering(service_id_));
 
   EXPECT_EQ(
       handler_b.StartAdvertising(&client_b_, service_id_, advertising_options_,
@@ -546,7 +546,7 @@ TEST_P(P2pClusterPcpHandlerTest, ResumeBluetoothClassicDiscovery) {
   absl::SleepFor(absl::Milliseconds(100));
 
   EXPECT_TRUE(mediums_a.GetBleV2().IsScanning(service_id_));
-  EXPECT_TRUE(mediums_a.GetBluetoothClassic().IsDiscovering());
+  EXPECT_TRUE(mediums_a.GetBluetoothClassic().IsDiscovering(service_id_));
 
   // Before we finish the test, we have to stop discovery for other mediums that
   // may be still ongoing.
@@ -724,7 +724,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptionsNoLowPower) {
   EXPECT_EQ(old_enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   EXPECT_EQ(old_enabled.bluetooth,
-            mediums_a.GetBluetoothClassic().StopDiscovery());
+            mediums_a.GetBluetoothClassic().StopDiscovery(service_id_));
   NEARBY_LOGS(INFO) << "started discovery";
   // Update discovery options
   EXPECT_TRUE(
@@ -739,7 +739,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptionsNoLowPower) {
   EXPECT_EQ(new_enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   EXPECT_EQ(new_enabled.bluetooth,
-            mediums_a.GetBluetoothClassic().StopDiscovery());
+            mediums_a.GetBluetoothClassic().StopDiscovery(service_id_));
   handler_a.StopDiscovery(&client_a_);
   env_.Stop();
 }
@@ -777,7 +777,8 @@ TEST_P(P2pClusterPcpHandlerTest, UpdateDiscoveryOptionsSkipMediumRestart) {
   }
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
-  EXPECT_EQ(enabled.bluetooth, mediums_a.GetBluetoothClassic().StopDiscovery());
+  EXPECT_EQ(enabled.bluetooth,
+            mediums_a.GetBluetoothClassic().StopDiscovery(service_id_));
   // Update discovery options
   auto result = handler_a.UpdateDiscoveryOptions(&client_a_, service_id_,
                                                  discovery_options_);
@@ -791,7 +792,7 @@ TEST_P(P2pClusterPcpHandlerTest, UpdateDiscoveryOptionsSkipMediumRestart) {
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   // We didn't restart the medium.
-  EXPECT_FALSE(mediums_a.GetBluetoothClassic().StopDiscovery());
+  EXPECT_FALSE(mediums_a.GetBluetoothClassic().StopDiscovery(service_id_));
   handler_a.StopDiscovery(&client_a_);
   env_.Stop();
 }
