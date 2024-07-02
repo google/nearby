@@ -23,6 +23,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
 
 namespace nearby {
@@ -30,7 +31,7 @@ namespace sharing {
 
 class FakeNearbyConnection : public NearbyConnection {
  public:
-  FakeNearbyConnection();
+  explicit FakeNearbyConnection(TaskRunner* task_runner = nullptr);
   ~FakeNearbyConnection() override;
 
   // NearbyConnection:
@@ -54,6 +55,7 @@ class FakeNearbyConnection : public NearbyConnection {
 
   bool closed_ = false;
 
+  TaskRunner* const task_runner_;
   absl::Mutex read_mutex_;
   bool has_read_callback_been_run_ ABSL_GUARDED_BY(read_mutex_) = false;
   ReadCallback callback_ ABSL_GUARDED_BY(read_mutex_);
