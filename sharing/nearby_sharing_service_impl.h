@@ -40,7 +40,6 @@
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
-#include "internal/platform/timer.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -77,6 +76,7 @@
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
+#include "sharing/thread_timer.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_update_callback.h"
 #include "sharing/wrapped_share_target_discovered_callback.h"
@@ -333,7 +333,7 @@ class NearbySharingServiceImpl
 
   void Fail(int64_t share_target_id, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
-      absl::string_view endpoint_id, const IncomingShareSession& session,
+      absl::string_view endpoint_id, IncomingShareSession& session,
       std::unique_ptr<Advertisement> advertisement);
   void OnIncomingTransferUpdate(const IncomingShareSession& session,
                                 const TransferMetadata& metadata);
@@ -374,9 +374,6 @@ class NearbySharingServiceImpl
 
   void OnConnectionDisconnected(int64_t share_target_id);
 
-  void OnIncomingMutualAcceptanceTimeout(int64_t share_target_id);
-  void OnOutgoingMutualAcceptanceTimeout(int64_t share_target_id);
-
   void Cleanup();
 
   std::optional<ShareTarget> CreateShareTarget(
@@ -388,7 +385,6 @@ class NearbySharingServiceImpl
                                TransferMetadata metadata);
   void RemoveIncomingPayloads(const IncomingShareSession& session);
   void Disconnect(int64_t share_target_id, TransferMetadata metadata);
-  void OnDisconnectingConnectionTimeout(absl::string_view endpoint_id);
 
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
@@ -420,8 +416,8 @@ class NearbySharingServiceImpl
       std::function<void(StatusCodes status_codes)> status_codes_callback,
       bool is_initiator_of_cancellation);
 
-  void AbortAndCloseConnectionIfNecessary(TransferMetadata::Status status,
-                                          int64_t share_target_id);
+  void AbortAndCloseConnectionIfNecessary(ShareSession& session,
+                                          TransferMetadata::Status status);
 
   // Monitor connectivity changes.
   void OnNetworkChanged(nearby::ConnectivityManager::ConnectionType type);
@@ -497,9 +493,8 @@ class NearbySharingServiceImpl
   std::unique_ptr<NearbySharingServiceExtension> service_extension_;
   NearbyFileHandler file_handler_;
   bool is_screen_locked_ = false;
-  std::unique_ptr<Timer> rotate_background_advertisement_timer_;
-  std::unique_ptr<Timer> certificate_download_during_discovery_timer_;
-  std::unique_ptr<Timer> process_shutdown_pending_timer_;
+  std::unique_ptr<ThreadTimer> rotate_background_advertisement_timer_;
+  std::unique_ptr<ThreadTimer> certificate_download_during_discovery_timer_;
 
   // A list of service observers.
   ObserverList<NearbySharingService::Observer> observers_;
@@ -558,11 +553,11 @@ class NearbySharingServiceImpl
 
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.
-  std::unique_ptr<Timer> mutual_acceptance_timeout_alarm_;
+  std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_alarm_;
 
   // A map of ShareTarget id to disconnection timeout callback. Used to only
   // disconnect after a timeout to keep sending any pending payloads.
-  absl::flat_hash_map<std::string, std::unique_ptr<Timer>>
+  absl::flat_hash_map<std::string, std::unique_ptr<ThreadTimer>>
       disconnection_timeout_alarms_;
 
   // The current advertising power level. PowerLevel::kUnknown while not
@@ -589,14 +584,13 @@ class NearbySharingServiceImpl
   // the time between an incoming share being accepted and the first payload
   // byte being processed.
   absl::Time incoming_share_accepted_timestamp_;
-  std::unique_ptr<Timer> clear_recent_nearby_process_shutdown_count_timer_;
 
   // Used to debounce OnNetworkChanged processing.
-  std::unique_ptr<Timer> on_network_changed_delay_timer_;
+  std::unique_ptr<ThreadTimer> on_network_changed_delay_timer_;
 
   // Used to prevent the "Device nearby is sharing" notification from appearing
   // immediately after a completed share.
-  std::unique_ptr<Timer> fast_initiation_scanner_cooldown_timer_;
+  std::unique_ptr<ThreadTimer> fast_initiation_scanner_cooldown_timer_;
 
   // A queue of endpoint-discovered and endpoint-lost events that ensures the
   // events are processed sequentially, in the order received from Nearby

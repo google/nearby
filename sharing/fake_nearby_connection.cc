@@ -23,12 +23,14 @@
 #include <vector>
 
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 
 namespace nearby {
 namespace sharing {
-FakeNearbyConnection::FakeNearbyConnection() = default;
+FakeNearbyConnection::FakeNearbyConnection(TaskRunner* task_runner)
+    : task_runner_(task_runner) {}
 FakeNearbyConnection::~FakeNearbyConnection() = default;
 
 void FakeNearbyConnection::Read(ReadCallback callback) {
@@ -51,6 +53,15 @@ void FakeNearbyConnection::Close() {
   closed_ = true;
 
   {
+    if (task_runner_) {
+      task_runner_->PostTask([this]() {
+        absl::MutexLock lock(&disconnect_mutex_);
+        if (disconnect_listener_) {
+          std::move(disconnect_listener_)();
+        }
+      });
+      return;
+    }
     absl::MutexLock lock(&disconnect_mutex_);
     if (disconnect_listener_) {
       std::move(disconnect_listener_)();
