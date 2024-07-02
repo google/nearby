@@ -77,11 +77,166 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
 };
 
+class P2pClusterPcpHandlerTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    NEARBY_LOG(INFO, "SetUp: begin");
+    SetBleExtendedAdvertisementsAvailable(true);
+    SetDisableBluetoothClassicScanning(true);
+    SetBleV2Enabled(true);
+  }
+
+  void SetBleExtendedAdvertisementsAvailable(bool available) {
+    env_.SetBleExtendedAdvertisementsAvailable(false);
+  }
+
+  void SetDisableBluetoothClassicScanning(bool disable) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDisableBluetoothClassicScanning,
+        disable);
+  }
+
+  void SetBleV2Enabled(bool enabled) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleV2,
+        enabled);
+  }
+
+  AdvertisingOptions GetBluetoothOnlyAdvertisingOptions() {
+    return AdvertisingOptions{
+        {Strategy::kP2pCluster,
+         BooleanMediumSelector{
+             .bluetooth = true,
+         }},
+    };
+  }
+
+  AdvertisingOptions GetBluetoothAndBleAdvertisingOptions() {
+    return AdvertisingOptions{
+        {Strategy::kP2pCluster,
+         BooleanMediumSelector{
+             .bluetooth = true,
+             .ble = true,
+         }},
+    };
+  }
+
+  DiscoveryOptions GetBluetoothOnlyDiscoveryOptions() {
+    return DiscoveryOptions{
+        {Strategy::kP2pCluster,
+         BooleanMediumSelector{
+             .bluetooth = true,
+         }},
+    };
+  }
+
+  DiscoveryOptions GetBluetoothAndBleDiscoveryOptions() {
+    return DiscoveryOptions{
+        {Strategy::kP2pCluster,
+         BooleanMediumSelector{
+             .bluetooth = true,
+             .ble = true,
+         }},
+    };
+  }
+
+  ClientProxy client_a_;
+  ClientProxy client_b_;
+  ClientProxy client_c_;
+  std::string service_id_{"service"};
+  MediumEnvironment& env_{MediumEnvironment::Instance()};
+};
+
+TEST_F(P2pClusterPcpHandlerTest, NoBluetoothDiscoveryWhenRadioIsOff) {
+  env_.Start();
+  Mediums mediums;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(mediums, em, ecm, {}, {});
+  InjectedBluetoothDeviceStore ibds;
+  P2pClusterPcpHandler handler(&mediums, &em, &ecm, &bwu, ibds);
+  mediums.GetBluetoothRadio().Disable();
+  handler.StartDiscovery(&client_a_, service_id_,
+                         GetBluetoothOnlyDiscoveryOptions(), {});
+  EXPECT_FALSE(mediums.GetBluetoothClassic().IsDiscovering(service_id_));
+  handler.StopDiscovery(&client_a_);
+
+  handler.StartDiscovery(&client_a_, service_id_,
+                         GetBluetoothAndBleDiscoveryOptions(), {});
+  EXPECT_FALSE(mediums.GetBluetoothClassic().IsDiscovering(service_id_));
+  EXPECT_TRUE(mediums.GetBleV2().IsScanning(service_id_));
+
+  mediums.GetBluetoothRadio().Enable();
+  handler.StopDiscovery(&client_a_);
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothCanDiscoveryWhenBluetoothDiscoveryRunning) {
+  std::string endpoint_name{"endpoint_name"};
+
+  env_.Start();
+  // Enable BLE V2 extended advertisement for client_a_.
+  env_.SetBleExtendedAdvertisementsAvailable(true);
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  InjectedBluetoothDeviceStore ibds_a;
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  // Disable BLE V2 extended advertisement for client_b_.
+  env_.SetBleExtendedAdvertisementsAvailable(false);
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  CountDownLatch latch(1);
+
+  EXPECT_EQ(handler_a.StartDiscovery(&client_a_, service_id_,
+                                     GetBluetoothOnlyDiscoveryOptions(), {}),
+            Status{Status::kSuccess});
+
+  EXPECT_TRUE(mediums_a.GetBluetoothClassic().IsDiscovering(service_id_));
+
+  // Start another service discovery
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_c_, "new_service_id", GetBluetoothAndBleDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&latch](const std::string& endpoint_id,
+                           const ByteArray& endpoint_info,
+                           const std::string& service_id) {
+                    NEARBY_LOG(INFO, "Device discovered: id=%s",
+                               endpoint_id.c_str());
+                    latch.CountDown();
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Bluetooth discovery when found legacy device.
+  EXPECT_EQ(
+      handler_b.StartAdvertising(&client_b_, "new_service_id",
+                                 GetBluetoothAndBleAdvertisingOptions(),
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+
+  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+
+  handler_a.StopDiscovery(&client_a_);
+  env_.Stop();
+}
+
 // Combines the bool `kEnableBleV2` as param testing but should revert it back
 // if ble_v2 is done and ble will be replaced by ble_v2.
-class P2pClusterPcpHandlerTest
+class P2pClusterPcpHandlerTestWithParam
     : public testing::TestWithParam<
-          std::tuple<BooleanMediumSelector, bool, bool>> {
+          /*mediums=*/std::tuple<BooleanMediumSelector, /*ble_v2_enabled=*/bool,
+                                 /*disable_bluetooth_scanning*/ bool>> {
  protected:
   void SetUp() override {
     NEARBY_LOG(INFO, "SetUp: begin");
@@ -137,7 +292,7 @@ class P2pClusterPcpHandlerTest
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_P(P2pClusterPcpHandlerTest, CanConstructOne) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanConstructOne) {
   env_.Start();
   Mediums mediums;
   EndpointChannelManager ecm;
@@ -148,7 +303,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanConstructOne) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanConstructMultiple) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanConstructMultiple) {
   env_.Start();
   Mediums mediums_a;
   Mediums mediums_b;
@@ -165,7 +320,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanConstructMultiple) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanAdvertise) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -182,7 +337,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, AdvertiseForLegacyDeviceWithBt) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, AdvertiseForLegacyDeviceWithBt) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -210,7 +365,7 @@ TEST_P(P2pClusterPcpHandlerTest, AdvertiseForLegacyDeviceWithBt) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptions) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAdvertisingOptions) {
   bool ble_v2_enabled = std::get<1>(GetParam());
   if (!ble_v2_enabled) {
     // Just don't run the test if ble_v2 is disabled.
@@ -290,7 +445,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptions) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
+TEST_P(P2pClusterPcpHandlerTestWithParam,
+       CanUpdateAdvertisingOptionsNoLowPower) {
   bool ble_v2_enabled = std::get<1>(GetParam());
   if (!ble_v2_enabled) {
     // Just don't run the test if ble_v2 is disabled.
@@ -375,7 +531,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateAdvertisingOptionsNoLowPower) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscover) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -415,7 +571,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanDiscoverLegacy) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -460,7 +616,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscoverLegacy) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, PauseBluetoothClassicDiscovery) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, PauseBluetoothClassicDiscovery) {
   // Skip the case which not disable bluetooth scanning.
   if (!std::get<2>(GetParam()) || !std::get<1>(GetParam()) ||
       !advertising_options_.allowed.bluetooth ||
@@ -490,7 +646,7 @@ TEST_P(P2pClusterPcpHandlerTest, PauseBluetoothClassicDiscovery) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, ResumeBluetoothClassicDiscovery) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
   // Skip the case which not disable bluetooth scanning.
   if (!std::get<2>(GetParam()) || !std::get<1>(GetParam()) ||
       !advertising_options_.allowed.bluetooth ||
@@ -555,7 +711,7 @@ TEST_P(P2pClusterPcpHandlerTest, ResumeBluetoothClassicDiscovery) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanBluetoothDiscoverChangeName) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -637,7 +793,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanBluetoothDiscoverChangeName) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptions) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptions) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -682,7 +838,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptions) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptionsNoLowPower) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -744,7 +900,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanUpdateDiscoveryOptionsNoLowPower) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, UpdateDiscoveryOptionsSkipMediumRestart) {
+TEST_P(P2pClusterPcpHandlerTestWithParam,
+       UpdateDiscoveryOptionsSkipMediumRestart) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -797,7 +954,7 @@ TEST_P(P2pClusterPcpHandlerTest, UpdateDiscoveryOptionsSkipMediumRestart) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
   env_.Start();
   std::string endpoint_name_a{"endpoint_name"};
   Mediums mediums_a;
@@ -915,7 +1072,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanStartListeningForIncomingConnections) {
+TEST_P(P2pClusterPcpHandlerTestWithParam,
+       CanStartListeningForIncomingConnections) {
   env_.Start();
   std::string endpoint_name_a{"endpoint_name"};
   Mediums mediums_a;
@@ -968,7 +1126,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanStartListeningForIncomingConnections) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTest, CanStopListeningForIncomingConnections) {
+TEST_P(P2pClusterPcpHandlerTestWithParam,
+       CanStopListeningForIncomingConnections) {
   env_.Start();
   std::string endpoint_name_a{"endpoint_name"};
   Mediums mediums_a;
@@ -1020,10 +1179,11 @@ TEST_P(P2pClusterPcpHandlerTest, CanStopListeningForIncomingConnections) {
   env_.Stop();
 }
 
-INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTest,
-                         ::testing::Combine(::testing::ValuesIn(kTestCases),
-                                            ::testing::Bool(),
-                                            ::testing::Bool()));
+INSTANTIATE_TEST_SUITE_P(
+    ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTestWithParam,
+    ::testing::Combine(/*mediums=*/::testing::ValuesIn(kTestCases),
+                       /*ble_v2_enabled=*/::testing::Bool(),
+                       /*disable_bluetooth_scanning=*/::testing::Bool()));
 
 }  // namespace
 }  // namespace connections
