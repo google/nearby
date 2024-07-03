@@ -61,8 +61,8 @@ void ThreadTimer::Cancel() {
     if (run_cnt_->fetch_add(1) > 0) {
       // Timer has already fired, delete the run_cnt.
       delete run_cnt_;
-      run_cnt_ = nullptr;
     }
+    run_cnt_ = nullptr;
   }
 }
 
