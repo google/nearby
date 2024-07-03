@@ -47,7 +47,8 @@ class MockSharingPlatform : public SharingPlatform {
   MockSharingPlatform& operator=(const MockSharingPlatform&) = delete;
   ~MockSharingPlatform() override = default;
 
-  MOCK_METHOD(void, InitLogging, (), (override));
+  MOCK_METHOD(void, InitLogging, (absl::string_view log_file_base_name),
+              (override));
 
   MOCK_METHOD(void, UpdateLoggingLevel, (), (override));
 

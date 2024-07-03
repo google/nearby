@@ -46,7 +46,7 @@ class SharingPlatform {
   virtual ~SharingPlatform() = default;
 
   // This function should only be called once.
-  virtual void InitLogging() = 0;
+  virtual void InitLogging(absl::string_view log_file_base_name) = 0;
 
   // Platform specific implementation to set default logging levels.
   virtual void UpdateLoggingLevel() = 0;
