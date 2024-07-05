@@ -23,9 +23,7 @@ cc_library(
         "initial_data_provider.h",
         "server_socket.h",
     ],
-    visibility = [
-        "//connections:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:types",
         "//internal/weave",
