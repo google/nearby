@@ -1302,9 +1302,6 @@ void NearbySharingServiceImpl::OnSettingChanged(absl::string_view key,
     DeviceVisibility visibility =
         static_cast<DeviceVisibility>(data.value.as_int64);
     OnVisibilityChanged(visibility);
-  } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
-    bool is_complete = data.value.as_bool;
-    OnIsOnboardingCompleteChanged(is_complete);
   }
 }
 
@@ -1337,13 +1334,6 @@ void NearbySharingServiceImpl::OnVisibilityChanged(
                      << DeviceVisibility_Name(visibility);
         StopAdvertisingAndInvalidateSurfaceState();
       });
-}
-
-void NearbySharingServiceImpl::OnIsOnboardingCompleteChanged(bool is_complete) {
-  // Log the event to analytics when is_complete is true.
-  if (is_complete) {
-    analytics_recorder_->NewAcceptAgreements();
-  }
 }
 
 // NearbyShareCertificateManager::Observer:

@@ -210,7 +210,6 @@ class NearbySharingServiceImpl
   void OnCustomSavePathChanged(absl::string_view custom_save_path);
   void OnVisibilityChanged(proto::DeviceVisibility visibility);
   void OnAllowedContactsChanged(absl::Span<const std::string> allowed_contacts);
-  void OnIsOnboardingCompleteChanged(bool is_complete);
 
   // NearbyShareCertificateManager::Observer:
   void OnPublicCertificatesDownloaded() override;
