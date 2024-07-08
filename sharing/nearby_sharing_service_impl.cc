@@ -264,12 +264,9 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   NL_LOG(INFO) << __func__ << ": Set custom save path: " << custom_save_path;
   nearby_connections_manager_->SetCustomSavePath(custom_save_path);
 
-  if (settings_->GetEnabled()) {
-    local_device_data_manager_->Start();
-    contact_manager_->Start();
-    certificate_manager_->Start();
-  }
-
+  local_device_data_manager_->Start();
+  contact_manager_->Start();
+  certificate_manager_->Start();
   update_file_paths_in_progress_ = false;
 
   SetupBluetoothAdapter();
@@ -313,11 +310,9 @@ void NearbySharingServiceImpl::Shutdown(
 
         settings_->RemoveSettingsObserver(this);
 
-        if (settings_->GetEnabled()) {
-          local_device_data_manager_->Stop();
-          contact_manager_->Stop();
-          certificate_manager_->Stop();
-        }
+        local_device_data_manager_->Stop();
+        contact_manager_->Stop();
+        certificate_manager_->Stop();
 
         is_shutting_down_ = nullptr;
         std::move(status_codes_callback)(StatusCodes::kOk);
@@ -1297,10 +1292,7 @@ std::string NearbySharingServiceImpl::Dump() const {
 // Private methods for NearbyShareSettings::Observer.
 void NearbySharingServiceImpl::OnSettingChanged(absl::string_view key,
                                                 const Data& data) {
-  if (key == prefs::kNearbySharingEnabledName) {
-    bool enabled = data.value.as_bool;
-    OnEnabledChanged(enabled);
-  } else if (key == prefs::kNearbySharingDataUsageName) {
+  if (key == prefs::kNearbySharingDataUsageName) {
     DataUsage data_usage = static_cast<DataUsage>(data.value.as_int64);
     OnDataUsageChanged(data_usage);
   } else if (key == prefs::kNearbySharingCustomSavePath) {
@@ -1314,27 +1306,6 @@ void NearbySharingServiceImpl::OnSettingChanged(absl::string_view key,
     bool is_complete = data.value.as_bool;
     OnIsOnboardingCompleteChanged(is_complete);
   }
-}
-
-void NearbySharingServiceImpl::OnEnabledChanged(bool enabled) {
-  RunOnNearbySharingServiceThread("on_enabled_changed", [this, enabled]() {
-    if (enabled) {
-      NL_VLOG(1) << __func__ << ": Nearby sharing enabled!";
-      local_device_data_manager_->Start();
-      contact_manager_->Start();
-      certificate_manager_->Start();
-    } else {
-      NL_VLOG(1) << __func__ << ": Nearby sharing disabled!";
-      StopAdvertising();
-      StopScanning();
-      nearby_connections_manager_->Shutdown();
-      local_device_data_manager_->Stop();
-      contact_manager_->Stop();
-      certificate_manager_->Stop();
-    }
-
-    InvalidateSurfaceState();
-  });
 }
 
 void NearbySharingServiceImpl::OnDataUsageChanged(DataUsage data_usage) {
@@ -1956,14 +1927,6 @@ void NearbySharingServiceImpl::InvalidateScanningState() {
     return;
   }
 
-  // Nearby Sharing is disabled. Don't advertise.
-  if (!settings_->GetEnabled()) {
-    StopScanning();
-    NL_VLOG(1) << __func__
-               << ": Stopping discovery because Nearby Sharing is disabled.";
-    return;
-  }
-
   if (is_transferring_ || is_connecting_) {
     StopScanning();
     NL_VLOG(1)
@@ -2001,15 +1964,6 @@ void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
     NL_VLOG(1) << __func__
                << ": Stopping fast initiation advertising because "
                   "bluetooth is disabled due to powered off.";
-    return;
-  }
-
-  // Nearby Sharing is disabled. Don't advertise.
-  if (!settings_->GetEnabled()) {
-    StopFastInitiationAdvertising();
-    NL_VLOG(1) << __func__
-               << ": Stopping fast initiation advertising because Nearby "
-                  "Sharing is disabled.";
     return;
   }
 
@@ -2056,14 +2010,6 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
         << __func__
         << ": Stopping advertising because both bluetooth and wifi LAN are "
            "disabled.";
-    return;
-  }
-
-  // Nearby Sharing is disabled. Don't advertise.
-  if (!settings_->GetEnabled()) {
-    StopAdvertising();
-    NL_VLOG(1) << __func__
-               << ": Stopping advertising because Nearby Sharing is disabled.";
     return;
   }
 
@@ -2203,7 +2149,6 @@ void NearbySharingServiceImpl::StopAdvertising() {
 }
 
 void NearbySharingServiceImpl::StartScanning() {
-  NL_DCHECK(settings_->GetEnabled());
   NL_DCHECK(!is_screen_locked_);
   NL_DCHECK(HasAvailableConnectionMediums());
   NL_DCHECK(!foreground_send_surface_map_.empty());
@@ -2294,14 +2239,6 @@ void NearbySharingServiceImpl::InvalidateFastInitiationScanning() {
     NL_VLOG(1) << __func__
                << ": Stopping background scanning due to post-transfer "
                   "cooldown period";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  if (!settings_->GetEnabled()) {
-    NL_VLOG(1) << __func__
-               << ": Stopping background scanning because Nearby Sharing "
-                  "is disabled";
     StopFastInitiationScanning();
     return;
   }

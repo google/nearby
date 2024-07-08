@@ -166,7 +166,6 @@ class NearbyShareSettings
   ~NearbyShareSettings() override;
 
   // Internal synchronous getters for C++ clients
-  bool GetEnabled() const;
   proto::FastInitiationNotificationState GetFastInitiationNotificationState()
       const;
   bool is_fast_initiation_hardware_supported();
@@ -188,11 +187,9 @@ class NearbyShareSettings
   // Asynchronous APIs exposed by NearbyShareSettings
   void AddSettingsObserver(Observer* observer);
   void RemoveSettingsObserver(Observer* observer);
-  void GetEnabled(std::function<void(bool)> callback);
   void GetFastInitiationNotificationState(
       std::function<void(proto::FastInitiationNotificationState)> callback);
   void GetIsFastInitiationHardwareSupported(std::function<void(bool)> callback);
-  void SetEnabled(bool enabled);
   void SetFastInitiationNotificationState(
       proto::FastInitiationNotificationState state);
   void IsOnboardingComplete(std::function<void(bool)> callback);
@@ -249,12 +246,6 @@ class NearbyShareSettings
   void OnPreferenceChanged(absl::string_view key);
 
   void NotifyAllObservers(absl::string_view key, Observer::Data value)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // If the Nearby Share parent feature is toggled on then Fast Initiation
-  // notifications should be re-enabled unless the user explicitly disabled the
-  // notification sub-feature.
-  void ProcessFastInitiationNotificationParentPrefChanged(bool enabled)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void StartVisibilityTimer(absl::Duration expiration) const

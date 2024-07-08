@@ -434,8 +434,6 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   std::unique_ptr<NearbySharingServiceImpl> CreateService(
       std::unique_ptr<FakeTaskRunner> task_runner) {
-    preference_manager_.SetBoolean(prefs::kNearbySharingEnabledName, true);
-
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     return std::make_unique<NearbySharingServiceImpl>(
         /*vendor_id=*/0, std::move(task_runner), &fake_context_,
@@ -445,11 +443,6 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void SetVisibility(DeviceVisibility visibility) {
     service_->GetSettings()->SetVisibility(visibility);
-    FlushTesting();
-  }
-
-  void SetIsEnabled(bool is_enabled) {
-    service_->GetSettings()->SetEnabled(is_enabled);
     FlushTesting();
   }
 
@@ -1398,13 +1391,6 @@ class TestObserver : public NearbySharingService::Observer {
   AdapterState lan_state_ = AdapterState::INVALID;
 };
 
-TEST_F(NearbySharingServiceImplTest, DisableNearbyShutdownConnections) {
-  SetConnectionType(ConnectionType::kWifi);
-  preference_manager().SetBoolean(prefs::kNearbySharingEnabledName, false);
-  FlushTesting();
-  EXPECT_TRUE(fake_nearby_connections_manager_->is_shutdown());
-}
-
 TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertising) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
@@ -1533,21 +1519,6 @@ TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_StartAndStop) {
   SetBluetoothIsPowered(true);
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   EXPECT_EQ(fast_initiation->StartScanningCount(), 2);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       FastInitiationScanning_DisallowedBySettings) {
-  FakeNearbyFastInitiation* fast_initiation =
-      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 0);
-
-  SetIsEnabled(false);
-  SetConnectionType(ConnectionType::kBluetooth);
-
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
   EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
 }
 
@@ -1791,35 +1762,6 @@ TEST_P(NearbySharingServiceImplValidSendTest,
 INSTANTIATE_TEST_SUITE_P(NearbySharingServiceImplTest,
                          NearbySharingServiceImplValidSendTest,
                          testing::ValuesIn(kValidSendSurfaceTestData));
-
-TEST_F(NearbySharingServiceImplTest, DisableFeatureSendSurfaceNotDiscovering) {
-  preference_manager().SetBoolean(prefs::kNearbySharingEnabledName, false);
-  FlushTesting();
-  SetConnectionType(ConnectionType::kWifi);
-  MockTransferUpdateCallback transfer_callback;
-  MockShareTargetDiscoveredCallback discovery_callback;
-  EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
-                                SendSurfaceState::kForeground),
-            NearbySharingService::StatusCodes::kOk);
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsDiscovering());
-  EXPECT_TRUE(fake_nearby_connections_manager_->is_shutdown());
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       DisableFeatureSendSurfaceStopsDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
-  MockTransferUpdateCallback transfer_callback;
-  MockShareTargetDiscoveredCallback discovery_callback;
-  EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
-                                SendSurfaceState::kForeground),
-            NearbySharingService::StatusCodes::kOk);
-  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
-
-  preference_manager().SetBoolean(prefs::kNearbySharingEnabledName, false);
-  FlushTesting();
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsDiscovering());
-  EXPECT_TRUE(fake_nearby_connections_manager_->is_shutdown());
-}
 
 TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceStopsDiscovering) {
   SetConnectionType(ConnectionType::kWifi);
@@ -2234,35 +2176,6 @@ TEST_F(NearbySharingServiceImplTest,
             NearbySharingService::StatusCodes::kNoAvailableConnectionMedium);
   EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
   EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       DisableFeatureReceiveSurfaceNotAdvertising) {
-  preference_manager().SetBoolean(prefs::kNearbySharingEnabledName, false);
-  FlushTesting();
-  SetConnectionType(ConnectionType::kWifi);
-  MockTransferUpdateCallback callback;
-  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
-      &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
-  EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
-  EXPECT_TRUE(fake_nearby_connections_manager_->is_shutdown());
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       DisableFeatureReceiveSurfaceStopsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
-  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  MockTransferUpdateCallback callback;
-  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
-      &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
-  EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
-  EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
-
-  preference_manager().SetBoolean(prefs::kNearbySharingEnabledName, false);
-  FlushTesting();
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
-  EXPECT_TRUE(fake_nearby_connections_manager_->is_shutdown());
 }
 
 TEST_F(NearbySharingServiceImplTest,

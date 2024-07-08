@@ -110,12 +110,6 @@ NearbyShareSettings::~NearbyShareSettings() {
   visibility_expiration_timer_->Stop();
 }
 
-bool NearbyShareSettings::GetEnabled() const {
-  MutexLock lock(&mutex_);
-  return preference_manager_.GetBoolean(prefs::kNearbySharingEnabledName,
-                                          false);
-}
-
 FastInitiationNotificationState
 NearbyShareSettings::GetFastInitiationNotificationState() const {
   MutexLock lock(&mutex_);
@@ -213,7 +207,7 @@ std::string NearbyShareSettings::GetCustomSavePath() const {
       GetCompatibleU8String(device_info_.GetDownloadPath().u8string()));
 }
 
-bool NearbyShareSettings::IsDisabledByPolicy() const { return !GetEnabled(); }
+bool NearbyShareSettings::IsDisabledByPolicy() const { return false; }
 
 void NearbyShareSettings::AddSettingsObserver(Observer* observer) {
   MutexLock lock(&mutex_);
@@ -225,10 +219,6 @@ void NearbyShareSettings::RemoveSettingsObserver(Observer* observer) {
   observers_set_.RemoveObserver(observer);
 }
 
-void NearbyShareSettings::GetEnabled(std::function<void(bool)> callback) {
-  std::move(callback)(GetEnabled());
-}
-
 void NearbyShareSettings::GetFastInitiationNotificationState(
     std::function<void(FastInitiationNotificationState)> callback) {
   std::move(callback)(GetFastInitiationNotificationState());
@@ -238,18 +228,6 @@ void NearbyShareSettings::GetIsFastInitiationHardwareSupported(
     std::function<void(bool)> callback) {
   MutexLock lock(&mutex_);
   std::move(callback)(is_fast_initiation_hardware_supported_);
-}
-
-void NearbyShareSettings::SetEnabled(bool enabled) {
-  MutexLock lock(&mutex_);
-
-  preference_manager_.SetBoolean(prefs::kNearbySharingEnabledName, enabled);
-  if (enabled &&
-      GetVisibility() == DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED) {
-    NL_LOG(ERROR) << "Nearby Share enabled with visibility unset. Setting "
-                     "default visibility to kEveryone.";
-    SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
-  }
 }
 
 void NearbyShareSettings::SetFastInitiationNotificationState(
@@ -438,10 +416,7 @@ void NearbyShareSettings::SetCustomSavePathAsync(
 
 void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
   MutexLock lock(&mutex_);
-  if (key == prefs::kNearbySharingEnabledName) {
-    NotifyAllObservers(key, Observer::Data(GetEnabled()));
-    ProcessFastInitiationNotificationParentPrefChanged(GetEnabled());
-  } else if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
+  if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
     NotifyAllObservers(key, Observer::Data(static_cast<int64_t>(
                                 GetFastInitiationNotificationState())));
   } else if (key == prefs::kNearbySharingBackgroundVisibilityName) {
@@ -478,25 +453,6 @@ void NearbyShareSettings::NotifyAllObservers(absl::string_view key,
   }
 }
 
-void NearbyShareSettings::ProcessFastInitiationNotificationParentPrefChanged(
-    bool enabled) {
-  // If onboarding is not yet complete the Nearby feature should not be able
-  // to affect the enabled state.
-  if (!IsOnboardingComplete()) {
-    return;
-  }
-
-  // If the user explicitly disabled notifications, toggling the Nearby Share
-  // feature does not re-enable the notification sub-feature.
-  if (GetFastInitiationNotificationState() ==
-      FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT) {
-    return;
-  }
-  SetFastInitiationNotificationState(
-      enabled ? FastInitiationNotificationState::ENABLED_FAST_INIT
-              : FastInitiationNotificationState::DISABLED_BY_FEATURE_FAST_INIT);
-}
-
 bool NearbyShareSettings::GetIsAnalyticsEnabled() {
   MutexLock lock(&mutex_);
   return preference_manager_.GetBoolean(
@@ -515,8 +471,6 @@ std::string NearbyShareSettings::Dump() const {
   sstream << "Nearby Share Settings" << std::endl;
   sstream << "  Device name: " << GetDeviceName() << std::endl;
   sstream << "  Visibility: " << DeviceVisibility_Name(GetVisibility())
-          << std::endl;
-  sstream << "  Enabled: " << std::boolalpha << GetEnabled() << std::noboolalpha
           << std::endl;
   sstream << "  FastInitiationNotification: "
           << FastInitiationNotificationState_Name(

@@ -33,7 +33,6 @@ ABSL_CONST_INIT extern const char kNearbySharingCustomSavePath[];
 ABSL_CONST_INIT extern const char kNearbySharingDataUsageName[];
 ABSL_CONST_INIT extern const char kNearbySharingDeviceIdName[];
 ABSL_CONST_INIT extern const char kNearbySharingDeviceNameName[];
-ABSL_CONST_INIT extern const char kNearbySharingEnabledName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingFastInitiationNotificationStateName[];
 ABSL_CONST_INIT extern const char kNearbySharingOnboardingCompleteName[];

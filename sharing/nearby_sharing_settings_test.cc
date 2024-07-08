@@ -51,10 +51,7 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
  public:
   void OnSettingChanged(absl::string_view key, const Data& data) override {
     absl::MutexLock lock(&mutex_);
-    if (key == prefs::kNearbySharingEnabledName) {
-      enabled_ = data.value.as_bool;
-    } else if (key ==
-               prefs::kNearbySharingFastInitiationNotificationStateName) {
+    if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
       fast_initiation_notification_state_ =
           static_cast<FastInitiationNotificationState>(data.value.as_int64);
     } else if (key == prefs::kNearbySharingDataUsageName) {
@@ -73,16 +70,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
   void OnIsFastInitiationHardwareSupportedChanged(bool is_supported) override {
     absl::MutexLock lock(&mutex_);
     is_fast_initiation_notification_hardware_supported_ = is_supported;
-  }
-
-  bool enabled() const {
-    absl::MutexLock lock(&mutex_);
-    return enabled_;
-  }
-
-  void set_enabled(bool enabled) {
-    absl::MutexLock lock(&mutex_);
-    enabled_ = enabled;
   }
 
   FastInitiationNotificationState fast_initiation_notification_state() const {
@@ -123,7 +110,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
  private:
   mutable absl::Mutex mutex_;
 
-  bool enabled_ ABSL_GUARDED_BY(mutex_) = false;
   FastInitiationNotificationState fast_initiation_notification_state_
       ABSL_GUARDED_BY(mutex_) =
           FastInitiationNotificationState::ENABLED_FAST_INIT;
@@ -197,36 +183,6 @@ class NearbyShareSettingsTest : public ::testing::Test {
   std::unique_ptr<NearbyShareSettings> nearby_share_settings_;
 };
 
-TEST_F(NearbyShareSettingsTest, GetAndSetEnabled) {
-  EXPECT_EQ(observer_.enabled(), false);
-  settings()->SetIsOnboardingComplete(true, []() {});
-  settings()->SetEnabled(true);
-  EXPECT_EQ(settings()->GetEnabled(), true);
-  Flush();
-  EXPECT_EQ(observer_.enabled(), true);
-
-  bool enabled = false;
-  settings()->GetEnabled([&enabled](bool result) { enabled = result; });
-  EXPECT_EQ(enabled, true);
-
-  settings()->SetEnabled(false);
-  EXPECT_EQ(settings()->GetEnabled(), false);
-  Flush();
-  EXPECT_EQ(observer_.enabled(), false);
-
-  settings()->GetEnabled([&enabled](bool result) { enabled = result; });
-  EXPECT_EQ(enabled, false);
-
-  // Verify that setting the value to false again value doesn't trigger an
-  // observer event.
-  observer_.set_enabled(true);
-  settings()->SetEnabled(false);
-  EXPECT_EQ(settings()->GetEnabled(), false);
-  Flush();
-  // the observers' value should not have been updated.
-  EXPECT_EQ(observer_.enabled(), true);
-}
-
 TEST_F(NearbyShareSettingsTest, GetAndSetFastInitiationNotificationState) {
   // Fast init notifications are enabled by default.
   EXPECT_EQ(observer_.fast_initiation_notification_state(),
@@ -244,53 +200,6 @@ TEST_F(NearbyShareSettingsTest, GetAndSetFastInitiationNotificationState) {
   settings()->GetFastInitiationNotificationState(
       [&state](FastInitiationNotificationState result) { state = result; });
   EXPECT_EQ(state, FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-}
-
-TEST_F(NearbyShareSettingsTest,
-       ParentFeatureChangesFastInitiationNotificationState) {
-  // Fast init notifications are enabled by default.
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::ENABLED_FAST_INIT);
-  settings()->SetIsOnboardingComplete(true, []() {});
-  settings()->SetEnabled(true);
-  Flush();
-
-  // Simulate toggling the parent feature off.
-  settings()->SetEnabled(false);
-  Flush();
-  EXPECT_FALSE(settings()->GetEnabled());
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::DISABLED_BY_FEATURE_FAST_INIT);
-
-  // Simulate toggling the parent feature on.
-  settings()->SetEnabled(true);
-  Flush();
-  EXPECT_TRUE(settings()->GetEnabled());
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::ENABLED_FAST_INIT);
-}
-
-TEST_F(NearbyShareSettingsTest,
-       ParentFeatureChangesFastInitiationNotificationDisabledByUser) {
-  // Fast init notifications are enabled by default.
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::ENABLED_FAST_INIT);
-
-  // Set explicitly disabled by user.
-  settings()->SetFastInitiationNotificationState(
-      FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-  Flush();
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-
-  // Simulate toggling parent feature on.
-  settings()->SetIsOnboardingComplete(true, []() {});
-  settings()->SetEnabled(true);
-  Flush();
-
-  // The disabled by user flag should persist if the parent feature is enabled.
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
 }
 
 TEST_F(NearbyShareSettingsTest, GetAndSetCustomSavePath) {

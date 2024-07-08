@@ -52,8 +52,6 @@ ABSL_CONST_INIT const char kNearbySharingDeviceIdName[] =
     "nearby_sharing.device_id";
 ABSL_CONST_INIT const char kNearbySharingDeviceNameName[] =
     "nearby_sharing.device_name";
-ABSL_CONST_INIT const char kNearbySharingEnabledName[] =
-    "nearby_sharing.enabled";
 ABSL_CONST_INIT const char kNearbySharingFastInitiationNotificationStateName[] =
     "nearby_sharing.fast_initiation_notification_state";
 ABSL_CONST_INIT const char kNearbySharingOnboardingCompleteName[] =
@@ -105,7 +103,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
     // During logging out, we reset all settings and set these settings to new
     // values. To avoid setting them twice, we skip them here if
     // skip_persistent_ones is set to true.
-    preference_manager.SetBoolean(kNearbySharingEnabledName, false);
     preference_manager.SetString(kNearbySharingCustomSavePath, std::string());
     preference_manager.SetBoolean(kNearbySharingOnboardingCompleteName, false);
     preference_manager.SetInteger(kNearbySharingBackgroundVisibilityName,
