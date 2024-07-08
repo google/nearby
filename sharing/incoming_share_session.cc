@@ -25,11 +25,12 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "internal/platform/clock.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/attachment_container.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
@@ -51,16 +52,14 @@ using ::nearby::sharing::service::proto::WifiCredentials;
 }  // namespace
 
 IncomingShareSession::IncomingShareSession(
-    std::string endpoint_id, const ShareTarget& share_target,
+    TaskRunner& service_thread, std::string endpoint_id,
+    const ShareTarget& share_target,
     std::function<void(const IncomingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(std::move(endpoint_id), share_target),
+    : ShareSession(service_thread, std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;
-
-IncomingShareSession& IncomingShareSession::operator=(IncomingShareSession&&) =
-    default;
 
 IncomingShareSession::~IncomingShareSession() = default;
 
@@ -149,12 +148,12 @@ IncomingShareSession::ProcessIntroduction(
 }
 
 void IncomingShareSession::RegisterPayloadListener(
-    Context* context, NearbyConnectionsManager& connections_manager,
+    Clock* clock, NearbyConnectionsManager& connections_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
   set_payload_tracker(std::make_shared<PayloadTracker>(
-      context, share_target().id, attachment_container(), payload_map,
+      clock, share_target().id, attachment_container(), payload_map,
       std::move(update_callback)));
 
   // Register status listener for all payloads.

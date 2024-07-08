@@ -26,8 +26,6 @@
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/fake_nearby_connection.h"
-#include "sharing/internal/public/context.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/proto/wire_format.pb.h"
 
@@ -37,7 +35,7 @@ namespace {
 
 using ::nearby::sharing::service::proto::V1Frame;
 
-constexpr absl::Duration kTimeout = absl::Milliseconds(1000);
+constexpr absl::Duration kTimeout = absl::Seconds(1);
 
 std::optional<std::vector<uint8_t>> GetIntroductionFrame() {
   nearby::sharing::service::proto::Frame frame =
@@ -88,7 +86,7 @@ class IncomingFramesReaderTest : public testing::Test {
   void SetUp() override {
     FakeTaskRunner::ResetPendingTasksCount();
     frames_reader_ = std::make_shared<IncomingFramesReader>(
-        context(), &nearby_sharing_decoder_, &fake_nearby_connection_);
+        fake_task_runner_, nearby_sharing_decoder_, &fake_nearby_connection_);
   }
 
   FakeNearbyConnection& connection() { return fake_nearby_connection_; }
@@ -96,26 +94,21 @@ class IncomingFramesReaderTest : public testing::Test {
   IncomingFramesReader* frames_reader() { return frames_reader_.get(); }
 
   void FastForward(absl::Duration delta) {
-    FakeClock* fake_clock = reinterpret_cast<FakeClock*>(context()->GetClock());
-    fake_clock->FastForward(delta);
+    fake_clock_.FastForward(delta);
   }
 
   void Sync() {
-    EXPECT_TRUE(
-        FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Seconds(1)));
+    EXPECT_TRUE(fake_task_runner_.SyncWithTimeout(kTimeout));
   }
 
   void ReleaseFrameReader() { frames_reader_.reset(); }
 
  private:
+  FakeClock fake_clock_;
+  FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
   FakeNearbyConnection fake_nearby_connection_;
   NearbySharingDecoderImpl nearby_sharing_decoder_;
   std::shared_ptr<IncomingFramesReader> frames_reader_ = nullptr;
-
-  Context* context() {
-    static Context* context = new FakeContext();
-    return context;
-  }
 };
 
 TEST_F(IncomingFramesReaderTest, ReadTimedOut) {

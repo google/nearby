@@ -28,7 +28,6 @@
 #include "internal/test/fake_clock.h"
 #include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/transfer_metadata.h"
@@ -53,7 +52,7 @@ class PayloadTrackerTest : public ::testing::Test {
     attachment_payload_map_.emplace(container_.GetFileAttachments()[0].id(),
                                  kFileId);
     payload_tracker_ = std::make_unique<PayloadTracker>(
-        context(), kShareTargetId, container_, attachment_payload_map_,
+        &fake_clock_, kShareTargetId, container_, attachment_payload_map_,
         [&](int64_t share_target_id, TransferMetadata transfer_metadata) {
           current_percentage_ = transfer_metadata.progress();
         });
@@ -62,7 +61,7 @@ class PayloadTrackerTest : public ::testing::Test {
   float percentage() const { return current_percentage_; }
 
   void FastForward(absl::Duration duration) {
-    context()->fake_clock()->FastForward(duration);
+    fake_clock_.FastForward(duration);
   }
 
   void PayloadUpdate(int bytes_transferred) {
@@ -73,11 +72,7 @@ class PayloadTrackerTest : public ::testing::Test {
   }
 
  private:
-  FakeContext* context() {
-    static FakeContext* context = new FakeContext();
-    return context;
-  }
-
+  FakeClock fake_clock_;
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
   float current_percentage_ = 0.0;
   AttachmentContainer container_;

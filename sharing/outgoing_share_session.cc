@@ -25,9 +25,10 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/clock.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
@@ -48,17 +49,15 @@ using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
 OutgoingShareSession::OutgoingShareSession(
-    std::string endpoint_id, const ShareTarget& share_target,
+    TaskRunner& service_thread, std::string endpoint_id,
+    const ShareTarget& share_target,
     std::function<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(std::move(endpoint_id), share_target),
+    : ShareSession(service_thread, std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) =
     default;
-
-OutgoingShareSession& OutgoingShareSession::operator=(
-    OutgoingShareSession&&) = default;
 
 OutgoingShareSession::~OutgoingShareSession() = default;
 
@@ -219,10 +218,10 @@ bool OutgoingShareSession::FillIntroductionFrame(
 }
 
 void OutgoingShareSession::SendAllPayloads(
-    Context* context, NearbyConnectionsManager& connection_manager,
+    Clock* clock, NearbyConnectionsManager& connection_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
-      context, share_target().id, attachment_container(),
+      clock, share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
   for (auto& payload : ExtractTextPayloads()) {
     connection_manager.Send(endpoint_id(), std::make_unique<Payload>(payload),
@@ -235,10 +234,10 @@ void OutgoingShareSession::SendAllPayloads(
 }
 
 void OutgoingShareSession::InitSendPayload(
-    Context* context, NearbyConnectionsManager& connection_manager,
+    Clock* clock, NearbyConnectionsManager& connection_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
-      context, share_target().id, attachment_container(),
+      clock, share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
 }
 

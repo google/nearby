@@ -22,7 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "sharing/internal/public/context.h"
+#include "internal/platform/clock.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -37,11 +38,11 @@ namespace nearby::sharing {
 class IncomingShareSession : public ShareSession {
  public:
   IncomingShareSession(
-      std::string endpoint_id, const ShareTarget& share_target,
+      TaskRunner& service_thread, std::string endpoint_id,
+      const ShareTarget& share_target,
       std::function<void(const IncomingShareSession&, const TransferMetadata&)>
           transfer_update_callback);
   IncomingShareSession(IncomingShareSession&&);
-  IncomingShareSession& operator=(IncomingShareSession&&);
   ~IncomingShareSession() override;
 
   bool IsIncoming() const override { return true; }
@@ -58,7 +59,7 @@ class IncomingShareSession : public ShareSession {
       const NearbyConnectionsManager& connections_manager);
 
   void RegisterPayloadListener(
-      Context* context, NearbyConnectionsManager& connections_manager,
+      Clock* clock, NearbyConnectionsManager& connections_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Once transfer has completed, make payload content available in the

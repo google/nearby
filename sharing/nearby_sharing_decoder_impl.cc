@@ -28,12 +28,12 @@ namespace sharing {
 using Frame = ::nearby::sharing::service::proto::Frame;
 
 std::unique_ptr<Advertisement> NearbySharingDecoderImpl::DecodeAdvertisement(
-    absl::Span<const uint8_t> data) {
+    absl::Span<const uint8_t> data) const {
   return Advertisement::FromEndpointInfo(data);
 }
 
 std::unique_ptr<Frame> NearbySharingDecoderImpl::DecodeFrame(
-    absl::Span<const uint8_t> data) {
+    absl::Span<const uint8_t> data) const {
   auto frame = std::make_unique<Frame>();
 
   if (frame->ParseFromArray(data.data(), data.size())) {

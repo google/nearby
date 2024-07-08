@@ -23,7 +23,8 @@
 #include <utility>
 #include <vector>
 
-#include "sharing/internal/public/context.h"
+#include "internal/platform/clock.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
@@ -39,11 +40,11 @@ namespace nearby::sharing {
 class OutgoingShareSession : public ShareSession {
  public:
   OutgoingShareSession(
-      std::string endpoint_id, const ShareTarget& share_target,
+      TaskRunner& service_thread, std::string endpoint_id,
+      const ShareTarget& share_target,
       std::function<void(OutgoingShareSession&, const TransferMetadata&)>
           transfer_update_callback);
   OutgoingShareSession(OutgoingShareSession&&);
-  OutgoingShareSession& operator=(OutgoingShareSession&&);
   ~OutgoingShareSession() override;
 
   bool IsIncoming() const override { return false; }
@@ -84,13 +85,13 @@ class OutgoingShareSession : public ShareSession {
   // Create a payload status listener to send status change to
   // |update_callback|.  Send all payloads to NearbyConnectionManager.
   void SendAllPayloads(
-      Context* context, NearbyConnectionsManager& connection_manager,
+      Clock* clock, NearbyConnectionsManager& connection_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Create a payload status listener to send status change to
   // |update_callback|.
   void InitSendPayload(
-      Context* context, NearbyConnectionsManager& connection_manager,
+      Clock* clock, NearbyConnectionsManager& connection_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
   //  Send the next payload to NearbyConnectionManager.
   void SendNextPayload(NearbyConnectionsManager& connection_manager);

@@ -26,14 +26,16 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
+#include "internal/test/fake_clock.h"
+#include "internal/test/fake_task_runner.h"
 #include "sharing/attachment_container.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
+#include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
@@ -61,7 +63,7 @@ constexpr absl::string_view kEndpointId = "ABCD";
 class OutgoingShareSessionTest : public ::testing::Test {
  public:
   OutgoingShareSessionTest()
-      : session_(std::string(kEndpointId), share_target_,
+      : session_(fake_task_runner_, std::string(kEndpointId), share_target_,
                  [](OutgoingShareSession&, const TransferMetadata&) {}),
         text1_(nearby::sharing::service::proto::TextMetadata::URL,
                "A bit of text body", "Some text title", "text/html"),
@@ -81,6 +83,9 @@ class OutgoingShareSessionTest : public ::testing::Test {
   }
 
  protected:
+  FakeClock fake_clock_;
+  FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
+  NearbySharingDecoderImpl decoder_;
   ShareTarget share_target_;
   OutgoingShareSession session_;
   TextAttachment text1_;
@@ -92,7 +97,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
 
 TEST_F(OutgoingShareSessionTest, GetFilePaths) {
   OutgoingShareSession session(
-      std::string(kEndpointId), share_target_,
+      fake_task_runner_, std::string(kEndpointId), share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   AttachmentContainer container(std::vector<TextAttachment>{},
                                 std::vector<FileAttachment>{file1_, file2_},
@@ -108,7 +113,7 @@ TEST_F(OutgoingShareSessionTest, GetFilePaths) {
 
 TEST_F(OutgoingShareSessionTest, CreateTextPayloadsWithNoTextAttachments) {
   OutgoingShareSession session(
-      std::string(kEndpointId), share_target_,
+      fake_task_runner_, std::string(kEndpointId), share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   session.CreateTextPayloads();
   const std::vector<Payload>& payloads = session.text_payloads();
@@ -140,7 +145,7 @@ TEST_F(OutgoingShareSessionTest, CreateTextPayloads) {
 
 TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithNoFileAttachments) {
   OutgoingShareSession session(
-      std::string(kEndpointId), share_target_,
+      fake_task_runner_, std::string(kEndpointId), share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
 
   EXPECT_THAT(
@@ -188,7 +193,7 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
 
 TEST_F(OutgoingShareSessionTest, CreateWifiPayloadsWithNoWifiAttachments) {
   OutgoingShareSession session(
-      std::string(kEndpointId), share_target_,
+      fake_task_runner_, std::string(kEndpointId), share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   session.CreateWifiCredentialsPayloads();
   const std::vector<Payload>& payloads = session.file_payloads();
@@ -222,7 +227,7 @@ TEST_F(OutgoingShareSessionTest, WriteIntroductionFrameWithoutPayloads) {
 
 TEST_F(OutgoingShareSessionTest, WriteIntroductionFrameSuccess) {
   FakeNearbyConnection connection;
-  session_.OnConnected(absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connection);
   std::vector<NearbyFileHandler::FileInfo> file_infos;
   file_infos.push_back({
       .size = 12355L,
@@ -298,7 +303,6 @@ TEST_F(OutgoingShareSessionTest, SendAllPayloads) {
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>
       send_payload_callback;
   FakeNearbyConnectionsManager connections_manager;
-  FakeContext context;
   connections_manager.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
   EXPECT_CALL(send_payload_callback, Call(_, _))
@@ -321,7 +325,7 @@ TEST_F(OutgoingShareSessionTest, SendAllPayloads) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
           }));
 
-  session_.SendAllPayloads(&context, connections_manager,
+  session_.SendAllPayloads(&fake_clock_, connections_manager,
                            transfer_metadata_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -343,11 +347,10 @@ TEST_F(OutgoingShareSessionTest, InitSendPayload) {
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>
       send_payload_callback;
   FakeNearbyConnectionsManager connections_manager;
-  FakeContext context;
   connections_manager.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
 
-  session_.InitSendPayload(&context, connections_manager,
+  session_.InitSendPayload(&fake_clock_, connections_manager,
                            transfer_metadata_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -369,11 +372,10 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>
       send_payload_callback;
   FakeNearbyConnectionsManager connections_manager;
-  FakeContext context;
   connections_manager.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
 
-  session_.InitSendPayload(&context, connections_manager,
+  session_.InitSendPayload(&fake_clock_, connections_manager,
                            transfer_metadata_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
@@ -406,7 +408,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
 
 TEST_F(OutgoingShareSessionTest, WriteInProgressUpdateFrameSuccess) {
   FakeNearbyConnection connection;
-  session_.OnConnected(absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connection);
 
   session_.WriteProgressUpdateFrame(true, 0.5);
 

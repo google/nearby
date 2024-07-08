@@ -25,10 +25,11 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/test/fake_clock.h"
+#include "internal/test/fake_task_runner.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/paired_key_verification_runner.h"
@@ -50,7 +51,7 @@ constexpr absl::string_view kEndpointId = "12345";
 class TestShareSession : public ShareSession {
  public:
   TestShareSession(std::string endpoint_id, const ShareTarget& share_target)
-      : ShareSession(std::move(endpoint_id), share_target),
+      : ShareSession(fake_task_runner_, std::move(endpoint_id), share_target),
         is_incoming_(share_target.is_incoming) {}
 
   bool IsIncoming() const override { return is_incoming_; }
@@ -81,6 +82,8 @@ class TestShareSession : public ShareSession {
   }
 
  private:
+  FakeClock fake_clock_;
+  FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
   const bool is_incoming_;
   int transfer_update_count_ = 0;
   std::optional<TransferMetadata> last_transfer_metadata_;
@@ -129,28 +132,31 @@ TEST(ShareSessionTest, SetDisconnectStatus) {
 }
 
 TEST(ShareSessionTest, OnConnectedFails) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   session.SetOnNewConnectionResult(false);
 
-  EXPECT_FALSE(session.OnConnected(absl::Now(), nullptr));
+  EXPECT_FALSE(
+      session.OnConnected(nearby_sharing_decoder, absl::Now(), nullptr));
 }
 
 TEST(ShareSessionTest, OnConnectedSucceeds) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   FakeNearbyConnection connection;
   session.SetOnNewConnectionResult(true);
   absl::Time connect_start_time = absl::Now();
-  FakeContext context;
 
-  EXPECT_TRUE(session.OnConnected(connect_start_time, &connection));
+  EXPECT_TRUE(session.OnConnected(nearby_sharing_decoder, connect_start_time,
+                                  &connection));
   EXPECT_EQ(session.connection_start_time(), connect_start_time);
   EXPECT_EQ(session.connection(), &connection);
 }
 
 TEST(ShareSessionTest, IncomingRunPairedKeyVerificationSuccess) {
-  FakeContext context;
+  FakeClock fake_clock;
   NearbySharingDecoderImpl nearby_sharing_decoder;
   FakeNearbyShareCertificateManager certificate_manager;
   FakeNearbyConnection connection;
@@ -161,12 +167,13 @@ TEST(ShareSessionTest, IncomingRunPairedKeyVerificationSuccess) {
   TestShareSession session(std::string(kEndpointId), share_target);
   session.SetOnNewConnectionResult(true);
   absl::Time connect_start_time = absl::Now();
-  EXPECT_TRUE(session.OnConnected(connect_start_time, &connection));
+  EXPECT_TRUE(session.OnConnected(nearby_sharing_decoder, connect_start_time,
+                                  &connection));
   absl::Notification notification;
   PairedKeyVerificationRunner::PairedKeyVerificationResult verification_result;
 
   session.RunPairedKeyVerification(
-      &context, &nearby_sharing_decoder, OSType::WINDOWS,
+      &fake_clock, OSType::WINDOWS,
       {
           .visibility = proto::DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
           .last_visibility =
@@ -245,10 +252,12 @@ TEST(ShareSessionTest, CancelPayloads) {
 }
 
 TEST(ShareSessionTest, WriteResponseFrame) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   FakeNearbyConnection connection;
-  EXPECT_TRUE(session.OnConnected(absl::Now(), &connection));
+  EXPECT_TRUE(
+      session.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
 
   session.WriteResponseFrame(ConnectionResponseFrame::REJECT);
 
@@ -262,10 +271,12 @@ TEST(ShareSessionTest, WriteResponseFrame) {
 }
 
 TEST(ShareSessionTest, WriteCancelFrame) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   FakeNearbyConnection connection;
-  EXPECT_TRUE(session.OnConnected(absl::Now(), &connection));
+  EXPECT_TRUE(
+      session.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
 
   session.WriteCancelFrame();
 

@@ -1102,7 +1102,7 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   int64_t placeholder_share_target_id = placeholder_share_target.id;
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
-  session.OnConnected(context_->GetClock()->Now(), connection);
+  session.OnConnected(*decoder_, context_->GetClock()->Now(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
@@ -2495,7 +2495,7 @@ void NearbySharingServiceImpl::ReceivePayloads(
   analytics_recorder_->NewReceiveAttachmentsStart(
       receiving_session_id_, session.attachment_container());
   session.RegisterPayloadListener(
-      context_, *nearby_connections_manager_,
+      context_->GetClock(), *nearby_connections_manager_,
       absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                        this));
   session.WriteResponseFrame(
@@ -2551,7 +2551,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     absl::Time connect_start_time, NearbyConnection* connection,
     OutgoingShareSession& session) {
   int64_t share_target_id = session.share_target().id;
-  if (!session.OnConnected(connect_start_time, connection)) {
+  if (!session.OnConnected(*decoder_, connect_start_time, connection)) {
     AbortAndCloseConnectionIfNecessary(session, session.disconnect_status());
     return;
   }
@@ -2576,7 +2576,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
   std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
   session.RunPairedKeyVerification(
-      context_, decoder_, ToProtoOsType(device_info_.GetOsType()),
+      context_->GetClock(), ToProtoOsType(device_info_.GetOsType()),
       {
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),
@@ -3018,7 +3018,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
 
   IncomingShareSession& session = CreateIncomingShareSession(
       *share_target, endpoint_id, std::move(certificate));
-  session.OnConnected(context_->GetClock()->Now(), connection);
+  session.OnConnected(*decoder_, context_->GetClock()->Now(), connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
@@ -3029,7 +3029,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
   session.RunPairedKeyVerification(
-      context_, decoder_, ToProtoOsType(device_info_.GetOsType()),
+      context_->GetClock(), ToProtoOsType(device_info_.GetOsType()),
       {
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),
@@ -3294,13 +3294,13 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
               config_package_nearby::nearby_sharing_feature::
                   kEnableTransferCancellationOptimization)) {
         session->InitSendPayload(
-            context_, *nearby_connections_manager_,
+            context_->GetClock(), *nearby_connections_manager_,
             absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                              this));
         session->SendNextPayload(*nearby_connections_manager_);
       } else {
         session->SendAllPayloads(
-            context_, *nearby_connections_manager_,
+            context_->GetClock(), *nearby_connections_manager_,
             absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                              this));
       }
@@ -3713,7 +3713,7 @@ IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   NL_DCHECK(share_target.is_incoming);
   auto [it, inserted] = incoming_share_session_map_.try_emplace(
-      share_target.id, std::string(endpoint_id), share_target,
+      share_target.id, *service_thread_, std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnIncomingTransferUpdate,
                        this));
   if (!inserted) {
@@ -3743,7 +3743,7 @@ OutgoingShareSession& NearbySharingServiceImpl::CreateOutgoingShareSession(
              << ") to outgoing share target map";
   outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
   auto [it_out, inserted] = outgoing_share_session_map_.try_emplace(
-      share_target.id, std::string(endpoint_id), share_target,
+      share_target.id, *service_thread_, std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
                        this));
   auto& session = it_out->second;

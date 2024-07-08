@@ -25,10 +25,10 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/clock.h"
 #include "sharing/attachment_container.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/text_attachment.h"
@@ -40,11 +40,11 @@ namespace nearby {
 namespace sharing {
 
 PayloadTracker::PayloadTracker(
-    Context* context, int64_t share_target_id,
+    Clock* clock, int64_t share_target_id,
     const AttachmentContainer& container,
     const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map,
     std::function<void(int64_t, TransferMetadata)> update_callback)
-    : context_(context),
+    : clock_(clock),
       share_target_id_(share_target_id),
       update_callback_(std::move(update_callback)) {
   total_transfer_size_ = 0;
@@ -185,7 +185,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
 
   double percent = CalculateProgressPercent(state);
   int current_progress = static_cast<int>(percent);
-  absl::Time current_time = context_->GetClock()->Now();
+  absl::Time current_time = clock_->Now();
   uint64_t current_transferred_size = GetTotalTransferred(state);
 
   if (current_progress == last_update_progress_ &&

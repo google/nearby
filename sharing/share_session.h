@@ -25,12 +25,13 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
+#include "internal/platform/clock.h"
+#include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_sharing_decoder.h"
@@ -46,9 +47,11 @@ namespace nearby::sharing {
 // This class is thread-compatible.
 class ShareSession {
  public:
-  ShareSession(std::string endpoint_id, const ShareTarget& share_target);
+  ShareSession(TaskRunner& service_thread, std::string endpoint_id,
+               const ShareTarget& share_target);
   ShareSession(ShareSession&&);
-  ShareSession& operator=(ShareSession&&);
+  ShareSession& operator=(ShareSession&&) = delete;
+  ShareSession& operator=(const ShareSession&) = delete;
   virtual ~ShareSession();
 
   virtual bool IsIncoming() const = 0;
@@ -109,11 +112,11 @@ class ShareSession {
   }
   // Notifies the ShareTargetInfo that the connection has been established.
   // Returns true if the connection was successfully established.
-  bool OnConnected(absl::Time connect_start_time, NearbyConnection* connection);
+  bool OnConnected(const NearbySharingDecoder& decoder,
+                   absl::Time connect_start_time, NearbyConnection* connection);
 
   void RunPairedKeyVerification(
-      Context* context, NearbySharingDecoder* decoder,
-      location::nearby::proto::sharing::OSType os_type,
+      Clock* clock, location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
       NearbyShareCertificateManager* certificate_manager,
       std::optional<std::vector<uint8_t>> token,
@@ -158,6 +161,7 @@ class ShareSession {
   void WriteFrame(const nearby::sharing::service::proto::Frame& frame);
 
  private:
+  TaskRunner& service_thread_;
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyConnection* connection_ = nullptr;

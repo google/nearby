@@ -23,10 +23,11 @@
 #include <vector>
 
 #include "absl/time/time.h"
+#include "internal/platform/clock.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/constants.h"
 #include "sharing/incoming_frames_reader.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
@@ -47,15 +48,14 @@ using ::nearby::sharing::service::proto::V1Frame;
 
 }  // namespace
 
-ShareSession::ShareSession(std::string endpoint_id,
+ShareSession::ShareSession(TaskRunner& service_thread, std::string endpoint_id,
                            const ShareTarget& share_target)
-    : endpoint_id_(std::move(endpoint_id)),
+    : service_thread_(service_thread),
+      endpoint_id_(std::move(endpoint_id)),
       self_share_(share_target.for_self_share),
       share_target_(share_target) {}
 
 ShareSession::ShareSession(ShareSession&&) = default;
-
-ShareSession& ShareSession::operator=(ShareSession&&) = default;
 
 ShareSession::~ShareSession() = default;
 
@@ -84,18 +84,21 @@ void ShareSession::set_disconnect_status(
   }
 }
 
-bool ShareSession::OnConnected(absl::Time connect_start_time,
+bool ShareSession::OnConnected(const NearbySharingDecoder& decoder,
+                               absl::Time connect_start_time,
                                NearbyConnection* connection) {
   if (!OnNewConnection(connection)) {
     return false;
   }
   connection_start_time_ = connect_start_time;
   connection_ = connection;
+  frames_reader_ = std::make_shared<IncomingFramesReader>(service_thread_,
+                                                          decoder, connection_);
   return true;
 }
 
 void ShareSession::RunPairedKeyVerification(
-    Context* context, NearbySharingDecoder* decoder, OSType os_type,
+    Clock* clock, OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
     NearbyShareCertificateManager* certificate_manager,
     std::optional<std::vector<uint8_t>> token,
@@ -112,11 +115,8 @@ void ShareSession::RunPairedKeyVerification(
     return;
   }
 
-  frames_reader_ =
-      std::make_shared<IncomingFramesReader>(context, decoder, connection_);
-
   key_verification_runner_ = std::make_shared<PairedKeyVerificationRunner>(
-      context->GetClock(), os_type, IsIncoming(), visibility_history, *token,
+      clock, os_type, IsIncoming(), visibility_history, *token,
       connection_, certificate_, certificate_manager, frames_reader_.get(),
       kReadFramesTimeout);
   key_verification_runner_->Run(std::move(callback));

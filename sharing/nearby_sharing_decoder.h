@@ -31,9 +31,9 @@ class NearbySharingDecoder {
   virtual ~NearbySharingDecoder() = default;
 
   virtual std::unique_ptr<Advertisement> DecodeAdvertisement(
-      absl::Span<const uint8_t> data) = 0;
+      absl::Span<const uint8_t> data) const = 0;
   virtual std::unique_ptr<nearby::sharing::service::proto::Frame> DecodeFrame(
-      absl::Span<const uint8_t> data) = 0;
+      absl::Span<const uint8_t> data) const = 0;
 };
 
 }  // namespace sharing

@@ -30,9 +30,9 @@ namespace sharing {
 class NearbySharingDecoderImpl : public NearbySharingDecoder {
  public:
   std::unique_ptr<Advertisement> DecodeAdvertisement(
-      absl::Span<const uint8_t> data) override;
+      absl::Span<const uint8_t> data) const override;
   std::unique_ptr<nearby::sharing::service::proto::Frame> DecodeFrame(
-      absl::Span<const uint8_t> data) override;
+      absl::Span<const uint8_t> data) const override;
 };
 
 }  // namespace sharing

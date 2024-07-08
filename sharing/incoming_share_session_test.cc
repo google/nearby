@@ -27,11 +27,12 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "internal/test/fake_clock.h"
+#include "internal/test/fake_task_runner.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
@@ -86,7 +87,7 @@ std::unique_ptr<Payload> CreateWifiCredentialsPayload(
 class IncomingShareSessionTest : public ::testing::Test {
  protected:
   IncomingShareSessionTest()
-      : session_(std::string(kEndpointId), share_target_,
+      : session_(task_runner_, std::string(kEndpointId), share_target_,
                  [](const IncomingShareSession&, const TransferMetadata&) {}) {
     NL_CHECK(
         proto2::TextFormat::ParseFromString(R"pb(
@@ -138,6 +139,8 @@ class IncomingShareSessionTest : public ::testing::Test {
                                             &introduction_frame_));
   }
 
+  FakeClock clock_;
+  FakeTaskRunner task_runner_ {&clock_, 1};
   ShareTarget share_target_;
   IncomingShareSession session_;
   IntroductionFrame introduction_frame_;
@@ -558,9 +561,9 @@ TEST_F(IncomingShareSessionTest, RegisterPayloadListenerSuccess) {
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   FakeNearbyConnectionsManager connections_manager;
-  FakeContext context;
+  FakeClock clock;
 
-  session_.RegisterPayloadListener(&context, connections_manager,
+  session_.RegisterPayloadListener(&clock, connections_manager,
                                    [](int64_t, TransferMetadata) {});
 
   for (auto it : session_.attachment_payload_map()) {

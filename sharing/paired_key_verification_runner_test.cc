@@ -28,16 +28,16 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "internal/platform/task_runner.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/incoming_frames_reader.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
@@ -136,9 +136,10 @@ const absl::Duration kTimeout = absl::Seconds(1);
 
 class MockIncomingFramesReader : public IncomingFramesReader {
  public:
-  MockIncomingFramesReader(Context* context, NearbySharingDecoder* decoder,
+  MockIncomingFramesReader(TaskRunner& service_thread,
+                           const NearbySharingDecoder& decoder,
                            NearbyConnection* connection)
-      : IncomingFramesReader(context, decoder, connection) {}
+      : IncomingFramesReader(service_thread, decoder, connection) {}
 
   MOCK_METHOD(void, ReadFrame,
               (std::function<void(std::optional<V1Frame>)> callback),
@@ -185,7 +186,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
   };
 
   PairedKeyVerificationRunnerTest()
-      : frames_reader_(&context_, &decoder_, &connection_) {}
+      : frames_reader_(fake_task_runner_, decoder_, &connection_) {}
 
   void SetUp() override {
     GetFakeClock()->FastForward(absl::Minutes(15));
@@ -203,7 +204,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
             : std::nullopt;
 
     auto runner = std::make_shared<PairedKeyVerificationRunner>(
-        context_.GetClock(), OSType::WINDOWS, is_incoming, visibility_history,
+        &fake_clock_, OSType::WINDOWS, is_incoming, visibility_history,
         GetAuthToken(), &connection_, std::move(public_certificate),
         &certificate_manager_, &frames_reader_, kTimeout);
 
@@ -320,10 +321,11 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
     EXPECT_EQ(status, frame.v1().paired_key_result().status());
   }
 
-  FakeClock* GetFakeClock() { return context_.fake_clock(); }
+  FakeClock* GetFakeClock() { return &fake_clock_; }
 
  private:
-  FakeContext context_;
+  FakeClock fake_clock_;
+  FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
   FakeNearbyConnection connection_;
   NearbySharingDecoderImpl decoder_;
   testing::NiceMock<MockIncomingFramesReader> frames_reader_;

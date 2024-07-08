@@ -29,11 +29,12 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/platform/mutex_lock.h"
-#include "sharing/internal/public/context.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/thread_timer.h"
 
 namespace nearby {
 namespace sharing {
@@ -50,13 +51,13 @@ std::ostream& operator<<(std::ostream& out, const FrameType& obj) {
 
 }  // namespace
 
-IncomingFramesReader::IncomingFramesReader(Context* context,
-                                           NearbySharingDecoder* decoder,
+IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
+                                           const NearbySharingDecoder& decoder,
                                            NearbyConnection* connection)
-    : connection_(connection), decoder_(decoder) {
-  NL_DCHECK(decoder);
+    : service_thread_(service_thread),
+      decoder_(decoder),
+      connection_(connection) {
   NL_DCHECK(connection);
-  timeout_timer_ = context->CreateTimer();
 }
 
 IncomingFramesReader::~IncomingFramesReader() {
@@ -107,18 +108,15 @@ void IncomingFramesReader::ReadFrame(
   ReadFrameInfo read_fame_info{frame_type, std::move(callback), timeout};
   read_frame_info_queue_.push(std::move(read_fame_info));
 
-  if (timeout_timer_->IsRunning()) {
-    timeout_timer_->Stop();
-  }
-
-  timeout_timer_->Start(
-      timeout / absl::Milliseconds(1), 0, [&, reader = GetWeakPtr()]() {
+  timeout_timer_ = std::make_unique<ThreadTimer>(
+      service_thread_, "frame_reader_timeout", timeout,
+      [reader = GetWeakPtr()]() {
         auto frame_reader = reader.lock();
         if (frame_reader == nullptr) {
           NL_LOG(WARNING) << "IncomingFramesReader is released before.";
           return;
         }
-        OnTimeout();
+        frame_reader->OnTimeout();
       });
 
   ReadNextFrame();
@@ -157,7 +155,7 @@ void IncomingFramesReader::OnDataReadFromConnection(
   }
 
   std::unique_ptr<Frame> frame =
-      decoder_->DecodeFrame(absl::MakeSpan(bytes->data(), bytes->size()));
+      decoder_.DecodeFrame(absl::MakeSpan(bytes->data(), bytes->size()));
   if (frame == nullptr) {
     NL_LOG(WARNING)
         << __func__
@@ -203,9 +201,7 @@ void IncomingFramesReader::Done(std::optional<V1Frame> frame) {
     return;
   }
 
-  if (timeout_timer_ != nullptr) {
-    timeout_timer_->Stop();
-  }
+  timeout_timer_.reset();
 
   bool is_empty_frame = !frame.has_value();
   ReadFrameInfo read_frame_info = std::move(read_frame_info_queue_.front());

@@ -26,11 +26,11 @@
 
 #include "absl/time/time.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/timer.h"
-#include "sharing/internal/public/context.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/thread_timer.h"
 
 namespace nearby {
 namespace sharing {
@@ -39,7 +39,8 @@ namespace sharing {
 class IncomingFramesReader
     : public std::enable_shared_from_this<IncomingFramesReader> {
  public:
-  IncomingFramesReader(Context* context, NearbySharingDecoder* decoder,
+  IncomingFramesReader(TaskRunner& service_thread,
+                       const NearbySharingDecoder& decoder,
                        NearbyConnection* connection);
   virtual ~IncomingFramesReader();
   IncomingFramesReader(const IncomingFramesReader&) = delete;
@@ -92,8 +93,9 @@ class IncomingFramesReader
       std::optional<nearby::sharing::service::proto::V1Frame_FrameType>
           frame_type);
 
+  TaskRunner& service_thread_;
+  const NearbySharingDecoder& decoder_;
   NearbyConnection* connection_;
-  NearbySharingDecoder* decoder_ = nullptr;
 
   RecursiveMutex mutex_;
   std::queue<ReadFrameInfo> read_frame_info_queue_;
@@ -104,7 +106,7 @@ class IncomingFramesReader
            std::optional<nearby::sharing::service::proto::V1Frame>>
       cached_frames_;
 
-  std::unique_ptr<Timer> timeout_timer_ = nullptr;
+  std::unique_ptr<ThreadTimer> timeout_timer_;
 };
 
 }  // namespace sharing

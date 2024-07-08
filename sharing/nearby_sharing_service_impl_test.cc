@@ -145,9 +145,9 @@ class MockNearbySharingDecoder : public NearbySharingDecoder {
   ~MockNearbySharingDecoder() override = default;
 
   MOCK_METHOD(std::unique_ptr<Advertisement>, DecodeAdvertisement,
-              (absl::Span<const uint8_t> data), (override));
+              (absl::Span<const uint8_t> data), (const, override));
   MOCK_METHOD(std::unique_ptr<Frame>, DecodeFrame,
-              (absl::Span<const uint8_t> data), (override));
+              (absl::Span<const uint8_t> data), (const, override));
 };
 
 class MockAccountObserver : public ::nearby::AccountManager::Observer {
@@ -5001,7 +5001,7 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   ShareTarget share_target;
   share_target.is_incoming = true;
   IncomingShareSession session(
-      "endpoint_id", share_target,
+      *sharing_service_task_runner_, "endpoint_id", share_target,
       [](const IncomingShareSession&, const TransferMetadata&) {});
   service_->RemoveIncomingPayloads(session);
   EXPECT_EQ(
