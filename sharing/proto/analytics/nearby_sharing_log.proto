@@ -507,6 +507,14 @@ message SharingLog {
     // connection status from nearby connections layer
     optional location.nearby.proto.sharing.ConnectionLayerStatus
         connection_layer_status = 10;
+    // Date for the first successful transfer.
+    optional int64 first_success_transfer_time_millis = 11;
+    // Date for the last successful transfer.
+    optional int64 last_success_transfer_time_millis = 12;
+    // The cumulative number of transfers the device has completed.
+    // Exact transfer count stored on device, but when logging put the transfer
+    // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
+    optional int32 lifetime_transfer_count = 13;
   }
 
   // EventType: RECEIVE_ATTACHMENTS_START
