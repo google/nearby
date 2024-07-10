@@ -51,10 +51,6 @@ std::optional<std::string> GetDeviceName(
     const Advertisement& advertisement,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate);
 
-// Converts authentication token to four bytes digit string.
-std::optional<std::string> TokenToFourDigitString(
-    const std::optional<std::vector<uint8_t>>& bytes);
-
 std::string ReceiveSurfaceStateToString(
     NearbySharingService::ReceiveSurfaceState state);
 

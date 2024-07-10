@@ -34,6 +34,7 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
+#include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -64,6 +65,12 @@ OutgoingShareSession::~OutgoingShareSession() = default;
 void OutgoingShareSession::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
   transfer_update_callback_(*this, metadata);
+}
+
+bool OutgoingShareSession::ProcessKeyVerificationResult(
+    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+    location::nearby::proto::sharing::OSType share_target_os_type) {
+  return HandleKeyVerificationResult(result, share_target_os_type);
 }
 
 bool OutgoingShareSession::OnNewConnection(NearbyConnection* connection) {

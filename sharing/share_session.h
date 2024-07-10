@@ -71,9 +71,7 @@ class ShareSession {
 
   void UpdateTransferMetadata(const TransferMetadata& transfer_metadata);
 
-  const std::optional<std::string>& token() const { return token_; }
-
-  void set_token(std::string token) { token_ = std::move(token); }
+  const std::string& token() const { return token_; }
 
   IncomingFramesReader* frames_reader() const { return frames_reader_.get(); }
 
@@ -90,13 +88,7 @@ class ShareSession {
     return connection_start_time_;
   }
 
-  ::location::nearby::proto::sharing::OSType os_type() const {
-    return os_type_;
-  }
-
-  void set_os_type(::location::nearby::proto::sharing::OSType os_type) {
-    os_type_ = os_type;
-  }
+  location::nearby::proto::sharing::OSType os_type() const { return os_type_; }
 
   bool self_share() const { return self_share_; }
 
@@ -119,7 +111,7 @@ class ShareSession {
       Clock* clock, location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
       NearbyShareCertificateManager* certificate_manager,
-      std::optional<std::vector<uint8_t>> token,
+      const std::vector<uint8_t>& token,
       std::function<
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                location::nearby::proto::sharing::OSType)>
@@ -144,6 +136,8 @@ class ShareSession {
           response_status);
   void WriteCancelFrame();
 
+  void SetTokenForTests(std::string token) { token_ = std::move(token); }
+
  protected:
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
@@ -159,13 +153,20 @@ class ShareSession {
     return attachment_container_;
   }
   void WriteFrame(const nearby::sharing::service::proto::Frame& frame);
+  // Processes the PairedKeyVerificationResult.
+  // Returns true if verification was successful.
+  bool HandleKeyVerificationResult(
+      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
  private:
   TaskRunner& service_thread_;
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyConnection* connection_ = nullptr;
-  std::optional<std::string> token_;
+  // If not empty, this is the 4 digit token used to verify the connection.
+  // If token is empty, it means self-share and verification is not needed.
+  std::string token_;
   std::shared_ptr<IncomingFramesReader> frames_reader_;
   std::shared_ptr<PairedKeyVerificationRunner> key_verification_runner_;
   std::shared_ptr<PayloadTracker> payload_tracker_;

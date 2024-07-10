@@ -27,13 +27,18 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
+#include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
+#include "sharing/nearby_sharing_decoder_impl.h"
+#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
@@ -44,9 +49,11 @@
 namespace nearby::sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::FileMetadata;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::TextMetadata;
+using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::nearby::sharing::service::proto::WifiCredentialsMetadata;
 using ::testing::Eq;
@@ -140,7 +147,7 @@ class IncomingShareSessionTest : public ::testing::Test {
   }
 
   FakeClock clock_;
-  FakeTaskRunner task_runner_ {&clock_, 1};
+  FakeTaskRunner task_runner_{&clock_, 1};
   ShareTarget share_target_;
   IncomingShareSession session_;
   IntroductionFrame introduction_frame_;
@@ -572,6 +579,147 @@ TEST_F(IncomingShareSessionTest, RegisterPayloadListenerSuccess) {
             .lock(),
         Eq(session_.payload_tracker().lock()));
   }
+}
+
+TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.SetTokenForTests("1234");
+
+  bool introduction_received = false;
+  EXPECT_THAT(
+      session_.ProcessKeyVerificationResult(
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess,
+          OSType::WINDOWS,
+          [&introduction_received](std::optional<IntroductionFrame>) {
+            introduction_received = true;
+          }),
+      IsTrue());
+
+  EXPECT_THAT(session_.self_share(), IsFalse());
+  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
+  EXPECT_THAT(introduction_received, IsFalse());
+
+  // Send Introduction frame
+  nearby::sharing::service::proto::Frame frame =
+      nearby::sharing::service::proto::Frame();
+  frame.set_version(nearby::sharing::service::proto::Frame::V1);
+  V1Frame* v1frame = frame.mutable_v1();
+  v1frame->set_type(service::proto::V1Frame::INTRODUCTION);
+  v1frame->mutable_introduction();
+  std::vector<uint8_t> data;
+  data.resize(frame.ByteSizeLong());
+  EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
+  connection.AppendReadableData(std::move(data));
+
+  EXPECT_THAT(introduction_received, IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.SetTokenForTests("1234");
+
+  bool introduction_received = false;
+  EXPECT_THAT(
+      session_.ProcessKeyVerificationResult(
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
+          OSType::WINDOWS,
+          [&introduction_received](std::optional<IntroductionFrame>) {
+            introduction_received = true;
+          }),
+      IsFalse());
+
+  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
+  EXPECT_THAT(introduction_received, IsFalse());
+
+  // Send Introduction frame
+  nearby::sharing::service::proto::Frame frame =
+      nearby::sharing::service::proto::Frame();
+  frame.set_version(nearby::sharing::service::proto::Frame::V1);
+  V1Frame* v1frame = frame.mutable_v1();
+  v1frame->set_type(service::proto::V1Frame::INTRODUCTION);
+  v1frame->mutable_introduction();
+  std::vector<uint8_t> data;
+  data.resize(frame.ByteSizeLong());
+  EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
+  connection.AppendReadableData(std::move(data));
+
+  EXPECT_THAT(introduction_received, IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.SetTokenForTests("1234");
+
+  bool introduction_received = false;
+  EXPECT_THAT(
+      session_.ProcessKeyVerificationResult(
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable,
+          OSType::WINDOWS,
+          [&introduction_received](std::optional<IntroductionFrame>) {
+            introduction_received = true;
+          }),
+      IsTrue());
+
+  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
+  EXPECT_THAT(introduction_received, IsFalse());
+
+  // Send Introduction frame
+  nearby::sharing::service::proto::Frame frame =
+      nearby::sharing::service::proto::Frame();
+  frame.set_version(nearby::sharing::service::proto::Frame::V1);
+  V1Frame* v1frame = frame.mutable_v1();
+  v1frame->set_type(service::proto::V1Frame::INTRODUCTION);
+  v1frame->mutable_introduction();
+  std::vector<uint8_t> data;
+  data.resize(frame.ByteSizeLong());
+  EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
+  connection.AppendReadableData(std::move(data));
+
+  EXPECT_THAT(introduction_received, IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.SetTokenForTests("1234");
+
+  bool introduction_received = false;
+  EXPECT_THAT(
+      session_.ProcessKeyVerificationResult(
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown,
+          OSType::WINDOWS,
+          [&introduction_received](std::optional<IntroductionFrame>) {
+            introduction_received = true;
+          }),
+      IsFalse());
+
+  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
+  EXPECT_THAT(introduction_received, IsFalse());
+
+  // Send Introduction frame
+  nearby::sharing::service::proto::Frame frame =
+      nearby::sharing::service::proto::Frame();
+  frame.set_version(nearby::sharing::service::proto::Frame::V1);
+  V1Frame* v1frame = frame.mutable_v1();
+  v1frame->set_type(service::proto::V1Frame::INTRODUCTION);
+  v1frame->mutable_introduction();
+  std::vector<uint8_t> data;
+  data.resize(frame.ByteSizeLong());
+  EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
+  connection.AppendReadableData(std::move(data));
+
+  EXPECT_THAT(introduction_received, IsFalse());
 }
 
 }  // namespace

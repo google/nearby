@@ -15,6 +15,7 @@
 #include "sharing/share_session.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -22,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_format.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -45,6 +47,23 @@ using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::V1Frame;
+
+// Used to hash a token into a 4 digit string.
+constexpr int kHashModulo = 9973;
+constexpr int kHashBaseMultiplier = 31;
+
+// Converts authentication token to four bytes digit string.
+std::string TokenToFourDigitString(const std::vector<uint8_t>& bytes) {
+  int hash = 0;
+  int multiplier = 1;
+  for (uint8_t byte : bytes) {
+    // Java bytes are signed two's complement so cast to use the correct sign.
+    hash = (hash + static_cast<int8_t>(byte) * multiplier) % kHashModulo;
+    multiplier = (multiplier * kHashBaseMultiplier) % kHashModulo;
+  }
+
+  return absl::StrFormat("%04d", std::abs(hash));
+}
 
 }  // namespace
 
@@ -101,22 +120,14 @@ void ShareSession::RunPairedKeyVerification(
     Clock* clock, OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
     NearbyShareCertificateManager* certificate_manager,
-    std::optional<std::vector<uint8_t>> token,
+    const std::vector<uint8_t>& token,
     std::function<void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                        OSType)>
         callback) {
-  if (!token) {
-    NL_VLOG(1) << __func__
-               << ": Failed to read authentication token from endpoint - "
-               << endpoint_id_;
-    std::move(callback)(
-        PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
-        OSType::UNKNOWN_OS_TYPE);
-    return;
-  }
+  token_ = TokenToFourDigitString(token);
 
   key_verification_runner_ = std::make_shared<PairedKeyVerificationRunner>(
-      clock, os_type, IsIncoming(), visibility_history, *token,
+      clock, os_type, IsIncoming(), visibility_history, token,
       connection_, certificate_, certificate_manager, frames_reader_.get(),
       kReadFramesTimeout);
   key_verification_runner_->Run(std::move(callback));
@@ -175,6 +186,45 @@ void ShareSession::WriteCancelFrame() {
   v1_frame->set_type(V1Frame::CANCEL);
 
   WriteFrame(frame);
+}
+
+bool ShareSession::HandleKeyVerificationResult(
+    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+    location::nearby::proto::sharing::OSType share_target_os_type) {
+  os_type_ = share_target_os_type;
+
+  switch (result) {
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail:
+      NL_LOG(WARNING) << __func__ << ": Paired key handshake failed for target "
+                      << share_target().id << ". Disconnecting.";
+      return false;
+
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess:
+      NL_VLOG(1) << __func__ << ": Paired key handshake succeeded for target - "
+                 << share_target().id;
+      // Clear out token if it is self-share since verification is successful.
+      if (self_share_) {
+        token_.resize(0);
+      }
+      break;
+
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable:
+      NL_VLOG(1) << __func__
+                 << ": Unable to verify paired key encryption when "
+                    "receiving connection from target - "
+                 << share_target().id;
+      // If we are unable to verify the paired key, we should clear the self
+      // share flag.
+      self_share_ = false;
+      break;
+
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown:
+      NL_LOG(WARNING) << __func__
+                      << ": Unknown PairedKeyVerificationResult for target "
+                      << share_target().id << ". Disconnecting.";
+      return false;
+  }
+  return true;
 }
 
 }  // namespace nearby::sharing

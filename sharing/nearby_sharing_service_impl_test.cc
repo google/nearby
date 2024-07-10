@@ -992,7 +992,6 @@ class NearbySharingServiceImplTest : public testing::Test {
       MockTransferUpdateCallback& transfer_callback, int64_t share_target_id) {
     ExpectTransferUpdates(transfer_callback, share_target_id,
                           {TransferMetadata::Status::kConnecting,
-                           TransferMetadata::Status::kAwaitingLocalConfirmation,
                            TransferMetadata::Status::kAwaitingRemoteAcceptance},
                           [] {});
 
@@ -2748,8 +2747,9 @@ TEST_F(NearbySharingServiceImplTest,
             EXPECT_TRUE(share_target.device_id);
             EXPECT_NE(share_target.device_id, kEndpointId);
             EXPECT_EQ(share_target.full_name, kTestMetadataFullName);
-
-            EXPECT_FALSE(metadata.token().has_value());
+            EXPECT_FALSE(share_target.for_self_share);
+            EXPECT_FALSE(metadata.is_self_share());
+            EXPECT_TRUE(metadata.token().has_value());
             notification.Notify();
           }));
 
@@ -3338,7 +3338,6 @@ TEST_F(NearbySharingServiceImplTest, RegisterReceiveSurfaceWhileSending) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -3363,7 +3362,6 @@ TEST_F(NearbySharingServiceImplTest, SendTextAlreadySending) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -3466,7 +3464,6 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnableToVerifyKey) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
 
@@ -3496,7 +3493,6 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendTextRemoteFailure) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -3549,7 +3545,6 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -3590,7 +3585,6 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -3686,7 +3680,6 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
   absl::Notification introduction_notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { introduction_notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
@@ -3752,7 +3745,6 @@ TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
   absl::Notification introduction_notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
-                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance},
                         [&]() { introduction_notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());

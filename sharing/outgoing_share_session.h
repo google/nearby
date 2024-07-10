@@ -29,6 +29,7 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
+#include "sharing/paired_key_verification_runner.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
@@ -70,6 +71,10 @@ class OutgoingShareSession : public ShareSession {
   void set_connection_layer_status(Status status) {
     connection_layer_status_ = status;
   }
+
+  bool ProcessKeyVerificationResult(
+      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
   std::vector<std::filesystem::path> GetFilePaths() const;
 

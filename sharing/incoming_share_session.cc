@@ -35,6 +35,7 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
+#include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
@@ -46,7 +47,9 @@
 namespace nearby::sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::IntroductionFrame;
+using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 
 }  // namespace
@@ -145,6 +148,31 @@ IncomingShareSession::ProcessIntroduction(
     return TransferMetadata::Status::kUnsupportedAttachmentType;
   }
   return std::nullopt;
+}
+
+bool IncomingShareSession::ProcessKeyVerificationResult(
+    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+    OSType share_target_os_type,
+    std::function<void(std::optional<IntroductionFrame>)>
+        introduction_callback) {
+  if (!HandleKeyVerificationResult(result, share_target_os_type)) {
+    return false;
+  }
+  NL_LOG(INFO) << __func__ << ": Waiting for introduction from "
+               << share_target().id;
+
+  frames_reader()->ReadFrame(
+      V1Frame::INTRODUCTION,
+      [callback =
+           std::move(introduction_callback)](std::optional<V1Frame> frame) {
+        if (!frame.has_value()) {
+          callback(std::nullopt);
+        } else {
+          callback(frame->introduction());
+        }
+      },
+      kReadFramesTimeout);
+  return true;
 }
 
 void IncomingShareSession::RegisterPayloadListener(

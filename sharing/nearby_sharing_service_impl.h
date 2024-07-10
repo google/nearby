@@ -320,8 +320,7 @@ class NearbySharingServiceImpl
   void OnOutgoingConnection(absl::Time connect_start_time,
                             NearbyConnection* connection,
                             OutgoingShareSession& session);
-  void SendIntroduction(OutgoingShareSession& session,
-                        std::optional<std::string> four_digit_token);
+  void SendIntroduction(OutgoingShareSession& session);
 
   void CreatePayloads(
       OutgoingShareSession& session,
@@ -343,25 +342,21 @@ class NearbySharingServiceImpl
       int64_t placeholder_share_target_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void OnIncomingConnectionKeyVerificationDone(
-      int64_t share_target_id, std::optional<std::string> four_digit_token,
+      int64_t share_target_id,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
   void OnOutgoingConnectionKeyVerificationDone(
-      int64_t share_target_id, std::optional<std::string> four_digit_token,
+      int64_t share_target_id,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
-  void ReceiveIntroduction(const IncomingShareSession& session,
-                           std::optional<std::string> four_digit_token);
   void OnReceivedIntroduction(
-      int64_t share_target_id, std::optional<std::string> four_digit_token,
-      std::optional<nearby::sharing::service::proto::V1Frame> frame);
+      int64_t share_target_id,
+      std::optional<nearby::sharing::service::proto::IntroductionFrame> frame);
   void ReceiveConnectionResponse(ShareSession& session);
   void OnReceiveConnectionResponse(
       int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void OnStorageCheckCompleted(int64_t share_target_id,
-                               std::optional<std::string> four_digit_token,
-                               bool is_out_of_storage);
+  void OnStorageCheckCompleted(IncomingShareSession& session);
   void OnFrameRead(
       int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);

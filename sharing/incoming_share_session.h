@@ -26,6 +26,7 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
+#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -53,6 +54,17 @@ class IncomingShareSession : public ShareSession {
   std::optional<TransferMetadata::Status> ProcessIntroduction(
       const nearby::sharing::service::proto::IntroductionFrame&
           introduction_frame);
+
+  // Processes the PairedKeyVerificationResult.
+  // Returns true if verification was successful and the session is now waiting
+  // for the introduction frame.  Calls |introduction_callback| when it is
+  // received.
+  bool ProcessKeyVerificationResult(
+      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+      location::nearby::proto::sharing::OSType share_target_os_type,
+      std::function<void(
+          std::optional<nearby::sharing::service::proto::IntroductionFrame>)>
+          introduction_callback);
 
   // Update file attachment paths with payload paths.
   bool UpdateFilePayloadPaths(

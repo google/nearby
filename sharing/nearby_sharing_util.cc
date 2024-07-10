@@ -25,15 +25,12 @@
 
 #include "absl/hash/hash.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
@@ -45,10 +42,6 @@ namespace sharing {
 namespace {
 using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
 using ::location::nearby::proto::sharing::ConnectionLayerStatus;
-
-// Used to hash a token into a 4 digit string.
-constexpr int kHashModulo = 9973;
-constexpr int kHashBaseMultiplier = 31;
 }  // namespace
 
 std::string ReceiveSurfaceStateToString(
@@ -149,23 +142,6 @@ std::string GetDeviceId(
   }
 
   return std::string(endpoint_id);
-}
-
-std::optional<std::string> TokenToFourDigitString(
-    const std::optional<std::vector<uint8_t>>& bytes) {
-  if (!bytes.has_value()) {
-    return std::nullopt;
-  }
-
-  int hash = 0;
-  int multiplier = 1;
-  for (uint8_t byte : *bytes) {
-    // Java bytes are signed two's complement so cast to use the correct sign.
-    hash = (hash + static_cast<int8_t>(byte) * multiplier) % kHashModulo;
-    multiplier = (multiplier * kHashBaseMultiplier) % kHashModulo;
-  }
-
-  return absl::StrFormat("%04d", std::abs(hash));
 }
 
 bool IsOutOfStorage(DeviceInfo& device_info, std::filesystem::path file_path,

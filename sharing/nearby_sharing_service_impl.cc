@@ -118,6 +118,7 @@ using ::location::nearby::proto::sharing::SessionStatus;
 using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
+using ::nearby::sharing::service::proto::IntroductionFrame;
 
 constexpr absl::Duration kBackgroundAdvertisementRotationDelayMin =
     absl::Minutes(12);
@@ -2500,8 +2501,11 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
   std::optional<std::vector<uint8_t>> token =
       nearby_connections_manager_->GetRawAuthenticationToken(
           session.endpoint_id());
-  std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
-
+  if (!token.has_value()) {
+    AbortAndCloseConnectionIfNecessary(
+        session, TransferMetadata::Status::kPairedKeyVerificationFailed);
+    return;
+  }
   session.RunPairedKeyVerification(
       context_->GetClock(), ToProtoOsType(device_info_.GetOsType()),
       {
@@ -2509,18 +2513,13 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
           .last_visibility = settings_->GetLastVisibility(),
           .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
       },
-      GetCertificateManager(), std::move(token),
-      [this, share_target_id, four_digit_token = std::move(four_digit_token)](
-          PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-          OSType remote_os_type) {
-        OnOutgoingConnectionKeyVerificationDone(
-            share_target_id, four_digit_token, result, remote_os_type);
-      });
+      GetCertificateManager(), *token,
+      absl::bind_front(
+          &NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone,
+          this, share_target_id));
 }
 
-void NearbySharingServiceImpl::SendIntroduction(
-    OutgoingShareSession& session,
-    std::optional<std::string> four_digit_token) {
+void NearbySharingServiceImpl::SendIntroduction(OutgoingShareSession& session) {
   // We successfully connected! Now lets build up Payloads for all the files we
   // want to send them. We won't send any just yet, but we'll send the Payload
   // IDs in our introduction frame so that they know what to expect if they
@@ -2580,12 +2579,6 @@ void NearbySharingServiceImpl::SendIntroduction(
         AbortAndCloseConnectionIfNecessary(*session,
                                            TransferMetadata::Status::kTimedOut);
       });
-
-  session.UpdateTransferMetadata(
-      TransferMetadataBuilder()
-          .set_status(TransferMetadata::Status::kAwaitingLocalConfirmation)
-          .set_token(four_digit_token)
-          .build());
 }
 
 void NearbySharingServiceImpl::CreatePayloads(
@@ -2728,11 +2721,6 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
     absl::string_view endpoint_id, IncomingShareSession& session,
     std::unique_ptr<Advertisement> advertisement) {
   int64_t placeholder_share_target_id = session.share_target().id;
-  if (!session.IsConnected()) {
-    NL_LOG(WARNING) << __func__ << ": Invalid connection for endpoint id - "
-                    << endpoint_id;
-    return;
-  }
 
   if (!advertisement) {
     NL_LOG(WARNING) << __func__
@@ -2953,8 +2941,12 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   std::optional<std::vector<uint8_t>> token =
       nearby_connections_manager_->GetRawAuthenticationToken(
           session.endpoint_id());
-  std::optional<std::string> four_digit_token = TokenToFourDigitString(token);
 
+  if (!token.has_value()) {
+    AbortAndCloseConnectionIfNecessary(
+        session, TransferMetadata::Status::kPairedKeyVerificationFailed);
+    return;
+  }
   session.RunPairedKeyVerification(
       context_->GetClock(), ToProtoOsType(device_info_.GetOsType()),
       {
@@ -2962,19 +2954,14 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           .last_visibility = settings_->GetLastVisibility(),
           .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
       },
-      GetCertificateManager(), std::move(token),
-      [this, share_target_id, four_digit_token = std::move(four_digit_token)](
-          PairedKeyVerificationRunner::PairedKeyVerificationResult
-              verification_result,
-          OSType remote_os_type) {
-        OnIncomingConnectionKeyVerificationDone(
-            share_target_id, four_digit_token, verification_result,
-            remote_os_type);
-      });
+      GetCertificateManager(), *token,
+      absl::bind_front(
+          &NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone,
+          this, share_target_id));
 }
 
 void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
-    int64_t share_target_id, std::optional<std::string> four_digit_token,
+    int64_t share_target_id,
     PairedKeyVerificationRunner::PairedKeyVerificationResult result,
     OSType share_target_os_type) {
   IncomingShareSession* session = GetIncomingShareSession(share_target_id);
@@ -2982,45 +2969,17 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
     NL_VLOG(1) << __func__ << ": Invalid connection or endpoint id";
     return;
   }
-
-  session->set_os_type(share_target_os_type);
-
-  switch (result) {
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail:
-      NL_VLOG(1) << __func__ << ": Paired key handshake failed for target "
-                 << share_target_id << ". Disconnecting.";
-      AbortAndCloseConnectionIfNecessary(
-          *session, TransferMetadata::Status::kPairedKeyVerificationFailed);
-      return;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess:
-      NL_VLOG(1) << __func__ << ": Paired key handshake succeeded for target - "
-                 << share_target_id;
-      ReceiveIntroduction(*session, /*four_digit_token=*/std::nullopt);
-      break;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable:
-      NL_VLOG(1) << __func__
-                 << ": Unable to verify paired key encryption when "
-                    "receiving connection from target - "
-                 << share_target_id;
-      if (four_digit_token) session->set_token(*four_digit_token);
-
-      ReceiveIntroduction(*session, std::move(four_digit_token));
-      break;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown:
-      NL_VLOG(1) << __func__
-                 << ": Unknown PairedKeyVerificationResult for target "
-                 << share_target_id << ". Disconnecting.";
-      AbortAndCloseConnectionIfNecessary(
-          *session, TransferMetadata::Status::kPairedKeyVerificationFailed);
-      break;
+  if (!session->ProcessKeyVerificationResult(
+          result, share_target_os_type,
+          absl::bind_front(&NearbySharingServiceImpl::OnReceivedIntroduction,
+                           this, share_target_id))) {
+    AbortAndCloseConnectionIfNecessary(*session,
+        TransferMetadata::Status::kPairedKeyVerificationFailed);
   }
 }
 
 void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
-    int64_t share_target_id, std::optional<std::string> four_digit_token,
+    int64_t share_target_id,
     PairedKeyVerificationRunner::PairedKeyVerificationResult result,
     OSType share_target_os_type) {
   OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
@@ -3028,78 +2987,29 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
     return;
   }
 
-  session->set_os_type(share_target_os_type);
-
-  switch (result) {
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail:
-      NL_VLOG(1) << __func__ << ": Paired key handshake failed for target "
-                 << share_target_id << ". Disconnecting.";
-      AbortAndCloseConnectionIfNecessary(
-          *session, TransferMetadata::Status::kPairedKeyVerificationFailed);
-      return;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess:
-      NL_VLOG(1) << __func__ << ": Paired key handshake succeeded for target - "
-                 << share_target_id;
-      SendIntroduction(*session, /*four_digit_token=*/std::nullopt);
-      SendPayloads(*session);
-      return;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable:
-      NL_VLOG(1) << __func__
-                 << ": Unable to verify paired key encryption when "
-                    "initiating connection to target - "
-                 << share_target_id;
-
-      if (four_digit_token) {
-        session->set_token(*four_digit_token);
-      }
-
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_sharing_feature::
-                  kSenderSkipsConfirmation)) {
-        NL_VLOG(1) << __func__
-                   << ": Sender-side verification is disabled. Skipping "
-                      "token comparison with "
-                   << share_target_id;
-        SendIntroduction(*session, /*four_digit_token=*/std::nullopt);
-        SendPayloads(*session);
-      } else {
-        SendIntroduction(*session, std::move(four_digit_token));
-      }
-      return;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown:
-      NL_VLOG(1) << __func__
-                 << ": Unknown PairedKeyVerificationResult for target "
-                 << share_target_id << ". Disconnecting.";
-      AbortAndCloseConnectionIfNecessary(
-          *session, TransferMetadata::Status::kPairedKeyVerificationFailed);
-      break;
+  if (!session->ProcessKeyVerificationResult(result, share_target_os_type)) {
+    AbortAndCloseConnectionIfNecessary(
+        *session, TransferMetadata::Status::kPairedKeyVerificationFailed);
+    return;
+  }
+  SendIntroduction(*session);
+  // SendPayloads if key verification is successful or skip sender confirmation.
+  if (session->token().empty() ||
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kSenderSkipsConfirmation)) {
+    SendPayloads(*session);
+  } else {
+    session->UpdateTransferMetadata(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kAwaitingLocalConfirmation)
+            .set_token(session->token())
+            .build());
   }
 }
 
-void NearbySharingServiceImpl::ReceiveIntroduction(
-    const IncomingShareSession& session,
-    std::optional<std::string> four_digit_token) {
-  NL_LOG(INFO) << __func__ << ": Receiving introduction from "
-               << session.share_target().id;
-  NL_DCHECK(session.IsConnected());
-
-  session.frames_reader()->ReadFrame(
-      nearby::sharing::service::proto::V1Frame::INTRODUCTION,
-      [this, share_target_id = session.share_target().id,
-       four_digit_token = std::move(four_digit_token)](
-          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-        OnReceivedIntroduction(share_target_id, std::move(four_digit_token),
-                               std::move(frame));
-      },
-      kReadFramesTimeout);
-}
-
 void NearbySharingServiceImpl::OnReceivedIntroduction(
-    int64_t share_target_id, std::optional<std::string> four_digit_token,
-    std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+    int64_t share_target_id, std::optional<IntroductionFrame> frame) {
   IncomingShareSession* session = GetIncomingShareSession(share_target_id);
   if (!session || !session->IsConnected()) {
     NL_LOG(WARNING)
@@ -3118,7 +3028,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   NL_LOG(INFO) << __func__ << ": Successfully read the introduction frame.";
 
   std::optional<TransferMetadata::Status> status =
-      session->ProcessIntroduction(frame->introduction());
+      session->ProcessIntroduction(*frame);
   if (status.has_value()) {
     Fail(share_target_id, *status);
     return;
@@ -3134,8 +3044,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           sharing::config_package_nearby::nearby_sharing_feature::
               kUpgradeBandwidthAfterAccept)) {
-    if (frame->introduction().has_start_transfer() &&
-        frame->introduction().start_transfer()) {
+    if (frame->has_start_transfer() && frame->start_transfer()) {
       if (session->attachment_container().GetTotalAttachmentsSize() >=
           kAttachmentsSizeThresholdOverHighQualityMedium) {
         NL_LOG(INFO)
@@ -3152,9 +3061,15 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   bool is_out_of_storage =
       IsOutOfStorage(device_info_, download_path,
                      session->attachment_container().GetStorageSize());
+  if (is_out_of_storage) {
+    Fail(share_target_id, TransferMetadata::Status::kNotEnoughSpace);
+    NL_LOG(WARNING) << __func__
+                    << ": Not enough space on the receiver. We have informed "
+                    << share_target_id;
+    return;
+  }
 
-  OnStorageCheckCompleted(share_target_id, std::move(four_digit_token),
-                          is_out_of_storage);
+  OnStorageCheckCompleted(*session);
 }
 
 void NearbySharingServiceImpl::ReceiveConnectionResponse(
@@ -3278,25 +3193,11 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
 }
 
 void NearbySharingServiceImpl::OnStorageCheckCompleted(
-    int64_t share_target_id, std::optional<std::string> four_digit_token,
-    bool is_out_of_storage) {
-  if (is_out_of_storage) {
-    Fail(share_target_id, TransferMetadata::Status::kNotEnoughSpace);
-    NL_LOG(WARNING) << __func__
-                    << ": Not enough space on the receiver. We have informed "
-                    << share_target_id;
-    return;
-  }
-  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
-  if (!session || !session->IsConnected()) {
-    NL_LOG(WARNING) << __func__ << ": Invalid connection for share target - "
-                    << share_target_id;
-    return;
-  }
-
+    IncomingShareSession& session) {
   mutual_acceptance_timeout_alarm_ = std::make_unique<ThreadTimer>(
       *service_thread_, "mutual_acceptance_timeout_alarm",
-      kReadResponseFrameTimeout, [this, share_target_id]() {
+      kReadResponseFrameTimeout,
+      [this, share_target_id = session.share_target().id]() {
         NL_VLOG(1)
             << __func__
             << ": Incoming mutual acceptance timed out, closing connection for "
@@ -3305,44 +3206,32 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
         Fail(share_target_id, TransferMetadata::Status::kTimedOut);
       });
 
-  bool is_self_share = !four_digit_token.has_value() && session->self_share();
-  bool is_self_share_auto_accept = session->self_share();
-
-  if (!is_self_share_auto_accept) {
+  if (!session.self_share()) {
     TransferMetadataBuilder transfer_metadata_builder;
     transfer_metadata_builder.set_status(
         TransferMetadata::Status::kAwaitingLocalConfirmation);
-    transfer_metadata_builder.set_token(four_digit_token);
-    transfer_metadata_builder.set_is_self_share(is_self_share);
+    transfer_metadata_builder.set_token(session.token());
 
-    session->UpdateTransferMetadata(transfer_metadata_builder.build());
+    session.UpdateTransferMetadata(transfer_metadata_builder.build());
   } else {
     // Don't need to send kAwaitingLocalConfirmation for auto accept of Self
     // share.
     OnTransferStarted(/*is_incoming=*/true);
   }
 
-  session->set_disconnect_status(
+  session.set_disconnect_status(
       TransferMetadata::Status::kUnexpectedDisconnection);
 
-  auto* frames_reader = session->frames_reader();
-  if (!frames_reader) {
-    NL_LOG(WARNING) << __func__
-                    << ": Stopped reading further frames, due to no connection "
-                       "established.";
-    return;
-  }
-
-  if (is_self_share_auto_accept) {
+  if (session.self_share()) {
     NL_LOG(INFO) << __func__ << ": Auto-accepting self share.";
-    Accept(share_target_id, [](StatusCodes status_codes) {
+    Accept(session.share_target().id, [](StatusCodes status_codes) {
       NL_LOG(INFO) << __func__ << ": Auto-accepting result: "
                    << static_cast<int>(status_codes);
     });
   }
 
-  frames_reader->ReadFrame(
-      [this, share_target_id](
+  session.frames_reader()->ReadFrame(
+      [this, share_target_id = session.share_target().id](
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target_id, std::move(frame));
       });

@@ -36,6 +36,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
+#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
@@ -44,6 +45,7 @@
 
 namespace nearby::sharing {
 namespace {
+using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::ProgressUpdateFrame;
@@ -421,6 +423,36 @@ TEST_F(OutgoingShareSessionTest, WriteInProgressUpdateFrameSuccess) {
   const ProgressUpdateFrame& progress_frame = frame.v1().progress_update();
   EXPECT_THAT(progress_frame.start_transfer(), IsTrue());
   EXPECT_THAT(progress_frame.progress(), Eq(0.5));
+}
+
+TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.SetTokenForTests("1234");
+
+  EXPECT_THAT(
+      session_.ProcessKeyVerificationResult(
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
+          OSType::WINDOWS),
+      IsFalse());
+
+  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
+}
+
+TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.SetTokenForTests("1234");
+
+  EXPECT_THAT(
+      session_.ProcessKeyVerificationResult(
+          PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess,
+          OSType::WINDOWS),
+      IsTrue());
+
+  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
 }
 
 }  // namespace
