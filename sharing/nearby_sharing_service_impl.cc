@@ -819,10 +819,6 @@ void NearbySharingServiceImpl::Accept(
       "api_accept",
       [this, share_target_id,
        status_codes_callback = std::move(status_codes_callback)]() {
-        // Log analytics event of responding to introduction.
-        analytics_recorder_->NewRespondToIntroduction(
-            ResponseToIntroduction::ACCEPT_INTRODUCTION, receiving_session_id_);
-
         ShareSession* session = GetShareSession(share_target_id);
         if (session == nullptr) {
           NL_LOG(WARNING) << __func__
@@ -836,6 +832,9 @@ void NearbySharingServiceImpl::Accept(
           std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
+        // Log analytics event of responding to introduction.
+        analytics_recorder_->NewRespondToIntroduction(
+            ResponseToIntroduction::ACCEPT_INTRODUCTION, session->session_id());
 
         bool is_incoming = session->IsIncoming();
         std::optional<
@@ -851,11 +850,9 @@ void NearbySharingServiceImpl::Accept(
           return;
         }
 
-        is_waiting_to_record_accept_to_transfer_start_metric_ = is_incoming;
         if (is_incoming) {
           IncomingShareSession* incoming_session =
               GetIncomingShareSession(share_target_id);
-          incoming_share_accepted_timestamp_ = context_->GetClock()->Now();
           ReceivePayloads(*incoming_session, std::move(status_codes_callback));
           return;
         }
@@ -871,10 +868,6 @@ void NearbySharingServiceImpl::Reject(
       "api_reject",
       [this, share_target_id,
        status_codes_callback = std::move(status_codes_callback)]() {
-        // Log analytics event of responding to introduction.
-        analytics_recorder_->NewRespondToIntroduction(
-            ResponseToIntroduction::REJECT_INTRODUCTION, receiving_session_id_);
-
         ShareSession* session = GetShareSession(share_target_id);
         if (session == nullptr) {
           NL_LOG(WARNING) << __func__
@@ -888,6 +881,9 @@ void NearbySharingServiceImpl::Reject(
           std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
+        // Log analytics event of responding to introduction.
+        analytics_recorder_->NewRespondToIntroduction(
+            ResponseToIntroduction::REJECT_INTRODUCTION, session->session_id());
 
         RunOnNearbySharingServiceThreadDelayed(
             "incoming_rejection_delay", kIncomingRejectionDelay,
@@ -1019,10 +1015,8 @@ void NearbySharingServiceImpl::Open(
         NL_LOG(INFO) << __func__ << ": Open is called for share_target: "
                      << share_target.ToString();
         // Log analytics event of opening received attachments.
-        ShareSession* session = GetShareSession(share_target.id);
         analytics_recorder_->NewOpenReceivedAttachments(
-            *attachment_container,
-            session != nullptr ? session->session_id() : 0);
+            *attachment_container, /*session_id=*/0);
         status_codes_callback(service_extension_->Open(*attachment_container));
       });
 }
@@ -1098,13 +1092,11 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   int64_t placeholder_share_target_id = placeholder_share_target.id;
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
+  session.set_session_id(analytics_recorder_->GenerateNextId());
   session.OnConnected(*decoder_, context_->GetClock()->Now(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
-
-  // Set receiving session id.
-  receiving_session_id_ = analytics_recorder_->GenerateNextId();
 
   std::unique_ptr<Advertisement> advertisement =
       decoder_->DecodeAdvertisement(endpoint_info);
@@ -2421,7 +2413,7 @@ void NearbySharingServiceImpl::ReceivePayloads(
 
   // Log analytics event of starting to receive payloads.
   analytics_recorder_->NewReceiveAttachmentsStart(
-      receiving_session_id_, session.attachment_container());
+      session.session_id(), session.attachment_container());
   session.RegisterPayloadListener(
       context_->GetClock(), *nearby_connections_manager_,
       absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
@@ -2777,7 +2769,7 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
         ConvertToTransmissionStatus(metadata.status());
 
     analytics_recorder_->NewReceiveAttachmentsEnd(
-        receiving_session_id_, received_bytes, transmission_status,
+        session.session_id(), received_bytes, transmission_status,
         /* referrer_package=*/std::nullopt);
 
     OnTransferComplete();
@@ -2911,6 +2903,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
     return;
   }
   NearbyConnection* connection = it->second.connection();
+  int64_t session_id = it->second.session_id();
 
   std::optional<ShareTarget> share_target =
       CreateShareTarget(endpoint_id, advertisement, certificate,
@@ -2933,6 +2926,8 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
 
   IncomingShareSession& session = CreateIncomingShareSession(
       *share_target, endpoint_id, std::move(certificate));
+  // Copy session id from placeholder session to actual session.
+  session.set_session_id(session_id);
   session.OnConnected(*decoder_, context_->GetClock()->Now(), connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(
@@ -3036,7 +3031,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
 
   // Log analytics event of receiving introduction.
   analytics_recorder_->NewReceiveIntroduction(
-      receiving_session_id_, session->share_target(),
+      session->session_id(), session->share_target(),
       /*referrer_package=*/std::nullopt, session->os_type());
 
   // Controls BWU using a flag when receiving an introduction frame, since it
@@ -3397,10 +3392,6 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
 
   bool payload_incomplete = false;
   if (session->IsIncoming()) {
-    if (is_in_progress &&
-        is_waiting_to_record_accept_to_transfer_start_metric_) {
-      is_waiting_to_record_accept_to_transfer_start_metric_ = false;
-    }
     IncomingShareSession* incoming_session =
         GetIncomingShareSession(share_target_id);
 

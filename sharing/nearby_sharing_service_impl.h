@@ -570,13 +570,6 @@ class NearbySharingServiceImpl
   absl::Time scanning_start_timestamp_;
   // True when we are advertising with a device name visible to everyone.
   std::atomic_bool in_high_visibility_{false};
-  // Whether an incoming share has been accepted, and we are waiting to log the
-  // time from acceptance to the start of payload transfer.
-  bool is_waiting_to_record_accept_to_transfer_start_metric_ = false;
-  // Time at which an incoming transfer was accepted. This is used to calculate
-  // the time between an incoming share being accepted and the first payload
-  // byte being processed.
-  absl::Time incoming_share_accepted_timestamp_;
 
   // Used to debounce OnNetworkChanged processing.
   std::unique_ptr<ThreadTimer> on_network_changed_delay_timer_;
@@ -601,9 +594,6 @@ class NearbySharingServiceImpl
 
   // Used to identify current advertising session.
   int64_t advertising_session_id_ = 0;
-
-  // Used to identify current receiving session.
-  int64_t receiving_session_id_ = 0;
 
   // Used to track the time of screen unlock.
   absl::Time screen_unlock_time_;
