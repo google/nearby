@@ -13,7 +13,7 @@
 # limitations under the License.
 
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
+load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
 load("expand_version_template.bzl", "expand_version_template")
 
 package(default_visibility = [
@@ -53,7 +53,7 @@ expand_version_template(
     version = varref("VERSION"),
 )
 
-lexan.resource_files(
+windows.resource_files(
     name = "resources",
     rc_files = [
         ":version_expanded",
@@ -100,7 +100,7 @@ cc_library(
 )
 
 # Build with --config=lexan
-lexan.cc_windows_dll(
+windows.cc_windows_dll(
     name = "nearby_connections",
     tags = ["windows-dll"],
     deps = [
@@ -145,7 +145,7 @@ cc_library(
     ],
 )
 
-lexan.cc_windows_dll(
+windows.cc_windows_dll(
     name = "nc_windows",
     srcs = [],
     compatible_with = ["//buildenv/target:non_prod"],

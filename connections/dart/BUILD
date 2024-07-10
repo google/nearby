@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
+load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
 
 package(default_visibility = ["//location/nearby:__subpackages__"])
 
 licenses(["notice"])
 
 # Build with --config=lexan
-lexan.cc_windows_dll(
+windows.cc_windows_dll(
     name = "nc_windows_dart",
     srcs = [
         "nc_adapter_dart.cc",
