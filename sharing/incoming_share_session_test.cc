@@ -50,16 +50,21 @@ namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
+using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::FileMetadata;
+using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::TextMetadata;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::nearby::sharing::service::proto::WifiCredentialsMetadata;
+using ::testing::_;
 using ::testing::Eq;
+using ::testing::Invoke;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
+using ::testing::MockFunction;
 using ::testing::UnorderedElementsAre;
 
 constexpr absl::string_view kEndpointId = "ABCD";
@@ -95,7 +100,7 @@ class IncomingShareSessionTest : public ::testing::Test {
  protected:
   IncomingShareSessionTest()
       : session_(task_runner_, std::string(kEndpointId), share_target_,
-                 [](const IncomingShareSession&, const TransferMetadata&) {}) {
+                 transfer_metadata_callback_.AsStdFunction()) {
     NL_CHECK(
         proto2::TextFormat::ParseFromString(R"pb(
                                               file_metadata {
@@ -149,6 +154,8 @@ class IncomingShareSessionTest : public ::testing::Test {
   FakeClock clock_;
   FakeTaskRunner task_runner_{&clock_, 1};
   ShareTarget share_target_;
+  MockFunction<void(const IncomingShareSession&, const TransferMetadata&)>
+      transfer_metadata_callback_;
   IncomingShareSession session_;
   IntroductionFrame introduction_frame_;
 };
@@ -564,14 +571,24 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
               IsFalse());
 }
 
-TEST_F(IncomingShareSessionTest, RegisterPayloadListenerSuccess) {
+TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  EXPECT_TRUE(
+      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
+  EXPECT_CALL(transfer_metadata_callback_, Call(_, _))
+      .WillOnce(Invoke([](const IncomingShareSession& session,
+                          const TransferMetadata& metadata) {
+        EXPECT_EQ(metadata.status(),
+                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
+      }));
+
   FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
-
-  session_.RegisterPayloadListener(&clock, connections_manager,
-                                   [](int64_t, TransferMetadata) {});
+  session_.AcceptTransfer(&clock, connections_manager,
+                          [](int64_t, TransferMetadata) {});
 
   for (auto it : session_.attachment_payload_map()) {
     EXPECT_THAT(
@@ -579,6 +596,13 @@ TEST_F(IncomingShareSessionTest, RegisterPayloadListenerSuccess) {
             .lock(),
         Eq(session_.payload_tracker().lock()));
   }
+  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  Frame frame;
+  ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
+  ASSERT_EQ(frame.version(), Frame::V1);
+  ASSERT_EQ(frame.v1().type(), V1Frame::RESPONSE);
+  EXPECT_EQ(frame.v1().connection_response().status(),
+            ConnectionResponseFrame::ACCEPT);
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
@@ -720,6 +744,49 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
   connection.AppendReadableData(std::move(data));
 
   EXPECT_THAT(introduction_received, IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNotNeeded) {
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  FakeNearbyConnectionsManager connections_manager;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+
+  EXPECT_THAT(session_.TryUpgradeBandwidth(connections_manager), IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
+  IntroductionFrame introduction_frame;
+  NL_CHECK(
+      proto2::TextFormat::ParseFromString(R"pb(
+                                            file_metadata {
+                                              id: 1234
+                                              size: 1000000
+                                              name: "file_name1"
+                                              mime_type: "application/pdf"
+                                              type: DOCUMENT
+                                              parent_folder: "parent_folder1"
+                                              payload_id: 9876
+                                            }
+                                            file_metadata {
+                                              id: 1235
+                                              size: 200
+                                              name: "file_name2"
+                                              mime_type: "image/jpeg"
+                                              type: IMAGE
+                                              parent_folder: "parent_folder2"
+                                              payload_id: 9875
+                                            }
+                                          )pb",
+                                          &introduction_frame));
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  FakeNearbyConnectionsManager connections_manager;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+              Eq(std::nullopt));
+
+  EXPECT_THAT(session_.TryUpgradeBandwidth(connections_manager), IsTrue());
 }
 
 }  // namespace

@@ -846,14 +846,24 @@ void NearbySharingServiceImpl::Accept(
                                ? std::get<2>(*metadata).status()
                                : TransferMetadata::Status::kUnknown)) {
           NL_LOG(WARNING) << __func__ << ": out of order API call.";
-          status_codes_callback(StatusCodes::kOutOfOrderApiCall);
+          std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
 
         if (is_incoming) {
           IncomingShareSession* incoming_session =
               GetIncomingShareSession(share_target_id);
-          ReceivePayloads(*incoming_session, std::move(status_codes_callback));
+          mutual_acceptance_timeout_alarm_.reset();
+
+          // Log analytics event of starting to receive payloads.
+          analytics_recorder_->NewReceiveAttachmentsStart(
+              incoming_session->session_id(),
+              incoming_session->attachment_container());
+          incoming_session->AcceptTransfer(
+              context_->GetClock(), *nearby_connections_manager_,
+              absl::bind_front(
+                  &NearbySharingServiceImpl::OnPayloadTransferUpdate, this));
+          std::move(status_codes_callback)(StatusCodes::kOk);
           return;
         }
 
@@ -2406,41 +2416,6 @@ void NearbySharingServiceImpl::OnTransferStarted(bool is_incoming) {
   InvalidateSurfaceState();
 }
 
-void NearbySharingServiceImpl::ReceivePayloads(
-    IncomingShareSession& session,
-    std::function<void(StatusCodes status_codes)> status_codes_callback) {
-  mutual_acceptance_timeout_alarm_.reset();
-
-  // Log analytics event of starting to receive payloads.
-  analytics_recorder_->NewReceiveAttachmentsStart(
-      session.session_id(), session.attachment_container());
-  session.RegisterPayloadListener(
-      context_->GetClock(), *nearby_connections_manager_,
-      absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
-                       this));
-  session.WriteResponseFrame(
-      nearby::sharing::service::proto::ConnectionResponseFrame::ACCEPT);
-  NL_VLOG(1) << __func__ << ": Successfully wrote response frame";
-
-  session.UpdateTransferMetadata(
-      TransferMetadataBuilder()
-          .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
-          .set_token(session.token())
-          .build());
-
-  if (session.attachment_container().GetTotalAttachmentsSize() >=
-      kAttachmentsSizeThresholdOverHighQualityMedium) {
-    // Upgrade bandwidth regardless of advertising visibility because either
-    // the system or the user has verified the sender's identity; the
-    // stable identifiers potentially exposed by performing a bandwidth
-    // upgrade are no longer a concern.
-    NL_LOG(INFO) << __func__ << ": Upgrade bandwidth when receiving accept.";
-    nearby_connections_manager_->UpgradeBandwidth(session.endpoint_id());
-  }
-
-  std::move(status_codes_callback)(StatusCodes::kOk);
-}
-
 NearbySharingService::StatusCodes NearbySharingServiceImpl::SendPayloads(
     ShareSession& session) {
   NL_VLOG(1) << __func__ << ": Preparing to send payloads to "
@@ -3040,12 +3015,10 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
           sharing::config_package_nearby::nearby_sharing_feature::
               kUpgradeBandwidthAfterAccept)) {
     if (frame->has_start_transfer() && frame->start_transfer()) {
-      if (session->attachment_container().GetTotalAttachmentsSize() >=
-          kAttachmentsSizeThresholdOverHighQualityMedium) {
+      if (session->TryUpgradeBandwidth(*nearby_connections_manager_)) {
         NL_LOG(INFO)
             << __func__
             << ": Upgrade bandwidth when receiving an introduction frame.";
-        nearby_connections_manager_->UpgradeBandwidth(session->endpoint_id());
       }
     }
   }
@@ -3286,22 +3259,28 @@ void NearbySharingServiceImpl::HandleProgressUpdateFrame(
         progress_update_frame) {
   if (progress_update_frame.has_start_transfer() &&
       progress_update_frame.start_transfer()) {
-    ShareSession* session = GetShareSession(share_target_id);
+    IncomingShareSession* session = GetIncomingShareSession(share_target_id);
 
-    if (session != nullptr &&
-        session->attachment_container().GetTotalAttachmentsSize() >=
-            kAttachmentsSizeThresholdOverHighQualityMedium) {
+    if (session == nullptr || !session->IsConnected()) {
+      NL_LOG(ERROR) << "Received ProgressUpdate Frame on unknown session";
+      return;
+    }
+    NL_LOG(INFO) << __func__ << ": Received progress for ShareTarget "
+                 << share_target_id << " : "
+                 << progress_update_frame.progress();
+    // TODO(b/338468927): Check if this is actually needed.
+    // Bandwidth upgrade was already requested in Accept.
+    if (session->TryUpgradeBandwidth(*nearby_connections_manager_)) {
       NL_LOG(INFO)
           << __func__
           << ": Upgrade bandwidth when receiving progress update frame "
              "for endpoint "
           << session->endpoint_id();
-      nearby_connections_manager_->UpgradeBandwidth(session->endpoint_id());
     }
   }
 
   if (progress_update_frame.has_progress()) {
-    NL_LOG(INFO) << __func__ << ": Current progress for ShareTarget "
+    NL_VLOG(1) << __func__ << ": Current progress for ShareTarget "
                  << share_target_id << " is "
                  << progress_update_frame.progress();
   }

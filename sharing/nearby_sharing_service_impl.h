@@ -312,9 +312,6 @@ class NearbySharingServiceImpl
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);
 
-  void ReceivePayloads(
-      IncomingShareSession& session,
-      std::function<void(StatusCodes status_codes)> status_codes_callback);
   StatusCodes SendPayloads(ShareSession& session);
 
   void OnOutgoingConnection(absl::Time connect_start_time,

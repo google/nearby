@@ -42,12 +42,14 @@
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 #include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
+using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
@@ -175,7 +177,7 @@ bool IncomingShareSession::ProcessKeyVerificationResult(
   return true;
 }
 
-void IncomingShareSession::RegisterPayloadListener(
+void IncomingShareSession::AcceptTransfer(
     Clock* clock, NearbyConnectionsManager& connections_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
@@ -195,6 +197,22 @@ void IncomingShareSession::RegisterPayloadListener(
 
     NL_VLOG(1) << __func__ << ": Accepted incoming files from share target - "
                << share_target().id;
+  }
+  WriteResponseFrame(ConnectionResponseFrame::ACCEPT);
+  NL_VLOG(1) << __func__ << ": Successfully wrote response frame";
+
+  UpdateTransferMetadata(
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
+          .set_token(token())
+          .build());
+
+  if (TryUpgradeBandwidth(connections_manager)) {
+    // Upgrade bandwidth regardless of advertising visibility because either
+    // the system or the user has verified the sender's identity; the
+    // stable identifiers potentially exposed by performing a bandwidth
+    // upgrade are no longer a concern.
+    NL_LOG(INFO) << __func__ << ": Upgrade bandwidth when sending accept.";
   }
 }
 
@@ -343,6 +361,18 @@ std::vector<std::filesystem::path> IncomingShareSession::GetPayloadFilePaths()
     file_paths.push_back(file_path);
   }
   return file_paths;
+}
+
+bool IncomingShareSession::TryUpgradeBandwidth(
+    NearbyConnectionsManager& connections_manager) {
+  if (!bandwidth_upgrade_requested_ &&
+      attachment_container().GetTotalAttachmentsSize() >=
+          kAttachmentsSizeThresholdOverHighQualityMedium) {
+    connections_manager.UpgradeBandwidth(endpoint_id());
+    bandwidth_upgrade_requested_ = true;
+    return true;
+  }
+  return false;
 }
 
 }  // namespace nearby::sharing

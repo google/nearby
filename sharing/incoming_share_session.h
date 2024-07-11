@@ -70,7 +70,8 @@ class IncomingShareSession : public ShareSession {
   bool UpdateFilePayloadPaths(
       const NearbyConnectionsManager& connections_manager);
 
-  void RegisterPayloadListener(
+  // Accept the transfer and begin listening for payload transfer updates.
+  void AcceptTransfer(
       Clock* clock, NearbyConnectionsManager& connections_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
@@ -81,6 +82,10 @@ class IncomingShareSession : public ShareSession {
 
   // Returns the file paths of all file payloads.
   std::vector<std::filesystem::path> GetPayloadFilePaths() const;
+
+  // Upgrade bandwidth if it is needed.
+  // Returns true if bandwidth upgrade was requested.
+  bool TryUpgradeBandwidth(NearbyConnectionsManager& connections_manager);
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
@@ -93,6 +98,8 @@ class IncomingShareSession : public ShareSession {
 
   std::function<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
+
+  bool bandwidth_upgrade_requested_ = false;
 };
 
 }  // namespace nearby::sharing
