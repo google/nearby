@@ -27,6 +27,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/constants.h"
 #include "sharing/incoming_frames_reader.h"
@@ -67,9 +68,12 @@ std::string TokenToFourDigitString(const std::vector<uint8_t>& bytes) {
 
 }  // namespace
 
-ShareSession::ShareSession(TaskRunner& service_thread, std::string endpoint_id,
+ShareSession::ShareSession(TaskRunner& service_thread,
+                           analytics::AnalyticsRecorder& analytics_recorder,
+                           std::string endpoint_id,
                            const ShareTarget& share_target)
     : service_thread_(service_thread),
+      analytics_recorder_(analytics_recorder),
       endpoint_id_(std::move(endpoint_id)),
       self_share_(share_target.for_self_share),
       share_target_(share_target) {}

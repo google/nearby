@@ -41,11 +41,13 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/account/account_manager_impl.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/advertisement.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
@@ -4903,10 +4905,14 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
   EXPECT_THAT(unknown_file_paths_to_delete,
               UnorderedElementsAre("test1.txt", "test2.txt"));
+  nearby::analytics::MockEventLogger mock_event_logger;
+  analytics::AnalyticsRecorder analytics_recorder{/*vendor_id=*/0,
+                                                  &mock_event_logger};
   ShareTarget share_target;
   share_target.is_incoming = true;
   IncomingShareSession session(
-      *sharing_service_task_runner_, "endpoint_id", share_target,
+      *sharing_service_task_runner_, analytics_recorder, "endpoint_id",
+      share_target,
       [](const IncomingShareSession&, const TransferMetadata&) {});
   service_->RemoveIncomingPayloads(session);
   EXPECT_EQ(

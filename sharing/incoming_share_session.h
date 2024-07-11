@@ -24,6 +24,7 @@
 
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/paired_key_verification_runner.h"
@@ -39,7 +40,8 @@ namespace nearby::sharing {
 class IncomingShareSession : public ShareSession {
  public:
   IncomingShareSession(
-      TaskRunner& service_thread, std::string endpoint_id,
+      TaskRunner& service_thread,
+      analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
       const ShareTarget& share_target,
       std::function<void(const IncomingShareSession&, const TransferMetadata&)>
           transfer_update_callback);

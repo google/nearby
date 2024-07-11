@@ -36,7 +36,10 @@ cc_library(
 cc_library(
     name = "mock_event_logger",
     testonly = True,
-    hdrs = ["mock_event_logger.h"],
+    hdrs = [
+        "mock_event_logger.h",
+        "sharing_log_matchers.h",
+    ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [

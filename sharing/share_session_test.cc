@@ -25,8 +25,10 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
@@ -51,7 +53,8 @@ constexpr absl::string_view kEndpointId = "12345";
 class TestShareSession : public ShareSession {
  public:
   TestShareSession(std::string endpoint_id, const ShareTarget& share_target)
-      : ShareSession(fake_task_runner_, std::move(endpoint_id), share_target),
+      : ShareSession(fake_task_runner_, analytics_recorder_,
+                     std::move(endpoint_id), share_target),
         is_incoming_(share_target.is_incoming) {}
 
   bool IsIncoming() const override { return is_incoming_; }
@@ -91,6 +94,9 @@ class TestShareSession : public ShareSession {
  private:
   FakeClock fake_clock_;
   FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
+  nearby::analytics::MockEventLogger mock_event_logger_;
+  analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
+                                                   &mock_event_logger_};
   const bool is_incoming_;
   int transfer_update_count_ = 0;
   std::optional<TransferMetadata> last_transfer_metadata_;

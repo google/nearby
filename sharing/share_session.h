@@ -28,6 +28,7 @@
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -47,8 +48,9 @@ namespace nearby::sharing {
 // This class is thread-compatible.
 class ShareSession {
  public:
-  ShareSession(TaskRunner& service_thread, std::string endpoint_id,
-               const ShareTarget& share_target);
+  ShareSession(TaskRunner& service_thread,
+               analytics::AnalyticsRecorder& analytics_recorder,
+               std::string endpoint_id, const ShareTarget& share_target);
   ShareSession(ShareSession&&);
   ShareSession& operator=(ShareSession&&) = delete;
   ShareSession& operator=(const ShareSession&) = delete;
@@ -143,6 +145,10 @@ class ShareSession {
       const TransferMetadata& metadata) = 0;
   virtual bool OnNewConnection(NearbyConnection* connection) = 0;
 
+  analytics::AnalyticsRecorder& analytics_recorder() {
+    return analytics_recorder_;
+  };
+
   void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id);
 
   void set_payload_tracker(std::shared_ptr<PayloadTracker> payload_tracker) {
@@ -161,6 +167,7 @@ class ShareSession {
 
  private:
   TaskRunner& service_thread_;
+  analytics::AnalyticsRecorder& analytics_recorder_;
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyConnection* connection_ = nullptr;

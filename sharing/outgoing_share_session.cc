@@ -27,6 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
@@ -50,11 +51,13 @@ using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
 OutgoingShareSession::OutgoingShareSession(
-    TaskRunner& service_thread, std::string endpoint_id,
+    TaskRunner& service_thread,
+    analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
     std::function<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(service_thread, std::move(endpoint_id), share_target),
+    : ShareSession(service_thread, analytics_recorder, std::move(endpoint_id),
+                   share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) =

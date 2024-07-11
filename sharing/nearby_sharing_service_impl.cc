@@ -832,9 +832,6 @@ void NearbySharingServiceImpl::Accept(
           std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
-        // Log analytics event of responding to introduction.
-        analytics_recorder_->NewRespondToIntroduction(
-            ResponseToIntroduction::ACCEPT_INTRODUCTION, session->session_id());
 
         bool is_incoming = session->IsIncoming();
         std::optional<
@@ -855,10 +852,6 @@ void NearbySharingServiceImpl::Accept(
               GetIncomingShareSession(share_target_id);
           mutual_acceptance_timeout_alarm_.reset();
 
-          // Log analytics event of starting to receive payloads.
-          analytics_recorder_->NewReceiveAttachmentsStart(
-              incoming_session->session_id(),
-              incoming_session->attachment_container());
           incoming_session->AcceptTransfer(
               context_->GetClock(), *nearby_connections_manager_,
               absl::bind_front(
@@ -3499,7 +3492,8 @@ IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   NL_DCHECK(share_target.is_incoming);
   auto [it, inserted] = incoming_share_session_map_.try_emplace(
-      share_target.id, *service_thread_, std::string(endpoint_id), share_target,
+      share_target.id, *service_thread_, *analytics_recorder_,
+      std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnIncomingTransferUpdate,
                        this));
   if (!inserted) {
@@ -3529,7 +3523,8 @@ OutgoingShareSession& NearbySharingServiceImpl::CreateOutgoingShareSession(
              << ") to outgoing share target map";
   outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
   auto [it_out, inserted] = outgoing_share_session_map_.try_emplace(
-      share_target.id, *service_thread_, std::string(endpoint_id), share_target,
+      share_target.id, *service_thread_, *analytics_recorder_,
+      std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
                        this));
   auto& session = it_out->second;

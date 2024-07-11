@@ -28,9 +28,12 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
+#include "internal/analytics/mock_event_logger.h"
+#include "internal/analytics/sharing_log_matchers.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
 #include "proto/sharing_enums.pb.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
@@ -39,6 +42,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/paired_key_verification_runner.h"
+#include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
@@ -49,7 +53,15 @@
 namespace nearby::sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::EventCategory;
+using ::location::nearby::proto::sharing::EventType;
 using ::location::nearby::proto::sharing::OSType;
+using ::location::nearby::proto::sharing::ResponseToIntroduction;
+using ::nearby::analytics::HasAction;
+using ::nearby::analytics::HasCategory;
+using ::nearby::analytics::HasEventType;
+using ::nearby::analytics::HasSessionId;
+using ::nearby::sharing::analytics::proto::SharingLog;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::FileMetadata;
 using ::nearby::sharing::service::proto::Frame;
@@ -59,12 +71,15 @@ using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::nearby::sharing::service::proto::WifiCredentialsMetadata;
 using ::testing::_;
+using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
+using ::testing::Matcher;
 using ::testing::MockFunction;
+using ::testing::Property;
 using ::testing::UnorderedElementsAre;
 
 constexpr absl::string_view kEndpointId = "ABCD";
@@ -99,8 +114,8 @@ std::unique_ptr<Payload> CreateWifiCredentialsPayload(
 class IncomingShareSessionTest : public ::testing::Test {
  protected:
   IncomingShareSessionTest()
-      : session_(task_runner_, std::string(kEndpointId), share_target_,
-                 transfer_metadata_callback_.AsStdFunction()) {
+      : session_(task_runner_, analytics_recorder_, std::string(kEndpointId),
+                 share_target_, transfer_metadata_callback_.AsStdFunction()) {
     NL_CHECK(
         proto2::TextFormat::ParseFromString(R"pb(
                                               file_metadata {
@@ -153,6 +168,9 @@ class IncomingShareSessionTest : public ::testing::Test {
 
   FakeClock clock_;
   FakeTaskRunner task_runner_{&clock_, 1};
+  nearby::analytics::MockEventLogger mock_event_logger_;
+  analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
+                                                   &mock_event_logger_};
   ShareTarget share_target_;
   MockFunction<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
@@ -574,6 +592,7 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
 TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
   NearbySharingDecoderImpl nearby_sharing_decoder;
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   EXPECT_TRUE(
       session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
@@ -584,6 +603,21 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
         EXPECT_EQ(metadata.status(),
                   TransferMetadata::Status::kAwaitingRemoteAcceptance);
       }));
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf((
+          HasCategory(EventCategory::RECEIVING_EVENT),
+          HasEventType(EventType::RESPOND_TO_INTRODUCTION),
+          Property(&SharingLog::respond_introduction,
+                   HasAction(ResponseToIntroduction::ACCEPT_INTRODUCTION)),
+          Property(&SharingLog::respond_introduction,
+                   HasSessionId(1234)))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::RECEIVING_EVENT),
+                         HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
+                         Property(&SharingLog::receive_attachments_start,
+                                  HasSessionId(1234)))))));
 
   FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;

@@ -26,8 +26,10 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
@@ -65,7 +67,8 @@ constexpr absl::string_view kEndpointId = "ABCD";
 class OutgoingShareSessionTest : public ::testing::Test {
  public:
   OutgoingShareSessionTest()
-      : session_(fake_task_runner_, std::string(kEndpointId), share_target_,
+      : session_(fake_task_runner_, analytics_recorder_,
+                 std::string(kEndpointId), share_target_,
                  [](OutgoingShareSession&, const TransferMetadata&) {}),
         text1_(nearby::sharing::service::proto::TextMetadata::URL,
                "A bit of text body", "Some text title", "text/html"),
@@ -87,6 +90,9 @@ class OutgoingShareSessionTest : public ::testing::Test {
  protected:
   FakeClock fake_clock_;
   FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
+  nearby::analytics::MockEventLogger mock_event_logger_;
+  analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
+                                                   &mock_event_logger_};
   NearbySharingDecoderImpl decoder_;
   ShareTarget share_target_;
   OutgoingShareSession session_;
@@ -99,8 +105,8 @@ class OutgoingShareSessionTest : public ::testing::Test {
 
 TEST_F(OutgoingShareSessionTest, GetFilePaths) {
   OutgoingShareSession session(
-      fake_task_runner_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
+      fake_task_runner_, analytics_recorder_, std::string(kEndpointId),
+      share_target_, [](OutgoingShareSession&, const TransferMetadata&) {});
   AttachmentContainer container(std::vector<TextAttachment>{},
                                 std::vector<FileAttachment>{file1_, file2_},
                                 std::vector<WifiCredentialsAttachment>{});
@@ -115,8 +121,8 @@ TEST_F(OutgoingShareSessionTest, GetFilePaths) {
 
 TEST_F(OutgoingShareSessionTest, CreateTextPayloadsWithNoTextAttachments) {
   OutgoingShareSession session(
-      fake_task_runner_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
+      fake_task_runner_, analytics_recorder_, std::string(kEndpointId),
+      share_target_, [](OutgoingShareSession&, const TransferMetadata&) {});
   session.CreateTextPayloads();
   const std::vector<Payload>& payloads = session.text_payloads();
 
@@ -147,8 +153,8 @@ TEST_F(OutgoingShareSessionTest, CreateTextPayloads) {
 
 TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithNoFileAttachments) {
   OutgoingShareSession session(
-      fake_task_runner_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
+      fake_task_runner_, analytics_recorder_, std::string(kEndpointId),
+      share_target_, [](OutgoingShareSession&, const TransferMetadata&) {});
 
   EXPECT_THAT(
       session.CreateFilePayloads(std::vector<NearbyFileHandler::FileInfo>()),
@@ -195,8 +201,8 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
 
 TEST_F(OutgoingShareSessionTest, CreateWifiPayloadsWithNoWifiAttachments) {
   OutgoingShareSession session(
-      fake_task_runner_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
+      fake_task_runner_, analytics_recorder_, std::string(kEndpointId),
+      share_target_, [](OutgoingShareSession&, const TransferMetadata&) {});
   session.CreateWifiCredentialsPayloads();
   const std::vector<Payload>& payloads = session.file_payloads();
 

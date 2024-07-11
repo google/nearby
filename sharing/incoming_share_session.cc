@@ -27,6 +27,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/constants.h"
@@ -51,17 +52,20 @@ namespace {
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
+using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 
 }  // namespace
 
 IncomingShareSession::IncomingShareSession(
-    TaskRunner& service_thread, std::string endpoint_id,
+    TaskRunner& service_thread,
+    analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
     std::function<void(const IncomingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(service_thread, std::move(endpoint_id), share_target),
+    : ShareSession(service_thread, analytics_recorder, std::move(endpoint_id),
+                   share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;
@@ -200,6 +204,9 @@ void IncomingShareSession::AcceptTransfer(
   }
   WriteResponseFrame(ConnectionResponseFrame::ACCEPT);
   NL_VLOG(1) << __func__ << ": Successfully wrote response frame";
+  // Log analytics event of responding to introduction.
+  analytics_recorder().NewRespondToIntroduction(
+      ResponseToIntroduction::ACCEPT_INTRODUCTION, session_id());
 
   UpdateTransferMetadata(
       TransferMetadataBuilder()
@@ -214,6 +221,9 @@ void IncomingShareSession::AcceptTransfer(
     // upgrade are no longer a concern.
     NL_LOG(INFO) << __func__ << ": Upgrade bandwidth when sending accept.";
   }
+  // Log analytics event of starting to receive payloads.
+  analytics_recorder().NewReceiveAttachmentsStart(session_id(),
+                                                  attachment_container());
 }
 
 bool IncomingShareSession::UpdateFilePayloadPaths(
