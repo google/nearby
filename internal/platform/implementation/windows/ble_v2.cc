@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -29,18 +30,21 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_client.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
+#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/ble_v2_server_socket.h"
 #include "internal/platform/implementation/windows/ble_v2_socket.h"
+#include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
@@ -116,6 +120,9 @@ static constexpr uint64_t kGenerateSessionIdRetryLimit = 3;
 // Indicating failed to generate unused session id.
 static constexpr uint64_t kFailedGenerateSessionId = 0;
 
+constexpr absl::Duration kMediumTimeout = absl::Milliseconds(500);
+constexpr int kMediumCheckIntervalInMills = 50;
+
 // Remove lost/unused peripherals after a timeout.
 constexpr absl::Duration kPeripheralExpiryTime = absl::Minutes(15);
 // Prevent too frequent cleanup tasks.
@@ -128,6 +135,7 @@ BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
 // Advertisement packet and populate accordingly.
 bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
                                    AdvertiseParameters advertising_parameters) {
+  absl::MutexLock lock(&mutex_);
   std::string service_data_info;
   for (const auto& it : advertising_data.service_data) {
     service_data_info += "{uuid:" + std::string(it.first) +
@@ -160,6 +168,7 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
 }
 
 bool BleV2Medium::StopAdvertising() {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Stop advertising.";
   bool result;
   if (is_gatt_publisher_started_) {
@@ -222,6 +231,7 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__
                     << ": service UUID: " << std::string(service_uuid)
                     << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
@@ -269,6 +279,22 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     advertisement_filter.Advertisement(advertisement);
     watcher_.AdvertisementFilter(advertisement_filter);
     watcher_.Start();
+
+    // Wait for the watcher to start.
+    int wait_milliseconds = 0;
+    while (watcher_.Status() !=
+           BluetoothLEAdvertisementWatcherStatus::Started) {
+      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
+      wait_milliseconds += kMediumCheckIntervalInMills;
+      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Failed to start BLE scan due to timeout..";
+        watcher_.Stopped(watcher_token_);
+        watcher_.Received(advertisement_received_token_);
+        watcher_ = nullptr;
+        return false;
+      }
+    }
 
     is_watcher_started_ = true;
 
@@ -414,6 +440,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Start GATT server.";
 
   if (!NearbyFlags::GetInstance().GetBoolFlag(
@@ -442,6 +469,7 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ConnectToGattServer is called, address: "
                     << peripheral.GetAddress()
                     << ", power:" << TxPowerLevelToName(tx_power_level);
@@ -482,6 +510,8 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 }
 
 bool BleV2Medium::StopScanning() {
+  absl::MutexLock lock(&mutex_);
+
   NEARBY_LOGS(INFO) << __func__ << ": BLE StopScanning: service_uuid: "
                     << std::string(service_uuid_);
   try {
@@ -498,9 +528,26 @@ bool BleV2Medium::StopScanning() {
 
     watcher_.Stop();
 
-    // Don't need to wait for the status becomes to `Stopped`. If application
-    // starts to scanning immediately, the scanning still needs to wait the
-    // stopping to finish.
+    // Wait for the watcher to stop.
+    int wait_milliseconds = 0;
+    while (watcher_.Status() !=
+           BluetoothLEAdvertisementWatcherStatus::Stopped) {
+      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
+      wait_milliseconds += kMediumCheckIntervalInMills;
+      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Failed to stop BLE scan due to timeout.";
+        watcher_.Stopped(watcher_token_);
+        watcher_.Received(advertisement_received_token_);
+        watcher_ = nullptr;
+        is_watcher_started_ = false;
+        return false;
+      }
+    }
+
+    watcher_.Stopped(watcher_token_);
+    watcher_.Received(advertisement_received_token_);
+    watcher_ = nullptr;
     is_watcher_started_ = false;
 
     NEARBY_LOGS(ERROR)
@@ -662,6 +709,22 @@ bool BleV2Medium::StartBleAdvertising(
 
     publisher_.Start();
 
+    // Wait for the publisher to start.
+    int wait_milliseconds = 0;
+    while (publisher_.Status() !=
+           BluetoothLEAdvertisementPublisherStatus::Started) {
+      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
+      wait_milliseconds += kMediumCheckIntervalInMills;
+      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
+        NEARBY_LOGS(ERROR)
+            << __func__ << ": BLE advertising failed to start due to timeout.";
+        publisher_.StatusChanged(publisher_token_);
+        publisher_ = nullptr;
+        is_ble_publisher_started_ = false;
+        return false;
+      }
+    }
+
     is_ble_publisher_started_ = true;
     NEARBY_LOGS(INFO) << "BLE advertising started.";
     return true;
@@ -697,15 +760,34 @@ bool BleV2Medium::StopBleAdvertising() {
     }
 
     // publisher_ may be null when status changed during advertising.
-    if (publisher_ != nullptr &&
-        publisher_.Status() ==
+    if (publisher_ == nullptr ||
+        publisher_.Status() !=
             BluetoothLEAdvertisementPublisherStatus::Started) {
-      publisher_.Stop();
+      NEARBY_LOGS(WARNING) << "No started publisher is running.";
+      return false;
     }
 
-    // Don't need to wait for the status becomes to `Stopped`. If application
-    // starts to scanning immediately, the scanning still needs to wait the
-    // stopping to finish.
+    publisher_.Stop();
+
+    // Wait for the publisher to stop.
+    int wait_milliseconds = 0;
+    while (publisher_.Status() !=
+           BluetoothLEAdvertisementPublisherStatus::Stopped) {
+      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
+      wait_milliseconds += kMediumCheckIntervalInMills;
+      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
+        NEARBY_LOGS(ERROR)
+            << __func__ << ": BLE advertising failed to stop due to timeout.";
+        publisher_.StatusChanged(publisher_token_);
+        publisher_ = nullptr;
+        is_ble_publisher_started_ = false;
+        return false;
+      }
+    }
+
+    // Reset publisher.
+    publisher_.StatusChanged(publisher_token_);
+    publisher_ = nullptr;
     is_ble_publisher_started_ = false;
 
     return true;
@@ -912,14 +994,6 @@ void BleV2Medium::PublisherHandler(
     default:
       break;
   }
-
-  // The publisher is stopped. Clean up the running publisher
-  if (publisher_ != nullptr) {
-    NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the publisher.";
-    publisher_.StatusChanged(publisher_token_);
-    publisher_ = nullptr;
-    is_ble_publisher_started_ = false;
-  }
 }
 
 void BleV2Medium::WatcherHandler(
@@ -971,16 +1045,6 @@ void BleV2Medium::WatcherHandler(
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium stoped to scan due to unknown errors.";
       break;
-  }
-
-  // No matter the reason, should clean up the watcher if it is not empty.
-  // The BLE V1 interface doesn't have API to return the error to upper layer.
-  if (watcher_ != nullptr) {
-    NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the watcher.";
-    watcher_.Stopped(watcher_token_);
-    watcher_.Received(advertisement_received_token_);
-    watcher_ = nullptr;
-    is_watcher_started_ = false;
   }
 }
 

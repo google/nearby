@@ -15,18 +15,24 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_H_
 
+#include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <string>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/byte_array.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
 #include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/bluetooth_classic.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 
@@ -42,8 +48,9 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // Returns true once the Ble advertising has been initiated.
   bool StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      api::ble_v2::AdvertiseParameters advertising_parameters) override;
-  bool StopAdvertising() override;
+      api::ble_v2::AdvertiseParameters advertising_parameters) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<AdvertisingSession> StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
@@ -52,41 +59,48 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
-                     ScanCallback callback) override;
-  bool StopScanning() override;
+                     ScanCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopScanning() override ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<ScanningSession> StartScanning(
       const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
       ScanningCallback callback) override;
   std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
-      api::ble_v2::ServerGattConnectionCallback callback) override;
+      api::ble_v2::ServerGattConnectionCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
       api::ble_v2::BlePeripheral& peripheral,
       api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::ClientGattConnectionCallback callback) override;
+      api::ble_v2::ClientGattConnectionCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
-      const std::string& service_id) override;
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::BleSocket> Connect(
       const std::string& service_id, api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::BlePeripheral& remote_peripheral,
-      CancellationFlag* cancellation_flag) override;
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsExtendedAdvertisementsAvailable() override;
 
   bool GetRemotePeripheral(const std::string& mac_address,
-                           GetRemotePeripheralCallback callback) override;
+                           GetRemotePeripheralCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
-                           GetRemotePeripheralCallback callback) override;
+                           GetRemotePeripheralCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   bool StartBleAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      api::ble_v2::AdvertiseParameters advertising_parameters);
-  bool StopBleAdvertising();
+      api::ble_v2::AdvertiseParameters advertising_parameters)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StopBleAdvertising() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   bool StartGattAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      api::ble_v2::AdvertiseParameters advertising_parameters);
-  bool StopGattAdvertising();
+      api::ble_v2::AdvertiseParameters advertising_parameters)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StopGattAdvertising() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void PublisherHandler(
       winrt::Windows::Devices::Bluetooth::Advertisement::
@@ -119,6 +133,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   void RemoveExpiredPeripherals()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(peripheral_map_mutex_);
+
+  absl::Mutex mutex_;
 
   BluetoothAdapter* adapter_;
   Uuid service_uuid_;
