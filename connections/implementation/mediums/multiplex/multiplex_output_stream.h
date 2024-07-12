@@ -15,14 +15,12 @@
 #ifndef CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_OUTPUT_STREAM_H_
 #define CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_OUTPUT_STREAM_H_
 
-#include <cstddef>
 #include <memory>
-#include <optional>
-#include <queue>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "internal/platform/array_blocking_queue.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -37,40 +35,6 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 namespace multiplex {
-
-/**
- * Payload from different services/clients will be put into an
- * ArrayBlockingQueue before sending to ensure each client has equal chance to
- * send its data. Since C++ doesn't provide ArrayBlockingQueue as Java, we
- * implement one here.
- */
-template <typename T>
-class ArrayBlockingQueue {
- public:
-  explicit ArrayBlockingQueue(size_t capacity) : capacity_(capacity) {}
-  void Put(const T& value);
-  T Take();
-  bool TryPut(const T& value);
-  // Returns std::nullopt if the queue is empty.
-  std::optional<T> TryTake();
-
-  size_t Size() const {
-    MutexLock lock(&queue_mutex_);
-    return queue_.size();
-  }
-  bool Empty() const {
-    MutexLock lock(&queue_mutex_);
-    return queue_.empty();
-  }
-
- private:
-  std::queue<T> queue_;
-  mutable Mutex queue_mutex_;
-  ConditionVariable has_data_{&queue_mutex_};
-  ConditionVariable has_space_{&queue_mutex_};
-  const size_t capacity_;
-};
-
 /**
  * A helper class to send out the {@code MultiplexControlFrame} and the outgoing
  * data from clients. It schedules control and data frames with priority below
@@ -173,6 +137,8 @@ class MultiplexOutputStream {
     ConditionVariable is_writing_cond_{&writing_mutex_};
     bool is_writing_ ABSL_GUARDED_BY(writing_mutex_) = false;
     bool is_closed_ = false;
+    mutable Mutex close_writing_thread_mutex_;
+    ConditionVariable close_writing_thread_cond_{&close_writing_thread_mutex_};
 
     // The single thread to write all enqueued frames.
     SingleThreadExecutor writer_thread_;

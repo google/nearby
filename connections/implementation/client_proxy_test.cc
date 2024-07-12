@@ -1552,6 +1552,48 @@ TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
   EXPECT_TRUE(client1()->AutoUpgradeBandwidth());
 }
 
+TEST_F(ClientProxyTest, TestMultiplexSocketBitmask) {
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(),
+            ClientProxy::kBtMultiplexEnabled);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      false);
+}
+
+TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
+  client1()->SetRemoteMultiplexSocketBitmask(
+      advertising_endpoint.id,
+      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  ASSERT_TRUE(client1()
+                  ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
+                  .has_value());
+  EXPECT_EQ(
+      client1()
+          ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
+          .value(),
+      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  EXPECT_TRUE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+                                                    Medium::BLUETOOTH));
+  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::WIFI_LAN));
+  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::WIFI_AWARE));
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      false);
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

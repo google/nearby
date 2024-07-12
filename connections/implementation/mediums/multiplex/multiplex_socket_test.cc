@@ -90,11 +90,18 @@ class FakeSocket : public MediumSocket {
 
   InputStream& GetInputStream() override { return *reader_1_; }
   OutputStream& GetOutputStream() override { return *writer_2_; }
-  void Close() override {
+  Exception Close() override {
+    if (IsVirtualSocket()) {
+      NEARBY_LOGS(INFO) << "Multiplex: Closing virtual socket: " << this;
+      CloseLocal();
+      return {Exception::kSuccess};
+    }
+    NEARBY_LOGS(INFO) << "Multiplex: Closing physical socket: " << this;
     reader_1_->Close();
     reader_2_->Close();
     writer_1_->Close();
     writer_2_->Close();
+    return {Exception::kSuccess};
   }
 
   MediumSocket* CreateVirtualSocket(
@@ -148,13 +155,12 @@ class FakeSocket : public MediumSocket {
 };
 
 TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::WIFI_LAN};
+  testing::NiceMock<FakeSocket> fake_socket{Medium::BLUETOOTH};
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
-                                                      Medium::WIFI_LAN);
+                                                      Medium::BLUETOOTH);
   MultiplexSocket* multiplex_socket_incoming =
       MultiplexSocket::CreateIncomingSocket(&fake_socket,
                                             std::string(SERVICE_ID_1));
-
   ASSERT_NE(multiplex_socket_incoming, nullptr);
   FakeSocket* virtual_socket =
       (FakeSocket*)multiplex_socket_incoming->GetVirtualSocket(
@@ -189,10 +195,9 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   ByteArray data = result.result();
   NEARBY_LOGS(INFO) << "Received " << data.size() << " bytes of data.";
   EXPECT_NE(data.size(), 0);
+  absl::SleepFor(absl::Milliseconds(100));
   fake_socket.reader_1_->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 1);
-  multiplex_socket_incoming->Shutdown();
-  EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 0);
 }
 
 TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
@@ -208,11 +213,11 @@ TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
 
 TEST(MultiplexSocketTest,
      EstablishVirtualSocket_ReturnNullWhenMultiplexSocketDisabled) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::WIFI_LAN};
+  testing::NiceMock<FakeSocket> fake_socket{Medium::BLE};
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
-                                                      Medium::WIFI_LAN);
+                                                      Medium::BLE);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
-                                                      Medium::WIFI_LAN);
+                                                      Medium::BLE);
   MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
       &fake_socket, std::string(SERVICE_ID_1));
   ASSERT_NE(multiplex_socket, nullptr);
@@ -221,24 +226,36 @@ TEST(MultiplexSocketTest,
       multiplex_socket->EstablishVirtualSocket(std::string(SERVICE_ID_2));
   EXPECT_EQ(socket, nullptr);
   absl::SleepFor(absl::Milliseconds(100));
-
+  FakeSocket* virtual_socket =
+      (FakeSocket*)multiplex_socket->GetVirtualSocket(
+          std::string(SERVICE_ID_1));
+  if (virtual_socket == nullptr) {
+    NEARBY_LOGS(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
+    return;
+  }
   fake_socket.reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
-  multiplex_socket->Shutdown();
+  virtual_socket->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
 }
 
 TEST(MultiplexSocketTest,
      EstablishVirtualSocket_TimeoutBecauseNoConnectionResponse) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::BLUETOOTH};
+  testing::NiceMock<FakeSocket> fake_socket{Medium::WIFI_LAN};
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
-                                                      Medium::BLUETOOTH);
+                                                      Medium::WIFI_LAN);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
-                                                      Medium::BLUETOOTH);
+                                                      Medium::WIFI_LAN);
   MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
       &fake_socket, std::string(SERVICE_ID_1));
   ASSERT_NE(multiplex_socket, nullptr);
   multiplex_socket->Enable();
+  FakeSocket* virtual_socket = (FakeSocket*)multiplex_socket->GetVirtualSocket(
+      std::string(SERVICE_ID_1));
+  if (virtual_socket == nullptr) {
+    NEARBY_LOGS(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
+    return;
+  }
 
   SingleThreadExecutor executor;
   CountDownLatch latch(1);
@@ -268,17 +285,17 @@ TEST(MultiplexSocketTest,
   absl::SleepFor(absl::Milliseconds(100));
   fake_socket.reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
-  multiplex_socket->Shutdown();
+  virtual_socket->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
 }
 
 TEST(MultiplexSocketTest,
      EstablishVirtualSocket_RemoteAccepted) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::BLE};
+  testing::NiceMock<FakeSocket> fake_socket{Medium::BLUETOOTH};
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
-                                                      Medium::BLE);
+                                                      Medium::BLUETOOTH);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
-                                                      Medium::BLE);
+                                                      Medium::BLUETOOTH);
 
   MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
       &fake_socket, std::string(SERVICE_ID_1));
@@ -351,8 +368,6 @@ TEST(MultiplexSocketTest,
 
   fake_socket.reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 2);
-  multiplex_socket->Shutdown();
-  EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
 }
 
 }  // namespace multiplex

@@ -15,31 +15,25 @@
 #ifndef CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_SOCKET_H_
 #define CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_SOCKET_H_
 
-#include <cstddef>
-#include <cstdint>
 #include <memory>
-#include <optional>
-#include <queue>
 #include <string>
 #include <utility>
 
-#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/multiplex/multiplex_output_stream.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/ble.h"
+#include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/settable_future.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/socket.h"
+#include "internal/platform/wifi_lan.h"
 #include "proto/connections_enums.pb.h"
 #include "proto/mediums/multiplex_frames.pb.h"
 
@@ -69,9 +63,10 @@ class MultiplexSocket {
   static MultiplexSocket* CreateOutgoingSocket(MediumSocket* physical_socket,
                                                const std::string& service_id);
 
-  // A Table of service Id as row key, medium type as column key, and {@link
-  // IncomingConnectionCallback} as value. Non-empty while the client starts
-  // listening for incoming virtual socket.
+  // A Table of service Id as row key, medium type as column key, and
+  // MultiplexIncomingConnectionCb as value. Non-empty while the client starts
+  // listening for incoming virtual socket. The MultiplexIncomingConnectionCb
+  // will be called when the incoming virtual socket is established.
   static absl::flat_hash_map<
       std::pair<std::string, ::location::nearby::proto::connections::Medium>,
       MultiplexIncomingConnectionCb>&
@@ -106,10 +101,14 @@ class MultiplexSocket {
   // Gets the virtual socket count.
   int GetVirtualSocketCount();
 
+  void ListVirtualSocket();
+
   // Establishes the virtual socket by service id.
   MediumSocket* EstablishVirtualSocket(const std::string& service_id);
   // Shuts down the multiplex socket.
   void Shutdown();
+  bool IsShutdown() { return is_shutdown_; }
+  void SetShutdown(bool is_shutdown) { is_shutdown_ = is_shutdown; }
 
  private:
   explicit MultiplexSocket(MediumSocket* physical_socket);
@@ -167,10 +166,18 @@ class MultiplexSocket {
 
   // The physical socket connect to the remote device.
   MediumSocket* physical_socket_;
+
   // The output stream to manage all outgoing frames from all clients.
   MultiplexOutputStream multiplex_output_stream_;
-  // The {@link InputStream} of the physical socket.
+  // The {@link InputStream} of the physical socket. It is used to read the
+  // incoming MultiplexFrame from the physical socket.
   InputStream* physical_reader_;
+  // The medium type of the physical socket.
+  Medium medium_;
+  // Save the phyical socket here, so it can be closed when all the virtual
+  // socket is gone.
+  BluetoothSocket bluetooth_socket_;
+  WifiLanSocket wifi_lan_socket_;
 
   // The callback to enable the MultiplexSocket.
   std::shared_ptr<absl::AnyInvocable<void()>> enable_cb_ =
@@ -191,7 +198,8 @@ class MultiplexSocket {
   // MultiplexSocket object
   mutable Mutex virtual_socket_mutex_;
   absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>
-      virtual_sockets_ ABSL_GUARDED_BY(virtual_socket_mutex_);
+      // virtual_sockets_ ABSL_GUARDED_BY(virtual_socket_mutex_);
+      virtual_sockets_;
 
   // The thread to receive incoming MultiplexFrame from the physical socket.
   SingleThreadExecutor physical_reader_thread_;

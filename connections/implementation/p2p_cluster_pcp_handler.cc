@@ -549,7 +549,7 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
           NEARBY_LOGS(ERROR) << ble_status_or.status().ToString();
           return;
         }
-        auto advertisement = ble_status_or.value();
+        const auto& advertisement = ble_status_or.value();
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.
@@ -726,7 +726,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
           NEARBY_LOGS(ERROR) << ble_status_or.status();
           return;
         }
-        auto advertisement = ble_status_or.value();
+        const auto& advertisement = ble_status_or.value();
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.

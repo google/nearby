@@ -90,9 +90,9 @@ InputStream& WebRtcSocket::GetInputStream() { return *pipe_input_; }
 
 OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
-void WebRtcSocket::Close() {
+Exception WebRtcSocket::Close() {
   NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this;
-  if (closed_.Set(true)) return;
+  if (closed_.Set(true)) return {Exception::kSuccess};
 
   ClosePipe();
   // NOTE: This call blocks and triggers a state change on the siginaling thread
@@ -101,6 +101,7 @@ void WebRtcSocket::Close() {
   data_channel_->Close();
   NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
                     << " done";
+  return {Exception::kSuccess};
 }
 
 void WebRtcSocket::OnStateChange() {

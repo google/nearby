@@ -14,10 +14,57 @@
 
 #include "internal/platform/bluetooth_classic.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "absl/container/flat_hash_map.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
+using location::nearby::proto::connections::Medium;
+
+MediumSocket* BluetoothSocket::CreateVirtualSocket(OutputStream* outputstream) {
+  if (IsVirtualSocket()) {
+    NEARBY_LOGS(WARNING)
+        << "Creating the virtual socket on a virtual socket is not allowed.";
+    return nullptr;
+  }
+  auto virtual_socket = std::make_shared<BluetoothSocket>(outputstream);
+  return virtual_socket.get();
+}
+
+MediumSocket* BluetoothSocket::CreateVirtualSocket(
+    const std::string& salted_service_id_hash_key, OutputStream* outputstream,
+    Medium medium,
+    absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
+        virtual_sockets_ptr) {
+  if (IsVirtualSocket()) {
+    NEARBY_LOGS(WARNING)
+        << "Creating the virtual socket on a virtual socket is not allowed.";
+    return nullptr;
+  }
+
+  auto virtual_socket = std::make_shared<BluetoothSocket>(outputstream);
+  virtual_socket->impl_ = this->impl_;
+  NEARBY_LOGS(WARNING) << "Created the virtual socket for Medium: "
+                       << Medium_Name(virtual_socket->GetMedium());
+
+  if (virtual_sockets_ptr_ == nullptr) {
+    virtual_sockets_ptr_ = virtual_sockets_ptr;
+  }
+
+  (*virtual_sockets_ptr_)[salted_service_id_hash_key] = virtual_socket;
+  NEARBY_LOGS(INFO) << "virtual_sockets_ size: "
+                    << virtual_sockets_ptr_->size();
+  return virtual_socket.get();
+}
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {
   NEARBY_LOG(INFO, "~BluetoothClassicMedium: observer_list_ size: %d",
@@ -54,7 +101,7 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
                        device.GetName().c_str());
             MutexLock lock(&mutex_);
             auto pair = devices_.emplace(
-                &device, absl::make_unique<DeviceDiscoveryInfo>());
+                &device, std::make_unique<DeviceDiscoveryInfo>());
             auto& context = *pair.first->second;
             if (!pair.second) {
               NEARBY_LOG(INFO, "Adding (again) device=%p, impl=%p",

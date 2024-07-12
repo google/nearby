@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "proto/connections_enums.pb.h"
@@ -38,7 +39,7 @@ class Socket {
 
   virtual InputStream& GetInputStream() = 0;
   virtual OutputStream& GetOutputStream() = 0;
-  virtual void Close() = 0;
+  virtual Exception Close() = 0;
 };
 
 class MediumSocket : public Socket {
@@ -52,6 +53,11 @@ class MediumSocket : public Socket {
     return medium_;
   }
 
+  /** Creates a virtual socket only with outputstream. */
+  virtual MediumSocket* CreateVirtualSocket(OutputStream* outputstream) {
+    return this;
+  }
+
   /** Creates a virtual socket. */
   virtual MediumSocket* CreateVirtualSocket(
       const std::string& salted_service_id_hash_key, OutputStream* outputstream,
@@ -62,7 +68,9 @@ class MediumSocket : public Socket {
   }
 
   /** Feeds the received incoming data to the client. */
-  virtual void FeedIncomingData(ByteArray data) {}
+  virtual void FeedIncomingData(ByteArray data) {
+//    NEARBY_LOGS(INFO) << "FeedIncomingData: do nothing";
+  }
 
   /** Returns true if the socket is a virtual socket. */
   virtual bool IsVirtualSocket() {
@@ -86,16 +94,15 @@ class MediumSocket : public Socket {
     if (!IsVirtualSocket()) {
       return;
     }
-
     for (auto& callback : multiplex_socket_enabled_cbs_) {
-      callback.get();
+      (*callback)();
     }
   }
 
   /** Closes the local socket. */
   void CloseLocal() {
     for (auto& listener : socket_closed_listeners_) {
-      listener.get();
+      (*listener)();
     }
   }
 

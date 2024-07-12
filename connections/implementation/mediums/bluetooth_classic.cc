@@ -18,12 +18,17 @@
 #include <string>
 #include <utility>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#include "connections/implementation/mediums/multiplex/multiplex_socket.h"
+#include "connections/medium_selector.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/socket.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -44,6 +49,8 @@ std::string ScanModeToString(BluetoothAdapter::ScanMode mode) {
 }
 }  // namespace
 
+using MultiplexSocket = mediums::multiplex::MultiplexSocket;
+
 BluetoothClassic::BluetoothClassic(BluetoothRadio& radio)
     : BluetoothClassic(radio, std::make_unique<BluetoothClassicMedium>(
                                   radio.GetBluetoothAdapter())) {}
@@ -52,7 +59,10 @@ BluetoothClassic::BluetoothClassic(
     BluetoothRadio& radio, std::unique_ptr<BluetoothClassicMedium> medium)
     : radio_(radio),
       adapter_(radio_.GetBluetoothAdapter()),
-      medium_(std::move(medium)) {}
+      medium_(std::move(medium)) {
+  is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
+}
 
 BluetoothClassic::~BluetoothClassic() {
   // Destructor is not taking locks, but methods it is calling are.
@@ -61,6 +71,19 @@ BluetoothClassic::~BluetoothClassic() {
     StopAcceptingConnections(server_sockets_.begin()->first);
   }
   TurnOffDiscoverability();
+
+  {
+    MutexLock lock(&mutex_);
+    NEARBY_LOGS(INFO) << "Closing multiplex sockets for "
+                      << multiplex_sockets_.size() << " devices";
+    if (is_multiplex_enabled_) {
+      for (auto& [bt_mac, multiplex_socket] : multiplex_sockets_) {
+        NEARBY_LOGS(INFO) << "Closing multiplex sockets for "
+                          << GetRemoteDevice(bt_mac).GetName();
+        multiplex_socket->Shutdown();
+      }
+    }
+  }
 
   // All the AcceptLoopRunnable objects in here should already have gotten an
   // opportunity to shut themselves down cleanly in the calls to
@@ -348,20 +371,61 @@ bool BluetoothClassic::StartAcceptingConnections(
   auto owned_socket =
       server_sockets_.emplace(service_id, std::move(socket)).first->second;
 
+  if (is_multiplex_enabled_) {
+    MultiplexSocket::ListenForIncomingConnection(
+        service_id, Medium::BLUETOOTH,
+        [&callback](const std::string& listening_service_id,
+                    MediumSocket* virtual_socket) mutable {
+          if (callback) {
+            callback(listening_service_id,
+                     *(dynamic_cast<BluetoothSocket*>(virtual_socket)));
+          }
+        });
+  }
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections()
   // is invoked.
   accept_loops_runner_.Execute(
       "bt-accept",
       [callback = std::move(callback), server_socket = std::move(owned_socket),
-       service_id]() mutable {
+       service_id, this]() mutable {
         while (true) {
           BluetoothSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
+            NEARBY_LOGS(INFO) << "Failed to accept connection for "
+                              << service_id;
             server_socket.Close();
             break;
           }
-          if (callback) {
+          NEARBY_LOGS(INFO) << "Accepted connection for " << service_id;
+          bool callback_called = false;
+          {
+            MutexLock lock(&mutex_);
+            if (is_multiplex_enabled_) {
+              MultiplexSocket* multiplex_socket =
+                  MultiplexSocket::CreateIncomingSocket(&client_socket,
+                                                        service_id);
+              if (multiplex_socket != nullptr &&
+                  multiplex_socket->GetVirtualSocket(service_id)) {
+                multiplex_sockets_.emplace(
+                    client_socket.GetRemoteDevice().GetMacAddress(),
+                    multiplex_socket);
+                MultiplexSocket::StopListeningForIncomingConnection(
+                    service_id, Medium::BLUETOOTH);
+                NEARBY_LOGS(INFO) << "Multiplex virtaul socket created for "
+                                  << client_socket.GetRemoteDevice().GetName();
+                if (callback) {
+                  callback(
+                      service_id,
+                      *(dynamic_cast<BluetoothSocket*>(
+                          multiplex_socket->GetVirtualSocket(service_id))));
+                  callback_called = true;
+                }
+              }
+            }
+          }
+          if (callback && !callback_called) {
+                NEARBY_LOGS(INFO) << "Call back triggered for physical socket.";
             callback(service_id, std::move(client_socket));
           }
         }
@@ -396,6 +460,10 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
                       << service_id << " because it was never started.";
     return false;
   }
+  if (is_multiplex_enabled_) {
+    MultiplexSocket::StopListeningForIncomingConnection(service_id,
+                                                        Medium::BLUETOOTH);
+  }
 
   // Closing the BluetoothServerSocket will kick off the suicide of the thread
   // in accept_loops_thread_pool_ that blocks on
@@ -424,6 +492,31 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
 BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
                                           const std::string& service_id,
                                           CancellationFlag* cancellation_flag) {
+  {
+    MutexLock lock(&mutex_);
+    if (is_multiplex_enabled_) {
+      NEARBY_LOGS(INFO) << "multiplex_sockets_ size:"
+                        << multiplex_sockets_.size();
+      auto it = multiplex_sockets_.find(bluetooth_device.GetMacAddress());
+      if (it != multiplex_sockets_.end()) {
+        MultiplexSocket* multiplex_socket = it->second;
+        if (multiplex_socket->IsEnabled()) {
+          auto* virtual_socket =
+              multiplex_socket->EstablishVirtualSocket(service_id);
+          // Should not happen.
+          auto* bluetooth_socket =
+              dynamic_cast<BluetoothSocket*>(virtual_socket);
+          if (bluetooth_socket == nullptr) {
+            NEARBY_LOGS(INFO)
+                << "Failed to cast to BluetoothSocket for " << service_id
+                << " with " << bluetooth_device.GetName();
+            return BluetoothSocket{};
+          }
+          return *bluetooth_socket;
+        }
+      }
+    }
+  }
   service_id_to_connect_attempts_count_map_[service_id] = 1;
   while (service_id_to_connect_attempts_count_map_[service_id] <=
          kConnectAttemptsLimit) {
@@ -432,14 +525,14 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
           << "Attempt #"
           << service_id_to_connect_attempts_count_map_[service_id]
           << ": Cannot start creating client BT socket due to cancel.";
-      return BluetoothSocket();
+      return BluetoothSocket{};
     }
 
-    NEARBY_LOGS(INFO) << "Attempt #"
-                      << service_id_to_connect_attempts_count_map_[service_id]
-                      << " to connect.";
     auto wrapper_result =
         AttemptToConnect(bluetooth_device, service_id, cancellation_flag);
+    NEARBY_LOGS(INFO) << "Attempt #"
+                      << service_id_to_connect_attempts_count_map_[service_id]
+                      << " to connect: " << wrapper_result.IsValid();
     if (wrapper_result.IsValid()) {
       return wrapper_result;
     }
@@ -449,7 +542,7 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
 
   NEARBY_LOGS(WARNING) << "Giving up after " << kConnectAttemptsLimit
                        << " attempts";
-  return BluetoothSocket();
+  return BluetoothSocket{};
 }
 
 BluetoothSocket BluetoothClassic::AttemptToConnect(
@@ -458,9 +551,8 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "BluetoothClassic::Connect: service_id=" << service_id
                     << ", device=" << &bluetooth_device;
-  // Socket to return. To allow for NRVO to work, it has to be a single
-  // object.
-  BluetoothSocket socket;
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  BluetoothSocket socket{};
 
   if (service_id.empty()) {
     NEARBY_LOGS(INFO)
@@ -489,7 +581,27 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   if (!socket.IsValid() || cancellation_flag->Cancelled()) {
     NEARBY_LOGS(INFO) << "Failed to Connect via BT [service=" << service_id
                       << "]";
-    return BluetoothSocket();
+    return BluetoothSocket{};
+  }
+
+  if (is_multiplex_enabled_) {
+    // New MultiplexSocket but default disabled, should be enabled after
+    // negotiated
+    MultiplexSocket* multiplex_socket =
+        MultiplexSocket::CreateOutgoingSocket(&socket, service_id);
+    auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
+    // Should not happen.
+    auto* bluetooth_socket = dynamic_cast<BluetoothSocket*>(virtual_socket);
+    if (bluetooth_socket == nullptr) {
+      NEARBY_LOGS(INFO) << "Failed to cast to BluetoothSocket for "
+                        << service_id << " with " << bluetooth_device.GetName();
+      return BluetoothSocket{};
+    }
+    NEARBY_LOGS(INFO) << "Multiplex socket created for "
+                      << bluetooth_device.GetName();
+    multiplex_sockets_.emplace(bluetooth_device.GetMacAddress(),
+                               multiplex_socket);
+    return *bluetooth_socket;
   }
 
   return socket;
