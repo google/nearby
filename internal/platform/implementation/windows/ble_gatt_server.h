@@ -17,13 +17,19 @@
 
 #include <windows.h>
 
-#include <optional>
+#include <memory>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
+#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
@@ -43,20 +49,22 @@ class BleGattServer : public api::ble_v2::GattServer {
   absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
       api::ble_v2::GattCharacteristic::Permission permission,
-      api::ble_v2::GattCharacteristic::Property property) override;
+      api::ble_v2::GattCharacteristic::Property property) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool UpdateCharacteristic(
       const api::ble_v2::GattCharacteristic& characteristic,
-      const nearby::ByteArray& value) override;
+      const nearby::ByteArray& value) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   absl::Status NotifyCharacteristicChanged(
       const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
-      const ByteArray& new_value) override;
+      const ByteArray& new_value) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void Stop() override;
+  void Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool StartAdvertisement(const ByteArray& service_data, bool is_connectable);
-  bool StopAdvertisement();
+  bool StartAdvertisement(const ByteArray& service_data, bool is_connectable)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopAdvertisement() ABSL_LOCKS_EXCLUDED(mutex_);
 
   api::ble_v2::BlePeripheral& GetBlePeripheral() override {
     return peripheral_;
@@ -108,6 +116,8 @@ class BleGattServer : public api::ble_v2::GattServer {
           GattServiceProvider const& sender,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattServiceProviderAdvertisementStatusChangedEventArgs const& args);
+
+  absl::Mutex mutex_;
 
   BluetoothAdapter* adapter_ = nullptr;
   BleV2Peripheral peripheral_;

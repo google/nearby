@@ -23,10 +23,15 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
 #include "winrt/base.h"
@@ -42,25 +47,29 @@ class BleGattClient : public api::ble_v2::GattClient {
 
   bool DiscoverServiceAndCharacteristics(
       const Uuid& service_uuid,
-      const std::vector<Uuid>& characteristic_uuids) override;
+      const std::vector<Uuid>& characteristic_uuids) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   absl::optional<api::ble_v2::GattCharacteristic> GetCharacteristic(
-      const Uuid& service_uuid, const Uuid& characteristic_uuid) override;
+      const Uuid& service_uuid, const Uuid& characteristic_uuid) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   absl::optional<std::string> ReadCharacteristic(
-      const api::ble_v2::GattCharacteristic& characteristic) override;
+      const api::ble_v2::GattCharacteristic& characteristic) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool WriteCharacteristic(
       const api::ble_v2::GattCharacteristic& characteristic,
       absl::string_view value,
-      api::ble_v2::GattClient::WriteType write_type) override;
+      api::ble_v2::GattClient::WriteType write_type) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool SetCharacteristicSubscription(
       const api::ble_v2::GattCharacteristic& characteristic, bool enable,
       absl::AnyInvocable<void(absl::string_view value)>
-          on_characteristic_changed_cb) override;
+          on_characteristic_changed_cb) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void Disconnect() override;
+  void Disconnect() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Used to save native data related to the GATT characteristic.
@@ -75,13 +84,15 @@ class BleGattClient : public api::ble_v2::GattClient {
   std::optional<::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
                     GattCharacteristic>
   GetNativeCharacteristic(const Uuid& service_uuid,
-                          const Uuid& characteristic_uuid);
+                          const Uuid& characteristic_uuid)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   bool WriteCharacteristicConfigurationDescriptor(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattCharacteristic& characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattClientCharacteristicConfigurationDescriptorValue value);
+          GattClientCharacteristicConfigurationDescriptorValue value)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void OnCharacteristicValueChanged(
       const api::ble_v2::GattCharacteristic& characteristic,
@@ -90,9 +101,11 @@ class BleGattClient : public api::ble_v2::GattClient {
 
   absl::Mutex mutex_;
 
-  ::winrt::Windows::Devices::Bluetooth::BluetoothLEDevice ble_device_;
+  ::winrt::Windows::Devices::Bluetooth::BluetoothLEDevice ble_device_
+      ABSL_GUARDED_BY(mutex_);
   ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-      GattDeviceServicesResult gatt_devices_services_result_ = nullptr;
+      GattDeviceServicesResult gatt_devices_services_result_
+          ABSL_GUARDED_BY(mutex_) = nullptr;
 
   absl::flat_hash_map<api::ble_v2::GattCharacteristic, GattCharacteristicData>
       native_characteristic_map_ ABSL_GUARDED_BY(mutex_);
