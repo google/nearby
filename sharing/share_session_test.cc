@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
@@ -37,6 +39,7 @@
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_matchers.h"
 #include "sharing/transfer_metadata_builder.h"
 
 namespace nearby::sharing {
@@ -46,6 +49,7 @@ using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::V1Frame;
+using ::testing::AllOf;
 
 constexpr absl::string_view kEndpointId = "12345";
 
@@ -58,12 +62,6 @@ class TestShareSession : public ShareSession {
         is_incoming_(share_target.is_incoming) {}
 
   bool IsIncoming() const override { return is_incoming_; }
-
-  int TransferUpdateCount() { return transfer_update_count_; }
-
-  std::optional<TransferMetadata> LastTransferMetadata() {
-    return last_transfer_metadata_;
-  }
 
   void SetOnNewConnectionResult(bool result) {
     on_new_connection_result_ = result;
@@ -80,12 +78,10 @@ class TestShareSession : public ShareSession {
                                                      share_target_os_type);
   }
 
- protected:
-  void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override {
-    ++transfer_update_count_;
-    last_transfer_metadata_ = metadata;
-  }
+  MOCK_METHOD(void, InvokeTransferUpdateCallback,
+              (const TransferMetadata& metadata), (override));
 
+ protected:
   bool OnNewConnection(NearbyConnection* connection) override {
     connection_ = connection;
     return on_new_connection_result_;
@@ -98,8 +94,6 @@ class TestShareSession : public ShareSession {
   analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
                                                    &mock_event_logger_};
   const bool is_incoming_;
-  int transfer_update_count_ = 0;
-  std::optional<TransferMetadata> last_transfer_metadata_;
   NearbyConnection* connection_ = nullptr;
   bool on_new_connection_result_ = true;
 };
@@ -107,6 +101,9 @@ class TestShareSession : public ShareSession {
 TEST(ShareSessionTest, UpdateTransferMetadata) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
+  EXPECT_CALL(session, InvokeTransferUpdateCallback(
+                           HasStatus(TransferMetadata::Status::kInProgress)))
+      .Times(2);
 
   session.UpdateTransferMetadata(
       TransferMetadataBuilder()
@@ -116,13 +113,13 @@ TEST(ShareSessionTest, UpdateTransferMetadata) {
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
-
-  EXPECT_EQ(session.TransferUpdateCount(), 2);
 }
 
 TEST(ShareSessionTest, UpdateTransferMetadataAfterFinalStatus) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
+  EXPECT_CALL(session, InvokeTransferUpdateCallback(
+                           HasStatus(TransferMetadata::Status::kComplete)));
 
   session.UpdateTransferMetadata(
       TransferMetadataBuilder()
@@ -132,8 +129,6 @@ TEST(ShareSessionTest, UpdateTransferMetadataAfterFinalStatus) {
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kInProgress)
           .build());
-
-  EXPECT_EQ(session.TransferUpdateCount(), 1);
 }
 
 TEST(ShareSessionTest, SetDisconnectStatus) {
@@ -242,14 +237,11 @@ TEST(ShareSessionTest, OnDisconnect) {
   TestShareSession session(std::string(kEndpointId), share_target);
   session.set_disconnect_status(TransferMetadata::Status::kCancelled);
   EXPECT_EQ(session.disconnect_status(), TransferMetadata::Status::kCancelled);
+  EXPECT_CALL(session, InvokeTransferUpdateCallback(AllOf(
+                           HasStatus(TransferMetadata::Status::kCancelled),
+                           IsFinalStatus())));
 
   session.OnDisconnect();
-
-  EXPECT_EQ(session.TransferUpdateCount(), 1);
-  ASSERT_TRUE(session.LastTransferMetadata().has_value());
-  EXPECT_EQ(session.LastTransferMetadata()->status(),
-            TransferMetadata::Status::kCancelled);
-  EXPECT_TRUE(session.LastTransferMetadata()->is_final_status());
 }
 
 TEST(ShareSessionTest, CancelPayloads) {
@@ -401,6 +393,35 @@ TEST(ShareSessionTest, HandleKeyVerificationResultUnknown) {
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
   EXPECT_FALSE(session.token().empty());
+}
+
+TEST(ShareSessionTest, AbortNotConnected) {
+  ShareTarget share_target;
+  TestShareSession session(std::string(kEndpointId), share_target);
+  EXPECT_CALL(session, InvokeTransferUpdateCallback(AllOf(
+                           HasStatus(TransferMetadata::Status::kNotEnoughSpace),
+                           IsFinalStatus())));
+
+  session.Abort(TransferMetadata::Status::kNotEnoughSpace);
+}
+
+TEST(ShareSessionTest, AbortConnected) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  ShareTarget share_target;
+  TestShareSession session(std::string(kEndpointId), share_target);
+  FakeNearbyConnection connection;
+  bool disconnected = false;
+  connection.SetDisconnectionListener(
+      [&disconnected]() { disconnected = true; });
+  EXPECT_TRUE(
+      session.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_CALL(session, InvokeTransferUpdateCallback(AllOf(
+                           HasStatus(TransferMetadata::Status::kNotEnoughSpace),
+                           IsFinalStatus())));
+
+  session.Abort(TransferMetadata::Status::kNotEnoughSpace);
+
+  EXPECT_TRUE(disconnected);
 }
 
 }  // namespace

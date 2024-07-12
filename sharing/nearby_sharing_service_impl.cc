@@ -2441,7 +2441,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     OutgoingShareSession& session) {
   int64_t share_target_id = session.share_target().id;
   if (!session.OnConnected(*decoder_, connect_start_time, connection)) {
-    AbortAndCloseConnectionIfNecessary(session, session.disconnect_status());
+    session.Abort(session.disconnect_status());
     return;
   }
 
@@ -2463,8 +2463,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
       nearby_connections_manager_->GetRawAuthenticationToken(
           session.endpoint_id());
   if (!token.has_value()) {
-    AbortAndCloseConnectionIfNecessary(
-        session, TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session.Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
     return;
   }
   session.RunPairedKeyVerification(
@@ -2507,8 +2506,7 @@ void NearbySharingServiceImpl::SendIntroduction(OutgoingShareSession& session) {
   if (!session.WriteIntroductionFrame()) {
     NL_LOG(WARNING) << __func__
                     << ": No payloads tied to transfer, disconnecting.";
-    AbortAndCloseConnectionIfNecessary(
-        session, TransferMetadata::Status::kMissingPayloads);
+    session.Abort(TransferMetadata::Status::kMissingPayloads);
     return;
   }
 
@@ -2529,8 +2527,7 @@ void NearbySharingServiceImpl::SendIntroduction(OutgoingShareSession& session) {
         if (session == nullptr) {
           return;
         }
-        AbortAndCloseConnectionIfNecessary(*session,
-                                           TransferMetadata::Status::kTimedOut);
+        session->Abort(TransferMetadata::Status::kTimedOut);
       });
 }
 
@@ -2675,8 +2672,7 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
     NL_LOG(WARNING) << __func__
                     << ": Failed to parse incoming connection from endpoint - "
                     << endpoint_id << ", disconnecting.";
-    AbortAndCloseConnectionIfNecessary(
-        session, TransferMetadata::Status::kDecodeAdvertisementFailed);
+    session.Abort(TransferMetadata::Status::kDecodeAdvertisementFailed);
     return;
   }
 
@@ -2869,8 +2865,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
     NL_LOG(WARNING) << __func__
                     << ": Failed to convert advertisement to share target for "
                        "incoming connection, disconnecting";
-    AbortAndCloseConnectionIfNecessary(
-        it->second, TransferMetadata::Status::kMissingShareTarget);
+    it->second.Abort(TransferMetadata::Status::kMissingShareTarget);
     return;
   }
   // Remove placeholder share target since we are creating the actual share
@@ -2895,8 +2890,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           session.endpoint_id());
 
   if (!token.has_value()) {
-    AbortAndCloseConnectionIfNecessary(
-        session, TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session.Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
     return;
   }
   session.RunPairedKeyVerification(
@@ -2925,8 +2919,7 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
           result, share_target_os_type,
           absl::bind_front(&NearbySharingServiceImpl::OnReceivedIntroduction,
                            this, share_target_id))) {
-    AbortAndCloseConnectionIfNecessary(*session,
-        TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session->Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
   }
 }
 
@@ -2940,8 +2933,7 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
   }
 
   if (!session->ProcessKeyVerificationResult(result, share_target_os_type)) {
-    AbortAndCloseConnectionIfNecessary(
-        *session, TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session->Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
     return;
   }
   SendIntroduction(*session);
@@ -2971,8 +2963,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   }
 
   if (!frame.has_value()) {
-    AbortAndCloseConnectionIfNecessary(
-        *session, TransferMetadata::Status::kInvalidIntroductionFrame);
+    session->Abort(TransferMetadata::Status::kInvalidIntroductionFrame);
     NL_LOG(WARNING) << __func__ << ": Invalid introduction frame";
     return;
   }
@@ -3037,8 +3028,7 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
     NL_LOG(WARNING)
         << __func__
         << ": Failed to read a response from the remote device. Disconnecting.";
-    AbortAndCloseConnectionIfNecessary(
-        *session,
+    session->Abort(
         TransferMetadata::Status::kFailedToReadOutgoingConnectionResponse);
     return;
   }
@@ -3087,16 +3077,14 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
       break;
     }
     case nearby::sharing::service::proto::ConnectionResponseFrame::REJECT:
-      AbortAndCloseConnectionIfNecessary(*session,
-                                         TransferMetadata::Status::kRejected);
+      session->Abort(TransferMetadata::Status::kRejected);
       NL_VLOG(1)
           << __func__
           << ": The connection was rejected. The connection has been closed.";
       break;
     case nearby::sharing::service::proto::ConnectionResponseFrame::
         NOT_ENOUGH_SPACE:
-      AbortAndCloseConnectionIfNecessary(
-          *session, TransferMetadata::Status::kNotEnoughSpace);
+      session->Abort(TransferMetadata::Status::kNotEnoughSpace);
       NL_VLOG(1) << __func__
                  << ": The connection was rejected because the remote device "
                     "does not have enough space for our attachments. The "
@@ -3104,23 +3092,20 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
       break;
     case nearby::sharing::service::proto::ConnectionResponseFrame::
         UNSUPPORTED_ATTACHMENT_TYPE:
-      AbortAndCloseConnectionIfNecessary(
-          *session, TransferMetadata::Status::kUnsupportedAttachmentType);
+      session->Abort(TransferMetadata::Status::kUnsupportedAttachmentType);
       NL_VLOG(1) << __func__
                  << ": The connection was rejected because the remote device "
                     "does not support the attachments we were sending. The "
                     "connection has been closed.";
       break;
     case nearby::sharing::service::proto::ConnectionResponseFrame::TIMED_OUT:
-      AbortAndCloseConnectionIfNecessary(*session,
-                                         TransferMetadata::Status::kTimedOut);
+      session->Abort(TransferMetadata::Status::kTimedOut);
       NL_VLOG(1) << __func__
                  << ": The connection was rejected because the remote device "
                     "timed out. The connection has been closed.";
       break;
     default:
-      AbortAndCloseConnectionIfNecessary(*session,
-                                         TransferMetadata::Status::kFailed);
+      session->Abort(TransferMetadata::Status::kFailed);
       NL_VLOG(1) << __func__
                  << ": The connection failed. The connection has been closed.";
       break;
@@ -3656,24 +3641,6 @@ void NearbySharingServiceImpl::SetInHighVisibility(
   in_high_visibility_ = new_in_high_visibility;
   for (auto& observer : observers_.GetObservers()) {
     observer->OnHighVisibilityChanged(in_high_visibility_);
-  }
-}
-
-void NearbySharingServiceImpl::AbortAndCloseConnectionIfNecessary(
-    ShareSession& session,
-    TransferMetadata::Status status) {
-  TransferMetadata metadata =
-      TransferMetadataBuilder().set_status(status).build();
-
-  // First invoke the appropriate transfer callback with the final
-  // |status|.
-  session.UpdateTransferMetadata(metadata);
-
-  // Close connection if necessary.
-  if (session.IsConnected()) {
-    // Final status already sent above.  No need to send it again.
-    session.set_disconnect_status(TransferMetadata::Status::kUnknown);
-    session.connection()->Close();
   }
 }
 

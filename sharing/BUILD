@@ -376,6 +376,16 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "transfer_metadata_matchers",
+    testonly = True,
+    hdrs = ["transfer_metadata_matchers.h"],
+    deps = [
+        ":transfer_metadata",
+        "@com_google_googletest//:gtest_for_library_testonly",
+    ],
+)
+
 cc_test(
     name = "advertisement_test",
     srcs = ["advertisement_test.cc"],
@@ -729,6 +739,7 @@ cc_test(
         ":share_session",
         ":test_support",
         ":transfer_metadata",
+        ":transfer_metadata_matchers",
         ":types",
         "//internal/analytics:mock_event_logger",
         "//internal/platform/implementation/g3",  # fixdeps: keep

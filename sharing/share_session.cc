@@ -128,6 +128,23 @@ bool ShareSession::OnConnected(const NearbySharingDecoder& decoder,
   return true;
 }
 
+void ShareSession::Abort(TransferMetadata::Status status) {
+  NL_DCHECK(TransferMetadata::IsFinalStatus(status))
+      << "Abort should only be called with a final status";
+
+  // First invoke the appropriate transfer callback with the final
+  // |status|.
+  UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
+
+  // Close connection if necessary.
+  if (connection_ == nullptr) {
+    return;
+  }
+  // Final status already sent above.  No need to send it again.
+  set_disconnect_status(TransferMetadata::Status::kUnknown);
+  connection_->Close();
+}
+
 void ShareSession::RunPairedKeyVerification(
     Clock* clock, OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,

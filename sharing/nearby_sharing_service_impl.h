@@ -405,9 +405,6 @@ class NearbySharingServiceImpl
       std::function<void(StatusCodes status_codes)> status_codes_callback,
       bool is_initiator_of_cancellation);
 
-  void AbortAndCloseConnectionIfNecessary(ShareSession& session,
-                                          TransferMetadata::Status status);
-
   // Monitor connectivity changes.
   void OnNetworkChanged(nearby::ConnectivityManager::ConnectionType type);
   void OnLanConnectedChanged(bool connected);

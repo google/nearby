@@ -107,6 +107,10 @@ class ShareSession {
   bool OnConnected(const NearbySharingDecoder& decoder,
                    absl::Time connect_start_time, NearbyConnection* connection);
 
+  // Send TransferMetadataUpdate with the final status.
+  // If connected, also close the connection.
+  void Abort(TransferMetadata::Status status);
+
   void RunPairedKeyVerification(
       Clock* clock, location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
