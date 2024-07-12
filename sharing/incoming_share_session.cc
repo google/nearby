@@ -181,9 +181,38 @@ bool IncomingShareSession::ProcessKeyVerificationResult(
   return true;
 }
 
-void IncomingShareSession::AcceptTransfer(
+bool IncomingShareSession::ReadyForTransfer(
+    std::function<void(std::optional<V1Frame> frame)> frame_read_callback) {
+  if (!IsConnected()) {
+    NL_LOG(WARNING) << __func__ << ": out of order API call.";
+    return false;
+  }
+  ready_for_accept_ = true;
+  set_disconnect_status(
+      TransferMetadata::Status::kUnexpectedDisconnection);
+
+  frames_reader()->ReadFrame(std::move(frame_read_callback));
+
+  if (!self_share()) {
+    TransferMetadataBuilder transfer_metadata_builder;
+    transfer_metadata_builder.set_status(
+        TransferMetadata::Status::kAwaitingLocalConfirmation);
+    transfer_metadata_builder.set_token(token());
+
+    UpdateTransferMetadata(transfer_metadata_builder.build());
+    return false;
+  }
+  return true;
+}
+
+bool IncomingShareSession::AcceptTransfer(
     Clock* clock, NearbyConnectionsManager& connections_manager,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
+  if (!ready_for_accept_ || !IsConnected()) {
+    NL_LOG(WARNING) << __func__ << ": out of order API call.";
+    return false;
+  }
+  ready_for_accept_ = false;
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
   set_payload_tracker(std::make_shared<PayloadTracker>(
@@ -224,6 +253,7 @@ void IncomingShareSession::AcceptTransfer(
   // Log analytics event of starting to receive payloads.
   analytics_recorder().NewReceiveAttachmentsStart(session_id(),
                                                   attachment_container());
+  return true;
 }
 
 bool IncomingShareSession::UpdateFilePayloadPaths(

@@ -97,6 +97,14 @@ void ShareSession::UpdateTransferMetadata(
   InvokeTransferUpdateCallback(transfer_metadata);
 }
 
+std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+ShareSession::payload_tracker() const {
+  if (!payload_tracker_) {
+    return std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>();
+  }
+  return payload_tracker_->GetWeakPtr();
+}
+
 void ShareSession::set_disconnect_status(
     TransferMetadata::Status disconnect_status) {
   disconnect_status_ = disconnect_status;

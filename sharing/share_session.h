@@ -78,9 +78,7 @@ class ShareSession {
   IncomingFramesReader* frames_reader() const { return frames_reader_.get(); }
 
   std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
-  payload_tracker() const {
-    return payload_tracker_->GetWeakPtr();
-  }
+  payload_tracker() const;
 
   int64_t session_id() const { return session_id_; }
 

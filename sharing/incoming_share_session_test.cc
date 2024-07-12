@@ -589,6 +589,68 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
               IsFalse());
 }
 
+TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
+  session_.set_session_id(1234);
+
+  FakeNearbyConnectionsManager connections_manager;
+  FakeClock clock;
+  EXPECT_THAT(session_.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
+              IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  session_.set_session_id(1234);
+  EXPECT_TRUE(
+      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+
+  EXPECT_THAT(session_.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
+              IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
+  ShareTarget share_target;
+  share_target.for_self_share = true;
+  IncomingShareSession session(task_runner_, analytics_recorder_,
+                               std::string("XYCA"), share_target,
+                               transfer_metadata_callback_.AsStdFunction());
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  session.set_session_id(1234);
+  EXPECT_TRUE(
+      session.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+
+  EXPECT_THAT(session.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
+              IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {
+  session_.set_session_id(1234);
+
+  FakeNearbyConnectionsManager connections_manager;
+  FakeClock clock;
+  EXPECT_THAT(session_.AcceptTransfer(&clock, connections_manager,
+                                      [](int64_t, TransferMetadata) {}),
+              IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  session_.set_session_id(1234);
+  EXPECT_TRUE(
+      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+              Eq(std::nullopt));
+
+  FakeNearbyConnectionsManager connections_manager;
+  FakeClock clock;
+  EXPECT_THAT(session_.AcceptTransfer(&clock, connections_manager,
+                                      [](int64_t, TransferMetadata) {}),
+              IsFalse());
+}
+
 TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
   NearbySharingDecoderImpl nearby_sharing_decoder;
   FakeNearbyConnection connection;
@@ -597,6 +659,8 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
       session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
+  EXPECT_THAT(session_.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
+              IsFalse());
   EXPECT_CALL(transfer_metadata_callback_, Call(_, _))
       .WillOnce(Invoke([](const IncomingShareSession& session,
                           const TransferMetadata& metadata) {
@@ -605,13 +669,12 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
       }));
   EXPECT_CALL(
       mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf((
-          HasCategory(EventCategory::RECEIVING_EVENT),
-          HasEventType(EventType::RESPOND_TO_INTRODUCTION),
-          Property(&SharingLog::respond_introduction,
-                   HasAction(ResponseToIntroduction::ACCEPT_INTRODUCTION)),
-          Property(&SharingLog::respond_introduction,
-                   HasSessionId(1234)))))));
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::RECEIVING_EVENT),
+           HasEventType(EventType::RESPOND_TO_INTRODUCTION),
+           Property(&SharingLog::respond_introduction,
+                    HasAction(ResponseToIntroduction::ACCEPT_INTRODUCTION)),
+           Property(&SharingLog::respond_introduction, HasSessionId(1234)))))));
   EXPECT_CALL(mock_event_logger_,
               Log(Matcher<const SharingLog&>(
                   AllOf((HasCategory(EventCategory::RECEIVING_EVENT),
@@ -621,8 +684,9 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
 
   FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
-  session_.AcceptTransfer(&clock, connections_manager,
-                          [](int64_t, TransferMetadata) {});
+  EXPECT_THAT(session_.AcceptTransfer(&clock, connections_manager,
+                                      [](int64_t, TransferMetadata) {}),
+              IsTrue());
 
   for (auto it : session_.attachment_payload_map()) {
     EXPECT_THAT(

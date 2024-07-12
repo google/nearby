@@ -312,7 +312,7 @@ class NearbySharingServiceImpl
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);
 
-  StatusCodes SendPayloads(ShareSession& session);
+  void SendPayloads(OutgoingShareSession& session);
 
   void OnOutgoingConnection(absl::Time connect_start_time,
                             NearbyConnection* connection,
@@ -325,7 +325,7 @@ class NearbySharingServiceImpl
   void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
                         OutgoingShareSession& session, bool success);
 
-  void Fail(int64_t share_target_id, TransferMetadata::Status status);
+  void Fail(IncomingShareSession& session, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
       absl::string_view endpoint_id, IncomingShareSession& session,
       std::unique_ptr<Advertisement> advertisement);
@@ -349,7 +349,6 @@ class NearbySharingServiceImpl
   void OnReceivedIntroduction(
       int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::IntroductionFrame> frame);
-  void ReceiveConnectionResponse(ShareSession& session);
   void OnReceiveConnectionResponse(
       int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
@@ -456,6 +455,8 @@ class NearbySharingServiceImpl
 
   // Send initial adapter state to observer for each supported adapter.
   void SendInitialAdapterState(NearbySharingService::Observer* observer);
+
+  bool OutgoingSessionAccept(OutgoingShareSession& session);
 
   // Used to run nearby sharing service APIs.
   std::unique_ptr<TaskRunner> service_thread_;

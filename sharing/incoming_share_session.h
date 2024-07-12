@@ -72,8 +72,17 @@ class IncomingShareSession : public ShareSession {
   bool UpdateFilePayloadPaths(
       const NearbyConnectionsManager& connections_manager);
 
+  // Returns true if the transfer can begin and AcceptTransfer should be called
+  // immediately.
+  // Returns false if user needs to accept the transfer.
+  bool ReadyForTransfer(
+      std::function<
+          void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
+          frame_read_callback);
+
   // Accept the transfer and begin listening for payload transfer updates.
-  void AcceptTransfer(
+  // Returns false if session is not in a state to accept the transfer.
+  bool AcceptTransfer(
       Clock* clock, NearbyConnectionsManager& connections_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
@@ -102,6 +111,7 @@ class IncomingShareSession : public ShareSession {
       transfer_update_callback_;
 
   bool bandwidth_upgrade_requested_ = false;
+  bool ready_for_accept_ = false;
 };
 
 }  // namespace nearby::sharing
