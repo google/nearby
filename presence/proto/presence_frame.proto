@@ -201,5 +201,5 @@ message PresenceAuthenticationFrame {
 
   // A hash of a local credential's id. Used to expedite local credential
   // verification.
-  optional bytes credential_id_hash = 4 [deprecated = true];
+  optional bytes credential_id_hash = 4;
 }
