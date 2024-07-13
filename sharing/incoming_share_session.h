@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <filesystem>  // NOLINT
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -31,6 +32,7 @@
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
+#include "sharing/thread_timer.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby::sharing {
@@ -76,6 +78,7 @@ class IncomingShareSession : public ShareSession {
   // immediately.
   // Returns false if user needs to accept the transfer.
   bool ReadyForTransfer(
+      std::function<void()> accept_timeout_callback,
       std::function<
           void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback);
@@ -85,6 +88,11 @@ class IncomingShareSession : public ShareSession {
   bool AcceptTransfer(
       Clock* clock, NearbyConnectionsManager& connections_manager,
       std::function<void(int64_t, TransferMetadata)> update_callback);
+
+  void HandleProgressUpdate(
+      NearbyConnectionsManager& connections_manager,
+      const nearby::sharing::service::proto::ProgressUpdateFrame&
+          progress_update);
 
   // Once transfer has completed, make payload content available in the
   // corresponding Attachment.
@@ -97,6 +105,11 @@ class IncomingShareSession : public ShareSession {
   // Upgrade bandwidth if it is needed.
   // Returns true if bandwidth upgrade was requested.
   bool TryUpgradeBandwidth(NearbyConnectionsManager& connections_manager);
+
+  // Send TransferMetadataUpdate with the final |status|.
+  // Map |status| to corresponding ConnectionResponseFrame::Status and send
+  // response to remote device.
+  void SendFailureResponse(TransferMetadata::Status status);
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
@@ -112,6 +125,9 @@ class IncomingShareSession : public ShareSession {
 
   bool bandwidth_upgrade_requested_ = false;
   bool ready_for_accept_ = false;
+  // This alarm is used to disconnect the sharing connection if both sides do
+  // not press accept within the timeout.
+  std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
 };
 
 }  // namespace nearby::sharing

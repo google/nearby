@@ -28,6 +28,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
 #include "internal/test/fake_clock.h"
@@ -47,6 +48,7 @@
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_matchers.h"
 #include "sharing/wifi_credentials_attachment.h"
 #include "google/protobuf/text_format.h"
 
@@ -66,6 +68,7 @@ using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::FileMetadata;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
+using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::nearby::sharing::service::proto::TextMetadata;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
@@ -594,8 +597,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
 
   FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
-  EXPECT_THAT(session_.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
-              IsFalse());
+  EXPECT_THAT(
+      session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
@@ -604,9 +608,13 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
   session_.set_session_id(1234);
   EXPECT_TRUE(
       session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
 
-  EXPECT_THAT(session_.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
-              IsFalse());
+  EXPECT_THAT(
+      session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
@@ -620,9 +628,99 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
   session.set_session_id(1234);
   EXPECT_TRUE(
       session.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)))
+      .Times(0);
 
-  EXPECT_THAT(session.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
-              IsTrue());
+  EXPECT_THAT(
+      session.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  session_.set_session_id(1234);
+  EXPECT_TRUE(
+      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
+  bool accept_timeout_called = false;
+
+  EXPECT_THAT(session_.ReadyForTransfer(
+                  [&accept_timeout_called]() { accept_timeout_called = true; },
+                  [](std::optional<V1Frame> frame) {}),
+              IsFalse());
+  clock_.FastForward(absl::Seconds(60));
+  task_runner_.SyncWithTimeout(absl::Milliseconds(100));
+
+  EXPECT_THAT(accept_timeout_called, IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  session_.set_session_id(1234);
+  EXPECT_TRUE(
+      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
+  bool accept_timeout_called = false;
+
+  EXPECT_THAT(session_.ReadyForTransfer(
+                  [&accept_timeout_called]() { accept_timeout_called = true; },
+                  [](std::optional<V1Frame> frame) {}),
+              IsFalse());
+  FakeNearbyConnectionsManager connections_manager;
+  ProgressUpdateFrame progress_update_frame;
+  progress_update_frame.set_start_transfer(true);
+  session_.HandleProgressUpdate(connections_manager, progress_update_frame);
+  clock_.FastForward(absl::Seconds(60));
+  task_runner_.SyncWithTimeout(absl::Milliseconds(100));
+
+  EXPECT_THAT(accept_timeout_called, IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, HandleProgressUpdateNotConnected) {
+  FakeNearbyConnectionsManager connections_manager;
+  ProgressUpdateFrame progress_update_frame;
+  progress_update_frame.set_start_transfer(true);
+  session_.HandleProgressUpdate(connections_manager, progress_update_frame);
+
+  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, HandleProgressUpdateTryUpgradeBandwidth) {
+  IntroductionFrame introduction_frame;
+  NL_CHECK(
+      proto2::TextFormat::ParseFromString(R"pb(
+                                            file_metadata {
+                                              id: 1234
+                                              size: 2000000
+                                              name: "file_name1"
+                                              mime_type: "application/pdf"
+                                              type: DOCUMENT
+                                              parent_folder: "parent_folder1"
+                                              payload_id: 9876
+                                            }
+                                          )pb",
+                                          &introduction_frame));
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  FakeNearbyConnection connection;
+  session_.set_session_id(1234);
+  EXPECT_TRUE(
+      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+              Eq(std::nullopt));
+  FakeNearbyConnectionsManager connections_manager;
+  ProgressUpdateFrame progress_update_frame;
+  progress_update_frame.set_start_transfer(true);
+  session_.HandleProgressUpdate(connections_manager, progress_update_frame);
+
+  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {
@@ -659,14 +757,12 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
       session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  EXPECT_THAT(session_.ReadyForTransfer([](std::optional<V1Frame> frame) {}),
-              IsFalse());
-  EXPECT_CALL(transfer_metadata_callback_, Call(_, _))
-      .WillOnce(Invoke([](const IncomingShareSession& session,
-                          const TransferMetadata& metadata) {
-        EXPECT_EQ(metadata.status(),
-                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
-      }));
+  EXPECT_THAT(
+      session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      IsFalse());
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
   EXPECT_CALL(
       mock_event_logger_,
       Log(Matcher<const SharingLog&>(AllOf(
@@ -851,6 +947,7 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNotNeeded) {
   session_.OnConnected(decoder, absl::Now(), &connection);
 
   EXPECT_THAT(session_.TryUpgradeBandwidth(connections_manager), IsFalse());
+  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
@@ -885,6 +982,34 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
               Eq(std::nullopt));
 
   EXPECT_THAT(session_.TryUpgradeBandwidth(connections_manager), IsTrue());
+  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, SendFailureResponseNotConnected) {
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+
+  session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
+}
+
+TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
+  NearbySharingDecoderImpl decoder;
+  FakeNearbyConnection connection;
+  session_.OnConnected(decoder, absl::Now(), &connection);
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+
+  session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
+
+  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  Frame frame;
+  ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
+  ASSERT_EQ(frame.version(), Frame::V1);
+  ASSERT_EQ(frame.v1().type(), V1Frame::RESPONSE);
+  EXPECT_EQ(frame.v1().connection_response().status(),
+            ConnectionResponseFrame::NOT_ENOUGH_SPACE);
 }
 
 }  // namespace

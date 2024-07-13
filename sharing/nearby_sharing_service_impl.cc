@@ -2631,36 +2631,7 @@ void NearbySharingServiceImpl::Fail(IncomingShareSession& session,
       absl::bind_front(&NearbySharingServiceImpl::CloseConnection, this,
                        session.share_target().id));
 
-  session.set_disconnect_status(status);
-
-  // Send response to remote device.
-  nearby::sharing::service::proto::ConnectionResponseFrame::Status
-      response_status;
-  switch (status) {
-    case TransferMetadata::Status::kNotEnoughSpace:
-      response_status = nearby::sharing::service::proto::
-          ConnectionResponseFrame::NOT_ENOUGH_SPACE;
-      break;
-
-    case TransferMetadata::Status::kUnsupportedAttachmentType:
-      response_status = nearby::sharing::service::proto::
-          ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE;
-      break;
-
-    case TransferMetadata::Status::kTimedOut:
-      response_status =
-          nearby::sharing::service::proto::ConnectionResponseFrame::TIMED_OUT;
-      break;
-
-    default:
-      response_status =
-          nearby::sharing::service::proto::ConnectionResponseFrame::UNKNOWN;
-      break;
-  }
-
-  session.WriteResponseFrame(response_status);
-  session.UpdateTransferMetadata(
-      TransferMetadataBuilder().set_status(status).build());
+  session.SendFailureResponse(status);
 }
 
 void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
@@ -2996,13 +2967,9 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     }
   }
 
-  std::filesystem::path download_path =
-      std::filesystem::u8path(settings_->GetCustomSavePath());
-
-  bool is_out_of_storage =
-      IsOutOfStorage(device_info_, download_path,
-                     session->attachment_container().GetStorageSize());
-  if (is_out_of_storage) {
+  if (IsOutOfStorage(device_info_,
+                     std::filesystem::u8path(settings_->GetCustomSavePath()),
+                     session->attachment_container().GetStorageSize())) {
     Fail(*session, TransferMetadata::Status::kNotEnoughSpace);
     NL_LOG(WARNING) << __func__
                     << ": Not enough space on the receiver. We have informed "
@@ -3114,32 +3081,28 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
 
 void NearbySharingServiceImpl::OnStorageCheckCompleted(
     IncomingShareSession& session) {
-  mutual_acceptance_timeout_alarm_ = std::make_unique<ThreadTimer>(
-      *service_thread_, "mutual_acceptance_timeout_alarm",
-      kReadResponseFrameTimeout,
-      [this, share_target_id = session.share_target().id]() {
-        NL_VLOG(1)
-            << __func__
-            << ": Incoming mutual acceptance timed out, closing connection for "
-            << share_target_id;
-        IncomingShareSession* session =
-            GetIncomingShareSession(share_target_id);
-        if (session != nullptr) {
-          Fail(*session, TransferMetadata::Status::kTimedOut);
-        }
-      });
-  if (session.ReadyForTransfer(
+  if (!session.ReadyForTransfer(
+          [this, share_target_id = session.share_target().id]() {
+            NL_VLOG(1) << "Incoming mutual acceptance timed out, closing "
+                          "connection for "
+                       << share_target_id;
+            IncomingShareSession* session =
+                GetIncomingShareSession(share_target_id);
+            if (session != nullptr) {
+              Fail(*session, TransferMetadata::Status::kTimedOut);
+            }
+          },
           absl::bind_front(&NearbySharingServiceImpl::OnFrameRead, this,
                            session.share_target().id))) {
-    // Don't need to send kAwaitingLocalConfirmation for auto accept of Self
-    // share.
-    NL_LOG(INFO) << __func__ << ": Auto-accepting self share.";
-    session.AcceptTransfer(
-        context_->GetClock(), *nearby_connections_manager_,
-        absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
-                         this));
-    OnTransferStarted(/*is_incoming=*/true);
+    return;
   }
+  // Don't need to wait for user to accept for Self share.
+  NL_LOG(INFO) << __func__ << ": Auto-accepting self share.";
+  session.AcceptTransfer(
+      context_->GetClock(), *nearby_connections_manager_,
+      absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
+                       this));
+  OnTransferStarted(/*is_incoming=*/true);
 }
 
 void NearbySharingServiceImpl::OnFrameRead(
@@ -3194,34 +3157,13 @@ void NearbySharingServiceImpl::HandleProgressUpdateFrame(
     int64_t share_target_id,
     const nearby::sharing::service::proto::ProgressUpdateFrame&
         progress_update_frame) {
-  if (progress_update_frame.has_start_transfer() &&
-      progress_update_frame.start_transfer()) {
-    IncomingShareSession* session = GetIncomingShareSession(share_target_id);
-
-    if (session == nullptr || !session->IsConnected()) {
-      NL_LOG(ERROR) << "Received ProgressUpdate Frame on unknown session";
-      return;
-    }
-    mutual_acceptance_timeout_alarm_.reset();
-    NL_LOG(INFO) << __func__ << ": Received progress for ShareTarget "
-                 << share_target_id << " : "
-                 << progress_update_frame.progress();
-    // TODO(b/338468927): Check if this is actually needed.
-    // Bandwidth upgrade was already requested in Accept.
-    if (session->TryUpgradeBandwidth(*nearby_connections_manager_)) {
-      NL_LOG(INFO)
-          << __func__
-          << ": Upgrade bandwidth when receiving progress update frame "
-             "for endpoint "
-          << session->endpoint_id();
-    }
+  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
+  if (session == nullptr) {
+    NL_LOG(ERROR) << "Received ProgressUpdate Frame on unknown session";
+    return;
   }
-
-  if (progress_update_frame.has_progress()) {
-    NL_VLOG(1) << __func__ << ": Current progress for ShareTarget "
-                 << share_target_id << " is "
-                 << progress_update_frame.progress();
-  }
+  session->HandleProgressUpdate(*nearby_connections_manager_,
+                                progress_update_frame);
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(

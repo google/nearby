@@ -201,6 +201,7 @@ cc_library(
         ":connection_types",
         ":incoming_frame_reader",
         ":paired_key_verification_runner",
+        ":thread_timer",
         ":transfer_metadata",
         ":types",
         "//internal/base:files",
@@ -813,6 +814,7 @@ cc_test(
         ":share_session",
         ":test_support",
         ":transfer_metadata",
+        ":transfer_metadata_matchers",
         ":types",
         "//internal/analytics:mock_event_logger",
         "//internal/platform/implementation/g3",  # fixdeps: keep

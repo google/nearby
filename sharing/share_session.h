@@ -151,6 +151,7 @@ class ShareSession {
     return analytics_recorder_;
   };
 
+  TaskRunner& service_thread() const { return service_thread_; }
   void SetAttachmentPayloadId(int64_t attachment_id, int64_t payload_id);
 
   void set_payload_tracker(std::shared_ptr<PayloadTracker> payload_tracker) {

@@ -42,6 +42,7 @@
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
+#include "sharing/thread_timer.h"
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_metadata_builder.h"
 #include "sharing/wifi_credentials_attachment.h"
@@ -52,6 +53,7 @@ namespace {
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
+using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
@@ -182,6 +184,7 @@ bool IncomingShareSession::ProcessKeyVerificationResult(
 }
 
 bool IncomingShareSession::ReadyForTransfer(
+    std::function<void()> accept_timeout_callback,
     std::function<void(std::optional<V1Frame> frame)> frame_read_callback) {
   if (!IsConnected()) {
     NL_LOG(WARNING) << __func__ << ": out of order API call.";
@@ -191,6 +194,9 @@ bool IncomingShareSession::ReadyForTransfer(
   set_disconnect_status(
       TransferMetadata::Status::kUnexpectedDisconnection);
 
+  mutual_acceptance_timeout_ = std::make_unique<ThreadTimer>(
+      service_thread(), "incoming_mutual_acceptance_timeout",
+      kReadResponseFrameTimeout, std::move(accept_timeout_callback));
   frames_reader()->ReadFrame(std::move(frame_read_callback));
 
   if (!self_share()) {
@@ -254,6 +260,35 @@ bool IncomingShareSession::AcceptTransfer(
   analytics_recorder().NewReceiveAttachmentsStart(session_id(),
                                                   attachment_container());
   return true;
+}
+
+void IncomingShareSession::HandleProgressUpdate(
+    NearbyConnectionsManager& connections_manager,
+    const ProgressUpdateFrame& progress_update) {
+  if (!IsConnected()) {
+    NL_LOG(ERROR) << "Received ProgressUpdate Frame on disconnected session";
+    return;
+  }
+  if (progress_update.start_transfer()) {
+    // Cancel timeout when progress update is received.
+    mutual_acceptance_timeout_.reset();
+    NL_LOG(INFO) << __func__ << ": Received progress for ShareTarget "
+                 << share_target().id;
+    // TODO(b/338468927): Check if this is actually needed.
+    // Bandwidth upgrade was already requested in Accept.
+    if (TryUpgradeBandwidth(connections_manager)) {
+      NL_LOG(INFO)
+          << __func__
+          << ": Upgrade bandwidth when receiving progress update frame "
+             "for endpoint "
+          << endpoint_id();
+    }
+  }
+
+  if (progress_update.has_progress()) {
+    NL_VLOG(1) << __func__ << ": Current progress for ShareTarget "
+               << share_target().id << " is " << progress_update.progress();
+  }
 }
 
 bool IncomingShareSession::UpdateFilePayloadPaths(
@@ -413,6 +448,35 @@ bool IncomingShareSession::TryUpgradeBandwidth(
     return true;
   }
   return false;
+}
+
+void IncomingShareSession::SendFailureResponse(
+    TransferMetadata::Status status) {
+  // Send response to remote device.
+  ConnectionResponseFrame::Status response_status;
+  switch (status) {
+    case TransferMetadata::Status::kNotEnoughSpace:
+      response_status = ConnectionResponseFrame::NOT_ENOUGH_SPACE;
+      break;
+
+    case TransferMetadata::Status::kUnsupportedAttachmentType:
+      response_status = ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE;
+      break;
+
+    case TransferMetadata::Status::kTimedOut:
+      response_status = ConnectionResponseFrame::TIMED_OUT;
+      break;
+
+    default:
+      response_status = ConnectionResponseFrame::UNKNOWN;
+      break;
+  }
+
+  WriteResponseFrame(response_status);
+  NL_DCHECK(TransferMetadata::IsFinalStatus(status))
+      << "SendFailureResponse should only be called with a final status";
+  UpdateTransferMetadata(
+      TransferMetadataBuilder().set_status(status).build());
 }
 
 }  // namespace nearby::sharing
