@@ -17,18 +17,15 @@
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
-#include <ios>
 #include <memory>
 #include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "absl/types/span.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex_lock.h"
@@ -159,7 +156,7 @@ void NearbyShareSettings::StartVisibilityTimer(
           // We stop the timer after reading the fallback visibility, so
           // GetFallbackVisibility() will return the persisted fallback
           // visibility value instead of UNSPECIFIED.
-          visibility = GetFallbackVisibility();
+          visibility = GetFallbackVisibility().visibility;
           visibility_expiration_timer_->Stop();
         }
         SetVisibility(visibility);
@@ -320,8 +317,8 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
           prefs::kNearbySharingBackgroundVisibilityName,
           static_cast<int>(prefs::kDefaultVisibility)));
   if (analytics_recorder_ != nullptr) {
-    analytics_recorder_->NewSetVisibility(last_visibility, visibility,
-                                          expiration / absl::Milliseconds(1));
+    analytics_recorder_->NewSetVisibility(
+        last_visibility, visibility, absl::ToInt64Milliseconds(expiration));
   }
 
   NL_VLOG(1) << __func__
@@ -371,13 +368,24 @@ proto::DeviceVisibility NearbyShareSettings::GetLastVisibility() const {
   return static_cast<proto::DeviceVisibility>(last_visibility_);
 }
 
-DeviceVisibility NearbyShareSettings::GetFallbackVisibility() const {
+NearbyShareSettings::FallbackVisibilityInfo
+NearbyShareSettings::GetFallbackVisibility() const {
   MutexLock lock(&mutex_);
-  NL_VLOG(1) << __func__ << ": get fallback visibility called.";
+  FallbackVisibilityInfo result {
+    .visibility = DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED,
+    .fallback_time = absl::UnixEpoch(),
+  };
   if (GetIsTemporarilyVisible()) {
-    return fallback_visibility_.value_or(prefs::kDefaultFallbackVisibility);
+    result.visibility =
+        fallback_visibility_.value_or(prefs::kDefaultFallbackVisibility);
+    result.fallback_time =
+        absl::FromUnixSeconds(preference_manager_.GetInteger(
+            prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0));
   }
-  return DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
+  NL_VLOG(1) << __func__ << ": get fallback visibility "
+             << static_cast<int>(result.visibility)
+             << " expiration: " << result.fallback_time;
+  return result;
 }
 
 void NearbyShareSettings::SetFallbackVisibility(

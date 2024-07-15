@@ -3625,8 +3625,10 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
     // Visibility has a impact on the UI. So let's set this one first
     // so that the UI can be as responsive as possible.
     DeviceVisibility visibility = settings_->GetVisibility();
+    NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
+        settings_->GetFallbackVisibility();
     bool is_temporarily_visible =
-        settings_->GetFallbackVisibility() !=
+        fallback_visibility.visibility !=
         DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
     // When logged out the visibility can either be "everyone" or "hidden". If
     // the visibility wasn't already "always everyone", change it to "hidden".

@@ -27,7 +27,6 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "absl/types/span.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/common/compatible_u8_string.h"
@@ -346,8 +345,11 @@ TEST_F(NearbyShareSettingsTest,
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
 
   // Since this is permanent, we shouldn't have a fallback.
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
+  NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
+      settings()->GetFallbackVisibility();
+  EXPECT_EQ(fallback_visibility.visibility,
             DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+  EXPECT_EQ(fallback_visibility.fallback_time, absl::UnixEpoch());
 }
 
 TEST_F(NearbyShareSettingsTest,
@@ -355,17 +357,26 @@ TEST_F(NearbyShareSettingsTest,
   // Set our initial visibility to self share.
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   // Set everyone mode temporarily.
+  absl::Time now = context_.GetClock()->Now();
   settings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
   // Verify that the fallback visibility is valid and set to self share.
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
+  NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
+      settings()->GetFallbackVisibility();
+  EXPECT_EQ(fallback_visibility.visibility,
             DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  absl::Time expected_fallback_time =
+      now + absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds);
+  EXPECT_LT(fallback_visibility.fallback_time - expected_fallback_time,
+            absl::Seconds(1));
   // Transition to permanent self share.
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   // Verify that the fallback visibility is unset.
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
+  fallback_visibility = settings()->GetFallbackVisibility();
+  EXPECT_EQ(fallback_visibility.visibility,
             DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+  EXPECT_EQ(fallback_visibility.fallback_time, absl::UnixEpoch());
 }
 
 TEST_F(NearbyShareSettingsTest,
@@ -385,8 +396,11 @@ TEST_F(NearbyShareSettingsTest,
                 prefs::kDefaultFallbackVisibility),
             static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   // Verify that the fallback visibility is unspecified.
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
+  NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
+      settings()->GetFallbackVisibility();
+  EXPECT_EQ(fallback_visibility.visibility,
             DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+  EXPECT_EQ(fallback_visibility.fallback_time, absl::UnixEpoch());
 }
 
 TEST_F(NearbyShareSettingsTest, TemporaryVisibilityIsCorrect) {
@@ -394,16 +408,25 @@ TEST_F(NearbyShareSettingsTest, TemporaryVisibilityIsCorrect) {
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   // Verify that the visibility is not temporary via absence of fallback
   // visibility.
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
+  NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
+      settings()->GetFallbackVisibility();
+  EXPECT_EQ(fallback_visibility.visibility,
             DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
+  EXPECT_EQ(fallback_visibility.fallback_time, absl::UnixEpoch());
   // Transition to temporary everyone mode.
+  absl::Time now = context_.GetClock()->Now();
   settings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
   // Verify that the visibility is temporary via fallback visibility being
   // present.
-  EXPECT_EQ(settings()->GetFallbackVisibility(),
+  fallback_visibility = settings()->GetFallbackVisibility();
+  EXPECT_EQ(fallback_visibility.visibility,
             DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  absl::Time expected_fallback_time =
+      now + absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds);
+  EXPECT_LT(fallback_visibility.fallback_time - expected_fallback_time,
+            absl::Seconds(1));
 }
 
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {

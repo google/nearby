@@ -26,7 +26,6 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "absl/types/span.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
@@ -156,6 +155,11 @@ class NearbyShareSettings
         bool is_supported) = 0;
   };
 
+  struct FallbackVisibilityInfo {
+    proto::DeviceVisibility visibility;
+    absl::Time fallback_time;
+  };
+
   NearbyShareSettings(
       Context* context,
       nearby::Clock* clock,
@@ -204,7 +208,7 @@ class NearbyShareSettings
   void SetDataUsage(proto::DataUsage data_usage);
   // Returns the fallback visibility if the current visibility is temporary,
   // otherwise returning |DEVICE_VISIBILITY_UNSPECIFIED|.
-  proto::DeviceVisibility GetFallbackVisibility() const;
+  FallbackVisibilityInfo GetFallbackVisibility() const;
   void GetVisibility(std::function<void(proto::DeviceVisibility)> callback);
   // Sets the visibility for the Nearby Sharing service. If the expiration is
   // not zero, the visibility will be set temporarily and a fallback will be
