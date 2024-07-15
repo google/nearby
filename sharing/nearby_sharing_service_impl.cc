@@ -118,6 +118,7 @@ using ::location::nearby::proto::sharing::SessionStatus;
 using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
+using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 
 constexpr absl::Duration kBackgroundAdvertisementRotationDelayMin =
@@ -344,7 +345,6 @@ void NearbySharingServiceImpl::Cleanup() {
   last_outgoing_metadata_.reset();
   locally_cancelled_share_target_ids_.clear();
 
-  mutual_acceptance_timeout_alarm_.reset();
   disconnection_timeout_alarms_.clear();
 
   is_scanning_ = false;
@@ -814,20 +814,9 @@ void NearbySharingServiceImpl::SendAttachments(
 
 bool NearbySharingServiceImpl::OutgoingSessionAccept(
     OutgoingShareSession& session) {
-  if (!session.IsConnected()) {
-    NL_LOG(WARNING) << __func__
-                    << ": Accept invoked for unconnected share target";
-    return false;
-  }
-  if (!ReadyToAccept(session.self_share(),
-                     last_outgoing_metadata_.has_value()
-                         ? std::get<2>(*last_outgoing_metadata_).status()
-                         : TransferMetadata::Status::kUnknown)) {
-    NL_LOG(WARNING) << __func__ << ": out of order API call.";
-    return false;
-  }
-  SendPayloads(session);
-  return true;
+  return session.AcceptTransfer(
+      absl::bind_front(&NearbySharingServiceImpl::OnReceiveConnectionResponse,
+                       this, session.share_target().id));
 }
 
 void NearbySharingServiceImpl::Accept(
@@ -896,8 +885,7 @@ void NearbySharingServiceImpl::Reject(
         // kRejected status already sent below, no need to send on disconnect.
         session->set_disconnect_status(TransferMetadata::Status::kUnknown);
 
-        session->WriteResponseFrame(
-            service::proto::ConnectionResponseFrame::REJECT);
+        session->WriteResponseFrame(ConnectionResponseFrame::REJECT);
         NL_VLOG(1) << __func__
                    << ": Successfully wrote a rejection response frame";
 
@@ -2411,31 +2399,6 @@ void NearbySharingServiceImpl::OnTransferStarted(bool is_incoming) {
   InvalidateSurfaceState();
 }
 
-void NearbySharingServiceImpl::SendPayloads(OutgoingShareSession& session) {
-  NL_VLOG(1) << __func__ << ": Preparing to send payloads to "
-             << session.share_target().id;
-  // Log analytics event of sending attachment start.
-  analytics_recorder_->NewSendAttachmentsStart(
-      session.session_id(), session.attachment_container(),
-      /*transfer_position=*/GetConnectedShareTargetPos(),
-      /*concurrent_connections=*/GetConnectedShareTargetCount());
-
-  session.UpdateTransferMetadata(
-      TransferMetadataBuilder()
-          .set_token(session.token())
-          .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
-          .build());
-  NL_VLOG(1) << __func__ << ": Receiving response frame from "
-             << session.share_target().id;
-  session.frames_reader()->ReadFrame(
-      nearby::sharing::service::proto::V1Frame::RESPONSE,
-      [this, share_target_id = session.share_target().id](
-          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-        OnReceiveConnectionResponse(share_target_id, std::move(frame));
-      },
-      kReadResponseFrameTimeout);
-}
-
 void NearbySharingServiceImpl::OnOutgoingConnection(
     absl::Time connect_start_time, NearbyConnection* connection,
     OutgoingShareSession& session) {
@@ -2477,58 +2440,6 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
       absl::bind_front(
           &NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone,
           this, share_target_id));
-}
-
-void NearbySharingServiceImpl::SendIntroduction(OutgoingShareSession& session) {
-  // We successfully connected! Now lets build up Payloads for all the files we
-  // want to send them. We won't send any just yet, but we'll send the Payload
-  // IDs in our introduction frame so that they know what to expect if they
-  // accept.
-  NL_VLOG(1) << __func__ << ": Preparing to send introduction to "
-             << session.share_target().id;
-
-  // Log analytics event of sending introduction.
-  analytics_recorder_->NewSendIntroduction(
-      session.session_id(), session.share_target(),
-      /*transfer_position=*/GetConnectedShareTargetPos(),
-      /*concurrent_connections=*/GetConnectedShareTargetCount(),
-      session.os_type());
-
-  if (foreground_send_surface_map_.empty() &&
-      background_send_surface_map_.empty()) {
-    NL_LOG(WARNING) << __func__ << ": No transfer callbacks, disconnecting.";
-    session.connection()->Close();
-    return;
-  }
-
-  NL_VLOG(1) << __func__ << ": Sending attachments to "
-             << session.share_target().id;
-  if (!session.WriteIntroductionFrame()) {
-    NL_LOG(WARNING) << __func__
-                    << ": No payloads tied to transfer, disconnecting.";
-    session.Abort(TransferMetadata::Status::kMissingPayloads);
-    return;
-  }
-
-  // We've successfully written the introduction, so we now have to wait for the
-  // remote side to accept.
-  NL_VLOG(1) << __func__ << ": Successfully wrote the introduction frame";
-
-  mutual_acceptance_timeout_alarm_ = std::make_unique<ThreadTimer>(
-      *service_thread_, "mutual_acceptance_timeout_alarm",
-      kReadResponseFrameTimeout,
-      [this, share_target_id = session.share_target().id]() {
-        NL_VLOG(1)
-            << __func__
-            << ": Outgoing mutual acceptance timed out, closing connection for "
-            << share_target_id;
-        OutgoingShareSession* session =
-              GetOutgoingShareSession(share_target_id);
-        if (session == nullptr) {
-          return;
-        }
-        session->Abort(TransferMetadata::Status::kTimedOut);
-      });
 }
 
 void NearbySharingServiceImpl::CreatePayloads(
@@ -2907,13 +2818,31 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
     session->Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
     return;
   }
-  SendIntroduction(*session);
-  // SendPayloads if key verification is successful or skip sender confirmation.
+
+  NL_VLOG(1) << __func__ << ": Preparing to send introduction to "
+             << share_target_id;
+  if (!session->SendIntroduction([this, share_target_id]() {
+        NL_VLOG(1)
+            << "Outgoing mutual acceptance timed out, closing connection for "
+            << share_target_id;
+        OutgoingShareSession* session =
+            GetOutgoingShareSession(share_target_id);
+        if (session == nullptr) {
+          return;
+        }
+        session->Abort(TransferMetadata::Status::kTimedOut);
+      })) {
+    NL_LOG(WARNING) << __func__
+                    << ": No payloads tied to transfer, disconnecting.";
+    session->Abort(TransferMetadata::Status::kMissingPayloads);
+    return;
+  }
+  // Auto Accept if key verification is successful or skip sender confirmation.
   if (session->token().empty() ||
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
               kSenderSkipsConfirmation)) {
-    SendPayloads(*session);
+    OutgoingSessionAccept(*session);
   } else {
     session->UpdateTransferMetadata(
         TransferMetadataBuilder()
@@ -2981,8 +2910,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
 }
 
 void NearbySharingServiceImpl::OnReceiveConnectionResponse(
-    int64_t share_target_id,
-    std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+    int64_t share_target_id, std::optional<ConnectionResponseFrame> frame) {
   OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
   if (!session || !session->IsConnected()) {
     NL_LOG(WARNING) << __func__
@@ -2991,92 +2919,23 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
     return;
   }
 
-  if (!frame) {
-    NL_LOG(WARNING)
-        << __func__
-        << ": Failed to read a response from the remote device. Disconnecting.";
-    session->Abort(
-        TransferMetadata::Status::kFailedToReadOutgoingConnectionResponse);
+  std::optional<TransferMetadata::Status> status =
+      session->HandleConnectionResponse(std::move(frame));
+  if (status.has_value()) {
+    session->Abort(*status);
     return;
   }
-
-  mutual_acceptance_timeout_alarm_.reset();
-
-  NL_VLOG(1) << __func__
-             << ": Successfully read the connection response frame.";
-
-  nearby::sharing::service::proto::ConnectionResponseFrame response =
-      std::move(frame->connection_response());
-  switch (response.status()) {
-    case nearby::sharing::service::proto::ConnectionResponseFrame::ACCEPT: {
-      // Write progress update frame to remote machine.
-      session->WriteProgressUpdateFrame(/*start_transfer=*/true,
-                                        /*progress=*/std::nullopt);
-
-      session->frames_reader()->ReadFrame(
-          [this, share_target_id](
-              std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-            OnFrameRead(share_target_id, std::move(frame));
-          });
-
-      session->UpdateTransferMetadata(
-          TransferMetadataBuilder()
-              .set_status(TransferMetadata::Status::kInProgress)
-              .build());
-
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_sharing_feature::
-                  kEnableTransferCancellationOptimization)) {
-        session->InitSendPayload(
-            context_->GetClock(), *nearby_connections_manager_,
-            absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
-                             this));
-        session->SendNextPayload(*nearby_connections_manager_);
-      } else {
-        session->SendAllPayloads(
-            context_->GetClock(), *nearby_connections_manager_,
-            absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
-                             this));
-      }
-      NL_VLOG(1)
-          << __func__
-          << ": The connection was accepted. Payloads are now being sent.";
-      break;
-    }
-    case nearby::sharing::service::proto::ConnectionResponseFrame::REJECT:
-      session->Abort(TransferMetadata::Status::kRejected);
-      NL_VLOG(1)
-          << __func__
-          << ": The connection was rejected. The connection has been closed.";
-      break;
-    case nearby::sharing::service::proto::ConnectionResponseFrame::
-        NOT_ENOUGH_SPACE:
-      session->Abort(TransferMetadata::Status::kNotEnoughSpace);
-      NL_VLOG(1) << __func__
-                 << ": The connection was rejected because the remote device "
-                    "does not have enough space for our attachments. The "
-                    "connection has been closed.";
-      break;
-    case nearby::sharing::service::proto::ConnectionResponseFrame::
-        UNSUPPORTED_ATTACHMENT_TYPE:
-      session->Abort(TransferMetadata::Status::kUnsupportedAttachmentType);
-      NL_VLOG(1) << __func__
-                 << ": The connection was rejected because the remote device "
-                    "does not support the attachments we were sending. The "
-                    "connection has been closed.";
-      break;
-    case nearby::sharing::service::proto::ConnectionResponseFrame::TIMED_OUT:
-      session->Abort(TransferMetadata::Status::kTimedOut);
-      NL_VLOG(1) << __func__
-                 << ": The connection was rejected because the remote device "
-                    "timed out. The connection has been closed.";
-      break;
-    default:
-      session->Abort(TransferMetadata::Status::kFailed);
-      NL_VLOG(1) << __func__
-                 << ": The connection failed. The connection has been closed.";
-      break;
-  }
+  session->SendPayloads(
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kEnableTransferCancellationOptimization),
+      context_->GetClock(), *nearby_connections_manager_,
+      [this, share_target_id](
+          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+        OnFrameRead(share_target_id, std::move(frame));
+      },
+      absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
+                       this));
 }
 
 void NearbySharingServiceImpl::OnStorageCheckCompleted(
@@ -3512,7 +3371,6 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
 
     NL_VLOG(1) << __func__ << ": Unregister share target: " << share_target_id;
   }
-  mutual_acceptance_timeout_alarm_.reset();
 }
 
 void NearbySharingServiceImpl::OnStartAdvertisingResult(bool used_device_name,
@@ -3659,19 +3517,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   certificate_manager_->Start();
 
   InvalidateSurfaceState();
-}
-
-bool NearbySharingServiceImpl::ReadyToAccept(
-    bool for_self_share, TransferMetadata::Status status) const {
-  if (status == TransferMetadata::Status::kAwaitingLocalConfirmation) {
-    return true;
-  }
-
-  if (for_self_share && status == TransferMetadata::Status::kUnknown) {
-    return true;
-  }
-
-  return false;
 }
 
 void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(

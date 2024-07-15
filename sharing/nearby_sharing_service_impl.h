@@ -312,12 +312,9 @@ class NearbySharingServiceImpl
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);
 
-  void SendPayloads(OutgoingShareSession& session);
-
   void OnOutgoingConnection(absl::Time connect_start_time,
                             NearbyConnection* connection,
                             OutgoingShareSession& session);
-  void SendIntroduction(OutgoingShareSession& session);
 
   void CreatePayloads(
       OutgoingShareSession& session,
@@ -351,7 +348,8 @@ class NearbySharingServiceImpl
       std::optional<nearby::sharing::service::proto::IntroductionFrame> frame);
   void OnReceiveConnectionResponse(
       int64_t share_target_id,
-      std::optional<nearby::sharing::service::proto::V1Frame> frame);
+      std::optional<nearby::sharing::service::proto::ConnectionResponseFrame>
+          frame);
   void OnStorageCheckCompleted(IncomingShareSession& session);
   void OnFrameRead(
       int64_t share_target_id,
@@ -415,10 +413,6 @@ class NearbySharingServiceImpl
   // visibility to a state that is valid when logged out. For example:
   // `contacts` -> `off`.
   void ResetAllSettings(bool logout);
-
-  // Checks whether we should accept transfer.
-  bool ReadyToAccept(bool for_self_share,
-                     TransferMetadata::Status status) const;
 
   // Runs API/task on the service thread to avoid UI block.
   void RunOnNearbySharingServiceThread(absl::string_view task_name,
@@ -538,10 +532,6 @@ class NearbySharingServiceImpl
   // cause new download of public certificates. The purpose is to reduce the
   // unnecessary backend API call.
   absl::flat_hash_set<std::string> discovered_advertisements_retried_set_;
-
-  // This alarm is used to disconnect the sharing connection if both sides do
-  // not press accept within the timeout.
-  std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_alarm_;
 
   // A map of ShareTarget id to disconnection timeout callback. Used to only
   // disconnect after a timeout to keep sending any pending payloads.

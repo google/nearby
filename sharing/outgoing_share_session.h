@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <filesystem>  // NOLINT
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -33,6 +34,7 @@
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
+#include "sharing/thread_timer.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby::sharing {
@@ -89,36 +91,67 @@ class OutgoingShareSession : public ShareSession {
   bool CreateFilePayloads(
       const std::vector<NearbyFileHandler::FileInfo>& files);
 
-  // Create a payload status listener to send status change to
-  // |update_callback|.  Send all payloads to NearbyConnectionManager.
-  void SendAllPayloads(
-      Clock* clock, NearbyConnectionsManager& connection_manager,
-      std::function<void(int64_t, TransferMetadata)> update_callback);
-
-  // Create a payload status listener to send status change to
-  // |update_callback|.
-  void InitSendPayload(
-      Clock* clock, NearbyConnectionsManager& connection_manager,
-      std::function<void(int64_t, TransferMetadata)> update_callback);
-  //  Send the next payload to NearbyConnectionManager.
-  void SendNextPayload(NearbyConnectionsManager& connection_manager);
-
-  void WriteProgressUpdateFrame(std::optional<bool> start_transfer,
-                                std::optional<float> progress);
   // Returns true if the introduction frame is written successfully.
-  bool WriteIntroductionFrame();
+  // `timeout_callback` is called if accept is not received from both sender and
+  // receiver within the timeout.
+  bool SendIntroduction(std::function<void()> timeout_callback);
+
+  // Accept the outgoing transfer and wait for remote accept message in a
+  // ConnectionResponseFrame.
+  bool AcceptTransfer(
+      std::function<
+          void(std::optional<
+               nearby::sharing::service::proto::ConnectionResponseFrame>)>
+          response_callback);
+
+  // Process the ConnectionResponseFrame.
+  // On success, returns std::nullopt.
+  // On failure, returns the status if the connection should be aborted.
+  std::optional<TransferMetadata::Status> HandleConnectionResponse(
+      std::optional<nearby::sharing::service::proto::ConnectionResponseFrame>
+          response);
+
+  // Begin sending payloads.
+  // Listen to the payload status change and send the status to
+  // `update_callback`.
+  // Any other frames received will be passed to `frame_read_callback`.
+  void SendPayloads(
+      bool enable_transfer_cancellation_optimization, Clock* clock,
+      NearbyConnectionsManager& connection_manager,
+      std::function<
+          void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
+          frame_read_callback,
+      std::function<void(int64_t, TransferMetadata)> update_callback);
+  // Send the next payload to NearbyConnectionManager.
+  // Used only if enable_transfer_cancellation_optimization is true.
+  void SendNextPayload(NearbyConnectionsManager& connection_manager);
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
+  void WriteProgressUpdateFrame(std::optional<bool> start_transfer,
+                                std::optional<float> progress);
+  // Create a payload status listener to send status change to
+  // `update_callback`.  Send all payloads to NearbyConnectionManager.
+  void SendAllPayloads(
+      Clock* clock, NearbyConnectionsManager& connection_manager,
+      std::function<void(int64_t, TransferMetadata)> update_callback);
+
+  // Create a payload status listener to send status change to
+  // `update_callback`.
+  void InitSendPayload(
+      Clock* clock, NearbyConnectionsManager& connection_manager,
+      std::function<void(int64_t, TransferMetadata)> update_callback);
+
   std::vector<Payload> ExtractTextPayloads();
   std::vector<Payload> ExtractFilePayloads();
   std::vector<Payload> ExtractWifiCredentialsPayloads();
   std::optional<Payload> ExtractNextPayload();
   bool FillIntroductionFrame(
       nearby::sharing::service::proto::IntroductionFrame* introduction) const;
+
 
   std::optional<std::string> obfuscated_gaia_id_;
   // All payloads are in the same order as the attachments in the share target.
@@ -128,6 +161,10 @@ class OutgoingShareSession : public ShareSession {
   Status connection_layer_status_;
   std::function<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
+  bool ready_for_accept_ = false;
+  // This alarm is used to disconnect the sharing connection if both sides do
+  // not press accept within the timeout.
+  std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
 };
 
 }  // namespace nearby::sharing
