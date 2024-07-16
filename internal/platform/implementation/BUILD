@@ -141,6 +141,7 @@ cc_library(
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
+        "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
     ],
