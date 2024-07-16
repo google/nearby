@@ -2228,6 +2228,52 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
 }
 
+TEST_F(NearbySharingServiceImplTest, ValidateLoginStateWhenSettingVisibility) {
+  absl::Notification set_visibility_notification;
+  NearbySharingService::StatusCodes set_visibility_status;
+  SetConnectionType(ConnectionType::kWifi);
+  FlushTesting();
+  service_->SetVisibility(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS, absl::ZeroDuration(),
+      [&set_visibility_notification,
+       &set_visibility_status](NearbySharingService::StatusCodes status) {
+        set_visibility_status = status;
+        set_visibility_notification.Notify();
+      });
+  // We should not have been able to set all contacts visibility because we are
+  // not logged in.
+  ASSERT_TRUE(
+      set_visibility_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  EXPECT_EQ(set_visibility_status,
+            NearbySharingService::StatusCodes::kInvalidArgument);
+  // Create account.
+  AccountManager::Account account;
+  account.id = kTestAccountId;
+  // Log in.
+  absl::Notification login_notification;
+  account_manager().SetAccount(account);
+  service_->GetAccountManager()->Login(
+      [&](AccountManager::Account account) {
+        EXPECT_EQ(account.id, kTestAccountId);
+        login_notification.Notify();
+      },
+      [](absl::Status status) {});
+  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  // We are now logged in, so we should be able to set all contacts visibility.
+  absl::Notification set_visibility_notification2;
+  NearbySharingService::StatusCodes set_visibility_status2;
+  service_->SetVisibility(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS, absl::ZeroDuration(),
+      [&set_visibility_notification2,
+       &set_visibility_status2](NearbySharingService::StatusCodes status) {
+        set_visibility_status2 = status;
+        set_visibility_notification2.Notify();
+      });
+  ASSERT_TRUE(set_visibility_notification2.WaitForNotificationWithTimeout(
+      kWaitTimeout));
+  EXPECT_EQ(set_visibility_status2, NearbySharingService::StatusCodes::kOk);
+}
+
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceVisibilityToAllContactsStartsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);

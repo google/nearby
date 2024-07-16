@@ -178,6 +178,9 @@ class NearbySharingServiceImpl
   void CopyText(absl::string_view text) override;
   void JoinWifiNetwork(absl::string_view ssid,
                        absl::string_view password) override;
+  void SetVisibility(
+      proto::DeviceVisibility visibility, absl::Duration expiration,
+      absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;
   NearbyShareSettings* GetSettings() override;
   nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() override;
   NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() override;

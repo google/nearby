@@ -1033,6 +1033,36 @@ void NearbySharingServiceImpl::JoinWifiNetwork(absl::string_view ssid,
   });
 }
 
+void NearbySharingServiceImpl::SetVisibility(
+    proto::DeviceVisibility visibility, absl::Duration expiration,
+    absl::AnyInvocable<void(StatusCodes status_code) &&> callback) {
+  RunOnNearbySharingServiceThread(
+      "api_set_visibility",
+      [this, visibility, expiration, callback = std::move(callback)]() mutable {
+        NL_LOG(INFO) << __func__ << ": SetVisibility is called";
+        if (settings_->GetVisibility() == visibility) {
+          std::move(callback)(StatusCodes::kOk);
+          return;
+        }
+        if (account_manager_.GetCurrentAccount() == std::nullopt) {
+          switch (visibility) {
+            case proto::DeviceVisibility::DEVICE_VISIBILITY_EVERYONE:
+            case proto::DeviceVisibility::DEVICE_VISIBILITY_HIDDEN:
+              break;
+            default:
+              NL_LOG(WARNING)
+                  << __func__
+                  << ": SetVisibility failed for visibility: " << visibility
+                  << ". No account.";
+              std::move(callback)(StatusCodes::kInvalidArgument);
+              return;
+          }
+        }
+        settings_->SetVisibility(visibility, expiration);
+        std::move(callback)(StatusCodes::kOk);
+      });
+}
+
 NearbyShareSettings* NearbySharingServiceImpl::GetSettings() {
   return settings_.get();
 }

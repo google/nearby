@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 #include "sharing/advertisement.h"
@@ -260,6 +261,12 @@ class NearbySharingService {
   // Persists and joins the Wi-Fi network.
   virtual void JoinWifiNetwork(absl::string_view ssid,
                                absl::string_view password) = 0;
+
+  // Checks to make sure visibility setting is valid and updates the service's
+  // visibility if so.
+  virtual void SetVisibility(
+      proto::DeviceVisibility visibility, absl::Duration expiration,
+      absl::AnyInvocable<void(StatusCodes status_code) &&> callback) = 0;
 
   virtual std::string Dump() const = 0;
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
