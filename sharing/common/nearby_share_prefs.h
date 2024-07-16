@@ -35,11 +35,9 @@ ABSL_CONST_INIT extern const char kNearbySharingDeviceIdName[];
 ABSL_CONST_INIT extern const char kNearbySharingDeviceNameName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingFastInitiationNotificationStateName[];
-ABSL_CONST_INIT extern const char kNearbySharingOnboardingCompleteName[];
 ABSL_CONST_INIT extern const char kNearbySharingFullNameName[];
 ABSL_CONST_INIT extern const char kNearbySharingIconUrlName[];
 ABSL_CONST_INIT extern const char kNearbySharingIconTokenName[];
-ABSL_CONST_INIT extern const char kNearbySharingOnboardingDismissedTimeName[];
 ABSL_CONST_INIT extern const char kNearbySharingPrivateCertificateListName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingPublicCertificateExpirationDictName[];

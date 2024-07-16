@@ -182,7 +182,6 @@ class NearbyShareSettings
   absl::Time GetLastVisibilityTimestamp() const;
   proto::DeviceVisibility GetLastVisibility() const;
 
-  bool IsOnboardingComplete() const;
   std::string GetCustomSavePath() const;
 
   // Returns true if the feature is disabled by policy.
@@ -196,8 +195,6 @@ class NearbyShareSettings
   void GetIsFastInitiationHardwareSupported(std::function<void(bool)> callback);
   void SetFastInitiationNotificationState(
       proto::FastInitiationNotificationState state);
-  void IsOnboardingComplete(std::function<void(bool)> callback);
-  void SetIsOnboardingComplete(bool completed, std::function<void()> callback);
   void GetDeviceName(std::function<void(absl::string_view)> callback);
   void ValidateDeviceName(
       absl::string_view device_name,

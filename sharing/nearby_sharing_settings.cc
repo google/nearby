@@ -191,12 +191,6 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
   }
 }
 
-bool NearbyShareSettings::IsOnboardingComplete() const {
-  MutexLock lock(&mutex_);
-  return preference_manager_.GetBoolean(
-      prefs::kNearbySharingOnboardingCompleteName, false);
-}
-
 std::string NearbyShareSettings::GetCustomSavePath() const {
   MutexLock lock(&mutex_);
   return preference_manager_.GetString(
@@ -239,19 +233,6 @@ void NearbyShareSettings::SetFastInitiationNotificationState(
   preference_manager_.SetInteger(
       prefs::kNearbySharingFastInitiationNotificationStateName,
       static_cast<int>(state));
-}
-
-void NearbyShareSettings::IsOnboardingComplete(
-    std::function<void(bool)> callback) {
-  std::move(callback)(IsOnboardingComplete());
-}
-
-void NearbyShareSettings::SetIsOnboardingComplete(
-    bool completed, std::function<void()> callback) {
-  MutexLock lock(&mutex_);
-  preference_manager_.SetBoolean(prefs::kNearbySharingOnboardingCompleteName,
-                                   completed);
-  std::move(callback)();
 }
 
 void NearbyShareSettings::GetDeviceName(
@@ -433,8 +414,6 @@ void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
   } else if (key == prefs::kNearbySharingDataUsageName) {
     NotifyAllObservers(key,
                        Observer::Data(static_cast<int64_t>(GetDataUsage())));
-  } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
-    NotifyAllObservers(key, Observer::Data(IsOnboardingComplete()));
   } else if (key == prefs::kNearbySharingCustomSavePath) {
     NotifyAllObservers(key, Observer::Data(GetCustomSavePath()));
   } else {

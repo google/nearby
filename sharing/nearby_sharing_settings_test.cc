@@ -59,8 +59,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
       custom_save_path_ = data.value.as_string;
     } else if (key == prefs::kNearbySharingBackgroundVisibilityName) {
       visibility_ = static_cast<DeviceVisibility>(data.value.as_int64);
-    } else if (key == prefs::kNearbySharingOnboardingCompleteName) {
-      is_onboarding_complete_ = data.value.as_bool;
     } else if (key == prefs::kNearbySharingDeviceNameName) {
       device_name_ = data.value.as_string;
     }
@@ -79,11 +77,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
   bool is_fast_initiation_notification_hardware_supported() const {
     absl::MutexLock lock(&mutex_);
     return is_fast_initiation_notification_hardware_supported_;
-  }
-
-  bool is_onboarding_complete() const {
-    absl::MutexLock lock(&mutex_);
-    return is_onboarding_complete_;
   }
 
   const std::string& device_name() const {
@@ -114,7 +107,6 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
           FastInitiationNotificationState::ENABLED_FAST_INIT;
   bool is_fast_initiation_notification_hardware_supported_
       ABSL_GUARDED_BY(mutex_) = false;
-  bool is_onboarding_complete_ ABSL_GUARDED_BY(mutex_) = false;
   std::string device_name_ ABSL_GUARDED_BY(mutex_) = "uncalled";
   std::string custom_save_path_ ABSL_GUARDED_BY(mutex_);
   DataUsage data_usage_ ABSL_GUARDED_BY(mutex_) = DataUsage::UNKNOWN_DATA_USAGE;
@@ -140,11 +132,6 @@ class NearbyShareSettingsTest : public ::testing::Test {
   void TearDown() override { Flush(); }
 
   NearbyShareSettings* settings() { return nearby_share_settings_.get(); }
-
-  void SetIsOnboardingComplete(bool is_complete) {
-    preference_manager_.SetBoolean(
-        prefs::kNearbySharingOnboardingCompleteName, is_complete);
-  }
 
   void SetVisibilityExpirationPreference(int expiration) {
     preference_manager_.SetInteger(
@@ -217,19 +204,6 @@ TEST_F(NearbyShareSettingsTest, GetAndSetCustomSavePath) {
   EXPECT_EQ(
       observer_.custom_save_path(),
       GetCompatibleU8String(std::filesystem::temp_directory_path().u8string()));
-}
-
-TEST_F(NearbyShareSettingsTest, GetAndSetIsOnboardingComplete) {
-  EXPECT_FALSE(observer_.is_onboarding_complete());
-  SetIsOnboardingComplete(true);
-  EXPECT_TRUE(settings()->IsOnboardingComplete());
-  Flush();
-  EXPECT_TRUE(observer_.is_onboarding_complete());
-
-  bool is_complete = false;
-  settings()->IsOnboardingComplete(
-      [&is_complete](bool result) { is_complete = result; });
-  EXPECT_TRUE(is_complete);
 }
 
 TEST_F(NearbyShareSettingsTest, GetAndSetIsFastInitiationHardwareSupported) {

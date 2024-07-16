@@ -54,16 +54,12 @@ ABSL_CONST_INIT const char kNearbySharingDeviceNameName[] =
     "nearby_sharing.device_name";
 ABSL_CONST_INIT const char kNearbySharingFastInitiationNotificationStateName[] =
     "nearby_sharing.fast_initiation_notification_state";
-ABSL_CONST_INIT const char kNearbySharingOnboardingCompleteName[] =
-    "nearby_sharing.onboarding_complete";
 ABSL_CONST_INIT const char kNearbySharingFullNameName[] =
     "nearby_sharing.full_name";
 ABSL_CONST_INIT const char kNearbySharingIconUrlName[] =
     "nearby_sharing.icon_url";
 ABSL_CONST_INIT const char kNearbySharingIconTokenName[] =
     "nearby_sharing.icon_token";
-ABSL_CONST_INIT const char kNearbySharingOnboardingDismissedTimeName[] =
-    "nearby_sharing.onboarding_dismissed_time";
 ABSL_CONST_INIT const char kNearbySharingPublicCertificateExpirationDictName[] =
     "nearbyshare.public_certificate_expiration_dict";
 ABSL_CONST_INIT const char kNearbySharingPrivateCertificateListName[] =
@@ -104,7 +100,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
     // values. To avoid setting them twice, we skip them here if
     // skip_persistent_ones is set to true.
     preference_manager.SetString(kNearbySharingCustomSavePath, std::string());
-    preference_manager.SetBoolean(kNearbySharingOnboardingCompleteName, false);
     preference_manager.SetInteger(kNearbySharingBackgroundVisibilityName,
                                   static_cast<int>(kDefaultVisibility));
     preference_manager.SetInteger(
@@ -137,9 +132,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
   preference_manager.SetString(kNearbySharingIconUrlName, std::string());
 
   preference_manager.SetString(kNearbySharingIconTokenName, std::string());
-
-  preference_manager.SetTime(kNearbySharingOnboardingDismissedTimeName,
-                             absl::Now());
 
   preference_manager.Remove(kNearbySharingPublicCertificateExpirationDictName);
   preference_manager.Remove(kNearbySharingPrivateCertificateListName);
