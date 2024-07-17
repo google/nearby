@@ -814,20 +814,20 @@ bool BleV2Medium::StartGattAdvertising(
   NEARBY_LOGS(INFO) << __func__ << ": Start GATT advertising.";
   try {
     if (!adapter_->IsEnabled()) {
-      NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
+      NEARBY_LOGS(WARNING) << "BLE cannot start GATT advertising because the "
                               "bluetooth adapter is not enabled.";
       return false;
     }
 
     if (advertising_data.service_data.empty()) {
       NEARBY_LOGS(WARNING)
-          << "BLE cannot start to advertise due to invalid service data.";
+          << "BLE cannot start GATT advertising due to invalid service data.";
       return false;
     }
 
     if (is_gatt_publisher_started_) {
       NEARBY_LOGS(WARNING)
-          << "BLE cannot start to advertise again when it is running.";
+          << "BLE cannot start GATT advertising again when it is running.";
       return false;
     }
 
@@ -847,7 +847,7 @@ bool BleV2Medium::StartGattAdvertising(
     bool is_started = ble_gatt_server_->StartAdvertisement(
         service_data, advertising_parameters.is_connectable);
     if (!is_started) {
-      NEARBY_LOGS(WARNING) << "BLE cannot start to advertise.";
+      NEARBY_LOGS(WARNING) << "BLE cannot start GATT advertising.";
       return false;
     }
 
@@ -876,13 +876,13 @@ bool BleV2Medium::StopGattAdvertising() {
   try {
     NEARBY_LOGS(INFO) << __func__ << ": Stop GATT advertising.";
     if (!adapter_->IsEnabled()) {
-      NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
+      NEARBY_LOGS(WARNING) << "BLE cannot stop GATT advertising because the "
                               "bluetooth adapter is not enabled.";
       return false;
     }
 
     if (!is_gatt_publisher_started_) {
-      NEARBY_LOGS(WARNING) << "BLE advertising is not running.";
+      NEARBY_LOGS(WARNING) << "BLE GATT advertising is not running.";
       return false;
     }
 
@@ -897,14 +897,15 @@ bool BleV2Medium::StopGattAdvertising() {
     NEARBY_LOGS(INFO) << "Stop GATT advertisement result=" << stop_result;
     return stop_result;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception to stop BLE advertising: "
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to stop BLE GATT advertising: "
                        << exception.what();
 
     return false;
   } catch (const winrt::hresult_error& ex) {
     NEARBY_LOGS(ERROR) << __func__
-                       << ": Exception to stop BLE advertising: " << ex.code()
-                       << ": " << winrt::to_string(ex.message());
+                       << ": Exception to stop BLE GATT advertising: "
+                       << ex.code() << ": " << winrt::to_string(ex.message());
 
     return false;
   } catch (...) {
