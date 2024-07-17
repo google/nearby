@@ -138,6 +138,7 @@ bool TaskScheduler::remove_scheduled_task(intptr_t timer_handle) {
     if (GetLastError() != ERROR_IO_PENDING) {
       NEARBY_LOGS(ERROR) << __func__ << ": Failed to delete timer queue timer: "
                          << timer_handle << " error: " << GetLastError();
+      return false;
     }
   }
 

@@ -14,20 +14,35 @@
 
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
+#include <chrono>  // NOLINT
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 
-TEST(ScheduledExecutorTests, ExecuteSucceeds) {
+class ScheduledExecutorTaskSchedulerFlagTest
+    : public ::testing::TestWithParam<bool> {
+ public:
+  void SetUp() override {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableTaskScheduler,
+        GetParam());
+  }
+};
+
+TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ExecuteSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -61,7 +76,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST(ScheduledExecutorTests, ScheduleSucceeds) {
+TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ScheduleSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -99,7 +114,7 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST(ScheduledExecutorTests, CancelSucceeds) {
+TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected("");
@@ -136,7 +151,7 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
+TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelAfterStartedFails) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -166,13 +181,23 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   submittableExecutor->Shutdown();
 
   // Assert
-  ASSERT_FALSE(actual);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler)) {
+    ASSERT_TRUE(actual);
+  } else {
+    ASSERT_FALSE(actual);
+  }
   ASSERT_EQ(threadIds->size(), 2);
   //  We should still be on the main thread
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
 }
+
+INSTANTIATE_TEST_SUITE_P(ScheduledExecutorTest,
+                         ScheduledExecutorTaskSchedulerFlagTest,
+                         testing::ValuesIn(std::vector<bool>{true, false}));
 
 }  // namespace
 }  // namespace windows

@@ -17,6 +17,7 @@
 
 #include <windows.h>
 
+#include <atomic>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -26,6 +27,8 @@
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/windows/executor.h"
+#include "internal/platform/implementation/windows/task_scheduler.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
@@ -94,6 +97,7 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
   std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_;
   std::atomic_bool shut_down_ = false;
+  TaskScheduler task_scheduler_;
 };
 
 }  // namespace windows

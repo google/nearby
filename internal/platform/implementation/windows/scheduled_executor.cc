@@ -21,7 +21,11 @@
 #include <utility>
 
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
@@ -36,24 +40,30 @@ ScheduledExecutor::ScheduledExecutor()
 // using std:shared_ptr<> instead of std::unique_ptr<>.
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
-  if (shut_down_) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Attempt to Schedule on a shut down executor.";
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler)) {
+    return task_scheduler_.Schedule(std::move(runnable), duration);
+  } else {
+    if (shut_down_) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Attempt to Schedule on a shut down executor.";
 
-    return nullptr;
+      return nullptr;
+    }
+
+    // Cleans completed tasks
+    (void)std::remove_if(
+        scheduled_tasks_.begin(), scheduled_tasks_.end(),
+        [](std::shared_ptr<ScheduledTask>& task) { return task->IsDone(); });
+
+    std::shared_ptr<ScheduledTask> task =
+        std::make_shared<ScheduledTask>(std::move(runnable), duration);
+
+    scheduled_tasks_.push_back(task);
+    executor_->Execute([task]() { task->Start(); });
+    return task;
   }
-
-  // Cleans completed tasks
-  (void)std::remove_if(
-      scheduled_tasks_.begin(), scheduled_tasks_.end(),
-      [](std::shared_ptr<ScheduledTask>& task) { return task->IsDone(); });
-
-  std::shared_ptr<ScheduledTask> task =
-      std::make_shared<ScheduledTask>(std::move(runnable), duration);
-
-  scheduled_tasks_.push_back(task);
-  executor_->Execute([task]() { task->Start(); });
-  return task;
 }
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {

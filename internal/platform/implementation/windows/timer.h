@@ -18,11 +18,14 @@
 #include <windows.h>
 
 #include <memory>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/task_scheduler.h"
 
 namespace nearby {
 namespace windows {
@@ -48,6 +51,9 @@ class Timer : public api::Timer {
   HANDLE handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
   HANDLE timer_queue_handle_ ABSL_GUARDED_BY(mutex_) = nullptr;
   std::unique_ptr<SubmittableExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
+      nullptr;
+  TaskScheduler task_scheduler_ ABSL_GUARDED_BY(mutex_);
+  std::shared_ptr<api::Cancelable> cancelable_task_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
 };
 

@@ -73,6 +73,10 @@ constexpr auto kEnableIntelPieSdk =
 constexpr auto kEnableNewBluetoothRefactor =
     flags::Flag<bool>(kConfigPackage, "45615156", false);
 
+// Enable/Disable task scheduler for ScheduledExecutor and timer
+constexpr auto kEnableTaskScheduler =
+    flags::Flag<bool>(kConfigPackage, "45643835", false);
+
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform
