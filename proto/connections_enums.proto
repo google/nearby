@@ -1173,6 +1173,22 @@ enum OperationResultCode {
   // Bluetooth starts scanning without any client existed.
   NEARBY_BLUETOOTH_NO_CLIENT_REGISTER_FOR_SCAN = 4585;
 }
+
+enum StopAdvertisingReason {
+  STOP_ADVERTISING_REASON_UNKNOWN = 0;
+  // Client call stopAdvertising() to stop advertising
+  CLIENT_STOP_ADVERTISING = 1;
+  // Session is finished and stop advertising
+  FINISH_SESSION_STOP_ADVERTISING = 2;
+}
+
+enum StopDiscoveringReason {
+  STOP_DISCOVERING_REASON_UNKNOWN = 0;
+  // Client call stopDiscovering() to stop discovering
+  CLIENT_STOP_DISCOVERING = 1;
+  // Session is finished and stop discovering
+  FINISH_SESSION_STOP_DISCOVERING = 2;
+}
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )

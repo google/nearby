@@ -82,6 +82,21 @@ message ConnectionsLog {
         2;
   }
 
+  message OperationResultWithMedium {
+    optional location.nearby.proto.connections.Medium medium = 1;
+
+    // Indicate which mediums belong to the same update API Call.
+    optional int32 update_index = 2;
+
+    // The category of the operation result
+    optional location.nearby.proto.connections.OperationResultCategory
+        result_category = 3;
+
+    // The result code of the operation result
+    optional location.nearby.proto.connections.OperationResultCode result_code =
+        4;
+  }
+
   // One round of a particular Strategy done by a client.
   message StrategySession {
     // Elapsed time in milliseconds between a call to startAdvertising/Discovery
@@ -144,6 +159,13 @@ message ConnectionsLog {
 
     // Encapsulates additional discovery information.
     optional DiscoveryMetadata discovery_metadata = 7;
+
+    // Collect the discovery results of the mediums
+    repeated OperationResultWithMedium adv_dis_result = 8;
+
+    // The readon of stopping discoverying
+    optional location.nearby.proto.connections.StopDiscoveringReason
+        stop_reason = 9;
   }
 
   // An endpoint discovered on a particular medium during discovery.
@@ -222,6 +244,13 @@ message ConnectionsLog {
 
     // Encapsulates additional advertising information.
     optional AdvertisingMetadata advertising_metadata = 5;
+
+    // Collect the discovery results of the mediums
+    repeated OperationResultWithMedium adv_dis_result = 6;
+
+    // The readon of stopping advertising
+    optional location.nearby.proto.connections.StopAdvertisingReason
+        stop_reason = 7;
   }
 
   // A request to connect, corresponding to the API's concept of
