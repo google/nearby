@@ -22,12 +22,14 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/implementation/windows/task_scheduler.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -50,13 +52,14 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   // Exclusive ownership model does not work for this case;
   // using std:shared_ptr<> instead if std::unique_ptr<>.
   std::shared_ptr<api::Cancelable> Schedule(Runnable&& runnable,
-                                            absl::Duration duration) override;
+                                            absl::Duration duration) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Executes the runnable task immedately.
-  void Execute(Runnable&& runnable) override;
+  // Executes the runnable task immediately.
+  void Execute(Runnable&& runnable) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Shutdowns the executor, all scheduled task will be cancelled.
-  void Shutdown() override;
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   class ScheduledTask : public api::Cancelable {
@@ -94,10 +97,13 @@ class ScheduledExecutor : public api::ScheduledExecutor {
     bool is_executed_ = false;
   };
 
-  std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
-  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_;
-  std::atomic_bool shut_down_ = false;
-  TaskScheduler task_scheduler_;
+  Mutex mutex_;
+  std::unique_ptr<nearby::windows::Executor> executor_ ABSL_GUARDED_BY(mutex_) =
+      nullptr;
+  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_
+      ABSL_GUARDED_BY(mutex_);
+  std::atomic_bool shut_down_ ABSL_GUARDED_BY(mutex_) = false;
+  TaskScheduler task_scheduler_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace windows

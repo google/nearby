@@ -16,7 +16,6 @@
 
 #include <crtdbg.h>
 
-#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -25,6 +24,7 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -40,6 +40,7 @@ ScheduledExecutor::ScheduledExecutor()
 // using std:shared_ptr<> instead of std::unique_ptr<>.
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
+  MutexLock lock(&mutex_);
   if (NearbyFlags::GetInstance().GetBoolFlag(
           platform::config_package_nearby::nearby_platform_feature::
               kEnableTaskScheduler)) {
@@ -53,9 +54,14 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     }
 
     // Cleans completed tasks
-    (void)std::remove_if(
-        scheduled_tasks_.begin(), scheduled_tasks_.end(),
-        [](std::shared_ptr<ScheduledTask>& task) { return task->IsDone(); });
+    auto it = scheduled_tasks_.begin();
+    while (it != scheduled_tasks_.end()) {
+      if ((*it)->IsDone()) {
+        it = scheduled_tasks_.erase(it);
+      } else {
+        ++it;
+      }
+    }
 
     std::shared_ptr<ScheduledTask> task =
         std::make_shared<ScheduledTask>(std::move(runnable), duration);
@@ -67,6 +73,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 }
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {
+  MutexLock lock(&mutex_);
   if (shut_down_) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Attempt to Execute on a shut down executor.";
@@ -77,6 +84,7 @@ void ScheduledExecutor::Execute(Runnable&& runnable) {
 }
 
 void ScheduledExecutor::Shutdown() {
+  MutexLock lock(&mutex_);
   if (!shut_down_) {
     shut_down_ = true;
     for (auto& task : scheduled_tasks_) {
