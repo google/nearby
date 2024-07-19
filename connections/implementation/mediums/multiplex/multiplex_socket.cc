@@ -38,6 +38,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/socket.h"
+#include "internal/platform/types.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -692,7 +693,7 @@ MediumSocket* MultiplexSocket::ReMapAndGetVirtualSocket(
     MutexLock lock(&virtual_socket_mutex_);
     for (auto& [hash_key, virtual_socket] : virtual_sockets_) {
       auto output_stream =
-          dynamic_cast<MultiplexOutputStream::VirtualOutputStream*>(
+          down_cast<MultiplexOutputStream::VirtualOutputStream*>(
               &(virtual_socket->GetOutputStream()));
       if (output_stream == nullptr) {
         continue;

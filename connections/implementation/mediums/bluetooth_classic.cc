@@ -29,6 +29,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/socket.h"
+#include "internal/platform/types.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -378,7 +379,7 @@ bool BluetoothClassic::StartAcceptingConnections(
                     MediumSocket* virtual_socket) mutable {
           if (callback) {
             callback(listening_service_id,
-                     *(dynamic_cast<BluetoothSocket*>(virtual_socket)));
+                     *(down_cast<BluetoothSocket*>(virtual_socket)));
           }
         });
   }
@@ -417,7 +418,7 @@ bool BluetoothClassic::StartAcceptingConnections(
                 if (callback) {
                   callback(
                       service_id,
-                      *(dynamic_cast<BluetoothSocket*>(
+                      *(down_cast<BluetoothSocket*>(
                           multiplex_socket->GetVirtualSocket(service_id))));
                   callback_called = true;
                 }
@@ -505,7 +506,7 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
               multiplex_socket->EstablishVirtualSocket(service_id);
           // Should not happen.
           auto* bluetooth_socket =
-              dynamic_cast<BluetoothSocket*>(virtual_socket);
+              down_cast<BluetoothSocket*>(virtual_socket);
           if (bluetooth_socket == nullptr) {
             NEARBY_LOGS(INFO)
                 << "Failed to cast to BluetoothSocket for " << service_id
@@ -591,7 +592,7 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
         MultiplexSocket::CreateOutgoingSocket(&socket, service_id);
     auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
     // Should not happen.
-    auto* bluetooth_socket = dynamic_cast<BluetoothSocket*>(virtual_socket);
+    auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
     if (bluetooth_socket == nullptr) {
       NEARBY_LOGS(INFO) << "Failed to cast to BluetoothSocket for "
                         << service_id << " with " << bluetooth_device.GetName();
