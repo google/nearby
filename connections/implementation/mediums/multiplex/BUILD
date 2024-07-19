@@ -25,7 +25,6 @@ cc_library(
         "multiplex_output_stream.h",
         "multiplex_socket.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
