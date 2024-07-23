@@ -1040,10 +1040,6 @@ void NearbySharingServiceImpl::SetVisibility(
       "api_set_visibility",
       [this, visibility, expiration, callback = std::move(callback)]() mutable {
         NL_LOG(INFO) << __func__ << ": SetVisibility is called";
-        if (settings_->GetVisibility() == visibility) {
-          std::move(callback)(StatusCodes::kOk);
-          return;
-        }
         if (account_manager_.GetCurrentAccount() == std::nullopt) {
           switch (visibility) {
             case proto::DeviceVisibility::DEVICE_VISIBILITY_EVERYONE:
