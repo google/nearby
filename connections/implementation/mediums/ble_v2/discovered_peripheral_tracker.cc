@@ -164,42 +164,46 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
   if (!on_lost_advertisement.ok()) {
     return false;
   }
+
   NEARBY_LOGS(INFO) << __func__ << ": Found OnLost advertisement for hash:"
-                    << absl::BytesToHexString(on_lost_advertisement->GetHash());
-  for (const auto& it : gatt_advertisement_infos_) {
-    if (it.second.advertisement_header.GetAdvertisementHash().string_data() ==
-        on_lost_advertisement->GetHash()) {
-      auto discovery_cb_it = service_id_infos_.find(it.second.service_id);
-      if (discovery_cb_it == service_id_infos_.end()) {
-        NEARBY_LOGS(INFO)
-            << __func__
-            << ": Discarding OnLost advertisement for untracked service_id";
-        return false;
-      }
+                    << absl::BytesToHexString(on_lost_advertisement->ToBytes());
 
-      auto gatt_advertisements =
-          gatt_advertisements_[it.second.advertisement_header];
-
-      // Need to report OnLost for each gatt_advertisement.
-      for (const auto& gatt_advertisement : gatt_advertisements) {
-        BleV2Peripheral lost_peripheral = it.second.peripheral;
-        lost_peripheral.SetId(ByteArray(gatt_advertisement));
-        if (gatt_advertisement.IsValid()) {
-          discovery_cb_it->second.discovered_peripheral_callback
-              .peripheral_lost_cb(lost_peripheral, it.second.service_id,
-                                  gatt_advertisement.GetData(),
-                                  gatt_advertisement.IsFastAdvertisement());
-          NEARBY_LOGS(INFO) << __func__ << ": OnLost triggered for service_id "
-                            << it.second.service_id;
+  for (const auto& hash : on_lost_advertisement->hashes()) {
+    for (const auto& it : gatt_advertisement_infos_) {
+      if (it.second.advertisement_header.GetAdvertisementHash().string_data() ==
+          hash) {
+        auto discovery_cb_it = service_id_infos_.find(it.second.service_id);
+        if (discovery_cb_it == service_id_infos_.end()) {
+          NEARBY_LOGS(INFO)
+              << __func__
+              << ": Discarding OnLost advertisement for untracked service_id";
+          break;
         }
 
-        ClearGattAdvertisement(gatt_advertisement);
-      }
+        auto gatt_advertisements =
+            gatt_advertisements_[it.second.advertisement_header];
 
-      return true;
+        // Need to report OnLost for each gatt_advertisement.
+        for (const auto& gatt_advertisement : gatt_advertisements) {
+          BleV2Peripheral lost_peripheral = it.second.peripheral;
+          lost_peripheral.SetId(ByteArray(gatt_advertisement));
+          if (gatt_advertisement.IsValid()) {
+            discovery_cb_it->second.discovered_peripheral_callback
+                .peripheral_lost_cb(lost_peripheral, it.second.service_id,
+                                    gatt_advertisement.GetData(),
+                                    gatt_advertisement.IsFastAdvertisement());
+            NEARBY_LOGS(INFO)
+                << __func__ << ": OnLost triggered for service_id "
+                << it.second.service_id;
+          }
+
+          ClearGattAdvertisement(gatt_advertisement);
+        }
+        break;
+      }
     }
   }
-  return false;
+  return true;
 }
 
 void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {

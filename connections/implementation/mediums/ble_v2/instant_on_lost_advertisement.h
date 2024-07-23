@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_MEDIUMS_BLE_V2_INSTANT_ON_LOST_ADVERTISEMENT_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_MEDIUMS_BLE_V2_INSTANT_ON_LOST_ADVERTISEMENT_H_
 
-#include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -26,16 +26,20 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-// Represents an advertisement indicating that a previous BleAdvertisement is no
-// longer valid.
+// Represents the format of the BLE instant on lost Advertisement used in
+// Advertising + Discovery.
 //
-// Format:
-// [VERSION][5 bits reserved][ADVERTISEMENT HASH]
+// <p>[ADVERTISEMENT TYPE 4 bits][1 bit unused][VERSION 3 bits] [5 bits
+// unused][HASH COUNT 3 bits] [ADVERTISEMENT_HASH 4 Bytes]x1~6
 class InstantOnLostAdvertisement {
  public:
+  // The BLE advertisement available size is 27 - 3 (BT header) - 2 (Our Header)
+  // = 22 bytes so we can put at most 5 hashes in one advertisement.
+  static constexpr int kMaxHashCount = 5;
+
   // Creates an on lost advertisement from an advertisement hash.
-  static absl::StatusOr<InstantOnLostAdvertisement> CreateFromHash(
-      absl::string_view advertisement_hash);
+  static absl::StatusOr<InstantOnLostAdvertisement> CreateFromHashes(
+      const std::list<std::string>& hashes);
 
   // Creates an InstantOnLostAdvertisement from raw bytes received over-the-air.
   static absl::StatusOr<InstantOnLostAdvertisement> CreateFromBytes(
@@ -47,13 +51,13 @@ class InstantOnLostAdvertisement {
   // string, as it contains raw bytes.
   std::string ToBytes() const;
 
-  std::string GetHash() const { return advertisement_hash_; }
+  std::list<std::string> hashes() const { return hashes_; }
 
  private:
-  explicit InstantOnLostAdvertisement(absl::string_view hash)
-      : advertisement_hash_(std::string(hash)) {}
+  explicit InstantOnLostAdvertisement(const std::list<std::string>& hashes)
+      : hashes_(hashes) {}
 
-  const std::string advertisement_hash_;
+  std::list<std::string> hashes_;
 };
 
 }  // namespace mediums

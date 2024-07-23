@@ -14,6 +14,7 @@
 
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -1084,8 +1085,8 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForInstantOnLost) {
   ASSERT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
 
-  auto advertisement = InstantOnLostAdvertisement::CreateFromHash(
-      advertisement_hash.AsStringView());
+  auto advertisement = InstantOnLostAdvertisement::CreateFromHashes(
+      std::list<std::string>({std::string(advertisement_hash)}));
   ASSERT_OK(advertisement);
   api::ble_v2::BleAdvertisementData loss_advertisement_data{};
   loss_advertisement_data.service_data.insert(
@@ -1151,8 +1152,8 @@ TEST_F(DiscoveredPeripheralTrackerTest,
   fetch_latch.Await(kWaitDuration);
   ASSERT_TRUE(found_latch.Await(kWaitDuration).result());
 
-  auto advertisement = InstantOnLostAdvertisement::CreateFromHash(
-      advertisement_hash.AsStringView());
+  auto advertisement = InstantOnLostAdvertisement::CreateFromHashes(
+      std::list<std::string>({std::string(advertisement_hash)}));
   ASSERT_OK(advertisement);
   api::ble_v2::BleAdvertisementData loss_advertisement_data{};
   loss_advertisement_data.service_data.insert(

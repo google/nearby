@@ -170,7 +170,7 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
 bool BleV2Medium::StopAdvertising() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Stop advertising.";
-  bool result;
+  bool result = true;
   if (is_gatt_publisher_started_) {
     bool stop_gatt_result = StopGattAdvertising();
     if (!stop_gatt_result) {

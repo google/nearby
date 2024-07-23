@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 licenses(["notice"])
 
 cc_library(
@@ -24,6 +25,7 @@ cc_library(
         "bloom_filter.cc",
         "discovered_peripheral_tracker.cc",
         "instant_on_lost_advertisement.cc",
+        "instant_on_lost_manager.cc",
     ],
     hdrs = [
         "advertisement_read_result.h",
@@ -35,6 +37,7 @@ cc_library(
         "discovered_peripheral_callback.h",
         "discovered_peripheral_tracker.h",
         "instant_on_lost_advertisement.h",
+        "instant_on_lost_manager.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
@@ -77,6 +80,7 @@ cc_test(
         "bloom_filter_test.cc",
         "discovered_peripheral_tracker_test.cc",
         "instant_on_lost_advertisement_test.cc",
+        "instant_on_lost_manager_test.cc",
     ],
     deps = [
         ":ble_v2",
@@ -98,6 +102,7 @@ cc_test(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -30,6 +30,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
+#include "connections/implementation/mediums/ble_v2/instant_on_lost_manager.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/power_level.h"
 #include "internal/platform/ble_v2.h"
@@ -207,7 +208,7 @@ class BleV2 final {
   bool StartAdvertisingLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartFastAdvertisingLocked(
-      PowerLevel power_level,
+      const std::string& service_id, PowerLevel power_level,
       const mediums::BleAdvertisement& medium_advertisement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartRegularAdvertisingLocked(
@@ -275,6 +276,8 @@ class BleV2 final {
   // it's okay to restart GATT server related operations.
   absl::flat_hash_map<std::string, BleV2Socket> incoming_sockets_
       ABSL_GUARDED_BY(mutex_);
+
+  mediums::InstantOnLostManager instant_on_lost_manager_;
 };
 
 }  // namespace connections

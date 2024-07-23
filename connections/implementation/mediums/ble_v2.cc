@@ -15,13 +15,18 @@
 #include "connections/implementation/mediums/ble_v2.h"
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -38,10 +43,14 @@
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace connections {
@@ -86,6 +95,12 @@ BleV2::~BleV2() {
   serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
   accept_loops_runner_.Shutdown();
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableInstantOnLost)) {
+    instant_on_lost_manager_.Shutdown();
+  }
 }
 
 bool BleV2::IsAvailable() const {
@@ -223,6 +238,12 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
                             "advertisement GATT servers "
                             "because no incoming BLE sockets are connected.";
     StopAdvertisementGattServerLocked();
+  }
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableInstantOnLost)) {
+    instant_on_lost_manager_.OnAdvertisingStopped(service_id);
   }
 
   return true;
@@ -882,7 +903,7 @@ bool BleV2::StartAdvertisingLocked(const std::string& service_id) {
 
   const AdvertisingInfo& info = it->second;
   if (info.is_fast_advertisement) {
-    return StartFastAdvertisingLocked(info.power_level,
+    return StartFastAdvertisingLocked(service_id, info.power_level,
                                       info.medium_advertisement);
   } else {
     return StartRegularAdvertisingLocked(service_id, info.power_level,
@@ -891,7 +912,7 @@ bool BleV2::StartAdvertisingLocked(const std::string& service_id) {
 }
 
 bool BleV2::StartFastAdvertisingLocked(
-    PowerLevel power_level,
+    const std::string& service_id, PowerLevel power_level,
     const mediums::BleAdvertisement& medium_advertisement) {
   // Begin building the fast BLE advertisement.
   BleAdvertisementData advertising_data;
@@ -911,6 +932,14 @@ bool BleV2::StartFastAdvertisingLocked(
                               medium_advertisement_bytes.data());
     return false;
   }
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableInstantOnLost)) {
+    instant_on_lost_manager_.OnAdvertisingStarted(service_id,
+                                                  medium_advertisement_bytes);
+  }
+
   return true;
 }
 
@@ -942,10 +971,17 @@ bool BleV2::StartRegularAdvertisingLocked(
           << "Failed to turn on BLE extended regular advertising with "
              "advertisement bytes="
           << absl::BytesToHexString(medium_advertisement_bytes.data());
+    } else {
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_connections_feature::
+                  kEnableInstantOnLost)) {
+        instant_on_lost_manager_.OnAdvertisingStarted(
+            service_id, medium_advertisement_bytes);
+      }
     }
   }
 
-  // Start GATT advertisement no matter extended advertisment succeeded or not.
+  // Start GATT advertisement no matter extended advertisement succeeded or not.
   // This is to ensure that legacy devices which don't support extended
   // advertisement can get the advertisement via GATT connection.
   bool gatt_advertisement_success = StartGattAdvertisingLocked(
@@ -1024,6 +1060,14 @@ bool BleV2::StartGattAdvertisingLocked(
     // server.
     StopAdvertisementGattServerLocked();
     return false;
+  }
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableInstantOnLost)) {
+    for (const auto& item : advertising_data.service_data) {
+      instant_on_lost_manager_.OnAdvertisingStarted(service_id, item.second);
+    }
   }
 
   return true;

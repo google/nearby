@@ -15,63 +15,118 @@
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
 
 #include <cstdint>
+#include <list>
 #include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 
 namespace {
-constexpr int kVersion = 0b1;
-constexpr int kHashLength =
+constexpr int kAdvertisementType = 0b0001;
+constexpr int kVersion = 1;
+// Type + Version + Hash Count
+constexpr int kMetadataLength = 2;
+constexpr int kAdvertisementHashLength =
     BleAdvertisementHeader::kAdvertisementHashByteLength;
-constexpr int kVersionMask = 0x0e0;
-// The header length for the instant on lost advertisement is 1 byte.
-constexpr int kTotalLength = 1 + kHashLength;
+
+constexpr int kTypeBitmask = 0x0F0;
+constexpr int kVersionBitmask = 0x007;
+constexpr int kHashCountBitmask = 0x007;
+
+bool IsSupportedVersion(int version) { return version == kVersion; }
+
 }  // namespace
 
 absl::StatusOr<InstantOnLostAdvertisement>
-InstantOnLostAdvertisement::CreateFromHash(
-    absl::string_view advertisement_hash) {
-  if (advertisement_hash.length() != kHashLength) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("Cannot create instant on loss advertisement from "
-                        "invalid hash length %d.",
-                        advertisement_hash.length()));
+InstantOnLostAdvertisement::CreateFromHashes(
+    const std::list<std::string>& hashes) {
+  for (auto& hash : hashes) {
+    if (hash.length() != kAdvertisementHashLength) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("Cannot create instant on loss advertisement from "
+                          "invalid hashes"));
+    }
   }
-  return InstantOnLostAdvertisement(advertisement_hash);
+
+  return InstantOnLostAdvertisement(hashes);
 }
 
 std::string InstantOnLostAdvertisement::ToBytes() const {
-  // 1. Header
-  uint8_t header_byte = ((kVersion << 5) & kVersionMask);
-  // 2. Hash
-  return absl::StrFormat("%c%s", header_byte, advertisement_hash_);
+  if (hashes_.empty() || hashes_.size() > kMaxHashCount) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to convert hashes due to hash "
+                          "size is not valid, size = "
+                       << hashes_.size();
+    return "";
+  }
+
+  // 1. Header.
+  uint8_t header = ((kAdvertisementType << 4) & kTypeBitmask);
+  header |= (kVersion & kVersionBitmask);
+
+  // 2. Hash counts.
+  uint8_t count = static_cast<uint8_t>(hashes_.size() & kHashCountBitmask);
+  std::string result = absl::StrFormat("%c%c", header, count);
+  for (const auto& hash : hashes_) {
+    if (hash.length() != kAdvertisementHashLength) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Failed to convert hashes to advertisement due "
+                            "to invalid hash : "
+                         << absl::BytesToHexString(hash);
+      return "";
+    }
+    absl::StrAppend(&result, hash);
+  }
+  return result;
 }
 
 absl::StatusOr<InstantOnLostAdvertisement>
 InstantOnLostAdvertisement::CreateFromBytes(absl::string_view bytes) {
-  if (bytes.length() != kTotalLength) {
+  if (bytes.length() < kMetadataLength) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "Cannot create instant on loss advertisement due to invalid length %d",
         bytes.length()));
   }
-  // 1. Check header.
-  uint8_t header_byte = bytes[0];
-  int version = (header_byte & kVersionMask) >> 5;
-  if (version != kVersion) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "Cannot create instant on loss advertisement from invalid version %d.",
-        version));
+
+  // 1. Parse header.
+  uint8_t header = bytes[0];
+  int type = (header & kTypeBitmask) >> 4;
+  if (type != kAdvertisementType) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("Failed to parse due to header type %d.", type));
   }
-  // 2. Get hash, skipping the header (size 1).
-  return InstantOnLostAdvertisement(bytes.substr(1, kHashLength));
+
+  // 2. Parse version.
+  int version = header & kVersionBitmask;
+  if (!IsSupportedVersion(version)) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("Failed to parse due to unknown version %d.", version));
+  }
+
+  // 3. Parse hash counts.
+  uint8_t count = (bytes[1] & kHashCountBitmask);
+  if (count * kAdvertisementHashLength + 2 != bytes.length()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("Failed to parse due to incorrect count %d.", count));
+  }
+
+  // 4. Parse hashes.
+  std::list<std::string> hashes;
+  for (int i = 2; i < bytes.length(); i += kAdvertisementHashLength) {
+    hashes.push_back(std::string(bytes.substr(i, kAdvertisementHashLength)));
+  }
+
+  return InstantOnLostAdvertisement(hashes);
 }
 
 }  // namespace mediums
