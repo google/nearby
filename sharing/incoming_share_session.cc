@@ -218,6 +218,10 @@ bool IncomingShareSession::AcceptTransfer(
     NL_LOG(WARNING) << __func__ << ": out of order API call.";
     return false;
   }
+  // TODO(b/355199584): Cancel acceptance timer when Accept is sent.
+  // This is the wrong place to cancel since we are actually waiting for sender
+  // to accept.  If sender does not accept, we will never timeout.
+  mutual_acceptance_timeout_.reset();
   ready_for_accept_ = false;
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
