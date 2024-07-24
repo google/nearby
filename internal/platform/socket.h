@@ -53,11 +53,6 @@ class MediumSocket : public Socket {
     return medium_;
   }
 
-  /** Creates a virtual socket only with outputstream. */
-  virtual MediumSocket* CreateVirtualSocket(OutputStream* outputstream) {
-    return this;
-  }
-
   /** Creates a virtual socket. */
   virtual MediumSocket* CreateVirtualSocket(
       const std::string& salted_service_id_hash_key, OutputStream* outputstream,

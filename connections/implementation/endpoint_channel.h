@@ -59,6 +59,9 @@ class EndpointChannel {
       location::nearby::analytics::proto::ConnectionsLog::
           EstablishedConnection::SafeDisconnectionResult result) = 0;
 
+  // True if the EndpointChannel is currently closed.
+  virtual bool IsClosed() const = 0;
+
   // Returns a one-word type descriptor for the concrete EndpointChannel
   // implementation that can be used in log messages; eg: BLUETOOTH, BLE, WIFI.
   virtual std::string GetType() const = 0;
