@@ -19,7 +19,10 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 proto_library(
     name = "credential_proto",
     srcs = ["credential.proto"],
-    visibility = ["//location/nearby/presence/proto:__pkg__"],
+    visibility = [
+        "//google/internal/location/nearby/sharing/v1:__pkg__",
+        "//location/nearby/presence/proto:__pkg__",
+    ],
 )
 
 cc_proto_library(
