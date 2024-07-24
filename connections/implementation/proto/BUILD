@@ -23,6 +23,7 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     visibility = ["//visibility:private"],
+    deps = ["//storage/datapol/annotations/proto:datapol_annotations"],
 )
 
 cc_proto_library(

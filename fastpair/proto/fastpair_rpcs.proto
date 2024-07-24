@@ -16,6 +16,7 @@ syntax = "proto3";
 
 package nearby.fastpair.proto;
 
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "third_party/nearby/fastpair/proto/data.proto";
 
 // Represents the type of device that is being registered.
@@ -126,7 +127,7 @@ message Device {
 // broadcasting legitimately.
 message AntiSpoofingKeyPair {
   // The private key (restricted to only be viewable by trusted clients).
-  bytes private_key = 1;
+  bytes private_key = 1 /* type = ST_SECURITY_KEY */;
 
   // The public key.
   bytes public_key = 2;

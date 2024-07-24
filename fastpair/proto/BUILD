@@ -29,6 +29,7 @@ proto_library(
     visibility = [
         "//fastpair:__subpackages__",
     ],
+    deps = ["//storage/datapol/annotations/proto:datapol_annotations"],
 )
 
 cc_proto_library(
