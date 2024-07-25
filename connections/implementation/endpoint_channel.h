@@ -52,6 +52,13 @@ class EndpointChannel {
   virtual void Close(
       location::nearby::proto::connections::DisconnectionReason reason) = 0;
 
+  // Closes this EndpointChannel and records the closure with the given reason
+  // and safe disconnection result.
+  virtual void Close(
+      location::nearby::proto::connections::DisconnectionReason reason,
+      location::nearby::analytics::proto::ConnectionsLog::
+          EstablishedConnection::SafeDisconnectionResult result) = 0;
+
   // Returns a one-word type descriptor for the concrete EndpointChannel
   // implementation that can be used in log messages; eg: BLUETOOTH, BLE, WIFI.
   virtual std::string GetType() const = 0;

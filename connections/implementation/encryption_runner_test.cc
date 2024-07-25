@@ -68,6 +68,12 @@ class FakeEndpointChannel : public EndpointChannel {
       override {
     Close();
   }
+  void Close(
+      location::nearby::proto::connections::DisconnectionReason reason,
+      location::nearby::analytics::proto::ConnectionsLog::
+          EstablishedConnection::SafeDisconnectionResult result) override {
+    Close();
+  }
   location::nearby::proto::connections::ConnectionTechnology GetTechnology()
       const override {
     return location::nearby::proto::connections::ConnectionTechnology::

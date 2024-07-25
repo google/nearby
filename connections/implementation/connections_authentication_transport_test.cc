@@ -21,6 +21,8 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -44,6 +46,11 @@ class MockEndpointChannel : public EndpointChannel {
       void, Close,
       (location::nearby::proto::connections::DisconnectionReason reason),
       (override));
+  MOCK_METHOD(void, Close,
+              (location::nearby::proto::connections::DisconnectionReason reason,
+               location::nearby::analytics::proto::ConnectionsLog::
+                   EstablishedConnection::SafeDisconnectionResult result),
+              (override));
   MOCK_METHOD(std::string, GetType, (), (const override));
   MOCK_METHOD(std::string, GetServiceId, (), (const override));
   MOCK_METHOD(std::string, GetName, (), (const override));

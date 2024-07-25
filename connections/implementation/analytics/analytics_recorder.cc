@@ -27,6 +27,7 @@
 #include "absl/container/btree_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/payload_type.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/error_code_params.h"
@@ -95,6 +96,8 @@ using ::location::nearby::proto::connections::UPGRADE_SUCCESS;
 using ::location::nearby::proto::connections::UPGRADE_UNFINISHED;
 using ::location::nearby::proto::connections::UPGRADED;
 using ::nearby::analytics::EventLogger;
+using SafeDisconnectionResult = ::location::nearby::analytics::proto::
+    ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
@@ -475,12 +478,14 @@ void AnalyticsRecorder::OnConnectionEstablished(
 
 void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
                                            Medium medium,
-                                           DisconnectionReason reason) {
+                                           DisconnectionReason reason,
+                                           SafeDisconnectionResult result) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__
                     << ": OnConnectionClosed is called with endpoint_id:"
                     << endpoint_id << ", medium:" << Medium_Name(medium)
-                    << ", reason:" << DisconnectionReason_Name(reason);
+                    << ", reason:" << DisconnectionReason_Name(reason)
+                    << ", result:" << result;
 
   if (!CanRecordAnalyticsLocked("OnConnectionClosed")) {
     return;
@@ -498,7 +503,7 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
     return;
   }
   const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
-  logical_connection->PhysicalConnectionClosed(medium, reason);
+  logical_connection->PhysicalConnectionClosed(medium, reason, result);
   if (reason != UPGRADED) {
     // Unless this is an upgraded connection, remove this from our active
     // connections. Any future communication with an endpoint will need to be
@@ -1127,7 +1132,7 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionEstablished(
 }
 
 void AnalyticsRecorder::LogicalConnection::PhysicalConnectionClosed(
-    Medium medium, DisconnectionReason reason) {
+    Medium medium, DisconnectionReason reason, SafeDisconnectionResult result) {
   if (current_medium_ == UNKNOWN_MEDIUM) {
     NEARBY_LOGS(WARNING)
         << "Unexpected call to PhysicalConnectionClosed() for medium  "
@@ -1159,7 +1164,7 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionClosed(
                established_connection->disconnection_reason());
     return;
   }
-  FinishPhysicalConnection(established_connection, reason);
+  FinishPhysicalConnection(established_connection, reason, result);
 
   if (medium == current_medium_) {
     // If the EstablishedConnection we just closed was the one that we have
@@ -1173,7 +1178,9 @@ void AnalyticsRecorder::LogicalConnection::CloseAllPhysicalConnections() {
     ConnectionsLog::EstablishedConnection *established_connection =
         physical_connection.second.get();
     if (!established_connection->has_disconnection_reason()) {
-      FinishPhysicalConnection(established_connection, UNFINISHED);
+      FinishPhysicalConnection(
+          established_connection, UNFINISHED,
+          ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
     }
   }
   current_medium_ = UNKNOWN_MEDIUM;
@@ -1269,8 +1276,9 @@ void AnalyticsRecorder::LogicalConnection::OutgoingPayloadDone(
 
 void AnalyticsRecorder::LogicalConnection::FinishPhysicalConnection(
     ConnectionsLog::EstablishedConnection *established_connection,
-    DisconnectionReason reason) {
+    DisconnectionReason reason, SafeDisconnectionResult result) {
   established_connection->set_disconnection_reason(reason);
+  established_connection->set_safe_disconnection_result(result);
   established_connection->set_duration_millis(
       absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
       established_connection->duration_millis());

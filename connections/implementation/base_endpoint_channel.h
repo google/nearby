@@ -59,6 +59,10 @@ class BaseEndpointChannel : public EndpointChannel {
   void Close() ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
   void Close(location::nearby::proto::connections::DisconnectionReason reason)
       override;
+  void Close(
+      location::nearby::proto::connections::DisconnectionReason reason,
+      location::nearby::analytics::proto::ConnectionsLog::
+          EstablishedConnection::SafeDisconnectionResult result) override;
   std::string GetType() const override;
   std::string GetServiceId() const override;
   std::string GetName() const override;

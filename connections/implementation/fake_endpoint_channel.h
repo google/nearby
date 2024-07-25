@@ -19,6 +19,7 @@
 
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -57,6 +58,12 @@ class FakeEndpointChannel : public EndpointChannel {
       override {
     is_closed_ = true;
     disconnection_reason_ = reason;
+  }
+  void Close(
+      location::nearby::proto::connections::DisconnectionReason reason,
+      location::nearby::analytics::proto::ConnectionsLog::
+          EstablishedConnection::SafeDisconnectionResult result) override {
+    Close(reason);
   }
   location::nearby::proto::connections::ConnectionTechnology GetTechnology()
       const override {

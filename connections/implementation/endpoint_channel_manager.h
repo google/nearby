@@ -17,15 +17,12 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
-#include "securegcm/d2d_connection_context_v1.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/mutex.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"

@@ -734,7 +734,9 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
                                         /*mediums=*/{BLE, BLUETOOTH});
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
-  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);
+  analytics_recorder.OnConnectionClosed(
+      endpoint_id, BLUETOOTH, UPGRADED, ConnectionsLog::EstablishedConnection::
+                                         UNKNOWN_SAFE_DISCONNECTION_RESULT);
   analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
                                              connection_token);
 
@@ -788,7 +790,9 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
       {endpoint_id}, payload_id, connections::PayloadType::kFile, 50);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
-  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);
+  analytics_recorder.OnConnectionClosed(
+      endpoint_id, BLUETOOTH, UPGRADED,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
   analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
                                              connection_token);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
@@ -796,7 +800,9 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
   analytics_recorder.OnOutgoingPayloadDone(endpoint_id, payload_id, SUCCESS);
   analytics_recorder.OnConnectionClosed(endpoint_id, WIFI_LAN,
-                                        LOCAL_DISCONNECTION);
+                                        LOCAL_DISCONNECTION,
+                                        ConnectionsLog::EstablishedConnection::
+                                            SAFE_DISCONNECTION);
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1899,7 +1905,9 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
   // current_strategy_session_.
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              /*connection_token=*/"");
-  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);
+  analytics_recorder.OnConnectionClosed(
+      endpoint_id, BLUETOOTH, UPGRADED,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 
   analytics_recorder.LogSession();
 

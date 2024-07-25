@@ -28,7 +28,9 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
@@ -38,7 +40,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
-// #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/test/fake_single_thread_executor.h"
@@ -70,6 +71,11 @@ class MockEndpointChannel : public EndpointChannel {
               (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));
+  MOCK_METHOD(void, Close,
+              (DisconnectionReason reason,
+               location::nearby::analytics::proto::ConnectionsLog::
+                   EstablishedConnection::SafeDisconnectionResult result),
+              (override));
   MOCK_METHOD(location::nearby::proto::connections::ConnectionTechnology,
               GetTechnology, (), (const override));
   MOCK_METHOD(location::nearby::proto::connections::ConnectionBand, GetBand, (),
