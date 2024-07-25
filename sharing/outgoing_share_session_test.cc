@@ -698,7 +698,7 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
           OSType::WINDOWS),
       IsTrue());
 
-  EXPECT_THAT(session_.token(), Eq("1234"));
+  EXPECT_THAT(session_.token(), IsEmpty());
   EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
 }
 

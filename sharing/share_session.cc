@@ -231,10 +231,10 @@ bool ShareSession::HandleKeyVerificationResult(
     case PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess:
       NL_VLOG(1) << __func__ << ": Paired key handshake succeeded for target - "
                  << share_target().id;
-      // Clear out token if it is self-share since verification is successful.
-      if (self_share_) {
-        token_.resize(0);
-      }
+      // If verification succeeds, this either means that the target is a
+      // self-share or a mutual contact. In either case, we should clear the
+      // token.
+      token_.resize(0);
       break;
 
     case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable:

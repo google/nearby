@@ -341,7 +341,8 @@ TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareSuccess) {
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
   EXPECT_FALSE(session.self_share());
-  EXPECT_FALSE(session.token().empty());
+  // This means our share was done with a mutual contact.
+  EXPECT_TRUE(session.token().empty());
 }
 
 TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareUnable) {
