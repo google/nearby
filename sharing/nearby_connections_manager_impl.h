@@ -78,7 +78,8 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void RegisterPayloadStatusListener(
       int64_t payload_id,
       std::weak_ptr<PayloadStatusListener> listener) override;
-  const Payload* GetIncomingPayload(int64_t payload_id) const override;
+  const Payload* GetIncomingPayload(int64_t payload_id) const override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   void Cancel(int64_t payload_id) override;
   void ClearIncomingPayloads() override;
   std::optional<std::vector<uint8_t>> GetRawAuthenticationToken(
@@ -127,6 +128,15 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
                                        PayloadContent::Type type,
                                        const std::filesystem::path& path);
   absl::flat_hash_set<std::filesystem::path> GetUnknownFilePathsToDelete();
+
+  std::optional<std::weak_ptr<PayloadStatusListener>> GetStatusListenerForId(
+      int64_t payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
+
+  NearbyConnectionImpl* GetConnectionForId(absl::string_view endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void RemoveStatusListenerForPayloadId(int64_t payload_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   void Reset();
 
