@@ -39,6 +39,7 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/settings_observer_data.pb.h"
+#include "sharing/thread_timer.h"
 
 namespace nearby {
 namespace sharing {
@@ -161,9 +162,7 @@ class NearbyShareSettings
   };
 
   NearbyShareSettings(
-      Context* context,
-      nearby::Clock* clock,
-      nearby::DeviceInfo& device_info,
+      Context* context, nearby::Clock* clock, nearby::DeviceInfo& device_info,
       nearby::sharing::api::PreferenceManager& preference_manager,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
       analytics::AnalyticsRecorder* analytics_recorder = nullptr);
@@ -257,6 +256,7 @@ class NearbyShareSettings
 
   // Make sure thread safe to access Nearby settings
   mutable RecursiveMutex mutex_;
+  Context* context_;
   nearby::Clock* const clock_;
   nearby::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
@@ -267,7 +267,8 @@ class NearbyShareSettings
   std::shared_ptr<bool> is_desctructing_ = nullptr;
   bool is_fast_initiation_hardware_supported_ ABSL_GUARDED_BY(mutex_) = false;
   ObserverList<Observer> observers_set_ ABSL_GUARDED_BY(mutex_);
-  std::unique_ptr<Timer> visibility_expiration_timer_ ABSL_GUARDED_BY(mutex_);
+  mutable std::unique_ptr<ThreadTimer> visibility_expiration_timer_
+      ABSL_GUARDED_BY(mutex_);
   mutable std::optional<proto::DeviceVisibility> fallback_visibility_
       ABSL_GUARDED_BY(mutex_);
 

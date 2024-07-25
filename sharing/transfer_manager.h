@@ -26,6 +26,7 @@
 #include "absl/time/time.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_connections_types.h"
+#include "sharing/thread_timer.h"
 
 namespace nearby {
 namespace sharing {
@@ -47,15 +48,15 @@ class TransferManager {
   bool CancelTransfer() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  void StopWaitingForHighQualityMedium();
+  void StopWaitingForHighQualityMedium() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Context* context_;
   bool is_waiting_for_high_quality_medium_ = true;
   std::string endpoint_id_;
   absl::Mutex mutex_;
-  std::vector<std::function<void()>> pending_tasks_;
+  std::vector<std::function<void()>> pending_tasks_ ABSL_GUARDED_BY(mutex_);
 
-  std::unique_ptr<Timer> timeout_timer_ = nullptr;
+  std::unique_ptr<ThreadTimer> timeout_timer_ = nullptr;
 };
 
 }  // namespace sharing

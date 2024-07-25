@@ -309,8 +309,11 @@ TEST_F(NearbyShareSettingsTest,
   // Fast forward to the expiration time.
   FastForward(absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds + 1));
   // Verify that the visibility has expired and we are back to self share.
+  Flush();
   EXPECT_EQ(settings()->GetVisibility(),
             DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  EXPECT_EQ(settings()->GetFallbackVisibility().visibility,
+            DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
 }
 
 TEST_F(NearbyShareSettingsTest,
