@@ -212,7 +212,7 @@ bool IncomingShareSession::ReadyForTransfer(
 }
 
 bool IncomingShareSession::AcceptTransfer(
-    Clock* clock, NearbyConnectionsManager& connections_manager,
+    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   if (!ready_for_accept_ || !IsConnected()) {
     NL_LOG(WARNING) << __func__ << ": out of order API call.";
@@ -235,8 +235,8 @@ bool IncomingShareSession::AcceptTransfer(
                << ": Started listening for progress on payload: " << it->second
                << " for attachment: " << it->first;
 
-    connections_manager.RegisterPayloadStatusListener(it->second,
-                                                      payload_tracker());
+    connections_manager()->RegisterPayloadStatusListener(it->second,
+                                                        payload_tracker());
 
     NL_VLOG(1) << __func__ << ": Accepted incoming files from share target - "
                << share_target().id;
@@ -253,7 +253,7 @@ bool IncomingShareSession::AcceptTransfer(
           .set_token(token())
           .build());
 
-  if (TryUpgradeBandwidth(connections_manager)) {
+  if (TryUpgradeBandwidth()) {
     // Upgrade bandwidth regardless of advertising visibility because either
     // the system or the user has verified the sender's identity; the
     // stable identifiers potentially exposed by performing a bandwidth
@@ -267,7 +267,6 @@ bool IncomingShareSession::AcceptTransfer(
 }
 
 void IncomingShareSession::HandleProgressUpdate(
-    NearbyConnectionsManager& connections_manager,
     const ProgressUpdateFrame& progress_update) {
   if (!IsConnected()) {
     NL_LOG(ERROR) << "Received ProgressUpdate Frame on disconnected session";
@@ -280,7 +279,7 @@ void IncomingShareSession::HandleProgressUpdate(
                  << share_target().id;
     // TODO(b/338468927): Check if this is actually needed.
     // Bandwidth upgrade was already requested in Accept.
-    if (TryUpgradeBandwidth(connections_manager)) {
+    if (TryUpgradeBandwidth()) {
       NL_LOG(INFO)
           << __func__
           << ": Upgrade bandwidth when receiving progress update frame "
@@ -295,8 +294,7 @@ void IncomingShareSession::HandleProgressUpdate(
   }
 }
 
-bool IncomingShareSession::UpdateFilePayloadPaths(
-    const NearbyConnectionsManager& connections_manager) {
+bool IncomingShareSession::UpdateFilePayloadPaths() {
   AttachmentContainer& container = mutable_attachment_container();
   bool result = true;
   for (int i = 0; i < container.GetFileAttachments().size(); ++i) {
@@ -314,7 +312,7 @@ bool IncomingShareSession::UpdateFilePayloadPaths(
     }
 
     const Payload* incoming_payload =
-        connections_manager.GetIncomingPayload(it->second);
+        connections_manager()->GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_file()) {
       NL_LOG(WARNING) << __func__ << ": No payload found for file - "
                       << file.id();
@@ -330,9 +328,8 @@ bool IncomingShareSession::UpdateFilePayloadPaths(
   return result;
 }
 
-bool IncomingShareSession::UpdatePayloadContents(
-    const NearbyConnectionsManager& connections_manager) {
-  if (!UpdateFilePayloadPaths(connections_manager)) {
+bool IncomingShareSession::UpdatePayloadContents() {
+  if (!UpdateFilePayloadPaths()) {
     return false;
   }
   AttachmentContainer& container = mutable_attachment_container();
@@ -347,7 +344,7 @@ bool IncomingShareSession::UpdatePayloadContents(
       return false;
     }
     const Payload* incoming_payload =
-        connections_manager.GetIncomingPayload(it->second);
+        connections_manager()->GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
       NL_LOG(WARNING) << __func__ << ": No payload found for text - "
                       << text.id();
@@ -382,7 +379,7 @@ bool IncomingShareSession::UpdatePayloadContents(
     }
 
     const Payload* incoming_payload =
-        connections_manager.GetIncomingPayload(it->second);
+        connections_manager()->GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
       NL_LOG(WARNING) << __func__
                       << ": No payload found for WiFi credentials - "
@@ -414,9 +411,8 @@ bool IncomingShareSession::UpdatePayloadContents(
   return true;
 }
 
-bool IncomingShareSession::FinalizePayloads(
-    const NearbyConnectionsManager& connections_manager) {
-  if (!UpdatePayloadContents(connections_manager)) {
+bool IncomingShareSession::FinalizePayloads() {
+  if (!UpdatePayloadContents()) {
     mutable_attachment_container().ClearAttachments();
     return false;
   }
@@ -442,12 +438,11 @@ std::vector<std::filesystem::path> IncomingShareSession::GetPayloadFilePaths()
   return file_paths;
 }
 
-bool IncomingShareSession::TryUpgradeBandwidth(
-    NearbyConnectionsManager& connections_manager) {
+bool IncomingShareSession::TryUpgradeBandwidth() {
   if (!bandwidth_upgrade_requested_ &&
       attachment_container().GetTotalAttachmentsSize() >=
           kAttachmentsSizeThresholdOverHighQualityMedium) {
-    connections_manager.UpgradeBandwidth(endpoint_id());
+    connections_manager()->UpgradeBandwidth(endpoint_id());
     bandwidth_upgrade_requested_ = true;
     return true;
   }
@@ -481,6 +476,12 @@ void IncomingShareSession::SendFailureResponse(
       << "SendFailureResponse should only be called with a final status";
   UpdateTransferMetadata(
       TransferMetadataBuilder().set_status(status).build());
+}
+
+void IncomingShareSession::Disconnect() {
+  if (IsConnected()) {
+    connection()->Close();
+  }
 }
 
 }  // namespace nearby::sharing

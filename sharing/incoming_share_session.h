@@ -27,7 +27,6 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_connections_manager.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
@@ -71,8 +70,7 @@ class IncomingShareSession : public ShareSession {
           introduction_callback);
 
   // Update file attachment paths with payload paths.
-  bool UpdateFilePayloadPaths(
-      const NearbyConnectionsManager& connections_manager);
+  bool UpdateFilePayloadPaths();
 
   // Returns true if the transfer can begin and AcceptTransfer should be called
   // immediately.
@@ -86,30 +84,31 @@ class IncomingShareSession : public ShareSession {
   // Accept the transfer and begin listening for payload transfer updates.
   // Returns false if session is not in a state to accept the transfer.
   bool AcceptTransfer(
-      Clock* clock, NearbyConnectionsManager& connections_manager,
+      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   void HandleProgressUpdate(
-      NearbyConnectionsManager& connections_manager,
       const nearby::sharing::service::proto::ProgressUpdateFrame&
           progress_update);
 
   // Once transfer has completed, make payload content available in the
   // corresponding Attachment.
   // Returns true if all payloads were successfully finalized.
-  bool FinalizePayloads(const NearbyConnectionsManager& connections_manager);
+  bool FinalizePayloads();
 
   // Returns the file paths of all file payloads.
   std::vector<std::filesystem::path> GetPayloadFilePaths() const;
 
   // Upgrade bandwidth if it is needed.
   // Returns true if bandwidth upgrade was requested.
-  bool TryUpgradeBandwidth(NearbyConnectionsManager& connections_manager);
+  bool TryUpgradeBandwidth();
 
   // Send TransferMetadataUpdate with the final |status|.
   // Map |status| to corresponding ConnectionResponseFrame::Status and send
   // response to remote device.
   void SendFailureResponse(TransferMetadata::Status status);
+
+  void Disconnect();
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
@@ -117,8 +116,7 @@ class IncomingShareSession : public ShareSession {
 
  private:
   // Copy payload contents from the NearbyConnection to the Attachment.
-  bool UpdatePayloadContents(
-      const NearbyConnectionsManager& connections_manager);
+  bool UpdatePayloadContents();
 
   std::function<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;

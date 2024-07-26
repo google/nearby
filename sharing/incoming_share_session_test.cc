@@ -76,7 +76,6 @@ using ::nearby::sharing::service::proto::WifiCredentialsMetadata;
 using ::testing::_;
 using ::testing::AllOf;
 using ::testing::Eq;
-using ::testing::Invoke;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
@@ -177,11 +176,16 @@ class IncomingShareSessionTest : public ::testing::Test {
   ShareTarget share_target_;
   MockFunction<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
+  FakeNearbyConnectionsManager connections_manager_;
+  NearbySharingDecoderImpl nearby_sharing_decoder_;
+  FakeNearbyConnection connection_;
   IncomingShareSession session_;
   IntroductionFrame introduction_frame_;
 };
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionNoSupportedPayload) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   IntroductionFrame frame;
 
   EXPECT_THAT(session_.ProcessIntroduction(frame),
@@ -190,6 +194,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionNoSupportedPayload) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyFile) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   IntroductionFrame frame;
   frame.mutable_file_metadata();
 
@@ -199,6 +205,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyFile) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionFilesTooLarge) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   IntroductionFrame frame;
   FileMetadata file1;
   FileMetadata file2;
@@ -213,6 +221,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionFilesTooLarge) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyText) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   IntroductionFrame frame;
   frame.mutable_text_metadata();
 
@@ -222,6 +232,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyText) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   FileMetadata filemeta1 = introduction_frame_.file_metadata(0);
   FileAttachment file1(filemeta1.id(), filemeta1.size(), filemeta1.name(),
                        filemeta1.mime_type(), filemeta1.type(),
@@ -269,20 +281,21 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, UpdateFilePayloadPathsSuccess) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   std::filesystem::path file1_path = "/usr/tmp/file1";
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
 
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsTrue());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
       Eq(file1_path));
@@ -292,35 +305,37 @@ TEST_F(IncomingShareSessionTest, UpdateFilePayloadPathsSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, UpdateFilePayloadPathsWrongType) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateTextPayload(payload_id1, "text1"));
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
 
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsFalse());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   std::filesystem::path file1_path = "/usr/tmp/file1";
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsTrue());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
 
   std::vector<std::filesystem::path> file_paths =
       session_.GetPayloadFilePaths();
@@ -329,43 +344,44 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
 }
 
 TEST_F(IncomingShareSessionTest, FinalizePayloadsSuccess) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   std::filesystem::path file1_path = "/usr/tmp/file1";
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsTrue());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
 
   std::string text_content2 = "text2";
   int64_t text_payload_id2 = introduction_frame_.text_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id2, CreateTextPayload(text_payload_id2, text_content2));
 
   int64_t wifi_payload_id1 =
       introduction_frame_.wifi_credentials_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id1,
       CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
 
   int64_t wifi_payload_id2 =
       introduction_frame_.wifi_credentials_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id2,
       CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
 
-  EXPECT_THAT(session_.FinalizePayloads(connections_manager), IsTrue());
+  EXPECT_THAT(session_.FinalizePayloads(), IsTrue());
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
       Eq(file1_path));
@@ -397,38 +413,39 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingFilePayloads) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   std::filesystem::path file1_path = "/usr/tmp/file1";
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsFalse());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
 
   std::string text_content2 = "text2";
   int64_t text_payload_id2 = introduction_frame_.text_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id2, CreateTextPayload(text_payload_id2, text_content2));
 
   int64_t wifi_payload_id1 =
       introduction_frame_.wifi_credentials_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id1,
       CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
 
   int64_t wifi_payload_id2 =
       introduction_frame_.wifi_credentials_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id2,
       CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
 
-  EXPECT_THAT(session_.FinalizePayloads(connections_manager), IsFalse());
+  EXPECT_THAT(session_.FinalizePayloads(), IsFalse());
 
   // Verify that attachments are cleared out
   EXPECT_THAT(
@@ -462,39 +479,40 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingFilePayloads) {
 }
 
 TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingTextPayloads) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   std::filesystem::path file1_path = "/usr/tmp/file1";
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsFalse());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsTrue());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
 
   int64_t wifi_payload_id1 =
       introduction_frame_.wifi_credentials_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id1,
       CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
 
   int64_t wifi_payload_id2 =
       introduction_frame_.wifi_credentials_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id2,
       CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
 
-  EXPECT_THAT(session_.FinalizePayloads(connections_manager), IsFalse());
+  EXPECT_THAT(session_.FinalizePayloads(), IsFalse());
 
   // Verify that attachments are cleared out
   EXPECT_THAT(
@@ -528,38 +546,39 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingTextPayloads) {
 }
 
 TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   std::filesystem::path file1_path = "/usr/tmp/file1";
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsFalse());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(connections_manager), IsTrue());
+  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
 
   std::string text_content2 = "text2";
   int64_t text_payload_id2 = introduction_frame_.text_metadata(1).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       text_payload_id2, CreateTextPayload(text_payload_id2, text_content2));
 
   int64_t wifi_payload_id1 =
       introduction_frame_.wifi_credentials_metadata(0).payload_id();
-  connections_manager.SetIncomingPayload(
+  connections_manager_.SetIncomingPayload(
       wifi_payload_id1,
       CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
 
-  EXPECT_THAT(session_.FinalizePayloads(connections_manager), IsFalse());
+  EXPECT_THAT(session_.FinalizePayloads(), IsFalse());
 
   // Verify that attachments are cleared out
   EXPECT_THAT(
@@ -595,7 +614,6 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
   session_.set_session_id(1234);
 
-  FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
   EXPECT_THAT(
       session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
@@ -603,11 +621,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session_.set_session_id(1234);
-  EXPECT_TRUE(
-      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
@@ -623,11 +639,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
   IncomingShareSession session(task_runner_, analytics_recorder_,
                                std::string("XYCA"), share_target,
                                transfer_metadata_callback_.AsStdFunction());
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session.set_session_id(1234);
-  EXPECT_TRUE(
-      session.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                  &connections_manager_, &connection_));
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)))
@@ -639,11 +653,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session_.set_session_id(1234);
-  EXPECT_TRUE(
-      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
@@ -660,11 +672,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session_.set_session_id(1234);
-  EXPECT_TRUE(
-      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
@@ -674,10 +684,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
                   [&accept_timeout_called]() { accept_timeout_called = true; },
                   [](std::optional<V1Frame> frame) {}),
               IsFalse());
-  FakeNearbyConnectionsManager connections_manager;
   ProgressUpdateFrame progress_update_frame;
   progress_update_frame.set_start_transfer(true);
-  session_.HandleProgressUpdate(connections_manager, progress_update_frame);
+  session_.HandleProgressUpdate(progress_update_frame);
   clock_.FastForward(absl::Seconds(60));
   task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
@@ -685,12 +694,13 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
 }
 
 TEST_F(IncomingShareSessionTest, HandleProgressUpdateNotConnected) {
-  FakeNearbyConnectionsManager connections_manager;
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   ProgressUpdateFrame progress_update_frame;
   progress_update_frame.set_start_transfer(true);
-  session_.HandleProgressUpdate(connections_manager, progress_update_frame);
+  session_.HandleProgressUpdate(progress_update_frame);
 
-  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsFalse());
+  EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, HandleProgressUpdateTryUpgradeBandwidth) {
@@ -708,53 +718,42 @@ TEST_F(IncomingShareSessionTest, HandleProgressUpdateTryUpgradeBandwidth) {
                                             }
                                           )pb",
                                           &introduction_frame));
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session_.set_session_id(1234);
-  EXPECT_TRUE(
-      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
               Eq(std::nullopt));
-  FakeNearbyConnectionsManager connections_manager;
   ProgressUpdateFrame progress_update_frame;
   progress_update_frame.set_start_transfer(true);
-  session_.HandleProgressUpdate(connections_manager, progress_update_frame);
+  session_.HandleProgressUpdate(progress_update_frame);
 
-  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsTrue());
+  EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {
   session_.set_session_id(1234);
 
-  FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
-  EXPECT_THAT(session_.AcceptTransfer(&clock, connections_manager,
-                                      [](int64_t, TransferMetadata) {}),
+  EXPECT_THAT(session_.AcceptTransfer(&clock, [](int64_t, TransferMetadata) {}),
               IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session_.set_session_id(1234);
-  EXPECT_TRUE(
-      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
 
-  FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
-  EXPECT_THAT(session_.AcceptTransfer(&clock, connections_manager,
-                                      [](int64_t, TransferMetadata) {}),
+  EXPECT_THAT(session_.AcceptTransfer(&clock, [](int64_t, TransferMetadata) {}),
               IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
-  NearbySharingDecoderImpl nearby_sharing_decoder;
-  FakeNearbyConnection connection;
   session_.set_session_id(1234);
-  EXPECT_TRUE(
-      session_.OnConnected(nearby_sharing_decoder, absl::Now(), &connection));
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   EXPECT_THAT(
@@ -778,19 +777,17 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
 
-  FakeNearbyConnectionsManager connections_manager;
   FakeClock clock;
-  EXPECT_THAT(session_.AcceptTransfer(&clock, connections_manager,
-                                      [](int64_t, TransferMetadata) {}),
+  EXPECT_THAT(session_.AcceptTransfer(&clock, [](int64_t, TransferMetadata) {}),
               IsTrue());
 
   for (auto it : session_.attachment_payload_map()) {
     EXPECT_THAT(
-        connections_manager.GetRegisteredPayloadStatusListener(it.second)
+        connections_manager_.GetRegisteredPayloadStatusListener(it.second)
             .lock(),
         Eq(session_.payload_tracker().lock()));
   }
-  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  std::vector<uint8_t> frame_data = connection_.GetWrittenData();
   Frame frame;
   ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
   ASSERT_EQ(frame.version(), Frame::V1);
@@ -800,9 +797,8 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -830,15 +826,14 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection.AppendReadableData(std::move(data));
+  connection_.AppendReadableData(std::move(data));
 
   EXPECT_THAT(introduction_received, IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -865,15 +860,14 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection.AppendReadableData(std::move(data));
+  connection_.AppendReadableData(std::move(data));
 
   EXPECT_THAT(introduction_received, IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -900,15 +894,14 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection.AppendReadableData(std::move(data));
+  connection_.AppendReadableData(std::move(data));
 
   EXPECT_THAT(introduction_received, IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -935,19 +928,17 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection.AppendReadableData(std::move(data));
+  connection_.AppendReadableData(std::move(data));
 
   EXPECT_THAT(introduction_received, IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNotNeeded) {
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  FakeNearbyConnectionsManager connections_manager;
-  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
 
-  EXPECT_THAT(session_.TryUpgradeBandwidth(connections_manager), IsFalse());
-  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsFalse());
+  EXPECT_THAT(session_.TryUpgradeBandwidth(), IsFalse());
+  EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
@@ -974,36 +965,31 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
                                             }
                                           )pb",
                                           &introduction_frame));
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  FakeNearbyConnectionsManager connections_manager;
-  session_.OnConnected(decoder, absl::Now(), &connection);
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
               Eq(std::nullopt));
 
-  EXPECT_THAT(session_.TryUpgradeBandwidth(connections_manager), IsTrue());
-  EXPECT_THAT(connections_manager.DidUpgradeBandwidth(kEndpointId), IsTrue());
+  EXPECT_THAT(session_.TryUpgradeBandwidth(), IsTrue());
+  EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, SendFailureResponseNotConnected) {
-  EXPECT_CALL(
-      transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
 
   session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
 }
 
 TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
-  NearbySharingDecoderImpl decoder;
-  FakeNearbyConnection connection;
-  session_.OnConnected(decoder, absl::Now(), &connection);
-  EXPECT_CALL(
-      transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+  session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                       &connections_manager_, &connection_);
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
 
   session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
 
-  std::vector<uint8_t> frame_data = connection.GetWrittenData();
+  std::vector<uint8_t> frame_data = connection_.GetWrittenData();
   Frame frame;
   ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
   ASSERT_EQ(frame.version(), Frame::V1);

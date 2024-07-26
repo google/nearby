@@ -105,7 +105,9 @@ class ShareSession {
   // Notifies the ShareTargetInfo that the connection has been established.
   // Returns true if the connection was successfully established.
   bool OnConnected(const NearbySharingDecoder& decoder,
-                   absl::Time connect_start_time, NearbyConnection* connection);
+                   absl::Time connect_start_time,
+                   NearbyConnectionsManager* connections_manager,
+                   NearbyConnection* connection);
 
   // Send TransferMetadataUpdate with the final status.
   // If connected, also close the connection.
@@ -129,7 +131,7 @@ class ShareSession {
     return attachment_container_;
   }
 
-  void CancelPayloads(NearbyConnectionsManager& connections_manager);
+  void CancelPayloads();
 
   const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map() const {
     return attachment_payload_map_;
@@ -168,11 +170,16 @@ class ShareSession {
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
+  NearbyConnectionsManager* connections_manager() {
+    return connections_manager_;
+  }
+
  private:
   TaskRunner& service_thread_;
   analytics::AnalyticsRecorder& analytics_recorder_;
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
+  NearbyConnectionsManager* connections_manager_ = nullptr;
   NearbyConnection* connection_ = nullptr;
   // If not empty, this is the 4 digit token used to verify the connection.
   // If token is empty, it means self-share and verification is not needed.

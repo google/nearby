@@ -28,7 +28,6 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/paired_key_verification_runner.h"
@@ -117,14 +116,15 @@ class OutgoingShareSession : public ShareSession {
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
       bool enable_transfer_cancellation_optimization, Clock* clock,
-      NearbyConnectionsManager& connection_manager,
       std::function<
           void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
       std::function<void(int64_t, TransferMetadata)> update_callback);
   // Send the next payload to NearbyConnectionManager.
   // Used only if enable_transfer_cancellation_optimization is true.
-  void SendNextPayload(NearbyConnectionsManager& connection_manager);
+  void SendNextPayload();
+
+  void Disconnect(const TransferMetadata& metadata);
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
@@ -136,13 +136,13 @@ class OutgoingShareSession : public ShareSession {
   // Create a payload status listener to send status change to
   // `update_callback`.  Send all payloads to NearbyConnectionManager.
   void SendAllPayloads(
-      Clock* clock, NearbyConnectionsManager& connection_manager,
+      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Create a payload status listener to send status change to
   // `update_callback`.
   void InitSendPayload(
-      Clock* clock, NearbyConnectionsManager& connection_manager,
+      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   std::vector<Payload> ExtractTextPayloads();
@@ -165,6 +165,7 @@ class OutgoingShareSession : public ShareSession {
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
+  std::unique_ptr<ThreadTimer> disconnect_delay_timer_;
 };
 
 }  // namespace nearby::sharing
