@@ -641,7 +641,6 @@ cc_test(
 cc_test(
     name = "nearby_sharing_settings_test",
     srcs = ["nearby_sharing_settings_test.cc"],
-    shard_count = 5,
     deps = [
         ":nearby_sharing_service",
         "//internal/platform/implementation/g3",  # fixdeps: keep

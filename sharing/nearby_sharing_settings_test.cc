@@ -169,41 +169,16 @@ class NearbyShareSettingsTest : public ::testing::Test {
   std::unique_ptr<NearbyShareSettings> nearby_share_settings_;
 };
 
-TEST_F(NearbyShareSettingsTest, GetAndSetFastInitiationNotificationState) {
-  // Fast init notifications are enabled by default.
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::ENABLED_FAST_INIT);
-  settings()->SetFastInitiationNotificationState(
-      FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-  EXPECT_EQ(FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT,
-            settings()->GetFastInitiationNotificationState());
-  Flush();
-  EXPECT_EQ(observer_.fast_initiation_notification_state(),
-            FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-
-  FastInitiationNotificationState state =
-      FastInitiationNotificationState::ENABLED_FAST_INIT;
-  settings()->GetFastInitiationNotificationState(
-      [&state](FastInitiationNotificationState result) { state = result; });
-  EXPECT_EQ(state, FastInitiationNotificationState::DISABLED_BY_USER_FAST_INIT);
-}
-
 TEST_F(NearbyShareSettingsTest, GetAndSetCustomSavePath) {
   absl::Notification notification;
-  settings()->SetCustomSavePathAsync(
-      GetCompatibleU8String(std::filesystem::temp_directory_path().u8string()),
-      [&]() { notification.Notify(); });
+  std::string save_path =
+      GetCompatibleU8String(std::filesystem::temp_directory_path().u8string());
+  settings()->SetCustomSavePathAsync(save_path,
+                                     [&]() { notification.Notify(); });
   Flush();
   EXPECT_TRUE(notification.HasBeenNotified());
-  settings()->GetCustomSavePathAsync([&](absl::string_view path) {
-    observer_.OnSettingChanged(
-        prefs::kNearbySharingCustomSavePath,
-        NearbyShareSettings::Observer::Data(std::string(path)));
-  });
-  Flush();
-  EXPECT_EQ(
-      observer_.custom_save_path(),
-      GetCompatibleU8String(std::filesystem::temp_directory_path().u8string()));
+
+  EXPECT_EQ(settings()->GetCustomSavePath(), save_path);
 }
 
 TEST_F(NearbyShareSettingsTest, GetAndSetIsFastInitiationHardwareSupported) {
@@ -213,10 +188,7 @@ TEST_F(NearbyShareSettingsTest, GetAndSetIsFastInitiationHardwareSupported) {
   Flush();
   EXPECT_TRUE(observer_.is_fast_initiation_notification_hardware_supported());
 
-  bool is_supported = false;
-  settings()->GetIsFastInitiationHardwareSupported(
-      [&is_supported](bool result) { is_supported = result; });
-  EXPECT_TRUE(is_supported);
+  EXPECT_TRUE(settings()->is_fast_initiation_hardware_supported());
 }
 
 TEST_F(NearbyShareSettingsTest, ValidateDeviceName) {
@@ -237,9 +209,7 @@ TEST_F(NearbyShareSettingsTest, ValidateDeviceName) {
 
 TEST_F(NearbyShareSettingsTest, GetAndSetDeviceName) {
   std::string name = "not_the_default";
-  settings()->GetDeviceName(
-      [&name](absl::string_view result) { name = std::string(result); });
-  EXPECT_EQ(kDefaultDeviceName, name);
+  EXPECT_EQ(kDefaultDeviceName, settings()->GetDeviceName());
 
   // When we get a validation error, setting the name should not succeed.
   EXPECT_EQ(observer_.device_name(), "uncalled");
@@ -264,9 +234,7 @@ TEST_F(NearbyShareSettingsTest, GetAndSetDeviceName) {
   Flush();
   EXPECT_EQ(observer_.device_name(), "d");
 
-  settings()->GetDeviceName(
-      [&name](absl::string_view result) { name = std::string(result); });
-  EXPECT_EQ(name, "d");
+  EXPECT_EQ(settings()->GetDeviceName(), "d");
 }
 
 TEST_F(NearbyShareSettingsTest, GetAndSetDataUsage) {
@@ -276,10 +244,7 @@ TEST_F(NearbyShareSettingsTest, GetAndSetDataUsage) {
   Flush();
   EXPECT_EQ(observer_.data_usage(), DataUsage::OFFLINE_DATA_USAGE);
 
-  DataUsage data_usage = DataUsage::UNKNOWN_DATA_USAGE;
-  settings()->GetDataUsage(
-      [&data_usage](DataUsage usage) { data_usage = usage; });
-  EXPECT_EQ(data_usage, DataUsage::OFFLINE_DATA_USAGE);
+  EXPECT_EQ(settings()->GetDataUsage(), DataUsage::OFFLINE_DATA_USAGE);
 }
 
 TEST_F(NearbyShareSettingsTest, GetAndSetVisibility) {
@@ -292,10 +257,8 @@ TEST_F(NearbyShareSettingsTest, GetAndSetVisibility) {
   EXPECT_EQ(observer_.visibility(),
             DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
 
-  DeviceVisibility visibility = DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
-  settings()->GetVisibility(
-      [&visibility](DeviceVisibility result) { visibility = result; });
-  EXPECT_EQ(visibility, DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
+  EXPECT_EQ(settings()->GetVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
 }
 
 TEST_F(NearbyShareSettingsTest,
