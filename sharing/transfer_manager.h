@@ -41,6 +41,8 @@ class TransferManager {
 
   TransferManager(Context* context, absl::string_view endpoint_id);
 
+  ~TransferManager();
+
   void Send(std::function<void()> task) ABSL_LOCKS_EXCLUDED(mutex_);
   void OnMediumQualityChanged(Medium current_medium)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -51,12 +53,11 @@ class TransferManager {
   void StopWaitingForHighQualityMedium() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Context* context_;
-  bool is_waiting_for_high_quality_medium_ = true;
   std::string endpoint_id_;
   absl::Mutex mutex_;
+  bool is_waiting_for_high_quality_medium_ ABSL_GUARDED_BY(mutex_) = true;
   std::vector<std::function<void()>> pending_tasks_ ABSL_GUARDED_BY(mutex_);
-
-  std::unique_ptr<ThreadTimer> timeout_timer_ = nullptr;
+  std::unique_ptr<ThreadTimer> timeout_timer_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
 }  // namespace sharing

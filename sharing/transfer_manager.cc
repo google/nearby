@@ -47,6 +47,12 @@ TransferManager::TransferManager(Context* context,
                                  absl::string_view endpoint_id)
     : context_(context), endpoint_id_(endpoint_id) {}
 
+TransferManager::~TransferManager() {
+  absl::MutexLock lock(&mutex_);
+  timeout_timer_.reset();
+  pending_tasks_.clear();
+}
+
 void TransferManager::Send(std::function<void()> task) {
   absl::MutexLock lock(&mutex_);
 
@@ -100,8 +106,7 @@ bool TransferManager::StartTransfer() {
         absl::MutexLock lock(&mutex_);
 
         NL_LOG(INFO) << "Timed out for endpoint " << endpoint_id_ << " after "
-                     << (kMediumUpgradeTimeout / absl::Milliseconds(1))
-                     << "ms.";
+                     << kMediumUpgradeTimeout;
         StopWaitingForHighQualityMedium();
       });
 
