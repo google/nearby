@@ -267,7 +267,6 @@ bool OutgoingShareSession::AcceptTransfer(
 
 void OutgoingShareSession::SendPayloads(
     bool enable_transfer_cancellation_optimization, Clock* clock,
-    NearbyConnectionsManager& connection_manager,
     std::function<
         void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
         frame_read_callback,
@@ -287,44 +286,43 @@ void OutgoingShareSession::SendPayloads(
   NL_VLOG(1) << __func__
              << ": The connection was accepted. Payloads are now being sent.";
   if (enable_transfer_cancellation_optimization) {
-    InitSendPayload(clock, connection_manager, std::move(update_callback));
-    SendNextPayload(connection_manager);
+    InitSendPayload(clock, std::move(update_callback));
+    SendNextPayload();
   } else {
-    SendAllPayloads(clock, connection_manager, std::move(update_callback));
+    SendAllPayloads(clock, std::move(update_callback));
   }
 }
 
 void OutgoingShareSession::SendAllPayloads(
-    Clock* clock, NearbyConnectionsManager& connection_manager,
+    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
       clock, share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
   for (auto& payload : ExtractTextPayloads()) {
-    connection_manager.Send(endpoint_id(), std::make_unique<Payload>(payload),
-                            payload_tracker());
+    connections_manager()->Send(
+        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
   for (auto& payload : ExtractFilePayloads()) {
-    connection_manager.Send(endpoint_id(), std::make_unique<Payload>(payload),
-                            payload_tracker());
+    connections_manager()->Send(
+        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
 }
 
 void OutgoingShareSession::InitSendPayload(
-    Clock* clock, NearbyConnectionsManager& connection_manager,
+    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
       clock, share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
 }
 
-void OutgoingShareSession::SendNextPayload(
-    NearbyConnectionsManager& connection_manager) {
+void OutgoingShareSession::SendNextPayload() {
   std::optional<Payload> payload = ExtractNextPayload();
   if (payload.has_value()) {
     NL_LOG(INFO) << __func__ << ": Send  payload " << payload->id;
-    connection_manager.Send(endpoint_id(), std::make_unique<Payload>(*payload),
-                            payload_tracker());
+    connections_manager()->Send(
+        endpoint_id(), std::make_unique<Payload>(*payload), payload_tracker());
   } else {
     NL_LOG(WARNING) << __func__ << ": There is no paylaods to send.";
   }

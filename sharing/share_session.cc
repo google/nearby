@@ -117,7 +117,10 @@ void ShareSession::set_disconnect_status(
 
 bool ShareSession::OnConnected(const NearbySharingDecoder& decoder,
                                absl::Time connect_start_time,
+                               NearbyConnectionsManager* connections_manager,
                                NearbyConnection* connection) {
+  NL_DCHECK(connections_manager) << "Connections manager must not be null";
+  connections_manager_ = connections_manager;
   if (!OnNewConnection(connection)) {
     return false;
   }
@@ -175,10 +178,12 @@ void ShareSession::SetAttachmentPayloadId(int64_t attachment_id,
   attachment_payload_map_[attachment_id] = payload_id;
 }
 
-void ShareSession::CancelPayloads(
-    NearbyConnectionsManager& connections_manager) {
+void ShareSession::CancelPayloads() {
+  if (connections_manager_ == nullptr) {
+    return;
+  }
   for (const auto& [attachment_id, payload_id] : attachment_payload_map_) {
-    connections_manager.Cancel(payload_id);
+    connections_manager_->Cancel(payload_id);
   }
 }
 

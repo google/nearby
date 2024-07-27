@@ -597,18 +597,16 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           std::move(status_codes_callback)(StatusCodes::kOk);
           return;
         }
-        if (foreground_receive_callbacks_map_.contains(
-                       transfer_callback) ||
-                   background_receive_callbacks_map_.contains(
-                       transfer_callback)) {
+        if (foreground_receive_callbacks_map_.contains(transfer_callback) ||
+            background_receive_callbacks_map_.contains(transfer_callback)) {
           NL_LOG(ERROR) << __func__
                         << ":  transfer callback already registered but for a "
                            "different state.";
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
-        if (ShouldBlockSurfaceRegistration(
-                       vendor_id, before_registration_vendor_id)) {
+        if (ShouldBlockSurfaceRegistration(vendor_id,
+                                           before_registration_vendor_id)) {
           // Block alternate vendor ID registration.
           NL_LOG(ERROR) << __func__
                         << ":  disallowing registration of a receive surface "
@@ -831,7 +829,7 @@ void NearbySharingServiceImpl::Accept(
         if (incoming_session != nullptr) {
           // Incoming session.
           bool accept_success = incoming_session->AcceptTransfer(
-              context_->GetClock(), *nearby_connections_manager_,
+              context_->GetClock(),
               absl::bind_front(
                   &NearbySharingServiceImpl::OnPayloadTransferUpdate, this));
           std::move(status_codes_callback)(
@@ -940,7 +938,7 @@ void NearbySharingServiceImpl::DoCancel(
   // cancellation signals. Also, note that there might not be any ongoing
   // payload transfer, for example, if a connection has not been established
   // yet.
-  session->CancelPayloads(*nearby_connections_manager_);
+  session->CancelPayloads();
 
   // Inform the user that the transfer has been cancelled before disconnecting
   // because subsequent disconnections might be interpreted as failure.
@@ -1008,8 +1006,8 @@ void NearbySharingServiceImpl::Open(
         NL_LOG(INFO) << __func__ << ": Open is called for share_target: "
                      << share_target.ToString();
         // Log analytics event of opening received attachments.
-        analytics_recorder_->NewOpenReceivedAttachments(
-            *attachment_container, /*session_id=*/0);
+        analytics_recorder_->NewOpenReceivedAttachments(*attachment_container,
+                                                        /*session_id=*/0);
         status_codes_callback(service_extension_->Open(*attachment_container));
       });
 }
@@ -1112,7 +1110,8 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
   session.set_session_id(analytics_recorder_->GenerateNextId());
-  session.OnConnected(*decoder_, context_->GetClock()->Now(), connection);
+  session.OnConnected(*decoder_, context_->GetClock()->Now(),
+                      nearby_connections_manager_.get(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
@@ -2429,7 +2428,8 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     absl::Time connect_start_time, NearbyConnection* connection,
     OutgoingShareSession& session) {
   int64_t share_target_id = session.share_target().id;
-  if (!session.OnConnected(*decoder_, connect_start_time, connection)) {
+  if (!session.OnConnected(*decoder_, connect_start_time,
+                           nearby_connections_manager_.get(), connection)) {
     session.Abort(session.disconnect_status());
     return;
   }
@@ -2722,7 +2722,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
         metadata.in_progress_attachment_total_bytes().has_value() &&
         *metadata.in_progress_attachment_transferred_bytes() ==
             *metadata.in_progress_attachment_total_bytes()) {
-      session.SendNextPayload(*nearby_connections_manager_);
+      session.SendNextPayload();
     }
   }
 
@@ -2788,7 +2788,8 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
       *share_target, endpoint_id, std::move(certificate));
   // Copy session id from placeholder session to actual session.
   session.set_session_id(session_id);
-  session.OnConnected(*decoder_, context_->GetClock()->Now(), connection);
+  session.OnConnected(*decoder_, context_->GetClock()->Now(),
+                      nearby_connections_manager_.get(), connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
@@ -2914,7 +2915,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
           sharing::config_package_nearby::nearby_sharing_feature::
               kUpgradeBandwidthAfterAccept)) {
     if (frame->has_start_transfer() && frame->start_transfer()) {
-      if (session->TryUpgradeBandwidth(*nearby_connections_manager_)) {
+      if (session->TryUpgradeBandwidth()) {
         NL_LOG(INFO)
             << __func__
             << ": Upgrade bandwidth when receiving an introduction frame.";
@@ -2955,7 +2956,7 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
               kEnableTransferCancellationOptimization),
-      context_->GetClock(), *nearby_connections_manager_,
+      context_->GetClock(),
       [this, share_target_id](
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target_id, std::move(frame));
@@ -2984,7 +2985,7 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
   // Don't need to wait for user to accept for Self share.
   NL_LOG(INFO) << __func__ << ": Auto-accepting self share.";
   session.AcceptTransfer(
-      context_->GetClock(), *nearby_connections_manager_,
+      context_->GetClock(),
       absl::bind_front(&NearbySharingServiceImpl::OnPayloadTransferUpdate,
                        this));
   OnTransferStarted(/*is_incoming=*/true);
@@ -3047,8 +3048,7 @@ void NearbySharingServiceImpl::HandleProgressUpdateFrame(
     NL_LOG(ERROR) << "Received ProgressUpdate Frame on unknown session";
     return;
   }
-  session->HandleProgressUpdate(*nearby_connections_manager_,
-                                progress_update_frame);
+  session->HandleProgressUpdate(progress_update_frame);
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(
@@ -3143,11 +3143,11 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
     // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
     // MacOS.
     if (update_file_paths_in_progress_) {
-      incoming_session->UpdateFilePayloadPaths(*nearby_connections_manager_);
+      incoming_session->UpdateFilePayloadPaths();
     }
 
     if (metadata.status() == TransferMetadata::Status::kComplete) {
-      if (!incoming_session->FinalizePayloads(*nearby_connections_manager_)) {
+      if (!incoming_session->FinalizePayloads()) {
         payload_incomplete = true;
       }
 
@@ -3160,7 +3160,7 @@ void NearbySharingServiceImpl::OnPayloadTransferUpdate(
     } else if (metadata.status() == TransferMetadata::Status::kCancelled) {
       NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
       if (!update_file_paths_in_progress_) {
-        incoming_session->UpdateFilePayloadPaths(*nearby_connections_manager_);
+        incoming_session->UpdateFilePayloadPaths();
       }
     }
   }
@@ -3248,8 +3248,7 @@ void NearbySharingServiceImpl::Disconnect(int64_t share_target_id,
   // Disconnect after a timeout to make sure any pending payloads are sent.
   auto timer = std::make_unique<ThreadTimer>(
       *service_thread_, "disconnection_timeout_alarm",
-      kOutgoingDisconnectionDelay,
-      [this, endpoint_id]() {
+      kOutgoingDisconnectionDelay, [this, endpoint_id]() {
         disconnection_timeout_alarms_.erase(endpoint_id);
         nearby_connections_manager_->Disconnect(endpoint_id);
       });

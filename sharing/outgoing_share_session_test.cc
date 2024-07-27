@@ -112,6 +112,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
   MockFunction<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
   OutgoingShareSession session_;
+  FakeNearbyConnectionsManager connections_manager_;
   TextAttachment text1_;
   TextAttachment text2_;
   FileAttachment file1_;
@@ -252,7 +253,8 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionWithoutPayloads) {
 TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
   session_.set_session_id(1234);
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   std::vector<NearbyFileHandler::FileInfo> file_infos;
   file_infos.push_back({
       .size = 12355L,
@@ -325,7 +327,8 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeout) {
   session_.SetAttachmentContainer(std::move(container));
   session_.set_session_id(1234);
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   session_.CreateTextPayloads();
   EXPECT_CALL(
       mock_event_logger_,
@@ -351,7 +354,8 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
   session_.SetAttachmentContainer(std::move(container));
   session_.set_session_id(1234);
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   session_.CreateTextPayloads();
   EXPECT_CALL(
       mock_event_logger_,
@@ -388,7 +392,8 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferNotConnected) {
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
   session_.set_session_id(1234);
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
 
   EXPECT_THAT(
       session_.AcceptTransfer([](std::optional<ConnectionResponseFrame>) {}),
@@ -401,7 +406,8 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   session_.SetAttachmentContainer(std::move(container));
   session_.set_session_id(1234);
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   session_.CreateTextPayloads();
   EXPECT_CALL(mock_event_logger_,
               Log(Matcher<const SharingLog&>(
@@ -492,7 +498,8 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::ACCEPT);
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
@@ -527,8 +534,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
       std::unique_ptr<Payload>,
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
       send_payload_callback;
-  FakeNearbyConnectionsManager connections_manager;
-  connections_manager.set_send_payload_callback(
+  connections_manager_.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
   EXPECT_CALL(send_payload_callback, Call(_, _))
       .WillOnce(Invoke(
@@ -556,12 +562,12 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
                          Property(&SharingLog::send_attachments_start,
                                   HasSessionId(1234)))))));
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
 
   session_.SendPayloads(
       /*enable_transfer_cancellation_optimization=*/
-      false, &fake_clock_, connections_manager,
-      [](std::optional<V1Frame> frame) {},
+      false, &fake_clock_, [](std::optional<V1Frame> frame) {},
       transfer_metadata_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -583,8 +589,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
       std::unique_ptr<Payload>,
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
       send_payload_callback;
-  FakeNearbyConnectionsManager connections_manager;
-  connections_manager.set_send_payload_callback(
+  connections_manager_.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
   EXPECT_CALL(send_payload_callback, Call(_, _))
       .WillOnce(Invoke(
@@ -600,12 +605,12 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
                          Property(&SharingLog::send_attachments_start,
                                   HasSessionId(1234)))))));
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
 
   session_.SendPayloads(
       /*enable_transfer_cancellation_optimization=*/
-      true, &fake_clock_, connections_manager,
-      [](std::optional<V1Frame> frame) {},
+      true, &fake_clock_, [](std::optional<V1Frame> frame) {},
       transfer_metadata_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -627,8 +632,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
       std::unique_ptr<Payload>,
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
       send_payload_callback;
-  FakeNearbyConnectionsManager connections_manager;
-  connections_manager.set_send_payload_callback(
+  connections_manager_.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
@@ -645,12 +649,12 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
                          Property(&SharingLog::send_attachments_start,
                                   HasSessionId(1234)))))));
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
 
   session_.SendPayloads(
       /*enable_transfer_cancellation_optimization=*/
-      true, &fake_clock_, connections_manager,
-      [](std::optional<V1Frame> frame) {},
+      true, &fake_clock_, [](std::optional<V1Frame> frame) {},
       transfer_metadata_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
@@ -660,7 +664,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text1_.id());
           }));
-  session_.SendNextPayload(connections_manager);
+  session_.SendNextPayload();
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
       .WillOnce(Invoke(
@@ -669,12 +673,13 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
           }));
-  session_.SendNextPayload(connections_manager);
+  session_.SendNextPayload();
 }
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   session_.SetTokenForTests("1234");
 
   EXPECT_THAT(
@@ -689,7 +694,8 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   FakeNearbyConnection connection;
-  session_.OnConnected(decoder_, absl::Now(), &connection);
+  session_.OnConnected(decoder_, absl::Now(), &connections_manager_,
+                       &connection);
   session_.SetTokenForTests("1234");
 
   EXPECT_THAT(
