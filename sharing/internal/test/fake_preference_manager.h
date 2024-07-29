@@ -23,8 +23,10 @@
 #include <variant>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -116,36 +118,45 @@ class FakePreferenceManager : public nearby::sharing::api::PreferenceManager {
  private:
   typedef std::variant<bool, int, int64_t, std::string> Data;
 
-  template <typename T> void SetValue(absl::string_view key, T value);
   template <typename T>
-  T GetValue(absl::string_view key, const T& default_value) const;
+  void SetValue(absl::string_view key, T value) ABSL_LOCKS_EXCLUDED(mutex_);
   template <typename T>
-  void SetArray(absl::string_view key, absl::Span<const T> values);
+  T GetValue(absl::string_view key, const T& default_value) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  template <typename T>
+  void SetArray(absl::string_view key, absl::Span<const T> values)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   template <typename T>
   std::vector<T> GetArray(absl::string_view key,
-                          absl::Span<const T> default_value) const;
+                          absl::Span<const T> default_value) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   template <typename T>
   void SetDictionaryValue(absl::string_view key,
-                          absl::string_view dictionary_item, T value);
+                          absl::string_view dictionary_item, T value)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   template <typename T>
   std::optional<T> GetDictionaryValue(absl::string_view key,
-                                      absl::string_view dictionary_item) const;
+                                      absl::string_view dictionary_item) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void NotifyPreferenceChanged(absl::string_view key);
+  void NotifyPreferenceChanged(absl::string_view key)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  absl::flat_hash_map<std::string, Data> values_;
+  mutable absl::Mutex mutex_;
+  absl::flat_hash_map<std::string, Data> values_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, absl::flat_hash_map<std::string, Data>>
-      dictionaries_;
-  absl::flat_hash_map<std::string, std::vector<Data>> arrays_;
+      dictionaries_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, std::vector<Data>> arrays_
+      ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string,
                       std::vector<nearby::sharing::api::PrivateCertificateData>>
-      certs_;
+      certs_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, std::vector<std::pair<std::string, int64_t>>>
-      cert_expirations_;
+      cert_expirations_ ABSL_GUARDED_BY(mutex_);
 
   absl::flat_hash_map<std::string,
                       std::function<void(absl::string_view pref_name)>>
-      observers_;
+      observers_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby
