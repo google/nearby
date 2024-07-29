@@ -449,6 +449,8 @@ class NearbySharingServiceImpl
   void SendInitialAdapterState(NearbySharingService::Observer* observer);
 
   bool OutgoingSessionAccept(OutgoingShareSession& session);
+  void OnIncomingFilesMetadataUpdated(int64_t share_target_id,
+                                      TransferMetadata metadata, bool success);
 
   // Used to run nearby sharing service APIs.
   std::unique_ptr<TaskRunner> service_thread_;

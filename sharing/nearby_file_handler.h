@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/task_runner.h"
 
 namespace nearby {
@@ -49,6 +50,12 @@ class NearbyFileHandler {
 
   void DeleteFilesFromDisk(std::vector<std::filesystem::path> file_paths,
                            DeleteFilesFromDiskCallback callback);
+
+  // On platforms where it is supported, tag the transferred files as
+  // originating from an untrusted source.
+  void UpdateFilesOriginMetadata(
+      std::vector<std::filesystem::path> file_paths,
+      absl::AnyInvocable<void(bool success)> callback);
 
  private:
   std::unique_ptr<TaskRunner> sequenced_task_runner_;

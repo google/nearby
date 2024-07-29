@@ -3126,13 +3126,12 @@ void NearbySharingServiceImpl::IncomingPayloadTransferUpdate(
                      .set_status(TransferMetadata::Status::kIncompletePayloads)
                      .build();
     }
-
-    fast_initiation_scanner_cooldown_timer_ = std::make_unique<ThreadTimer>(
-        *service_thread_, "fast_initiation_scanner_cooldown_timer",
-        kFastInitiationScannerCooldown, [this]() {
-          fast_initiation_scanner_cooldown_timer_.reset();
-          InvalidateFastInitiationScanning();
-        });
+    file_handler_.UpdateFilesOriginMetadata(
+        session->GetPayloadFilePaths(),
+        absl::bind_front(
+            &NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated, this,
+            share_target_id, std::move(metadata)));
+    return;
   } else if (metadata.status() == TransferMetadata::Status::kCancelled) {
     NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
     if (!update_file_paths_in_progress_) {
@@ -3140,6 +3139,39 @@ void NearbySharingServiceImpl::IncomingPayloadTransferUpdate(
     }
   }
 
+  // Make sure to call this before calling Disconnect, or we risk losing some
+  // transfer updates in the receive case due to the Disconnect call cleaning up
+  // share targets.
+  session->UpdateTransferMetadata(metadata);
+
+  if (TransferMetadata::IsFinalStatus(metadata.status())) {
+    // Cancellation has its own disconnection strategy, possibly adding a
+    // delay before disconnection to provide the other party time to process
+    // the cancellation.
+    if (metadata.status() != TransferMetadata::Status::kCancelled) {
+      session->Disconnect();
+    }
+  }
+}
+
+void NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated(
+    int64_t share_target_id, TransferMetadata metadata, bool success) {
+  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
+  if (!session) {
+    // ShareTarget already disconnected.
+    return;
+  }
+  if (!success) {
+    metadata = TransferMetadataBuilder()
+                   .set_status(TransferMetadata::Status::kIncompletePayloads)
+                   .build();
+  }
+  fast_initiation_scanner_cooldown_timer_ = std::make_unique<ThreadTimer>(
+      *service_thread_, "fast_initiation_scanner_cooldown_timer",
+      kFastInitiationScannerCooldown, [this]() {
+        fast_initiation_scanner_cooldown_timer_.reset();
+        InvalidateFastInitiationScanning();
+      });
   // Make sure to call this before calling Disconnect, or we risk losing some
   // transfer updates in the receive case due to the Disconnect call cleaning up
   // share targets.

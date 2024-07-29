@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -96,6 +97,17 @@ void NearbyFileHandler::DeleteFilesFromDisk(
     }
     callback();
   });
+}
+
+void NearbyFileHandler::UpdateFilesOriginMetadata(
+    std::vector<std::filesystem::path> file_paths,
+    absl::AnyInvocable<void(bool success)> callback) {
+  sequenced_task_runner_->PostTask(
+      [callback = std::move(callback),
+       file_paths = std::move(file_paths)]() mutable {
+        // TODO(b/350744369): Implement this.
+        std::move(callback)(true);
+      });
 }
 
 }  // namespace sharing
