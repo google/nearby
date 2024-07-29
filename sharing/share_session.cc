@@ -131,6 +131,14 @@ bool ShareSession::OnConnected(const NearbySharingDecoder& decoder,
   return true;
 }
 
+void ShareSession::Disconnect() {
+  if (connection_ == nullptr) {
+    return;
+  }
+  // Do not clear connection_ here.  It will be cleared in OnDisconnect().
+  connection_->Close();
+}
+
 void ShareSession::Abort(TransferMetadata::Status status) {
   NL_DCHECK(TransferMetadata::IsFinalStatus(status))
       << "Abort should only be called with a final status";

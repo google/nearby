@@ -441,5 +441,29 @@ TEST(ShareSessionTest, AbortConnected) {
   EXPECT_TRUE(disconnected);
 }
 
+TEST(ShareSessionTest, Disconnect) {
+  FakeNearbyConnectionsManager connections_manager;
+  NearbySharingDecoderImpl nearby_sharing_decoder;
+  ShareTarget share_target;
+  TestShareSession session(std::string(kEndpointId), share_target);
+  FakeNearbyConnection connection;
+  bool disconnected = false;
+  connection.SetDisconnectionListener(
+      [&disconnected]() { disconnected = true; });
+  EXPECT_TRUE(session.OnConnected(nearby_sharing_decoder, absl::Now(),
+                                  &connections_manager, &connection));
+
+  session.Disconnect();
+
+  EXPECT_TRUE(disconnected);
+}
+
+TEST(ShareSessionTest, DisconnectNotConnected) {
+  ShareTarget share_target;
+  TestShareSession session(std::string(kEndpointId), share_target);
+
+  session.Disconnect();
+}
+
 }  // namespace
 }  // namespace nearby::sharing

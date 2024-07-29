@@ -144,6 +144,8 @@ class ShareSession {
 
   void SetTokenForTests(std::string token) { token_ = std::move(token); }
 
+  void Disconnect();
+
  protected:
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
