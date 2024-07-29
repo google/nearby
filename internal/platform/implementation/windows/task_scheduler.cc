@@ -20,10 +20,10 @@
 #include <memory>
 #include <utility>
 
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby::windows {
@@ -40,7 +40,8 @@ TaskScheduler::TaskScheduler() {
   NEARBY_LOGS(INFO) << __func__ << ": Created task scheduler: " << this;
 }
 TaskScheduler::~TaskScheduler() {
-  Shutdown();
+  absl::MutexLock lock(&mutex_);
+  ShutdownInternal();
   NEARBY_LOGS(INFO) << __func__ << ": Destroyed task scheduler: " << this;
 }
 
@@ -52,7 +53,7 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
 std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
     Runnable&& runnable, absl::Duration duration,
     absl::Duration repeat_interval) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__
                     << ": Scheduling task on task scheduler:" << this
                     << ", duration: " << absl::ToInt64Milliseconds(duration)
@@ -84,8 +85,52 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
 }
 
 void TaskScheduler::Shutdown() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Shutting down task scheduler:" << this;
+  ShutdownInternal();
+  NEARBY_LOGS(INFO) << __func__ << ": Shut down task scheduler:" << this;
+}
+
+TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
+                                            Runnable&& runnable)
+    : task_scheduler_(&task_scheduler), runnable_(std::move(runnable)) {}
+
+bool TaskScheduler::ScheduledTask::Cancel() {
+  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle_
+                    << " from task scheduler:" << this;
+  return task_scheduler_->RemoveScheduledTask(timer_handle_);
+}
+
+void TaskScheduler::ScheduledTask::SetTimerHandle(intptr_t timer_handle) {
+  timer_handle_ = timer_handle;
+}
+
+Runnable* TaskScheduler::ScheduledTask::runnable() { return &runnable_; }
+
+intptr_t TaskScheduler::ScheduledTask::timer_handle() { return timer_handle_; }
+
+bool TaskScheduler::RemoveScheduledTask(intptr_t timer_handle) {
+  absl::MutexLock lock(&mutex_);
+  auto it = scheduled_tasks_.find(timer_handle);
+  if (it == scheduled_tasks_.end()) {
+    return false;
+  }
+
+  // Wait for running task to finish.
+  if (!DeleteTimerQueueTimer(nullptr, reinterpret_cast<HANDLE>(timer_handle),
+                             INVALID_HANDLE_VALUE)) {
+    if (GetLastError() != ERROR_IO_PENDING) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Failed to delete timer queue timer: "
+                         << timer_handle << " error: " << GetLastError();
+      return false;
+    }
+  }
+
+  scheduled_tasks_.erase(it);
+  return true;
+}
+
+void TaskScheduler::ShutdownInternal() {
   if (is_shutdown_) {
     return;
   }
@@ -104,46 +149,6 @@ void TaskScheduler::Shutdown() {
   }
   scheduled_tasks_.clear();
   is_shutdown_ = true;
-  NEARBY_LOGS(INFO) << __func__ << ": Shut down task scheduler:" << this;
-}
-
-TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
-                                            Runnable&& runnable)
-    : task_scheduler_(&task_scheduler), runnable_(std::move(runnable)) {}
-
-bool TaskScheduler::ScheduledTask::Cancel() {
-  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle_
-                    << " from task scheduler:" << this;
-  return task_scheduler_->remove_scheduled_task(timer_handle_);
-}
-
-void TaskScheduler::ScheduledTask::SetTimerHandle(intptr_t timer_handle) {
-  timer_handle_ = timer_handle;
-}
-
-Runnable* TaskScheduler::ScheduledTask::runnable() { return &runnable_; }
-
-intptr_t TaskScheduler::ScheduledTask::timer_handle() { return timer_handle_; }
-
-bool TaskScheduler::remove_scheduled_task(intptr_t timer_handle) {
-  MutexLock lock(&mutex_);
-  auto it = scheduled_tasks_.find(timer_handle);
-  if (it == scheduled_tasks_.end()) {
-    return false;
-  }
-
-  // Wait for running task to finish.
-  if (!DeleteTimerQueueTimer(nullptr, reinterpret_cast<HANDLE>(timer_handle),
-                             INVALID_HANDLE_VALUE)) {
-    if (GetLastError() != ERROR_IO_PENDING) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to delete timer queue timer: "
-                         << timer_handle << " error: " << GetLastError();
-      return false;
-    }
-  }
-
-  scheduled_tasks_.erase(it);
-  return true;
 }
 
 }  // namespace nearby::windows

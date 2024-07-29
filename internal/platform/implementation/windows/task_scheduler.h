@@ -20,9 +20,9 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby::windows {
@@ -65,9 +65,10 @@ class TaskScheduler {
     intptr_t timer_handle_;
   };
 
-  bool remove_scheduled_task(intptr_t timer_handle) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool RemoveScheduledTask(intptr_t timer_handle) ABSL_LOCKS_EXCLUDED(mutex_);
+  void ShutdownInternal() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   bool is_shutdown_ ABSL_GUARDED_BY(mutex_) = false;
   absl::flat_hash_map<intptr_t, std::shared_ptr<ScheduledTask>> scheduled_tasks_
       ABSL_GUARDED_BY(mutex_);

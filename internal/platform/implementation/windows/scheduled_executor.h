@@ -23,13 +23,13 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/implementation/windows/task_scheduler.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -97,7 +97,7 @@ class ScheduledExecutor : public api::ScheduledExecutor {
     bool is_executed_ = false;
   };
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<nearby::windows::Executor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
   std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_
