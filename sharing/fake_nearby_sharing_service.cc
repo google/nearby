@@ -165,9 +165,6 @@ void FakeNearbySharingService::Open(
   status_codes_callback(StatusCodes::kOk);
 }
 
-// Opens an url target on a browser instance.
-void FakeNearbySharingService::OpenUrl(const ::nearby::network::Url& url) {}
-
 // Copies text to cache/clipboard.
 void FakeNearbySharingService::CopyText(absl::string_view text) {}
 

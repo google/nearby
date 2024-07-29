@@ -20,8 +20,10 @@
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
+#include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -111,9 +113,6 @@ class FakeNearbySharingService : public NearbySharingService {
             std::unique_ptr<AttachmentContainer> attachment_container,
             std::function<void(StatusCodes status_codes)> status_codes_callback)
       override;
-
-  // Opens an url target on a browser instance.
-  void OpenUrl(const ::nearby::network::Url& url) override;
 
   // Copies text to cache/clipboard.
   void CopyText(absl::string_view text) override;

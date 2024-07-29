@@ -999,11 +999,6 @@ void NearbySharingServiceImpl::Open(
       });
 }
 
-void NearbySharingServiceImpl::OpenUrl(const ::nearby::network::Url& url) {
-  RunOnAnyThread("api_open_url",
-                 [this, url]() { service_extension_->OpenUrl(url); });
-}
-
 void NearbySharingServiceImpl::CopyText(absl::string_view text) {
   RunOnAnyThread("api_copy_text", [this, text = std::string(text)]() {
     service_extension_->CopyText(text);

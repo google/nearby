@@ -35,9 +35,6 @@ class NearbySharingServiceExtension {
   // Opens attachments from the remote |share_target|.
   NearbySharingService::StatusCodes Open(const AttachmentContainer& container);
 
-  // Opens an url target on a browser instance.
-  void OpenUrl(const ::nearby::network::Url& url);
-
   // Copies text to cache/clipboard.
   void CopyText(absl::string_view text);
 
@@ -48,6 +45,9 @@ class NearbySharingServiceExtension {
   std::string GetQrCodeUrl() const { return qr_code_url_; }
 
  private:
+  // Opens an url target on a browser instance.
+  void OpenUrl(const ::nearby::network::Url& url);
+
   Context* context_ = nullptr;
   NearbyShareSettings* settings_ = nullptr;
 

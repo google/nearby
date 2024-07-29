@@ -24,7 +24,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/network/url.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
@@ -240,9 +239,6 @@ class NearbySharingService {
       ShareTarget share_target,
       std::unique_ptr<AttachmentContainer> attachment_container,
       std::function<void(StatusCodes status_codes)> status_codes_callback) = 0;
-
-  // Opens an url target on a browser instance.
-  virtual void OpenUrl(const ::nearby::network::Url& url) = 0;
 
   // Copies text to cache/clipboard.
   virtual void CopyText(absl::string_view text) = 0;

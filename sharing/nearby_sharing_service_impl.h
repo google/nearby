@@ -36,7 +36,6 @@
 #include "absl/types/span.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/base/observer_list.h"
-#include "internal/network/url.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
@@ -170,7 +169,6 @@ class NearbySharingServiceImpl
             std::unique_ptr<AttachmentContainer> attachment_container,
             std::function<void(StatusCodes status_codes)> status_codes_callback)
       override;
-  void OpenUrl(const ::nearby::network::Url& url) override;
   void CopyText(absl::string_view text) override;
   void JoinWifiNetwork(absl::string_view ssid,
                        absl::string_view password) override;
