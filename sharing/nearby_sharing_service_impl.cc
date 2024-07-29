@@ -696,25 +696,11 @@ void NearbySharingServiceImpl::ClearForegroundReceiveSurfaces(
       });
 }
 
-bool NearbySharingServiceImpl::IsInHighVisibility() const {
-  return in_high_visibility_;
-}
-
 bool NearbySharingServiceImpl::IsTransferring() const {
   return is_transferring_;
 }
 
-bool NearbySharingServiceImpl::IsReceivingFile() const {
-  return is_receiving_files_;
-}
-
-bool NearbySharingServiceImpl::IsSendingFile() const {
-  return is_sending_files_;
-}
-
 bool NearbySharingServiceImpl::IsScanning() const { return is_scanning_; }
-
-bool NearbySharingServiceImpl::IsConnecting() const { return is_connecting_; }
 
 std::string NearbySharingServiceImpl::GetQrCodeUrl() const {
   return service_extension_->GetQrCodeUrl();
@@ -1230,10 +1216,10 @@ std::string NearbySharingServiceImpl::Dump() const {
   sstream << std::boolalpha;
   sstream << "Nearby Sharing Service State" << std::endl;
   sstream << "  IsScanning: " << IsScanning() << std::endl;
-  sstream << "  IsConnecting: " << IsConnecting() << std::endl;
-  sstream << "  IsTransferring: " << IsTransferring() << std::endl;
-  sstream << "  IsSendingFile: " << IsSendingFile() << std::endl;
-  sstream << "  IsReceivingFile: " << IsReceivingFile() << std::endl;
+  sstream << "  IsConnecting: " << is_connecting_ << std::endl;
+  sstream << "  IsTransferring: " << is_transferring_ << std::endl;
+  sstream << "  IsSendingFile: " << is_sending_files_ << std::endl;
+  sstream << "  IsReceivingFile: " << is_receiving_files_ << std::endl;
 
   sstream << "  IsScreenLocked: " << device_info_.IsScreenLocked() << std::endl;
   sstream << "  IsBluetoothPresent: " << IsBluetoothPresent() << std::endl;

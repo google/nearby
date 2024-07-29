@@ -115,21 +115,8 @@ void FakeNearbySharingService::ClearForegroundReceiveSurfaces(
   status_codes_callback(StatusCodes::kOk);
 }
 
-// Returns true if a foreground receive surface is registered.
-bool FakeNearbySharingService::IsInHighVisibility() const { return false; }
-
 // Returns true if there is an ongoing file transfer.
 bool FakeNearbySharingService::IsTransferring() const { return false; }
-
-// Returns true if we're currently receiving a file.
-bool FakeNearbySharingService::IsReceivingFile() const { return false; }
-
-// Returns true if we're currently sending a file.
-bool FakeNearbySharingService::IsSendingFile() const { return false; }
-
-// Returns true if we're currently attempting to connect to a
-// remote device.
-bool FakeNearbySharingService::IsConnecting() const { return false; }
 
 // Returns true if we are currently scanning for remote devices.
 bool FakeNearbySharingService::IsScanning() const { return false; }

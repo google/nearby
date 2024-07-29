@@ -75,21 +75,8 @@ class FakeNearbySharingService : public NearbySharingService {
   void ClearForegroundReceiveSurfaces(
       std::function<void(StatusCodes)> status_codes_callback) override;
 
-  // Returns true if a foreground receive surface is registered.
-  bool IsInHighVisibility() const override;
-
   // Returns true if there is an ongoing file transfer.
   bool IsTransferring() const override;
-
-  // Returns true if we're currently receiving a file.
-  bool IsReceivingFile() const override;
-
-  // Returns true if we're currently sending a file.
-  bool IsSendingFile() const override;
-
-  // Returns true if we're currently attempting to connect to a
-  // remote device.
-  bool IsConnecting() const override;
 
   // Returns true if we are currently scanning for remote devices.
   bool IsScanning() const override;

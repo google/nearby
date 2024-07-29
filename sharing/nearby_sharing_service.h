@@ -20,8 +20,10 @@
 #include <memory>
 #include <string>
 
+#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/network/url.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
@@ -179,21 +181,8 @@ class NearbySharingService {
   virtual void ClearForegroundReceiveSurfaces(
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
-  // Returns true if a foreground receive surface is registered.
-  virtual bool IsInHighVisibility() const = 0;
-
   // Returns true if there is an ongoing file transfer.
   virtual bool IsTransferring() const = 0;
-
-  // Returns true if we're currently receiving a file.
-  virtual bool IsReceivingFile() const = 0;
-
-  // Returns true if we're currently sending a file.
-  virtual bool IsSendingFile() const = 0;
-
-  // Returns true if we're currently attempting to connect to a
-  // remote device.
-  virtual bool IsConnecting() const = 0;
 
   // Returns true if we are currently scanning for remote devices.
   virtual bool IsScanning() const = 0;

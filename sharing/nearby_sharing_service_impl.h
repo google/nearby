@@ -143,12 +143,8 @@ class NearbySharingServiceImpl
       std::function<void(StatusCodes)> status_codes_callback) override;
   void ClearForegroundReceiveSurfaces(
       std::function<void(StatusCodes)> status_codes_callback) override;
-  bool IsInHighVisibility() const override;
   bool IsTransferring() const override;
-  bool IsReceivingFile() const override;
-  bool IsSendingFile() const override;
   bool IsScanning() const override;
-  bool IsConnecting() const override;
   bool IsBluetoothPresent() const override;
   bool IsBluetoothPowered() const override;
   bool IsExtendedAdvertisingSupported() const override;
