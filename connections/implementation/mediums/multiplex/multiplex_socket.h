@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/multiplex/multiplex_output_stream.h"
@@ -27,6 +28,7 @@
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -213,6 +215,7 @@ class MultiplexSocket {
 
   // If the socket is already shutdown and no longer in use.
   bool is_shutdown_ = false;
+  std::unique_ptr<CountDownLatch> reader_thread_shutdown_barrier_;
 };
 
 }  // namespace multiplex

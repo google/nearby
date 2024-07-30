@@ -88,6 +88,9 @@ class FakeSocket : public MediumSocket {
     writer_2_ = std::move(pipe_2_.second);
   }
 
+  bool IsFakeSocket() override{
+    return true;
+  }
   InputStream& GetInputStream() override { return *reader_1_; }
   OutputStream& GetOutputStream() override { return *writer_2_; }
   Exception Close() override {
@@ -198,6 +201,8 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   absl::SleepFor(absl::Milliseconds(100));
   fake_socket.reader_1_->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 1);
+  virtual_socket->Close();
+  EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 0);
 }
 
 TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
@@ -368,6 +373,10 @@ TEST(MultiplexSocketTest,
 
   fake_socket.reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 2);
+  multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2))->Close();
+  EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
+  multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_1))->Close();
+  EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
 }
 
 }  // namespace multiplex

@@ -77,6 +77,11 @@ class MediumSocket : public Socket {
     return false;
   }
 
+  /** Returns true if the socket is a Fake socket for unit test. */
+  virtual bool IsFakeSocket() {
+    return false;
+  }
+
   /** Adds a listener to be invoked when the socket is closed. */
   void AddOnSocketClosedListener(
       std::unique_ptr<absl::AnyInvocable<void()>> socket_closed_listener) {

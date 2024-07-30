@@ -51,6 +51,10 @@ namespace {
 // without getting salt from it yet. The fake salt reminds sender to get the
 // correct socket from `virtualSockets` without remapping it.
 constexpr absl::string_view kFakeSalt = "RECEIVER_CONDIMENT";
+
+// The max duration to wait for the reader thread to stop.
+constexpr absl::Duration kTimeoutForReaderThreadStop = absl::Milliseconds(100);
+
 }  // namespace
 
 using ::location::nearby::mediums::ConnectionResponseFrame;
@@ -79,6 +83,9 @@ MultiplexSocket::MultiplexSocket(MediumSocket* physical_socket)
     : physical_socket_(physical_socket),
       multiplex_output_stream_{&physical_socket->GetOutputStream(), enabled_},
       physical_reader_(&physical_socket->GetInputStream()) {
+  if (physical_socket->IsFakeSocket()) {
+    return;
+  }
   NEARBY_LOGS(INFO) << "physical_socket_: " << physical_socket_;
   switch (physical_socket_->GetMedium()) {
     case Medium::BLUETOOTH:
@@ -348,6 +355,7 @@ void MultiplexSocket::StartReaderThread() {
                             "shutdown.";
     return;
   }
+  reader_thread_shutdown_barrier_ = std::make_unique<CountDownLatch>(1);
   physical_reader_thread_.Execute([this]() {
     NEARBY_LOGS(INFO) << __func__ << " Reader thread starts.";
     while (!is_shutdown_) {
@@ -382,6 +390,7 @@ void MultiplexSocket::StartReaderThread() {
         }
       }
       if (fail) {
+        reader_thread_shutdown_barrier_->CountDown();
         return;
       }
 
@@ -660,7 +669,7 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
           NEARBY_LOGS(INFO) << "Close the physical socket because all virtual "
                                "sockets disconnected.";
           Shutdown();
-          shutdown = true;
+          // shutdown = true;
         }
       } else {
         NEARBY_LOGS(INFO) << "Virtual socket(" << service_id
@@ -673,6 +682,7 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
   if (!latch.Await(absl::Milliseconds(1000)).result()) {
     NEARBY_LOGS(ERROR) << "Timeout to close virtual socket";
   }
+
   if (shutdown) {
     NEARBY_LOGS(INFO)
         << "Shutdown single_thread_offloader_ and physical_reader_thread_";
@@ -732,26 +742,23 @@ void MultiplexSocket::Shutdown() {
     NEARBY_LOGS(INFO) << __func__ << " Already shutdown";
     return;
   }
-  {
-    // MutexLock lock(&virtual_socket_mutex_);
-    for (auto& [hash_key, virtual_socket] : virtual_sockets_) {
-      if (virtual_socket != nullptr) {
-        virtual_socket->Close();
-      }
-    }
-    virtual_sockets_.clear();
-  }
 
   multiplex_output_stream_.Shutdown();
-  switch (medium_) {
-    case Medium::BLUETOOTH:
-      bluetooth_socket_.Close();
-      break;
-    case Medium::UNKNOWN_MEDIUM:
-      NEARBY_LOGS(INFO) << __func__ << " Unknown medium";
-      break;
-    default:
-      break;
+
+  if (!physical_socket_->IsFakeSocket()) {
+    switch (medium_) {
+      case Medium::BLUETOOTH:
+        bluetooth_socket_.Close();
+        break;
+      case Medium::UNKNOWN_MEDIUM:
+        NEARBY_LOGS(INFO) << __func__ << " Unknown medium";
+        break;
+      default:
+        break;
+    }
+  }
+  if (reader_thread_shutdown_barrier_) {
+    reader_thread_shutdown_barrier_->Await(kTimeoutForReaderThreadStop);
   }
 
   GetIncomingConnectionCallbacks().clear();
