@@ -23,7 +23,6 @@ cc_library(
         "//fastpair:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/experiments:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
     ],
     deps = [
