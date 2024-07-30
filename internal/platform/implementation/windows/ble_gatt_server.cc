@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
@@ -116,7 +117,9 @@ BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
                              api::ble_v2::ServerGattConnectionCallback callback)
     : adapter_(dynamic_cast<BluetoothAdapter*>(adapter)),
       peripheral_(adapter_->GetMacAddress()),
-      gatt_connection_callback_(std::move(callback)) {}
+      gatt_connection_callback_(std::move(callback)) {
+  DCHECK(adapter_ != nullptr);
+}
 
 absl::optional<api::ble_v2::GattCharacteristic>
 BleGattServer::CreateCharacteristic(
@@ -204,28 +207,35 @@ absl::Status BleGattServer::NotifyCharacteristicChanged(
 }
 
 void BleGattServer::Stop() {
-  absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start to stop GATT server.";
-  try {
-    if (gatt_service_provider_ == nullptr) {
-      NEARBY_LOGS(WARNING) << __func__ << ": GATT server already stopped.";
-      return;
-    }
+  absl::AnyInvocable<void()> close_notifier = nullptr;
+  {
+    absl::MutexLock lock(&mutex_);
+    NEARBY_LOGS(VERBOSE) << __func__ << ": Start to stop GATT server.";
+    if (gatt_service_provider_ != nullptr) {
+      try {
+        if (is_advertising_) {
+          gatt_service_provider_.StopAdvertising();
+        }
 
-    if (is_advertising_) {
-      gatt_service_provider_.StopAdvertising();
+        gatt_characteristic_datas_.clear();
+        service_uuid_ = Uuid();
+        gatt_service_provider_ = nullptr;
+      } catch (std::exception exception) {
+        NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+      } catch (const winrt::hresult_error& error) {
+        NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                           << ": " << winrt::to_string(error.message());
+      } catch (...) {
+        NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+      }
+    } else {
+      NEARBY_LOGS(WARNING) << __func__ << ": no GATT server is running.";
     }
+    close_notifier = std::move(close_notifier_);
+  }
 
-    gatt_characteristic_datas_.clear();
-    service_uuid_ = Uuid();
-    gatt_service_provider_ = nullptr;
-  } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+  if (close_notifier != nullptr) {
+    close_notifier();
   }
 }
 
@@ -249,6 +259,14 @@ bool BleGattServer::InitializeGattServer() {
       NEARBY_LOGS(ERROR) << __func__
                          << ": Bluetooth adapter does not support BLE, which "
                             "is needed to start GATT server.";
+      return false;
+    }
+
+    if (!adapter_->IsPeripheralRoleSupported()) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ": Bluetooth Hardware does not support Peripheral Role, which is "
+             "required to start GATT server.";
       return false;
     }
 
@@ -416,14 +434,6 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
       return false;
     }
 
-    if (!adapter_->IsPeripheralRoleSupported()) {
-      NEARBY_LOGS(ERROR)
-          << __func__
-          << ": Bluetooth Hardware does not support Peripheral Role, which is "
-             "required to start GATT server.";
-      return false;
-    }
-
     // Start the GATT server advertising
     GattServiceProviderAdvertisingParameters advertisement_parameters;
     advertisement_parameters.IsConnectable(is_connectable);
@@ -512,6 +522,11 @@ bool BleGattServer::StopAdvertisement() {
   }
 
   return false;
+}
+
+void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+  absl::MutexLock lock(&mutex_);
+  close_notifier_ = std::move(notifier);
 }
 
 ::winrt::fire_and_forget BleGattServer::Characteristic_ReadRequestedAsync(

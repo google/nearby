@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <iostream>
@@ -29,6 +30,7 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -320,6 +322,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleV2Medium::ScanningCallback callback) {
+  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__
                     << ": service UUID: " << std::string(service_uuid)
                     << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
@@ -371,16 +374,12 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
   }
   uint64_t session_id = GenerateSessionId();
 
-  // Save session id, service id and callback for this scan session.
-  {
-    absl::MutexLock lock(&map_mutex_);
-    auto iter = service_uuid_to_session_map_.find(service_uuid);
-    if (iter == service_uuid_to_session_map_.end()) {
-      service_uuid_to_session_map_[service_uuid].insert(
-          {session_id, std::move(callback)});
-    } else {
-      iter->second.insert({session_id, std::move(callback)});
-    }
+  auto iter = service_uuid_to_session_map_.find(service_uuid);
+  if (iter == service_uuid_to_session_map_.end()) {
+    service_uuid_to_session_map_[service_uuid].insert(
+        {session_id, std::move(callback)});
+  } else {
+    iter->second.insert({session_id, std::move(callback)});
   }
 
   // Generate and return ScanningSession.
@@ -390,7 +389,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
               [this, session_id, service_uuid]() {
                 size_t num_erased_from_service_and_session_map = 0u;
                 {
-                  absl::MutexLock lock(&map_mutex_);
+                  absl::MutexLock lock(&mutex_);
                   auto iter = service_uuid_to_session_map_.find(service_uuid);
                   if (iter != service_uuid_to_session_map_.end()) {
                     num_erased_from_service_and_session_map =
@@ -462,6 +461,14 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
       std::make_unique<BleGattServer>(adapter_, std::move(callback));
 
   ble_gatt_server_ = gatt_server.get();
+  ble_gatt_server_->SetCloseNotifier([this]() {
+    // In avoid to create a new thread to close the gatt server, we don't
+    // acquire the mutex here. The calling flow may cause deadlock due to
+    // StartGattAdvertising may run into the codes. It is not ideal, but it is
+    // hard to run in thread issues.
+    NEARBY_LOGS(INFO) << __func__ << ": GATT server is closed.";
+    ble_gatt_server_ = nullptr;
+  });
 
   return gatt_server;
 }
@@ -937,13 +944,13 @@ void BleV2Medium::PublisherHandler(
     case BluetoothLEAdvertisementPublisherStatus::Aborted:
       switch (args.Error()) {
         case BluetoothError::Success:
-          if (publisher_.Status() ==
+          if (publisher.Status() ==
               BluetoothLEAdvertisementPublisherStatus::Started) {
             NEARBY_LOGS(ERROR)
                 << "Nearby BLE Medium start advertising operation was "
                    "successfully completed or serviced.";
           }
-          if (publisher_.Status() ==
+          if (publisher.Status() ==
               BluetoothLEAdvertisementPublisherStatus::Stopped) {
             NEARBY_LOGS(ERROR)
                 << "Nearby BLE Medium stop advertising operation was "
@@ -1088,12 +1095,15 @@ void BleV2Medium::AdvertisementReceivedHandler(
 
       std::string bluetooth_address =
           uint64_to_mac_address_string(args.BluetoothAddress());
-      BleV2Peripheral* peripheral_ptr =
-          GetOrCreatePeripheral(bluetooth_address);
-      if (peripheral_ptr == nullptr) {
-        NEARBY_LOGS(ERROR) << "No BLE peripheral with address: "
-                           << bluetooth_address;
-        return;
+      BleV2Peripheral* peripheral_ptr = nullptr;
+      {
+        absl::MutexLock lock(&mutex_);
+        peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
+        if (peripheral_ptr == nullptr) {
+          NEARBY_LOGS(ERROR)
+              << "No BLE peripheral with address: " << bluetooth_address;
+          return;
+        }
       }
       NEARBY_LOGS(INFO) << "BLE peripheral with address: " << bluetooth_address;
 
@@ -1123,7 +1133,7 @@ void BleV2Medium::AdvertisementFoundHandler(
   std::vector<Uuid> service_uuid_list;
   bool found_matching_service_uuid = false;
   {
-    absl::MutexLock lock(&map_mutex_);
+    absl::MutexLock lock(&mutex_);
     for (auto windows_service_uuid : advertisement.ServiceUuids()) {
       auto nearby_service_uuid =
           winrt_guid_to_nearby_uuid(windows_service_uuid);
@@ -1176,18 +1186,22 @@ void BleV2Medium::AdvertisementFoundHandler(
   // Save the BleV2Peripheral.
   std::string bluetooth_address =
       uint64_to_mac_address_string(args.BluetoothAddress());
-  BleV2Peripheral* peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-  if (peripheral_ptr == nullptr) {
-    NEARBY_LOGS(ERROR) << "No BLE peripheral with address: "
-                       << bluetooth_address;
-    return;
+  BleV2Peripheral* peripheral_ptr = nullptr;
+  {
+    absl::MutexLock lock(&mutex_);
+    peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
+    if (peripheral_ptr == nullptr) {
+      NEARBY_LOGS(ERROR) << "No BLE peripheral with address: "
+                         << bluetooth_address;
+      return;
+    }
   }
   NEARBY_LOGS(INFO) << "BLE peripheral with address: " << bluetooth_address;
 
   // Invokes callbacks that matches the UUID.
   for (auto service_uuid : service_uuid_list) {
     {
-      absl::MutexLock lock(&map_mutex_);
+      absl::MutexLock lock(&mutex_);
       if (service_uuid_to_session_map_.find(service_uuid) !=
           service_uuid_to_session_map_.end()) {
         for (auto& id_session_pair :
@@ -1202,6 +1216,7 @@ void BleV2Medium::AdvertisementFoundHandler(
 
 bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
                                       GetRemotePeripheralCallback callback) {
+  absl::MutexLock lock(&mutex_);
   BleV2Peripheral* peripheral = GetOrCreatePeripheral(mac_address);
   if (peripheral != nullptr && peripheral->Ok()) {
     callback(*peripheral);
@@ -1212,6 +1227,7 @@ bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
 
 bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                                       GetRemotePeripheralCallback callback) {
+  absl::MutexLock lock(&mutex_);
   BleV2Peripheral* peripheral = GetPeripheral(id);
   if (peripheral == nullptr) {
     NEARBY_LOGS(WARNING) << __func__ << ": No matched peripheral device.";
@@ -1222,7 +1238,6 @@ bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
 }
 
 uint64_t BleV2Medium::GenerateSessionId() {
-  absl::MutexLock lock(&map_mutex_);
   for (int i = 0; i < kGenerateSessionIdRetryLimit; i++) {
     uint64_t session_id = Prng().NextInt64();
     if (session_id == kFailedGenerateSessionId) continue;
@@ -1235,7 +1250,6 @@ uint64_t BleV2Medium::GenerateSessionId() {
 }
 
 BleV2Peripheral* BleV2Medium::GetOrCreatePeripheral(absl::string_view address) {
-  absl::MutexLock lock(&peripheral_map_mutex_);
   auto it = std::find_if(
       peripheral_map_.begin(), peripheral_map_.end(), [&](const auto& item) {
         return item.second.peripheral->GetAddress() == address;
@@ -1261,7 +1275,6 @@ BleV2Peripheral* BleV2Medium::GetOrCreatePeripheral(absl::string_view address) {
 }
 
 BleV2Peripheral* BleV2Medium::GetPeripheral(BleV2Peripheral::UniqueId id) {
-  absl::MutexLock lock(&peripheral_map_mutex_);
   auto it = peripheral_map_.find(id);
   if (it == peripheral_map_.end()) {
     return nullptr;
