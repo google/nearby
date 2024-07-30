@@ -1503,7 +1503,7 @@ BlockedVendorId NearbySharingServiceImpl::GetReceivingVendorId() const {
                    [](const auto& receive_callback) {
                      return receive_callback.second != BlockedVendorId::kNone;
                    });
-  if (bg_vendor_it != foreground_receive_callbacks_map_.end()) {
+  if (bg_vendor_it != background_receive_callbacks_map_.end()) {
     return bg_vendor_it->second;
   }
   return BlockedVendorId::kNone;
