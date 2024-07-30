@@ -210,6 +210,7 @@ cc_library(
         "//sharing/analytics",
         "//sharing/certificates",
         "//sharing/common:compatible_u8_string",
+        "//sharing/internal/api:platform",
         "//sharing/internal/public:logging",
         "//sharing/proto:wire_format_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -604,6 +605,7 @@ cc_test(
         ":share_session",
         "//internal/base:files",
         "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//sharing/internal/api:mock_sharing_platform",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",

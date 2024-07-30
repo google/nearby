@@ -29,11 +29,14 @@
 #include "internal/base/files.h"
 #include "internal/platform/task_runner_impl.h"
 #include "sharing/common/compatible_u8_string.h"
+#include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
+
+using ::nearby::sharing::api::SharingPlatform;
 
 // Called on the FileTaskRunner to actually open the files passed.
 std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
@@ -53,7 +56,8 @@ std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
 
 }  // namespace
 
-NearbyFileHandler::NearbyFileHandler() {
+NearbyFileHandler::NearbyFileHandler(SharingPlatform& platform)
+    : platform_(platform) {
   sequenced_task_runner_ = std::make_unique<TaskRunnerImpl>(1);
 }
 
@@ -103,10 +107,9 @@ void NearbyFileHandler::UpdateFilesOriginMetadata(
     std::vector<std::filesystem::path> file_paths,
     absl::AnyInvocable<void(bool success)> callback) {
   sequenced_task_runner_->PostTask(
-      [callback = std::move(callback),
+      [this, callback = std::move(callback),
        file_paths = std::move(file_paths)]() mutable {
-        // TODO(b/350744369): Implement this.
-        std::move(callback)(true);
+        std::move(callback)(platform_.UpdateFileOriginMetadata(file_paths));
       });
 }
 

@@ -15,8 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_MOCK_SHARING_PLATFORM_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_MOCK_SHARING_PLATFORM_H_
 
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "absl/status/status.h"
@@ -101,6 +103,8 @@ class MockSharingPlatform : public SharingPlatform {
               (nearby::sharing::analytics::AnalyticsRecorder *
                analytics_recorder),
               (override));
+  MOCK_METHOD(bool, UpdateFileOriginMetadata, (
+      std::vector<std::filesystem::path>& file_paths), (override));
 };
 
 }  // namespace nearby::sharing::api

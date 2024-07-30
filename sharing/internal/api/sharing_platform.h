@@ -15,8 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_SHARING_PLATFORM_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_SHARING_PLATFORM_H_
 
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
@@ -96,6 +98,12 @@ class SharingPlatform {
   virtual std::unique_ptr<SharingRpcClientFactory>
   CreateSharingRpcClientFactory(
       nearby::sharing::analytics::AnalyticsRecorder* analytics_recorder) = 0;
+
+  // On platforms where it is supported, tag the transferred files as
+  // originating from an untrusted source.
+  // Returns true on success.
+  virtual bool UpdateFileOriginMetadata(
+      std::vector<std::filesystem::path>& file_paths) = 0;
 };
 }  // namespace nearby::sharing::api
 

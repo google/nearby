@@ -24,10 +24,12 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/base/files.h"
+#include "sharing/internal/api/mock_sharing_platform.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
+using ::nearby::sharing::api::MockSharingPlatform;
 
 bool CreateFile(std::filesystem::path file_path) {
   std::FILE* file = std::fopen(file_path.string().c_str(), "w+");
@@ -39,7 +41,8 @@ bool CreateFile(std::filesystem::path file_path) {
 }
 
 TEST(NearbyFileHandler, OpenFiles) {
-  NearbyFileHandler nearby_file_handler;
+  MockSharingPlatform mock_platform;
+  NearbyFileHandler nearby_file_handler(mock_platform);
   absl::Notification notification;
   std::vector<NearbyFileHandler::FileInfo> result;
   std::filesystem::path test_file =
@@ -59,7 +62,8 @@ TEST(NearbyFileHandler, OpenFiles) {
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
-  NearbyFileHandler nearby_file_handler;
+  MockSharingPlatform mock_platform;
+  NearbyFileHandler nearby_file_handler(mock_platform);
   std::filesystem::path test_file =
       std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
   ASSERT_TRUE(CreateFile(test_file));
@@ -72,7 +76,8 @@ TEST(NearbyFileHandler, DeleteAFileFromDisk) {
 }
 
 TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
-  NearbyFileHandler nearby_file_handler;
+  MockSharingPlatform mock_platform;
+  NearbyFileHandler nearby_file_handler(mock_platform);
   std::filesystem::path test_file =
       std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
   std::filesystem::path test_file2 =
@@ -93,8 +98,9 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
 }
 
 TEST(NearbyFileHandler, TestCallback) {
+  MockSharingPlatform mock_platform;
   std::atomic_bool received_callback = false;
-  NearbyFileHandler nearby_file_handler;
+  NearbyFileHandler nearby_file_handler(mock_platform);
   std::filesystem::path test_file =
       std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
   ASSERT_TRUE(CreateFile(test_file));

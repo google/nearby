@@ -226,6 +226,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           local_device_data_manager_.get(), analytics_recorder_.get())),
       service_extension_(std::make_unique<NearbySharingServiceExtension>(
           context_, settings_.get())),
+      file_handler_(sharing_platform),
       app_info_(sharing_platform.CreateAppInfo()) {
   NL_DCHECK(decoder_);
   NL_DCHECK(nearby_connections_manager_);
