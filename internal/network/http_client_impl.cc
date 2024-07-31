@@ -23,11 +23,13 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 #include "internal/network/debug.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
 #include "internal/network/http_status_code.h"
 #include "internal/platform/implementation/http_loader.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
@@ -37,13 +39,16 @@ namespace network {
 
 void NearbyHttpClient::StartRequest(
     const HttpRequest& request,
+    absl::Duration connection_timeout,
     absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
   MutexLock lock(&mutex_);
   executor_.Execute(
-      [request = std::move(request), callback = std::move(callback)]() mutable {
+      [request = std::move(request), connection_timeout,
+       callback = std::move(callback)]() mutable {
         NEARBY_LOGS(INFO) << __func__ << ": Start async request to url="
                           << request.GetUrl().GetUrlPath();
-        absl::StatusOr<HttpResponse> response = InternalGetResponse(request);
+        absl::StatusOr<HttpResponse> response =
+            InternalGetResponse(request, connection_timeout);
         if (response.ok()) {
           NEARBY_LOGS(INFO)
               << __func__
@@ -64,6 +69,7 @@ void NearbyHttpClient::StartRequest(
 
 void NearbyHttpClient::StartCancellableRequest(
     std::unique_ptr<CancellableRequest> cancellable_request,
+    absl::Duration connection_timeout,
     absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
   MutexLock lock(&mutex_);
   if (cancellable_request == nullptr) {
@@ -74,7 +80,7 @@ void NearbyHttpClient::StartCancellableRequest(
   executor_
       .Execute(
           [cancellable_request = std::move(cancellable_request),
-           callback = std::move(callback)]() mutable {
+           connection_timeout, callback = std::move(callback)]() mutable {
             NEARBY_LOGS(INFO)
                 << __func__ << ": Start async request to url="
                 << cancellable_request->http_request().GetUrl().GetUrlPath();
@@ -85,8 +91,8 @@ void NearbyHttpClient::StartCancellableRequest(
                   << " is cancelled.";
               return;
             }
-            absl::StatusOr<HttpResponse> response =
-                InternalGetResponse(cancellable_request->http_request());
+            absl::StatusOr<HttpResponse> response = InternalGetResponse(
+                cancellable_request->http_request(), connection_timeout);
             if (response.ok()) {
               NEARBY_LOGS(INFO)
                   << __func__ << ": Got response from url="
@@ -116,11 +122,12 @@ void NearbyHttpClient::StartCancellableRequest(
 }
 
 absl::StatusOr<HttpResponse> NearbyHttpClient::GetResponse(
-    const HttpRequest& request) {
+    const HttpRequest& request, absl::Duration connection_timeout) {
   NEARBY_LOGS(INFO) << __func__ << ": Start request to url="
                     << request.GetUrl().GetUrlPath();
 
-  absl::StatusOr<HttpResponse> response = InternalGetResponse(request);
+  absl::StatusOr<HttpResponse> response =
+      InternalGetResponse(request, connection_timeout);
   if (response.ok()) {
     NEARBY_LOGS(INFO) << __func__ << ": Got response from url="
                       << request.GetUrl().GetUrlPath();
@@ -134,7 +141,7 @@ absl::StatusOr<HttpResponse> NearbyHttpClient::GetResponse(
 }
 
 absl::StatusOr<HttpResponse> NearbyHttpClient::InternalGetResponse(
-    const HttpRequest& request) {
+    const HttpRequest& request, absl::Duration connection_timeout) {
   api::WebRequest web_request;
   web_request.url = request.GetUrl().GetUrlPath();
   web_request.method = absl::StrCat(request.GetMethodString());
@@ -159,7 +166,7 @@ absl::StatusOr<HttpResponse> NearbyHttpClient::InternalGetResponse(
   }
 
   absl::StatusOr<api::WebResponse> web_response =
-      api::ImplementationPlatform::SendRequest(web_request);
+      api::ImplementationPlatform::SendRequest(web_request, connection_timeout);
 
   if (!web_response.ok()) {
     return web_response.status();

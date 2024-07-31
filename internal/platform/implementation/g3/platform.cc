@@ -14,12 +14,10 @@
 
 #include "internal/platform/implementation/platform.h"
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
 
-#include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -29,6 +27,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
+#include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/preferences_manager.h"
@@ -208,7 +207,7 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
 #endif
 
 absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
-    const api::WebRequest& request) {
+    const api::WebRequest& request, absl::Duration connection_timeout) {
   return absl::UnimplementedError("");
 }
 

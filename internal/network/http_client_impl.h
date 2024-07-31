@@ -15,12 +15,15 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_IMPL_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_IMPL_H_
 
-#include <functional>
 #include <memory>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
+#include "absl/time/time.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
+#include "internal/network/http_response.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -39,20 +42,23 @@ class NearbyHttpClient : public HttpClient {
 
   void StartRequest(
       const HttpRequest& request,
+      absl::Duration connection_timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override ABSL_LOCKS_EXCLUDED(mutex_);
 
   void StartCancellableRequest(
       std::unique_ptr<CancellableRequest> request,
+      absl::Duration connection_timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets HTTP response in synchronization mode.
-  absl::StatusOr<HttpResponse> GetResponse(const HttpRequest& request) override;
+  absl::StatusOr<HttpResponse> GetResponse(
+      const HttpRequest& request, absl::Duration connection_timeout) override;
 
  private:
   static absl::StatusOr<HttpResponse> InternalGetResponse(
-      const HttpRequest& request);
+      const HttpRequest& request, absl::Duration connection_timeout);
 
   Mutex mutex_;
   SingleThreadExecutor executor_;

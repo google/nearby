@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
 #include "internal/platform/implementation/apple/ble.h"
@@ -195,7 +196,8 @@ std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { return nullptr; }
 #endif
 
-absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest& requestInfo) {
+absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
+    const WebRequest& requestInfo, absl::Duration connection_timeout) {
   NSURL* url = [NSURL URLWithString:@(requestInfo.url.c_str())];
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url];
   [request setHTTPMethod:@(requestInfo.method.c_str())];

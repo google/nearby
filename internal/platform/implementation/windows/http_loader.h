@@ -23,6 +23,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/http_loader.h"
 
 namespace nearby {
@@ -38,7 +39,8 @@ class HttpLoader {
       : request_(request) {}
   ~HttpLoader() = default;
 
-  absl::StatusOr<nearby::api::WebResponse> GetResponse();
+  absl::StatusOr<nearby::api::WebResponse> GetResponse(
+      absl::Duration connection_timeout);
 
  private:
   // Defines the buffer size. It is used to init a buffer for receiving HTTP
@@ -46,7 +48,7 @@ class HttpLoader {
   static constexpr int kReceiveBufferSize = 8 * 1024;
 
   absl::Status ConnectWebServer();
-  absl::Status SendRequest();
+  absl::Status SendRequest(absl::Duration connection_timeout);
   absl::StatusOr<nearby::api::WebResponse> ProcessResponse();
   void DisconnectWebServer();
 

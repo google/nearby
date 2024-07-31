@@ -14,9 +14,9 @@
 
 #include "internal/platform/implementation/windows/http_loader.h"
 
-#include <string>
-
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
+#include "internal/platform/implementation/http_loader.h"
 
 namespace nearby {
 namespace windows {
@@ -27,7 +27,7 @@ TEST(HttpLoader, DISABLED_TestGetUrl) {
   WebRequest request;
   request.url = "https://www.google.com?id=456#fragment";
   request.method = "GET";
-  auto response = HttpLoader(request).GetResponse();
+  auto response = HttpLoader(request).GetResponse(absl::Seconds(10));
   ASSERT_TRUE(response.ok());
   EXPECT_EQ(response->status_code, 200);
 }
@@ -36,14 +36,14 @@ TEST(HttpLoader, DISABLED_TestGetNotExistingUrl) {
   WebRequest request;
   request.url = "https://www.abcdefgabcdefg.com";
   request.method = "GET";
-  EXPECT_FALSE(HttpLoader(request).GetResponse().ok());
+  EXPECT_FALSE(HttpLoader(request).GetResponse(absl::Seconds(10)).ok());
 }
 
 TEST(HttpLoader, DISABLED_TestInvalidUrl) {
   WebRequest request;
   request.url = "https:/www.abcdefgabcdefg.com/name?id=456";
   request.method = "GET";
-  EXPECT_FALSE(HttpLoader(request).GetResponse().ok());
+  EXPECT_FALSE(HttpLoader(request).GetResponse(absl::Seconds(10)).ok());
 }
 
 }  // namespace

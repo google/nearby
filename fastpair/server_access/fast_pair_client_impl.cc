@@ -25,6 +25,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "fastpair/common/fast_pair_switches.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
 #include "internal/auth/auth_status_util.h"
@@ -62,6 +63,8 @@ constexpr absl::string_view kNearbyV1Path = "v1/";
 constexpr absl::string_view kDevicesPath = "device/";
 constexpr absl::string_view kUserDevicesPath = "user/devices";
 constexpr absl::string_view kUserDeleteDevicePath = "user/device";
+constexpr absl::Duration kHttpTimeout = absl::Seconds(60);
+
 const char* GetObservedDeviceMode[3] = {"MODE_UNKNOWN", "MODE_RELEASE",
                                         "MODE_DEBUG"};
 
@@ -125,7 +128,7 @@ FastPairClientImpl::GetObservedDevice(
       /*body=*/std::string());
 
   absl::StatusOr<HttpResponse> http_response =
-      http_client_->GetResponse(http_request);
+      http_client_->GetResponse(http_request, kHttpTimeout);
 
   if (!http_response.ok()) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get response.";
@@ -166,7 +169,7 @@ FastPairClientImpl::UserReadDevices(
       /*body=*/request.SerializeAsString());
 
   absl::StatusOr<HttpResponse> http_response =
-      http_client_->GetResponse(http_request);
+      http_client_->GetResponse(http_request, kHttpTimeout);
 
   if (!http_response.ok()) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get response.";
@@ -206,7 +209,7 @@ FastPairClientImpl::UserWriteDevice(
       /*query parameters=*/std::nullopt,
       /*body=*/request.SerializeAsString());
   absl::StatusOr<HttpResponse> http_response =
-      http_client_->GetResponse(http_request);
+      http_client_->GetResponse(http_request, kHttpTimeout);
 
   if (!http_response.ok()) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get response.";
@@ -250,7 +253,7 @@ FastPairClientImpl::UserDeleteDevice(
                         /*body=*/std::string());
 
   absl::StatusOr<HttpResponse> http_response =
-      http_client_->GetResponse(http_request);
+      http_client_->GetResponse(http_request, kHttpTimeout);
 
   if (!http_response.ok()) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get response.";

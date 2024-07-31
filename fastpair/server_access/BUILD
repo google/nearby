@@ -45,6 +45,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
         "@nlohmann_json//:json",
     ],
 )
@@ -98,16 +99,18 @@ cc_test(
         "//internal/network:types",
         "//internal/network:url",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/test",
+        "//internal/test:mocks",
         "//internal/test/google3_only:test",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

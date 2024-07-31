@@ -27,6 +27,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
@@ -53,6 +54,7 @@ class FakeHttpClient : public HttpClient {
 
   void StartRequest(
       const HttpRequest& request,
+      absl::Duration connection_timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override {
     RequestInfo request_info;
@@ -63,6 +65,7 @@ class FakeHttpClient : public HttpClient {
 
   void StartCancellableRequest(
       std::unique_ptr<CancellableRequest> request,
+      absl::Duration connection_timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override {
     RequestInfo request_info;
@@ -72,7 +75,7 @@ class FakeHttpClient : public HttpClient {
   }
 
   absl::StatusOr<HttpResponse> GetResponse(
-      const HttpRequest& request) override {
+      const HttpRequest& request, absl::Duration connection_timeout) override {
     if (sync_responses_.empty()) {
       return absl::FailedPreconditionError("No response.");
     }

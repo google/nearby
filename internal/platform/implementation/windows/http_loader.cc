@@ -14,28 +14,29 @@
 
 #include "internal/platform/implementation/windows/http_loader.h"
 
-#include <iostream>
+#include <cstddef>
 #include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/ascii.h"
-#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
+
+using ::nearby::api::WebResponse;
 
 constexpr DWORD kSchemaMaximumLength = 10;
 constexpr DWORD kHostNameMaximumLength = 256;
 
-using ::nearby::api::WebResponse;
-
 }  // namespace
 
-absl::StatusOr<WebResponse> HttpLoader::GetResponse() {
+absl::StatusOr<WebResponse> HttpLoader::GetResponse(
+    absl::Duration connection_timeout) {
   absl::Status status;
 
   status = ParseUrl();
@@ -49,7 +50,7 @@ absl::StatusOr<WebResponse> HttpLoader::GetResponse() {
   }
 
   // Sends request to web server.
-  status = SendRequest();
+  status = SendRequest(connection_timeout);
   if (!status.ok()) {
     return status;
   }
@@ -226,7 +227,7 @@ absl::Status HttpLoader::ConnectWebServer() {
   return absl::OkStatus();
 }
 
-absl::Status HttpLoader::SendRequest() {
+absl::Status HttpLoader::SendRequest(absl::Duration connection_timeout) {
   DWORD flags = INTERNET_FLAG_NO_AUTO_REDIRECT;
   if (is_secure_) {
     flags |= INTERNET_FLAG_SECURE;
@@ -250,6 +251,21 @@ absl::Status HttpLoader::SendRequest() {
 
     return absl::FailedPreconditionError(absl::StrCat(GetLastError()));
   }
+
+  // defaults to infinite
+  DWORD connect_timeout_ms = 0xFFFFFFFF;
+  if (connection_timeout != absl::InfiniteDuration()) {
+    connect_timeout_ms = absl::ToInt64Milliseconds(connection_timeout);
+  }
+  ::InternetSetOptionA(request_handle_, INTERNET_OPTION_CONNECT_TIMEOUT,
+                       reinterpret_cast<void*>(&connect_timeout_ms),
+                       sizeof(connect_timeout_ms));
+  ::InternetSetOptionA(request_handle_, INTERNET_OPTION_RECEIVE_TIMEOUT,
+                       reinterpret_cast<void*>(&connect_timeout_ms),
+                       sizeof(connect_timeout_ms));
+  ::InternetSetOptionA(request_handle_, INTERNET_OPTION_SEND_TIMEOUT,
+                       reinterpret_cast<void*>(&connect_timeout_ms),
+                       sizeof(connect_timeout_ms));
 
   // Prepare headers
   LPCSTR headers_ptr = nullptr;
@@ -407,5 +423,4 @@ absl::Status HttpLoader::HTTPCodeToStatus(int status_code,
   return absl::UnknownError(status_message);
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

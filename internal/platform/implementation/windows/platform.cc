@@ -35,6 +35,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
@@ -307,9 +308,9 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
 }
 
 absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
-    const WebRequest& request) {
+    const WebRequest& request, absl::Duration connection_timeout) {
   windows::HttpLoader http_loader{request};
-  return http_loader.GetResponse();
+  return http_loader.GetResponse(connection_timeout);
 }
 
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {

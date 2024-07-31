@@ -14,14 +14,13 @@
 
 #include "fastpair/internal/test/fast_pair_fake_http_client.h"
 
-#include <cstddef>
 #include <functional>
-#include <map>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/time/time.h"
 #include "internal/network/http_status_code.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
@@ -49,7 +48,7 @@ class FastPairFakeHttpClientTest : public ::testing::Test {
     request_.SetUrl(std::move(url));
     request_.SetMethod(HttpRequestMethod::kPost);
     request_.SetBody("request body");
-    client_.StartRequest(request_, callback);
+    client_.StartRequest(request_, absl::Seconds(10), callback);
   }
 
   void CompleteRequest(

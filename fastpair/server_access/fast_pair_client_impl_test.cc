@@ -25,14 +25,15 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
@@ -46,25 +47,26 @@
 #include "fastpair/server_access/fast_pair_http_notifier.h"
 #include "internal/auth/auth_status_util.h"
 #include "internal/auth/authentication_manager.h"
-#include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
 #include "internal/network/http_status_code.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/google3_only/fake_authentication_manager.h"
+#include "internal/test/mock_http_client.h"
 
 namespace nearby {
 namespace fastpair {
 namespace {
 
-using ::nearby::network::HttpClient;
 using ::nearby::network::HttpRequest;
 using ::nearby::network::HttpRequestMethod;
 using ::nearby::network::HttpResponse;
 using ::nearby::network::HttpStatusCode;
+using ::nearby::network::MockHttpClient;
 using ::nearby::network::Url;
 
 constexpr absl::string_view kHexModelId = "718C17";
@@ -95,20 +97,6 @@ constexpr absl::string_view kInitialPairingdescription =
 constexpr absl::string_view kAccountKey = "04b85786180add47fb81a04a8ce6b0de";
 constexpr absl::string_view kExpectedSha256Hash =
     "6353c0075a35b7d81bb30a6190ab246da4b8c55a6111d387400579133c090ed8";
-
-class MockHttpClient : public HttpClient {
- public:
-  MOCK_METHOD(void, StartRequest,
-              (const HttpRequest& request,
-               absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>),
-              (override));
-  MOCK_METHOD(void, StartCancellableRequest,
-              (std::unique_ptr<CancellableRequest> request,
-               absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>),
-              (override));
-  MOCK_METHOD(absl::StatusOr<HttpResponse>, GetResponse, (const HttpRequest&),
-              (override));
-};
 
 // Return the values associated with |key|, or fail the test if |key| isn't in
 // |query_parameters|
@@ -257,7 +245,8 @@ TEST_F(FastPairClientImplTest, GetObservedDeviceSuccess) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
         EXPECT_THAT(request.GetUrl().GetUrlPath(),
                     ::testing::HasSubstr(GetUrl(kDevicesPath).GetUrlPath()));
@@ -308,7 +297,8 @@ TEST_F(FastPairClientImplTest, GetObservedDeviceFailureWhenNoRespsone) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
         EXPECT_THAT(request.GetUrl().GetUrlPath(),
                     ::testing::HasSubstr(GetUrl(kDevicesPath).GetUrlPath()));
@@ -324,13 +314,14 @@ TEST_F(FastPairClientImplTest, GetObservedDeviceFailureWhenNoRespsone) {
 
 TEST_F(FastPairClientImplTest, GetObservedDeviceFailureWhenParseResponse) {
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
-        EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
-        HttpResponse http_response;
-        http_response.SetStatusCode(HttpStatusCode::kHttpOk);
-        http_response.SetBody("Not a valid serialized response message.");
-        return http_response;
-      });
+      .WillOnce(
+          [&](const HttpRequest& request, absl::Duration connection_timeout) {
+            EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
+            HttpResponse http_response;
+            http_response.SetStatusCode(HttpStatusCode::kHttpOk);
+            http_response.SetBody("Not a valid serialized response message.");
+            return http_response;
+          });
 
   absl::StatusOr<proto::GetObservedDeviceResponse> response =
       fast_pair_client_->GetObservedDevice(proto::GetObservedDeviceRequest());
@@ -356,7 +347,8 @@ TEST_F(FastPairClientImplTest, UserReadDevicesSuccess) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
         EXPECT_THAT(
             request.GetUrl().GetUrlPath(),
@@ -388,7 +380,8 @@ TEST_F(FastPairClientImplTest, UserReadDevicesFailureWhenNoRespsone) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
         EXPECT_THAT(
             request.GetUrl().GetUrlPath(),
@@ -414,13 +407,14 @@ TEST_F(FastPairClientImplTest, UserReadDevicesFailureWhenNoLoginUser) {
 
 TEST_F(FastPairClientImplTest, UserReadDevicesFailureWhenParseResponse) {
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
-        EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
-        HttpResponse http_response;
-        http_response.SetStatusCode(HttpStatusCode::kHttpOk);
-        http_response.SetBody("Not a valid serialized response message.");
-        return http_response;
-      });
+      .WillOnce(
+          [&](const HttpRequest& request, absl::Duration connection_timeout) {
+            EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
+            HttpResponse http_response;
+            http_response.SetStatusCode(HttpStatusCode::kHttpOk);
+            http_response.SetBody("Not a valid serialized response message.");
+            return http_response;
+          });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
                                               std::string(kAccessToken));
@@ -461,7 +455,8 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceSuccess) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kPost);
         EXPECT_THAT(
             request.GetUrl().GetUrlPath(),
@@ -509,7 +504,8 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceFailureWhenNoRespsone) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kPost);
         EXPECT_THAT(
             request.GetUrl().GetUrlPath(),
@@ -535,13 +531,14 @@ TEST_F(FastPairClientImplTest, UserWriteDeviceFailureWhenNoLoginUser) {
 
 TEST_F(FastPairClientImplTest, UserWriteDeviceFailureWhenParseResponse) {
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
-        EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kPost);
-        HttpResponse http_response;
-        http_response.SetStatusCode(HttpStatusCode::kHttpOk);
-        http_response.SetBody("Not a valid serialized response message.");
-        return http_response;
-      });
+      .WillOnce(
+          [&](const HttpRequest& request, absl::Duration connection_timeout) {
+            EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kPost);
+            HttpResponse http_response;
+            http_response.SetStatusCode(HttpStatusCode::kHttpOk);
+            http_response.SetBody("Not a valid serialized response message.");
+            return http_response;
+          });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
                                               std::string(kAccessToken));
@@ -570,7 +567,8 @@ TEST_F(FastPairClientImplTest, UserDeleteDeviceSuccess) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kDelete);
         EXPECT_THAT(
             request.GetUrl().GetUrlPath(),
@@ -603,7 +601,8 @@ TEST_F(FastPairClientImplTest, UserDeleteDeviceFailureWhenNoRespsone) {
 
   // Verifies HttpRequest is as expected
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
+      .WillOnce([&](const HttpRequest& request,
+                    absl::Duration connection_timeout) {
         EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kDelete);
         EXPECT_THAT(
             request.GetUrl().GetUrlPath(),
@@ -629,13 +628,14 @@ TEST_F(FastPairClientImplTest, UserDeleteDeviceFailureWhenNoLoginUser) {
 
 TEST_F(FastPairClientImplTest, UserDeleteDeviceFailureWhenParseResponse) {
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
-        EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kDelete);
-        HttpResponse http_response;
-        http_response.SetStatusCode(HttpStatusCode::kHttpOk);
-        http_response.SetBody("Not a valid serialized response message.");
-        return http_response;
-      });
+      .WillOnce(
+          [&](const HttpRequest& request, absl::Duration connection_timeout) {
+            EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kDelete);
+            HttpResponse http_response;
+            http_response.SetStatusCode(HttpStatusCode::kHttpOk);
+            http_response.SetBody("Not a valid serialized response message.");
+            return http_response;
+          });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
                                               std::string(kAccessToken));
@@ -657,13 +657,14 @@ TEST_F(FastPairClientImplTest, FetchAccessTokenFailure) {
 
 TEST_F(FastPairClientImplTest, ParseResponseProtoFailure) {
   EXPECT_CALL(*http_client_, GetResponse)
-      .WillOnce([&](const HttpRequest& request) {
-        EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
-        HttpResponse http_response;
-        http_response.SetStatusCode(HttpStatusCode::kHttpOk);
-        http_response.SetBody("Not a valid serialized response message.");
-        return http_response;
-      });
+      .WillOnce(
+          [&](const HttpRequest& request, absl::Duration connection_timeout) {
+            EXPECT_EQ(request.GetMethod(), HttpRequestMethod::kGet);
+            HttpResponse http_response;
+            http_response.SetStatusCode(HttpStatusCode::kHttpOk);
+            http_response.SetBody("Not a valid serialized response message.");
+            return http_response;
+          });
 
   GetAuthManager()->SetFetchAccessTokenResult(auth::AuthStatus::SUCCESS,
                                               std::string(kAccessToken));

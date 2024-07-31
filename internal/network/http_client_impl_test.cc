@@ -54,7 +54,7 @@ HttpTestContext* GetContext() {
 
 // Mock web implementation of the platform
 absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
-    const WebRequest& request) {
+    const WebRequest& request, absl::Duration connection_timeout) {
   GetContext()->web_request = request;
   if (GetContext()->api_time != absl::ZeroDuration()) {
     absl::SleepFor(GetContext()->api_time);
@@ -132,7 +132,7 @@ class NearbyHttpClientTest : public ::testing::Test {
 
     absl::Notification notification;
     client_.StartRequest(
-        *request, [&result, &notification](
+        *request, absl::Seconds(10), [&result, &notification](
                       const absl::StatusOr<HttpResponse>& http_response) {
           result = http_response;
           notification.Notify();
@@ -154,7 +154,7 @@ class NearbyHttpClientTest : public ::testing::Test {
       return request.status();
     }
 
-    return client_.GetResponse(*request);
+    return client_.GetResponse(*request, absl::Seconds(10));
   }
 
   void CheckHeader(const std::multimap<std::string, std::string>& headers,
@@ -335,6 +335,7 @@ TEST_F(NearbyHttpClientTest, TestCancellableRequestAsync) {
   absl::Notification notification;
   client().StartCancellableRequest(
       std::move(cancellable_request),
+      absl::Seconds(10),
       [&](const absl::StatusOr<HttpResponse>& response) {
         result = response;
         notification.Notify();
@@ -363,6 +364,7 @@ TEST_F(NearbyHttpClientTest, TestCancelCancellableRequestAsync) {
   absl::Notification notification;
   client().StartCancellableRequest(
       std::move(cancellable_request),
+      absl::Seconds(10),
       [&](const absl::StatusOr<HttpResponse>& response) {
         result = response;
         notification.Notify();
@@ -387,6 +389,7 @@ TEST_F(NearbyHttpClientTest,
   auto client = std::make_unique<NearbyHttpClient>();
   client->StartCancellableRequest(
       std::move(cancellable_request),
+      absl::Seconds(10),
       [&](const absl::StatusOr<HttpResponse>& response) {
         result = response;
         notification.Notify();
