@@ -646,9 +646,7 @@ void MultiplexSocket::OnPhysicalSocketClosed() {
 void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
   NEARBY_LOGS(INFO) << __func__ << " for service_id:" << service_id;
   CountDownLatch latch(1);
-  bool shutdown = false;
-  RunOffloadThread("VirtualSocketClosed", [this, service_id, &latch,
-                                           &shutdown]() {
+  RunOffloadThread("VirtualSocketClosed", [this, service_id, &latch]() {
     NEARBY_LOGS(INFO) << "Try to close Virtual socket: " << service_id;
     MediumSocket* virtual_socket = GetVirtualSocket(service_id);
     {
@@ -669,7 +667,6 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
           NEARBY_LOGS(INFO) << "Close the physical socket because all virtual "
                                "sockets disconnected.";
           Shutdown();
-          // shutdown = true;
         }
       } else {
         NEARBY_LOGS(INFO) << "Virtual socket(" << service_id
@@ -681,13 +678,6 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
 
   if (!latch.Await(absl::Milliseconds(1000)).result()) {
     NEARBY_LOGS(ERROR) << "Timeout to close virtual socket";
-  }
-
-  if (shutdown) {
-    NEARBY_LOGS(INFO)
-        << "Shutdown single_thread_offloader_ and physical_reader_thread_";
-    single_thread_offloader_.Shutdown();
-    physical_reader_thread_.Shutdown();
   }
 }
 
