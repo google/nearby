@@ -669,7 +669,7 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
           NEARBY_LOGS(INFO) << "Close the physical socket because all virtual "
                                "sockets disconnected.";
           Shutdown();
-          // shutdown = true;
+          shutdown = true;
         }
       } else {
         NEARBY_LOGS(INFO) << "Virtual socket(" << service_id
