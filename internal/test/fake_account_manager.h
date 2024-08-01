@@ -55,12 +55,16 @@ class FakeAccountManager : public AccountManager {
     is_logout_success_ = is_logout_success;
   }
 
+  void NotifyCredentialError() {
+    NotifyLogout(account_->id, /*credential_error=*/true);
+  }
+
  private:
   // Updates current username to preference.
   void UpdateCurrentUser(absl::string_view current_user);
   void ClearCurrentUser();
   void NotifyLogin(absl::string_view account_id);
-  void NotifyLogout(absl::string_view account_id);
+  void NotifyLogout(absl::string_view account_id, bool credential_error);
 
   // Login will fail when account_ is empty.
   std::optional<Account> account_;

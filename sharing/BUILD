@@ -535,11 +535,11 @@ cc_test(
         ":transfer_metadata",
         ":types",
         "//base:casts",
-        "//internal/account",
         "//internal/analytics:mock_event_logger",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
+        "//internal/test:mocks",
         "//sharing/analytics",
         "//sharing/certificates",
         "//sharing/certificates:test_support",

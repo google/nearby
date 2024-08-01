@@ -122,6 +122,8 @@ class NearbySharingService {
     virtual void OnLanStatusChanged(AdapterState state) {}
     virtual void OnIrrecoverableHardwareErrorReported() {}
 
+    virtual void OnCredentialError() {}
+
     // Called during the |KeyedService| shutdown, but before everything has been
     // cleaned up. It is safe to remove any observers on this event.
     virtual void OnShutdown() = 0;

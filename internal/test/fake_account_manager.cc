@@ -51,7 +51,7 @@ void FakeAccountManager::Logout(
   if (is_logout_success_) {
     std::string account_id = account_->id;
     SetAccount(std::nullopt);
-    NotifyLogout(account_id);
+    NotifyLogout(account_id, /*credential_error=*/false);
     // Invoke callback after all operations have been performed since test cases
     // may rely on the callback for synchronization.
     logout_callback(absl::OkStatus());
@@ -107,9 +107,10 @@ void FakeAccountManager::NotifyLogin(absl::string_view account_id) {
   }
 }
 
-void FakeAccountManager::NotifyLogout(absl::string_view account_id) {
+void FakeAccountManager::NotifyLogout(absl::string_view account_id,
+                                      bool credential_error) {
   for (const auto& observer : observers_.GetObservers()) {
-    observer->OnLogoutSucceeded(account_id);
+    observer->OnLogoutSucceeded(account_id, credential_error);
   }
 }
 

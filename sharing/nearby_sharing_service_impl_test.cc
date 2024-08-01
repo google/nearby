@@ -40,19 +40,18 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/account/account_manager_impl.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
+#include "internal/test/mock_account_observer.h"
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
-#include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -151,17 +150,6 @@ class MockNearbySharingDecoder : public NearbySharingDecoder {
               (absl::Span<const uint8_t> data), (const, override));
   MOCK_METHOD(std::unique_ptr<Frame>, DecodeFrame,
               (absl::Span<const uint8_t> data), (const, override));
-};
-
-class MockAccountObserver : public ::nearby::AccountManager::Observer {
- public:
-  ~MockAccountObserver() override = default;
-
-  MOCK_METHOD(void, OnLoginSucceeded, (absl::string_view account_id),
-              (override));
-
-  MOCK_METHOD(void, OnLogoutSucceeded, (absl::string_view account_id),
-              (override));
 };
 
 }  // namespace
@@ -393,8 +381,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         &contact_manager_factory_);
     NearbyShareCertificateManagerImpl::Factory::SetFactoryForTesting(
         &certificate_manager_factory_);
-    AccountManagerImpl::Factory::SetFactoryForTesting(
-        []() { return std::make_unique<FakeAccountManager>(); });
     nearby_fast_initiation_factory_ =
         std::make_unique<FakeNearbyFastInitiation::Factory>();
     NearbyFastInitiationImpl::Factory::SetFactoryForTesting(
@@ -426,7 +412,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         nullptr);
     NearbyShareContactManagerImpl::Factory::SetFactoryForTesting(nullptr);
     NearbyShareCertificateManagerImpl::Factory::SetFactoryForTesting(nullptr);
-    AccountManagerImpl::Factory::SetFactoryForTesting(nullptr);
     nearby_fast_initiation_factory_.reset();
   }
 
@@ -1385,6 +1370,10 @@ class TestObserver : public NearbySharingService::Observer {
 
   void OnLanStatusChanged(AdapterState state) override { lan_state_ = state; }
 
+  void OnCredentialError() override {
+    credential_error_called_ = true;
+  }
+
   void OnShutdown() override {
     shutdown_called_ = true;
     service_->RemoveObserver(this);
@@ -1397,6 +1386,7 @@ class TestObserver : public NearbySharingService::Observer {
   bool devices_detected_called_ = false;
   bool devices_not_detected_called_ = false;
   bool scanning_stopped_called_ = false;
+  bool credential_error_called_ = false;
   NearbySharingService* service_;
   AdapterState bluetooth_state_ = AdapterState::INVALID;
   AdapterState wifi_state_ = AdapterState::INVALID;
@@ -4743,7 +4733,8 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
       },
       [](absl::Status status) {});
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  EXPECT_CALL(account_observer, OnLogoutSucceeded(kTestAccountId)).Times(1);
+  EXPECT_CALL(account_observer, OnLogoutSucceeded(kTestAccountId, false))
+      .Times(1);
   absl::Notification logout_notification;
   service_->GetAccountManager()->Logout([&](absl::Status status) {
     EXPECT_TRUE(status.ok());
@@ -4988,6 +4979,22 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
       fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
           .size(),
       0);
+}
+
+TEST_F(NearbySharingServiceImplTest, NotifyLogoutSucceededWithCredentialError) {
+  TestObserver observer(service_.get());
+  ::nearby::AccountManager::Account account;
+  account.id = kTestAccountId;
+  account_manager().SetAccount(account);
+
+  account_manager().NotifyCredentialError();
+  FlushTesting();
+
+  EXPECT_TRUE(observer.credential_error_called_);
+
+  // Remove the observer before it goes out of scope.
+  service_->RemoveObserver(&observer);
+  FlushTesting();
 }
 
 }  // namespace NearbySharingServiceUnitTests

@@ -15,6 +15,18 @@
 licenses(["notice"])
 
 cc_library(
+    name = "mocks",
+    testonly = 1,
+    hdrs = ["mock_account_observer.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/platform/implementation:account_manager",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_for_library_testonly",
+    ],
+)
+
+cc_library(
     name = "test",
     srcs = [
         "fake_account_manager.cc",

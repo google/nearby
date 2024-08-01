@@ -1357,20 +1357,26 @@ void NearbySharingServiceImpl::OnPrivateCertificatesChanged() {
 
 void NearbySharingServiceImpl::OnLoginSucceeded(absl::string_view account_id) {
   RunOnNearbySharingServiceThread(
-      "on_login_succeeded", [this, account_id = std::string(account_id)]() {
+      "on_login_succeeded", [this]() {
         NL_LOG(INFO) << __func__ << ": Account login.";
 
         ResetAllSettings(/*logout=*/false);
       });
 }
 
-void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id) {
+void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id,
+                                                 bool credential_error) {
   RunOnNearbySharingServiceThread(
-      "on_logout_succeeded", [this, account_id = std::string(account_id)]() {
+      "on_logout_succeeded", [this, credential_error]() {
         NL_LOG(INFO) << __func__ << ": Account logout.";
 
         // Reset all settings.
         ResetAllSettings(/*logout=*/true);
+        if (credential_error) {
+          for (auto& observer : observers_.GetObservers()) {
+            observer->OnCredentialError();
+          }
+        }
       });
 }
 

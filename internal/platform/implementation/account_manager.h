@@ -45,7 +45,9 @@ class AccountManager {
     virtual ~Observer() = default;
 
     virtual void OnLoginSucceeded(absl::string_view account_id) = 0;
-    virtual void OnLogoutSucceeded(absl::string_view account_id) = 0;
+    // |credential_error| is true if the logout is due to critical auth error.
+    virtual void OnLogoutSucceeded(absl::string_view account_id,
+                                   bool credential_error) = 0;
   };
 
   virtual ~AccountManager() = default;

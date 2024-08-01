@@ -214,7 +214,8 @@ class NearbySharingServiceImpl
 
   // AccountManager::Observer:
   void OnLoginSucceeded(absl::string_view account_id) override;
-  void OnLogoutSucceeded(absl::string_view account_id) override;
+  void OnLogoutSucceeded(absl::string_view account_id,
+                         bool credential_error) override;
 
   // NearbyConnectionsManager::DiscoveryListener:
   void OnEndpointDiscovered(absl::string_view endpoint_id,
