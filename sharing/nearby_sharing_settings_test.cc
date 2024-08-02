@@ -79,12 +79,12 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
     return is_fast_initiation_notification_hardware_supported_;
   }
 
-  const std::string& device_name() const {
+  std::string device_name() const {
     absl::MutexLock lock(&mutex_);
     return device_name_;
   }
 
-  const std::string& custom_save_path() const {
+  std::string custom_save_path() const {
     absl::MutexLock lock(&mutex_);
     return custom_save_path_;
   }

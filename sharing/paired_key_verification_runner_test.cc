@@ -222,8 +222,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
                 ReadFrame(testing::Eq(V1Frame::PAIRED_KEY_ENCRYPTION),
                           testing::_, testing::Eq(kTimeout)))
         .WillOnce(testing::WithArg<1>(testing::Invoke(
-            [this,
-             frame_type](std::function<void(std::optional<V1Frame>)> callback) {
+            [frame_type](std::function<void(std::optional<V1Frame>)> callback) {
               if (frame_type == ReturnFrameType::kNull) {
                 std::move(callback)(std::nullopt);
                 return;

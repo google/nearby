@@ -20,17 +20,19 @@
 #include <array>
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/bluetooth_address.h"
+#include "internal/crypto_cros/ec_private_key.h"
+#include "internal/crypto_cros/symmetric_key.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/encrypted_metadata.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
@@ -309,6 +311,7 @@ nearby::sharing::proto::PublicCertificate GetNearbyShareTestPublicCertificate(
 std::vector<NearbySharePrivateCertificate>
 GetNearbyShareTestPrivateCertificateList(DeviceVisibility visibility) {
   std::vector<NearbySharePrivateCertificate> list;
+  list.reserve(kNearbyShareNumPrivateCertificates);
   for (size_t i = 0; i < kNearbyShareNumPrivateCertificates; ++i) {
     list.push_back(GetNearbyShareTestPrivateCertificate(
         visibility, GetNearbyShareTestNotBefore() +
@@ -320,6 +323,7 @@ GetNearbyShareTestPrivateCertificateList(DeviceVisibility visibility) {
 std::vector<nearby::sharing::proto::PublicCertificate>
 GetNearbyShareTestPublicCertificateList(DeviceVisibility visibility) {
   std::vector<nearby::sharing::proto::PublicCertificate> list;
+  list.reserve(kNearbyShareNumPrivateCertificates);
   for (size_t i = 0; i < kNearbyShareNumPrivateCertificates; ++i) {
     list.push_back(GetNearbyShareTestPublicCertificate(
         visibility, GetNearbyShareTestNotBefore() +

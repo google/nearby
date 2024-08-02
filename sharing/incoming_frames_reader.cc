@@ -20,9 +20,7 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <ostream>
 #include <queue>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -43,11 +41,6 @@ namespace {
 using FrameType = ::nearby::sharing::service::proto::V1Frame_FrameType;
 using V1Frame = ::nearby::sharing::service::proto::V1Frame;
 using Frame = ::nearby::sharing::service::proto::Frame;
-
-std::ostream& operator<<(std::ostream& out, const FrameType& obj) {
-  out << static_cast<std::underlying_type<FrameType>::type>(obj);
-  return out;
-}
 
 }  // namespace
 

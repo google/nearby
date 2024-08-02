@@ -37,7 +37,7 @@ Status ConvertToStatus(NcStatus status) {
 Payload ConvertToPayload(NcPayload payload) {
   switch (payload.GetType()) {
     case NcPayloadType::kBytes: {
-      NcByteArray bytes = payload.AsBytes();
+      const NcByteArray& bytes = payload.AsBytes();
       std::string data = std::string(bytes);
       return Payload(payload.GetId(),
                      std::vector<uint8_t>(data.begin(), data.end()));
