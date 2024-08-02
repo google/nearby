@@ -482,6 +482,38 @@ cc_test(
     ],
 )
 
+# TOD(b/357110885): Move these back into public_test once the windows build is fixed.
+cc_test(
+    name = "public_test_failed_windows",
+    srcs = [
+        "condition_variable_test.cc",
+        "scheduled_executor_test.cc",
+        "single_thread_executor_test.cc",
+    ],
+    deps = [
+        ":base",
+        ":test_util",
+        ":types",
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
+        "//internal/test",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:log_severity",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
 cc_test(
     name = "public_test",
     size = "small",
@@ -491,7 +523,6 @@ cc_test(
         "atomic_reference_test.cc",
         "borrowable_test.cc",
         "cancelable_alarm_test.cc",
-        "condition_variable_test.cc",
         "connection_info_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
@@ -500,13 +531,10 @@ cc_test(
         "logging_test.cc",
         "multi_thread_executor_test.cc",
         "mutex_test.cc",
-        "scheduled_executor_test.cc",
-        "single_thread_executor_test.cc",
         "task_runner_impl_test.cc",
         "timer_impl_test.cc",
         "uuid_test.cc",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
     shard_count = 16,
     deps = [
         ":base",
@@ -517,10 +545,15 @@ cc_test(
         ":types",
         ":uuid",
         "//internal/crypto_cros",
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
         "//internal/proto:credential_cc_proto",
+        "//internal/test",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

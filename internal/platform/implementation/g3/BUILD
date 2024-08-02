@@ -41,7 +41,6 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform:util",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:posix_mutex",

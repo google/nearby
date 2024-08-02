@@ -31,12 +31,10 @@ namespace nearby {
 // cause a deadlock.
 class ABSL_LOCKABLE Mutex final {
  public:
-  using Platform = api::ImplementationPlatform;
-  using Mode = api::Mutex::Mode;
-
   explicit Mutex(bool check = true)
-      : impl_(Platform::CreateMutex(check ? Mode::kRegular
-                                          : Mode::kRegularNoCheck)) {}
+      : impl_(api::ImplementationPlatform::CreateMutex(
+            check ? api::Mutex::Mode::kRegular
+                  : api::Mutex::Mode::kRegularNoCheck)) {}
   Mutex(Mutex&&) = default;
   Mutex& operator=(Mutex&&) = default;
   ~Mutex() = default;
@@ -58,10 +56,9 @@ class ABSL_LOCKABLE Mutex final {
 // successfully acquire it.
 class ABSL_LOCKABLE RecursiveMutex final {
  public:
-  using Platform = api::ImplementationPlatform;
-  using Mode = api::Mutex::Mode;
-
-  RecursiveMutex() : impl_(Platform::CreateMutex(Mode::kRecursive)) {}
+  RecursiveMutex()
+      : impl_(api::ImplementationPlatform::CreateMutex(
+            api::Mutex::Mode::kRecursive)) {}
   RecursiveMutex(RecursiveMutex&&) = default;
   RecursiveMutex& operator=(RecursiveMutex&&) = default;
   ~RecursiveMutex() = default;

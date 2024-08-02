@@ -17,12 +17,17 @@
 #include <atomic>
 
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/cancelable.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/exception.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/test/fake_clock.h"
 
 namespace nearby {
 
@@ -35,10 +40,16 @@ absl::Duration kShortDelay = absl::Milliseconds(100);
 absl::Duration kLongDelay = 10 * kShortDelay;
 
 TEST(ScheduledExecutorTest, ConsructorDestructorWorks) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ScheduledExecutor executor;
 }
 
 TEST(ScheduledExecutorTest, CanExecute) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   absl::Mutex mutex;
   absl::CondVar cond;
   std::atomic_bool done = false;
@@ -57,6 +68,9 @@ TEST(ScheduledExecutorTest, CanExecute) {
 }
 
 TEST(ScheduledExecutorTest, CanSchedule) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   absl::Mutex mutex;
@@ -85,6 +99,9 @@ TEST(ScheduledExecutorTest, CanSchedule) {
 }
 
 TEST(ScheduledExecutorTest, CanCancel) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   Cancelable cancelable =
@@ -96,6 +113,9 @@ TEST(ScheduledExecutorTest, CanCancel) {
 }
 
 TEST(ScheduledExecutorTest, CanCancelTwice) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   Cancelable cancelable =
@@ -110,6 +130,9 @@ TEST(ScheduledExecutorTest, CanCancelTwice) {
 }
 
 TEST(ScheduledExecutorTest, FailToCancel) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   absl::Mutex mutex;
   absl::CondVar cond;
   ScheduledExecutor executor;
@@ -134,6 +157,9 @@ TEST(ScheduledExecutorTest, FailToCancel) {
 
 TEST(ScheduledExecutorTest,
      CancelWhileRunning_TaskCompletesBeforeCancelReturns) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   CountDownLatch start_latch(1);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
@@ -154,6 +180,9 @@ TEST(ScheduledExecutorTest,
 
 TEST(ScheduledExecutorTest,
      CancelTwiceWhileRunning_TaskCompletesBeforeCancelReturns) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   CountDownLatch start_latch(1);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
@@ -175,6 +204,9 @@ TEST(ScheduledExecutorTest,
 }
 
 TEST(ScheduledExecutorTest, ShutdownWaitsForRunningTasks) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   executor.Execute([&]() {
@@ -188,6 +220,9 @@ TEST(ScheduledExecutorTest, ShutdownWaitsForRunningTasks) {
 }
 
 TEST(ScheduledExecutorTest, ExecuteAfterShutdownFails) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ScheduledExecutor executor;
 
   executor.Shutdown();
@@ -195,6 +230,9 @@ TEST(ScheduledExecutorTest, ExecuteAfterShutdownFails) {
 }
 
 TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   CountDownLatch latch(1);
   ScheduledExecutor executor;
 
@@ -208,6 +246,9 @@ TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
 }
 
 TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   FakeClock* fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock().value();
@@ -247,6 +288,9 @@ TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
 
 TEST(ScheduledExecutorTest,
      DestroyExecutorWithSimulatedClockIgnoresPendingTasks) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   FakeClock* fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock().value();
@@ -272,22 +316,36 @@ struct ThreadCheckTestClass {
 };
 
 TEST(ScheduledExecutorTest, ThreadCheck_Execute) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ThreadCheckTestClass test_class;
+  absl::Notification notification;
 
   test_class.executor.Execute(
-      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+      [&test_class, &notification]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+          test_class.executor) {
         test_class.incValue();
+        notification.Notify();
       });
+  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(2)));
 }
 
 TEST(ScheduledExecutorTest, ThreadCheck_Schedule) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler, true);
   ThreadCheckTestClass test_class;
+  absl::Notification notification;
 
   test_class.executor.Schedule(
-      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+      [&test_class, &notification]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+          test_class.executor) {
         test_class.incValue();
+        notification.Notify();
       },
       absl::ZeroDuration());
+  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(2)));
 }
 
 }  // namespace nearby
