@@ -27,14 +27,13 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <fstream>
 #include <memory>
-#include <optional>
 #include <sstream>
 #include <string>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
@@ -274,6 +273,11 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
   return std::make_unique<windows::BleV2Medium>(adapter);
+}
+
+std::unique_ptr<api::CredentialStorage>
+ImplementationPlatform::CreateCredentialStorage() {
+  return nullptr;
 }
 
 // TODO(b/184975123): replace with real implementation.

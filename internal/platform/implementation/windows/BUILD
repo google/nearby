@@ -212,6 +212,7 @@ cc_library(
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
+        "//internal/platform:__subpackages__",
         "//location/nearby:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
