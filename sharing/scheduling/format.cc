@@ -24,7 +24,7 @@ namespace utils {
 
 std::string TimeFormatShortDateAndTimeWithTimeZone(absl::Time time) {
   absl::TimeZone tz = absl::LocalTimeZone();
-  return absl::FormatTime("%Y%M%D %H:%M:%S %z", time, tz);
+  return absl::FormatTime("%Y/%m/%d %H:%M:%S %z", time, tz);
 }
 
 std::string TimeDurationFormatWithSeconds(absl::Duration duration) {
