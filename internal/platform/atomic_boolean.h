@@ -27,9 +27,8 @@ namespace nearby {
 // cpp/platform/api/atomic_boolean.h
 class AtomicBoolean final : public api::AtomicBoolean {
  public:
-  using Platform = api::ImplementationPlatform;
   explicit AtomicBoolean(bool value = false)
-      : impl_(Platform::CreateAtomicBoolean(value)) {}
+      : impl_(api::ImplementationPlatform::CreateAtomicBoolean(value)) {}
   ~AtomicBoolean() override = default;
   AtomicBoolean(AtomicBoolean&&) = default;
   AtomicBoolean& operator=(AtomicBoolean&&) = default;

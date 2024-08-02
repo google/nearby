@@ -25,6 +25,7 @@ namespace windows {
 // A boolean value that may be updated atomically.
 class AtomicBoolean : public api::AtomicBoolean {
  public:
+  explicit AtomicBoolean(bool value = false) : atomic_boolean_(value) {}
   ~AtomicBoolean() override = default;
 
   // Atomically read and return current value.

@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
 
 #include <atomic>
+#include <cstdint>
 
 #include "internal/platform/implementation/atomic_reference.h"
 
@@ -25,6 +26,7 @@ namespace windows {
 // Type that allows 32-bit atomic reads and writes.
 class AtomicUint32 : public api::AtomicUint32 {
  public:
+  explicit AtomicUint32(std::uint32_t value = 0) : atomic_uint32_(value) {}
   ~AtomicUint32() override = default;
 
   // Atomically reads and returns stored value.
