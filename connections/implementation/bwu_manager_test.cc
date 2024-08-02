@@ -239,6 +239,13 @@ class BwuManagerTestParam : public BwuManagerTest,
 };
 
 TEST_P(BwuManagerTestParam, InitiateBwu_Success) {
+  auto flag = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::
+          kProcessBwuFrameAfterPcpConnected);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kProcessBwuFrameAfterPcpConnected,
+      false);
   // Create the initial device-to-device Bluetooth connection.
   FakeEndpointChannel* initial_channel =
       CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -299,6 +306,10 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Success) {
   EXPECT_EQ(location::nearby::proto::connections::DisconnectionReason::UPGRADED,
             old_channel->disconnection_reason());
   UnRegisterChannelForEndpoint(kEndpointId1);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kProcessBwuFrameAfterPcpConnected,
+      flag);
 }
 
 TEST_P(BwuManagerTestParam,
