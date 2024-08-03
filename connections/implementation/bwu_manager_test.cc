@@ -1002,12 +1002,6 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
 }
 
 TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kIgnoreUpgradePathAvailableFrameForAdvertiser,
-      false);
-  CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
-
   ExceptionOr<OfflineFrame> hotspot_path_available_frame =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
           /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
@@ -1019,6 +1013,8 @@ TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
   sub_frame->set_event_type(
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_supports_client_introduction_ack(false);
+  upgrade_path_info->set_supports_disabling_encryption(true);
 
   ConnectionResponseInfo response_info{
       .remote_endpoint_info = ByteArray{"endpoint_name"},
@@ -1027,28 +1023,7 @@ TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
       .is_incoming_connection = true,
   };
   ConnectionOptions connection_options;
-  client_.OnConnectionInitiated(std::string(kEndpointId1), response_info,
-                                connection_options, {}, "token");
-  client_.LocalEndpointAcceptedConnection(std::string(kEndpointId1), {});
-  client_.RemoteEndpointAcceptedConnection(std::string(kEndpointId1));
-  EXPECT_TRUE(client_.IsConnectionAccepted(std::string(kEndpointId1)));
-  client_.OnConnectionAccepted(std::string(kEndpointId1));
-  EXPECT_TRUE(client_.IsConnectedToEndpoint(std::string(kEndpointId1)));
 
-  upgrade_path_info->set_supports_client_introduction_ack(false);
-  upgrade_path_info->set_supports_disabling_encryption(true);
-  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
-  CountDownLatch latch(1);
-  // The BWU frame should not be drop, so the IsUpgradeOngoing should not be
-  // empty.
-  ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)), true);
-  UnRegisterChannelForEndpoint(kEndpointId1);
-
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kIgnoreUpgradePathAvailableFrameForAdvertiser,
-      true);
   CreateInitialEndpoint(kServiceIdA, kEndpointId2, Medium::BLUETOOTH);
 
   client_.OnConnectionInitiated(std::string(kEndpointId2), response_info,

@@ -718,10 +718,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kIgnoreUpgradePathAvailableFrameForAdvertiser) &&
-      client->IsIncomingConnection(endpoint_id)) {
+  if (client->IsIncomingConnection(endpoint_id)) {
     NEARBY_LOGS(INFO)
         << "ProcessBandwidthUpgradePathAvailableEvent ignored by Advertiser";
     return;

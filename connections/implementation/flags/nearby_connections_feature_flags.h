@@ -74,10 +74,6 @@ constexpr auto kCheckIllegalCharacters =
 constexpr auto kEnableMultiplex =
     flags::Flag<bool>(kConfigPackage, "45627836", false);
 
-// When true, allows to ignore the upgrade path available frame for advertiser.
-constexpr auto kIgnoreUpgradePathAvailableFrameForAdvertiser =
-    flags::Flag<bool>(kConfigPackage, "45633895", false);
-
 // When true, use the medium in connection info.
 constexpr auto kUseMediumInConnectionInfo =
     flags::Flag<bool>(kConfigPackage, "45635058", false);
