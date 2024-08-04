@@ -95,6 +95,10 @@ message ConnectionsLog {
     // The result code of the operation result
     optional location.nearby.proto.connections.OperationResultCode result_code =
         4;
+
+    // The connection mode.
+    optional location.nearby.proto.connections.ConnectionMode connection_mode =
+        5;
   }
 
   // One round of a particular Strategy done by a client.
@@ -311,6 +315,10 @@ message ConnectionsLog {
 
     // The result code of this connection attempt
     optional OperationResult operation_result = 9;
+
+    // The connection mode.
+    optional location.nearby.proto.connections.ConnectionMode connection_mode =
+        10;
   }
 
   // A successfully-established connection over a particular medium.

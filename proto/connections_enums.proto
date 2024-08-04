@@ -987,6 +987,10 @@ enum OperationResultCode {
   CONNECTIVITY_LAN_MDNS_REGISTER_FAILURE = 3597;
   // Failed to change BT scan mode
   CONNECTIVITY_BLUETOOTH_CHANGE_SCAN_MODE_FAILURE = 3598;
+  // Auto resume failure
+  CONNECTIVITY_AUTO_RESUME_FAILURE = 3599;
+  // Timeout when listening instant connection
+  CONNECTIVITY_INSTANT_CONNECTION_LISTENING_TIMEOUT = 3600;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -1172,6 +1176,8 @@ enum OperationResultCode {
   NEARBY_WEB_RTC_INVALID_PCP_OPTIONS = 4584;
   // Bluetooth starts scanning without any client existed.
   NEARBY_BLUETOOTH_NO_CLIENT_REGISTER_FOR_SCAN = 4585;
+  // TX Advertisement on a wrong connectivity info.
+  NEARBY_INSTANT_CONNECTION_WRONG_CONNECTIVITY_INFO = 4586;
 }
 
 enum StopAdvertisingReason {
