@@ -172,6 +172,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client1_.reset();
     client2_.reset();
     env_.Stop();
+    NearbyFlags::GetInstance().ResetOverridedValues();
   }
 
   bool ShouldEnterHighVisibilityMode(

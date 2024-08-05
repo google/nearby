@@ -450,7 +450,7 @@ let package = Package(
         "connections/implementation/service_controller_router_test.cc",
         "connections/implementation/bluetooth_bwu_test.cc",
         "connections/implementation/wifi_direct_bwu_test.cc",
-        "connections/implementation/wifi_hotspot_test.cc",
+        "connections/implementation/wifi_hotspot_bwu_test.cc",
         "connections/implementation/analytics/analytics_recorder_test.cc",
         "connections/implementation/analytics/throughput_recorder_test.cc",
         "connections/implementation/mediums/ble_v2_test.cc",
