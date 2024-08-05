@@ -524,10 +524,7 @@ void PayloadManager::OnIncomingFrame(
 
   // Block any payload before the connection been accepted by both sides
   // to prevent unauthorized transfer.
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kProcessBwuFrameAfterPcpConnected) &&
-      !to_client->IsConnectedToEndpoint(from_endpoint_id)) {
+  if (!to_client->IsConnectedToEndpoint(from_endpoint_id)) {
     if (frame.packet_type() == PayloadTransferFrame::DATA) {
       PendingPayloadHandle pending_payload =
           pending_payloads_.GetPayload(frame.payload_header().id());

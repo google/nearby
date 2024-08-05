@@ -474,10 +474,7 @@ void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
                     << BwuNegotiationFrame::EventType_Name(frame.event_type())
                     << " frame for endpoint " << endpoint_id;
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kProcessBwuFrameAfterPcpConnected) &&
-      !client->IsConnectedToEndpoint(endpoint_id)) {
+  if (!client->IsConnectedToEndpoint(endpoint_id)) {
     NEARBY_LOGS(WARNING)
         << "BwuManager skips the process BANDWIDTH_UPGRADE_NEGOTIATION before "
            "PCP connected, "

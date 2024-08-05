@@ -416,10 +416,6 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
 }
 
 TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kProcessBwuFrameAfterPcpConnected,
-      false);
   env_.Start();
   PayloadSimulationUser user(kDeviceB, GetParam());
   auto [input, tx] = CreatePipe();
