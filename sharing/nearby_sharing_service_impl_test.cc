@@ -89,6 +89,7 @@
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_matchers.h"
 #include "sharing/transfer_update_callback.h"
 #include "sharing/wifi_credentials_attachment.h"
 #include "google/protobuf/repeated_ptr_field.h"
@@ -771,7 +772,6 @@ class NearbySharingServiceImplTest : public testing::Test {
     int64_t share_target_id;
     SetConnectionType(ConnectionType::kWifi);
     absl::Notification notification;
-
     EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
         .WillOnce(testing::Invoke([&](const ShareTarget& incoming_share_target,
                                       const AttachmentContainer& container,
@@ -804,11 +804,32 @@ class NearbySharingServiceImplTest : public testing::Test {
                                    connection_.get());
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                              /*success=*/true, for_self_share);
-    EXPECT_TRUE(
-        fake_nearby_connections_manager_->DidUpgradeBandwidth(kEndpointId));
-
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
     return share_target_id;
+  }
+
+  void AcceptConnection(NiceMock<MockTransferUpdateCallback>& callback,
+                        int64_t share_target_id,
+                        absl::string_view endpoint_id) {
+    // After accepting the transfer, we get another update of
+    // kAwaitingRemoteAcceptance.
+    EXPECT_CALL(callback,
+                OnTransferUpdate(
+                    testing::_, testing::_,
+                    nearby::sharing::HasStatus(
+                        TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+    absl::Notification accept_notification;
+    service_->Accept(
+        share_target_id,
+        [&accept_notification](
+            nearby::sharing::NearbySharingService::StatusCodes status_code) {
+          EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
+          accept_notification.Notify();
+        });
+    EXPECT_TRUE(
+        accept_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+    EXPECT_TRUE(
+        fake_nearby_connections_manager_->DidUpgradeBandwidth(endpoint_id));
   }
 
   int64_t SetUpOutgoingShareTarget(
@@ -860,7 +881,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   Frame GetWrittenFrame() {
     EXPECT_TRUE(
-        sharing_service_task_runner_->SyncWithTimeout(absl::Seconds(2)));
+        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
     std::vector<uint8_t> data = connection_->GetWrittenData();
     Frame frame;
     frame.ParseFromArray(data.data(), data.size());
@@ -1095,25 +1116,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   void SuccessfullyReceiveTransfer() {
     NiceMock<MockTransferUpdateCallback> callback;
     int64_t share_target_id = SetUpIncomingConnection(callback);
-
-    absl::Notification notification;
-    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
-        .WillOnce(testing::Invoke([](const ShareTarget& share_target,
-                                     const AttachmentContainer& container,
-                                     TransferMetadata metadata) {
-          EXPECT_FALSE(metadata.is_final_status());
-          EXPECT_EQ(metadata.status(),
-                    TransferMetadata::Status::kAwaitingRemoteAcceptance);
-        }));
-
-    service_->Accept(share_target_id,
-                     [&](NearbySharingServiceImpl::StatusCodes status_code) {
-                       EXPECT_EQ(status_code,
-                                 NearbySharingServiceImpl::StatusCodes::kOk);
-                       notification.Notify();
-                     });
-
-    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+    AcceptConnection(callback, share_target_id, kEndpointId);
 
     // Fail to accept again.
     service_->Accept(
@@ -1597,7 +1600,8 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        RegisterSendSurfaceAlreadyReceivingNotDiscovering) {
   NiceMock<MockTransferUpdateCallback> callback;
-  SetUpIncomingConnection(callback);
+  int64_t share_target_id = SetUpIncomingConnection(callback);
+  AcceptConnection(callback, share_target_id, kEndpointId);
   EXPECT_FALSE(connection_->IsClosed());
 
   MockTransferUpdateCallback send_callback;
@@ -2833,27 +2837,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptInvalidShareTarget) {
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTarget) {
   NiceMock<MockTransferUpdateCallback> callback;
   int64_t share_target_id = SetUpIncomingConnection(callback);
-
-  absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
-      .WillOnce(testing::Invoke([](const ShareTarget& share_target,
-                                   const AttachmentContainer& container,
-                                   TransferMetadata metadata) {
-        EXPECT_FALSE(metadata.is_final_status());
-        EXPECT_EQ(metadata.status(),
-                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
-      }));
-
-  service_->Accept(
-      share_target_id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-        EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
-        notification.Notify();
-      });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-
-  EXPECT_TRUE(
-      fake_nearby_connections_manager_->DidUpgradeBandwidth(kEndpointId));
+  AcceptConnection(callback, share_target_id, kEndpointId);
 
   // Check data written to connection_.
   EXPECT_TRUE(ExpectPairedKeyEncryptionFrame());
@@ -2875,24 +2859,7 @@ TEST_F(NearbySharingServiceImplTest,
        AcceptValidShareTargetPayloadSuccessfulIncomingPayloadNotFound) {
   NiceMock<MockTransferUpdateCallback> callback;
   int64_t share_target_id = SetUpIncomingConnection(callback);
-
-  absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
-      .WillOnce(testing::Invoke([](const ShareTarget& share_target,
-                                   const AttachmentContainer& container,
-                                   TransferMetadata metadata) {
-        EXPECT_FALSE(metadata.is_final_status());
-        EXPECT_EQ(metadata.status(),
-                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
-      }));
-
-  service_->Accept(
-      share_target_id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-        EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
-        notification.Notify();
-      });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  AcceptConnection(callback, share_target_id, kEndpointId);
 
   fake_nearby_connections_manager_->SetIncomingPayload(
       kFilePayloadId, GetFilePayload(kFilePayloadId));
@@ -2929,7 +2896,8 @@ TEST_F(NearbySharingServiceImplTest,
                                         /*upgraded_medium=*/std::nullopt);
       }
     });
-    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+    EXPECT_TRUE(
+        progress_notification.WaitForNotificationWithTimeout(kWaitTimeout));
     FastForward(kMinProgressUpdateFrequency);
   }
 
@@ -2981,24 +2949,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
   NiceMock<MockTransferUpdateCallback> callback;
   int64_t share_target_id = SetUpIncomingConnection(callback);
-
-  absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
-      .WillOnce(testing::Invoke([](const ShareTarget& share_target,
-                                   const AttachmentContainer& container,
-                                   TransferMetadata metadata) {
-        EXPECT_FALSE(metadata.is_final_status());
-        EXPECT_EQ(metadata.status(),
-                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
-      }));
-
-  service_->Accept(
-      share_target_id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-        EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
-        notification.Notify();
-      });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  AcceptConnection(callback, share_target_id, kEndpointId);
 
   absl::Notification failure_notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -3048,24 +2999,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
   NiceMock<MockTransferUpdateCallback> callback;
   int64_t share_target_id = SetUpIncomingConnection(callback);
-
-  absl::Notification notification;
-  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
-      .WillOnce(testing::Invoke([](const ShareTarget& share_target,
-                                   const AttachmentContainer& container,
-                                   TransferMetadata metadata) {
-        EXPECT_FALSE(metadata.is_final_status());
-        EXPECT_EQ(metadata.status(),
-                  TransferMetadata::Status::kAwaitingRemoteAcceptance);
-      }));
-
-  service_->Accept(
-      share_target_id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
-        EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
-        notification.Notify();
-      });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  AcceptConnection(callback, share_target_id, kEndpointId);
 
   absl::Notification failure_notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -3200,9 +3134,6 @@ TEST_F(NearbySharingServiceImplTest,
                                            /*success=*/true);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
-  EXPECT_TRUE(
-      fake_nearby_connections_manager_->DidUpgradeBandwidth(kEndpointId));
-
   EXPECT_FALSE(connection_->IsClosed());
 
   // To avoid UAF in OnIncomingTransferUpdate().
@@ -3257,9 +3188,6 @@ TEST_F(NearbySharingServiceImplTest,
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                            /*success=*/true);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-
-  EXPECT_TRUE(
-      fake_nearby_connections_manager_->DidUpgradeBandwidth(kEndpointId));
 
   EXPECT_FALSE(connection_->IsClosed());
 
@@ -3936,6 +3864,7 @@ TEST_F(NearbySharingServiceImplTest, CancelSenderNoninitiator) {
 TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
   NiceMock<MockTransferUpdateCallback> transfer_callback;
   int64_t target_id = SetUpIncomingConnection(transfer_callback);
+  AcceptConnection(transfer_callback, target_id, kEndpointId);
   ASSERT_TRUE(ExpectPairedKeyEncryptionFrame());
   ASSERT_TRUE(ExpectPairedKeyResultFrame());
 
@@ -3964,6 +3893,8 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
   // classes to unregister the receive surface.
   UnregisterReceiveSurface(&transfer_callback);
 
+  // This is a response frame generated by accept().
+  GetWrittenFrame();
   // The initiator of the cancel should send a cancel frame to the other device,
   // then wait a few seconds before disconnecting to allow for processing on the
   // other device.
@@ -3976,6 +3907,7 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
 TEST_F(NearbySharingServiceImplTest, CancelReceiverNoninitiator) {
   NiceMock<MockTransferUpdateCallback> transfer_callback;
   int64_t target_id = SetUpIncomingConnection(transfer_callback);
+  AcceptConnection(transfer_callback, target_id, kEndpointId);
   ExpectPairedKeyEncryptionFrame();
   ExpectPairedKeyResultFrame();
 
@@ -4668,8 +4600,9 @@ TEST_F(NearbySharingServiceImplTest, SelfShareAutoAccept) {
   // similar to other tests (see "AcceptValidShareTarget") but without the
   // explicit call to service_->Accept().
   NiceMock<MockTransferUpdateCallback> callback;
-  int64_t share_target_id = SetUpIncomingConnection(
-      callback, /*is_foreground=*/false, /*for_self_share=*/true);
+  int64_t share_target_id =
+      SetUpIncomingConnection(callback, /*is_foreground=*/false,
+                              /*for_self_share=*/true);
 
   // Should fail to call accept.
   service_->Accept(
@@ -4694,8 +4627,9 @@ TEST_F(NearbySharingServiceImplTest, SelfShareAutoAccept) {
 
 TEST_F(NearbySharingServiceImplTest, SelfShareNoAutoAcceptInForeground) {
   NiceMock<MockTransferUpdateCallback> callback;
-  int64_t share_target_id = SetUpIncomingConnection(
-      callback, /*is_foreground=*/true, /*for_self_share=*/true);
+  int64_t share_target_id =
+      SetUpIncomingConnection(callback, /*is_foreground=*/true,
+                              /*for_self_share=*/true);
 
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .Times(0);

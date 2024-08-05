@@ -540,6 +540,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//internal/test:mocks",
+        "//sharing:transfer_metadata_matchers",
         "//sharing/analytics",
         "//sharing/certificates",
         "//sharing/certificates:test_support",

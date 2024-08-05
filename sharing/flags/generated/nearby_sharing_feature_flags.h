@@ -34,7 +34,7 @@ constexpr auto kDelayEndpointLossMs =
     flags::Flag<int64_t>(kConfigPackage, "45632386", 500);
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFile =
-    flags::Flag<bool>(kConfigPackage, "45627826", false);
+    flags::Flag<bool>(kConfigPackage, "45627826", true);
 // Enable/disable the use of BLE as a connection medium.
 constexpr auto kEnableBleForTransfer =
     flags::Flag<bool>(kConfigPackage, "45427466", false);
@@ -113,7 +113,7 @@ constexpr auto kSuppressFastInitHun =
     flags::Flag<bool>(kConfigPackage, "45409586", true);
 // When true, we only upgrade the bandwidth after accepting a connection.
 constexpr auto kUpgradeBandwidthAfterAccept =
-    flags::Flag<bool>(kConfigPackage, "45627824", false);
+    flags::Flag<bool>(kConfigPackage, "45627824", true);
 // When true, use gRpc client to access backend.
 constexpr auto kUseGrpcClient =
     flags::Flag<bool>(kConfigPackage, "45630055", false);
