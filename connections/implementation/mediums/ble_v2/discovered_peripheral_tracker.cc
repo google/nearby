@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/time/time.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
@@ -38,6 +39,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex_lock.h"
@@ -50,7 +52,8 @@ namespace connections {
 namespace mediums {
 namespace {
 constexpr int kGattThreadCount = 1;
-}
+constexpr absl::Duration kInstantLostAdvertisementTimeout = absl::Seconds(60);
+}  // namespace
 
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available)
@@ -188,10 +191,20 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
           BleV2Peripheral lost_peripheral = it.second.peripheral;
           lost_peripheral.SetId(ByteArray(gatt_advertisement));
           if (gatt_advertisement.IsValid()) {
-            discovery_cb_it->second.discovered_peripheral_callback
-                .peripheral_lost_cb(lost_peripheral, it.second.service_id,
-                                    gatt_advertisement.GetData(),
-                                    gatt_advertisement.IsFastAdvertisement());
+            if (NearbyFlags::GetInstance().GetBoolFlag(
+                    config_package_nearby::nearby_connections_feature::
+                        kEnableInstantOnLost)) {
+              AddInstantLostAdvertisement(it.second.advertisement_header);
+              discovery_cb_it->second.discovered_peripheral_callback
+                  .instant_lost_cb(lost_peripheral, it.second.service_id,
+                                   gatt_advertisement.GetData(),
+                                   gatt_advertisement.IsFastAdvertisement());
+            } else {
+              discovery_cb_it->second.discovered_peripheral_callback
+                  .peripheral_lost_cb(lost_peripheral, it.second.service_id,
+                                      gatt_advertisement.GetData(),
+                                      gatt_advertisement.IsFastAdvertisement());
+            }
             NEARBY_LOGS(INFO)
                 << __func__ << ": OnLost triggered for service_id "
                 << it.second.service_id;
@@ -423,6 +436,16 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
         peripheral.SetPsm(new_psm);
         BleV2Peripheral discovered_peripheral = peripheral;
         discovered_peripheral.SetId(ByteArray(gatt_advertisement));
+
+        if (IsInstantLostAdvertisement(new_advertisement_header)) {
+          NEARBY_LOGS(INFO)
+              << "Skip the advertisement with hash "
+              << absl::BytesToHexString(
+                     new_advertisement_header.GetAdvertisementHash()
+                         .AsStringView())
+              << " due to it was reported lost.";
+          continue;
+        }
         sii_it->second.discovered_peripheral_callback.peripheral_discovered_cb(
             std::move(discovered_peripheral), service_id,
             gatt_advertisement.GetData(),
@@ -557,7 +580,7 @@ bool DiscoveredPeripheralTracker::IsDummyAdvertisementHeader(
   // Do not count advertisementHash and psm value here, for L2CAP feature, the
   // regular advertisement has different value, it will include PSM value if
   // received it from extended advertisement protocol and it will not has PSM
-  // value if it fetcted from GATT connection.
+  // value if it fetched from GATT connection.
   BloomFilter bloom_filter(
       std::make_unique<BitSetImpl<
           BleAdvertisementHeader::kServiceIdBloomFilterByteLength>>());
@@ -853,6 +876,48 @@ bool DiscoveredPeripheralTracker::IsLegacyDeviceAdvertisementData(
              advertisement_data.service_data.end() &&
          advertisement_data.service_data.at(bleutils::kCopresenceServiceUuid) ==
              ByteArray(DiscoveredPeripheralTracker::kDummyAdvertisementValue);
+}
+
+bool DiscoveredPeripheralTracker::IsInstantLostAdvertisement(
+    const BleAdvertisementHeader& advertisement_header) {
+  RemoveExpiredInstantLostAdvertisements();
+  return lost_advertisment_infos_.contains(
+      std::string(advertisement_header.GetAdvertisementHash()));
+}
+
+void DiscoveredPeripheralTracker::AddInstantLostAdvertisement(
+    const BleAdvertisementHeader& advertisement_header) {
+  NEARBY_LOGS(INFO)
+      << "Add instant lost advertisement "
+      << absl::BytesToHexString(
+             advertisement_header.GetAdvertisementHash().AsStringView());
+  lost_advertisment_infos_[std::string(
+      advertisement_header.GetAdvertisementHash())] =
+      SystemClock::ElapsedRealtime();
+}
+
+void DiscoveredPeripheralTracker::RemoveExpiredInstantLostAdvertisements() {
+  absl::Time now = SystemClock::ElapsedRealtime();
+  if (now - last_lost_info_update_time_ < kInstantLostAdvertisementTimeout) {
+    return;
+  }
+
+  auto it = lost_advertisment_infos_.begin(),
+       end = lost_advertisment_infos_.end();
+
+  NEARBY_LOGS(INFO) << "Start to remove expired lost advertisements.";
+  int count = 0;
+  while (it != end) {
+    if (now - it->second >= kInstantLostAdvertisementTimeout) {
+      lost_advertisment_infos_.erase(it++);
+      ++count;
+    } else {
+      ++it;
+    }
+  }
+
+  last_lost_info_update_time_ = now;
+  NEARBY_LOGS(INFO) << "Removed " << count << " expired lost advertisements.";
 }
 
 }  // namespace mediums

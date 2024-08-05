@@ -53,6 +53,7 @@ cc_library(
         "//internal/platform:util",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//proto/mediums:ble_frames_cc_proto",
         "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/base:core_headers",

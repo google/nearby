@@ -292,6 +292,10 @@ class BasePcpHandler : public PcpHandler,
       RUN_ON_PCP_HANDLER_THREAD()
           ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
+  void OnInstantLost(ClientProxy* client, const std::string& endpoint_id,
+                     const ByteArray& endpoint_info)
+      RUN_ON_PCP_HANDLER_THREAD();
+
   Exception OnIncomingConnection(
       ClientProxy* client, const ByteArray& remote_endpoint_info,
       std::unique_ptr<EndpointChannel> endpoint_channel,
@@ -379,7 +383,7 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns a vector of discovered endpoints that share a given Medium.
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
-      const location::nearby::proto::connections::Medium medium)
+      location::nearby::proto::connections::Medium medium)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Start alarms for endpoints lost by their mediums. Used when updating
@@ -398,7 +402,7 @@ class BasePcpHandler : public PcpHandler,
       absl::string_view service_id, StartOperationResult result);
 
   mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
-      const string& service_id, const string& endpoint_id,
+      const std::string& service_id, const std::string& endpoint_id,
       const ByteArray& endpoint_info);
 
   SingleThreadExecutor* GetPcpHandlerThread()

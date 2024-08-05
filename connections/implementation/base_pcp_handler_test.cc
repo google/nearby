@@ -36,6 +36,8 @@
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
@@ -58,11 +60,14 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/future.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
+#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
@@ -262,6 +267,12 @@ class MockPcpHandler : public BasePcpHandler {
       ABSL_NO_THREAD_SAFETY_ANALYSIS {
     BasePcpHandler::OnEndpointLost(client, endpoint);
   }
+  void OnInstantLost(ClientProxy* client,
+                     std::shared_ptr<DiscoveredEndpoint> endpoint)
+      ABSL_NO_THREAD_SAFETY_ANALYSIS {
+    BasePcpHandler::OnInstantLost(client, endpoint->endpoint_id,
+                                  endpoint->endpoint_info);
+  }
   BasePcpHandler::DiscoveredEndpoint* GetDiscoveredEndpoint(
       const std::string& endpoint_id) {
     return BasePcpHandler::GetDiscoveredEndpoint(endpoint_id);
@@ -416,6 +427,13 @@ class BasePcpHandlerTest
         MockFunction<void(const std::string& endpoint_id, DistanceInfo info)>>
         endpoint_distance_changed_cb;
   };
+
+  void SetUp() override {
+    // Disable instant on lost for all tests by default.
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
+        false);
+  }
 
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
                         BooleanMediumSelector allowed = GetParam()) {
@@ -850,6 +868,14 @@ class BasePcpHandlerTest
                 .AsStdFunction(),
     };
   }
+
+  void EnableInstantOnLostFeature() {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        connections::config_package_nearby::nearby_connections_feature::
+            kEnableInstantOnLost,
+        true);
+  }
+
   SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   NiceMock<MockNearbyDevice> mock_device_;
@@ -982,6 +1008,77 @@ TEST_P(BasePcpHandlerTest, StartStopStartDiscoveryClearsEndpoints) {
   pcp_handler.StopDiscovery(&client);
   EXPECT_FALSE(client.IsDiscovering());
   StartDiscovery(&client, &pcp_handler);
+  bwu.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, ShouldLostEndpointWhenReportInstantLost) {
+  EnableInstantOnLostFeature();
+  env_.Start({.use_simulated_clock = true});
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+      .ble = true,
+      .wifi_lan = true,
+  };
+
+  auto endpoint = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service", Medium::BLE,
+                              WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler, allowed);
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  pcp_handler.OnEndpointFound(&client, endpoint);
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 1);
+  EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call);
+  pcp_handler.OnInstantLost(&client, endpoint);
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 0);
+  EXPECT_CALL(pcp_handler, StopDiscoveryImpl(&client)).Times(1);
+  pcp_handler.StopDiscovery(&client);
+  bwu.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
+  EnableInstantOnLostFeature();
+  env_.Start({.use_simulated_clock = true});
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+      .ble = true,
+      .wifi_lan = true,
+  };
+
+  auto endpoint = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service", Medium::BLE,
+                              WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+  auto endpoint_bluetooth = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service",
+                              Medium::BLUETOOTH, WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler, allowed);
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  pcp_handler.OnEndpointFound(&client, endpoint);
+  pcp_handler.OnEndpointFound(&client, endpoint_bluetooth);
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 2);
+  EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call);
+  pcp_handler.OnInstantLost(&client, endpoint);
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 0);
+  EXPECT_CALL(pcp_handler, StopDiscoveryImpl(&client)).Times(1);
+  pcp_handler.StopDiscovery(&client);
   bwu.Shutdown();
   env_.Stop();
 }
@@ -2431,8 +2528,8 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
               .local_endpoint_id = "",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
-  // At this point the connection request doesn't have an endpoint ID field set,
-  // so we do that here.
+  // At this point the connection request doesn't have an endpoint ID field
+  // set, so we do that here.
   location::nearby::connections::OfflineFrame frame;
   frame.ParseFromString(serialized_frame.AsStringView());
   frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");

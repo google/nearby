@@ -248,6 +248,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   const std::string& service_id,
                                   const ByteArray& advertisement_bytes,
                                   bool fast_advertisement);
+  void BleV2InstantLostHandler(ClientProxy* client, BleV2Peripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement);
   void BleV2LegacyDeviceDiscoveredHandler();
 
   void BleV2ConnectionAcceptedHandler(ClientProxy* client,

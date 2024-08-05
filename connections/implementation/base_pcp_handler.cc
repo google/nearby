@@ -1193,7 +1193,7 @@ BasePcpHandler::GetDiscoveredEndpoints(const std::string& endpoint_id) {
 
 std::vector<BasePcpHandler::DiscoveredEndpoint*>
 BasePcpHandler::GetDiscoveredEndpoints(
-    const location::nearby::proto::connections::Medium medium) {
+    location::nearby::proto::connections::Medium medium) {
   std::vector<BasePcpHandler::DiscoveredEndpoint*> result;
   MutexLock lock(&discovered_endpoint_mutex_);
   for (const auto& item : discovered_endpoints_) {
@@ -1672,6 +1672,26 @@ void BasePcpHandler::OnEndpointLost(
     discovered_endpoints_.erase(item);
     break;
   }
+}
+
+void BasePcpHandler::OnInstantLost(ClientProxy* client,
+                                   const std::string& endpoint_id,
+                                   const ByteArray& endpoint_info) {
+  NEARBY_LOGS(INFO) << "OnInstantLost: id=" << endpoint_id;
+  std::vector<BasePcpHandler::DiscoveredEndpoint*> discovered_endpoints =
+      GetDiscoveredEndpoints(endpoint_id);
+  if (discovered_endpoints.empty()) {
+    return;
+  }
+
+  for (auto& discovered_endpoint : discovered_endpoints) {
+    if (discovered_endpoint->endpoint_info == endpoint_info) {
+      OnEndpointLost(client, *discovered_endpoint);
+    }
+  }
+
+  NEARBY_LOGS(INFO) << "Reported lost endpoint " << endpoint_id
+                    << " on all mediums.";
 }
 
 Status BasePcpHandler::UpdateAdvertisingOptions(

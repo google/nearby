@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/time/time.h"
 #include "connections/implementation/mediums//lost_entity_tracker.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
@@ -31,8 +33,10 @@
 #include "connections/implementation/mediums/lost_entity_tracker.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace connections {
@@ -230,7 +234,7 @@ class DiscoveredPeripheralTracker {
   // AdvertisementData.
   //
   // advertisement_fetcher : a fetcher passed from BLE medium to read the
-  // advertisemeent from BLE characteristics by GATT server.
+  // advertisement from BLE characteristics by GATT server.
   std::vector<const ByteArray*> FetchRawAdvertisements(
       BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
@@ -261,6 +265,16 @@ class DiscoveredPeripheralTracker {
   // a legacy device dummy advertisement.
   static bool IsLegacyDeviceAdvertisementData(
       const api::ble_v2::BleAdvertisementData& advertisement_data);
+
+  // Helps to handle advertisement for Instant On lost.
+  bool IsInstantLostAdvertisement(
+      const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void AddInstantLostAdvertisement(
+      const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void RemoveExpiredInstantLostAdvertisements()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
   bool is_extended_advertisement_available_;
@@ -310,6 +324,13 @@ class DiscoveredPeripheralTracker {
 
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
+
+  // Maps an advertisement header's hash with the time it's reported lost.
+  // Ignores subsequent discovery events for the same advertisement header.
+  absl::flat_hash_map<std::string, absl::Time> lost_advertisment_infos_
+      ABSL_GUARDED_BY(mutex_);
+  absl::Time last_lost_info_update_time_ ABSL_GUARDED_BY(mutex_) =
+      absl::InfinitePast();
 };
 
 }  // namespace mediums

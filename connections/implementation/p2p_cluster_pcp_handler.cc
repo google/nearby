@@ -872,6 +872,54 @@ void P2pClusterPcpHandler::BleV2PeripheralLostHandler(
       });
 }
 
+void P2pClusterPcpHandler::BleV2InstantLostHandler(
+    ClientProxy* client, BleV2Peripheral peripheral,
+    const std::string& service_id, const ByteArray& advertisement_bytes,
+    bool fast_advertisement) {
+  RunOnPcpHandlerThread(
+      "p2p-ble-peripheral-instant-lost",
+      [this, client, service_id, peripheral = std::move(peripheral),
+       advertisement_bytes, fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
+        std::string service_id = client->GetDiscoveryServiceId();
+
+        if (!client->IsDiscovering() || stop_.Get()) {
+          NEARBY_LOGS(WARNING)
+              << "Ignoring instant lost BlePeripheral "
+              << absl::BytesToHexString(peripheral.GetId().data())
+              << " because we are no longer discovering.";
+          return;
+        }
+
+        NEARBY_LOGS(INFO) << "Processing instant lost on BlePeripheral "
+                          << absl::BytesToHexString(peripheral.GetId().data());
+        auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
+            fast_advertisement, advertisement_bytes);
+        if (!ble_status_or.ok()) {
+          NEARBY_LOGS(ERROR) << ble_status_or.status();
+          return;
+        }
+        const auto& advertisement = ble_status_or.value();
+
+        // Make sure the BLE advertisement points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedBleV2Endpoint(service_id, advertisement)) return;
+
+        // Remove this BlePeripheral from found_ble_endpoints_, and
+        // report the endpoint as lost to the client.
+        auto const item =
+            found_endpoints_in_ble_discover_cb_.find(peripheral.GetId());
+        if (item == found_endpoints_in_ble_discover_cb_.end()) {
+          return;
+        }
+
+        found_endpoints_in_ble_discover_cb_.erase(item);
+
+        // Report the instant lost endpoint.
+        OnInstantLost(client, advertisement.GetEndpointId(),
+                      advertisement.GetEndpointInfo());
+      });
+}
+
 void P2pClusterPcpHandler::BleV2LegacyDeviceDiscoveredHandler() {
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
@@ -1783,7 +1831,6 @@ void P2pClusterPcpHandler::StartBluetoothDiscoveryWithPause(
                   location::nearby::proto::connections::BLE) !=
             mediums_started_successfully.end()) {
       if (bluetooth_medium_.IsDiscovering(service_id)) {
-        NEARBY_LOGS(INFO) << "xxxxx";
         // If we are already discovering, we don't need to start again.
         Medium bluetooth_medium = StartBluetoothDiscovery(client, service_id);
         if (bluetooth_medium !=
@@ -2245,6 +2292,8 @@ Medium P2pClusterPcpHandler::StartBleV2Scanning(
               .peripheral_lost_cb = absl::bind_front(
                   &P2pClusterPcpHandler::BleV2PeripheralLostHandler, this,
                   client),
+              .instant_lost_cb = absl::bind_front(
+                  &P2pClusterPcpHandler::BleV2InstantLostHandler, this, client),
               .legacy_device_discovered_cb = absl::bind_front(
                   &P2pClusterPcpHandler::BleV2LegacyDeviceDiscoveredHandler,
                   this),
