@@ -607,12 +607,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client,
-        NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kUseMediumInConnectionInfo)
-            ? connection_info.medium
-            : connection_info.channel->GetMedium(),
+        connection_info.client, connection_info.medium,
         remote_device.GetEndpointId(), connection_info.channel.get(),
         connection_info.is_incoming, connection_info.start_time,
         {Status::kEndpointIoError}, connection_info.result.lock().get());
@@ -674,13 +669,8 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client,
-        NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kUseMediumInConnectionInfo)
-            ? connection_info.medium
-            : connection_info.channel->GetMedium(),
-        endpoint_id, connection_info.channel.get(), connection_info.is_incoming,
+        connection_info.client, connection_info.medium, endpoint_id,
+        connection_info.channel.get(), connection_info.is_incoming,
         connection_info.start_time, {Status::kEndpointIoError},
         connection_info.result.lock().get());
     return;
@@ -758,14 +748,9 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   }
 
   ProcessPreConnectionInitiationFailure(
-      info.client,
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kUseMediumInConnectionInfo)
-          ? info.medium
-          : info.channel->GetMedium(),
-      endpoint_id, info.channel.get(), info.is_incoming, info.start_time,
-      {Status::kEndpointIoError}, info.result.lock().get());
+      info.client, info.medium, endpoint_id, info.channel.get(),
+      info.is_incoming, info.start_time, {Status::kEndpointIoError},
+      info.result.lock().get());
 }
 
 ConnectionInfo BasePcpHandler::FillConnectionInfo(
@@ -2054,14 +2039,8 @@ void BasePcpHandler::ProcessTieBreakLoss(
     ClientProxy* client, const std::string& endpoint_id,
     BasePcpHandler::PendingConnectionInfo* info) {
   ProcessPreConnectionInitiationFailure(
-      client,
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kUseMediumInConnectionInfo)
-          ? info->medium
-          : info->channel->GetMedium(),
-      endpoint_id, info->channel.get(), info->is_incoming, info->start_time,
-      {Status::kEndpointIoError}, info->result.lock().get());
+      client, info->medium, endpoint_id, info->channel.get(), info->is_incoming,
+      info->start_time, {Status::kEndpointIoError}, info->result.lock().get());
   ProcessPreConnectionResultFailure(client, endpoint_id,
                                     /* should_call_disconnect_endpoint= */ true,
                                     DisconnectionReason::IO_ERROR);
@@ -2352,12 +2331,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
 
   if (connection_info.is_incoming) {
     connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
-        location::nearby::proto::connections::INITIAL,
-        NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kUseMediumInConnectionInfo)
-            ? connection_info.medium
-            : connection_info.channel->GetMedium(),
+        location::nearby::proto::connections::INITIAL, connection_info.medium,
         location::nearby::proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token,
@@ -2365,11 +2339,7 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
   } else {
     connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
         endpoint_id, location::nearby::proto::connections::INITIAL,
-        NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kUseMediumInConnectionInfo)
-            ? connection_info.medium
-            : connection_info.channel->GetMedium(),
+        connection_info.medium,
         location::nearby::proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token,

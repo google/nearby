@@ -71,10 +71,6 @@ constexpr auto kEnableMultiplex =
     flags::Flag<bool>(kConfigPackage, "45627836", false);
 
 // When true, use the medium in connection info.
-constexpr auto kUseMediumInConnectionInfo =
-    flags::Flag<bool>(kConfigPackage, "45635058", false);
-
-// When true, use the medium in connection info.
 constexpr auto kUseStableEndpointId =
     flags::Flag<bool>(kConfigPackage, "45639298", false);
 
