@@ -1736,10 +1736,15 @@ void NearbySharingServiceImpl::OnOutgoingAdvertisementDecoded(
        advertisement_copy =
            *advertisement](std::optional<NearbyShareDecryptedPublicCertificate>
                                decrypted_public_certificate) {
-        NL_LOG(INFO) << __func__ << ": Decrypted public certificate";
-        OnOutgoingDecryptedCertificate(endpoint_id_copy, endpoint_info_copy,
-                                       advertisement_copy,
-                                       decrypted_public_certificate);
+        RunOnNearbySharingServiceThread(
+            "outgoing_decrypted_certificate",
+            [this, endpoint_id_copy, endpoint_info_copy, advertisement_copy,
+             decrypted_public_certificate]() {
+              NL_LOG(INFO) << __func__ << ": Decrypted public certificate";
+              OnOutgoingDecryptedCertificate(
+                  endpoint_id_copy, endpoint_info_copy, advertisement_copy,
+                  decrypted_public_certificate);
+            });
       });
 }
 
@@ -2584,9 +2589,16 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
        placeholder_share_target_id](
           std::optional<NearbyShareDecryptedPublicCertificate>
               decrypted_public_certificate) {
-        OnIncomingDecryptedCertificate(endpoint_id, advertisement_copy,
-                                       placeholder_share_target_id,
-                                       decrypted_public_certificate);
+        RunOnNearbySharingServiceThread(
+            "incoming_decrypted_certificate",
+            [this, endpoint_id, advertisement_copy, placeholder_share_target_id,
+             decrypted_public_certificate =
+                 std::move(decrypted_public_certificate)]() {
+              OnIncomingDecryptedCertificate(
+                  endpoint_id, advertisement_copy,
+                  placeholder_share_target_id,
+                  decrypted_public_certificate);
+            });
       });
 }
 
