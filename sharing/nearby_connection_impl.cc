@@ -24,10 +24,9 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/mutex_lock.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 
@@ -47,43 +46,49 @@ NearbyConnectionImpl::NearbyConnectionImpl(
 }
 
 NearbyConnectionImpl::~NearbyConnectionImpl() {
-  MutexLock lock(&mutex_);
-  if (!device_info_.AllowSleep()) {
-    NL_LOG(ERROR) << __func__ << ":Failed to allow device sleep.";
+  std::function<void()> disconnect_listener;
+  std::function<void(std::optional<std::vector<uint8_t>> bytes)> read_callback;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!device_info_.AllowSleep()) {
+      NL_LOG(ERROR) << __func__ << ":Failed to allow device sleep.";
+    }
+    disconnect_listener = std::move(disconnect_listener_);
+    read_callback = std::move(read_callback_);
+  }
+  if (disconnect_listener) {
+    disconnect_listener();
   }
 
-  if (disconnect_listener_) {
-    disconnect_listener_();
-  }
-
-  if (read_callback_) {
-    read_callback_(std::nullopt);
+  if (read_callback) {
+    read_callback(std::nullopt);
   }
 }
 
-void NearbyConnectionImpl::Read(ReadCallback callback) {
-  MutexLock lock(&mutex_);
-  if (reads_.empty()) {
-    read_callback_ = std::move(callback);
-    return;
-  }
+void NearbyConnectionImpl::Read(
+    std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback) {
+  std::vector<uint8_t> bytes;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (reads_.empty()) {
+      read_callback_ = std::move(callback);
+      return;
+    }
 
-  std::vector<uint8_t> bytes = std::move(reads_.front());
-  reads_.pop();
+    bytes = std::move(reads_.front());
+    reads_.pop();
+  }
   std::move(callback)(std::move(bytes));
 }
 
 void NearbyConnectionImpl::Write(std::vector<uint8_t> bytes) {
-  MutexLock lock(&mutex_);
-  Payload payload(bytes);
   nearby_connections_manager_->Send(
-      endpoint_id_, std::make_unique<Payload>(payload),
+      endpoint_id_, std::make_unique<Payload>(bytes),
       /*listener=*/
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
 }
 
 void NearbyConnectionImpl::Close() {
-  MutexLock lock(&mutex_);
   // As [this] therefore endpoint_id_ will be destroyed in Disconnect, make a
   // copy of [endpoint_id] as the parameter is a const ref.
   nearby_connections_manager_->Disconnect(endpoint_id_);
@@ -91,20 +96,24 @@ void NearbyConnectionImpl::Close() {
 
 void NearbyConnectionImpl::SetDisconnectionListener(
     std::function<void()> listener) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(&mutex_);
   disconnect_listener_ = std::move(listener);
 }
 
 void NearbyConnectionImpl::WriteMessage(std::vector<uint8_t> bytes) {
-  MutexLock lock(&mutex_);
-  if (read_callback_) {
-    auto callback = std::move(read_callback_);
+  std::function<void(std::optional<std::vector<uint8_t>> bytes)> read_callback;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!read_callback_) {
+      reads_.push(std::move(bytes));
+      return;
+    }
+    read_callback = std::move(read_callback_);
     read_callback_ = nullptr;
-    callback(std::move(bytes));
-    return;
   }
-
-  reads_.push(std::move(bytes));
+  if (read_callback) {
+    read_callback(std::move(bytes));
+  }
 }
 
 }  // namespace sharing

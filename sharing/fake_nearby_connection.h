@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include <functional>
+#include <optional>
 #include <queue>
 #include <vector>
 
@@ -35,7 +36,8 @@ class FakeNearbyConnection : public NearbyConnection {
   ~FakeNearbyConnection() override;
 
   // NearbyConnection:
-  void Read(ReadCallback callback) override;
+  void Read(std::function<void(std::optional<std::vector<uint8_t>> bytes)>
+                callback) override;
   void Write(std::vector<uint8_t> bytes) override;
   void Close() override;
   void SetDisconnectionListener(std::function<void()> listener) override;
@@ -58,7 +60,8 @@ class FakeNearbyConnection : public NearbyConnection {
   TaskRunner* const task_runner_;
   absl::Mutex read_mutex_;
   bool has_read_callback_been_run_ ABSL_GUARDED_BY(read_mutex_) = false;
-  ReadCallback callback_ ABSL_GUARDED_BY(read_mutex_);
+  std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback_
+      ABSL_GUARDED_BY(read_mutex_);
   std::queue<std::vector<uint8_t>> read_data_ ABSL_GUARDED_BY(read_mutex_);
   absl::Mutex write_mutex_;
   std::queue<std::vector<uint8_t>> write_data_ ABSL_GUARDED_BY(write_mutex_);
