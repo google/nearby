@@ -14,8 +14,8 @@
 
 #include "internal/platform/condition_variable.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <cstdint>
+
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
@@ -25,6 +25,7 @@
 
 namespace nearby {
 namespace {
+constexpr absl::Duration kWaitTime = absl::Milliseconds(500);
 
 TEST(ConditionVariableTest, CanCreate) {
   Mutex mutex;
@@ -70,11 +71,13 @@ TEST(ConditionVariableTest, WaitTerminatesOnTimeoutWithoutNotify) {
   ConditionVariable cond{&mutex};
   MutexLock lock(&mutex);
 
-  const absl::Duration kWaitTime = absl::Milliseconds(100);
   absl::Time start = SystemClock::ElapsedRealtime();
   cond.Wait(kWaitTime);
-  absl::Duration duration = SystemClock::ElapsedRealtime() - start;
-  EXPECT_GE(duration, kWaitTime);
+  int64_t bias = absl::ToInt64Milliseconds(SystemClock::ElapsedRealtime() -
+                                           start - kWaitTime);
+
+  // Windows cannot guarantee the exact time of the timeout.
+  EXPECT_GE(bias, -15);
 }
 
 }  // namespace
