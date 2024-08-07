@@ -38,6 +38,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -1223,6 +1224,32 @@ std::string NearbySharingServiceImpl::Dump() const {
   sstream << "  IsBluetoothPowered: " << IsBluetoothPowered() << std::endl;
   sstream << "  IsExtendedAdvertisingSupported: "
           << IsExtendedAdvertisingSupported() << std::endl;
+  sstream << "  Registered send surfaces: " << std::endl;
+  for (const auto& [transfer_callback, discovery_callback] :
+       foreground_send_surface_map_) {
+    sstream << absl::StrFormat(
+                   "    Foreground, vendor ID: %d",
+                   static_cast<uint8_t>(discovery_callback.BlockedVendorId()))
+            << std::endl;
+  }
+  for (const auto& [transfer_callback, discovery_callback] :
+       background_send_surface_map_) {
+    sstream << absl::StrFormat(
+                   "    Background, vendor ID: %d",
+                   static_cast<uint8_t>(discovery_callback.BlockedVendorId()))
+            << std::endl;
+  }
+  sstream << "  Registered receive surfaces: " << std::endl;
+  for (const auto& [callback, vendor_id] : foreground_receive_callbacks_map_) {
+    sstream << absl::StrFormat("    Foreground, vendor ID: %d",
+                               static_cast<uint8_t>(vendor_id))
+            << std::endl;
+  }
+  for (const auto& [callback, vendor_id] : background_receive_callbacks_map_) {
+    sstream << absl::StrFormat("    Background, vendor ID: %d",
+                               static_cast<uint8_t>(vendor_id))
+            << std::endl;
+  }
   sstream << std::noboolalpha;
   sstream << std::endl;
 
