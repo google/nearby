@@ -80,7 +80,7 @@ std::wstring FilePath::GetDownloadPathInternal(std::wstring parent_folder,
   PWSTR basePath;
 
   // Retrieves the full path of a known folder identified by the folder's
-  // KNOWNFOLDERID.
+  // KNOWNFOLDERID
   // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
   SHGetKnownFolderPath(
       /*rfid=*/FOLDERID_Downloads,
