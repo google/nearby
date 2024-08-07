@@ -3124,52 +3124,19 @@ void NearbySharingServiceImpl::IncomingPayloadTransferUpdate(
         << share_target_id;
     return;
   }
-  // kInProgress status is logged extensively elsewhere so avoid the spam.
-  if (metadata.status() != TransferMetadata::Status::kInProgress) {
-    NL_VLOG(1) << __func__ << ": Nearby Share service: "
-               << "Payload transfer update for share target with ID "
-               << share_target_id << ": "
-               << TransferMetadata::StatusToString(metadata.status());
-  }
-
-  // Update file paths during progress. It may impact transfer speed.
-  // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
-  // MacOS.
-  if (update_file_paths_in_progress_) {
-    session->UpdateFilePayloadPaths();
-  }
-
-  if (metadata.status() == TransferMetadata::Status::kComplete) {
-    if (!session->FinalizePayloads()) {
-      metadata = TransferMetadataBuilder()
-                     .set_status(TransferMetadata::Status::kIncompletePayloads)
-                     .build();
+  std::pair<bool, bool> result =
+      session->PayloadTransferUpdate(update_file_paths_in_progress_, metadata);
+  if (result.first) {
+    if (!result.second) {
+      OnIncomingFilesMetadataUpdated(share_target_id, std::move(metadata),
+                                     /*success=*/false);
+      return;
     }
     file_handler_.UpdateFilesOriginMetadata(
         session->GetPayloadFilePaths(),
         absl::bind_front(
             &NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated, this,
             share_target_id, std::move(metadata)));
-    return;
-  } else if (metadata.status() == TransferMetadata::Status::kCancelled) {
-    NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
-    if (!update_file_paths_in_progress_) {
-      session->UpdateFilePayloadPaths();
-    }
-  }
-
-  // Make sure to call this before calling Disconnect, or we risk losing some
-  // transfer updates in the receive case due to the Disconnect call cleaning up
-  // share targets.
-  session->UpdateTransferMetadata(metadata);
-
-  if (TransferMetadata::IsFinalStatus(metadata.status())) {
-    // Cancellation has its own disconnection strategy, possibly adding a
-    // delay before disconnection to provide the other party time to process
-    // the cancellation.
-    if (metadata.status() != TransferMetadata::Status::kCancelled) {
-      session->Disconnect();
-    }
   }
 }
 

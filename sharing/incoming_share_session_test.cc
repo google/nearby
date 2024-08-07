@@ -48,6 +48,7 @@
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 #include "sharing/transfer_metadata_matchers.h"
 #include "sharing/wifi_credentials_attachment.h"
 #include "google/protobuf/text_format.h"
@@ -63,6 +64,7 @@ using ::nearby::analytics::HasAction;
 using ::nearby::analytics::HasCategory;
 using ::nearby::analytics::HasEventType;
 using ::nearby::analytics::HasSessionId;
+using ::nearby::sharing::TransferMetadataBuilder;
 using ::nearby::sharing::analytics::proto::SharingLog;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::FileMetadata;
@@ -280,31 +282,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
               Eq(wifimeta2.payload_id()));
 }
 
-TEST_F(IncomingShareSessionTest, UpdateFilePayloadPathsSuccess) {
-  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
-                                   &connections_manager_, &connection_));
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
-              Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
-  int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager_.SetIncomingPayload(
-      payload_id1, CreateFilePayload(payload_id1, file1_path));
-
-  std::filesystem::path file2_path = "/usr/tmp/file2";
-  int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager_.SetIncomingPayload(
-      payload_id2, CreateFilePayload(payload_id2, file2_path));
-
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
-  EXPECT_THAT(
-      session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(file1_path));
-  EXPECT_THAT(
-      session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(file2_path));
-}
-
-TEST_F(IncomingShareSessionTest, UpdateFilePayloadPathsWrongType) {
+TEST_F(IncomingShareSessionTest,
+       PayloadTransferUpdateCompleteWithWrongPayloadType) {
   EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
                                    &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
@@ -317,11 +296,51 @@ TEST_F(IncomingShareSessionTest, UpdateFilePayloadPathsWrongType) {
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsTrue());
+  EXPECT_THAT(result.second, IsFalse());
+  // Verify that attachments are cleared out
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[0].text_body(),
+      IsEmpty());
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[1].text_body(),
+      IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
 }
 
-TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
+TEST_F(IncomingShareSessionTest,
+       PayloadTransferUpdateCompleteWithMissingFilePayloads) {
   EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
                                    &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
@@ -330,12 +349,244 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
+  std::string text_content1 = "text1";
+  int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
 
+  std::string text_content2 = "text2";
+  int64_t text_payload_id2 = introduction_frame_.text_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id2, CreateTextPayload(text_payload_id2, text_content2));
+
+  int64_t wifi_payload_id1 =
+      introduction_frame_.wifi_credentials_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id1,
+      CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
+
+  int64_t wifi_payload_id2 =
+      introduction_frame_.wifi_credentials_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id2,
+      CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
+
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsTrue());
+  EXPECT_THAT(result.second, IsFalse());
+  // Verify that attachments are cleared out
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[0].text_body(),
+      IsEmpty());
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[1].text_body(),
+      IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest,
+       PayloadTransferUpdateCompleteWithMissingTextPayloads) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+              Eq(std::nullopt));
+  std::filesystem::path file1_path = "/usr/tmp/file1";
+  int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id1, CreateFilePayload(payload_id1, file1_path));
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
+  std::string text_content1 = "text1";
+  int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
+  int64_t wifi_payload_id1 =
+      introduction_frame_.wifi_credentials_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id1,
+      CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
+  int64_t wifi_payload_id2 =
+      introduction_frame_.wifi_credentials_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id2,
+      CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
+
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsTrue());
+  EXPECT_THAT(result.second, IsFalse());
+  // Verify that attachments are cleared out
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[0].text_body(),
+      IsEmpty());
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[1].text_body(),
+      IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest,
+       PayloadTransferUpdateCompleteWithMissingWifiPayloads) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+              Eq(std::nullopt));
+  std::filesystem::path file1_path = "/usr/tmp/file1";
+  int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id1, CreateFilePayload(payload_id1, file1_path));
+  std::filesystem::path file2_path = "/usr/tmp/file2";
+  int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id2, CreateFilePayload(payload_id2, file2_path));
+  std::string text_content1 = "text1";
+  int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
+  std::string text_content2 = "text2";
+  int64_t text_payload_id2 = introduction_frame_.text_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id2, CreateTextPayload(text_payload_id2, text_content2));
+  int64_t wifi_payload_id1 =
+      introduction_frame_.wifi_credentials_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id1,
+      CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
+
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsTrue());
+  EXPECT_THAT(result.second, IsFalse());
+  // Verify that attachments are cleared out
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(std::nullopt));
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[0].text_body(),
+      IsEmpty());
+  EXPECT_THAT(
+      session_.attachment_container().GetTextAttachments()[1].text_body(),
+      IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[0]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .password(),
+              IsEmpty());
+  EXPECT_THAT(session_.attachment_container()
+                  .GetWifiCredentialsAttachments()[1]
+                  .is_hidden(),
+              IsFalse());
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+}
+
+TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
+  IntroductionFrame introduction_frame;
+  FileMetadata file1;
+  FileMetadata file2;
+  file1.set_id(23432);
+  file1.set_payload_id(123);
+  file1.set_size(1);
+  file2.set_id(42377);
+  file2.set_payload_id(456);
+  file2.set_size(1);
+  introduction_frame.mutable_file_metadata()->Add(std::move(file1));
+  introduction_frame.mutable_file_metadata()->Add(std::move(file2));
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+              Eq(std::nullopt));
+  std::filesystem::path file1_path = "/usr/tmp/file1";
+  int64_t payload_id1 = introduction_frame.file_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id1, CreateFilePayload(payload_id1, file1_path));
+
+  std::filesystem::path file2_path = "/usr/tmp/file2";
+  int64_t payload_id2 = introduction_frame.file_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id2, CreateFilePayload(payload_id2, file2_path));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+  EXPECT_THAT(result.first, IsTrue());
+  EXPECT_THAT(result.second, IsTrue());
 
   std::vector<std::filesystem::path> file_paths =
       session_.GetPayloadFilePaths();
@@ -343,7 +594,7 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   EXPECT_THAT(file_paths, UnorderedElementsAre(file1_path, file2_path));
 }
 
-TEST_F(IncomingShareSessionTest, FinalizePayloadsSuccess) {
+TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
   EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
                                    &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
@@ -357,7 +608,6 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsSuccess) {
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
@@ -380,8 +630,17 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsSuccess) {
   connections_manager_.SetIncomingPayload(
       wifi_payload_id2,
       CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
-  EXPECT_THAT(session_.FinalizePayloads(), IsTrue());
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsTrue());
+  EXPECT_THAT(result.second, IsTrue());
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
       Eq(file1_path));
@@ -410,9 +669,10 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsSuccess) {
                   .GetWifiCredentialsAttachments()[1]
                   .is_hidden(),
               IsTrue());
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
 }
 
-TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingFilePayloads) {
+TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
   EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
                                    &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
@@ -421,7 +681,11 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingFilePayloads) {
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
+
+  std::filesystem::path file2_path = "/usr/tmp/file2";
+  int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id2, CreateFilePayload(payload_id2, file2_path));
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
@@ -444,41 +708,27 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingFilePayloads) {
   connections_manager_.SetIncomingPayload(
       wifi_payload_id2,
       CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kCancelled)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kCancelled)));
 
-  EXPECT_THAT(session_.FinalizePayloads(), IsFalse());
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
 
-  // Verify that attachments are cleared out
+  EXPECT_THAT(result.first, IsFalse());
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(std::nullopt));
+      Eq(file1_path));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(std::nullopt));
-  EXPECT_THAT(
-      session_.attachment_container().GetTextAttachments()[0].text_body(),
-      IsEmpty());
-  EXPECT_THAT(
-      session_.attachment_container().GetTextAttachments()[1].text_body(),
-      IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[0]
-                  .password(),
-              IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[0]
-                  .is_hidden(),
-              IsFalse());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[1]
-                  .password(),
-              IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[1]
-                  .is_hidden(),
-              IsFalse());
+      Eq(file2_path));
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
 }
 
-TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingTextPayloads) {
+TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
   EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
                                    &connections_manager_, &connection_));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
@@ -487,80 +737,11 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingTextPayloads) {
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
 
   std::filesystem::path file2_path = "/usr/tmp/file2";
   int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
-
-  std::string text_content1 = "text1";
-  int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
-  connections_manager_.SetIncomingPayload(
-      text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
-
-  int64_t wifi_payload_id1 =
-      introduction_frame_.wifi_credentials_metadata(0).payload_id();
-  connections_manager_.SetIncomingPayload(
-      wifi_payload_id1,
-      CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
-
-  int64_t wifi_payload_id2 =
-      introduction_frame_.wifi_credentials_metadata(1).payload_id();
-  connections_manager_.SetIncomingPayload(
-      wifi_payload_id2,
-      CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
-
-  EXPECT_THAT(session_.FinalizePayloads(), IsFalse());
-
-  // Verify that attachments are cleared out
-  EXPECT_THAT(
-      session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(std::nullopt));
-  EXPECT_THAT(
-      session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(std::nullopt));
-  EXPECT_THAT(
-      session_.attachment_container().GetTextAttachments()[0].text_body(),
-      IsEmpty());
-  EXPECT_THAT(
-      session_.attachment_container().GetTextAttachments()[1].text_body(),
-      IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[0]
-                  .password(),
-              IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[0]
-                  .is_hidden(),
-              IsFalse());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[1]
-                  .password(),
-              IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[1]
-                  .is_hidden(),
-              IsFalse());
-}
-
-TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
-  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
-                                   &connections_manager_, &connection_));
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
-              Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
-  int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
-  connections_manager_.SetIncomingPayload(
-      payload_id1, CreateFilePayload(payload_id1, file1_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsFalse());
-
-  std::filesystem::path file2_path = "/usr/tmp/file2";
-  int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
-  connections_manager_.SetIncomingPayload(
-      payload_id2, CreateFilePayload(payload_id2, file2_path));
-  EXPECT_THAT(session_.UpdateFilePayloadPaths(), IsTrue());
 
   std::string text_content1 = "text1";
   int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
@@ -578,37 +759,72 @@ TEST_F(IncomingShareSessionTest, FinalizePayloadsMissingWifiPayloads) {
       wifi_payload_id1,
       CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
 
-  EXPECT_THAT(session_.FinalizePayloads(), IsFalse());
+  int64_t wifi_payload_id2 =
+      introduction_frame_.wifi_credentials_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id2,
+      CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
+  TransferMetadata metadata = TransferMetadataBuilder()
+                                  .set_status(TransferMetadata::Status::kFailed)
+                                  .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kFailed)));
 
-  // Verify that attachments are cleared out
-  EXPECT_THAT(
-      session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(std::nullopt));
-  EXPECT_THAT(
-      session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(std::nullopt));
-  EXPECT_THAT(
-      session_.attachment_container().GetTextAttachments()[0].text_body(),
-      IsEmpty());
-  EXPECT_THAT(
-      session_.attachment_container().GetTextAttachments()[1].text_body(),
-      IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[0]
-                  .password(),
-              IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[0]
-                  .is_hidden(),
-              IsFalse());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[1]
-                  .password(),
-              IsEmpty());
-  EXPECT_THAT(session_.attachment_container()
-                  .GetWifiCredentialsAttachments()[1]
-                  .is_hidden(),
-              IsFalse());
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsFalse());
+  EXPECT_THAT(connection_.IsClosed(), IsTrue());
+}
+
+TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
+  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
+                                   &connections_manager_, &connection_));
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+              Eq(std::nullopt));
+  std::filesystem::path file1_path = "/usr/tmp/file1";
+  int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id1, CreateFilePayload(payload_id1, file1_path));
+
+  std::filesystem::path file2_path = "/usr/tmp/file2";
+  int64_t payload_id2 = introduction_frame_.file_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      payload_id2, CreateFilePayload(payload_id2, file2_path));
+
+  std::string text_content1 = "text1";
+  int64_t text_payload_id1 = introduction_frame_.text_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id1, CreateTextPayload(text_payload_id1, text_content1));
+
+  std::string text_content2 = "text2";
+  int64_t text_payload_id2 = introduction_frame_.text_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      text_payload_id2, CreateTextPayload(text_payload_id2, text_content2));
+
+  int64_t wifi_payload_id1 =
+      introduction_frame_.wifi_credentials_metadata(0).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id1,
+      CreateWifiCredentialsPayload(wifi_payload_id1, "password1", false));
+
+  int64_t wifi_payload_id2 =
+      introduction_frame_.wifi_credentials_metadata(1).payload_id();
+  connections_manager_.SetIncomingPayload(
+      wifi_payload_id2,
+      CreateWifiCredentialsPayload(wifi_payload_id2, "password2", true));
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kInProgress)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
+
+  std::pair<bool, bool> result =
+      session_.PayloadTransferUpdate(false, metadata);
+
+  EXPECT_THAT(result.first, IsFalse());
+  EXPECT_THAT(connection_.IsClosed(), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {

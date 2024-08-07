@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "internal/platform/clock.h"
@@ -69,9 +70,6 @@ class IncomingShareSession : public ShareSession {
           std::optional<nearby::sharing::service::proto::IntroductionFrame>)>
           introduction_callback);
 
-  // Update file attachment paths with payload paths.
-  bool UpdateFilePayloadPaths();
-
   // Returns true if the transfer can begin and AcceptTransfer should be called
   // immediately.
   // Returns false if user needs to accept the transfer.
@@ -91,11 +89,6 @@ class IncomingShareSession : public ShareSession {
       const nearby::sharing::service::proto::ProgressUpdateFrame&
           progress_update);
 
-  // Once transfer has completed, make payload content available in the
-  // corresponding Attachment.
-  // Returns true if all payloads were successfully finalized.
-  bool FinalizePayloads();
-
   // Returns the file paths of all file payloads.
   std::vector<std::filesystem::path> GetPayloadFilePaths() const;
 
@@ -108,13 +101,30 @@ class IncomingShareSession : public ShareSession {
   // response to remote device.
   void SendFailureResponse(TransferMetadata::Status status);
 
+  // Process payload transfer updates.
+  // The `update_file_paths_in_progress` flag determines if the payload paths
+  // should be updated in the attachments on each update notification.
+  // Returns a pair where the first param indicates whether the transfer has
+  // completed.  And if it has completed, the second param indicates whether
+  // the transfer was successful.
+  std::pair<bool, bool> PayloadTransferUpdate(
+      bool update_file_paths_in_progress, TransferMetadata metadata);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
+  // Update file attachment paths with payload paths.
+  bool UpdateFilePayloadPaths();
+
   // Copy payload contents from the NearbyConnection to the Attachment.
   bool UpdatePayloadContents();
+
+  // Once transfer has completed, make payload content available in the
+  // corresponding Attachment.
+  // Returns true if all payloads were successfully finalized.
+  bool FinalizePayloads();
 
   std::function<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;

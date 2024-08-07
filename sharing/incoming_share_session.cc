@@ -478,4 +478,39 @@ void IncomingShareSession::SendFailureResponse(
       TransferMetadataBuilder().set_status(status).build());
 }
 
+std::pair<bool, bool> IncomingShareSession::PayloadTransferUpdate(
+    bool update_file_paths_in_progress, TransferMetadata metadata) {
+  if (metadata.status() == TransferMetadata::Status::kComplete) {
+    bool success = FinalizePayloads();
+    return std::make_pair(/*completed=*/true, success);
+  }
+
+  // Update file paths during progress. It may impact transfer speed.
+  // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
+  // MacOS.
+  if (update_file_paths_in_progress) {
+    UpdateFilePayloadPaths();
+  } else {
+    if (metadata.status() == TransferMetadata::Status::kCancelled) {
+      NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
+      UpdateFilePayloadPaths();
+    }
+  }
+
+  // Make sure to call this before calling Disconnect, or we risk losing some
+  // transfer updates in the receive case due to the Disconnect call cleaning up
+  // share targets.
+  UpdateTransferMetadata(metadata);
+
+  if (TransferMetadata::IsFinalStatus(metadata.status())) {
+    // Cancellation has its own disconnection strategy, possibly adding a
+    // delay before disconnection to provide the other party time to process
+    // the cancellation.
+    if (metadata.status() != TransferMetadata::Status::kCancelled) {
+      Disconnect();
+    }
+  }
+  return std::make_pair(/*completed=*/false, /*success=*/false);
+}
+
 }  // namespace nearby::sharing
