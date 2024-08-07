@@ -62,10 +62,6 @@ constexpr auto kEnablePayloadReceivedAck =
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 
-// When true, check illegal characters in the file name and parent folder.
-constexpr auto kCheckIllegalCharacters =
-    flags::Flag<bool>(kConfigPackage, "45632028", false);
-
 // When true, allows to enable Multiplex feature.
 constexpr auto kEnableMultiplex =
     flags::Flag<bool>(kConfigPackage, "45627836", false);
