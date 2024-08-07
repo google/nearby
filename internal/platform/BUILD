@@ -359,6 +359,8 @@ cc_library(
         ":util",
         "//internal/base:files",
         "//internal/crypto_cros",
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",

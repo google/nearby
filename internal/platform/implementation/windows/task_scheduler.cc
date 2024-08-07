@@ -60,8 +60,8 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
                     << "ms, repeat_interval: "
                     << absl::ToInt64Milliseconds(repeat_interval) << "ms";
 
-  std::shared_ptr<ScheduledTask> task =
-      std::make_shared<ScheduledTask>(*this, std::move(runnable));
+  std::shared_ptr<ScheduledTask> task = std::make_shared<ScheduledTask>(
+      *this, std::move(runnable), repeat_interval != absl::ZeroDuration());
 
   HANDLE timer_handle = nullptr;
   if (!CreateTimerQueueTimer(&timer_handle, nullptr,
@@ -76,7 +76,7 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
     return nullptr;
   }
 
-  task->SetTimerHandle(reinterpret_cast<intptr_t>(timer_handle));
+  task->set_timer_handle(reinterpret_cast<intptr_t>(timer_handle));
   scheduled_tasks_.insert({reinterpret_cast<intptr_t>(timer_handle), task});
   NEARBY_LOGS(INFO) << __func__ << ": Scheduled task " << task.get()
                     << " on task scheduler:" << this
@@ -92,22 +92,55 @@ void TaskScheduler::Shutdown() {
 }
 
 TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
-                                            Runnable&& runnable)
-    : task_scheduler_(&task_scheduler), runnable_(std::move(runnable)) {}
-
-bool TaskScheduler::ScheduledTask::Cancel() {
-  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle_
-                    << " from task scheduler:" << this;
-  return task_scheduler_->RemoveScheduledTask(timer_handle_);
+                                            Runnable&& runnable,
+                                            bool is_repeated)
+    : task_scheduler_(&task_scheduler), is_repeated_(is_repeated) {
+  runnable_ = [this, runnable = std::move(runnable)]() mutable {
+    {
+      absl::MutexLock lock(&mutex_);
+      is_executed_ = true;
+    }
+    if (runnable) {
+      runnable();
+    }
+  };
 }
 
-void TaskScheduler::ScheduledTask::SetTimerHandle(intptr_t timer_handle) {
+bool TaskScheduler::ScheduledTask::Cancel() {
+  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle()
+                    << " from task scheduler:" << this;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (is_cancelled_) {
+      return false;
+    }
+    is_cancelled_ = true;
+  }
+
+  bool result = task_scheduler_->RemoveScheduledTask(timer_handle());
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!is_repeated_ && is_executed_) {
+      result = false;
+    }
+  }
+  return result;
+}
+
+void TaskScheduler::ScheduledTask::set_timer_handle(intptr_t timer_handle) {
+  absl::MutexLock lock(&mutex_);
   timer_handle_ = timer_handle;
 }
 
-Runnable* TaskScheduler::ScheduledTask::runnable() { return &runnable_; }
+Runnable* TaskScheduler::ScheduledTask::runnable() {
+  absl::MutexLock lock(&mutex_);
+  return &runnable_;
+}
 
-intptr_t TaskScheduler::ScheduledTask::timer_handle() { return timer_handle_; }
+intptr_t TaskScheduler::ScheduledTask::timer_handle() const {
+  absl::MutexLock lock(&mutex_);
+  return timer_handle_;
+}
 
 bool TaskScheduler::RemoveScheduledTask(intptr_t timer_handle) {
   absl::MutexLock lock(&mutex_);
