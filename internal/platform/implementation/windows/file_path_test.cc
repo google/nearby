@@ -22,11 +22,8 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include "gtest/gtest.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "internal/flags/nearby_flags.h"
 
 namespace nearby {
 namespace windows {
@@ -128,71 +125,6 @@ FolderArgumentsShouldReturnBaseDownloadPath) {
 
   EXPECT_EQ(actual, default_download_path_);
 }  // NOLINT false lint error here
-
-TEST_F(FilePathTests, GetDownloadPathWithAttemptToEscape\
-UsersDownloadFolderShouldReturnDownloadPathNotEscapingUsersDownloadFolder) {
-  std::wstring parent_folder(kImmediateEscape);
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithMultiple\
-AttemptsToEscapeUsersDownloadFolderWithBackslashShouldReturnDownloadPath\
-NotEscapingUsersDownloadFolder) {
-  std::wstring parent_folder(kLongEscapeBackSlash);
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_ + kTwoLevelFolder);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithMultiple\
-AttemptsToEscapeUsersDownloadFolderShouldReturnDownloadPathNotEscapingUsers\
-DownloadFolder) {
-  std::wstring parent_folder(kLongEscapeSlash);
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_ + kTwoLevelFolder);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithMultiple\
-AttemptsToEscapeUsersDownloadFolderWithMixedSlashShouldReturnDownloadPath\
-NotEscapingUsersDownloadFolder) {
-  std::wstring parent_folder(kLongEscapeMixedSlash);
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_ + kTwoLevelFolder);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithMultiple\
-AttemptsToEscapeUsersDownloadFolderWithEndingEscapeShouldReturnDownload\
-PathNotEscapingUsersDownloadFolder) {
-  std::wstring parent_folder(kLongEscapeEndingEscape);
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_ + kTwoLevelFolder);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithMultiple\
-AttemptsToEscapeUsersDownloadFolderWithEndingSlashShouldReturnDownloadPathNot\
-EscapingUsersDownloadFolder) {
-  std::wstring parent_folder(kLongEscapeEndingEscapeWithSlash);
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_ + kTwoLevelFolder);
-}
 
 TEST_F(FilePathTests, GetDownloadPathWithSlashFileName\
 ArgumentsShouldReturnBaseDownloadPath) {
@@ -858,13 +790,6 @@ AHoleBetweenRenamedFiles) {
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 
-void SetCheckIllegalCharactersFlag(bool value) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kCheckIllegalCharacters,
-      value);
-}
-
 TEST_F(FilePathTests, GetDownloadPathWithFileName\
 FileNameTwoDotsFrontShouldReturnBaseDownloadPathWithFileNameTwoDotsFront) {
   std::wstring parent_folder(L"");
@@ -875,19 +800,12 @@ FileNameTwoDotsFrontShouldReturnBaseDownloadPathWithFileNameTwoDotsFront) {
 
   std::wstring expected = path.str();
 
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_NE(actual, expected);
-
-  SetCheckIllegalCharactersFlag(true);
-  actual = FilePath::GetDownloadPath(parent_folder, file_name);
-  SetCheckIllegalCharactersFlag(false);
+  auto actual = FilePath::GetDownloadPath(parent_folder, file_name);
   EXPECT_EQ(actual, expected);
 }
 
 TEST_F(FilePathTests, GetDownloadPathWithFileName\
 FileNameThreeDotsShouldReturnBaseDownloadPathWithUnderscore) {
-  SetCheckIllegalCharactersFlag(true);
   std::wstring parent_folder(L"");
   std::wstring file_name(kFileNameWithThreeDots);
 
@@ -898,14 +816,11 @@ FileNameThreeDotsShouldReturnBaseDownloadPathWithUnderscore) {
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  SetCheckIllegalCharactersFlag(false);
   EXPECT_EQ(actual, expected);
 }
 
 TEST_F(FilePathTests, GetDownloadPath_FileExistsReturns\
 FileWithIncrementedNameWithNull) {
-  SetCheckIllegalCharactersFlag(true);
-
   std::wstring file_name(kFileName);
   int size = file_name.size();
   file_name.append(L"1.txt");
@@ -940,13 +855,11 @@ FileWithIncrementedNameWithNull) {
 
   input_file.open(output_file_path, std::ifstream::binary | std::ifstream::in);
 
-  SetCheckIllegalCharactersFlag(false);
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 
 TEST_F(FilePathTests, GetDownloadPathWithFileName\
 ParentFolderWithADotShouldBeReplaceedWithUnderscore) {
-  SetCheckIllegalCharactersFlag(true);
   std::wstring parent_folder(L"test/./folder/");
   std::wstring file_name(kFileName);
 
@@ -957,7 +870,6 @@ ParentFolderWithADotShouldBeReplaceedWithUnderscore) {
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  SetCheckIllegalCharactersFlag(false);
   EXPECT_EQ(actual, expected);
 }
 }  // namespace windows
