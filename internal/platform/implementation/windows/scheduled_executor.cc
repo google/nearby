@@ -17,13 +17,17 @@
 #include <crtdbg.h>
 
 #include <memory>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
@@ -41,62 +45,211 @@ ScheduledExecutor::ScheduledExecutor()
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
   absl::MutexLock lock(&mutex_);
+
+  if (shut_down_) {
+    NEARBY_LOGS(WARNING) << __func__
+                         << ": Attempt to schedule on a shut down executor.";
+
+    return nullptr;
+  }
+
   if (NearbyFlags::GetInstance().GetBoolFlag(
           platform::config_package_nearby::nearby_platform_feature::
               kEnableTaskScheduler)) {
     return task_scheduler_.Schedule(std::move(runnable), duration);
   } else {
-    if (shut_down_) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Attempt to Schedule on a shut down executor.";
-
-      return nullptr;
-    }
-
-    // Cleans completed tasks
-    auto it = scheduled_tasks_.begin();
-    while (it != scheduled_tasks_.end()) {
-      if ((*it)->IsDone()) {
-        it = scheduled_tasks_.erase(it);
-      } else {
-        ++it;
-      }
-    }
-
+    absl::Time run_time = SystemClock::ElapsedRealtime() + duration;
     std::shared_ptr<ScheduledTask> task =
-        std::make_shared<ScheduledTask>(std::move(runnable), duration);
+        std::make_shared<ScheduledTask>(std::move(runnable), run_time);
 
-    scheduled_tasks_.push_back(task);
-    executor_->Execute([task]() { task->Start(); });
+    scheduled_tasks_[run_time] = task;
+    ReSchedule();
     return task;
   }
 }
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {
-  absl::MutexLock lock(&mutex_);
-  if (shut_down_) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Attempt to Execute on a shut down executor.";
-    return;
-  }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler)) {
+    absl::MutexLock lock(&mutex_);
+    executor_->Execute([runnable = std::move(runnable)]() mutable {
+      if (runnable) {
+        runnable();
+      }
+    });
+  } else {
+    {
+      absl::MutexLock lock(&mutex_);
+      if (notification_ != nullptr) {
+        notification_->Notify();
+      }
+    }
 
-  executor_->Execute(std::move(runnable));
+    executor_->Execute([this, runnable = std::move(runnable)]() mutable {
+      if (runnable) {
+        runnable();
+      }
+      {
+        absl::MutexLock lock(&mutex_);
+        ReSchedule();
+      }
+    });
+  }
 }
 
 void ScheduledExecutor::Shutdown() {
-  absl::MutexLock lock(&mutex_);
-  if (!shut_down_) {
-    shut_down_ = true;
-    for (auto& task : scheduled_tasks_) {
-      task->Cancel();
+  {
+    absl::MutexLock lock(&mutex_);
+    if (shut_down_) {
+      NEARBY_LOGS(WARNING) << __func__
+                           << ": Attempt to Shutdown on a shut down executor.";
+      return;
     }
 
+    shut_down_ = true;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableTaskScheduler)) {
+      task_scheduler_.Shutdown();
+    } else {
+      if (notification_ != nullptr) {
+        notification_->Notify();
+      }
+    }
+  }
+
+  executor_->Shutdown();
+  {
+    absl::MutexLock lock(&mutex_);
     scheduled_tasks_.clear();
-    executor_->Shutdown();
+  }
+}
+
+bool ScheduledExecutor::ScheduledTask::Cancel() {
+  absl::MutexLock lock(&mutex_);
+  if (is_executed_.Get() || is_cancelled_.Get()) {
+    return false;
+  }
+
+  is_cancelled_.Set(true);
+  return true;
+};
+
+void ScheduledExecutor::ScheduledTask::Run() {
+  absl::MutexLock lock(&mutex_);
+  if (is_executed_.Get() || is_cancelled_.Get()) {
     return;
   }
-  NEARBY_LOGS(ERROR) << __func__
-                     << ": Attempt to Shutdown on a shut down executor.";
+
+  is_executed_.Set(true);
+  task_();
 }
+
+bool ScheduledExecutor::ScheduledTask::IsDone() const {
+  return is_cancelled_.Get() || is_executed_.Get();
+}
+
+absl::Time ScheduledExecutor::ScheduledTask::run_time() const {
+  absl::MutexLock lock(&mutex_);
+  return run_time_;
+}
+
+void ScheduledExecutor::ReSchedule() {
+  if (shut_down_) {
+    return;
+  }
+
+  if (notification_ != nullptr) {
+    notification_->Notify();
+  }
+
+  notification_ = std::make_unique<absl::Notification>();
+  executor_->Execute([this]() {
+    ClearCompletedTasks();
+    std::optional<absl::Time> next_task_time = GetNextRunTime();
+    if (!next_task_time.has_value()) {
+      return;
+    }
+
+    absl::Notification* notification = nullptr;
+    {
+      absl::MutexLock lock(&mutex_);
+      notification = notification_.get();
+    }
+
+    absl::Duration wait_time =
+        (*next_task_time) - SystemClock::ElapsedRealtime();
+    if (wait_time > absl::ZeroDuration() && notification != nullptr &&
+        notification->WaitForNotificationWithTimeout(wait_time)) {
+      return;
+    }
+
+    std::vector<std::shared_ptr<ScheduledTask>> tasks = FetchTasksToRun();
+    for (auto& task : tasks) {
+      if (task && !task->IsDone()) {
+        task->Run();
+        {
+          absl::MutexLock lock(&mutex_);
+          if (shut_down_) {
+            return;
+          }
+        }
+      }
+    }
+
+    {
+      absl::MutexLock lock(&mutex_);
+      ReSchedule();
+    }
+  });
+}
+
+void ScheduledExecutor::ClearCompletedTasks() {
+  absl::MutexLock lock(&mutex_);
+
+  auto it = scheduled_tasks_.begin();
+  while (it != scheduled_tasks_.end()) {
+    if (it->second->IsDone()) {
+      it = scheduled_tasks_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+std::optional<absl::Time> ScheduledExecutor::GetNextRunTime() {
+  absl::MutexLock lock(&mutex_);
+
+  if (shut_down_ || scheduled_tasks_.empty()) {
+    return std::nullopt;
+  }
+
+  return scheduled_tasks_.begin()->first;
+}
+
+std::vector<std::shared_ptr<ScheduledExecutor::ScheduledTask>>
+ScheduledExecutor::FetchTasksToRun() {
+  absl::MutexLock lock(&mutex_);
+  std::vector<std::shared_ptr<ScheduledTask>> tasks;
+
+  if (shut_down_) {
+    return tasks;
+  }
+
+  absl::Time now = SystemClock::ElapsedRealtime();
+  auto it = scheduled_tasks_.begin();
+  while (it != scheduled_tasks_.end()) {
+    if (it->first <= now) {
+      tasks.push_back(it->second);
+    } else {
+      break;
+    }
+    ++it;
+  }
+
+  return tasks;
+}
+
 }  // namespace windows
 }  // namespace nearby

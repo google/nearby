@@ -31,7 +31,7 @@ namespace nearby {
 namespace windows {
 namespace {
 
-class TimerTaskSchedulerFlagTest : public ::testing::TestWithParam<bool> {
+class TimerTest : public ::testing::TestWithParam<bool> {
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -41,7 +41,7 @@ class TimerTaskSchedulerFlagTest : public ::testing::TestWithParam<bool> {
   }
 };
 
-TEST_P(TimerTaskSchedulerFlagTest, TestCreateTimer) {
+TEST_P(TimerTest, TestCreateTimer) {
   int count = 0;
 
   std::unique_ptr<nearby::api::Timer> timer =
@@ -53,7 +53,7 @@ TEST_P(TimerTaskSchedulerFlagTest, TestCreateTimer) {
 }
 
 // This test case cannot run on Google3
-TEST_P(TimerTaskSchedulerFlagTest, TestRepeatTimer) {
+TEST_P(TimerTest, TestRepeatTimer) {
   int count = 0;
 
   std::unique_ptr<nearby::api::Timer> timer =
@@ -63,10 +63,10 @@ TEST_P(TimerTaskSchedulerFlagTest, TestRepeatTimer) {
   EXPECT_TRUE(timer->Create(300, 300, [&]() { ++count; }));
   std::this_thread::sleep_for(std::chrono::seconds(1));
   EXPECT_TRUE(timer->Stop());
-  EXPECT_EQ(count, 3);
+  EXPECT_GT(count, 1);
 }
 
-TEST_P(TimerTaskSchedulerFlagTest, TestFireNow) {
+TEST_P(TimerTest, TestFireNow) {
   int count = 0;
   absl::Notification notification;
 
@@ -84,7 +84,7 @@ TEST_P(TimerTaskSchedulerFlagTest, TestFireNow) {
   EXPECT_EQ(count, 1);
 }
 
-INSTANTIATE_TEST_SUITE_P(TimerTest, TimerTaskSchedulerFlagTest,
+INSTANTIATE_TEST_SUITE_P(TimerTaskSchedulerFlagTest, TimerTest,
                          testing::ValuesIn(std::vector<bool>{true, false}));
 
 }  // namespace

@@ -19,15 +19,17 @@
 
 #include <atomic>
 #include <memory>
-#include <utility>
+#include <optional>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/container/btree_map.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
+#include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/implementation/windows/task_scheduler.h"
 #include "internal/platform/runnable.h"
@@ -64,45 +66,36 @@ class ScheduledExecutor : public api::ScheduledExecutor {
  private:
   class ScheduledTask : public api::Cancelable {
    public:
-    explicit ScheduledTask(Runnable&& task, absl::Duration duration)
-        : task_(std::move(task)), duration_(duration) {}
+    explicit ScheduledTask(Runnable&& task, absl::Time run_time)
+        : task_(std::move(task)), run_time_(run_time) {}
 
-    bool Cancel() override {
-      if (is_executed_ || is_cancelled_) {
-        return false;
-      }
-
-      is_cancelled_ = true;
-      notification_.Notify();
-      return true;
-    };
-
-    void Start() {
-      if (is_executed_ ||
-          notification_.WaitForNotificationWithTimeout(duration_)) {
-        return;
-      }
-
-      is_executed_ = true;
-      task_();
-    }
-
-    bool IsDone() const { return is_cancelled_ || is_executed_; }
+    bool Cancel() override ABSL_LOCKS_EXCLUDED(mutex_);
+    void Run() ABSL_LOCKS_EXCLUDED(mutex_);
+    bool IsDone() const ABSL_LOCKS_EXCLUDED(mutex_);
+    absl::Time run_time() const ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
-    Runnable task_;
-    absl::Duration duration_;
-    absl::Notification notification_;
-    bool is_cancelled_ = false;
-    bool is_executed_ = false;
+    mutable absl::Mutex mutex_;
+    Runnable task_ ABSL_GUARDED_BY(mutex_);
+    absl::Time run_time_ ABSL_GUARDED_BY(mutex_);
+    AtomicBoolean is_cancelled_{false};
+    AtomicBoolean is_executed_{false};
   };
 
+  void ReSchedule() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void ClearCompletedTasks() ABSL_LOCKS_EXCLUDED(mutex_);
+  std::optional<absl::Time> GetNextRunTime() ABSL_LOCKS_EXCLUDED(mutex_);
+  std::vector<std::shared_ptr<ScheduledTask>> FetchTasksToRun()
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   absl::Mutex mutex_;
-  std::unique_ptr<nearby::windows::Executor> executor_ ABSL_GUARDED_BY(mutex_) =
-      nullptr;
-  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_
+
+  std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
+  std::unique_ptr<absl::Notification> notification_ ABSL_GUARDED_BY(mutex_);
+  absl::btree_map<absl::Time, std::shared_ptr<ScheduledTask>> scheduled_tasks_
       ABSL_GUARDED_BY(mutex_);
-  std::atomic_bool shut_down_ ABSL_GUARDED_BY(mutex_) = false;
+
+  std::atomic_bool shut_down_ = false;
   TaskScheduler task_scheduler_ ABSL_GUARDED_BY(mutex_);
 };
 
