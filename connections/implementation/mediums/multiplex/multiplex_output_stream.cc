@@ -178,7 +178,6 @@ MultiplexOutputStream::MultiplexWriter::MultiplexWriter(
 
 MultiplexOutputStream::MultiplexWriter::~MultiplexWriter() {
   Close();
-  // writer_thread_.Shutdown();
   physical_writer_ = nullptr;
 }
 
@@ -338,6 +337,7 @@ Exception MultiplexOutputStream::VirtualOutputStream::Flush() {
 }
 
 Exception MultiplexOutputStream::VirtualOutputStream::Close() {
+  NEARBY_LOGS(INFO) << "MultiplexOutputStream::VirtualOutputStream::Close";
   is_closed_.Set(true);
   return {Exception::kSuccess};
 }

@@ -88,9 +88,6 @@ class FakeSocket : public MediumSocket {
     writer_2_ = std::move(pipe_2_.second);
   }
 
-  bool IsFakeSocket() override{
-    return true;
-  }
   InputStream& GetInputStream() override { return *reader_1_; }
   OutputStream& GetOutputStream() override { return *writer_2_; }
   Exception Close() override {
@@ -158,11 +155,12 @@ class FakeSocket : public MediumSocket {
 };
 
 TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::BLUETOOTH};
+  auto fake_socket_ptr =
+      std::make_shared<FakeSocket>(Medium::BLUETOOTH);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::BLUETOOTH);
   MultiplexSocket* multiplex_socket_incoming =
-      MultiplexSocket::CreateIncomingSocket(&fake_socket,
+      MultiplexSocket::CreateIncomingSocket(fake_socket_ptr,
                                             std::string(SERVICE_ID_1));
   ASSERT_NE(multiplex_socket_incoming, nullptr);
   FakeSocket* virtual_socket =
@@ -174,14 +172,15 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   }
 
   SingleThreadExecutor executor;
+  FakeSocket* socket = fake_socket_ptr.get();
   CountDownLatch latch(1);
-  executor.Execute([&fake_socket, &latch]() {
+  executor.Execute([socket, &latch]() {
     ByteArray connection_req_frame = parser::ForConnectionRequestConnections(
         {}, {
                 .local_endpoint_id = "endpoint1",
                 .local_endpoint_info = ByteArray("endpoint1 info"),
             });
-    auto& writer = fake_socket.writer_1_;
+    auto& writer = socket->writer_1_;
     NEARBY_LOGS(INFO) << "writer_1_ Write start";
     writer->Write(Base64Utils::IntToBytes(connection_req_frame.size()));
     writer->Write(connection_req_frame);
@@ -199,18 +198,18 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   NEARBY_LOGS(INFO) << "Received " << data.size() << " bytes of data.";
   EXPECT_NE(data.size(), 0);
   absl::SleepFor(absl::Milliseconds(100));
-  fake_socket.reader_1_->Close();
+  socket->reader_1_->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 0);
 }
-
 TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::WEB_RTC};
+  auto fake_socket_ptr =
+      std::make_shared<FakeSocket>(Medium::WEB_RTC);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::WEB_RTC);
   MultiplexSocket* multiplex_socket_incoming =
-      MultiplexSocket::CreateIncomingSocket(&fake_socket,
+      MultiplexSocket::CreateIncomingSocket(fake_socket_ptr,
                                             std::string(SERVICE_ID_1));
 
   ASSERT_EQ(multiplex_socket_incoming, nullptr);
@@ -218,13 +217,14 @@ TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
 
 TEST(MultiplexSocketTest,
      EstablishVirtualSocket_ReturnNullWhenMultiplexSocketDisabled) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::BLE};
+  auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::BLE);
+
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::BLE);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
                                                       Medium::BLE);
   MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
-      &fake_socket, std::string(SERVICE_ID_1));
+      fake_socket_ptr, std::string(SERVICE_ID_1));
   ASSERT_NE(multiplex_socket, nullptr);
 
   MediumSocket* socket =
@@ -238,7 +238,7 @@ TEST(MultiplexSocketTest,
     NEARBY_LOGS(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
     return;
   }
-  fake_socket.reader_1_->Close();
+  fake_socket_ptr->reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
@@ -246,13 +246,13 @@ TEST(MultiplexSocketTest,
 
 TEST(MultiplexSocketTest,
      EstablishVirtualSocket_TimeoutBecauseNoConnectionResponse) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::WIFI_LAN};
+  auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::WIFI_LAN);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::WIFI_LAN);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
                                                       Medium::WIFI_LAN);
   MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
-      &fake_socket, std::string(SERVICE_ID_1));
+      fake_socket_ptr, std::string(SERVICE_ID_1));
   ASSERT_NE(multiplex_socket, nullptr);
   multiplex_socket->Enable();
   FakeSocket* virtual_socket = (FakeSocket*)multiplex_socket->GetVirtualSocket(
@@ -274,7 +274,7 @@ TEST(MultiplexSocketTest,
   });
   latch.Await(absl::Milliseconds(3000));
 
-  auto reader = fake_socket.reader_2_.get();
+  auto reader = fake_socket_ptr->reader_2_.get();
   NEARBY_LOGS(INFO) << "reader_2_ Read start";
   ExceptionOr<std::int32_t> read_int = Base64Utils::ReadInt(reader);
   if (!read_int.ok()) {
@@ -288,7 +288,7 @@ TEST(MultiplexSocketTest,
             nullptr);
 
   absl::SleepFor(absl::Milliseconds(100));
-  fake_socket.reader_1_->Close();
+  fake_socket_ptr->reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
@@ -296,14 +296,14 @@ TEST(MultiplexSocketTest,
 
 TEST(MultiplexSocketTest,
      EstablishVirtualSocket_RemoteAccepted) {
-  testing::NiceMock<FakeSocket> fake_socket{Medium::BLUETOOTH};
+  auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::BLUETOOTH);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::BLUETOOTH);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
                                                       Medium::BLUETOOTH);
 
   MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
-      &fake_socket, std::string(SERVICE_ID_1));
+      fake_socket_ptr, std::string(SERVICE_ID_1));
   ASSERT_NE(multiplex_socket, nullptr);
   multiplex_socket->Enable();
 
@@ -315,7 +315,7 @@ TEST(MultiplexSocketTest,
     EXPECT_NE(socket, nullptr);
   });
 
-  auto reader = fake_socket.reader_2_.get();
+  auto reader = fake_socket_ptr->reader_2_.get();
   NEARBY_LOGS(INFO) << "reader_2_ Waiting for CONNECTION_REQUEST frame.";
   ExceptionOr<std::int32_t> read_int = Base64Utils::ReadInt(reader);
   if (!read_int.ok()) {
@@ -361,7 +361,7 @@ TEST(MultiplexSocketTest,
   ByteArray connection_response_frame =
       ForConnectionResponse(salted_service_id_hash, service_id_hash_salt,
                             ConnectionResponseFrame::CONNECTION_ACCEPTED);
-  auto& writer = fake_socket.writer_1_;
+  auto& writer = fake_socket_ptr->writer_1_;
   NEARBY_LOGS(INFO) << "writer_1_ Write start";
   writer->Write(Base64Utils::IntToBytes(connection_response_frame.size()));
   writer->Write(connection_response_frame);
@@ -371,7 +371,7 @@ TEST(MultiplexSocketTest,
   EXPECT_NE(multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2)),
             nullptr);
 
-  fake_socket.reader_1_->Close();
+  fake_socket_ptr->reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 2);
   multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2))->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);

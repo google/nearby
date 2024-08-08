@@ -36,7 +36,8 @@ ExceptionOr<ByteArray> BlockingQueueStream::Read(std::int64_t size) {
         << "Failed to read BlockingQueueStream because it was closed.";
     return ExceptionOr<ByteArray>(Exception::kInterrupted);
   }
-  NEARBY_LOGS(INFO) << "BlockingQueueStream read " << size << " bytes";
+  NEARBY_LOGS(INFO) << "BlockingQueueStream expect to read " << size
+                    << " bytes";
   return ExceptionOr<ByteArray>(blocking_queue_.Take());
 }
 

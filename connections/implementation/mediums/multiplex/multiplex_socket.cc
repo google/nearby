@@ -79,26 +79,12 @@ void MultiplexSocket::StopListeningForIncomingConnection(
       std::pair<std::string, Medium>(service_id, type));
 }
 
-MultiplexSocket::MultiplexSocket(MediumSocket* physical_socket)
-    : physical_socket_(physical_socket),
-      multiplex_output_stream_{&physical_socket->GetOutputStream(), enabled_},
-      physical_reader_(&physical_socket->GetInputStream()) {
-  if (physical_socket->IsFakeSocket()) {
-    return;
-  }
-  NEARBY_LOGS(INFO) << "physical_socket_: " << physical_socket_;
-  switch (physical_socket_->GetMedium()) {
-    case Medium::BLUETOOTH:
-      medium_ = Medium::BLUETOOTH;
-      bluetooth_socket_ =
-          std::move(*static_cast<BluetoothSocket*>(physical_socket));
-      break;
-    default:
-      medium_ = Medium::UNKNOWN_MEDIUM;
-      NEARBY_LOGS(ERROR) << __func__ << "Unsupported medium: "
-                         << physical_socket_->GetMedium();
-  }
-}
+MultiplexSocket::MultiplexSocket(std::shared_ptr<MediumSocket> physical_socket)
+    : physical_socket_ptr_(physical_socket),
+      multiplex_output_stream_{&physical_socket_ptr_->GetOutputStream(),
+                               enabled_},
+      physical_reader_(&physical_socket_ptr_->GetInputStream()),
+      medium_(physical_socket_ptr_->GetMedium()){}
 
 absl::flat_hash_map<std::pair<std::string, Medium>,
                     MultiplexIncomingConnectionCb>&
@@ -119,7 +105,8 @@ MultiplexSocket::GetIncomingConnectionCallbacks() {
 }
 
 MultiplexSocket* MultiplexSocket::CreateIncomingSocket(
-    MediumSocket* physical_socket, const std::string& service_id) {
+    std::shared_ptr<MediumSocket> physical_socket,
+    const std::string& service_id) {
   static MultiplexSocket* multiplex_incoming_socket = nullptr;
   switch (physical_socket->GetMedium()) {
     case Medium::BLUETOOTH:
@@ -161,8 +148,8 @@ MultiplexSocket* MultiplexSocket::CreateIncomingSocket(
 }
 
 MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
-    MediumSocket* physical_socket, const std::string& service_id,
-    const std::string& service_id_hash_salt) {
+    std::shared_ptr<MediumSocket> physical_socket,
+    const std::string& service_id, const std::string& service_id_hash_salt) {
   static MultiplexSocket* multiplex_outgoing_socket = nullptr;
   switch (physical_socket->GetMedium()) {
     case Medium::BLUETOOTH:
@@ -201,7 +188,8 @@ MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
 }
 
 MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
-    MediumSocket* physical_socket, const std::string& service_id) {
+    std::shared_ptr<MediumSocket> physical_socket,
+    const std::string& service_id) {
   return CreateOutgoingSocket(physical_socket, service_id,
                               Utils::GenerateSalt());
 }
@@ -219,9 +207,9 @@ MediumSocket* MultiplexSocket::CreateFirstVirtualSocket(
                     << ", salt=" << service_id_hash_salt
                     << ", salted_service_id_hash_key="
                     << salted_service_id_hash_key;
-  MediumSocket* virtual_socket = physical_socket_->CreateVirtualSocket(
-      salted_service_id_hash_key, output_stream, physical_socket_->GetMedium(),
-      &virtual_sockets_);
+  MediumSocket* virtual_socket = physical_socket_ptr_->CreateVirtualSocket(
+      salted_service_id_hash_key, output_stream,
+      medium_, &virtual_sockets_);
 
   virtual_socket->AddOnSocketClosedListener(
       std::make_unique<absl::AnyInvocable<void()>>(
@@ -248,9 +236,9 @@ MediumSocket* MultiplexSocket::CreateVirtualSocket(
                     << ", salted_service_id_hash_key="
                     << salted_service_id_hash_key;
 
-  MediumSocket* virtual_socket = physical_socket_->CreateVirtualSocket(
-      salted_service_id_hash_key, output_stream, physical_socket_->GetMedium(),
-      &virtual_sockets_);
+  MediumSocket* virtual_socket = physical_socket_ptr_->CreateVirtualSocket(
+      salted_service_id_hash_key, output_stream,
+      medium_, &virtual_sockets_);
 
   virtual_socket->AddOnSocketClosedListener(
       std::make_unique<absl::AnyInvocable<void()>>(
@@ -498,7 +486,7 @@ void MultiplexSocket::HandleConnectionRequest(
     const std::string& service_id_hash_salt) {
   if (!IsEnabled()) {
     NEARBY_LOGS(WARNING) << "Received a CONNECTION_REQUEST frame on medium "
-                         << Medium_Name(physical_socket_->GetMedium())
+                         << Medium_Name(medium_)
                          << " but status is disabled, ignore it.";
     return;
   }
@@ -522,7 +510,7 @@ void MultiplexSocket::HandleConnectionRequest(
                       << service_id_hash_salt
                       << ", hash key : " << salted_service_id_hash_key
                       << " on medium "
-                      << Medium_Name(physical_socket_->GetMedium());
+                      << Medium_Name(medium_);
 
     NEARBY_LOGS(INFO) << "The size of incomingConnectionCallbacks : "
                       << GetIncomingConnectionCallbacks().size();
@@ -538,7 +526,7 @@ void MultiplexSocket::HandleConnectionRequest(
                     << ", hash salt : " << service_id_hash_salt
                     << ", hash key : " << salted_service_id_hash_key
                     << " on medium "
-                    << Medium_Name(physical_socket_->GetMedium());
+                    << Medium_Name(medium_);
 
   if (!multiplex_output_stream_.WriteConnectionResponseFrame(
           salted_service_id_hash, service_id_hash_salt,
@@ -744,19 +732,8 @@ void MultiplexSocket::Shutdown() {
   }
 
   multiplex_output_stream_.Shutdown();
+  physical_socket_ptr_->Close();
 
-  if (!physical_socket_->IsFakeSocket()) {
-    switch (medium_) {
-      case Medium::BLUETOOTH:
-        bluetooth_socket_.Close();
-        break;
-      case Medium::UNKNOWN_MEDIUM:
-        NEARBY_LOGS(INFO) << __func__ << " Unknown medium";
-        break;
-      default:
-        break;
-    }
-  }
   if (reader_thread_shutdown_barrier_) {
     reader_thread_shutdown_barrier_->Await(kTimeoutForReaderThreadStop);
   }

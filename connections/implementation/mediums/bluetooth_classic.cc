@@ -84,6 +84,7 @@ BluetoothClassic::~BluetoothClassic() {
         multiplex_socket->Shutdown();
       }
     }
+    multiplex_sockets_.clear();
   }
 
   // All the AcceptLoopRunnable objects in here should already have gotten an
@@ -403,9 +404,13 @@ bool BluetoothClassic::StartAcceptingConnections(
           {
             MutexLock lock(&mutex_);
             if (is_multiplex_enabled_) {
+              BluetoothSocket client_socket_bak = client_socket;
+              auto physical_socket_ptr =
+                  std::make_shared<BluetoothSocket>(client_socket_bak);
               MultiplexSocket* multiplex_socket =
-                  MultiplexSocket::CreateIncomingSocket(&client_socket,
-                                                        service_id);
+                  MultiplexSocket::CreateIncomingSocket(
+                      physical_socket_ptr, service_id);
+
               if (multiplex_socket != nullptr &&
                   multiplex_socket->GetVirtualSocket(service_id)) {
                 multiplex_sockets_.emplace(
@@ -588,8 +593,11 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   if (is_multiplex_enabled_) {
     // New MultiplexSocket but default disabled, should be enabled after
     // negotiated
-    MultiplexSocket* multiplex_socket =
-        MultiplexSocket::CreateOutgoingSocket(&socket, service_id);
+    auto physical_socket_ptr =
+        std::make_shared<BluetoothSocket>(socket);
+    MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
+        std::move(physical_socket_ptr), service_id);
+
     auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
     // Should not happen.
     auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);

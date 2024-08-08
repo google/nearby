@@ -19,14 +19,11 @@
 #include <string>
 #include <utility>
 
-#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/multiplex/multiplex_output_stream.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/atomic_boolean.h"
-#include "internal/platform/ble.h"
-#include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
@@ -35,7 +32,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/socket.h"
-#include "internal/platform/wifi_lan.h"
 #include "proto/connections_enums.pb.h"
 #include "proto/mediums/multiplex_frames.pb.h"
 
@@ -54,16 +50,18 @@ class MultiplexSocket {
   MultiplexSocket& operator=(const MultiplexSocket&) = delete;
 
   // Creates a new incoming MultiplexSocket.
-  static MultiplexSocket* CreateIncomingSocket(MediumSocket* physical_socket,
-                                               const std::string& service_id);
+  static MultiplexSocket* CreateIncomingSocket(
+      std::shared_ptr<MediumSocket> physical_socket,
+      const std::string& service_id);
   // Creates a new outgoing MultiplexSocket.
   static MultiplexSocket* CreateOutgoingSocket(
-      MediumSocket* physical_socket, const std::string& service_id,
-      const std::string& service_id_hash_salt);
+      std::shared_ptr<MediumSocket> physical_socket,
+      const std::string& service_id, const std::string& service_id_hash_salt);
 
   // Creates a new outgoing MultiplexSocket with default service_id_hash_salt.
-  static MultiplexSocket* CreateOutgoingSocket(MediumSocket* physical_socket,
-                                               const std::string& service_id);
+  static MultiplexSocket* CreateOutgoingSocket(
+      std::shared_ptr<MediumSocket> physical_socket,
+      const std::string& service_id);
 
   // A Table of service Id as row key, medium type as column key, and
   // MultiplexIncomingConnectionCb as value. Non-empty while the client starts
@@ -96,8 +94,6 @@ class MultiplexSocket {
     enabled_.Set(true);
   }
 
-  // Gets the physical socket.
-  MediumSocket* GetPhysicalSocket() { return physical_socket_; }
   // Gets the virtual socket by service id.
   MediumSocket* GetVirtualSocket(const std::string& service_id);
   // Gets the virtual socket count.
@@ -113,7 +109,7 @@ class MultiplexSocket {
   void SetShutdown(bool is_shutdown) { is_shutdown_ = is_shutdown; }
 
  private:
-  explicit MultiplexSocket(MediumSocket* physical_socket);
+  explicit MultiplexSocket(std::shared_ptr<MediumSocket> physical_socket);
   ~MultiplexSocket() = default;
 
   // Creates the first virtual socket for the service id. The first virtual
@@ -167,7 +163,7 @@ class MultiplexSocket {
                         absl::AnyInvocable<void()> runnable);
 
   // The physical socket connect to the remote device.
-  MediumSocket* physical_socket_;
+  std::shared_ptr<MediumSocket> physical_socket_ptr_;
 
   // The output stream to manage all outgoing frames from all clients.
   MultiplexOutputStream multiplex_output_stream_;
@@ -176,10 +172,6 @@ class MultiplexSocket {
   InputStream* physical_reader_;
   // The medium type of the physical socket.
   Medium medium_;
-  // Save the phyical socket here, so it can be closed when all the virtual
-  // socket is gone.
-  BluetoothSocket bluetooth_socket_;
-  WifiLanSocket wifi_lan_socket_;
 
   // The callback to enable the MultiplexSocket.
   std::shared_ptr<absl::AnyInvocable<void()>> enable_cb_ =
