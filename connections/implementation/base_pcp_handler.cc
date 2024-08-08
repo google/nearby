@@ -2183,9 +2183,20 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     std::shared_ptr<EndpointChannel> channel =
         channel_manager_->GetChannelForEndpoint(endpoint_id);
     if (channel != nullptr) {
-      if (!channel->EnableMultiplexSocket()) {
-        NEARBY_LOGS(INFO)
-            << "MultiplexSocket is not implemented for this channel.";
+      if (client->IsMultiplexSocketSupported(endpoint_id,
+                                             channel->GetMedium())) {
+        if (!channel->EnableMultiplexSocket()) {
+          NEARBY_LOGS(INFO)
+              << "MultiplexSocket is not implemented for Medium: "
+              << location::nearby::proto::connections::Medium_Name(
+                     channel->GetMedium());
+        } else {
+          NEARBY_LOGS(INFO)
+              << "MultiplexSocket is supported for Medium: "
+              << location::nearby::proto::connections::Medium_Name(
+                     channel->GetMedium())
+              << " on both sides.";
+        }
       }
     } else {
       NEARBY_LOGS(INFO) << "channel is null";
