@@ -28,7 +28,6 @@
 #include "connections/implementation/mediums/multiplex/multiplex_output_stream.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/base64_utils.h"
-#include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -745,6 +744,40 @@ void MultiplexSocket::Shutdown() {
   enabled_.Set(false);
   NEARBY_LOGS(INFO) << __func__ << " end";
 }
+
+void MultiplexSocket::ShutdownAll() {
+  NEARBY_LOGS(INFO) << __func__ << " start";
+  if (is_shutdown_) {
+    NEARBY_LOGS(WARNING) << __func__ << " Already shutdown";
+    return;
+  }
+
+  CountDownLatch latch(1);
+  RunOffloadThread("VirtualSocketClosed", [this, &latch]() {
+    {
+      MutexLock lock(&virtual_socket_mutex_);
+      multiplex_output_stream_.CloseAll();
+      virtual_sockets_.clear();
+
+      Shutdown();
+    }
+    latch.CountDown();
+  });
+
+  if (!latch.Await(FeatureFlags::GetInstance()
+                      .GetFlags()
+                      .mediums_frame_write_timeout_millis).result() + 200) {
+    NEARBY_LOGS(ERROR) << "Timeout to close virtual socket";
+  }
+
+  NEARBY_LOGS(INFO)
+      << "Shutdown single_thread_offloader_ and physical_reader_thread_";
+  single_thread_offloader_.Shutdown();
+  physical_reader_thread_.Shutdown();
+  NEARBY_LOGS(INFO) << __func__ << " end";
+}
+
+
 
 }  // namespace multiplex
 }  // namespace mediums

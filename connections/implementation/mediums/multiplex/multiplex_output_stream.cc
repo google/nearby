@@ -116,7 +116,7 @@ bool MultiplexOutputStream::Close(const std::string& service_id) {
     return false;
   }
 
-  auto service_id_hash_salt = item->second->GetServiceIdHashSalt();
+  // auto service_id_hash_salt = item->second->GetServiceIdHashSalt();
   item->second->Close();
   if (is_enabled_.Get()) {
     Future<bool> future;
@@ -132,6 +132,24 @@ bool MultiplexOutputStream::Close(const std::string& service_id) {
     multiplex_writer_.Close();
   }
   return true;
+}
+
+void MultiplexOutputStream::CloseAll() {
+  for (auto& [service_id, virtual_output_stream] : virtual_output_streams_) {
+    if (is_enabled_.Get()) {
+      Future<bool> future;
+      multiplex_writer_.EnqueueToSend(
+          &future,
+          ForDisconnection(service_id,
+                           virtual_output_stream->GetServiceIdHashSalt()),
+          "MultiplexFrame::DISCONNECTION");
+      WaitForResult("MultiplexFrame::DISCONNECTION", &future);
+    }
+    virtual_output_stream->Close();
+  }
+  virtual_output_streams_.clear();
+  physical_writer_->Close();
+  multiplex_writer_.Close();
 }
 
 OutputStream*

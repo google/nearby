@@ -107,10 +107,11 @@ class MultiplexSocket {
   void Shutdown();
   bool IsShutdown() { return is_shutdown_; }
   void SetShutdown(bool is_shutdown) { is_shutdown_ = is_shutdown; }
+  void ShutdownAll();
 
  private:
   explicit MultiplexSocket(std::shared_ptr<MediumSocket> physical_socket);
-  ~MultiplexSocket() = default;
+  ~MultiplexSocket() { ShutdownAll(); };
 
   // Creates the first virtual socket for the service id. The first virtual
   // socket is created by the sender.

@@ -81,6 +81,9 @@ class MultiplexOutputStream {
   // Closes the virtual output stream.
   bool Close(const std::string& service_id);
 
+  // Closes all virtual output streams.
+  void CloseAll();
+
   // Waits for the result of the future.
   Exception WaitForResult(const std::string& method_name, Future<bool>* future);
 

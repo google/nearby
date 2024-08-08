@@ -373,9 +373,7 @@ TEST(MultiplexSocketTest,
 
   fake_socket_ptr->reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 2);
-  multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2))->Close();
-  EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
-  multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_1))->Close();
+  multiplex_socket->ShutdownAll();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
 }
 
