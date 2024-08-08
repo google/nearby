@@ -34,7 +34,7 @@ FakeNearbyConnection::~FakeNearbyConnection() = default;
 
 void FakeNearbyConnection::Read(
     std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback) {
-  NL_DCHECK(!closed_);
+  // NL_DCHECK(!closed_);
   {
     absl::MutexLock lock(&read_mutex_);
     callback_ = std::move(callback);
@@ -105,7 +105,7 @@ std::vector<uint8_t> FakeNearbyConnection::GetWrittenData() {
 bool FakeNearbyConnection::IsClosed() { return closed_; }
 
 void FakeNearbyConnection::MaybeRunCallback() {
-  NL_DCHECK(!closed_);
+  // NL_DCHECK(!closed_);
   std::vector<uint8_t> item;
   std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback;
   {

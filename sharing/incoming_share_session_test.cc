@@ -1012,6 +1012,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
   connection_.AppendReadableData(std::move(data));
+  task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(introduction_received, IsTrue());
 }
@@ -1046,6 +1047,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
   connection_.AppendReadableData(std::move(data));
+  task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(introduction_received, IsFalse());
 }
@@ -1080,6 +1082,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
   connection_.AppendReadableData(std::move(data));
+  task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(introduction_received, IsTrue());
 }
@@ -1114,6 +1117,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
   connection_.AppendReadableData(std::move(data));
+  task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(introduction_received, IsFalse());
 }
