@@ -29,7 +29,8 @@ class MockAccountManager : public AccountManager {
  public:
   MOCK_METHOD(std::optional<Account>, GetCurrentAccount, (), (override));
   MOCK_METHOD(void, Login,
-              (absl::AnyInvocable<void(Account)> login_success_callback,
+              (absl::string_view client_id, absl::string_view client_secret,
+               absl::AnyInvocable<void(Account)> login_success_callback,
                absl::AnyInvocable<void(absl::Status)> login_failure_callback),
               (override));
   MOCK_METHOD(void, Logout,
