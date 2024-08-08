@@ -191,8 +191,10 @@ message V1Frame {
     RESPONSE = 2;
     PAIRED_KEY_ENCRYPTION = 3;
     PAIRED_KEY_RESULT = 4;
+    // No longer used.
     CERTIFICATE_INFO = 5;
     CANCEL = 6;
+    // No longer used.
     PROGRESS_UPDATE = 7;
   }
 
@@ -203,8 +205,8 @@ message V1Frame {
   optional ConnectionResponseFrame connection_response = 3;
   optional PairedKeyEncryptionFrame paired_key_encryption = 4;
   optional PairedKeyResultFrame paired_key_result = 5;
-  optional CertificateInfoFrame certificate_info = 6;
-  optional ProgressUpdateFrame progress_update = 7;
+  optional CertificateInfoFrame certificate_info = 6 [deprecated = true];
+  optional ProgressUpdateFrame progress_update = 7 [deprecated = true];
 }
 
 // An introduction packet sent by the sending side. Contains a list of files

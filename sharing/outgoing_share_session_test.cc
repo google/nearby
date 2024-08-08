@@ -60,7 +60,6 @@ using ::nearby::sharing::analytics::proto::SharingLog;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
-using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::testing::_;
@@ -507,16 +506,6 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
       session_.HandleConnectionResponse(response);
 
   ASSERT_THAT(status.has_value(), IsFalse());
-
-  // Verify progress update frame
-  std::vector<uint8_t> frame_data = connection.GetWrittenData();
-  Frame frame;
-  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
-              IsTrue());
-  ASSERT_THAT(frame.version(), Eq(Frame::V1));
-  ASSERT_THAT(frame.v1().type(), Eq(V1Frame::PROGRESS_UPDATE));
-  const ProgressUpdateFrame& progress_frame = frame.v1().progress_update();
-  EXPECT_THAT(progress_frame.start_transfer(), IsTrue());
 }
 
 TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {

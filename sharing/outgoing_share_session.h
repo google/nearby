@@ -129,8 +129,6 @@ class OutgoingShareSession : public ShareSession {
   bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
-  void WriteProgressUpdateFrame(std::optional<bool> start_transfer,
-                                std::optional<float> progress);
   // Create a payload status listener to send status change to
   // `update_callback`.  Send all payloads to NearbyConnectionManager.
   void SendAllPayloads(

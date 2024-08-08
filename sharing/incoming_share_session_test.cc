@@ -894,56 +894,25 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
   bool accept_timeout_called = false;
 
   EXPECT_THAT(session_.ReadyForTransfer(
                   [&accept_timeout_called]() { accept_timeout_called = true; },
                   [](std::optional<V1Frame> frame) {}),
               IsFalse());
-  ProgressUpdateFrame progress_update_frame;
-  progress_update_frame.set_start_transfer(true);
-  session_.HandleProgressUpdate(progress_update_frame);
+  TransferMetadata metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kInProgress)
+          .build();
+  session_.PayloadTransferUpdate(/*update_file_paths_in_progress=*/false,
+                                 metadata);
   clock_.FastForward(absl::Seconds(60));
   task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(accept_timeout_called, IsFalse());
-}
-
-TEST_F(IncomingShareSessionTest, HandleProgressUpdateNotConnected) {
-  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
-                                   &connections_manager_, &connection_));
-  ProgressUpdateFrame progress_update_frame;
-  progress_update_frame.set_start_transfer(true);
-  session_.HandleProgressUpdate(progress_update_frame);
-
-  EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsFalse());
-}
-
-TEST_F(IncomingShareSessionTest, HandleProgressUpdateTryUpgradeBandwidth) {
-  IntroductionFrame introduction_frame;
-  NL_CHECK(
-      proto2::TextFormat::ParseFromString(R"pb(
-                                            file_metadata {
-                                              id: 1234
-                                              size: 2000000
-                                              name: "file_name1"
-                                              mime_type: "application/pdf"
-                                              type: DOCUMENT
-                                              parent_folder: "parent_folder1"
-                                              payload_id: 9876
-                                            }
-                                          )pb",
-                                          &introduction_frame));
-  session_.set_session_id(1234);
-  EXPECT_TRUE(session_.OnConnected(nearby_sharing_decoder_, absl::Now(),
-                                   &connections_manager_, &connection_));
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
-              Eq(std::nullopt));
-  ProgressUpdateFrame progress_update_frame;
-  progress_update_frame.set_start_transfer(true);
-  session_.HandleProgressUpdate(progress_update_frame);
-
-  EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {

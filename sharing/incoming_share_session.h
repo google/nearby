@@ -85,10 +85,6 @@ class IncomingShareSession : public ShareSession {
       Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
-  void HandleProgressUpdate(
-      const nearby::sharing::service::proto::ProgressUpdateFrame&
-          progress_update);
-
   // Returns the file paths of all file payloads.
   std::vector<std::filesystem::path> GetPayloadFilePaths() const;
 
@@ -108,7 +104,7 @@ class IncomingShareSession : public ShareSession {
   // completed.  And if it has completed, the second param indicates whether
   // the transfer was successful.
   std::pair<bool, bool> PayloadTransferUpdate(
-      bool update_file_paths_in_progress, TransferMetadata metadata);
+      bool update_file_paths_in_progress, const TransferMetadata& metadata);
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;

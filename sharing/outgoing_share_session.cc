@@ -51,7 +51,6 @@ namespace nearby::sharing {
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
-using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
 OutgoingShareSession::OutgoingShareSession(
@@ -328,26 +327,6 @@ void OutgoingShareSession::SendNextPayload() {
   }
 }
 
-void OutgoingShareSession::WriteProgressUpdateFrame(
-    std::optional<bool> start_transfer, std::optional<float> progress) {
-  NL_LOG(INFO) << __func__ << ": Writing progress update frame. start_transfer="
-               << (start_transfer.has_value() ? *start_transfer : false)
-               << ", progress=" << (progress.has_value() ? *progress : 0.0);
-  Frame frame;
-  frame.set_version(Frame::V1);
-  V1Frame* v1_frame = frame.mutable_v1();
-  v1_frame->set_type(V1Frame::PROGRESS_UPDATE);
-  ProgressUpdateFrame* progress_frame = v1_frame->mutable_progress_update();
-  if (start_transfer.has_value()) {
-    progress_frame->set_start_transfer(*start_transfer);
-  }
-  if (progress.has_value()) {
-    progress_frame->set_progress(*progress);
-  }
-
-  WriteFrame(frame);
-}
-
 bool OutgoingShareSession::SendIntroduction(
     std::function<void()> timeout_callback) {
   Frame frame;
@@ -391,10 +370,6 @@ OutgoingShareSession::HandleConnectionResponse(
 
   switch (response->status()) {
     case ConnectionResponseFrame::ACCEPT: {
-      // Write progress update frame to remote machine.
-      WriteProgressUpdateFrame(/*start_transfer=*/true,
-                               /*progress=*/std::nullopt);
-
       UpdateTransferMetadata(
           TransferMetadataBuilder()
               .set_status(TransferMetadata::Status::kInProgress)

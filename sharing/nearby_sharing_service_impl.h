@@ -352,10 +352,6 @@ class NearbySharingServiceImpl
   void OnFrameRead(
       int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
-  void HandleProgressUpdateFrame(
-      int64_t share_target_id,
-      const nearby::sharing::service::proto::ProgressUpdateFrame&
-          progress_update_frame);
 
   void OnConnectionDisconnected(int64_t share_target_id);
 

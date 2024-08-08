@@ -53,7 +53,6 @@ namespace {
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
-using ::nearby::sharing::service::proto::ProgressUpdateFrame;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
@@ -218,10 +217,6 @@ bool IncomingShareSession::AcceptTransfer(
     NL_LOG(WARNING) << __func__ << ": out of order API call.";
     return false;
   }
-  // TODO(b/355199584): Cancel acceptance timer when Accept is sent.
-  // This is the wrong place to cancel since we are actually waiting for sender
-  // to accept.  If sender does not accept, we will never timeout.
-  mutual_acceptance_timeout_.reset();
   ready_for_accept_ = false;
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
@@ -264,34 +259,6 @@ bool IncomingShareSession::AcceptTransfer(
   analytics_recorder().NewReceiveAttachmentsStart(session_id(),
                                                   attachment_container());
   return true;
-}
-
-void IncomingShareSession::HandleProgressUpdate(
-    const ProgressUpdateFrame& progress_update) {
-  if (!IsConnected()) {
-    NL_LOG(ERROR) << "Received ProgressUpdate Frame on disconnected session";
-    return;
-  }
-  if (progress_update.start_transfer()) {
-    // Cancel timeout when progress update is received.
-    mutual_acceptance_timeout_.reset();
-    NL_LOG(INFO) << __func__ << ": Received progress for ShareTarget "
-                 << share_target().id;
-    // TODO(b/338468927): Check if this is actually needed.
-    // Bandwidth upgrade was already requested in Accept.
-    if (TryUpgradeBandwidth()) {
-      NL_LOG(INFO)
-          << __func__
-          << ": Upgrade bandwidth when receiving progress update frame "
-             "for endpoint "
-          << endpoint_id();
-    }
-  }
-
-  if (progress_update.has_progress()) {
-    NL_VLOG(1) << __func__ << ": Current progress for ShareTarget "
-               << share_target().id << " is " << progress_update.progress();
-  }
 }
 
 bool IncomingShareSession::UpdateFilePayloadPaths() {
@@ -479,7 +446,11 @@ void IncomingShareSession::SendFailureResponse(
 }
 
 std::pair<bool, bool> IncomingShareSession::PayloadTransferUpdate(
-    bool update_file_paths_in_progress, TransferMetadata metadata) {
+    bool update_file_paths_in_progress, const TransferMetadata& metadata) {
+  // Cancel acceptance timer when payload transfer update is received.
+  // This mean sender has begun sending payload.
+  mutual_acceptance_timeout_.reset();
+
   if (metadata.status() == TransferMetadata::Status::kComplete) {
     bool success = FinalizePayloads();
     return std::make_pair(/*completed=*/true, success);

@@ -3044,7 +3044,7 @@ void NearbySharingServiceImpl::OnFrameRead(
       break;
 
     case nearby::sharing::service::proto::V1Frame::PROGRESS_UPDATE:
-      HandleProgressUpdateFrame(share_target_id, frame->progress_update());
+      // No-op, no longer used.
       break;
 
     default:
@@ -3065,18 +3065,6 @@ void NearbySharingServiceImpl::OnFrameRead(
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target_id, std::move(frame));
       });
-}
-
-void NearbySharingServiceImpl::HandleProgressUpdateFrame(
-    int64_t share_target_id,
-    const nearby::sharing::service::proto::ProgressUpdateFrame&
-        progress_update_frame) {
-  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
-  if (session == nullptr) {
-    NL_LOG(ERROR) << "Received ProgressUpdate Frame on unknown session";
-    return;
-  }
-  session->HandleProgressUpdate(progress_update_frame);
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(

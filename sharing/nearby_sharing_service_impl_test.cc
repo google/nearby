@@ -957,19 +957,6 @@ class NearbySharingServiceImplTest : public testing::Test {
     return true;
   }
 
-  bool ExpectProgressUpdateFrame() {
-    Frame frame = GetWrittenFrame();
-    if (!frame.has_v1()) {
-      return false;
-    }
-
-    if (frame.v1().type() != V1Frame::PROGRESS_UPDATE) {
-      return false;
-    }
-
-    return true;
-  }
-
   // Optionally, |new_share_target| is updated with the ShareTargets sent to
   // OnTransferUpdate() calls.
   void ExpectTransferUpdates(
@@ -3823,7 +3810,6 @@ TEST_F(NearbySharingServiceImplTest, CancelSenderInitiator) {
   // The initiator of the cancel should send a cancel frame to the other device,
   // then wait a few seconds before disconnecting to allow for processing on the
   // other device.
-  EXPECT_TRUE(ExpectProgressUpdateFrame());
   EXPECT_TRUE(ExpectCancelFrame());
   EXPECT_FALSE(connection_->IsClosed());
   FastForward(kInitiatorCancelDelay);
