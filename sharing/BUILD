@@ -223,9 +223,23 @@ cc_library(
 )
 
 cc_library(
+    name = "nearby_connection_impl",
+    srcs = ["nearby_connection_impl.cc"],
+    hdrs = ["nearby_connection_impl.h"],
+    deps = [
+        ":connection_types",
+        ":types",
+        "//internal/platform:types",
+        "//sharing/internal/public:logging",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
     name = "nearby_sharing_service",
     srcs = [
-        "nearby_connection_impl.cc",
         "nearby_connections_manager.cc",
         "nearby_connections_manager_factory.cc",
         "nearby_connections_manager_impl.cc",
@@ -245,7 +259,6 @@ cc_library(
     hdrs = [
         "connection_lifecycle_listener.h",
         "endpoint_discovery_listener.h",
-        "nearby_connection_impl.h",
         "nearby_connections_manager_factory.h",
         "nearby_connections_manager_impl.h",
         "nearby_connections_service.h",
@@ -277,6 +290,7 @@ cc_library(
         ":attachments",
         ":connection_types",
         ":incoming_frame_reader",
+        ":nearby_connection_impl",
         ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
         ":share_session",
@@ -464,10 +478,12 @@ cc_test(
     srcs = ["incoming_frames_reader_test.cc"],
     deps = [
         ":incoming_frame_reader",
+        ":nearby_connection_impl",
         ":nearby_sharing_decoder_impl",
         ":test_support",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
+        "//sharing/internal/public:logging",
         "//sharing/proto:wire_format_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
@@ -481,8 +497,8 @@ cc_test(
     srcs = ["nearby_connection_impl_test.cc"],
     deps = [
         ":incoming_frame_reader",
+        ":nearby_connection_impl",
         ":nearby_sharing_decoder_impl",
-        ":nearby_sharing_service",
         ":test_support",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
