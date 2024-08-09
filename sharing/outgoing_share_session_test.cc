@@ -436,6 +436,7 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
   connection.AppendReadableData(std::move(data));
+  fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(connection_response_received, IsTrue());
 }

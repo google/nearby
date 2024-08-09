@@ -3441,6 +3441,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnableToVerifyKey) {
   EXPECT_EQ(SendAttachments(target_id, CreateTextAttachments({kTextPayload})),
             NearbySharingServiceImpl::StatusCodes::kOk);
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  FlushTesting();
 
   UnregisterSendSurface(&transfer_callback);
 }

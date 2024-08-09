@@ -54,9 +54,8 @@ IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
 }
 
 IncomingFramesReader::~IncomingFramesReader() {
-  MutexLock lock(&mutex_);
   NL_LOG(INFO) << "~IncomingFramesReader is called";
-  Done(std::nullopt);
+  CloseAllPendingReads();
 }
 
 void IncomingFramesReader::ReadFrame(
@@ -116,34 +115,33 @@ void IncomingFramesReader::ReadFrame(
 }
 
 void IncomingFramesReader::ReadNextFrame() {
-  connection_->Read(
-      [&, reader = GetWeakPtr()](std::optional<std::vector<uint8_t>> bytes) {
-        auto frame_reader = reader.lock();
-        if (frame_reader == nullptr) {
-          NL_LOG(WARNING) << "IncomingFramesReader is released before.";
-          return;
-        }
-
-        OnDataReadFromConnection(std::move(bytes));
-      });
+  service_thread_.PostTask([this, reader = GetWeakPtr()]() {
+    auto frame_reader = reader.lock();
+    if (frame_reader == nullptr) {
+      return;
+    }
+    connection_->Read(
+        [reader = GetWeakPtr()](std::optional<std::vector<uint8_t>> bytes) {
+          auto frame_reader = reader.lock();
+          if (frame_reader == nullptr) {
+            NL_LOG(WARNING) << "IncomingFramesReader is released before.";
+            return;
+          }
+          frame_reader->OnDataReadFromConnection(std::move(bytes));
+        });
+  });
 }
 
 void IncomingFramesReader::OnTimeout() {
-  MutexLock lock(&mutex_);
   NL_LOG(WARNING) << __func__ << ": Timed out reading from NearbyConnection.";
-  Done(std::nullopt);
+  CloseAllPendingReads();
 }
 
 void IncomingFramesReader::OnDataReadFromConnection(
     std::optional<std::vector<uint8_t>> bytes) {
-  MutexLock lock(&mutex_);
-  if (read_frame_info_queue_.empty()) {
-    return;
-  }
-
   if (!bytes.has_value()) {
     NL_LOG(WARNING) << __func__ << ": Failed to read frame";
-    Done(std::nullopt);
+    CloseAllPendingReads();
     return;
   }
 
@@ -153,26 +151,28 @@ void IncomingFramesReader::OnDataReadFromConnection(
     NL_LOG(WARNING)
         << __func__
         << ": Cannot decode frame. Not currently bound to nearby process";
-    Done(std::nullopt);
+    CloseAllPendingReads();
     return;
   }
 
-  OnFrameDecoded(std::move(*frame));
+  const V1Frame* v1_frame = OnFrameDecoded(*frame);
+  if (v1_frame != nullptr) {
+    Done(*v1_frame);
+  }
 }
 
-void IncomingFramesReader::OnFrameDecoded(std::optional<Frame> frame) {
-  if (!frame.has_value()) {
-    ReadNextFrame();
-    return;
+const V1Frame* IncomingFramesReader::OnFrameDecoded(const Frame& frame) {
+  MutexLock lock(&mutex_);
+  if (read_frame_info_queue_.empty()) {
+    return nullptr;
   }
-
-  if (frame->version() != Frame::V1) {
+  if (frame.version() != Frame::V1) {
     NL_VLOG(1) << __func__ << ": Frame read does not have V1Frame";
     ReadNextFrame();
-    return;
+    return nullptr;
   }
 
-  auto v1_frame = frame->v1();
+  auto v1_frame = frame.v1();
   FrameType v1_frame_type = v1_frame.type();
 
   const ReadFrameInfo& frame_info = read_frame_info_queue_.front();
@@ -181,46 +181,50 @@ void IncomingFramesReader::OnFrameDecoded(std::optional<Frame> frame) {
     NL_LOG(WARNING) << __func__ << ": Failed to read frame of type "
                     << *frame_info.frame_type << ", but got frame of type "
                     << v1_frame_type << ". Cached for later.";
-    cached_frames_.insert({v1_frame_type, std::move(v1_frame)});
+    cached_frames_.insert({v1_frame_type, v1_frame});
     ReadNextFrame();
-    return;
+    return nullptr;
   }
-
-  Done(std::move(v1_frame));
+  return &frame.v1();
 }
 
-void IncomingFramesReader::Done(std::optional<V1Frame> frame) {
-  if (read_frame_info_queue_.empty()) {
-    return;
+void IncomingFramesReader::CloseAllPendingReads() {
+  std::queue<ReadFrameInfo> queue;
+  {
+    MutexLock lock(&mutex_);
+    queue.swap(read_frame_info_queue_);
   }
+  while (!queue.empty()) {
+    ReadFrameInfo read_frame_info = std::move(queue.front());
+    queue.pop();
+    read_frame_info.callback(std::nullopt);
+  }
+}
 
-  timeout_timer_.reset();
-
-  bool is_empty_frame = !frame.has_value();
-  ReadFrameInfo read_frame_info = std::move(read_frame_info_queue_.front());
-  read_frame_info_queue_.pop();
+void IncomingFramesReader::Done(const V1Frame& frame) {
+  ReadFrameInfo read_frame_info;
+  {
+    MutexLock lock(&mutex_);
+    timeout_timer_.reset();
+    read_frame_info = std::move(read_frame_info_queue_.front());
+    read_frame_info_queue_.pop();
+  }
   read_frame_info.callback(std::move(frame));
 
-  if (is_empty_frame) {
-    // should complete all pending readers.
-    while (!read_frame_info_queue_.empty()) {
-      read_frame_info = std::move(read_frame_info_queue_.front());
-      read_frame_info_queue_.pop();
-      read_frame_info.callback(std::nullopt);
+  {
+    MutexLock lock(&mutex_);
+    if (read_frame_info_queue_.empty()) {
+      return;
     }
-    return;
+    read_frame_info = std::move(read_frame_info_queue_.front());
+    read_frame_info_queue_.pop();
   }
 
-  if (!read_frame_info_queue_.empty()) {
-    ReadFrameInfo read_frame_info = std::move(read_frame_info_queue_.front());
-    read_frame_info_queue_.pop();
-
-    if (read_frame_info.timeout.has_value()) {
-      ReadFrame(*read_frame_info.frame_type,
-                std::move(read_frame_info.callback), *read_frame_info.timeout);
-    } else {
-      ReadFrame(std::move(read_frame_info.callback));
-    }
+  if (read_frame_info.timeout.has_value()) {
+    ReadFrame(*read_frame_info.frame_type,
+              std::move(read_frame_info.callback), *read_frame_info.timeout);
+  } else {
+    ReadFrame(std::move(read_frame_info.callback));
   }
 }
 
