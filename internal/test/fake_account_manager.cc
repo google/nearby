@@ -32,6 +32,7 @@ std::optional<AccountManager::Account> FakeAccountManager::GetCurrentAccount() {
 }
 
 void FakeAccountManager::Login(
+    absl::string_view client_id, absl::string_view client_secret,
     absl::AnyInvocable<void(Account)> login_success_callback,
     absl::AnyInvocable<void(absl::Status)> login_failure_callback) {
   if (account_.has_value()) {
@@ -86,9 +87,7 @@ void FakeAccountManager::UpdateCurrentUser(absl::string_view current_user) {
   user_name_ = current_user;
 }
 
-void FakeAccountManager::ClearCurrentUser() {
-  user_name_.reset();
-}
+void FakeAccountManager::ClearCurrentUser() { user_name_.reset(); }
 
 void FakeAccountManager::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);

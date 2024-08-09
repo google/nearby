@@ -36,6 +36,7 @@ class FakeAccountManager : public AccountManager {
   std::optional<Account> GetCurrentAccount() override;
 
   void Login(
+      absl::string_view client_id, absl::string_view client_secret,
       absl::AnyInvocable<void(Account)> login_success_callback,
       absl::AnyInvocable<void(absl::Status)> login_failure_callback) override;
 
