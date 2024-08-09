@@ -88,12 +88,6 @@ void NearbyConnectionImpl::Write(std::vector<uint8_t> bytes) {
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
 }
 
-void NearbyConnectionImpl::Close() {
-  // As [this] therefore endpoint_id_ will be destroyed in Disconnect, make a
-  // copy of [endpoint_id] as the parameter is a const ref.
-  nearby_connections_manager_->Disconnect(endpoint_id_);
-}
-
 void NearbyConnectionImpl::SetDisconnectionListener(
     std::function<void()> listener) {
   absl::MutexLock lock(&mutex_);

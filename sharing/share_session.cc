@@ -136,7 +136,7 @@ void ShareSession::Disconnect() {
     return;
   }
   // Do not clear connection_ here.  It will be cleared in OnDisconnect().
-  connection_->Close();
+  connections_manager_->Disconnect(endpoint_id_);
 }
 
 void ShareSession::Abort(TransferMetadata::Status status) {
@@ -146,14 +146,7 @@ void ShareSession::Abort(TransferMetadata::Status status) {
   // First invoke the appropriate transfer callback with the final
   // |status|.
   UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
-
-  // Close connection if necessary.
-  if (connection_ == nullptr) {
-    return;
-  }
-  // Final status already sent above.  No need to send it again.
-  set_disconnect_status(TransferMetadata::Status::kUnknown);
-  connection_->Close();
+  Disconnect();
 }
 
 void ShareSession::RunPairedKeyVerification(
