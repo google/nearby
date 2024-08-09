@@ -301,7 +301,6 @@ cc_test(
         "wifi_medium_test.cc",
     ],
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
-    tags = ["notap"],
     deps = [
         ":comm",
         ":crypto",
