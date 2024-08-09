@@ -726,7 +726,7 @@ void NearbySharingServiceImpl::SendAttachments(
         if (!is_scanning_) {
           NL_LOG(WARNING) << __func__
                           << ": Failed to send attachments. Not scanning.";
-          std::move(status_codes_callback)(StatusCodes::kError);
+          std::move(status_codes_callback)(StatusCodes::kOutOfOrderApiCall);
           return;
         }
 

@@ -3336,14 +3336,14 @@ TEST_F(NearbySharingServiceImplTest, SendTextAlreadySending) {
 
   // We're now in the sending state, try to send again should fail
   EXPECT_EQ(SendAttachments(target_id, CreateTextAttachments({kTextPayload})),
-            NearbySharingServiceImpl::StatusCodes::kError);
+            NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
 
   UnregisterSendSurface(&transfer_callback);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextWithoutScanning) {
   EXPECT_EQ(SendAttachments(325626L, CreateTextAttachments({kTextPayload})),
-            NearbySharingServiceImpl::StatusCodes::kError);
+            NearbySharingServiceImpl::StatusCodes::kOutOfOrderApiCall);
 }
 
 TEST_F(NearbySharingServiceImplTest, SendTextUnknownTarget) {
