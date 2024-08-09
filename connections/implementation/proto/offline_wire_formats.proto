@@ -302,6 +302,11 @@ message BandwidthUpgradeNegotiationFrame {
     optional bool supports_client_introduction_ack = 9;
   }
 
+  // Accompanies SAFE_TO_CLOSE_PRIOR_CHANNEL events.
+  message SafeToClosePriorChannel {
+    optional int32 sta_frequency = 1;
+  }
+
   // Accompanies CLIENT_INTRODUCTION events.
   message ClientIntroduction {
     optional string endpoint_id = 1;
@@ -317,6 +322,7 @@ message BandwidthUpgradeNegotiationFrame {
   optional UpgradePathInfo upgrade_path_info = 2;
   optional ClientIntroduction client_introduction = 3;
   optional ClientIntroductionAck client_introduction_ack = 4;
+  optional SafeToClosePriorChannel safe_to_close_prior_channel = 5;
 }
 
 message BandwidthUpgradeRetryFrame {
