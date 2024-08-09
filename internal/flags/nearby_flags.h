@@ -15,13 +15,16 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_FLAGS_NEARBY_FLAGS_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_FLAGS_NEARBY_FLAGS_H_
 
+#include <cstdint>
 #include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/flags/default_flag_reader.h"
+#include "internal/flags/flag.h"
 #include "internal/flags/flag_reader.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 
@@ -65,7 +68,7 @@ class NearbyFlags final : public nearby::flags::FlagReader {
                                absl::string_view new_value)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Reset all overrided values.
+  // Reset all overridden values.
   void ResetOverridedValues() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
@@ -74,7 +77,7 @@ class NearbyFlags final : public nearby::flags::FlagReader {
   flags::FlagReader* flag_reader_ = nullptr;
   flags::DefaultFlagReader default_flag_reader_;
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   absl::flat_hash_map<std::string, bool> overrided_bool_flag_values_
       ABSL_GUARDED_BY(mutex_);
 
