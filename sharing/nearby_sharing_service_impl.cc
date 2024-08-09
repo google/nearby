@@ -336,7 +336,13 @@ void NearbySharingServiceImpl::Cleanup() {
   for (auto& it : incoming_share_session_map_) {
     it.second.OnDisconnect();
   }
-  incoming_share_session_map_.clear();
+  // Clear out the incoming_share_session_map_ before destroying the sessions.
+  // Session destruction can trigger callbacks that access the map.  That is not
+  // allowed while the map is being modified.
+  absl::flat_hash_map<int64_t, IncomingShareSession> tmp_incoming_session_map;
+  tmp_incoming_session_map.swap(incoming_share_session_map_);
+  tmp_incoming_session_map.clear();
+
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
@@ -2398,14 +2404,20 @@ void NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
   ShareTarget share_target = std::move(it->second);
   outgoing_share_target_map_.erase(it);
 
-  auto session_it = outgoing_share_session_map_.find(share_target.id);
-  if (session_it != outgoing_share_session_map_.end()) {
-    session_it->second.OnDisconnect();
-    outgoing_share_session_map_.erase(session_it);
-  } else {
-    NL_LOG(WARNING) << __func__ << ": share_target.id=" << it->second.id
-                    << " not found in outgoing share session map.";
-    return;
+  {
+    // Do not destroy the session until it has been removed from the map.
+    // Session destruction can trigger callbacks that traverses the map and it
+    // cannot access the map while it is being modified.
+    absl::flat_hash_map<int64_t, OutgoingShareSession>::node_type session_node;
+    auto session_it = outgoing_share_session_map_.find(share_target.id);
+    if (session_it != outgoing_share_session_map_.end()) {
+      session_node = outgoing_share_session_map_.extract(session_it);
+      session_node.mapped().OnDisconnect();
+    } else {
+      NL_LOG(WARNING) << __func__ << ": share_target.id=" << it->second.id
+                      << " not found in outgoing share session map.";
+      return;
+    }
   }
 
   for (auto& entry : foreground_send_surface_map_) {
