@@ -3204,6 +3204,11 @@ TEST_F(NearbySharingServiceImplTest,
   connection_->AppendReadableData(bytes);
   FlushTesting();
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+  EXPECT_CALL(callback,
+              OnTransferUpdate(
+                  testing::_, testing::_,
+                  nearby::sharing::HasStatus(
+                      TransferMetadata::Status::kPairedKeyVerificationFailed)));
 
   service_->OnIncomingConnection(kEndpointId, GetValidV1EndpointInfo(),
                                  connection_.get());
