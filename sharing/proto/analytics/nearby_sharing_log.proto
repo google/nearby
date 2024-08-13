@@ -19,6 +19,7 @@ package nearby.sharing.analytics.proto;
 import "google/protobuf/duration.proto";
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
+// import "storage/googlesql/public/proto/type_annotation.proto";
 import "proto/sharing_enums.proto";
 
 // "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
@@ -234,6 +235,20 @@ message SharingLog {
     optional bool is_location_enabled = 6;
     // True if the wifi setting is enabled
     optional bool is_wifi_enabled = 7;
+    // Date(YYYYMMDD) in decimal format for the first successful transfer in
+    // America/Los_Angeles timezone. If no successful transfer exists, the value
+    // is 0.
+    optional int32 first_successful_transfer_date = 8
+        /* format = googlesql.format */;
+    // Date(YYYYMMDD) in decimal format for the previous successful transfer in
+    // America/Los_Angeles timezone. If no successful transfer exists, the value
+    // is 0.
+    optional int32 previous_successful_transfer_date = 9
+        /* format = googlesql.format */;
+    // The cumulative number of transfers the device has completed.
+    // Exact transfer count stored on device, but when logging put the transfer
+    // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
+    optional int32 lifetime_transfer_count = 10;
   }
 
   // Used only for Nearby Share Windows app now. Here is the screenshot about
@@ -507,6 +522,20 @@ message SharingLog {
     // connection status from nearby connections layer
     optional location.nearby.proto.sharing.ConnectionLayerStatus
         connection_layer_status = 10;
+    // Date(YYYYMMDD) in decimal format for the first successful transfer in
+    // America/Los_Angeles timezone. If no successful transfer exists, the value
+    // is 0.
+    optional int32 first_successful_transfer_date = 11
+        /* format = googlesql.format */;
+    // Date(YYYYMMDD) in decimal format for the previous successful transfer in
+    // America/Los_Angeles timezone. If no successful transfer exists, the value
+    // is 0.
+    optional int32 previous_successful_transfer_date = 12
+        /* format = googlesql.format */;
+    // The cumulative number of transfers the device has completed.
+    // Exact transfer count stored on device, but when logging put the transfer
+    // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
+    optional int32 lifetime_transfer_count = 13;
   }
 
   // EventType: RECEIVE_ATTACHMENTS_START
@@ -524,6 +553,20 @@ message SharingLog {
         3;
     optional string referrer_name = 4;
     optional ShareTargetInfo share_target_info = 5;
+    // Date(YYYYMMDD) in decimal format for the first successful transfer in
+    // America/Los_Angeles timezone. If no successful transfer exists, the value
+    // is 0.
+    optional int32 first_successful_transfer_date = 6
+        /* format = googlesql.format */;
+    // Date(YYYYMMDD) in decimal format for the previous successful transfer in
+    // America/Los_Angeles timezone. If no successful transfer exists, the value
+    // is 0.
+    optional int32 previous_successful_transfer_date = 7
+        /* format = googlesql.format */;
+    // The cumulative number of transfers the device has completed.
+    // Exact transfer count stored on device, but when logging put the transfer
+    // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
+    optional int32 lifetime_transfer_count = 8;
   }
 
   // EventType: CANCEL_CONNECTION
