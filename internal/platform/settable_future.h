@@ -19,8 +19,16 @@
 #include <utility>
 #include <vector>
 
+#include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/listenable_future.h"
+#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/settable_future.h"
+#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/system_clock.h"
@@ -36,10 +44,20 @@ class SettableFuture : public api::SettableFuture<T> {
 
   // Creates a SettableFuture that fails with a kTimeout when `timeout` expires.
   explicit SettableFuture(absl::Duration timeout)
-      : timer_(absl::make_unique<TimerImpl>()) {
-    timer_->Start(absl::ToInt64Milliseconds(timeout), 0,
-                  [this] { SetException({Exception::kTimeout}); });
+      : timer_(std::make_unique<TimerImpl>()) {
+    timer_->Start(absl::ToInt64Milliseconds(timeout), 0, [this] {
+      // Offload the timeout to a single thread executor.
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              platform::config_package_nearby::nearby_platform_feature::
+                  kEnableTaskScheduler)) {
+        executor_ = api::ImplementationPlatform::CreateSingleThreadExecutor();
+        executor_->Execute([this]() { SetException({Exception::kTimeout}); });
+      } else {
+        SetException({Exception::kTimeout});
+      }
+    });
   }
+
   ~SettableFuture() override = default;
 
   bool Set(T value) override {
@@ -148,6 +166,7 @@ class SettableFuture : public api::SettableFuture<T> {
   T value_;
   Exception exception_{Exception::kFailed};
   std::unique_ptr<TimerImpl> timer_;
+  std::unique_ptr<api::SubmittableExecutor> executor_;
 };
 
 }  // namespace nearby

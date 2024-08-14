@@ -47,26 +47,32 @@ class TaskScheduler {
  private:
   class ScheduledTask : public api::Cancelable {
    public:
-    explicit ScheduledTask(TaskScheduler& task_scheduler, Runnable&& runnable);
+    explicit ScheduledTask(TaskScheduler& task_scheduler, Runnable&& runnable,
+                           bool is_repeated);
     ~ScheduledTask() override = default;
 
     // Note: not support to cancel and shutdown a scheduled task in the
     // callback.
-    bool Cancel() override;
+    // when task is cancelled or executed, return false, otherwise return true.
+    bool Cancel() override ABSL_LOCKS_EXCLUDED(mutex_);
+    bool is_cancelled() const ABSL_LOCKS_EXCLUDED(mutex_);
 
-    void SetTimerHandle(intptr_t timer_handle);
-    intptr_t timer_handle();
-
-    Runnable* runnable();
+    intptr_t timer_handle() const ABSL_LOCKS_EXCLUDED(mutex_);
+    void set_timer_handle(intptr_t timer_handle) ABSL_LOCKS_EXCLUDED(mutex_);
+    Runnable* runnable() ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
-    TaskScheduler* task_scheduler_;
-    Runnable runnable_;
-    intptr_t timer_handle_;
+    mutable absl::Mutex mutex_;
+    TaskScheduler* const task_scheduler_;
+    Runnable runnable_ ABSL_GUARDED_BY(mutex_);
+    intptr_t timer_handle_ ABSL_GUARDED_BY(mutex_);
+    bool is_cancelled_ ABSL_GUARDED_BY(mutex_) = false;
+    bool is_executed_ ABSL_GUARDED_BY(mutex_) = false;
+    bool is_repeated_ ABSL_GUARDED_BY(mutex_) = false;
   };
 
-  bool RemoveScheduledTask(intptr_t timer_handle) ABSL_LOCKS_EXCLUDED(mutex_);
-  void ShutdownInternal() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool CancelScheduledTask(intptr_t timer_handle) ABSL_LOCKS_EXCLUDED(mutex_);
+  void CleanScheduledTasks() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   absl::Mutex mutex_;
   bool is_shutdown_ ABSL_GUARDED_BY(mutex_) = false;

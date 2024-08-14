@@ -17,7 +17,6 @@
 #include <chrono>  // NOLINT
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
@@ -31,8 +30,9 @@ namespace nearby {
 namespace windows {
 namespace {
 
-class ScheduledExecutorTaskSchedulerFlagTest
-    : public ::testing::TestWithParam<bool> {
+constexpr absl::Duration kWaitTimeout = absl::Milliseconds(2000);
+
+class ScheduledExecutorTest : public ::testing::TestWithParam<bool> {
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -40,9 +40,13 @@ class ScheduledExecutorTaskSchedulerFlagTest
             kEnableTaskScheduler,
         GetParam());
   }
+
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
 };
 
-TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ExecuteSucceeds) {
+TEST_P(ScheduledExecutorTest, ExecuteSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -62,8 +66,7 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ExecuteSucceeds) {
     notification.Notify();
   });
 
-  ASSERT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -76,7 +79,7 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ExecuteSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ScheduleSucceeds) {
+TEST_P(ScheduledExecutorTest, ScheduleSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -103,8 +106,7 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ScheduleSucceeds) {
       },
       absl::Milliseconds(50));
 
-  ASSERT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   ASSERT_EQ(threadIds->size(), 2);
@@ -114,7 +116,7 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, ScheduleSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelSucceeds) {
+TEST_P(ScheduledExecutorTest, CancelSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected("");
@@ -138,8 +140,7 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelSucceeds) {
 
   auto actual = cancelable->Cancel();
 
-  EXPECT_FALSE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
+  EXPECT_FALSE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   // Assert
@@ -151,7 +152,7 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelAfterStartedFails) {
+TEST_P(ScheduledExecutorTest, CancelAfterStartedFails) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -173,21 +174,14 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelAfterStartedFails) {
       },
       absl::Milliseconds(100));
 
-  absl::SleepFor(absl::Milliseconds(200));
+  absl::SleepFor(absl::Milliseconds(500));
   auto actual = cancelable->Cancel();
 
-  ASSERT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   // Assert
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableTaskScheduler)) {
-    ASSERT_TRUE(actual);
-  } else {
-    ASSERT_FALSE(actual);
-  }
+  ASSERT_FALSE(actual);
   ASSERT_EQ(threadIds->size(), 2);
   //  We should still be on the main thread
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
@@ -195,9 +189,8 @@ TEST_P(ScheduledExecutorTaskSchedulerFlagTest, CancelAfterStartedFails) {
   ASSERT_EQ(output, expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(ScheduledExecutorTest,
-                         ScheduledExecutorTaskSchedulerFlagTest,
-                         testing::ValuesIn(std::vector<bool>{true, false}));
+INSTANTIATE_TEST_SUITE_P(ScheduledExecutorTaskSchedulerFlagTest,
+                         ScheduledExecutorTest, testing::Bool());
 
 }  // namespace
 }  // namespace windows

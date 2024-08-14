@@ -19,11 +19,8 @@
 
 #include <atomic>
 #include <memory>
-#include <utility>
 #include <vector>
 
-#include "absl/base/thread_annotations.h"
-#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
@@ -52,14 +49,13 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   // Exclusive ownership model does not work for this case;
   // using std:shared_ptr<> instead if std::unique_ptr<>.
   std::shared_ptr<api::Cancelable> Schedule(Runnable&& runnable,
-                                            absl::Duration duration) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+                                            absl::Duration duration) override;
 
   // Executes the runnable task immediately.
-  void Execute(Runnable&& runnable) override ABSL_LOCKS_EXCLUDED(mutex_);
+  void Execute(Runnable&& runnable) override;
 
   // Shutdowns the executor, all scheduled task will be cancelled.
-  void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
+  void Shutdown() override;
 
  private:
   class ScheduledTask : public api::Cancelable {
@@ -97,13 +93,12 @@ class ScheduledExecutor : public api::ScheduledExecutor {
     bool is_executed_ = false;
   };
 
-  absl::Mutex mutex_;
-  std::unique_ptr<nearby::windows::Executor> executor_ ABSL_GUARDED_BY(mutex_) =
-      nullptr;
-  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_
-      ABSL_GUARDED_BY(mutex_);
-  std::atomic_bool shut_down_ ABSL_GUARDED_BY(mutex_) = false;
-  TaskScheduler task_scheduler_ ABSL_GUARDED_BY(mutex_);
+  std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
+  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_;
+  std::atomic_bool shut_down_ = false;
+
+  const bool use_task_scheduler_;
+  TaskScheduler task_scheduler_;
 };
 
 }  // namespace windows

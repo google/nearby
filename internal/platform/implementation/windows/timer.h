@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/timer.h"
@@ -32,7 +33,7 @@ namespace windows {
 
 class Timer : public api::Timer {
  public:
-  Timer() = default;
+  Timer();
   ~Timer() override;
 
   bool Create(int delay, int interval,
@@ -45,6 +46,7 @@ class Timer : public api::Timer {
   static void CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired);
 
   mutable absl::Mutex mutex_;
+  const bool use_task_scheduler_;
   int delay_ ABSL_GUARDED_BY(mutex_);
   int interval_ ABSL_GUARDED_BY(mutex_);
   absl::AnyInvocable<void()> callback_;

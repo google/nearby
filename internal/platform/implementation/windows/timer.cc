@@ -29,13 +29,16 @@
 namespace nearby {
 namespace windows {
 
+Timer::Timer()
+    : use_task_scheduler_(NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableTaskScheduler)) {}
+
 Timer::~Timer() { Stop(); }
 
 bool Timer::Create(int delay, int interval,
                    absl::AnyInvocable<void()> callback) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableTaskScheduler)) {
+  if (use_task_scheduler_) {
     absl::MutexLock lock(&mutex_);
     if ((delay < 0) || (interval < 0)) {
       NEARBY_LOGS(WARNING)
@@ -95,9 +98,7 @@ bool Timer::Create(int delay, int interval,
 }
 
 bool Timer::Stop() {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableTaskScheduler)) {
+  if (use_task_scheduler_) {
     absl::MutexLock lock(&mutex_);
     if (cancelable_task_ == nullptr) {
       return true;

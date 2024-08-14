@@ -78,7 +78,7 @@ TEST(FutureTest, SupportScopedEnum) {
 }
 
 TEST(FutureTest, SetTakesCopyOfValue) {
-  // Default constructor is zero-initalizing all data in BigSizedStruct.
+  // Default constructor is zero-initializing all data in BigSizedStruct.
   BigSizedStruct v1;
   Future<BigSizedStruct> future;
   v1.data[0] = 5;  // Changing value before calling Set() will affect stored

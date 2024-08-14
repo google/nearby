@@ -39,9 +39,9 @@ void CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 TaskScheduler::TaskScheduler() {
   NEARBY_LOGS(INFO) << __func__ << ": Created task scheduler: " << this;
 }
+
 TaskScheduler::~TaskScheduler() {
-  absl::MutexLock lock(&mutex_);
-  ShutdownInternal();
+  Shutdown();
   NEARBY_LOGS(INFO) << __func__ << ": Destroyed task scheduler: " << this;
 }
 
@@ -59,9 +59,19 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
                     << ", duration: " << absl::ToInt64Milliseconds(duration)
                     << "ms, repeat_interval: "
                     << absl::ToInt64Milliseconds(repeat_interval) << "ms";
+  if (is_shutdown_) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Attempt to schedule task on a shut down task "
+                          "scheduler: "
+                       << this;
+    return nullptr;
+  }
 
-  std::shared_ptr<ScheduledTask> task =
-      std::make_shared<ScheduledTask>(*this, std::move(runnable));
+  // Clear all cancelled tasks.
+  CleanScheduledTasks();
+
+  std::shared_ptr<ScheduledTask> task = std::make_shared<ScheduledTask>(
+      *this, std::move(runnable), repeat_interval != absl::ZeroDuration());
 
   HANDLE timer_handle = nullptr;
   if (!CreateTimerQueueTimer(&timer_handle, nullptr,
@@ -76,7 +86,7 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
     return nullptr;
   }
 
-  task->SetTimerHandle(reinterpret_cast<intptr_t>(timer_handle));
+  task->set_timer_handle(reinterpret_cast<intptr_t>(timer_handle));
   scheduled_tasks_.insert({reinterpret_cast<intptr_t>(timer_handle), task});
   NEARBY_LOGS(INFO) << __func__ << ": Scheduled task " << task.get()
                     << " on task scheduler:" << this
@@ -87,29 +97,87 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
 void TaskScheduler::Shutdown() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Shutting down task scheduler:" << this;
-  ShutdownInternal();
+  if (is_shutdown_) {
+    return;
+  }
+  for (auto& task : scheduled_tasks_) {
+    if (task.second->is_cancelled()) {
+      continue;
+    }
+    // Wait for running task to finish.
+    if (!DeleteTimerQueueTimer(
+            nullptr, reinterpret_cast<HANDLE>(task.second->timer_handle()),
+            INVALID_HANDLE_VALUE)) {
+      if (GetLastError() != ERROR_IO_PENDING) {
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Failed to delete timer queue timer: "
+                           << task.second->timer_handle()
+                           << " error: " << GetLastError();
+      }
+    }
+  }
+  scheduled_tasks_.clear();
+  is_shutdown_ = true;
   NEARBY_LOGS(INFO) << __func__ << ": Shut down task scheduler:" << this;
 }
 
 TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
-                                            Runnable&& runnable)
-    : task_scheduler_(&task_scheduler), runnable_(std::move(runnable)) {}
-
-bool TaskScheduler::ScheduledTask::Cancel() {
-  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle_
-                    << " from task scheduler:" << this;
-  return task_scheduler_->RemoveScheduledTask(timer_handle_);
+                                            Runnable&& runnable,
+                                            bool is_repeated)
+    : task_scheduler_(&task_scheduler), is_repeated_(is_repeated) {
+  runnable_ = [this, runnable = std::move(runnable)]() mutable {
+    {
+      absl::MutexLock lock(&mutex_);
+      is_executed_ = true;
+    }
+    if (runnable) {
+      runnable();
+    }
+  };
 }
 
-void TaskScheduler::ScheduledTask::SetTimerHandle(intptr_t timer_handle) {
+bool TaskScheduler::ScheduledTask::Cancel() {
+  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle()
+                    << " from task scheduler:" << this;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (is_cancelled_) {
+      return false;
+    }
+    is_cancelled_ = true;
+  }
+
+  bool result = task_scheduler_->CancelScheduledTask(timer_handle());
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!is_repeated_ && is_executed_) {
+      result = false;
+    }
+  }
+  return result;
+}
+
+void TaskScheduler::ScheduledTask::set_timer_handle(intptr_t timer_handle) {
+  absl::MutexLock lock(&mutex_);
   timer_handle_ = timer_handle;
 }
 
-Runnable* TaskScheduler::ScheduledTask::runnable() { return &runnable_; }
+Runnable* TaskScheduler::ScheduledTask::runnable() {
+  absl::MutexLock lock(&mutex_);
+  return &runnable_;
+}
 
-intptr_t TaskScheduler::ScheduledTask::timer_handle() { return timer_handle_; }
+intptr_t TaskScheduler::ScheduledTask::timer_handle() const {
+  absl::MutexLock lock(&mutex_);
+  return timer_handle_;
+}
 
-bool TaskScheduler::RemoveScheduledTask(intptr_t timer_handle) {
+bool TaskScheduler::ScheduledTask::is_cancelled() const {
+  absl::MutexLock lock(&mutex_);
+  return is_cancelled_;
+}
+
+bool TaskScheduler::CancelScheduledTask(intptr_t timer_handle) {
   absl::MutexLock lock(&mutex_);
   auto it = scheduled_tasks_.find(timer_handle);
   if (it == scheduled_tasks_.end()) {
@@ -126,29 +194,18 @@ bool TaskScheduler::RemoveScheduledTask(intptr_t timer_handle) {
     }
   }
 
-  scheduled_tasks_.erase(it);
   return true;
 }
 
-void TaskScheduler::ShutdownInternal() {
-  if (is_shutdown_) {
-    return;
-  }
-  for (auto& task : scheduled_tasks_) {
-    // Wait for running task to finish.
-    if (!DeleteTimerQueueTimer(
-            nullptr, reinterpret_cast<HANDLE>(task.second->timer_handle()),
-            INVALID_HANDLE_VALUE)) {
-      if (GetLastError() != ERROR_IO_PENDING) {
-        NEARBY_LOGS(ERROR) << __func__
-                           << ": Failed to delete timer queue timer: "
-                           << task.second->timer_handle()
-                           << " error: " << GetLastError();
-      }
+void TaskScheduler::CleanScheduledTasks() {
+  auto it = scheduled_tasks_.begin();
+  while (it != scheduled_tasks_.end()) {
+    if (it->second->is_cancelled()) {
+      scheduled_tasks_.erase(it++);
+    } else {
+      ++it;
     }
   }
-  scheduled_tasks_.clear();
-  is_shutdown_ = true;
 }
 
 }  // namespace nearby::windows
