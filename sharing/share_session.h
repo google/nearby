@@ -35,7 +35,6 @@
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
-#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -104,8 +103,7 @@ class ShareSession {
   }
   // Notifies the ShareTargetInfo that the connection has been established.
   // Returns true if the connection was successfully established.
-  bool OnConnected(const NearbySharingDecoder& decoder,
-                   absl::Time connect_start_time,
+  bool OnConnected(absl::Time connect_start_time,
                    NearbyConnectionsManager* connections_manager,
                    NearbyConnection* connection);
 

@@ -857,6 +857,8 @@ message SharingLog {
   message SetupWizard {
     // The new visibility of the device.
     optional location.nearby.proto.sharing.Visibility visibility = 1;
+    // The previous visibility of the device.
+    optional location.nearby.proto.sharing.Visibility previous_visibility = 2;
   }
 
   message SendDesktopNotification {

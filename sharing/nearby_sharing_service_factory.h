@@ -21,7 +21,6 @@
 #include "internal/analytics/event_logger.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context.h"
-#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/nearby_sharing_service.h"
 
 namespace nearby::sharing {
@@ -41,7 +40,6 @@ class NearbySharingServiceFactory {
 
   std::unique_ptr<Context> context_;
   ::nearby::analytics::EventLogger* event_logger_ = nullptr;
-  std::unique_ptr<NearbySharingDecoder> decoder_;
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
 };
 
