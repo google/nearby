@@ -86,6 +86,16 @@ void FakeNearbyConnection::SetDisconnectionListener(
 
 void FakeNearbyConnection::AppendReadableData(std::vector<uint8_t> bytes) {
   NL_DCHECK(!closed_);
+  if (task_runner_) {
+    task_runner_->PostTask([this, bytes = std::move(bytes)]() {
+      {
+        absl::MutexLock lock(&read_mutex_);
+        read_data_.push(std::move(bytes));
+      }
+      MaybeRunCallback();
+    });
+    return;
+  }
   {
     absl::MutexLock lock(&read_mutex_);
     read_data_.push(std::move(bytes));
