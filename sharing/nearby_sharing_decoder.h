@@ -23,20 +23,13 @@
 #include "sharing/advertisement.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
-class NearbySharingDecoder {
- public:
-  virtual ~NearbySharingDecoder() = default;
+inline std::unique_ptr<Advertisement> DecodeAdvertisement(
+    absl::Span<const uint8_t> data) {
+  return Advertisement::FromEndpointInfo(data);
+}
 
-  virtual std::unique_ptr<Advertisement> DecodeAdvertisement(
-      absl::Span<const uint8_t> data) const = 0;
-  virtual std::unique_ptr<nearby::sharing::service::proto::Frame> DecodeFrame(
-      absl::Span<const uint8_t> data) const = 0;
-};
-
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_DECODER_H_

@@ -30,7 +30,6 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/thread_timer.h"
 
@@ -42,13 +41,21 @@ using FrameType = ::nearby::sharing::service::proto::V1Frame_FrameType;
 using V1Frame = ::nearby::sharing::service::proto::V1Frame;
 using Frame = ::nearby::sharing::service::proto::Frame;
 
+std::unique_ptr<Frame> DecodeFrame(absl::Span<const uint8_t> data) {
+  auto frame = std::make_unique<Frame>();
+
+  if (frame->ParseFromArray(data.data(), data.size())) {
+    return frame;
+  } else {
+    return nullptr;
+  }
+}
+
 }  // namespace
 
 IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
-                                           const NearbySharingDecoder& decoder,
                                            NearbyConnection* connection)
     : service_thread_(service_thread),
-      decoder_(decoder),
       connection_(connection) {
   NL_DCHECK(connection);
 }
@@ -144,7 +151,7 @@ void IncomingFramesReader::OnDataReadFromConnection(
   }
 
   std::unique_ptr<Frame> frame =
-      decoder_.DecodeFrame(absl::MakeSpan(bytes->data(), bytes->size()));
+      DecodeFrame(absl::MakeSpan(bytes->data(), bytes->size()));
   if (frame == nullptr) {
     NL_LOG(WARNING)
         << __func__

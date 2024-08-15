@@ -64,7 +64,6 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
-#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_service_extension.h"
 #include "sharing/nearby_sharing_settings.h"
@@ -109,7 +108,6 @@ class NearbySharingServiceImpl
   NearbySharingServiceImpl(
       int32_t vendor_id, std::unique_ptr<nearby::TaskRunner> service_thread,
       Context* context, nearby::sharing::api::SharingPlatform& sharing_platform,
-      NearbySharingDecoder* decoder,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
       nearby::analytics::EventLogger* event_logger = nullptr);
   ~NearbySharingServiceImpl() override;
@@ -455,7 +453,6 @@ class NearbySharingServiceImpl
   nearby::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
-  NearbySharingDecoder* const decoder_;
 
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   // Used to create analytics events.

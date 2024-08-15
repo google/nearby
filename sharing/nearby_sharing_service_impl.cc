@@ -193,7 +193,6 @@ OSType ToProtoOsType(::nearby::api::DeviceInfo::OsType os_type) {
 NearbySharingServiceImpl::NearbySharingServiceImpl(
     int32_t vendor_id, std::unique_ptr<TaskRunner> service_thread,
     Context* context, SharingPlatform& sharing_platform,
-    NearbySharingDecoder* decoder,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     nearby::analytics::EventLogger* event_logger)
     : service_thread_(std::move(service_thread)),
@@ -201,7 +200,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       device_info_(sharing_platform.GetDeviceInfo()),
       preference_manager_(sharing_platform.GetPreferenceManager()),
       account_manager_(sharing_platform.GetAccountManager()),
-      decoder_(decoder),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
       analytics_recorder_(std::make_unique<analytics::AnalyticsRecorder>(
           vendor_id, event_logger)),
@@ -229,7 +227,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           context_, settings_.get())),
       file_handler_(sharing_platform),
       app_info_(sharing_platform.CreateAppInfo()) {
-  NL_DCHECK(decoder_);
   NL_DCHECK(nearby_connections_manager_);
 
   is_shutting_down_ = std::make_unique<bool>(false);
@@ -1100,14 +1097,14 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
   session.set_session_id(analytics_recorder_->GenerateNextId());
-  session.OnConnected(*decoder_, context_->GetClock()->Now(),
+  session.OnConnected(context_->GetClock()->Now(),
                       nearby_connections_manager_.get(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
 
   std::unique_ptr<Advertisement> advertisement =
-      decoder_->DecodeAdvertisement(endpoint_info);
+      DecodeAdvertisement(endpoint_info);
   OnIncomingAdvertisementDecoded(endpoint_id, session,
                                  std::move(advertisement));
 }
@@ -1699,7 +1696,7 @@ void NearbySharingServiceImpl::HandleEndpointDiscovered(
   }
 
   std::unique_ptr<Advertisement> advertisement =
-      decoder_->DecodeAdvertisement(endpoint_info);
+      DecodeAdvertisement(endpoint_info);
   OnOutgoingAdvertisementDecoded(endpoint_id, endpoint_info,
                                  std::move(advertisement));
 }
@@ -2461,7 +2458,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     absl::Time connect_start_time, NearbyConnection* connection,
     OutgoingShareSession& session) {
   int64_t share_target_id = session.share_target().id;
-  if (!session.OnConnected(*decoder_, connect_start_time,
+  if (!session.OnConnected(connect_start_time,
                            nearby_connections_manager_.get(), connection)) {
     session.Abort(session.disconnect_status());
     return;
@@ -2828,7 +2825,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
       *share_target, endpoint_id, std::move(certificate));
   // Copy session id from placeholder session to actual session.
   session.set_session_id(session_id);
-  session.OnConnected(*decoder_, context_->GetClock()->Now(),
+  session.OnConnected(context_->GetClock()->Now(),
                       nearby_connections_manager_.get(), connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(

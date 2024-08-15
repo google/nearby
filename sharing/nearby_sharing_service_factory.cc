@@ -23,7 +23,6 @@
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context_impl.h"
 #include "sharing/nearby_connections_manager_factory.h"
-#include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_service_impl.h"
 
@@ -47,7 +46,6 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
   context_ =
       std::make_unique<ContextImpl>(sharing_platform);
   event_logger_ = event_logger;
-  decoder_ = std::make_unique<NearbySharingDecoderImpl>();
   std::unique_ptr<TaskRunner> service_thread =
       context_->CreateSequencedTaskRunner();
   auto nearby_connections_manager =
@@ -56,9 +54,7 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
           sharing_platform.GetDeviceInfo(), event_logger_);
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
-      vendor_id,
-      std::move(service_thread),
-      context_.get(), sharing_platform, decoder_.get(),
+      vendor_id, std::move(service_thread), context_.get(), sharing_platform,
       std::move(nearby_connections_manager), event_logger_);
 
   return nearby_sharing_service_.get();

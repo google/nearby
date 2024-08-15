@@ -1219,7 +1219,7 @@ bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
   BleV2Peripheral* peripheral = nullptr;
   {
     absl::MutexLock lock(&mutex_);
-    BleV2Peripheral* peripheral = GetOrCreatePeripheral(mac_address);
+    peripheral = GetOrCreatePeripheral(mac_address);
   }
 
   if (peripheral != nullptr && peripheral->Ok()) {
@@ -1234,7 +1234,7 @@ bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
   BleV2Peripheral* peripheral = nullptr;
   {
     absl::MutexLock lock(&mutex_);
-    BleV2Peripheral* peripheral = GetPeripheral(id);
+    peripheral = GetPeripheral(id);
   }
 
   if (peripheral == nullptr) {

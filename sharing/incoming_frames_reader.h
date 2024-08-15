@@ -29,7 +29,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/thread_timer.h"
 
@@ -41,7 +40,6 @@ class IncomingFramesReader
     : public std::enable_shared_from_this<IncomingFramesReader> {
  public:
   IncomingFramesReader(TaskRunner& service_thread,
-                       const NearbySharingDecoder& decoder,
                        NearbyConnection* connection);
   virtual ~IncomingFramesReader();
   IncomingFramesReader(const IncomingFramesReader&) = delete;
@@ -99,7 +97,6 @@ class IncomingFramesReader
           frame_type) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   TaskRunner& service_thread_;
-  const NearbySharingDecoder& decoder_;
   NearbyConnection* const connection_;
 
   RecursiveMutex mutex_;

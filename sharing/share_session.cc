@@ -34,7 +34,6 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
-#include "sharing/nearby_sharing_decoder.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_target.h"
@@ -115,8 +114,7 @@ void ShareSession::set_disconnect_status(
   }
 }
 
-bool ShareSession::OnConnected(const NearbySharingDecoder& decoder,
-                               absl::Time connect_start_time,
+bool ShareSession::OnConnected(absl::Time connect_start_time,
                                NearbyConnectionsManager* connections_manager,
                                NearbyConnection* connection) {
   NL_DCHECK(connections_manager) << "Connections manager must not be null";
@@ -126,8 +124,8 @@ bool ShareSession::OnConnected(const NearbySharingDecoder& decoder,
   }
   connection_start_time_ = connect_start_time;
   connection_ = connection;
-  frames_reader_ = std::make_shared<IncomingFramesReader>(service_thread_,
-                                                          decoder, connection_);
+  frames_reader_ =
+      std::make_shared<IncomingFramesReader>(service_thread_, connection_);
   return true;
 }
 

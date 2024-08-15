@@ -29,7 +29,6 @@
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection_impl.h"
-#include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/proto/wire_format.pb.h"
 
 namespace nearby {
@@ -92,7 +91,7 @@ class IncomingFramesReaderTest : public testing::Test {
   void SetUp() override {
     FakeTaskRunner::ResetPendingTasksCount();
     frames_reader_ = std::make_shared<IncomingFramesReader>(
-        fake_task_runner_, nearby_sharing_decoder_, nearby_connection_.get());
+        fake_task_runner_, nearby_connection_.get());
   }
 
   NearbyConnectionImpl& connection() {
@@ -121,7 +120,6 @@ class IncomingFramesReaderTest : public testing::Test {
   FakeDeviceInfo fake_device_info_;
   FakeNearbyConnectionsManager fake_nearby_connections_manager_;
   std::unique_ptr<NearbyConnectionImpl> nearby_connection_;
-  NearbySharingDecoderImpl nearby_sharing_decoder_;
   std::shared_ptr<IncomingFramesReader> frames_reader_ = nullptr;
 };
 

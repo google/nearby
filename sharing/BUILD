@@ -74,7 +74,6 @@ cc_library(
         "constants.h",
         "nearby_connection.h",
         "nearby_connections_manager.h",
-        "nearby_sharing_decoder.h",
         "share_target.h",
     ],
     visibility = [
@@ -121,9 +120,8 @@ cc_library(
 )
 
 cc_library(
-    name = "nearby_sharing_decoder_impl",
-    srcs = ["nearby_sharing_decoder_impl.cc"],
-    hdrs = ["nearby_sharing_decoder_impl.h"],
+    name = "nearby_sharing_decoder",
+    hdrs = ["nearby_sharing_decoder.h"],
     visibility = [
         "//sharing/fuzzing:__pkg__",
     ],
@@ -292,7 +290,7 @@ cc_library(
         ":connection_types",
         ":incoming_frame_reader",
         ":nearby_connection_impl",
-        ":nearby_sharing_decoder_impl",
+        ":nearby_sharing_decoder",
         ":paired_key_verification_runner",
         ":share_session",
         ":thread_timer",
@@ -433,7 +431,6 @@ cc_test(
     srcs = ["paired_key_verification_runner_test.cc"],
     deps = [
         ":incoming_frame_reader",
-        ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
         ":test_support",
         ":types",
@@ -480,7 +477,6 @@ cc_test(
     deps = [
         ":incoming_frame_reader",
         ":nearby_connection_impl",
-        ":nearby_sharing_decoder_impl",
         ":test_support",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
@@ -499,7 +495,6 @@ cc_test(
     deps = [
         ":incoming_frame_reader",
         ":nearby_connection_impl",
-        ":nearby_sharing_decoder_impl",
         ":test_support",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
@@ -550,6 +545,7 @@ cc_test(
         ":share_session",
         ":test_support",
         ":transfer_metadata",
+        ":transfer_metadata_matchers",
         ":types",
         "//base:casts",
         "//internal/analytics:mock_event_logger",
@@ -557,7 +553,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//internal/test:mocks",
-        "//sharing:transfer_metadata_matchers",
         "//sharing/analytics",
         "//sharing/certificates",
         "//sharing/certificates:test_support",
@@ -756,7 +751,6 @@ cc_test(
     name = "share_session_test",
     srcs = ["share_session_test.cc"],
     deps = [
-        ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
         ":share_session",
         ":test_support",
@@ -805,7 +799,6 @@ cc_test(
     deps = [
         ":attachments",
         ":connection_types",
-        ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
         ":share_session",
         ":test_support",
@@ -831,7 +824,6 @@ cc_test(
         ":attachment_compare",
         ":attachments",
         ":connection_types",
-        ":nearby_sharing_decoder_impl",
         ":paired_key_verification_runner",
         ":share_session",
         ":test_support",

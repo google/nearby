@@ -39,8 +39,6 @@
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
-#include "sharing/nearby_sharing_decoder.h"
-#include "sharing/nearby_sharing_decoder_impl.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -137,9 +135,8 @@ const absl::Duration kTimeout = absl::Seconds(1);
 class MockIncomingFramesReader : public IncomingFramesReader {
  public:
   MockIncomingFramesReader(TaskRunner& service_thread,
-                           const NearbySharingDecoder& decoder,
                            NearbyConnection* connection)
-      : IncomingFramesReader(service_thread, decoder, connection) {}
+      : IncomingFramesReader(service_thread, connection) {}
 
   MOCK_METHOD(void, ReadFrame,
               (std::function<void(std::optional<V1Frame>)> callback),
@@ -186,7 +183,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
   };
 
   PairedKeyVerificationRunnerTest()
-      : frames_reader_(fake_task_runner_, decoder_, &connection_) {}
+      : frames_reader_(fake_task_runner_, &connection_) {}
 
   void SetUp() override {
     GetFakeClock()->FastForward(absl::Minutes(15));
@@ -326,7 +323,6 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
   FakeClock fake_clock_;
   FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
   FakeNearbyConnection connection_;
-  NearbySharingDecoderImpl decoder_;
   testing::NiceMock<MockIncomingFramesReader> frames_reader_;
   FakeNearbyShareCertificateManager certificate_manager_;
 };
