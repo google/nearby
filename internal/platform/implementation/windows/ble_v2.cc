@@ -1216,12 +1216,8 @@ void BleV2Medium::AdvertisementFoundHandler(
 
 bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
                                       GetRemotePeripheralCallback callback) {
-  BleV2Peripheral* peripheral = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    BleV2Peripheral* peripheral = GetOrCreatePeripheral(mac_address);
-  }
-
+  absl::MutexLock lock(&mutex_);
+  BleV2Peripheral* peripheral = GetOrCreatePeripheral(mac_address);
   if (peripheral != nullptr && peripheral->Ok()) {
     callback(*peripheral);
     return true;
@@ -1231,12 +1227,8 @@ bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
 
 bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                                       GetRemotePeripheralCallback callback) {
-  BleV2Peripheral* peripheral = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    BleV2Peripheral* peripheral = GetPeripheral(id);
-  }
-
+  absl::MutexLock lock(&mutex_);
+  BleV2Peripheral* peripheral = GetPeripheral(id);
   if (peripheral == nullptr) {
     NEARBY_LOGS(WARNING) << __func__ << ": No matched peripheral device.";
     return false;

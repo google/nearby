@@ -546,10 +546,12 @@ cc_test(
     deps = [
         ":attachments",
         ":connection_types",
+        ":nearby_sharing_decoder_impl",
         ":nearby_sharing_service",
         ":share_session",
         ":test_support",
         ":transfer_metadata",
+        ":transfer_metadata_matchers",
         ":types",
         "//base:casts",
         "//internal/analytics:mock_event_logger",
@@ -557,7 +559,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//internal/test:mocks",
-        "//sharing:transfer_metadata_matchers",
         "//sharing/analytics",
         "//sharing/certificates",
         "//sharing/certificates:test_support",
