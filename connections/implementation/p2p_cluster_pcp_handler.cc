@@ -720,6 +720,14 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
           return;
         }
 
+        if (client->GetDiscoveryOptions()
+                .fast_advertisement_service_uuid.empty() &&
+            fast_advertisement) {
+          NEARBY_LOGS(INFO) << "Ignore the fast advertisement due to cient "
+                               "doesn't receive it.";
+          return;
+        }
+
         auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
             fast_advertisement, advertisement_bytes);
         if (!ble_status_or.ok()) {
@@ -781,6 +789,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
         found_endpoints_in_ble_discover_cb_[peripheral_id] = ble_endpoint_state;
         StopEndpointLostByMediumAlarm(advertisement.GetEndpointId(),
                                       Medium::BLUETOOTH);
+
         OnEndpointFound(client,
                         std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
                             {
