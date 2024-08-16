@@ -637,51 +637,24 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
                            << absl::BytesToHexString(
                                   ByteArray(advertisement_header).data())
                            << " in thread";
-      ByteArray advertisement_data{advertisement_header};
-      if (fetching_advertisements_.contains(advertisement_data)) {
+
+      if (!fetching_advertisements_.insert(advertisement_header).second) {
         NEARBY_LOGS(VERBOSE) << ": Ignore the advertisement header due to it "
                                 "is already in fetching.";
         return;
       }
 
-      fetching_advertisements_.insert(advertisement_data);
-
       if (executor_ == nullptr) {
         // The situation happens when flag value changed
         executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
       }
-      executor_->Execute([this, peripheral, advertisement_header,
-                          advertisement_fetcher =
-                              std::move(advertisement_fetcher),
-                          advertisement_data =
-                              std::move(advertisement_data)]() mutable {
-        {
-          MutexLock lock(&mutex_);
-          if (!IsInterestingAdvertisementHeader(advertisement_header)) {
-            NEARBY_LOGS(INFO)
-                << ": Ignore to read raw advertisement from server due to it "
-                   "is not interesting header now.";
-            fetching_advertisements_.erase(advertisement_data);
-            return;
-          }
-        }
-
-        std::vector<const ByteArray*> gatt_advertisement_bytes_list =
+      executor_->Execute(
+          [this, peripheral, advertisement_header,
+           advertisement_fetcher = std::move(advertisement_fetcher),
+           advertisement_data = std::move(advertisement_data)]() mutable {
             FetchRawAdvertisementsInThread(peripheral, advertisement_header,
                                            std::move(advertisement_fetcher));
-        {
-          MutexLock lock(&mutex_);
-          HandleRawGattAdvertisements(peripheral, advertisement_header,
-                                      gatt_advertisement_bytes_list,
-                                      /*service_uuid=*/{});
-          UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
-          fetching_advertisements_.erase(advertisement_data);
-          NEARBY_LOGS(VERBOSE)
-              << ": Completed to handle GATT advertisement "
-              << absl::BytesToHexString(ByteArray(advertisement_header).data())
-              << " in thread";
-        }
-      });
+          });
       return;
     } else {
       std::vector<const ByteArray*> gatt_advertisement_bytes_list =
@@ -796,8 +769,7 @@ DiscoveredPeripheralTracker::FetchRawAdvertisements(
   std::transform(service_id_infos_.begin(), service_id_infos_.end(),
                  std::back_inserter(service_ids),
                  [](auto& kv) { return kv.first; });
-  advertisement_fetcher(std::move(peripheral),
-                        advertisement_header.GetNumSlots(),
+  advertisement_fetcher(peripheral, advertisement_header.GetNumSlots(),
                         advertisement_header.GetPsm(), service_ids, *result);
 
   // Take those results and return all the advertisements we were able to
@@ -805,33 +777,63 @@ DiscoveredPeripheralTracker::FetchRawAdvertisements(
   return result->GetAdvertisements();
 }
 
-std::vector<const ByteArray*>
-DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
+void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
     BleV2Peripheral peripheral,
     const BleAdvertisementHeader& advertisement_header,
     AdvertisementFetcher advertisement_fetcher) {
   std::vector<std::string> service_ids;
-  AdvertisementReadResult* result = nullptr;
+
   {
     MutexLock lock(&mutex_);
-    // Fetch the raw GATT advertisements and store the results.
-    auto& read_result = advertisement_read_results_[advertisement_header];
-    if (read_result == nullptr) {
-      read_result = std::make_unique<mediums::AdvertisementReadResult>();
+    if (!IsInterestingAdvertisementHeader(advertisement_header)) {
+      NEARBY_LOGS(INFO)
+          << ": Ignore to read raw advertisement from server due to it "
+             "is not interesting header now.";
+      fetching_advertisements_.erase(advertisement_header);
+      return;
     }
 
-    result = read_result.get();
     std::transform(service_id_infos_.begin(), service_id_infos_.end(),
                    std::back_inserter(service_ids),
                    [](auto& kv) { return kv.first; });
   }
-  advertisement_fetcher(std::move(peripheral),
-                        advertisement_header.GetNumSlots(),
-                        advertisement_header.GetPsm(), service_ids, *result);
 
-  // Take those results and return all the advertisements we were able to
-  // read.
-  return result->GetAdvertisements();
+  auto result = std::make_unique<mediums::AdvertisementReadResult>();
+  advertisement_fetcher(peripheral, advertisement_header.GetNumSlots(),
+                        advertisement_header.GetPsm(), service_ids, *result);
+  {
+    MutexLock lock(&mutex_);
+    // The fetching process might take a few seconds, and tracking settings
+    // could change during that time. We need to double-check if the result
+    // is still valid afterward.
+    if (!IsInterestingAdvertisementHeader(advertisement_header)) {
+      NEARBY_LOGS(WARNING)
+          << ": Ignore the fetched GATT advertisement from server due to it "
+             "is not interesting header now.";
+      return;
+    }
+
+    auto it = advertisement_read_results_.insert_or_assign(advertisement_header,
+                                                           std::move(result));
+    std::vector<const ByteArray*> gatt_advertisement_bytes_list =
+        it.first->second->GetAdvertisements();
+
+    if (gatt_advertisement_bytes_list.empty() ||
+        !IsInterestingAdvertisementHeader(advertisement_header)) {
+      fetching_advertisements_.erase(advertisement_header);
+      return;
+    }
+
+    HandleRawGattAdvertisements(peripheral, advertisement_header,
+                                gatt_advertisement_bytes_list,
+                                /*service_uuid=*/{});
+    UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
+    fetching_advertisements_.erase(advertisement_header);
+    NEARBY_LOGS(VERBOSE) << ": Completed to handle GATT advertisement "
+                         << absl::BytesToHexString(
+                                ByteArray(advertisement_header).data())
+                         << " in thread";
+  }
 }
 
 void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(

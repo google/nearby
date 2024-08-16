@@ -241,7 +241,7 @@ class DiscoveredPeripheralTracker {
       AdvertisementFetcher advertisement_fetcher)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::vector<const ByteArray*> FetchRawAdvertisementsInThread(
+  void FetchRawAdvertisementsInThread(
       BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
       AdvertisementFetcher advertisement_fetcher);
@@ -319,7 +319,7 @@ class DiscoveredPeripheralTracker {
       gatt_advertisement_infos_ ABSL_GUARDED_BY(mutex_);
 
   // Tracks the advertisements in GATT fetching.
-  absl::flat_hash_set<ByteArray> fetching_advertisements_
+  absl::flat_hash_set<BleAdvertisementHeader> fetching_advertisements_
       ABSL_GUARDED_BY(mutex_);
 
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
